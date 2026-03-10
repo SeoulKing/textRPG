@@ -1,0 +1,20 @@
+﻿<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#1A1715"/>
+  <rect width="1600" height="900" fill="url(#paint0_radial)"/>
+  <path d="M0 650L160 620L320 670L480 640L640 690L800 648L960 686L1120 642L1280 690L1440 632L1600 665V900H0V650Z" fill="#0F0D0C"/>
+  <path d="M60 590L260 480L430 585H60V590Z" fill="#2A2420"/>
+  <path d="M320 612L520 470L720 612H320Z" fill="#352B25"/>
+  <path d="M860 602L1030 500L1200 602H860Z" fill="#2B241F"/>
+  <path d="M1120 615L1300 490L1500 615H1120Z" fill="#312824"/>
+  <circle cx="1180" cy="182" r="92" fill="#F99353" fill-opacity="0.16"/>
+  <circle cx="1180" cy="182" r="46" fill="#FFB067" fill-opacity="0.35"/>
+  <rect x="755" y="610" width="90" height="120" rx="12" fill="#201B18"/>
+  <path d="M738 650C754 620 788 594 820 594C852 594 885 620 902 650C875 668 849 680 820 680C790 680 764 668 738 650Z" fill="#FF8A44"/>
+  <path d="M692 708L820 630L948 708H692Z" fill="#3A2B22"/>
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(820 160) rotate(90) scale(520 980)">
+      <stop stop-color="#5A3425"/>
+      <stop offset="1" stop-color="#171311"/>
+    </radialGradient>
+  </defs>
+</svg>
