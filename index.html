@@ -1,81 +1,62 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>잔불 아래 | 텍스트 RPG MVP</title>
+  <title>폐허 서울: 3일 생존</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
-    <header class="status-strip">
-      <div class="brand-block">
-        <p class="kicker">TEXT RPG MVP</p>
-        <h1>잔불 아래</h1>
-      </div>
-      <div class="top-meta">
-        <div class="time-card">
-          <span class="meta-label">현재 시간</span>
-          <strong id="time-indicator">1일차 아침</strong>
+    <section class="story-shell">
+      <header class="status-strip">
+        <div class="status-grid">
+          <button id="hp-status" class="status-trigger" data-stat="hp" type="button" aria-label="체력 상세 보기">
+            <span class="status-icon" aria-hidden="true">❤️</span>
+            <span class="visually-hidden">체력</span>
+            <span class="meter compact">
+              <span id="hp-fill"></span>
+            </span>
+          </button>
+          <button id="mind-status" class="status-trigger" data-stat="mind" type="button" aria-label="정신력 상세 보기">
+            <span class="status-icon" aria-hidden="true">🧠</span>
+            <span class="visually-hidden">정신력</span>
+            <span class="meter compact">
+              <span id="mind-fill"></span>
+            </span>
+          </button>
+          <button id="fullness-status" class="status-trigger" data-stat="fullness" type="button" aria-label="포만감 상세 보기">
+            <span class="status-icon" aria-hidden="true">🍖</span>
+            <span class="visually-hidden">포만감</span>
+            <span class="meter compact">
+              <span id="fullness-fill"></span>
+            </span>
+          </button>
+          <section class="status-chip status-time">
+            <span>현재 시간</span>
+            <strong id="time-indicator">06:00</strong>
+          </section>
         </div>
-        <button id="new-game-button" class="ghost-button" type="button">새 게임</button>
-      </div>
-      <div class="status-grid">
-        <section class="status-card">
-          <div class="status-copy">
-            <span>체력</span>
-            <strong id="hp-value">8 / 10</strong>
-          </div>
-          <div class="meter">
-            <span id="hp-fill"></span>
-          </div>
-        </section>
-        <section class="status-card">
-          <div class="status-copy">
-            <span>정신력</span>
-            <strong id="mind-value">7 / 10</strong>
-          </div>
-          <div class="meter">
-            <span id="mind-fill"></span>
-          </div>
-        </section>
-        <section class="status-card">
-          <div class="status-copy">
-            <span>포만감</span>
-            <strong id="fullness-value">6 / 10</strong>
-          </div>
-          <div class="meter">
-            <span id="fullness-fill"></span>
-          </div>
-        </section>
-        <section class="status-chip">
-          <span>돈</span>
-          <strong id="money-value">12원</strong>
-        </section>
-      </div>
-    </header>
+        <div id="status-popover" class="status-popover" hidden></div>
+      </header>
 
-    <main class="story-stage">
-      <section class="scene-frame">
-        <div class="scene-art-wrap">
-          <img id="scene-art" src="assets/scenes/camp.svg" alt="현재 장면 일러스트">
-          <div class="scene-overlay">
-            <span id="scene-location-badge" class="pill">생존자 캠프</span>
-            <span id="scene-risk-badge" class="pill muted">안전</span>
+      <main class="story-stage">
+        <section class="scene-frame">
+          <div class="scene-art-wrap">
+            <img id="scene-art" src="assets/scenes/camp.svg" alt="현재 장면 일러스트">
+            <div class="scene-overlay">
+              <span id="scene-location-badge" class="pill">생존자 캠프</span>
+              <span id="scene-risk-badge" class="pill muted">안전</span>
+            </div>
           </div>
-        </div>
-        <div class="scene-copy">
-          <div class="eyebrow-row">
-            <span class="eyebrow">짧은 서술 + 선택 + 상태 변화</span>
-            <span id="quest-hint" class="quest-hint">주 퀘스트: 약품을 찾아야 한다.</span>
+          <div class="scene-copy">
+            <div id="system-note" class="system-note" hidden></div>
+            <div id="scene-text" class="scene-text"></div>
+            <div id="choices" class="choice-list"></div>
           </div>
-          <h2 id="scene-title">잔불 아래에서 눈을 뜬다</h2>
-          <div id="scene-text" class="scene-text"></div>
-          <div id="system-note" class="system-note" hidden></div>
-          <div id="choices" class="choice-list"></div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </section>
 
     <footer class="utility-dock">
       <nav class="dock-buttons" aria-label="보조 메뉴">
@@ -92,6 +73,9 @@
         </div>
         <div id="panel-content" class="panel-content"></div>
       </section>
+      <div class="utility-actions">
+        <button id="new-game-button" class="ghost-button" type="button">새 게임</button>
+      </div>
     </footer>
   </div>
 
@@ -105,3 +89,4 @@
   <script defer src="app.js"></script>
 </body>
 </html>
+
