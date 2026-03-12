@@ -549,19 +549,19 @@ body::before {
 
 .hex-map-board {
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   --hex-width: 126px;
   --hex-height: 110px;
-  --hex-step-x: calc(var(--hex-width) * 0.75);
-  --hex-origin-x: calc(var(--hex-width) * 0.56);
-  --hex-origin-y: calc(var(--hex-height) * 0.5);
-  min-height: calc((var(--hex-height) * 3.1) + 36px);
   padding: 18px;
   border: 1px solid rgba(214, 143, 75, 0.12);
   border-radius: 22px;
   background:
     radial-gradient(circle at top, rgba(161, 117, 85, 0.12), transparent 42%),
     linear-gradient(180deg, rgba(234, 222, 209, 0.96), rgba(214, 198, 181, 0.92));
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .hex-map-board::before {
@@ -574,13 +574,19 @@ body::before {
   pointer-events: none;
 }
 
+.hex-map-stage {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: var(--hex-width);
+  min-height: var(--hex-height);
+}
+
 .hex-tile {
   position: absolute;
-  left: calc(var(--hex-origin-x) + (var(--hex-col) * var(--hex-step-x)));
-  top: calc(var(--hex-origin-y) + (var(--hex-row) * var(--hex-height)) + ((var(--hex-col-odd)) * var(--hex-height) / 2));
   transform: translate(-50%, -50%);
   width: var(--hex-width);
-  min-height: var(--hex-height);
+  aspect-ratio: 1.154700538 / 1;
+  height: var(--hex-height);
   border: 0;
   background: transparent;
   padding: 0;
@@ -589,13 +595,19 @@ body::before {
   z-index: 1;
 }
 
+.hex-tile:hover .hex-tile-body,
+.hex-tile:focus-visible .hex-tile-body {
+  filter: brightness(1.08);
+}
+
 .hex-tile-body {
-  clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0 50%);
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0 50%);
   display: grid;
   align-content: center;
   justify-items: center;
   gap: 4px;
-  min-height: var(--hex-height);
+  width: 100%;
+  height: 100%;
   padding: 18px 14px;
   border: 1px solid rgba(122, 91, 62, 0.4);
   background: linear-gradient(180deg, rgba(255, 254, 251, 0.99), rgba(248, 240, 230, 0.98));
@@ -607,7 +619,8 @@ body::before {
     box-shadow 140ms ease,
     border-color 140ms ease,
     background 140ms ease,
-    opacity 140ms ease;
+    opacity 140ms ease,
+    filter 140ms ease;
 }
 
 .hex-tile-risk {
@@ -627,11 +640,6 @@ body::before {
   color: var(--muted);
 }
 
-.hex-tile:hover .hex-tile-body,
-.hex-tile:focus-visible .hex-tile-body {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 30px rgba(53, 35, 19, 0.18);
-}
 
 .hex-tile.is-current .hex-tile-body {
   border-color: rgba(214, 143, 75, 0.95);
@@ -669,6 +677,19 @@ body::before {
       rgba(247, 239, 230, 0.96) 16px
     ),
     linear-gradient(180deg, rgba(250, 242, 233, 0.98), rgba(238, 225, 210, 0.96));
+}
+
+.hex-tile.is-controlled .hex-tile-body {
+  border-color: rgba(135, 111, 93, 0.64);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(122, 91, 62, 0.16),
+      rgba(122, 91, 62, 0.16) 7px,
+      rgba(239, 232, 224, 0.96) 7px,
+      rgba(239, 232, 224, 0.96) 14px
+    ),
+    linear-gradient(180deg, rgba(243, 236, 229, 0.98), rgba(229, 220, 209, 0.96));
 }
 
 .hex-tile.is-known .hex-tile-body {
@@ -797,10 +818,6 @@ body::before {
   .hex-map-board {
     --hex-width: 96px;
     --hex-height: 84px;
-    --hex-step-x: calc(var(--hex-width) * 0.75);
-    --hex-origin-x: calc(var(--hex-width) * 0.56);
-    --hex-origin-y: calc(var(--hex-height) * 0.5);
-    min-height: calc((var(--hex-height) * 3.2) + 30px);
     padding: 14px 8px;
   }
 

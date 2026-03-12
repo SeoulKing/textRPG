@@ -1,0 +1,29 @@
+import { z } from "zod";
+import { ConditionSchema } from "./condition-effect";
+import { EffectSchema } from "./condition-effect";
+import { GameActionSchema } from "./action";
+
+export const RiskHintSchema = z.enum(["low", "medium", "high"]);
+
+export const StoryChoiceSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  outcomeHint: z.string(),
+  serverActionHint: GameActionSchema,
+  descriptionTag: z.string().optional(),
+  conditions: z.array(ConditionSchema).optional(),
+  effects: z.array(EffectSchema).optional(),
+  riskHint: RiskHintSchema.optional(),
+  hidden: z.boolean().optional(),
+  nextEventId: z.string().optional(),
+});
+
+export const ActionChoiceSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  outcomeHint: z.string(),
+  action: GameActionSchema,
+});
+
+export type StoryChoice = z.infer<typeof StoryChoiceSchema>;
+export type ActionChoice = z.infer<typeof ActionChoiceSchema>;

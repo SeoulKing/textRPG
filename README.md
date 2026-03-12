@@ -1,39 +1,63 @@
-﻿# 잔불 아래
+# 잔불 아래
 
-선택지 기반 오픈월드 텍스트 RPG의 웹 MVP입니다. 대화에서 정리한 방향을 바탕으로, 다음 핵심 루프만 먼저 구현했습니다.
+폐허가 된 서울에서 3일을 버티는 서버 권한형 텍스트 RPG입니다.  
+브라우저는 렌더러 역할만 맡고, 게임 상태와 카드 생성, 액션 검증, 기록 저장은 Fastify 서버가 담당합니다.
 
-- 상단 상태바: 체력, 정신력, 포만감, 돈, 현재 위치
-- 중앙 서사 영역: 장면 일러스트, 짧은 서술, 선택지
-- 하단 메뉴: 지도, 아이템, 스킬, 퀘스트, 기록
-- 데이터 중심 진행: 지역 이동, 상태 변화, 퀘스트, 아이템, 잠금 조건
+## 현재 구조
 
-## 실행 방법
+- 브라우저 클라이언트: `app-api.js`
+- 서버: `src/server.ts`
+- 규칙 엔진: `src/game/rules.ts`
+- 카드 생성기: `src/game/content-generator.ts` (LLM 확장 시 `RemoteContentGenerator` 사용)
+- 저장소: `src/game/repository.ts`, `src/game/postgres-repository.ts`
+- 스키마: `src/game/schemas/`
+- **게임 데이터**: `src/game/data/` (items, locations, people, story-templates, registry)
 
-가장 간단한 방법은 `index.html`을 브라우저로 여는 것입니다.
-
-로컬 서버를 쓰고 싶다면 아무 정적 서버로도 됩니다. 예시는 아래와 같습니다.
+## 로컬 실행
 
 ```powershell
 cd D:\BANG\project\textRPG
-python -m http.server 8000
+npm install
+npm run start
 ```
 
-그 뒤 브라우저에서 `http://localhost:8000` 을 열면 됩니다.
+브라우저에서 `http://localhost:3000` 으로 접속합니다.
 
-## 현재 포함된 콘텐츠
+## 환경 변수
 
-- 시작 전문성 선택 3종
-- 허브 지역 6개
-- 메인 퀘스트 `약품 수색`
-- 분기형 병원 공략 2경로
-- 보급품, 진통제, 열쇠, 정비 지도, 항생제 등 기본 아이템
-- 시간 경과와 포만감 소모
-- 로컬 저장 `localStorage`
+`.env.example`을 참고해 아래 값을 설정할 수 있습니다.
 
-## 다음 확장 추천
+- `PORT`
+- `DATABASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `LLM_API_URL`
+- `LLM_API_KEY`
+- `LLM_MODEL`
 
-1. `SCENES`와 `LOCATIONS`를 JSON 파일로 분리
-2. 랜덤 이벤트 풀 추가
-3. 장기 생존 자원과 세력 평판 도입
-4. 저장 슬롯과 관리자용 콘텐츠 편집 화면 추가
-5. 실제 일러스트 자산과 사운드 적용
+`DATABASE_URL`이 있으면 Postgres 저장소를 사용하고, 없으면 로컬 `.runtime` 파일 저장소로 fallback 합니다.  
+`LLM_API_URL`과 `LLM_API_KEY`가 있으면 OpenAI 호환 API를 사용하고, 없으면 템플릿 기반 생성기로 동작합니다.
+
+## 데이터베이스 초기화
+
+Supabase Postgres나 일반 Postgres를 쓸 때는 먼저 스키마를 만듭니다.
+
+```powershell
+cd D:\BANG\project\textRPG
+$env:DATABASE_URL="postgresql://..."
+npm run db:init
+```
+
+## API 요약
+
+- `POST /api/games`: 새 게임 세션 생성
+- `GET /api/games/:gameId/state`: 현재 스냅샷 조회
+- `POST /api/games/:gameId/actions`: 이동, 휴식, 아이템 사용, 이벤트 생성
+- `GET /api/health`: 헬스체크
+
+상태 스냅샷에는 `currentScene`, `visibleLocations`, `visiblePeople`, `inventoryCards`, `protagonist`, `storyMaterials`, `availableActions`, `mapEntries`가 포함됩니다.
+
+## 배포 문서
+
+- 구조 설명: `SERVER_ARCHITECTURE.md`
+- Railway/Supabase 배포 절차: `DEPLOY.md`

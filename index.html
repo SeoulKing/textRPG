@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>폐허 서울: 3일 생존</title>
+  <title>폐허 서울: 캠프 생존</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -33,8 +33,7 @@
             </span>
           </button>
           <section class="status-chip status-time">
-            <span>현재 시간</span>
-            <strong id="time-indicator">06:00</strong>
+            <strong id="time-indicator">1일차 06:00</strong>
           </section>
         </div>
         <div id="status-popover" class="status-popover" hidden></div>
@@ -60,7 +59,7 @@
 
     <footer class="utility-dock">
       <nav class="dock-buttons" aria-label="보조 메뉴">
-        <button class="dock-button active" data-panel="map" type="button">지도</button>
+        <button class="dock-button active" data-panel="map" type="button">이동</button>
         <button class="dock-button" data-panel="inventory" type="button">아이템</button>
         <button class="dock-button" data-panel="skills" type="button">스킬</button>
         <button class="dock-button" data-panel="quests" type="button">퀘스트</button>
@@ -86,7 +85,7 @@
     </button>
   </template>
 
-  <script defer src="app.js"></script>
+  <script type="module" src="app-api.js"></script>
 </body>
 </html>
 
