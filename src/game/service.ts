@@ -12,7 +12,7 @@ import {
 import { createContentGenerator, type ContentGenerator } from "./content-generator";
 import { worldRegistry } from "./data/registry";
 import type { GameRepository } from "./repository";
-import { createInitialGameState, performAction, refreshLocationKnowledge, syncClock } from "./rules";
+import { applySystemNote, createInitialGameState, performAction, refreshLocationKnowledge, syncClock, syncQuestState } from "./rules";
 import type {
   ActionChoice,
   EventCard,
@@ -63,7 +63,10 @@ export class GameService {
 
   async getState(gameId: string) {
     const session = await this.repository.loadGame(gameId);
+    const previousState = structuredClone(session.state);
     syncClock(session.state);
+    syncQuestState(session.state);
+    applySystemNote(previousState, session.state);
     session.updatedAt = nowIso();
     await this.ensureCards(session);
     await this.repository.saveGame(session);
@@ -165,19 +168,14 @@ export class GameService {
   }
 
   private visiblePersonIds(session: GameSession) {
-    const ids = new Set<string>();
-    for (const locationId of this.visibleLocationIds(session.state.location, session.state.flags)) {
-      const location = baseLocations[locationId];
-      location.residentIds.forEach((personId) => ids.add(personId));
-    }
-    return Array.from(ids);
+    return [...baseLocations[session.state.location].residentIds];
   }
 
   private generatorInput(session: GameSession, includeProtagonist: boolean) {
     return {
       state: session.state,
       gameId: session.id,
-      recentLog: session.state.log.slice(-6),
+      recentLog: session.state.log.slice(-6).map((entry) => entry.message),
       allowedActions: this.buildActionCatalog(session),
       storyMaterials: this.buildStoryMaterials(session, { includeProtagonist }),
     };
@@ -207,12 +205,14 @@ export class GameService {
   }
 
   private async ensureLocationCard(session: GameSession, locationId: string) {
-    if (session.world.locationCards[locationId]) {
-      return session.world.locationCards[locationId];
+    const expectedImagePath = baseLocations[locationId]?.imagePath ?? null;
+    const existing = session.world.locationCards[locationId];
+    if (existing && existing.imagePath === expectedImagePath) {
+      return existing;
     }
 
     const cached = await this.repository.getTemplate("locationCards", locationId);
-    if (cached) {
+    if (cached && (cached as LocationCard).imagePath === expectedImagePath) {
       session.world.locationCards[locationId] = cached as LocationCard;
       return cached;
     }
@@ -458,7 +458,7 @@ export class GameService {
       gameId: session.id,
       state: session.state,
       currentScene,
-      visibleLocations: Object.keys(baseLocations).map(
+      visibleLocations: this.visibleLocationIds(session.state.location, session.state.flags).map(
         (locationId) => session.world.locationCards[locationId] as LocationCard,
       ).filter(Boolean),
       visiblePeople: this.visiblePersonIds(session).map(
@@ -504,3 +504,4 @@ export class GameService {
     return worldRegistry.actions[action.actionId]?.type === "explore";
   }
 }
+

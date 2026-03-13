@@ -316,6 +316,20 @@ body::before {
 .system-note {
   align-self: flex-start;
   margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.system-note.is-entering {
+  animation: fade-up 220ms ease;
+}
+
+.system-note-token {
+  display: inline-flex;
+  align-items: center;
   width: fit-content;
   max-width: 100%;
   padding: 10px 12px;
@@ -323,9 +337,23 @@ body::before {
   background: rgba(214, 143, 75, 0.1);
   border: 1px solid rgba(184, 108, 42, 0.18);
   color: #8f5628;
+  font-weight: 600;
   line-height: 1.55;
   font-size: 0.94rem;
-  white-space: pre-line;
+  white-space: nowrap;
+  animation: fade-up 220ms ease;
+}
+
+.system-note-token.is-positive {
+  color: #2f7d32;
+  background: rgba(47, 125, 50, 0.12);
+  border-color: rgba(47, 125, 50, 0.24);
+}
+
+.system-note-token.is-negative {
+  color: #c23b22;
+  background: rgba(194, 59, 34, 0.12);
+  border-color: rgba(194, 59, 34, 0.24);
 }
 
 .scene-text {
@@ -359,6 +387,25 @@ body::before {
 .choice-button:hover {
   background: rgba(214, 143, 75, 0.12);
   border-color: rgba(255, 177, 92, 0.24);
+}
+
+.choice-button.is-quest {
+  background: linear-gradient(135deg, rgba(196, 110, 39, 0.16), rgba(222, 154, 77, 0.12));
+  border-color: rgba(196, 110, 39, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(255, 235, 204, 0.22);
+}
+
+.choice-button.is-quest:hover {
+  background: linear-gradient(135deg, rgba(196, 110, 39, 0.24), rgba(222, 154, 77, 0.18));
+  border-color: rgba(196, 110, 39, 0.5);
+}
+
+.choice-button.is-quest .choice-label {
+  color: #9a4f12;
+}
+
+.choice-button.is-quest .choice-meta {
+  color: #8f5628;
 }
 
 .choice-button:disabled {
@@ -542,18 +589,59 @@ body::before {
   background: rgba(132, 103, 72, 0.05);
 }
 
+.map-card.map-card-compact {
+  padding: 10px 12px;
+  border-radius: 18px;
+}
+
+.map-card.map-card-compact .map-meta {
+  margin-bottom: 4px;
+}
+
+.map-card.map-card-compact h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.map-card.map-card-compact p {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.map-card.map-card-compact .tiny {
+  display: block;
+  margin-top: 6px;
+}
+
+.map-card.is-reachable {
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.map-card.is-reachable:hover {
+  transform: translateY(-1px);
+  background: rgba(214, 143, 75, 0.12);
+  border-color: rgba(255, 177, 92, 0.24);
+  box-shadow: 0 10px 18px rgba(85, 58, 31, 0.08);
+}
+
 .hex-map-shell {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .hex-map-board {
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   --hex-width: 126px;
   --hex-height: 110px;
+  min-height: calc((var(--hex-height) * 2) + 72px);
   padding: 18px;
   border: 1px solid rgba(214, 143, 75, 0.12);
   border-radius: 22px;
@@ -579,6 +667,7 @@ body::before {
   flex: 0 0 auto;
   min-width: var(--hex-width);
   min-height: var(--hex-height);
+  transform: translateY(calc(var(--hex-height) * -0.12));
 }
 
 .hex-tile {
@@ -701,13 +790,39 @@ body::before {
   border-color: rgba(214, 143, 75, 0.22);
 }
 
-.map-node-hint {
-  margin: 0;
-  padding: 12px 14px;
+.map-list {
+  display: grid;
+  gap: 8px;
+}
+
+.log-list {
+  display: grid;
+  gap: 8px;
+}
+
+.log-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px;
   border-radius: 16px;
-  background: rgba(132, 103, 72, 0.08);
-  color: var(--text);
-  font-size: 0.9rem;
+  background: var(--panel);
+  border: 1px solid rgba(125, 94, 65, 0.1);
+}
+
+.log-time {
+  flex: 0 0 106px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(122, 91, 62, 0.82);
+  white-space: nowrap;
+}
+
+.log-message {
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .map-actions,
@@ -818,7 +933,18 @@ body::before {
   .hex-map-board {
     --hex-width: 96px;
     --hex-height: 84px;
-    padding: 14px 8px;
+    min-height: calc((var(--hex-height) * 2) + 44px);
+    padding: 12px 8px;
+  }
+
+  .log-line {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .log-time {
+    flex-basis: 92px;
+    font-size: 0.74rem;
   }
 
   .hex-tile {
@@ -971,4 +1097,3 @@ body::before {
     transform: translateY(0);
   }
 }
-

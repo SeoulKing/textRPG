@@ -1,10 +1,11 @@
-﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id";
+﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id-v8";
+const LEGACY_STORAGE_KEYS = ["ruined-seoul-stage1-game-id", "ruined-seoul-stage1-game-id-v7"];
 const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 35;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
+const CLIENT_SAVE_VERSION = 8;
 const HEX_RATIO = Math.sqrt(3) / 2;
-const ACTIVE_LOCATION_IDS = new Set(["shelter", "convenience", "kitchen"]);
 
 const HEX_BOARD_TEMPLATE = [
   { slotId: "northwest", col: 0, row: 0, locationId: null },
@@ -38,37 +39,77 @@ function currentHexDimensions() {
   };
 }
 
-function buildHexBoardLayout() {
+function buildBoardSlots(visible, states) {
+  const occupiedTemplateSlots = HEX_BOARD_TEMPLATE.filter((slot) => {
+    if (!slot.locationId) {
+      return false;
+    }
+    return visible.has(slot.locationId) || states.has(slot.locationId);
+  });
+  const usedLocationIds = new Set(occupiedTemplateSlots.map((slot) => slot.locationId));
+  const spilloverStartRow = HEX_BOARD_TEMPLATE.reduce((maxRow, slot) => Math.max(maxRow, slot.row), 0) + 1;
+  const extraLocationIds = Array.from(new Set([
+    ...states.keys(),
+    ...visible.keys(),
+  ])).filter((locationId) => locationId && !usedLocationIds.has(locationId));
+  const extraSlots = extraLocationIds.map((locationId, index) => ({
+    slotId: `auto-${locationId}`,
+    locationId,
+    col: index % 4,
+    row: spilloverStartRow + Math.floor(index / 4),
+  }));
+
+  return [...occupiedTemplateSlots, ...extraSlots];
+}
+
+function buildHexBoardLayout(slots) {
   const dimensions = currentHexDimensions();
   const stepX = dimensions.width * 0.75;
   const stepY = dimensions.height;
-  const positions = HEX_BOARD_TEMPLATE.map((slot) => {
+  const inset = {
+    top: dimensions.padding,
+    right: dimensions.padding,
+    bottom: dimensions.padding,
+    left: dimensions.padding,
+  };
+  const layoutSlots = slots.length ? slots : HEX_BOARD_TEMPLATE.filter((slot) => slot.locationId);
+  const positions = layoutSlots.map((slot) => {
     const x = (dimensions.width / 2) + (slot.col * stepX);
     const y = (dimensions.height / 2) + (slot.row * stepY) + ((slot.col % 2) * (dimensions.height / 2));
     return {
       slotId: slot.slotId,
+      locationId: slot.locationId,
       x: Math.round(x),
       y: Math.round(y),
     };
   });
-  const maxX = Math.max(...positions.map((position) => position.x), 0);
-  const maxY = Math.max(...positions.map((position) => position.y), 0);
+  const layoutPositions = positions.length ? positions : [{
+    slotId: "fallback",
+    locationId: null,
+    x: Math.round(dimensions.width / 2),
+    y: Math.round(dimensions.height / 2),
+  }];
+  const minLeft = Math.min(...layoutPositions.map((position) => position.x - (dimensions.width / 2)), 0);
+  const maxRight = Math.max(...layoutPositions.map((position) => position.x + (dimensions.width / 2)), dimensions.width);
+  const minTop = Math.min(...layoutPositions.map((position) => position.y - (dimensions.height / 2)), 0);
+  const maxBottom = Math.max(...layoutPositions.map((position) => position.y + (dimensions.height / 2)), dimensions.height);
+  const positionsMap = new Map(positions.map((position) => [position.slotId, {
+    x: Math.round(position.x - minLeft + inset.left),
+    y: Math.round(position.y - minTop + inset.top),
+  }]));
 
   return {
     dimensions,
-    pixelWidth: Math.ceil(maxX + (dimensions.width / 2)),
-    pixelHeight: Math.ceil(maxY + (dimensions.height / 2)),
-    positions: new Map(positions.map((position) => [position.slotId, {
-      x: position.x,
-      y: position.y,
-    }])),
+    pixelWidth: Math.ceil((maxRight - minLeft) + inset.left + inset.right),
+    pixelHeight: Math.ceil((maxBottom - minTop) + inset.top + inset.bottom),
+    positions: positionsMap,
   };
 }
 
 const PANEL_CONFIG = {
   map: {
     title: "이동",
-    subtitle: "지금 갈 수 있는 세 지역만 남겨 두었습니다.",
+    subtitle: "지금 파악한 이동 경로를 지도로 정리했습니다.",
   },
   inventory: {
     title: "아이템",
@@ -127,6 +168,9 @@ const client = {
   activeSceneTimer: null,
   activeAnimatedScene: null,
   isSceneTyping: false,
+  pendingInitialSceneAnimation: false,
+  seenSceneIds: new Set(),
+  renderedSystemNote: "",
 };
 
 function currentState() {
@@ -173,6 +217,10 @@ async function api(path, options = {}) {
   return response.json();
 }
 
+function clearLegacyGameIds() {
+  LEGACY_STORAGE_KEYS.forEach((key) => window.localStorage.removeItem(key));
+}
+
 async function createNewGame() {
   const snapshot = await api("/api/games", {
     method: "POST",
@@ -183,7 +231,14 @@ async function createNewGame() {
   client.lastFetchedAt = Date.now();
   client.activePanel = "map";
   client.mapHint = "";
+  client.pendingInitialSceneAnimation = true;
+  client.seenSceneIds = new Set();
+  clearLegacyGameIds();
   window.localStorage.setItem(STORAGE_KEY, client.gameId);
+}
+
+function needsFreshGame(snapshot) {
+  return !snapshot || !snapshot.state || snapshot.state.saveVersion !== CLIENT_SAVE_VERSION;
 }
 
 async function loadGameState() {
@@ -194,11 +249,46 @@ async function loadGameState() {
 
   try {
     const snapshot = await api(`/api/games/${client.gameId}/state`);
+    if (needsFreshGame(snapshot)) {
+      await createNewGame();
+      return;
+    }
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
+    client.pendingInitialSceneAnimation = false;
+    client.seenSceneIds = new Set(snapshot?.currentScene?.id ? [snapshot.currentScene.id] : []);
   } catch (_error) {
     await createNewGame();
   }
+}
+
+function currentSceneId(snapshot = client.snapshot) {
+  return snapshot?.currentScene?.id || "";
+}
+
+function hasSeenScene(sceneId) {
+  return Boolean(sceneId) && client.seenSceneIds.has(sceneId);
+}
+
+function shouldAnimateScene({ source, nextSnapshot }) {
+  const nextSceneId = currentSceneId(nextSnapshot);
+  if (!nextSceneId) {
+    return false;
+  }
+
+  if (source === "bootstrap") {
+    return client.pendingInitialSceneAnimation && !hasSeenScene(nextSceneId);
+  }
+
+  if (source === "backgroundSync") {
+    return false;
+  }
+
+  if (source !== "action") {
+    return false;
+  }
+
+  return !hasSeenScene(nextSceneId);
 }
 
 function scheduleSceneStep(callback, delay) {
@@ -280,6 +370,46 @@ function skipSceneTyping() {
   dom.sceneText.innerHTML = scene.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("");
   renderChoices();
   return true;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function renderSystemNote(note) {
+  if (!note) {
+    dom.systemNote.hidden = true;
+    dom.systemNote.innerHTML = "";
+    dom.systemNote.classList.remove("is-entering");
+    client.renderedSystemNote = "";
+    return;
+  }
+
+  const changed = note !== client.renderedSystemNote;
+  const parts = note.split(" / ").map((part) => {
+    const trimmed = part.trim();
+    if (trimmed.startsWith("+")) {
+      return `<span class="system-note-token is-positive">${escapeHtml(trimmed)}</span>`;
+    }
+    if (trimmed.startsWith("-")) {
+      return `<span class="system-note-token is-negative">${escapeHtml(trimmed)}</span>`;
+    }
+    return `<span class="system-note-token">${escapeHtml(trimmed)}</span>`;
+  });
+
+  dom.systemNote.hidden = false;
+  dom.systemNote.innerHTML = parts.join("");
+  if (changed) {
+    dom.systemNote.classList.remove("is-entering");
+    void dom.systemNote.offsetWidth;
+    dom.systemNote.classList.add("is-entering");
+  }
+  client.renderedSystemNote = note;
 }
 
 function openStatusPopover(statKey, options = {}) {
@@ -365,8 +495,10 @@ function renderChoices() {
     const button = fragment.querySelector("button");
     const label = fragment.querySelector(".choice-label");
     const meta = fragment.querySelector(".choice-meta");
+    const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
     meta.textContent = choice.outcomeHint;
+    button.classList.toggle("is-quest", isQuestChoice);
     button.disabled = client.actionInFlight;
     button.addEventListener("click", () => submitAction(choice.action));
     dom.choices.appendChild(fragment);
@@ -386,8 +518,7 @@ function renderScene(animateText = true) {
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
   dom.sceneLocationBadge.textContent = location.name;
   dom.sceneRiskBadge.textContent = location.risk;
-  dom.systemNote.hidden = !snapshot.state.systemNote;
-  dom.systemNote.textContent = snapshot.state.systemNote || "";
+  renderSystemNote(snapshot.state.systemNote || "");
 
   clearSceneAnimation();
   if (!animateText) {
@@ -414,12 +545,10 @@ function renderMapPanel() {
 
   const currentLocation = currentLocationCard();
   const { visible, states } = locationMap();
-  const boardLayout = buildHexBoardLayout();
+  const boardSlots = buildBoardSlots(visible, states);
+  const boardLayout = buildHexBoardLayout(boardSlots);
 
-  const tileMarkup = HEX_BOARD_TEMPLATE.map((slot) => {
-    if (!slot.locationId || !ACTIVE_LOCATION_IDS.has(slot.locationId)) {
-      return "";
-    }
+  const tileMarkup = boardSlots.map((slot) => {
     const position = boardLayout.positions.get(slot.slotId) || { x: 0, y: 0 };
     const location = visible.get(slot.locationId);
     const state = states.get(slot.locationId);
@@ -464,7 +593,7 @@ function renderMapPanel() {
   }).join("");
 
   const adjacentCards = snapshot.mapEntries
-    .filter((entry) => ACTIVE_LOCATION_IDS.has(entry.locationId))
+    .filter((entry) => visible.has(entry.locationId))
     .filter((entry) => entry.isAdjacent && !entry.isCurrent)
     .map((entry) => {
       const location = visible.get(entry.locationId);
@@ -472,17 +601,16 @@ function renderMapPanel() {
         return "";
       }
       return `
-        <article class="map-card ${entry.isReachable ? "" : "is-locked"}">
+        <article
+          class="map-card map-card-compact ${entry.isReachable ? "is-reachable" : "is-locked"}"
+          ${entry.isReachable ? `data-travel-card="${entry.locationId}"` : ""}
+        >
           <div class="map-meta">
             <h3>${location.name}</h3>
             <span class="tag">${location.risk}</span>
           </div>
           <p>${location.summary}</p>
-          <div class="map-actions">
-            ${entry.isReachable
-              ? `<button class="inline-action" data-travel-target="${entry.locationId}" type="button">이동</button>`
-              : `<button class="inline-action secondary" type="button" disabled>${entry.reason || "이동 불가"}</button>`}
-          </div>
+          ${entry.isReachable ? "" : `<small class="tiny">${entry.reason || "이동 불가"}</small>`}
         </article>
       `;
     }).join("");
@@ -506,15 +634,7 @@ function renderMapPanel() {
         </div>
       </div>
 
-      <div class="tag-row">
-        <span class="tag">현재 플레이 가능 지역 3곳</span>
-        <span class="tag">하얀 타일은 바로 이동 가능</span>
-        <span class="tag">빈 슬롯은 사용하지 않음</span>
-      </div>
-
-      <p class="map-node-hint">${client.mapHint || "임시 거처, 편의점 잔해, 급식소만 이동할 수 있습니다."}</p>
-
-      <div class="panel-grid">
+      <div class="map-list">
         ${adjacentCards}
       </div>
     </section>
@@ -550,10 +670,10 @@ function renderMapPanel() {
     });
   });
 
-  dom.panelContent.querySelectorAll("[data-travel-target]").forEach((button) => {
-    button.addEventListener("click", () => {
+  dom.panelContent.querySelectorAll("[data-travel-card]").forEach((card) => {
+    card.addEventListener("click", () => {
       client.mapHint = "";
-      submitAction({ type: "travel", targetId: button.dataset.travelTarget });
+      submitAction({ type: "travel", targetId: card.dataset.travelCard });
     });
   });
 }
@@ -625,14 +745,30 @@ function renderSkillsPanel() {
   `;
 }
 
+function questStatusLabel(status) {
+  if (status === "active") {
+    return "진행 중";
+  }
+  if (status === "completed") {
+    return "완료";
+  }
+  return "대기";
+}
+
 function renderQuestsPanel() {
+  const visibleQuests = (client.snapshot.quests || []).filter((quest) => quest.status !== "inactive");
+  if (!visibleQuests.length) {
+    dom.panelContent.innerHTML = `<p class="empty-state">아직 받은 퀘스트가 없다.</p>`;
+    return;
+  }
+
   dom.panelContent.innerHTML = `
     <div class="panel-grid">
-      ${client.snapshot.quests.map((quest) => `
+      ${visibleQuests.map((quest) => `
         <article class="quest-card">
           <div class="map-meta">
             <h3>${quest.name}</h3>
-            <span class="tag">${quest.status}</span>
+            <span class="tag">${questStatusLabel(quest.status)}</span>
           </div>
           <p>${quest.summary}</p>
         </article>
@@ -643,14 +779,25 @@ function renderQuestsPanel() {
 
 function renderLogPanel() {
   const logs = client.snapshot.state.log || [];
+  if (!logs.length) {
+    dom.panelContent.innerHTML = `<p class="empty-state">아직 남겨진 기록이 없습니다.</p>`;
+    return;
+  }
+
   dom.panelContent.innerHTML = `
-    <div class="panel-grid">
-      ${logs.map((entry) => `
-        <article class="log-card">
-          <h3>기록</h3>
-          <p>${entry}</p>
+    <div class="log-list">
+      ${logs.map((entry) => {
+        const timestampLabel = typeof entry === "string"
+          ? `${client.snapshot.day}일차 ${gameClockLabel()}`
+          : entry.timestampLabel;
+        const message = typeof entry === "string" ? entry : entry.message;
+        return `
+        <article class="log-line">
+          <span class="log-time">${timestampLabel}</span>
+          <p class="log-message">${message}</p>
         </article>
-      `).join("")}
+      `;
+      }).join("")}
     </div>
   `;
 }
@@ -682,6 +829,11 @@ function render(options = {}) {
   renderStatusBar();
   renderScene(options.animateScene !== false);
   renderPanel();
+  const sceneId = currentSceneId();
+  if (sceneId) {
+    client.seenSceneIds.add(sceneId);
+  }
+  client.pendingInitialSceneAnimation = false;
 }
 
 async function submitAction(action) {
@@ -697,7 +849,16 @@ async function submitAction(action) {
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
     client.mapHint = "";
-    render({ animateScene: true });
+    client.actionInFlight = false;
+    render({
+      animateScene: shouldAnimateScene({
+        source: "action",
+        nextSnapshot: snapshot,
+      }),
+    });
+    if (action?.type === "travel") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   } catch (error) {
     window.alert(error instanceof Error ? error.message : "액션 처리에 실패했습니다.");
   } finally {
@@ -719,7 +880,12 @@ async function backgroundSync() {
     const sceneChanged = previousSceneId !== snapshot.currentScene.id;
     const noteChanged = previousNote !== snapshot.state.systemNote;
     if (sceneChanged || noteChanged) {
-      render({ animateScene: false });
+      render({
+        animateScene: shouldAnimateScene({
+          source: "backgroundSync",
+          nextSnapshot: snapshot,
+        }),
+      });
       return;
     }
     renderStatusBar();
@@ -729,12 +895,18 @@ async function backgroundSync() {
 }
 
 async function bootstrap() {
+  clearLegacyGameIds();
   const health = await api("/api/health");
   if (!health.ok) {
     throw new Error("서버 상태가 올바르지 않습니다.");
   }
   await loadGameState();
-  render({ animateScene: true });
+  render({
+    animateScene: shouldAnimateScene({
+      source: "bootstrap",
+      nextSnapshot: client.snapshot,
+    }),
+  });
   client.syncTimer = window.setInterval(backgroundSync, 10000);
   window.setInterval(() => renderStatusBar(), CLOCK_TICK_MS);
 }
@@ -780,8 +952,18 @@ dom.newGameButton.addEventListener("click", async () => {
     return;
   }
   clearSceneAnimation();
-  await createNewGame();
-  render({ animateScene: true });
+  try {
+    await createNewGame();
+    render({
+      animateScene: shouldAnimateScene({
+        source: "bootstrap",
+        nextSnapshot: client.snapshot,
+      }),
+    });
+  } catch (error) {
+    console.error(error);
+    window.alert(error instanceof Error ? error.message : "새 게임을 시작하지 못했습니다.");
+  }
 });
 
 bootstrap().catch((error) => {
@@ -789,3 +971,5 @@ bootstrap().catch((error) => {
   dom.sceneText.innerHTML = `<p>서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>`;
   dom.panelContent.innerHTML = `<p class="empty-state">API 서버가 필요합니다.</p>`;
 });
+
+

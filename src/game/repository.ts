@@ -13,18 +13,30 @@ import {
   type SceneCard,
   type TemplateStore,
 } from "./schemas";
-import { baseLocations } from "./base-data";
+import { SAVE_VERSION, baseLocations } from "./base-data";
 import { basePeople } from "./data/people";
 import { worldRegistry } from "./data/registry";
+import { formatLogTimestamp } from "./state-utils";
 
 export type CardKind = "locationCards" | "personCards" | "itemCards" | "eventCards" | "sceneCards";
 export type StoredCard = LocationCard | PersonCard | ItemCard | EventCard | SceneCard;
 
 const validLocationIds = new Set(Object.keys(baseLocations));
-const validPersonIds = new Set(Object.keys(basePeople));
 const validQuestIds = new Set(Object.keys(worldRegistry.quests));
 const validSceneIds = new Set(Object.keys(worldRegistry.scenes));
 const validEventFlags = new Set(Object.keys(worldRegistry.events).map((eventId) => `event_seen_${eventId}`));
+const validItemIds = new Set(Object.keys(worldRegistry.items));
+const validStockNodeLocationIds = new Map<string, string>();
+const validStockStateKeys = new Set<string>();
+
+for (const location of Object.values(baseLocations)) {
+  for (const node of location.stockNodes) {
+    validStockNodeLocationIds.set(node.id, location.id);
+    for (const item of node.items) {
+      validStockStateKeys.add(`${location.id}:${node.id}:${item.itemId}`);
+    }
+  }
+}
 
 export const emptyTemplateStore: TemplateStore = {
   locationCards: {},
@@ -57,75 +69,208 @@ function pruneFlags(flags: Record<string, boolean | number | string>) {
 
 function pruneQuests(quests: Record<string, "inactive" | "active" | "completed">) {
   return Object.fromEntries(
-    Object.entries(quests).filter(([questId]) => validQuestIds.has(questId)),
+    Array.from(validQuestIds).map((questId) => [questId, quests[questId] ?? "inactive"]),
   ) as Record<string, "inactive" | "active" | "completed">;
 }
 
-function pruneState(state: GameState): GameState {
-  const nextLocation = validLocationIds.has(state.location) ? state.location : "shelter";
-  const nextFlags = pruneFlags(state.flags);
+function pruneStockState(rawStockState: unknown) {
+  if (!rawStockState || typeof rawStockState !== "object") {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(rawStockState).filter(([key, value]) =>
+      validStockStateKeys.has(key) && Number.isInteger(value) && Number(value) >= 0,
+    ),
+  ) as Record<string, number>;
+}
+
+function pruneDiscoveredStockNodes(rawNodeIds: unknown) {
+  if (!Array.isArray(rawNodeIds)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      rawNodeIds.filter((nodeId): nodeId is string =>
+        typeof nodeId === "string" && validStockNodeLocationIds.has(nodeId),
+      ),
+    ),
+  );
+}
+
+function normalizeInt(value: unknown, fallback: number, minimum = 0, maximum = Number.MAX_SAFE_INTEGER) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(minimum, Math.min(maximum, Math.floor(Number(value))));
+}
+
+function normalizeStringArray(rawValue: unknown) {
+  if (!Array.isArray(rawValue)) {
+    return [];
+  }
+
+  return rawValue.filter((entry): entry is string => typeof entry === "string");
+}
+
+function translateLegacyLogMessage(message: string): string {
+  if (message === "You wake up in the shelter and decide today has to count.") {
+    return "눈을 뜬 당신은 오늘 하루만큼은 반드시 버텨 내기로 마음먹는다.";
+  }
+  if (message === "Your mind gives out before the city does.") {
+    return "도시보다 먼저 정신이 무너졌다.";
+  }
+  if (message === "Your body can no longer keep up with survival.") {
+    return "몸이 더는 생존을 버텨 내지 못했다.";
+  }
+  if (message.startsWith("Game over: ")) {
+    return `생존 실패: ${translateLegacyLogMessage(message.slice("Game over: ".length))}`;
+  }
+  const dayMatch = message.match(/^Day (\d+) begins\.$/);
+  if (dayMatch) {
+    return `${dayMatch[1]}일차가 시작된다.`;
+  }
+  const moveMatch = message.match(/^You move to (.+)\.$/);
+  if (moveMatch) {
+    return `${moveMatch[1]}(으)로 움직였다.`;
+  }
+  const useItemMatch = message.match(/^You use (.+)\.$/);
+  if (useItemMatch) {
+    return `${useItemMatch[1]}을(를) 사용했다.`;
+  }
+  return message;
+}
+
+function normalizeLogEntries(rawValue: unknown, day: number, worldElapsedMs: number): GameState["log"] {
+  if (!Array.isArray(rawValue)) {
+    return [];
+  }
+
+  const fallbackTimestampLabel = formatLogTimestamp(day, worldElapsedMs);
+  return rawValue.flatMap((entry) => {
+    if (typeof entry === "string") {
+      return [{
+        timestampLabel: fallbackTimestampLabel,
+        message: translateLegacyLogMessage(entry),
+      }];
+    }
+
+    if (!entry || typeof entry !== "object") {
+      return [];
+    }
+
+    const rawEntry = entry as Record<string, unknown>;
+    const message = typeof rawEntry.message === "string"
+      ? translateLegacyLogMessage(rawEntry.message)
+      : "";
+    if (!message) {
+      return [];
+    }
+
+    return [{
+      timestampLabel: typeof rawEntry.timestampLabel === "string" && rawEntry.timestampLabel
+        ? rawEntry.timestampLabel
+        : fallbackTimestampLabel,
+      message,
+    }];
+  }).slice(0, 20);
+}
+
+function normalizeInventory(rawInventory: unknown) {
+  if (!rawInventory || typeof rawInventory !== "object") {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(rawInventory).filter(([itemId, quantity]) =>
+      validItemIds.has(itemId) && Number.isInteger(quantity) && Number(quantity) >= 0,
+    ),
+  ) as Record<string, number>;
+}
+
+function normalizeStats(rawStats: unknown) {
+  const stats = (rawStats && typeof rawStats === "object" ? rawStats : {}) as Record<string, unknown>;
+  return {
+    hp: normalizeInt(stats.hp, 8, 0, 10),
+    mind: normalizeInt(stats.mind, 6, 0, 10),
+    fullness: normalizeInt(stats.fullness, 7, 0, 10),
+  };
+}
+
+function pruneState(state: unknown): GameState {
+  const rawState = (state && typeof state === "object" ? state : {}) as Partial<GameState> & Record<string, unknown>;
+  const rawLocation = typeof rawState.location === "string" ? rawState.location : "shelter";
+  const nextLocation = validLocationIds.has(rawLocation) ? rawLocation : "shelter";
+  const nextDay = normalizeInt(rawState.day, 1, 1);
+  const nextWorldElapsedMs = normalizeInt(rawState.worldElapsedMs, 0, 0);
+  const nextFlags = pruneFlags(
+    rawState.flags && typeof rawState.flags === "object"
+      ? rawState.flags as Record<string, boolean | number | string>
+      : {},
+  );
+  const nextQuests = pruneQuests(
+    rawState.quests && typeof rawState.quests === "object"
+      ? rawState.quests as Record<string, "inactive" | "active" | "completed">
+      : {},
+  );
+  const nextStockState = pruneStockState(rawState.stockState);
+  const discoveredStockNodeIds = pruneDiscoveredStockNodes(rawState.discoveredStockNodeIds);
+  const rawActiveStockNodeId = typeof rawState.activeStockNodeId === "string" ? rawState.activeStockNodeId : null;
+  const activeStockNodeId = rawActiveStockNodeId && validStockNodeLocationIds.get(rawActiveStockNodeId) === nextLocation
+    ? rawActiveStockNodeId
+    : null;
   nextFlags[`visited_${nextLocation}`] = true;
   return {
-    ...state,
+    saveVersion: SAVE_VERSION,
     location: nextLocation,
-    sceneId: validSceneIds.has(state.sceneId) ? state.sceneId : fallbackSceneId(nextLocation),
+    sceneId: typeof rawState.sceneId === "string" && validSceneIds.has(rawState.sceneId)
+      ? rawState.sceneId
+      : fallbackSceneId(nextLocation),
+    day: nextDay,
+    phaseIndex: normalizeInt(rawState.phaseIndex, 0, 0, 4),
+    worldElapsedMs: nextWorldElapsedMs,
+    lastRealTimestamp: normalizeInt(rawState.lastRealTimestamp, Date.now(), 0),
+    autoFullnessElapsedMs: normalizeInt(rawState.autoFullnessElapsedMs, 0, 0),
+    starvationElapsedMs: normalizeInt(rawState.starvationElapsedMs, 0, 0),
+    isGameOver: typeof rawState.isGameOver === "boolean" ? rawState.isGameOver : false,
+    gameOverReason: typeof rawState.gameOverReason === "string" ? rawState.gameOverReason : "",
+    stageClear: typeof rawState.stageClear === "boolean" ? rawState.stageClear : false,
+    stats: normalizeStats(rawState.stats),
+    money: normalizeInt(rawState.money, 0, 0),
+    skills: normalizeStringArray(rawState.skills),
+    inventory: normalizeInventory(rawState.inventory),
     flags: nextFlags,
-    quests: pruneQuests(state.quests),
+    quests: nextQuests,
+    lastSleepFullness: normalizeInt(rawState.lastSleepFullness, 8, 0, 10),
+    starvationLevel: normalizeInt(rawState.starvationLevel, 0, 0),
+    log: normalizeLogEntries(rawState.log, nextDay, nextWorldElapsedMs),
+    systemNote: typeof rawState.systemNote === "string" ? rawState.systemNote : "",
+    stockState: nextStockState,
+    discoveredStockNodeIds: activeStockNodeId && !discoveredStockNodeIds.includes(activeStockNodeId)
+      ? [...discoveredStockNodeIds, activeStockNodeId]
+      : discoveredStockNodeIds,
+    activeStockNodeId,
   };
+}
+
+function normalizeItemCards(raw: unknown) {
+  const cards = raw && typeof raw === "object" ? raw as Record<string, ItemCard> : {};
+  return Object.fromEntries(
+    Object.entries(cards).filter(([id]) => validItemIds.has(id)),
+  );
 }
 
 export function normalizeTemplateStore(raw: unknown): TemplateStore {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Partial<TemplateStore> & Record<string, unknown>;
-  const locationCards = parsed.locationCards && typeof parsed.locationCards === "object" ? parsed.locationCards : {};
-  const personCards = parsed.personCards && typeof parsed.personCards === "object" ? parsed.personCards : {};
-  const itemCards = parsed.itemCards && typeof parsed.itemCards === "object" ? parsed.itemCards : {};
-  const eventCards = parsed.eventCards && typeof parsed.eventCards === "object" ? parsed.eventCards : {};
-  const sceneCards = parsed.sceneCards && typeof parsed.sceneCards === "object" ? parsed.sceneCards : {};
-
-  const normalizedLocationCards = Object.fromEntries(
-    Object.entries(locationCards)
-      .filter(([id]) => validLocationIds.has(id))
-      .map(([id, value]) => {
-        const card = value as Record<string, unknown>;
-        const base = baseLocations[id];
-        return [id, {
-          ...card,
-          traits: Array.isArray(card.traits) ? card.traits : (base?.traits || []),
-          obtainableItemIds: Array.isArray(card.obtainableItemIds) ? card.obtainableItemIds : (base?.obtainableItemIds || []),
-          residentIds: Array.isArray(card.residentIds) ? card.residentIds : (base?.residentIds || []),
-          neighbors: Array.isArray(card.neighbors)
-            ? card.neighbors.filter((neighborId) => typeof neighborId === "string" && validLocationIds.has(neighborId))
-            : (base?.neighbors || []),
-        }];
-      }),
-  );
-
-  const normalizedPersonCards = Object.fromEntries(
-    Object.entries(personCards).filter(([id]) => validPersonIds.has(id)),
-  );
-
-  const normalizedEventCards = Object.fromEntries(
-    Object.entries(eventCards).filter(([id]) => {
-      const parts = id.split(":");
-      const eventId = parts.length >= 2 ? parts[1] : "";
-      return worldRegistry.events[eventId] !== undefined;
-    }),
-  );
-
-  const normalizedSceneCards = Object.fromEntries(
-    Object.entries(sceneCards).filter(([id]) => {
-      const parts = id.split(":");
-      const sceneId = parts.length >= 2 ? parts[1] : "";
-      return worldRegistry.scenes[sceneId] !== undefined;
-    }),
-  );
 
   return TemplateStoreSchema.parse({
-    locationCards: normalizedLocationCards,
-    personCards: normalizedPersonCards,
-    itemCards,
-    eventCards: normalizedEventCards,
-    sceneCards: normalizedSceneCards,
+    locationCards: {},
+    personCards: {},
+    itemCards: normalizeItemCards(parsed.itemCards),
+    eventCards: {},
+    sceneCards: {},
     protagonistCard: parsed.protagonistCard ?? null,
   });
 }
@@ -141,10 +286,10 @@ export function normalizeGameSession(raw: unknown): GameSession {
     world: {
       locationCards: normalizedTemplates.locationCards,
       personCards: normalizedTemplates.personCards,
-      itemCards: world.itemCards && typeof world.itemCards === "object" ? world.itemCards : {},
+      itemCards: normalizedTemplates.itemCards,
       eventCards: normalizedTemplates.eventCards,
       sceneCards: normalizedTemplates.sceneCards,
-      protagonistCard: world.protagonistCard ?? null,
+      protagonistCard: normalizedTemplates.protagonistCard,
     },
   });
 }
@@ -179,7 +324,9 @@ export class FileGameRepository implements GameRepository {
   async init() {
     await mkdir(this.gamesDir, { recursive: true });
     try {
-      await readFile(this.templatesPath, "utf8");
+      const raw = await readFile(this.templatesPath, "utf8");
+      const normalized = normalizeTemplateStore(JSON.parse(raw));
+      await writeFile(this.templatesPath, JSON.stringify(normalized, null, 2), "utf8");
     } catch {
       await writeFile(this.templatesPath, JSON.stringify(emptyTemplateStore, null, 2), "utf8");
     }

@@ -1,3 +1,4 @@
 encoding_test.txt
 node_modules/
 .runtime/
+.server-dist/

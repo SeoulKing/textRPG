@@ -11,6 +11,23 @@ export const ConditionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("day_lt"), value: z.number().int().positive() }),
   z.object({ type: z.literal("money_gte"), amount: z.number().int().nonnegative() }),
   z.object({ type: z.literal("quest_state"), questId: z.string(), status: z.enum(["inactive", "active", "completed"]) }),
+  z.object({
+    type: z.literal("stock_item_gte"),
+    locationId: z.string(),
+    nodeId: z.string(),
+    itemId: z.string(),
+    amount: z.number().int().min(1).default(1),
+  }),
+  z.object({
+    type: z.literal("stock_item_lt"),
+    locationId: z.string(),
+    nodeId: z.string(),
+    itemId: z.string(),
+    amount: z.number().int().min(1).default(1),
+  }),
+  z.object({ type: z.literal("stock_node_discovered"), nodeId: z.string() }),
+  z.object({ type: z.literal("active_stock_node"), nodeId: z.string() }),
+  z.object({ type: z.literal("active_stock_node_not"), nodeId: z.string() }),
 ]);
 
 export const EffectSchema = z.discriminatedUnion("type", [
@@ -25,6 +42,16 @@ export const EffectSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("complete_quest"), questId: z.string() }),
   z.object({ type: z.literal("log"), message: z.string() }),
   z.object({ type: z.literal("set_scene"), sceneId: z.string() }),
+  z.object({ type: z.literal("discover_stock_node"), nodeId: z.string() }),
+  z.object({ type: z.literal("focus_stock_node"), nodeId: z.string() }),
+  z.object({ type: z.literal("clear_stock_node_focus") }),
+  z.object({
+    type: z.literal("collect_stock_item"),
+    locationId: z.string(),
+    nodeId: z.string(),
+    itemId: z.string(),
+    amount: z.number().int().min(1).default(1),
+  }),
 ]);
 
 export type Condition = z.infer<typeof ConditionSchema>;

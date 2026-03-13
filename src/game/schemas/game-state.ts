@@ -3,6 +3,11 @@ import { PlayerSchema } from "./player";
 import { WorldStateSchema } from "./world-state";
 import { QuestStateSchema } from "./quest";
 
+export const LogEntrySchema = z.object({
+  timestampLabel: z.string(),
+  message: z.string(),
+});
+
 export const GameStateSchema = z.object({
   saveVersion: z.number().int(),
   sceneId: z.string(),
@@ -24,11 +29,14 @@ export const GameStateSchema = z.object({
   money: z.number().int().nonnegative(),
   skills: z.array(z.string()),
   inventory: z.record(z.string(), z.number().int().nonnegative()),
+  stockState: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  discoveredStockNodeIds: z.array(z.string()).default([]),
+  activeStockNodeId: z.string().nullable().default(null),
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),
   lastSleepFullness: z.number().int().min(0).max(10),
   starvationLevel: z.number().int().nonnegative(),
-  log: z.array(z.string()),
+  log: z.array(LogEntrySchema),
   systemNote: z.string(),
 });
 
@@ -39,7 +47,7 @@ export const GameStateV2Schema = z.object({
   currentSceneId: z.string(),
   activeQuestIds: z.array(z.string()),
   completedQuestIds: z.array(z.string()),
-  log: z.array(z.string()),
+  log: z.array(LogEntrySchema),
   systemNote: z.string(),
   isGameOver: z.boolean(),
   gameOverReason: z.string(),
@@ -47,5 +55,6 @@ export const GameStateV2Schema = z.object({
   turn: z.number().int().nonnegative().optional(),
 });
 
+export type LogEntry = z.infer<typeof LogEntrySchema>;
 export type GameState = z.infer<typeof GameStateSchema>;
 export type GameStateV2 = z.infer<typeof GameStateV2Schema>;

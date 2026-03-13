@@ -11,6 +11,18 @@ export const LinkDefinitionSchema = z.object({
   blockedReason: z.string().optional(),
 });
 
+export const StockNodeItemDefinitionSchema = z.object({
+  itemId: z.string(),
+  initialQuantity: z.number().int().nonnegative(),
+});
+
+export const StockNodeDefinitionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  summary: z.string(),
+  items: z.array(StockNodeItemDefinitionSchema).default([]),
+});
+
 export const LocationDefinitionSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -25,6 +37,7 @@ export const LocationDefinitionSchema = z.object({
   availableActionIds: z.array(z.string()).default([]),
   eventIds: z.array(z.string()).default([]),
   links: z.record(z.string(), LinkDefinitionSchema),
+  stockNodes: z.array(StockNodeDefinitionSchema).default([]),
 });
 
 export const ContentRegistrySchema = z.object({
@@ -40,5 +53,7 @@ export const ContentRegistrySchema = z.object({
 });
 
 export type LinkDefinition = z.infer<typeof LinkDefinitionSchema>;
+export type StockNodeItemDefinition = z.infer<typeof StockNodeItemDefinitionSchema>;
+export type StockNodeDefinition = z.infer<typeof StockNodeDefinitionSchema>;
 export type LocationDefinition = z.infer<typeof LocationDefinitionSchema>;
 export type ContentRegistry = z.infer<typeof ContentRegistrySchema>;

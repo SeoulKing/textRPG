@@ -4,8 +4,9 @@
   "description": "Choice-driven survival text RPG MVP.",
   "main": "src/server.ts",
   "scripts": {
+    "build": "tsc --outDir .server-dist --rootDir src",
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
+    "start": "npm run build && node .server-dist/server.js",
     "typecheck": "tsc --noEmit",
     "db:init": "tsx src/db/init.ts",
     "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\""

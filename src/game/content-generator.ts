@@ -55,7 +55,7 @@ function nowIso() {
 class TemplateContentGenerator implements ContentGenerator {
   async generateLocationCard(locationId: string, input: GeneratorInput) {
     const location = baseLocations[locationId];
-    const availableActionIds = input.allowedActions.map((action) => action.id);
+    const availableActionIds = [...location.availableActionIds];
     return LocationCardSchema.parse({
       id: location.id,
       name: location.name,
@@ -253,3 +253,4 @@ export function createContentGenerator() {
 
   return new RemoteContentGenerator(apiUrl, apiKey, model, fallback);
 }
+

@@ -2,9 +2,8 @@
  * GameState helpers.
  */
 
-import { PHASES } from "./base-data";
-import type { GameState, Condition, Effect, Objective, QuestReward } from "./schemas";
-import type { Player, WorldState, GameStateV2 } from "./schemas";
+import { PHASES, REAL_DAY_MS, baseLocations } from "./base-data";
+import type { Condition, Effect, GameState, GameStateV2, Objective, Player, QuestReward, WorldState } from "./schemas";
 
 function activeDayKey(state: GameState, flag: string) {
   return `day${state.day}_${flag}`;
@@ -12,6 +11,68 @@ function activeDayKey(state: GameState, flag: string) {
 
 function clampStat(value: number) {
   return Math.max(0, Math.min(10, value));
+}
+
+export function getStockStateKey(locationId: string, nodeId: string, itemId: string) {
+  return `${locationId}:${nodeId}:${itemId}`;
+}
+
+export function getStockNode(locationId: string, nodeId: string) {
+  const location = baseLocations[locationId];
+  if (!location) {
+    return null;
+  }
+  return location.stockNodes.find((node) => node.id === nodeId) ?? null;
+}
+
+export function getStockNodeLocationId(nodeId: string) {
+  for (const location of Object.values(baseLocations)) {
+    if (location.stockNodes.some((node) => node.id === nodeId)) {
+      return location.id;
+    }
+  }
+  return null;
+}
+
+export function formatClockLabelFromElapsed(worldElapsedMs: number) {
+  const elapsedInDay = ((worldElapsedMs % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
+  const totalMinutes = Math.floor((elapsedInDay / REAL_DAY_MS) * 24 * 60);
+  const shiftedMinutes = (totalMinutes + 6 * 60) % (24 * 60);
+  const roundedMinutes = Math.floor(shiftedMinutes / 10) * 10;
+  const hours = String(Math.floor(roundedMinutes / 60)).padStart(2, "0");
+  const minutes = String(roundedMinutes % 60).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+export function formatLogTimestamp(day: number, worldElapsedMs: number) {
+  return `${day}일차 ${formatClockLabelFromElapsed(worldElapsedMs)}`;
+}
+
+export function appendLogEntry(state: GameState, message: string) {
+  state.log.unshift({
+    timestampLabel: formatLogTimestamp(state.day, state.worldElapsedMs),
+    message,
+  });
+  state.log = state.log.slice(0, 20);
+}
+
+export function getStockQuantity(state: GameState, locationId: string, nodeId: string, itemId: string) {
+  const key = getStockStateKey(locationId, nodeId, itemId);
+  if (typeof state.stockState[key] === "number") {
+    return state.stockState[key];
+  }
+
+  const node = getStockNode(locationId, nodeId);
+  const stockItem = node?.items.find((entry) => entry.itemId === itemId);
+  return stockItem?.initialQuantity ?? 0;
+}
+
+function setStockQuantity(state: GameState, locationId: string, nodeId: string, itemId: string, nextQuantity: number) {
+  state.stockState[getStockStateKey(locationId, nodeId, itemId)] = Math.max(0, nextQuantity);
+}
+
+function hasDiscoveredStockNode(state: GameState, nodeId: string) {
+  return state.discoveredStockNodeIds.includes(nodeId);
 }
 
 export function evaluateObjective(objective: Objective, state: GameState): boolean {
@@ -69,6 +130,16 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
       return state.money >= condition.amount;
     case "quest_state":
       return state.quests[condition.questId] === condition.status;
+    case "stock_item_gte":
+      return getStockQuantity(state, condition.locationId, condition.nodeId, condition.itemId) >= condition.amount;
+    case "stock_item_lt":
+      return getStockQuantity(state, condition.locationId, condition.nodeId, condition.itemId) < condition.amount;
+    case "stock_node_discovered":
+      return hasDiscoveredStockNode(state, condition.nodeId);
+    case "active_stock_node":
+      return state.activeStockNodeId === condition.nodeId;
+    case "active_stock_node_not":
+      return state.activeStockNodeId !== condition.nodeId;
     default:
       return false;
   }
@@ -105,6 +176,7 @@ export function applyEffect(effect: Effect, state: GameState): void {
     case "travel":
       state.location = effect.locationId;
       state.flags[`visited_${effect.locationId}`] = true;
+      state.activeStockNodeId = null;
       break;
     case "start_quest":
       state.quests[effect.questId] = "active";
@@ -113,12 +185,35 @@ export function applyEffect(effect: Effect, state: GameState): void {
       state.quests[effect.questId] = "completed";
       break;
     case "log":
-      state.log.unshift(effect.message);
-      state.log = state.log.slice(0, 20);
+      appendLogEntry(state, effect.message);
       break;
     case "set_scene":
       state.sceneId = effect.sceneId;
       break;
+    case "discover_stock_node":
+      if (!hasDiscoveredStockNode(state, effect.nodeId)) {
+        state.discoveredStockNodeIds.push(effect.nodeId);
+      }
+      break;
+    case "focus_stock_node":
+      state.activeStockNodeId = effect.nodeId;
+      if (!hasDiscoveredStockNode(state, effect.nodeId)) {
+        state.discoveredStockNodeIds.push(effect.nodeId);
+      }
+      break;
+    case "clear_stock_node_focus":
+      state.activeStockNodeId = null;
+      break;
+    case "collect_stock_item": {
+      const current = getStockQuantity(state, effect.locationId, effect.nodeId, effect.itemId);
+      if (current <= 0) {
+        break;
+      }
+      const collected = Math.min(effect.amount, current);
+      setStockQuantity(state, effect.locationId, effect.nodeId, effect.itemId, current - collected);
+      state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + collected;
+      break;
+    }
   }
 }
 
@@ -139,15 +234,15 @@ export function derivePlayer(state: GameState): Player {
 
 export function deriveWorldState(state: GameState): WorldState {
   const visitedIds = Object.entries(state.flags)
-    .filter(([k]) => k.startsWith("visited_") && state.flags[k])
-    .map(([k]) => k.replace("visited_", ""));
+    .filter(([key]) => key.startsWith("visited_") && state.flags[key])
+    .map(([key]) => key.replace("visited_", ""));
   const knownIds = Object.entries(state.flags)
-    .filter(([k]) => k.startsWith("known_") && state.flags[k])
-    .map(([k]) => k.replace("known_", ""));
+    .filter(([key]) => key.startsWith("known_") && state.flags[key])
+    .map(([key]) => key.replace("known_", ""));
   const unlockedIds = [...new Set([...visitedIds, ...knownIds, state.location])];
   const globalFlags = Object.entries(state.flags)
-    .filter(([k, v]) => !k.startsWith("visited_") && !k.startsWith("known_") && !k.startsWith("day") && Boolean(v))
-    .map(([k]) => k);
+    .filter(([key, value]) => !key.startsWith("visited_") && !key.startsWith("known_") && !key.startsWith("day") && Boolean(value))
+    .map(([key]) => key);
   return {
     currentTime: PHASES[state.phaseIndex] ?? "morning",
     currentDay: state.day,
@@ -173,7 +268,7 @@ export function toGameStateV2(state: GameState): GameStateV2 {
     currentSceneId: state.sceneId,
     activeQuestIds,
     completedQuestIds,
-    log: [...state.log],
+    log: state.log.map((entry) => ({ ...entry })),
     systemNote: state.systemNote,
     isGameOver: state.isGameOver,
     gameOverReason: state.gameOverReason,

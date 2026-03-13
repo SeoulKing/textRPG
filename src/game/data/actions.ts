@@ -56,11 +56,16 @@ export const actionDefinitions: ActionDefinition[] = [
   }),
   sceneAction({
     id: "survey_convenience",
-    label: "가게 안쪽까지 훑어본다",
+    label: "살펴보기",
     type: "search",
-    outcomeHint: "누군가 놓치고 간 생존의 조각이 있는지 선반과 바닥을 더듬는다.",
+    outcomeHint: "먼지와 깨진 유리 너머에서 아직 손대지 않은 진열대를 찾아낸다.",
     locationIds: ["convenience"],
-    effects: [{ type: "log", message: "당신은 부서진 진열대 사이를 낮게 훑는다." }],
+    conditions: [{ type: "flag_not", flag: "convenience_shelf_found" }],
+    effects: [
+      { type: "set_flag", flag: "convenience_shelf_found" },
+      { type: "discover_stock_node", nodeId: "convenience_shelf" },
+      { type: "log", message: "당신은 무너진 가게 안쪽에서 아직 통조림이 남은 진열대를 찾아낸다." },
+    ],
     tags: ["survey"],
   }),
   sceneAction({

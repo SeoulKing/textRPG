@@ -43,6 +43,16 @@ export type ItemId = keyof typeof baseItems;
 export type PersonId = keyof typeof basePeople;
 export type LocationId = keyof typeof baseLocations;
 
+function stockNodeEntries() {
+  return Object.values(worldRegistry.locations).flatMap((location) =>
+    location.stockNodes.map((node) => ({ locationId: location.id, node })),
+  );
+}
+
+function findStockNode(nodeId: string) {
+  return stockNodeEntries().find((entry) => entry.node.id === nodeId) ?? null;
+}
+
 function assertKnownLocation(id: string, source: string) {
   if (!worldRegistry.locations[id]) {
     throw new Error(`${source} references unknown location '${id}'.`);
@@ -73,6 +83,26 @@ function assertKnownQuest(id: string, source: string) {
   }
 }
 
+function assertKnownStockNode(id: string, source: string) {
+  if (!findStockNode(id)) {
+    throw new Error(`${source} references unknown stock node '${id}'.`);
+  }
+}
+
+function assertKnownStockItem(locationId: string, nodeId: string, itemId: string, source: string) {
+  const location = worldRegistry.locations[locationId];
+  if (!location) {
+    throw new Error(`${source} references unknown location '${locationId}'.`);
+  }
+  const node = location.stockNodes.find((entry) => entry.id === nodeId);
+  if (!node) {
+    throw new Error(`${source} references unknown stock node '${nodeId}' in location '${locationId}'.`);
+  }
+  if (!node.items.some((entry) => entry.itemId === itemId)) {
+    throw new Error(`${source} references unknown stock item '${itemId}' in node '${nodeId}'.`);
+  }
+}
+
 function validateCondition(condition: Condition, source: string) {
   switch (condition.type) {
     case "has_item":
@@ -84,6 +114,15 @@ function validateCondition(condition: Condition, source: string) {
       break;
     case "quest_state":
       assertKnownQuest(condition.questId, source);
+      break;
+    case "stock_item_gte":
+    case "stock_item_lt":
+      assertKnownStockItem(condition.locationId, condition.nodeId, condition.itemId, source);
+      break;
+    case "stock_node_discovered":
+    case "active_stock_node":
+    case "active_stock_node_not":
+      assertKnownStockNode(condition.nodeId, source);
       break;
     default:
       break;
@@ -105,6 +144,13 @@ function validateEffect(effect: Effect, source: string) {
       break;
     case "set_scene":
       assertKnownScene(effect.sceneId, source);
+      break;
+    case "discover_stock_node":
+    case "focus_stock_node":
+      assertKnownStockNode(effect.nodeId, source);
+      break;
+    case "collect_stock_item":
+      assertKnownStockItem(effect.locationId, effect.nodeId, effect.itemId, source);
       break;
     default:
       break;
@@ -129,6 +175,8 @@ function validateChoice(choice: ChoiceDefinition) {
 }
 
 export function validateContent() {
+  const seenStockNodeIds = new Set<string>();
+
   for (const location of Object.values(worldRegistry.locations)) {
     location.neighbors.forEach((neighborId) => assertKnownLocation(neighborId, `location:${location.id}`));
     Object.keys(location.links).forEach((neighborId) => assertKnownLocation(neighborId, `location:${location.id}`));
@@ -147,6 +195,17 @@ export function validateContent() {
       if (!worldRegistry.people[personId]) {
         throw new Error(`location:${location.id} references unknown person '${personId}'.`);
       }
+    });
+    location.stockNodes.forEach((node) => {
+      if (seenStockNodeIds.has(node.id)) {
+        throw new Error(`stock node '${node.id}' must be globally unique.`);
+      }
+      seenStockNodeIds.add(node.id);
+      node.items.forEach((item) => {
+        if (!worldRegistry.items[item.itemId]) {
+          throw new Error(`location:${location.id} stock node '${node.id}' references unknown item '${item.itemId}'.`);
+        }
+      });
     });
   }
 
