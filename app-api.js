@@ -1,22 +1,23 @@
-const STORAGE_KEY = "ruined-seoul-stage1-game-id";
+﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id";
 const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 35;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
 const HEX_RATIO = Math.sqrt(3) / 2;
+const ACTIVE_LOCATION_IDS = new Set(["shelter", "convenience", "kitchen"]);
 
 const HEX_BOARD_TEMPLATE = [
   { slotId: "northwest", col: 0, row: 0, locationId: null },
   { slotId: "shelter", col: 1, row: 0, locationId: "shelter" },
   { slotId: "northeast", col: 2, row: 0, locationId: null },
   { slotId: "convenience", col: 0, row: 1, locationId: "convenience" },
-  { slotId: "alley", col: 1, row: 1, locationId: "alley" },
+  { slotId: "alley", col: 1, row: 1, locationId: null },
   { slotId: "kitchen", col: 2, row: 1, locationId: "kitchen" },
-  { slotId: "control", col: 3, row: 1, locationId: "control" },
-  { slotId: "subway", col: 0, row: 2, locationId: "subway" },
-  { slotId: "hospital", col: 1, row: 2, locationId: "hospital" },
-  { slotId: "mart", col: 2, row: 2, locationId: "mart" },
-  { slotId: "riverside", col: 3, row: 2, locationId: "riverside" },
+  { slotId: "control", col: 3, row: 1, locationId: null },
+  { slotId: "subway", col: 0, row: 2, locationId: null },
+  { slotId: "hospital", col: 1, row: 2, locationId: null },
+  { slotId: "mart", col: 2, row: 2, locationId: null },
+  { slotId: "riverside", col: 3, row: 2, locationId: null },
 ];
 
 function currentHexDimensions() {
@@ -67,11 +68,11 @@ function buildHexBoardLayout() {
 const PANEL_CONFIG = {
   map: {
     title: "이동",
-    subtitle: "생활권 안의 장소와 현재 이동 가능 여부를 확인합니다.",
+    subtitle: "지금 갈 수 있는 세 지역만 남겨 두었습니다.",
   },
   inventory: {
     title: "아이템",
-    subtitle: "소지 물품과 돈을 확인하고 바로 사용할 수 있습니다.",
+    subtitle: "가진 물건과 돈을 확인하고 바로 사용할 수 있습니다.",
   },
   skills: {
     title: "스킬",
@@ -79,11 +80,11 @@ const PANEL_CONFIG = {
   },
   quests: {
     title: "퀘스트",
-    subtitle: "당장 살아남기 위한 우선순위를 보여 줍니다.",
+    subtitle: "오늘 버티기 위해 필요한 우선순위입니다.",
   },
   log: {
     title: "기록",
-    subtitle: "최근 생존 선택과 사건 흐름입니다.",
+    subtitle: "최근 선택과 이동 기록입니다.",
   },
 };
 
@@ -195,7 +196,7 @@ async function loadGameState() {
     const snapshot = await api(`/api/games/${client.gameId}/state`);
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
-  } catch (error) {
+  } catch (_error) {
     await createNewGame();
   }
 }
@@ -299,17 +300,17 @@ function openStatusPopover(statKey, options = {}) {
     hp: {
       title: "체력",
       value: `${snapshot.stats.hp} / 10`,
-      note: "상처와 탈진을 버티는 힘이다.",
+      note: "부상을 견디고 움직일 수 있는 상태입니다.",
     },
     mind: {
       title: "정신력",
       value: `${snapshot.stats.mind} / 10`,
-      note: "불안과 이상 징후를 견디는 상태다.",
+      note: "불안과 피로 속에서도 판단을 유지하는 힘입니다.",
     },
     fullness: {
       title: "포만감",
       value: `${snapshot.stats.fullness} / 10`,
-      note: "시간이 지나면 자동으로 줄고, 식사로 회복된다.",
+      note: "시간이 지나면 줄어들고, 음식과 물로 회복합니다.",
     },
   }[statKey];
 
@@ -416,9 +417,12 @@ function renderMapPanel() {
   const boardLayout = buildHexBoardLayout();
 
   const tileMarkup = HEX_BOARD_TEMPLATE.map((slot) => {
+    if (!slot.locationId || !ACTIVE_LOCATION_IDS.has(slot.locationId)) {
+      return "";
+    }
     const position = boardLayout.positions.get(slot.slotId) || { x: 0, y: 0 };
-    const location = slot.locationId ? visible.get(slot.locationId) : null;
-    const state = slot.locationId ? states.get(slot.locationId) : null;
+    const location = visible.get(slot.locationId);
+    const state = states.get(slot.locationId);
     if (!location || !state) {
       return "";
     }
@@ -460,6 +464,7 @@ function renderMapPanel() {
   }).join("");
 
   const adjacentCards = snapshot.mapEntries
+    .filter((entry) => ACTIVE_LOCATION_IDS.has(entry.locationId))
     .filter((entry) => entry.isAdjacent && !entry.isCurrent)
     .map((entry) => {
       const location = visible.get(entry.locationId);
@@ -502,13 +507,12 @@ function renderMapPanel() {
       </div>
 
       <div class="tag-row">
-        <span class="tag">채워진 타일: 현재 위치</span>
-        <span class="tag">밝은 타일: 바로 이동 가능</span>
-        <span class="tag">사선 타일: 조건 부족</span>
-        <span class="tag">옅은 타일: 방문한 생활권</span>
+        <span class="tag">현재 플레이 가능 지역 3곳</span>
+        <span class="tag">하얀 타일은 바로 이동 가능</span>
+        <span class="tag">빈 슬롯은 사용하지 않음</span>
       </div>
 
-      <p class="map-node-hint">${client.mapHint || "인접한 타일만 바로 이동할 수 있습니다."}</p>
+      <p class="map-node-hint">${client.mapHint || "임시 거처, 편의점 잔해, 급식소만 이동할 수 있습니다."}</p>
 
       <div class="panel-grid">
         ${adjacentCards}
@@ -525,7 +529,7 @@ function renderMapPanel() {
         return;
       }
       if (entry.isCurrent) {
-        client.mapHint = `${location.name}에 머물고 있다.`;
+        client.mapHint = `${location.name}에 이미 머물러 있다.`;
         renderPanel();
         return;
       }
@@ -535,17 +539,14 @@ function renderMapPanel() {
         return;
       }
       if (entry.isControlled) {
-        client.mapHint = entry.reason || "아직 통제된 생활권입니다.";
+        client.mapHint = entry.reason || "아직 이동할 수 없다.";
         renderPanel();
         return;
       }
       if (entry.isAdjacent) {
-        client.mapHint = entry.reason || "아직 이동할 수 없는 경로입니다.";
+        client.mapHint = entry.reason || "아직 이동할 수 없는 경로다.";
         renderPanel();
-        return;
       }
-      client.mapHint = `${location.name}은 지금 위치에서 바로 닿지 않는 생활권이다.`;
-      renderPanel();
     });
   });
 
@@ -566,14 +567,14 @@ function renderInventoryPanel() {
         <h3>돈</h3>
         <span class="tag">${snapshot.state.money.toLocaleString()}원</span>
       </div>
-      <p>생활권 안에서 식사, 거래, 작은 일을 해결할 때 쓰는 현금이다.</p>
+      <p>한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다.</p>
     </article>
   `;
 
   if (itemCards.length === 0) {
     dom.panelContent.innerHTML = `
       <div class="panel-grid">${moneyCard}</div>
-      <p class="empty-state">챙겨 둔 물건이 아직 없습니다.</p>
+      <p class="empty-state">지금 가진 물건이 없다.</p>
     `;
     return;
   }
@@ -608,7 +609,7 @@ function renderInventoryPanel() {
 function renderSkillsPanel() {
   const skills = client.snapshot.skills || [];
   if (!skills.length) {
-    dom.panelContent.innerHTML = `<p class="empty-state">아직 선택한 생존 방식이 없습니다.</p>`;
+    dom.panelContent.innerHTML = `<p class="empty-state">아직 얻은 생존 방식이 없다.</p>`;
     return;
   }
 
@@ -774,7 +775,7 @@ dom.sceneFrame.addEventListener("click", (event) => {
 });
 
 dom.newGameButton.addEventListener("click", async () => {
-  const confirmed = window.confirm("새 게임을 시작하면 현재 진행 중인 서버 세션 대신 새 세션을 만듭니다.");
+  const confirmed = window.confirm("새 게임을 시작하면 현재 진행 중인 세션 대신 새 세션이 만들어집니다.");
   if (!confirmed) {
     return;
   }

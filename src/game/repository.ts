@@ -1,10 +1,11 @@
-import { mkdir, readFile, writeFile, appendFile } from "node:fs/promises";
+﻿import { mkdir, readFile, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 import {
   GameSessionSchema,
   TemplateStoreSchema,
   type EventCard,
   type GameSession,
+  type GameState,
   type ItemCard,
   type LocationCard,
   type PersonCard,
@@ -13,9 +14,17 @@ import {
   type TemplateStore,
 } from "./schemas";
 import { baseLocations } from "./base-data";
+import { basePeople } from "./data/people";
+import { worldRegistry } from "./data/registry";
 
 export type CardKind = "locationCards" | "personCards" | "itemCards" | "eventCards" | "sceneCards";
 export type StoredCard = LocationCard | PersonCard | ItemCard | EventCard | SceneCard;
+
+const validLocationIds = new Set(Object.keys(baseLocations));
+const validPersonIds = new Set(Object.keys(basePeople));
+const validQuestIds = new Set(Object.keys(worldRegistry.quests));
+const validSceneIds = new Set(Object.keys(worldRegistry.scenes));
+const validEventFlags = new Set(Object.keys(worldRegistry.events).map((eventId) => `event_seen_${eventId}`));
 
 export const emptyTemplateStore: TemplateStore = {
   locationCards: {},
@@ -26,93 +35,95 @@ export const emptyTemplateStore: TemplateStore = {
   protagonistCard: null,
 };
 
+function fallbackSceneId(locationId: string) {
+  const scene = Object.values(worldRegistry.scenes).find((entry) => entry.locationId === locationId);
+  return scene?.id || "shelter_day_intro";
+}
+
+function pruneFlags(flags: Record<string, boolean | number | string>) {
+  return Object.fromEntries(
+    Object.entries(flags).filter(([key]) => {
+      if (key.startsWith("visited_") || key.startsWith("known_")) {
+        const locationId = key.replace(/^(visited_|known_)/, "");
+        return validLocationIds.has(locationId);
+      }
+      if (key.startsWith("event_seen_")) {
+        return validEventFlags.has(key);
+      }
+      return true;
+    }),
+  );
+}
+
+function pruneQuests(quests: Record<string, "inactive" | "active" | "completed">) {
+  return Object.fromEntries(
+    Object.entries(quests).filter(([questId]) => validQuestIds.has(questId)),
+  ) as Record<string, "inactive" | "active" | "completed">;
+}
+
+function pruneState(state: GameState): GameState {
+  const nextLocation = validLocationIds.has(state.location) ? state.location : "shelter";
+  const nextFlags = pruneFlags(state.flags);
+  nextFlags[`visited_${nextLocation}`] = true;
+  return {
+    ...state,
+    location: nextLocation,
+    sceneId: validSceneIds.has(state.sceneId) ? state.sceneId : fallbackSceneId(nextLocation),
+    flags: nextFlags,
+    quests: pruneQuests(state.quests),
+  };
+}
+
 export function normalizeTemplateStore(raw: unknown): TemplateStore {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Partial<TemplateStore> & Record<string, unknown>;
   const locationCards = parsed.locationCards && typeof parsed.locationCards === "object" ? parsed.locationCards : {};
+  const personCards = parsed.personCards && typeof parsed.personCards === "object" ? parsed.personCards : {};
+  const itemCards = parsed.itemCards && typeof parsed.itemCards === "object" ? parsed.itemCards : {};
   const eventCards = parsed.eventCards && typeof parsed.eventCards === "object" ? parsed.eventCards : {};
   const sceneCards = parsed.sceneCards && typeof parsed.sceneCards === "object" ? parsed.sceneCards : {};
 
   const normalizedLocationCards = Object.fromEntries(
-    Object.entries(locationCards).map(([id, value]) => {
-      const card = value as Record<string, unknown>;
-      const base = baseLocations[id];
-      return [id, {
-        ...card,
-        traits: Array.isArray(card.traits) ? card.traits : (base?.traits || []),
-        obtainableItemIds: Array.isArray(card.obtainableItemIds) ? card.obtainableItemIds : (base?.obtainableItemIds || []),
-        residentIds: Array.isArray(card.residentIds) ? card.residentIds : (base?.residentIds || []),
-      }];
-    }),
+    Object.entries(locationCards)
+      .filter(([id]) => validLocationIds.has(id))
+      .map(([id, value]) => {
+        const card = value as Record<string, unknown>;
+        const base = baseLocations[id];
+        return [id, {
+          ...card,
+          traits: Array.isArray(card.traits) ? card.traits : (base?.traits || []),
+          obtainableItemIds: Array.isArray(card.obtainableItemIds) ? card.obtainableItemIds : (base?.obtainableItemIds || []),
+          residentIds: Array.isArray(card.residentIds) ? card.residentIds : (base?.residentIds || []),
+          neighbors: Array.isArray(card.neighbors)
+            ? card.neighbors.filter((neighborId) => typeof neighborId === "string" && validLocationIds.has(neighborId))
+            : (base?.neighbors || []),
+        }];
+      }),
+  );
+
+  const normalizedPersonCards = Object.fromEntries(
+    Object.entries(personCards).filter(([id]) => validPersonIds.has(id)),
   );
 
   const normalizedEventCards = Object.fromEntries(
-    Object.entries(eventCards).map(([id, value]) => {
-      const card = value as Record<string, unknown>;
-      const locationId = typeof card.locationId === "string" ? card.locationId : "shelter";
-      const rawChoices = Array.isArray(card.choices) ? card.choices : [];
-      return [id, {
-        ...card,
-        choices: rawChoices.map((choice, index) => {
-          const rawChoice = choice as Record<string, unknown>;
-          return {
-            id: typeof rawChoice.id === "string" ? rawChoice.id : `${id}:choice:${index}`,
-            label: typeof rawChoice.label === "string" ? rawChoice.label : "주변을 살핀다",
-            outcomeHint: typeof rawChoice.outcomeHint === "string" ? rawChoice.outcomeHint : "현재 상황을 더 읽어낸다.",
-            serverActionHint: (rawChoice.serverActionHint && typeof rawChoice.serverActionHint === "object")
-              ? rawChoice.serverActionHint
-              : {
-                  type: "generate_event",
-                  locationId,
-                },
-          };
-        }),
-      }];
+    Object.entries(eventCards).filter(([id]) => {
+      const parts = id.split(":");
+      const eventId = parts.length >= 2 ? parts[1] : "";
+      return worldRegistry.events[eventId] !== undefined;
     }),
   );
 
   const normalizedSceneCards = Object.fromEntries(
-    Object.entries(sceneCards).map(([id, value]) => {
-      const card = value as Record<string, unknown>;
-      const locationId = typeof card.locationId === "string" ? card.locationId : "shelter";
-      const rawChoicesSource = Array.isArray(card.choices)
-        ? card.choices
-        : [{ id: `${id}:event`, label: "주변을 살핀다", outcomeHint: "현재 장소에서 이어질 사건이나 단서를 끌어낸다.", serverActionHint: { type: "generate_event", locationId } }];
-      let rawChoices = rawChoicesSource
-        .filter((c: Record<string, unknown>) => (c.serverActionHint as Record<string, unknown>)?.type !== "travel");
-      if (rawChoices.length === 0) {
-        rawChoices = [{ id: `${id}:event`, label: "주변을 살핀다", outcomeHint: "현재 장소에서 이어질 사건이나 단서를 끌어낸다.", serverActionHint: { type: "generate_event", locationId } }];
-      }
-      return [id, {
-        ...card,
-        choices: rawChoices.map((choice, index) => {
-          const rawChoice = choice as Record<string, unknown>;
-          return {
-            id: typeof rawChoice.id === "string" ? rawChoice.id : `${id}:choice:${index}`,
-            label: typeof rawChoice.label === "string" ? rawChoice.label : "행동한다",
-            outcomeHint: typeof rawChoice.outcomeHint === "string" ? rawChoice.outcomeHint : "다음 선택으로 이어진다.",
-            serverActionHint: (rawChoice.serverActionHint && typeof rawChoice.serverActionHint === "object")
-              ? rawChoice.serverActionHint
-              : {
-                  type: "generate_event",
-                  locationId,
-                },
-          };
-        }),
-        materialIds: (card.materialIds && typeof card.materialIds === "object")
-          ? card.materialIds
-          : {
-              locationIds: typeof card.locationId === "string" ? [card.locationId] : [],
-              personIds: [],
-              itemIds: [],
-            },
-      }];
+    Object.entries(sceneCards).filter(([id]) => {
+      const parts = id.split(":");
+      const sceneId = parts.length >= 2 ? parts[1] : "";
+      return worldRegistry.scenes[sceneId] !== undefined;
     }),
   );
 
   return TemplateStoreSchema.parse({
     locationCards: normalizedLocationCards,
-    personCards: parsed.personCards && typeof parsed.personCards === "object" ? parsed.personCards : {},
-    itemCards: parsed.itemCards && typeof parsed.itemCards === "object" ? parsed.itemCards : {},
+    personCards: normalizedPersonCards,
+    itemCards,
     eventCards: normalizedEventCards,
     sceneCards: normalizedSceneCards,
     protagonistCard: parsed.protagonistCard ?? null,
@@ -123,13 +134,15 @@ export function normalizeGameSession(raw: unknown): GameSession {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const world = (parsed.world && typeof parsed.world === "object") ? parsed.world as Record<string, unknown> : {};
   const normalizedTemplates = normalizeTemplateStore(world);
+  const nextState = pruneState(parsed.state as GameState);
   return GameSessionSchema.parse({
     ...parsed,
+    state: nextState,
     world: {
       locationCards: normalizedTemplates.locationCards,
-      personCards: world.personCards && typeof world.personCards === "object" ? world.personCards : {},
+      personCards: normalizedTemplates.personCards,
       itemCards: world.itemCards && typeof world.itemCards === "object" ? world.itemCards : {},
-      eventCards: world.eventCards && typeof world.eventCards === "object" ? world.eventCards : {},
+      eventCards: normalizedTemplates.eventCards,
       sceneCards: normalizedTemplates.sceneCards,
       protagonistCard: world.protagonistCard ?? null,
     },

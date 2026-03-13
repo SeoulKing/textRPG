@@ -1,13 +1,14 @@
 {
   "name": "textrpg",
   "version": "1.0.0",
-  "description": "선택지 기반 오픈월드 텍스트 RPG의 웹 MVP입니다. 대화에서 정리한 방향을 바탕으로, 다음 핵심 루프만 먼저 구현했습니다.",
+  "description": "Choice-driven survival text RPG MVP.",
   "main": "src/server.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
-    "db:init": "tsx src/db/init.ts"
+    "db:init": "tsx src/db/init.ts",
+    "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\""
   },
   "repository": {
     "type": "git",

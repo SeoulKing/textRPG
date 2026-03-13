@@ -1,5 +1,5 @@
-/**
- * Quest 정의 - 파밍·생존 중심 지속 가능한 루프
+﻿/**
+ * Quest definitions
  */
 
 import type { QuestDefinition } from "./schemas";
@@ -7,35 +7,24 @@ import type { QuestDefinition } from "./schemas";
 export const questDefinitions: QuestDefinition[] = [
   {
     id: "meal",
-    title: "오늘 끼니 마련",
-    description: "오늘 하루를 버틸 먹을거리를 파밍하거나 요리해서 챙긴다.",
+    title: "오늘의 끼니 마련",
+    description: "오늘 하루를 버티기 위해 먹을거리를 확보하거나 따뜻한 식사를 구한다.",
     type: "side",
     objectives: [{ type: "daily_flag", flag: "mealSecured" }],
     rewards: [],
     prerequisites: [],
     relatedNpcIds: ["oldCook"],
-    relatedLocationIds: ["shelter", "kitchen", "convenience", "mart"],
+    relatedLocationIds: ["shelter", "kitchen", "convenience"],
   },
   {
     id: "water",
-    title: "물 확보",
-    description: "마실 물이나 물통을 파밍해서 이동 여유를 만든다.",
+    title: "마실 물 확보",
+    description: "오늘 마실 물을 마련해 허기와 함께 갈증도 견딜 수 있게 만든다.",
     type: "side",
     objectives: [{ type: "daily_flag", flag: "waterSecured" }],
     rewards: [],
     prerequisites: [],
-    relatedNpcIds: [],
-    relatedLocationIds: ["kitchen", "convenience", "riverside", "mart"],
-  },
-  {
-    id: "stockpile",
-    title: "물자 비축",
-    description: "편의점, 마트, 하천변에서 식량과 재료를 수집해 캠프에 쌓아둔다.",
-    type: "side",
-    objectives: [{ type: "flag", flag: "stockpileStarted" }],
-    rewards: [],
-    prerequisites: [],
-    relatedNpcIds: [],
-    relatedLocationIds: ["convenience", "mart", "riverside", "shelter"],
+    relatedNpcIds: ["oldCook"],
+    relatedLocationIds: ["shelter", "kitchen", "convenience"],
   },
 ];

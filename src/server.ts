@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import staticPlugin from "@fastify/static";
 import { z } from "zod";
+import { validateContent } from "./game/data/registry";
 import { GameActionSchema } from "./game/schemas";
 import { FileGameRepository, type GameRepository } from "./game/repository";
 import { PostgresGameRepository } from "./game/postgres-repository";
@@ -20,6 +21,7 @@ const repository: GameRepository = process.env.DATABASE_URL
 const gameService = new GameService(repository);
 
 async function bootstrap() {
+  validateContent();
   await repository.init();
 
   await app.register(cors, {
@@ -92,7 +94,7 @@ async function bootstrap() {
       reply.code(400);
       return {
         error: "action_failed",
-        message: error instanceof Error ? error.message : "알 수 없는 오류",
+        message: error instanceof Error ? error.message : "Unknown error",
       };
     }
   });

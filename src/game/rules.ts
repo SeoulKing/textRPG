@@ -1,4 +1,4 @@
-import {
+﻿import {
   AUTO_FULLNESS_TICK_MS,
   PHASE_DURATION_MS,
   PHASES,
@@ -8,9 +8,11 @@ import {
   baseItems,
   baseLocations,
 } from "./base-data";
+import { worldRegistry } from "./data/registry";
+import { resolveSceneDefinition } from "./content-engine";
+import { applyEffect, evaluateCondition, evaluateObjective } from "./state-utils";
+import type { ActionDefinition, ChoiceDefinition, GameAction, GameState } from "./schemas";
 import { questDefinitions } from "./quest-definitions";
-import { evaluateCondition, evaluateObjective } from "./state-utils";
-import type { GameAction, GameState } from "./schemas";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -36,12 +38,12 @@ function activeDayKey(state: GameState, name: string) {
 
 function syncQuestState(state: GameState) {
   for (const def of questDefinitions) {
-    const prereqPass = def.prerequisites.every((c) => evaluateCondition(c, state));
+    const prereqPass = def.prerequisites.every((condition) => evaluateCondition(condition, state));
     if (!prereqPass) {
       state.quests[def.id] = "inactive";
       continue;
     }
-    const allObjectivesMet = def.objectives.every((obj) => evaluateObjective(obj, state));
+    const allObjectivesMet = def.objectives.every((objective) => evaluateObjective(objective, state));
     state.quests[def.id] = allObjectivesMet ? "completed" : "active";
   }
 }
@@ -63,16 +65,6 @@ export function refreshLocationKnowledge(state: GameState) {
   });
 }
 
-function markMealSecured(state: GameState) {
-  state.flags[activeDayKey(state, "mealSecured")] = true;
-  syncQuestState(state);
-}
-
-function markWaterSecured(state: GameState) {
-  state.flags[activeDayKey(state, "waterSecured")] = true;
-  syncQuestState(state);
-}
-
 function relieveStarvation(state: GameState, amount = 1) {
   state.starvationLevel = Math.max(0, state.starvationLevel - amount);
 }
@@ -84,7 +76,12 @@ function triggerGameOver(state: GameState, reason: string) {
   state.isGameOver = true;
   state.gameOverReason = reason;
   state.systemNote = reason;
-  addLog(state, `게임 오버: ${reason}`);
+  addLog(state, `Game over: ${reason}`);
+}
+
+function syncScene(state: GameState) {
+  const scene = resolveSceneDefinition(state, worldRegistry, state.location);
+  state.sceneId = scene.id;
 }
 
 function applyDayTransition(state: GameState, previousDay: number) {
@@ -98,8 +95,8 @@ function applyDayTransition(state: GameState, previousDay: number) {
   state.flags[`day${state.day}_waterSecured`] = false;
   state.lastSleepFullness = state.stats.fullness;
   syncQuestState(state);
-
-  addLog(state, `${state.day}일차 아침을 맞았다.`);
+  syncScene(state);
+  addLog(state, `Day ${state.day} begins.`);
 }
 
 export function syncClock(state: GameState, now = Date.now()) {
@@ -143,10 +140,10 @@ export function syncClock(state: GameState, now = Date.now()) {
   refreshLocationKnowledge(state);
 
   if (state.stats.mind <= 0) {
-    triggerGameOver(state, "정신이 더는 버티지 못했다.");
+    triggerGameOver(state, "Your mind gives out before the city does.");
   }
   if (state.stats.hp <= 0) {
-    triggerGameOver(state, "상처와 굶주림을 버티지 못했다.");
+    triggerGameOver(state, "Your body can no longer keep up with survival.");
   }
 }
 
@@ -154,7 +151,7 @@ export function createInitialGameState(): GameState {
   const now = Date.now();
   const state: GameState = {
     saveVersion: SAVE_VERSION,
-    sceneId: "opening",
+    sceneId: "shelter_opening",
     location: "shelter",
     day: 1,
     phaseIndex: 0,
@@ -179,13 +176,14 @@ export function createInitialGameState(): GameState {
     flags: {
       visited_shelter: true,
     },
-    quests: Object.fromEntries(questDefinitions.map((q) => [q.id, "inactive" as const])),
+    quests: Object.fromEntries(questDefinitions.map((quest) => [quest.id, "inactive" as const])),
     lastSleepFullness: 8,
     starvationLevel: 0,
-    log: ["이 캠프에서 살아가기로 했다. 물자를 모으고, 끼니를 해결하고, 버틴다."],
+    log: ["You wake up in the shelter and decide today has to count."],
     systemNote: "",
   };
   refreshLocationKnowledge(state);
+  syncScene(state);
   syncQuestState(state);
   return state;
 }
@@ -195,14 +193,14 @@ function resolveTravelRequirement(state: GameState, targetId: string) {
   if (!link) {
     return {
       allowed: false,
-      reason: "현재 위치와 닿아 있지 않은 장소다.",
+      reason: "That location is not directly connected from here.",
     };
   }
 
   if (link.requiredFlag && !state.flags[link.requiredFlag]) {
     return {
       allowed: false,
-      reason: link.blockedReason || "아직 이동할 수 없는 경로다.",
+      reason: link.blockedReason || "That route is not open yet.",
     };
   }
 
@@ -213,7 +211,7 @@ function useItem(state: GameState, itemId: keyof typeof baseItems) {
   const item = baseItems[itemId];
   const count = state.inventory[itemId] || 0;
   if (!item || count <= 0) {
-    throw new Error("사용할 수 있는 아이템이 없다.");
+    throw new Error("That item is not available.");
   }
 
   state.inventory[itemId] = count - 1;
@@ -229,59 +227,38 @@ function useItem(state: GameState, itemId: keyof typeof baseItems) {
   }
 
   if (itemId === "emergencySnack" || itemId === "cannedFood" || itemId === "hotMeal") {
-    markMealSecured(state);
+    state.flags[activeDayKey(state, "mealSecured")] = true;
+    state.flags.mealSecured = true;
   }
   if (itemId === "waterBottle") {
-    markWaterSecured(state);
+    state.flags[activeDayKey(state, "waterSecured")] = true;
+    state.flags.waterSecured = true;
   }
 
-  state.systemNote = `사용: ${item.name}`;
-  addLog(state, `${item.name}을 사용했다.`);
+  state.systemNote = `Used ${item.name}.`;
+  addLog(state, `You use ${item.name}.`);
 }
 
-function restAtShelter(state: GameState) {
-  if (state.location !== "shelter") {
-    throw new Error("휴식은 임시 거처에서만 정리할 수 있다.");
+function runActionDefinition(state: GameState, action: ActionDefinition) {
+  if (!action.conditions.every((condition) => evaluateCondition(condition, state))) {
+    throw new Error("That action is not available right now.");
   }
-  adjustStat(state, "hp", 1);
-  adjustStat(state, "mind", 1);
-  state.systemNote = "휴식: 몸과 정신을 가다듬었다.";
-  addLog(state, "임시 거처에서 짧게 숨을 돌렸다.");
+  action.effects.forEach((effect) => applyEffect(effect, state));
+  if (action.nextSceneId) {
+    state.sceneId = action.nextSceneId;
+  }
+  state.systemNote = action.outcomeHint;
 }
 
-function cookAtShelter(state: GameState) {
-  if (state.location !== "shelter") {
-    throw new Error("요리는 임시 거처에서만 할 수 있다.");
+function runChoiceDefinition(state: GameState, choice: ChoiceDefinition) {
+  if (!choice.conditions.every((condition) => evaluateCondition(condition, state))) {
+    throw new Error("That choice is not available right now.");
   }
-  const rice = state.inventory.rawRice ?? 0;
-  const veg = state.inventory.vegetables ?? 0;
-  if (rice < 1 || veg < 1) {
-    throw new Error("쌀과 채소가 필요하다.");
+  choice.effects.forEach((effect) => applyEffect(effect, state));
+  if (choice.nextSceneId) {
+    state.sceneId = choice.nextSceneId;
   }
-  state.inventory.rawRice = rice - 1;
-  if (state.inventory.rawRice <= 0) delete state.inventory.rawRice;
-  state.inventory.vegetables = veg - 1;
-  if (state.inventory.vegetables <= 0) delete state.inventory.vegetables;
-  state.inventory.hotMeal = (state.inventory.hotMeal ?? 0) + 1;
-  markMealSecured(state);
-  state.systemNote = "요리: 쌀과 채소로 따뜻한 한 끼를 만들었다.";
-  addLog(state, "임시 거처에서 쌀과 채소를 끓여 한 끼를 해결했다.");
-}
-
-const KITCHEN_MEAL_PRICE = 4500;
-
-function buyMealAtKitchen(state: GameState) {
-  if (state.location !== "kitchen") {
-    throw new Error("급식소에서만 식사를 구매할 수 있다.");
-  }
-  if (state.money < KITCHEN_MEAL_PRICE) {
-    throw new Error(`식사 비용은 ${KITCHEN_MEAL_PRICE}원이다.`);
-  }
-  state.money -= KITCHEN_MEAL_PRICE;
-  state.inventory.hotMeal = (state.inventory.hotMeal ?? 0) + 1;
-  markMealSecured(state);
-  state.systemNote = "급식소에서 따뜻한 식사를 구매했다.";
-  addLog(state, "급식소에서 돈을 내고 한 끼를 해결했다.");
+  state.systemNote = choice.outcomeHint;
 }
 
 export function performAction(state: GameState, action: GameAction) {
@@ -294,41 +271,61 @@ export function performAction(state: GameState, action: GameAction) {
         throw new Error(reason);
       }
       state.location = action.targetId;
-      state.sceneId = `location:${action.targetId}`;
       state.flags[`visited_${action.targetId}`] = true;
-      if (["mart", "convenience", "riverside", "hospital"].includes(action.targetId)) {
-        state.flags.stockpileStarted = true;
-      }
       refreshLocationKnowledge(state);
-      state.systemNote = `이동: ${baseLocations[action.targetId].name}`;
-      addLog(state, `${baseLocations[action.targetId].name}(으)로 이동했다.`);
-      return;
+      syncScene(state);
+      state.systemNote = `Moved to ${baseLocations[action.targetId].name}.`;
+      addLog(state, `You move to ${baseLocations[action.targetId].name}.`);
+      break;
     }
     case "use_item": {
       useItem(state, action.itemId as keyof typeof baseItems);
-      return;
+      break;
+    }
+    case "content_action": {
+      const definition = worldRegistry.actions[action.actionId];
+      if (!definition) {
+        throw new Error(`Unknown action '${action.actionId}'.`);
+      }
+      runActionDefinition(state, definition);
+      syncScene(state);
+      break;
+    }
+    case "content_choice": {
+      const definition = worldRegistry.choices[action.choiceId];
+      if (!definition) {
+        throw new Error(`Unknown choice '${action.choiceId}'.`);
+      }
+      runChoiceDefinition(state, definition);
+      syncScene(state);
+      break;
     }
     case "rest": {
-      restAtShelter(state);
-      return;
+      runActionDefinition(state, worldRegistry.actions.rest_at_shelter);
+      syncScene(state);
+      break;
     }
     case "cook": {
-      cookAtShelter(state);
-      return;
+      runActionDefinition(state, worldRegistry.actions.cook_simple_meal);
+      syncScene(state);
+      break;
     }
     case "buy_meal": {
-      buyMealAtKitchen(state);
-      return;
+      runActionDefinition(state, worldRegistry.actions.buy_meal_at_kitchen);
+      syncScene(state);
+      break;
     }
     case "generate_event": {
-      state.systemNote = "새 이벤트를 생성했다.";
-      return;
+      state.systemNote = "You probe the area for something new.";
+      break;
     }
     default: {
       const exhaustiveCheck: never = action;
       return exhaustiveCheck;
     }
   }
+
+  syncQuestState(state);
 }
 
 export function summarizeState(state: GameState) {

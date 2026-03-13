@@ -2,6 +2,17 @@ import { z } from "zod";
 import { ConditionSchema } from "./condition-effect";
 import { StoryChoiceSchema } from "./choice";
 
+export const EventDefinitionSchema = z.object({
+  id: z.string(),
+  locationId: z.string(),
+  title: z.string(),
+  summary: z.string(),
+  triggerConditions: z.array(ConditionSchema).default([]),
+  choiceIds: z.array(z.string()).default([]),
+  once: z.boolean().default(false),
+  priority: z.number().int().default(0),
+});
+
 export const EventCardSchema = z.object({
   id: z.string(),
   locationId: z.string(),
@@ -19,4 +30,5 @@ export const EventCardSchema = z.object({
   priority: z.number().int().optional(),
 });
 
+export type EventDefinition = z.infer<typeof EventDefinitionSchema>;
 export type EventCard = z.infer<typeof EventCardSchema>;

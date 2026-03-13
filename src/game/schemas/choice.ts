@@ -16,6 +16,7 @@ export const StoryChoiceSchema = z.object({
   riskHint: RiskHintSchema.optional(),
   hidden: z.boolean().optional(),
   nextEventId: z.string().optional(),
+  nextSceneId: z.string().optional(),
 });
 
 export const ActionChoiceSchema = z.object({
@@ -25,5 +26,19 @@ export const ActionChoiceSchema = z.object({
   action: GameActionSchema,
 });
 
+export const ChoiceDefinitionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  outcomeHint: z.string(),
+  descriptionTag: z.string().optional(),
+  conditions: z.array(ConditionSchema).default([]),
+  effects: z.array(EffectSchema).default([]),
+  riskHint: RiskHintSchema.optional(),
+  hidden: z.boolean().default(false),
+  nextEventId: z.string().optional(),
+  nextSceneId: z.string().optional(),
+});
+
 export type StoryChoice = z.infer<typeof StoryChoiceSchema>;
 export type ActionChoice = z.infer<typeof ActionChoiceSchema>;
+export type ChoiceDefinition = z.infer<typeof ChoiceDefinitionSchema>;

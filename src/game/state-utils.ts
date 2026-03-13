@@ -1,7 +1,5 @@
 /**
- * GameState ↔ Player / WorldState / GameStateV2 변환 유틸
- * Condition 평가 / Effect 적용
- * OBJECT_MODEL.md Phase 1
+ * GameState helpers.
  */
 
 import { PHASES } from "./base-data";
@@ -12,7 +10,10 @@ function activeDayKey(state: GameState, flag: string) {
   return `day${state.day}_${flag}`;
 }
 
-/** Objective 달성 여부 평가 */
+function clampStat(value: number) {
+  return Math.max(0, Math.min(10, value));
+}
+
 export function evaluateObjective(objective: Objective, state: GameState): boolean {
   switch (objective.type) {
     case "obtain_item":
@@ -24,7 +25,7 @@ export function evaluateObjective(objective: Objective, state: GameState): boole
     case "flag":
       return Boolean(state.flags[objective.flag]);
     case "daily_flag":
-      return Boolean(state.flags[activeDayKey(state, objective.flag)]);
+      return Boolean(state.flags[activeDayKey(state, objective.flag)] || state.flags[objective.flag]);
     case "stage_clear":
       return state.stageClear;
     default:
@@ -32,7 +33,6 @@ export function evaluateObjective(objective: Objective, state: GameState): boole
   }
 }
 
-/** Quest 보상 적용 */
 export function applyQuestReward(reward: QuestReward, state: GameState): void {
   switch (reward.type) {
     case "money":
@@ -47,13 +47,12 @@ export function applyQuestReward(reward: QuestReward, state: GameState): void {
   }
 }
 
-/** Condition을 현재 state 기준으로 평가 */
 export function evaluateCondition(condition: Condition, state: GameState): boolean {
   switch (condition.type) {
     case "has_item":
       return (state.inventory[condition.itemId] ?? 0) >= condition.amount;
     case "skill_gte":
-      return state.skills.includes(condition.skillId); // 레벨 없음, 보유 여부만
+      return state.skills.includes(condition.skillId);
     case "flag":
       return Boolean(state.flags[condition.flag]);
     case "flag_not":
@@ -66,46 +65,67 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
       return state.day >= condition.value;
     case "day_lt":
       return state.day < condition.value;
+    case "money_gte":
+      return state.money >= condition.amount;
+    case "quest_state":
+      return state.quests[condition.questId] === condition.status;
     default:
       return false;
   }
 }
 
-/** Effect를 state에 적용 (변이) */
 export function applyEffect(effect: Effect, state: GameState): void {
   switch (effect.type) {
     case "change_stat":
-      state.stats[effect.stat] = Math.max(0, Math.min(10, state.stats[effect.stat] + effect.value));
+      state.stats[effect.stat] = clampStat(state.stats[effect.stat] + effect.value);
       break;
     case "set_flag":
       state.flags[effect.flag] = true;
+      if (effect.flag === "mealSecured" || effect.flag === "waterSecured") {
+        state.flags[activeDayKey(state, effect.flag)] = true;
+      }
+      break;
+    case "clear_flag":
+      delete state.flags[effect.flag];
+      delete state.flags[activeDayKey(state, effect.flag)];
       break;
     case "add_item":
       state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + effect.amount;
       break;
-    case "remove_item":
-      const cur = state.inventory[effect.itemId] ?? 0;
-      const next = Math.max(0, cur - effect.amount);
-      if (next <= 0) delete state.inventory[effect.itemId];
+    case "remove_item": {
+      const current = state.inventory[effect.itemId] ?? 0;
+      const next = Math.max(0, current - effect.amount);
+      if (next === 0) delete state.inventory[effect.itemId];
       else state.inventory[effect.itemId] = next;
       break;
-    case "add_money":
+    }
+    case "change_money":
       state.money = Math.max(0, state.money + effect.amount);
       break;
     case "travel":
       state.location = effect.locationId;
       state.flags[`visited_${effect.locationId}`] = true;
       break;
+    case "start_quest":
+      state.quests[effect.questId] = "active";
+      break;
+    case "complete_quest":
+      state.quests[effect.questId] = "completed";
+      break;
+    case "log":
+      state.log.unshift(effect.message);
+      state.log = state.log.slice(0, 20);
+      break;
+    case "set_scene":
+      state.sceneId = effect.sceneId;
+      break;
   }
 }
 
 export function derivePlayer(state: GameState): Player {
-  const flagsArray = Object.entries(state.flags)
-    .filter(([, v]) => v === true || (typeof v === "string" && v.length > 0))
-    .map(([k]) => k);
   return {
     id: "protagonist",
-    name: "이름 없는 생존자",
+    name: "Unnamed Survivor",
     hp: state.stats.hp,
     sanity: state.stats.mind,
     hunger: state.stats.fullness,
@@ -113,7 +133,7 @@ export function derivePlayer(state: GameState): Player {
     inventory: { ...state.inventory },
     skills: [...state.skills],
     flags: { ...state.flags },
-    statusEffects: state.starvationLevel > 0 ? ["굶주림"] : [],
+    statusEffects: state.starvationLevel > 0 ? ["starving"] : [],
   };
 }
 
@@ -126,16 +146,10 @@ export function deriveWorldState(state: GameState): WorldState {
     .map(([k]) => k.replace("known_", ""));
   const unlockedIds = [...new Set([...visitedIds, ...knownIds, state.location])];
   const globalFlags = Object.entries(state.flags)
-    .filter(
-      ([k, v]) =>
-        !k.startsWith("visited_") &&
-        !k.startsWith("known_") &&
-        !k.startsWith("day") &&
-        (v === true || (typeof v === "string" && v.length > 0))
-    )
+    .filter(([k, v]) => !k.startsWith("visited_") && !k.startsWith("known_") && !k.startsWith("day") && Boolean(v))
     .map(([k]) => k);
   return {
-    currentTime: PHASES[state.phaseIndex] ?? "아침",
+    currentTime: PHASES[state.phaseIndex] ?? "morning",
     currentDay: state.day,
     phaseIndex: state.phaseIndex,
     globalFlags,
@@ -146,17 +160,15 @@ export function deriveWorldState(state: GameState): WorldState {
 }
 
 export function toGameStateV2(state: GameState): GameStateV2 {
-  const player = derivePlayer(state);
-  const worldState = deriveWorldState(state);
   const activeQuestIds = Object.entries(state.quests)
-    .filter(([, s]) => s === "active")
+    .filter(([, status]) => status === "active")
     .map(([id]) => id);
   const completedQuestIds = Object.entries(state.quests)
-    .filter(([, s]) => s === "completed")
+    .filter(([, status]) => status === "completed")
     .map(([id]) => id);
   return {
-    player,
-    worldState,
+    player: derivePlayer(state),
+    worldState: deriveWorldState(state),
     currentLocationId: state.location,
     currentSceneId: state.sceneId,
     activeQuestIds,
@@ -166,6 +178,6 @@ export function toGameStateV2(state: GameState): GameStateV2 {
     isGameOver: state.isGameOver,
     gameOverReason: state.gameOverReason,
     stageClear: state.stageClear,
-    turn: Math.floor(state.worldElapsedMs / (15 * 60 * 1000 / 5)), // 대략 턴 수
+    turn: Math.floor(state.worldElapsedMs / (15 * 60 * 1000 / 5)),
   };
 }

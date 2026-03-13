@@ -1,12 +1,12 @@
 /**
- * 게임 객체 스키마 - 객체 종류별 분리
- * OBJECT_MODEL 기반
+ * Game object schemas.
  */
 
 export * from "./base";
 export * from "./condition-effect";
 export * from "./quest";
 export * from "./action";
+export * from "./content";
 export * from "./player";
 export * from "./world-state";
 export * from "./game-state";

@@ -1,21 +1,17 @@
-import {
-  baseItems,
-  baseLocations,
-  basePeople,
-  baseSkills,
-  PHASES,
-} from "./base-data";
-import { sceneParagraphTemplates, eventSummaryTemplate } from "./data/story-templates";
+﻿import { baseItems, baseLocations, basePeople, PHASES } from "./base-data";
 import { summarizeState } from "./rules";
 import type {
   ActionChoice,
   EventCard,
+  EventDefinition,
   GameState,
   ItemCard,
   LocationCard,
   PersonCard,
   ProtagonistCard,
   SceneCard,
+  SceneDefinition,
+  StoryChoice,
   StoryMaterials,
 } from "./schemas";
 import {
@@ -40,8 +36,8 @@ export interface ContentGenerator {
   generatePersonCard(personId: string, input: GeneratorInput): Promise<PersonCard>;
   generateItemCard(itemId: string, input: GeneratorInput): Promise<ItemCard>;
   generateProtagonistCard(input: GeneratorInput): Promise<ProtagonistCard>;
-  generateSceneCard(input: GeneratorInput): Promise<SceneCard>;
-  generateEventCard(locationId: string, input: GeneratorInput): Promise<EventCard>;
+  generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput): Promise<SceneCard>;
+  generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput): Promise<EventCard>;
 }
 
 function stripCodeFence(raw: string) {
@@ -56,40 +52,26 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function storyChoiceFromAction(actionChoice: ActionChoice, overrides?: Partial<{ label: string; outcomeHint: string }>) {
-  return {
-    id: actionChoice.id,
-    label: overrides?.label || actionChoice.label,
-    outcomeHint: overrides?.outcomeHint || actionChoice.outcomeHint,
-    serverActionHint: actionChoice.action,
-  };
-}
-
 class TemplateContentGenerator implements ContentGenerator {
   async generateLocationCard(locationId: string, input: GeneratorInput) {
     const location = baseLocations[locationId];
-    const availableActionIds = [
-      ...Object.entries(location.links)
-        .filter(([, link]) => !link.requiredFlag || input.state.flags[link.requiredFlag])
-        .map(([targetId]) => `travel:${targetId}`),
-      `event:${locationId}`,
-    ];
+    const availableActionIds = input.allowedActions.map((action) => action.id);
     return LocationCardSchema.parse({
       id: location.id,
       name: location.name,
       risk: location.risk,
       summary: location.summary,
-      description: `${location.summary} ${summarizeState(input.state).phase} 특유의 공기와 생존자들의 흔적이 이곳의 분위기를 바꾼다.`,
+      description: `${location.summary} ${summarizeState(input.state).phase.toLowerCase()}의 공기는 이곳의 먼지와 기척을 더 또렷하게 드러낸다.`,
       tags: [...location.tags],
       traits: [...location.traits],
       obtainableItemIds: [...location.obtainableItemIds],
       residentIds: [...location.residentIds],
-      neighbors: Object.keys(location.links),
+      neighbors: [...location.neighbors],
       imagePath: location.imagePath,
       source: "template",
       generatedAt: nowIso(),
       availableActionIds,
-      eventIds: [],
+      eventIds: [...location.eventIds],
     });
   }
 
@@ -115,8 +97,8 @@ class TemplateContentGenerator implements ContentGenerator {
     const state = summarizeState(input.state);
     return ProtagonistCardSchema.parse({
       id: "protagonist",
-      name: "이름 없는 생존자",
-      summary: "폐허가 된 서울에서 3일을 버티며 다음 선택을 강요받는 생존자다.",
+      name: "Unnamed Survivor",
+      summary: "A survivor trying to turn each day into one more chance to get through the city.",
       inventoryItemIds: Object.keys(input.state.inventory),
       usableSkillIds: [...input.state.skills],
       condition: {
@@ -133,24 +115,13 @@ class TemplateContentGenerator implements ContentGenerator {
     });
   }
 
-  async generateSceneCard(input: GeneratorInput) {
-    const state = summarizeState(input.state);
-    const location = baseLocations[input.state.location];
-    const ctx = {
-      locationSummary: location.summary,
-      localPeople: input.storyMaterials.people.map((person) => person.name).join(", "),
-      localItems: input.storyMaterials.items.map((item) => item.name).join(", "),
-      recentLog: input.recentLog.join(" / "),
-      phase: state.phase,
-    };
-    const supportChoices = input.allowedActions.filter((entry) => entry.action.type !== "travel").slice(0, 4);
-    const paragraphs = sceneParagraphTemplates.map((tpl) => tpl(ctx));
+  async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
     return SceneCardSchema.parse({
-      id: `scene:${input.state.location}:${input.state.day}:${input.state.phaseIndex}`,
-      locationId: input.state.location,
-      title: `${location.name}, ${input.state.day}일차 ${PHASES[input.state.phaseIndex]}`,
-      paragraphs,
-      choices: supportChoices.map((choice) => storyChoiceFromAction(choice)),
+      id: `scene:${scene.id}:${input.state.day}:${input.state.phaseIndex}`,
+      locationId: scene.locationId,
+      title: `${scene.title} (${PHASES[input.state.phaseIndex]})`,
+      paragraphs: scene.paragraphs,
+      choices,
       materialIds: {
         locationIds: input.storyMaterials.locations.map((entry) => entry.id),
         personIds: input.storyMaterials.people.map((entry) => entry.id),
@@ -161,32 +132,22 @@ class TemplateContentGenerator implements ContentGenerator {
     });
   }
 
-  async generateEventCard(locationId: string, input: GeneratorInput) {
-    const location = baseLocations[locationId];
-    const eventChoices = input.allowedActions
-      .filter((entry) => entry.action.type === "generate_event")
-      .slice(0, 2);
+  async generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput) {
     return EventCardSchema.parse({
-      id: `event:${locationId}:${input.state.day}:${input.state.phaseIndex}`,
-      locationId,
-      title: `${location.name}의 즉흥 사건`,
-      summary: eventSummaryTemplate(location.name),
-      trigger: `${input.state.day}일차 ${PHASES[input.state.phaseIndex]}`,
-      choices: eventChoices.length > 0
-        ? eventChoices.map((choice) => storyChoiceFromAction(choice))
-        : [{
-            id: "event:observe",
-            label: "흔적을 관찰한다",
-            outcomeHint: "새 단서나 소문을 얻을 수 있다.",
-            serverActionHint: {
-              type: "generate_event",
-              locationId,
-            },
-          }],
-      rewards: ["소문", "새 카드 해금 가능"],
-      flags: ["generated_event"],
+      id: `event:${event.id}:${input.state.day}:${input.state.phaseIndex}`,
+      locationId: event.locationId,
+      title: event.title,
+      summary: event.summary,
+      trigger: `${input.state.day} / ${PHASES[input.state.phaseIndex]}`,
+      choices,
+      rewards: [],
+      flags: [`event_seen_${event.id}`],
       source: "template",
       generatedAt: nowIso(),
+      triggerConditions: event.triggerConditions,
+      choiceIds: event.choiceIds,
+      once: event.once,
+      priority: event.priority,
     });
   }
 }
@@ -199,11 +160,7 @@ class RemoteContentGenerator implements ContentGenerator {
     private readonly fallback: TemplateContentGenerator,
   ) {}
 
-  private async generateJson<T>(
-    schemaName: string,
-    schemaPrompt: string,
-    payload: Record<string, unknown>,
-  ): Promise<T> {
+  private async generateJson<T>(schemaName: string, schemaPrompt: string, payload: Record<string, unknown>): Promise<T> {
     const response = await fetch(this.apiUrl.replace(/\/$/, ""), {
       method: "POST",
       headers: {
@@ -215,7 +172,7 @@ class RemoteContentGenerator implements ContentGenerator {
         messages: [
           {
             role: "system",
-            content: `You generate JSON only. Output must satisfy this schema: ${schemaPrompt}. Never invent arbitrary game rules. Use only serverActionHint values that can be justified by the provided allowedActions.`,
+            content: `You generate JSON only. Output must satisfy this schema: ${schemaPrompt}. Do not change action ids or choice wiring. Focus only on the current location and local materials. Improve prose only.`,
           },
           {
             role: "user",
@@ -230,9 +187,7 @@ class RemoteContentGenerator implements ContentGenerator {
       throw new Error(`LLM request failed: ${response.status}`);
     }
 
-    const json = await response.json() as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
+    const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = json.choices?.[0]?.message?.content;
     if (!content) {
       throw new Error("LLM did not return content.");
@@ -243,74 +198,46 @@ class RemoteContentGenerator implements ContentGenerator {
 
   async generateLocationCard(locationId: string, input: GeneratorInput) {
     const fallback = await this.fallback.generateLocationCard(locationId, input);
-    return LocationCardSchema.parse(await this.generateJson("locationCard", "location card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      allowedActions: input.allowedActions,
-    }));
+    return LocationCardSchema.parse(await this.generateJson("locationCard", "location card json", { fallback, currentState: summarizeState(input.state) }));
   }
 
   async generatePersonCard(personId: string, input: GeneratorInput) {
     const fallback = await this.fallback.generatePersonCard(personId, input);
-    return PersonCardSchema.parse(await this.generateJson("personCard", "person card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      allowedActions: input.allowedActions,
-    }));
+    return PersonCardSchema.parse(await this.generateJson("personCard", "person card json", { fallback, currentState: summarizeState(input.state) }));
   }
 
   async generateItemCard(itemId: string, input: GeneratorInput) {
     const fallback = await this.fallback.generateItemCard(itemId, input);
-    return ItemCardSchema.parse(await this.generateJson("itemCard", "item card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      allowedActions: input.allowedActions,
-    }));
+    return ItemCardSchema.parse(await this.generateJson("itemCard", "item card json", { fallback, currentState: summarizeState(input.state) }));
   }
 
   async generateProtagonistCard(input: GeneratorInput) {
     const fallback = await this.fallback.generateProtagonistCard(input);
-    return ProtagonistCardSchema.parse(await this.generateJson("protagonistCard", "protagonist card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      allowedActions: input.allowedActions,
-    }));
+    return ProtagonistCardSchema.parse(await this.generateJson("protagonistCard", "protagonist card json", { fallback, currentState: summarizeState(input.state) }));
   }
 
-  async generateSceneCard(input: GeneratorInput) {
-    const fallback = await this.fallback.generateSceneCard(input);
-    return SceneCardSchema.parse(await this.generateJson("sceneCard", "scene card json", {
+  async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
+    const fallback = await this.fallback.generateSceneCard(scene, choices, input);
+    const generated = await this.generateJson<SceneCard>("sceneCard", "scene card json", {
       fallback,
       currentState: summarizeState(input.state),
       recentLog: input.recentLog,
       storyMaterials: input.storyMaterials,
-      questState: input.state.quests,
-      visiblePeople: input.storyMaterials.people,
-      visibleItems: input.storyMaterials.items,
-      protagonist: input.storyMaterials.protagonist,
-      allowedActions: input.allowedActions,
-    }));
+      choiceIds: choices.map((choice) => choice.id),
+    });
+    return SceneCardSchema.parse({ ...generated, choices });
   }
 
-  async generateEventCard(locationId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generateEventCard(locationId, input);
-    return EventCardSchema.parse(await this.generateJson("eventCard", "event card json", {
+  async generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput) {
+    const fallback = await this.fallback.generateEventCard(event, choices, input);
+    const generated = await this.generateJson<EventCard>("eventCard", "event card json", {
       fallback,
       currentState: summarizeState(input.state),
       recentLog: input.recentLog,
       storyMaterials: input.storyMaterials,
-      questState: input.state.quests,
-      locationId,
-      allowedActions: input.allowedActions,
-    }));
+      choiceIds: choices.map((choice) => choice.id),
+    });
+    return EventCardSchema.parse({ ...generated, choices });
   }
 }
 
