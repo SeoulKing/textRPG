@@ -24,6 +24,7 @@ export const ActionChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   action: GameActionSchema,
+  nextSceneId: z.string().optional(),
 });
 
 export const ChoiceDefinitionSchema = z.object({

@@ -52,6 +52,8 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+const SCENE_CARD_CACHE_VERSION = 2;
+
 class TemplateContentGenerator implements ContentGenerator {
   async generateLocationCard(locationId: string, input: GeneratorInput) {
     const location = baseLocations[locationId];
@@ -117,10 +119,12 @@ class TemplateContentGenerator implements ContentGenerator {
 
   async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
     return SceneCardSchema.parse({
-      id: `scene:${scene.id}:${input.state.day}:${input.state.phaseIndex}`,
+      id: `scene:${scene.id}:v${SCENE_CARD_CACHE_VERSION}:${input.state.day}:${input.state.phaseIndex}`,
+      eventId: scene.eventId,
       locationId: scene.locationId,
       title: `${scene.title} (${PHASES[input.state.phaseIndex]})`,
       paragraphs: scene.paragraphs,
+      introFlag: scene.introFlag,
       choices,
       materialIds: {
         locationIds: input.storyMaterials.locations.map((entry) => entry.id),
@@ -142,6 +146,8 @@ class TemplateContentGenerator implements ContentGenerator {
       choices,
       rewards: [],
       flags: [`event_seen_${event.id}`],
+      startSceneId: event.startSceneId,
+      sceneIds: event.sceneIds,
       source: "template",
       generatedAt: nowIso(),
       triggerConditions: event.triggerConditions,
@@ -225,7 +231,12 @@ class RemoteContentGenerator implements ContentGenerator {
       storyMaterials: input.storyMaterials,
       choiceIds: choices.map((choice) => choice.id),
     });
-    return SceneCardSchema.parse({ ...generated, choices });
+    return SceneCardSchema.parse({
+      ...generated,
+      choices,
+      eventId: scene.eventId,
+      introFlag: scene.introFlag,
+    });
   }
 
   async generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput) {
@@ -237,7 +248,7 @@ class RemoteContentGenerator implements ContentGenerator {
       storyMaterials: input.storyMaterials,
       choiceIds: choices.map((choice) => choice.id),
     });
-    return EventCardSchema.parse({ ...generated, choices });
+    return EventCardSchema.parse({ ...generated, choices, startSceneId: event.startSceneId, sceneIds: event.sceneIds });
   }
 }
 

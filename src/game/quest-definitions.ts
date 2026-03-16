@@ -13,7 +13,7 @@ export const questDefinitions: QuestDefinition[] = [
     objectives: [{ type: "flag", flag: "first_canned_food_secured" }],
     rewards: [],
     prerequisites: [{ type: "flag", flag: "first_canned_food_started" }],
-    relatedNpcIds: [],
-    relatedLocationIds: ["convenience"],
+    relatedNpcIds: ["oldCook"],
+    relatedLocationIds: ["convenience", "kitchen"],
   },
 ];

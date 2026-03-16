@@ -17,8 +17,16 @@ export const baseLocations: LocationMap = {
     availableActionIds: ["survey_shelter", "rest_at_shelter", "cook_simple_meal"],
     eventIds: [],
     links: {
-      convenience: { note: "무너진 보도와 깨진 유리 조각을 밟으며 편의점 쪽으로 간다." },
-      kitchen: { note: "새벽부터 줄이 늘어서는 급식소 방향으로 발길을 옮긴다." },
+      convenience: {
+        note: "무너진 보도와 깨진 유리 조각을 밟으며 편의점 쪽으로 간다.",
+        requiredFlag: "opening_seen",
+        blockedReason: "먼저 마음을 다잡고 오늘을 버틸 이유를 정해야 한다.",
+      },
+      kitchen: {
+        note: "새벽부터 줄이 늘어서는 급식소 방향으로 발길을 옮긴다.",
+        requiredFlag: "opening_seen",
+        blockedReason: "먼저 숨을 고르고, 오늘 움직일 이유부터 정해야 한다.",
+      },
     },
     stockNodes: [],
   },

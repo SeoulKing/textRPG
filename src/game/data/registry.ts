@@ -214,14 +214,30 @@ export function validateContent() {
 
   Object.values(worldRegistry.events).forEach((event) => {
     assertKnownLocation(event.locationId, `event:${event.id}`);
+    assertKnownScene(event.startSceneId, `event:${event.id}`);
+    event.sceneIds.forEach((sceneId) => assertKnownScene(sceneId, `event:${event.id}`));
     event.choiceIds.forEach((choiceId) => assertKnownChoice(choiceId, `event:${event.id}`));
     event.triggerConditions.forEach((condition) => validateCondition(condition, `event:${event.id}`));
   });
 
   Object.values(worldRegistry.scenes).forEach((scene) => {
     assertKnownLocation(scene.locationId, `scene:${scene.id}`);
+    if (scene.eventId) {
+      assertKnownEvent(scene.eventId, `scene:${scene.id}`);
+    }
     scene.choiceIds.forEach((choiceId) => assertKnownChoice(choiceId, `scene:${scene.id}`));
     scene.conditions.forEach((condition) => validateCondition(condition, `scene:${scene.id}`));
+  });
+
+  Object.values(worldRegistry.events).forEach((event) => {
+    const eventSceneIds = new Set(event.sceneIds);
+    eventSceneIds.add(event.startSceneId);
+    eventSceneIds.forEach((sceneId) => {
+      const scene = worldRegistry.scenes[sceneId];
+      if (scene?.eventId !== event.id) {
+        throw new Error(`event:${event.id} scene '${sceneId}' must declare eventId '${event.id}'.`);
+      }
+    });
   });
 
   return worldRegistry;

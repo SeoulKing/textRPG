@@ -2,56 +2,110 @@ import type { SceneDefinition } from "../schemas";
 
 export const sceneDefinitions: SceneDefinition[] = [
   {
-    id: "shelter_opening",
+    id: "prologue_opening",
+    eventId: "prologue_event",
     locationId: "shelter",
-    title: "거처는 당신보다 먼저 깨어난다",
+    title: "프롤로그",
     paragraphs: [
-      "천막 틈으로 스며든 새벽빛은 늘 병든 색이었다. 눅눅한 담요와 찌그러진 양은그릇 사이에서, 사람들은 밤새 미뤄 둔 한숨을 조금씩 토해 내고 있었다.",
-      "오늘도 버틸 수 있을지는 아직 누구도 모른다. 다만 가만히 앉아 운을 기다리는 것만으로는, 이 도시가 한 끼도 더 내어주지 않으리라는 사실만은 분명했다.",
+      "지붕인지 천막인지 모를 것을 겨우 이어 붙인 아래로 스민 공기가 새벽보다 먼저 폐 안으로 파고든다. 눈을 뜨자마자 떠오르는 건 어젯밤이 아니라, 오늘을 버티지 못하면 여기서 끝난다는 감각이다.",
+      "사람들은 제 각기 숨을 죽인 채 누워 있지만 잠든 얼굴은 거의 없다. 몸을 일으키기 전부터, 오늘 하루를 어떻게든 살아남아야 한다는 말이 속에서 먼저 문장을 갖춘다.",
     ],
     choiceIds: ["opening_commit"],
     conditions: [
       { type: "location", locationId: "shelter" },
-      { type: "day_lt", value: 2 },
       { type: "flag_not", flag: "opening_seen" },
+      { type: "flag_not", flag: "prologue_seen" },
+    ],
+    introFlag: "prologue_seen",
+  },
+  {
+    id: "prologue_repeat",
+    eventId: "prologue_event",
+    locationId: "shelter",
+    title: "프롤로그",
+    paragraphs: [
+      "오늘은 그냥 견디는 날이 아니다. 어떻게든 살아남겠다고 입 밖에 꺼내야만 움직일 수 있을 것 같은 순간이 아직 가슴에 붙어 있다.",
+    ],
+    choiceIds: ["opening_commit"],
+    conditions: [
+      { type: "location", locationId: "shelter" },
+      { type: "flag_not", flag: "opening_seen" },
+      { type: "flag", flag: "prologue_seen" },
     ],
   },
   {
-    id: "shelter_day_intro",
+    id: "prologue_old_woman_visit",
+    eventId: "prologue_event",
     locationId: "shelter",
-    title: "오늘 버틸 첫 목표가 필요했다",
+    title: "프롤로그",
     paragraphs: [
-      "이 거처는 안전이라기보다, 아직 무너지지 않았다는 말에 가까웠다. 그래도 바깥보다 먼저 생각할 수 있는 곳이 있다는 것만으로 숨이 조금은 길어졌다.",
-      "가장 먼저 해결해야 할 것은 식량이었다. 급식소를 기다리기엔 시간이 걸리고, 오늘 저녁을 넘길 만큼 확실한 건 편의점 잔해 어딘가에 남아 있을지 모를 통조림뿐이었다.",
-      "지금 필요한 건 막연한 각오가 아니라, 바로 움직일 수 있는 첫 목표였다.",
+      "살아남겠다고 겨우 마음을 다잡은 순간, 천막 틈이 들리며 급식소 배식을 맡는 노파가 얼굴을 내민다. 노파는 오늘 급식이 오래 버티지 못할 거라고, 편의점 잔해 안쪽 진열대에 아직 통조림이 남아 있을 수 있다고 낮게 말한다.",
+      "말을 마친 노파는 더 설명하지 않는다. 대신 지금 이 거처의 공기와 사람들을 직접 보라는 듯, 천막 안쪽을 한 번 훑어보고는 조용히 자리를 비켜 준다.",
+    ],
+    choiceIds: ["enter_shelter_after_old_woman"],
+    conditions: [
+      { type: "location", locationId: "shelter" },
+      { type: "flag", flag: "opening_seen" },
+      { type: "flag_not", flag: "prologue_old_woman_seen" },
+    ],
+    introFlag: "prologue_old_woman_seen",
+  },
+  {
+    id: "shelter_first_intro",
+    eventId: "prologue_event",
+    locationId: "shelter",
+    title: "임시 거처",
+    paragraphs: [
+      "임시 거처는 방이라고 부르기에도 민망한 천막과 덧댄 판자들로 이어져 있다. 바람이 스며드는 자리는 많지만, 그럼에도 사람들은 이곳에서만 겨우 등을 벽에 붙이고 숨을 고른다.",
+      "젖은 천 냄새와 눅눅한 흙 냄새 사이로 낮게 기침하는 소리, 끓는 물이 모자라 금세 식어 버린 냄비 소리가 얇게 깔려 있다. 밖보다 안전하다는 말은 결국 여기에서만 다음 한 끼를 생각할 수 있다는 뜻이다.",
     ],
     choiceIds: ["accept_first_canned_food_quest"],
     conditions: [
       { type: "location", locationId: "shelter" },
-      { type: "flag_not", flag: "first_canned_food_started" },
+      { type: "flag", flag: "opening_seen" },
+      { type: "flag", flag: "prologue_old_woman_seen" },
+      { type: "flag_not", flag: "intro_seen_shelter" },
     ],
+    introFlag: "intro_seen_shelter",
   },
   {
-    id: "shelter_day_intro_after_quest",
+    id: "shelter_repeat_postquest",
     locationId: "shelter",
-    title: "이제 갈 곳은 분명했다",
+    title: "임시 거처",
     paragraphs: [
-      "목표를 정하고 나자, 거처 안의 소음도 조금 멀어졌다. 오늘 필요한 첫 식량은 편의점 잔해 쪽에 있을 가능성이 가장 컸다.",
-      "이동 탭으로 나가 편의점 잔해를 향하면 된다. 거기서 통조림만 손에 넣어도 오늘 하루의 모양은 조금 달라질 수 있었다.",
+      "천막 아래 공기는 여전히 축축하고 차갑지만, 이제 무엇을 해야 하는지는 분명하다. 편의점 잔해에서 통조림을 찾으면 오늘 하루는 조금 덜 잔인해진다.",
     ],
     choiceIds: [],
     conditions: [
       { type: "location", locationId: "shelter" },
+      { type: "flag", flag: "opening_seen" },
+      { type: "flag", flag: "intro_seen_shelter" },
       { type: "flag", flag: "first_canned_food_started" },
+    ],
+  },
+  {
+    id: "shelter_repeat_prequest",
+    locationId: "shelter",
+    title: "임시 거처",
+    paragraphs: [
+      "임시 거처 안은 여전히 눅눅하고 비좁지만, 바깥으로 나가기 전 마지막으로 생각을 정리하기에는 이곳만 한 데가 없다.",
+      "노파가 남긴 말이 아직 귓가에 남아 있다. 오늘 첫 식량이 필요하다면 편의점 잔해부터 확인하는 편이 가장 현실적이다.",
+    ],
+    choiceIds: ["accept_first_canned_food_quest"],
+    conditions: [
+      { type: "location", locationId: "shelter" },
+      { type: "flag", flag: "opening_seen" },
+      { type: "flag", flag: "intro_seen_shelter" },
+      { type: "flag_not", flag: "first_canned_food_started" },
     ],
   },
   {
     id: "convenience_shelf_three",
     locationId: "convenience",
-    title: "먼지 속에서 셋이 아직 버티고 있다",
+    title: "진열대",
     paragraphs: [
-      "진열대 앞까지 다가서자 찌그러진 철제 칸 안에 통조림 셋이 아직 가지런히 남아 있는 것이 보였다. 누군가 급히 훑고 지나간 자리 같았지만, 마지막까지 손이 닿지 않은 모양이었다.",
-      "유리 조각 위에서 발을 잘못 디디면 소리가 날 수 있었다. 그래도 지금 이 셋은, 오늘을 버틸 수 있다는 드문 증거처럼 보였다.",
+      "기울어진 진열대 안쪽에 아직 손이 닿지 않은 통조림 세 개가 가지런히 남아 있다. 누군가 급하게 뒤지다 말고 마지막까지 챙기지 못한 흔적처럼 보인다.",
+      "유리 조각과 먼지가 발밑에서 서걱이지만, 지금 손을 뻗으면 오늘 하루를 버틸 식량이 분명히 손안에 들어온다.",
     ],
     choiceIds: ["collect_canned_food_from_shelf", "leave_stock_node"],
     conditions: [
@@ -63,10 +117,9 @@ export const sceneDefinitions: SceneDefinition[] = [
   {
     id: "convenience_shelf_two",
     locationId: "convenience",
-    title: "먼지 사이로 두 개가 남아 있다",
+    title: "진열대",
     paragraphs: [
-      "한 칸이 비어 있었다. 방금 집어 넣은 통조림의 묵직함이 주머니에 닿는 사이, 진열대에는 두 개가 먼지 사이에 남아 희미한 빛을 받고 있었다.",
-      "욕심을 내기에는 조용해야 했고, 망설이기에는 이 두 개가 너무 선명했다.",
+      "방금 비워 낸 자리 옆으로 통조림 두 개가 더 남아 있다. 먼지가 잔뜩 쌓여 있지만 아직은 누군가의 손보다 당신의 손이 먼저 닿을 만큼 가까운 거리다.",
     ],
     choiceIds: ["collect_canned_food_from_shelf", "leave_stock_node"],
     conditions: [
@@ -79,10 +132,9 @@ export const sceneDefinitions: SceneDefinition[] = [
   {
     id: "convenience_shelf_one",
     locationId: "convenience",
-    title: "마지막 하나가 비스듬히 기대 있다",
+    title: "진열대",
     paragraphs: [
-      "이제 진열대에는 마지막 하나만 비스듬히 기대어 있었다. 손을 뻗으면 금방 챙길 수 있었지만, 이상하게도 그 하나가 가장 크게 눈에 들어왔다.",
-      "이곳에 더 남겨 둘 이유는 없었다. 남은 건 집어 가거나, 발소리를 남기지 않고 돌아서는 일뿐이었다.",
+      "이제 마지막 통조림 하나만 비스듬히 남아 있다. 손을 뻗으면 닿겠지만, 그 한 개가 오늘 당신의 숨을 얼마나 바꿔 놓을지 알아서 더 조심스럽다.",
     ],
     choiceIds: ["collect_canned_food_from_shelf", "leave_stock_node"],
     conditions: [
@@ -95,10 +147,9 @@ export const sceneDefinitions: SceneDefinition[] = [
   {
     id: "convenience_shelf_empty",
     locationId: "convenience",
-    title: "이제 진열대에는 빈 자국만 남았다",
+    title: "빈 진열대",
     paragraphs: [
-      "통조림이 놓여 있던 자리에는 먼지가 비켜난 자국만 남아 있었다. 금속 바닥에 눌린 원형 흔적이, 방금 전까지 이곳에 식량이 있었다는 사실을 대신 말해 주고 있었다.",
-      "더 뒤질 만한 것은 없어 보였다. 이쯤이면 만족하고 돌아서는 편이 나았다.",
+      "통조림이 놓여 있던 자리에는 사각 자국과 먼지만 남아 있다. 더 챙길 것은 없고, 여기에서 오래 머무는 건 불안만 키울 뿐이다.",
     ],
     choiceIds: ["leave_stock_node"],
     conditions: [
@@ -110,10 +161,9 @@ export const sceneDefinitions: SceneDefinition[] = [
   {
     id: "convenience_scene_discovered",
     locationId: "convenience",
-    title: "안쪽 진열대에 아직 손대지 않은 무언가가 보인다",
+    title: "편의점 잔해",
     paragraphs: [
-      "가게 안쪽을 훑던 눈이 무너진 선반 하나에 붙잡혔다. 다 뜯겨 나간 자판 사이에서, 아직 완전히 비워지지 않은 진열대가 어둠 속에 남아 있었다.",
-      "가까이 가서 확인하면 오늘을 버틸 만한 식량이 나올지도 몰랐다. 다만 그만큼 더 안으로 들어가야 했다.",
+      "안쪽 벽이 무너진 틈 사이로 아직 완전히 뒤집히지 않은 진열대 하나가 보인다. 먼지가 두껍게 내려앉았지만, 그만큼 아직 남은 것이 있을지도 모른다.",
     ],
     choiceIds: ["go_to_convenience_shelf"],
     conditions: [
@@ -123,28 +173,61 @@ export const sceneDefinitions: SceneDefinition[] = [
     ],
   },
   {
-    id: "convenience_scene",
+    id: "convenience_first_intro",
     locationId: "convenience",
-    title: "무너진 진열대 사이로 아직 하루치 생존이 남아 있다",
+    title: "편의점 잔해",
     paragraphs: [
-      "자동문은 반쯤 열린 채 비틀어져 있었고, 바닥에는 깨진 유리와 오래전에 쏟아진 과자 부스러기가 눅눅하게 달라붙어 있었다. 선반마다 비어 있는 칸이 더 많았지만, 손을 뻗으면 아직 무언가 건져 올릴 수 있을 것 같은 빈틈이 군데군데 남아 있었다.",
-      "형광등은 이미 죽었고, 안쪽 냉장 진열대는 검은 입처럼 벌어져 있었다. 이곳에서 필요한 건 용기보다는 인내였다. 남들이 지나친 작고 하찮은 것들 속에서, 오늘 저녁을 겨우 이어 줄 조각을 찾아내야 했다.",
+      "편의점은 반쯤 주저앉은 채 마지막 모양만 간신히 붙들고 있다. 깨진 자동문은 비스듬히 매달려 있고, 바닥에는 유리 조각과 찢긴 포장지, 누군가 급히 쓸고 간 자국이 먼지 위에 남아 있다.",
+      "진열대 대부분은 이미 비어 있지만, 그 비어 있음조차 아직 생활의 자취를 품고 있다. 누군가가 허겁지겁 챙겨 간 뒤에도, 이곳 어딘가에는 아직 손대지 못한 식량이 숨어 있을 것만 같다.",
     ],
     choiceIds: [],
     conditions: [
       { type: "location", locationId: "convenience" },
       { type: "flag_not", flag: "convenience_shelf_found" },
+      { type: "flag_not", flag: "intro_seen_convenience" },
+    ],
+    introFlag: "intro_seen_convenience",
+  },
+  {
+    id: "convenience_repeat_intro",
+    locationId: "convenience",
+    title: "편의점 잔해",
+    paragraphs: [
+      "반쯤 무너진 가게 안에는 아직 먼지와 생활의 흔적이 함께 남아 있다. 이 안을 더 뒤지면 오늘을 버틸 식량이 숨어 있을지도 모른다.",
+    ],
+    choiceIds: [],
+    conditions: [
+      { type: "location", locationId: "convenience" },
+      { type: "flag_not", flag: "convenience_shelf_found" },
+      { type: "flag", flag: "intro_seen_convenience" },
     ],
   },
   {
-    id: "kitchen_scene",
+    id: "kitchen_first_intro",
     locationId: "kitchen",
-    title: "허기가 줄을 세우는 곳",
+    title: "급식소",
     paragraphs: [
-      "급식소 앞의 줄은 이상할 만큼 조용했다. 사람들은 접시보다 눈치를 먼저 들고 있었고, 냄비에서 오르는 김보다 내일 이야기 쪽에 더 오래 시선을 두고 있었다.",
-      "여기서는 한 끼가 곧 안도였고, 안도는 언제나 작은 대가를 데리고 왔다.",
+      "급식소 앞에는 이미 사람들이 모여 있다. 빈 그릇을 들고 줄을 선 이들 사이로 묽은 국 냄새와 금세 식어 버릴 김이 번지고, 누구도 크게 말하지 않지만 모두가 자기 차례를 놓치지 않으려 몸을 세우고 있다.",
+      "배식대 쪽에서는 노파가 접시를 밀어 넣는 손놀림으로 급한 사람들을 재촉하지만, 그 와중에도 아직 하루를 더 버텨 보려는 사람들의 눈빛이 줄 끝에 남아 있다.",
     ],
     choiceIds: [],
-    conditions: [{ type: "location", locationId: "kitchen" }],
+    conditions: [
+      { type: "location", locationId: "kitchen" },
+      { type: "flag_not", flag: "intro_seen_kitchen" },
+    ],
+    introFlag: "intro_seen_kitchen",
+  },
+  {
+    id: "kitchen_repeat_intro",
+    locationId: "kitchen",
+    title: "급식소",
+    paragraphs: [
+      "사람들이 줄을 이룬 채 자기 순서를 기다리고 있다. 배식대 앞 공기에는 허기와 소문이 함께 떠돈다.",
+    ],
+    choiceIds: [],
+    conditions: [
+      { type: "location", locationId: "kitchen" },
+      { type: "flag", flag: "intro_seen_kitchen" },
+    ],
   },
 ];

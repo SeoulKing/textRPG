@@ -1,7 +1,6 @@
 ﻿import { randomUUID } from "node:crypto";
 import { baseLocations, getQuestEntries, getSkillEntries } from "./base-data";
 import {
-  buildActionChoiceFromDefinition,
   buildStoryChoiceFromChoice,
   resolveAvailableActions,
   resolveEventChoices,
@@ -34,6 +33,8 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+const SCENE_CARD_CACHE_VERSION = 2;
+
 export class GameService {
   constructor(
     private readonly repository: GameRepository,
@@ -57,8 +58,9 @@ export class GameService {
     };
 
     await this.ensureCards(session);
+    const snapshot = this.buildSnapshot(session, null);
     await this.repository.saveGame(session);
-    return this.buildSnapshot(session, null);
+    return snapshot;
   }
 
   async getState(gameId: string) {
@@ -69,8 +71,9 @@ export class GameService {
     applySystemNote(previousState, session.state);
     session.updatedAt = nowIso();
     await this.ensureCards(session);
+    const snapshot = this.buildSnapshot(session, null);
     await this.repository.saveGame(session);
-    return this.buildSnapshot(session, null);
+    return snapshot;
   }
 
   async performAction(gameId: string, action: GameAction) {
@@ -98,8 +101,9 @@ export class GameService {
       location: session.state.location,
       day: session.state.day,
     });
+    const snapshot = this.buildSnapshot(session, latestEvent);
     await this.repository.saveGame(session);
-    return this.buildSnapshot(session, latestEvent);
+    return snapshot;
   }
 
   async getMap(gameId: string) {
@@ -185,23 +189,61 @@ export class GameService {
     return `event:${eventId}:${session.state.day}:${session.state.phaseIndex}`;
   }
 
+  // 1. 서사: 지금 화면에 유지되어야 하는 sceneId를 그대로 읽는다.
+  private presentedSceneDefinition(session: GameSession) {
+    return resolveSceneDefinition(session.state, worldRegistry, session.state.location);
+  }
+
   private sceneKeyFor(session: GameSession) {
-    const scene = resolveSceneDefinition(session.state, worldRegistry, session.state.location);
-    return `scene:${scene.id}:${session.state.day}:${session.state.phaseIndex}`;
+    const scene = this.presentedSceneDefinition(session);
+    return `scene:${scene.id}:v${SCENE_CARD_CACHE_VERSION}:${session.state.day}:${session.state.phaseIndex}`;
+  }
+
+  private previewNextSceneId(state: GameSession["state"], action: GameAction) {
+    const previewState = structuredClone(state);
+    try {
+      performAction(previewState, action);
+      return previewState.sceneId;
+    } catch {
+      return undefined;
+    }
+  }
+
+  // 2. 선택지: 현재 서사에 매달린 choice와 location action을 한 번에 조립한다.
+  private presentedChoices(session: GameSession, scene = this.presentedSceneDefinition(session)): StoryChoice[] {
+    const sceneChoices = resolveSceneChoices(session.state, scene, worldRegistry).map((choice) => {
+      const built = buildStoryChoiceFromChoice(choice);
+      return {
+        ...built,
+        nextSceneId: this.previewNextSceneId(session.state, built.serverActionHint) ?? built.nextSceneId,
+      };
+    });
+
+    // Event scenes are self-contained narrative beats: only scene-authored choices belong here.
+    if (scene.eventId) {
+      return sceneChoices;
+    }
+
+    const location = worldRegistry.locations[session.state.location];
+    const locationActions = resolveAvailableActions(session.state, location, worldRegistry).map((action) => ({
+      id: action.id,
+      label: action.label,
+      outcomeHint: action.outcomeHint,
+      riskHint: action.riskHint,
+      serverActionHint: { type: "content_action" as const, actionId: action.id },
+      nextSceneId: this.previewNextSceneId(session.state, { type: "content_action", actionId: action.id }),
+    }));
+
+    return [...sceneChoices, ...locationActions];
   }
 
   private buildActionCatalog(session: GameSession): ActionChoice[] {
-    const scene = resolveSceneDefinition(session.state, worldRegistry, session.state.location);
-    const location = worldRegistry.locations[session.state.location];
-    const sceneChoices = resolveSceneChoices(session.state, scene, worldRegistry).map((choice) => ({
+    return this.presentedChoices(session).map((choice) => ({
       id: choice.id,
       label: choice.label,
       outcomeHint: choice.outcomeHint,
-      action: { type: "content_choice", choiceId: choice.id } as const,
+      action: choice.serverActionHint,
     }));
-    const actionChoices = resolveAvailableActions(session.state, location, worldRegistry).map(buildActionChoiceFromDefinition);
-
-    return [...sceneChoices, ...actionChoices];
   }
 
   private async ensureLocationCard(session: GameSession, locationId: string) {
@@ -294,23 +336,18 @@ export class GameService {
   }
 
   private async ensureSceneCard(session: GameSession) {
-    const sceneDef = resolveSceneDefinition(session.state, worldRegistry, session.state.location);
+    const sceneDef = this.presentedSceneDefinition(session);
     const sceneKey = this.sceneKeyFor(session);
-    if (session.world.sceneCards[sceneKey]?.choices?.length) {
-      return session.world.sceneCards[sceneKey];
+    const storyChoices = this.presentedChoices(session, sceneDef);
+    const existing = session.world.sceneCards[sceneKey];
+    if (
+      existing
+      && existing.introFlag === sceneDef.introFlag
+      && existing.choices.length === storyChoices.length
+      && existing.choices.every((choice, index) => choice.id === storyChoices[index]?.id)
+    ) {
+      return existing;
     }
-
-    const location = worldRegistry.locations[session.state.location];
-    const storyChoices: StoryChoice[] = [
-      ...resolveSceneChoices(session.state, sceneDef, worldRegistry).map(buildStoryChoiceFromChoice),
-      ...resolveAvailableActions(session.state, location, worldRegistry).map((action) => ({
-        id: action.id,
-        label: action.label,
-        outcomeHint: action.outcomeHint,
-        riskHint: action.riskHint,
-        serverActionHint: { type: "content_action" as const, actionId: action.id },
-      })),
-    ];
 
     const card = await this.generator.generateSceneCard(sceneDef, storyChoices, {
       ...this.generatorInput(session, true),
@@ -456,7 +493,7 @@ export class GameService {
     const currentScene = session.world.sceneCards[sceneKey] as SceneCard;
     const snapshot = {
       gameId: session.id,
-      state: session.state,
+      state: structuredClone(session.state),
       currentScene,
       visibleLocations: this.visibleLocationIds(session.state.location, session.state.flags).map(
         (locationId) => session.world.locationCards[locationId] as LocationCard,
@@ -479,6 +516,7 @@ export class GameService {
         label: choice.label,
         outcomeHint: choice.outcomeHint,
         action: choice.serverActionHint,
+        nextSceneId: choice.nextSceneId,
       })),
       mapEntries: this.buildMapEntries(session),
       latestEvent,

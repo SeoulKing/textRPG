@@ -228,6 +228,9 @@ function pruneState(state: unknown): GameState {
     sceneId: typeof rawState.sceneId === "string" && validSceneIds.has(rawState.sceneId)
       ? rawState.sceneId
       : fallbackSceneId(nextLocation),
+    activeEventId: typeof rawState.activeEventId === "string" && worldRegistry.events[rawState.activeEventId]
+      ? rawState.activeEventId
+      : null,
     day: nextDay,
     phaseIndex: normalizeInt(rawState.phaseIndex, 0, 0, 4),
     worldElapsedMs: nextWorldElapsedMs,

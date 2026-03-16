@@ -9,7 +9,7 @@
   baseLocations,
 } from "./base-data";
 import { worldRegistry } from "./data/registry";
-import { resolveSceneDefinition } from "./content-engine";
+import { resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
 import { appendLogEntry, applyEffect, evaluateCondition, evaluateObjective } from "./state-utils";
 import type { ActionDefinition, ChoiceDefinition, GameAction, GameState } from "./schemas";
 import { questDefinitions } from "./quest-definitions";
@@ -180,9 +180,10 @@ export function applySystemNote(previousState: GameState, nextState: GameState, 
   nextState.systemNote = nextState.systemNote || previousState.systemNote || "";
 }
 
-function syncScene(state: GameState) {
-  const scene = resolveSceneDefinition(state, worldRegistry, state.location);
+export function syncScene(state: GameState, preferredSceneId?: string) {
+  const scene = resolveNextSceneDefinition(state, worldRegistry, state.location, preferredSceneId);
   state.sceneId = scene.id;
+  state.activeEventId = scene.eventId ?? null;
 }
 
 function applyDayTransition(state: GameState, previousDay: number) {
@@ -196,7 +197,6 @@ function applyDayTransition(state: GameState, previousDay: number) {
   state.flags[`day${state.day}_waterSecured`] = false;
   state.lastSleepFullness = state.stats.fullness;
   syncQuestState(state);
-  syncScene(state);
   addLog(state, `${state.day}일차가 시작된다.`);
 }
 
@@ -252,7 +252,8 @@ export function createInitialGameState(): GameState {
   const now = Date.now();
   const state: GameState = {
     saveVersion: SAVE_VERSION,
-    sceneId: "shelter_opening",
+    sceneId: "prologue_opening",
+    activeEventId: null,
     location: "shelter",
     day: 1,
     phaseIndex: 0,
@@ -283,11 +284,11 @@ export function createInitialGameState(): GameState {
     quests: Object.fromEntries(questDefinitions.map((quest) => [quest.id, "inactive" as const])),
     lastSleepFullness: 8,
     starvationLevel: 0,
-    log: [{ timestampLabel: "1일차 06:00", message: "눈을 뜬 당신은 오늘 하루만큼은 반드시 버텨 내기로 마음먹는다." }],
+    log: [{ timestampLabel: "1일차 06:00", message: "눈을 뜬 당신은 오늘 하루를 어떻게든 버텨 내야 한다는 사실부터 떠올린다." }],
     systemNote: "",
   };
   refreshLocationKnowledge(state);
-  syncScene(state);
+  syncScene(state, state.sceneId);
   syncQuestState(state);
   return state;
 }
@@ -318,6 +319,7 @@ function useItem(state: GameState, itemId: keyof typeof baseItems) {
     throw new Error("지금은 그 아이템을 사용할 수 없다.");
   }
 
+  consumeCurrentSceneIntro(state);
   state.inventory[itemId] = count - 1;
   if (state.inventory[itemId] <= 0) {
     delete state.inventory[itemId];
@@ -342,30 +344,39 @@ function useItem(state: GameState, itemId: keyof typeof baseItems) {
   addLog(state, `${item.name}을(를) 사용했다.`);
 }
 
+function consumeCurrentSceneIntro(state: GameState) {
+  const scene = resolveSceneDefinition(state, worldRegistry, state.location);
+  const introFlag = scene.introFlag;
+  if (!introFlag || state.flags[introFlag]) {
+    return;
+  }
+
+  state.flags[introFlag] = true;
+}
+
 function runActionDefinition(state: GameState, action: ActionDefinition) {
   if (!action.conditions.every((condition) => evaluateCondition(condition, state))) {
     throw new Error("지금은 그 행동을 할 수 없다.");
   }
+  consumeCurrentSceneIntro(state);
   action.effects.forEach((effect) => applyEffect(effect, state));
-  if (action.nextSceneId) {
-    state.sceneId = action.nextSceneId;
-  }
+  return action.nextSceneId;
 }
 
 function runChoiceDefinition(state: GameState, choice: ChoiceDefinition) {
   if (!choice.conditions.every((condition) => evaluateCondition(condition, state))) {
     throw new Error("지금은 그 선택지를 고를 수 없다.");
   }
+  consumeCurrentSceneIntro(state);
   choice.effects.forEach((effect) => applyEffect(effect, state));
-  if (choice.nextSceneId) {
-    state.sceneId = choice.nextSceneId;
-  }
+  return choice.nextSceneId;
 }
 
 export function performAction(state: GameState, action: GameAction) {
   const previousState = structuredClone(state);
   syncClock(state);
   let fallbackNote = "";
+  let preferredSceneId: string | undefined;
 
   switch (action.type) {
     case "travel": {
@@ -373,11 +384,11 @@ export function performAction(state: GameState, action: GameAction) {
       if (!allowed) {
         throw new Error(reason);
       }
+      consumeCurrentSceneIntro(state);
       state.location = action.targetId;
       state.flags[`visited_${action.targetId}`] = true;
       state.activeStockNodeId = null;
       refreshLocationKnowledge(state);
-      syncScene(state);
       fallbackNote = `이동: ${baseLocations[action.targetId].name}`;
       addLog(state, `${baseLocations[action.targetId].name}(으)로 움직였다.`);
       break;
@@ -392,8 +403,7 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 행동 '${action.actionId}'이다.`);
       }
-      runActionDefinition(state, definition);
-      syncScene(state);
+      preferredSceneId = runActionDefinition(state, definition);
       fallbackNote = definition.label;
       break;
     }
@@ -402,30 +412,27 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 선택지 '${action.choiceId}'이다.`);
       }
-      runChoiceDefinition(state, definition);
-      syncScene(state);
+      preferredSceneId = runChoiceDefinition(state, definition);
       fallbackNote = definition.label;
       break;
     }
     case "rest": {
-      runActionDefinition(state, worldRegistry.actions.rest_at_shelter);
-      syncScene(state);
+      preferredSceneId = runActionDefinition(state, worldRegistry.actions.rest_at_shelter);
       fallbackNote = worldRegistry.actions.rest_at_shelter.label;
       break;
     }
     case "cook": {
-      runActionDefinition(state, worldRegistry.actions.cook_simple_meal);
-      syncScene(state);
+      preferredSceneId = runActionDefinition(state, worldRegistry.actions.cook_simple_meal);
       fallbackNote = worldRegistry.actions.cook_simple_meal.label;
       break;
     }
     case "buy_meal": {
-      runActionDefinition(state, worldRegistry.actions.buy_meal_at_kitchen);
-      syncScene(state);
+      preferredSceneId = runActionDefinition(state, worldRegistry.actions.buy_meal_at_kitchen);
       fallbackNote = worldRegistry.actions.buy_meal_at_kitchen.label;
       break;
     }
     case "generate_event": {
+      consumeCurrentSceneIntro(state);
       fallbackNote = "새 단서를 살핀다";
       break;
     }
@@ -436,6 +443,8 @@ export function performAction(state: GameState, action: GameAction) {
   }
 
   syncQuestState(state);
+  // 3. 선택 결과 서사: 성공한 액션 뒤에만 다음 scene을 계산한다.
+  syncScene(state, preferredSceneId);
   applySystemNote(previousState, state, fallbackNote);
 }
 

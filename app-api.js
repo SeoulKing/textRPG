@@ -143,6 +143,7 @@ const dom = {
   sceneArt: document.querySelector("#scene-art"),
   sceneLocationBadge: document.querySelector("#scene-location-badge"),
   sceneRiskBadge: document.querySelector("#scene-risk-badge"),
+  sceneDebugBadge: document.querySelector("#scene-debug-badge"),
   sceneText: document.querySelector("#scene-text"),
   systemNote: document.querySelector("#system-note"),
   choices: document.querySelector("#choices"),
@@ -168,8 +169,7 @@ const client = {
   activeSceneTimer: null,
   activeAnimatedScene: null,
   isSceneTyping: false,
-  pendingInitialSceneAnimation: false,
-  seenSceneIds: new Set(),
+  justCreatedGame: false,
   renderedSystemNote: "",
 };
 
@@ -231,8 +231,7 @@ async function createNewGame() {
   client.lastFetchedAt = Date.now();
   client.activePanel = "map";
   client.mapHint = "";
-  client.pendingInitialSceneAnimation = true;
-  client.seenSceneIds = new Set();
+  client.justCreatedGame = true;
   clearLegacyGameIds();
   window.localStorage.setItem(STORAGE_KEY, client.gameId);
 }
@@ -255,8 +254,7 @@ async function loadGameState() {
     }
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
-    client.pendingInitialSceneAnimation = false;
-    client.seenSceneIds = new Set(snapshot?.currentScene?.id ? [snapshot.currentScene.id] : []);
+    client.justCreatedGame = false;
   } catch (_error) {
     await createNewGame();
   }
@@ -266,29 +264,58 @@ function currentSceneId(snapshot = client.snapshot) {
   return snapshot?.currentScene?.id || "";
 }
 
-function hasSeenScene(sceneId) {
-  return Boolean(sceneId) && client.seenSceneIds.has(sceneId);
+function currentSceneDefinitionId(snapshot = client.snapshot) {
+  return snapshot?.state?.sceneId || "";
 }
 
-function shouldAnimateScene({ source, nextSnapshot }) {
-  const nextSceneId = currentSceneId(nextSnapshot);
-  if (!nextSceneId) {
+function currentEventId(snapshot = client.snapshot) {
+  return snapshot?.state?.activeEventId || snapshot?.currentScene?.eventId || "";
+}
+
+function currentSceneIntroFlag(snapshot = client.snapshot) {
+  return snapshot?.currentScene?.introFlag || "";
+}
+
+function hasConsumedIntroFlag(snapshot, introFlag) {
+  return Boolean(introFlag) && Boolean(snapshot?.state?.flags?.[introFlag]);
+}
+
+function shouldAnimateScene({ source, previousSnapshot, nextSnapshot }) {
+  const introFlag = currentSceneIntroFlag(nextSnapshot);
+  if (!introFlag) {
     return false;
   }
 
-  if (source === "bootstrap") {
-    return client.pendingInitialSceneAnimation && !hasSeenScene(nextSceneId);
+  if (source === "newGame") {
+    return true;
   }
 
-  if (source === "backgroundSync") {
+  if (source === "bootstrap" || source === "backgroundSync") {
     return false;
   }
 
-  if (source !== "action") {
+  return !hasConsumedIntroFlag(previousSnapshot, introFlag);
+}
+
+function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
+  if (!previousSnapshot?.currentScene || !nextSnapshot?.currentScene) {
     return false;
   }
 
-  return !hasSeenScene(nextSceneId);
+  if (previousSnapshot?.state?.location !== nextSnapshot?.state?.location) {
+    return false;
+  }
+
+  // Keep the currently displayed scene on screen until the player acts or leaves.
+  return currentSceneId(previousSnapshot) !== currentSceneId(nextSnapshot);
+}
+
+function preserveDisplayedSceneSnapshot(previousSnapshot, nextSnapshot) {
+  return {
+    ...nextSnapshot,
+    currentScene: previousSnapshot.currentScene,
+    availableActions: previousSnapshot.availableActions,
+  };
 }
 
 function scheduleSceneStep(callback, delay) {
@@ -497,7 +524,9 @@ function renderChoices() {
     const meta = fragment.querySelector(".choice-meta");
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
-    meta.textContent = choice.outcomeHint;
+    meta.textContent = choice.nextSceneId
+      ? `${choice.outcomeHint} -> ${choice.nextSceneId}`
+      : choice.outcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
     button.disabled = client.actionInFlight;
     button.addEventListener("click", () => submitAction(choice.action));
@@ -518,6 +547,10 @@ function renderScene(animateText = true) {
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
   dom.sceneLocationBadge.textContent = location.name;
   dom.sceneRiskBadge.textContent = location.risk;
+  const eventId = currentEventId(snapshot);
+  dom.sceneDebugBadge.textContent = eventId
+    ? `event: ${eventId} / scene: ${currentSceneDefinitionId(snapshot)}`
+    : `scene: ${currentSceneDefinitionId(snapshot)}`;
   renderSystemNote(snapshot.state.systemNote || "");
 
   clearSceneAnimation();
@@ -829,11 +862,7 @@ function render(options = {}) {
   renderStatusBar();
   renderScene(options.animateScene !== false);
   renderPanel();
-  const sceneId = currentSceneId();
-  if (sceneId) {
-    client.seenSceneIds.add(sceneId);
-  }
-  client.pendingInitialSceneAnimation = false;
+  client.justCreatedGame = false;
 }
 
 async function submitAction(action) {
@@ -841,6 +870,7 @@ async function submitAction(action) {
     return;
   }
   client.actionInFlight = true;
+  const previousSnapshot = client.snapshot;
   try {
     const snapshot = await api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
@@ -853,6 +883,7 @@ async function submitAction(action) {
     render({
       animateScene: shouldAnimateScene({
         source: "action",
+        previousSnapshot,
         nextSnapshot: snapshot,
       }),
     });
@@ -873,17 +904,22 @@ async function backgroundSync() {
   }
   try {
     const snapshot = await api(`/api/games/${client.gameId}/state`);
-    const previousSceneId = client.snapshot?.currentScene?.id;
-    const previousNote = client.snapshot?.state?.systemNote;
-    client.snapshot = snapshot;
+    const previousSnapshot = client.snapshot;
+    const previousSceneId = currentSceneId(previousSnapshot);
+    const previousNote = previousSnapshot?.state?.systemNote;
+    const effectiveSnapshot = shouldPreserveDisplayedScene(previousSnapshot, snapshot)
+      ? preserveDisplayedSceneSnapshot(previousSnapshot, snapshot)
+      : snapshot;
+    client.snapshot = effectiveSnapshot;
     client.lastFetchedAt = Date.now();
-    const sceneChanged = previousSceneId !== snapshot.currentScene.id;
-    const noteChanged = previousNote !== snapshot.state.systemNote;
+    const sceneChanged = previousSceneId !== currentSceneId(effectiveSnapshot);
+    const noteChanged = previousNote !== effectiveSnapshot.state.systemNote;
     if (sceneChanged || noteChanged) {
       render({
         animateScene: shouldAnimateScene({
           source: "backgroundSync",
-          nextSnapshot: snapshot,
+          previousSnapshot,
+          nextSnapshot: effectiveSnapshot,
         }),
       });
       return;
@@ -903,7 +939,8 @@ async function bootstrap() {
   await loadGameState();
   render({
     animateScene: shouldAnimateScene({
-      source: "bootstrap",
+      source: client.justCreatedGame ? "newGame" : "bootstrap",
+      previousSnapshot: null,
       nextSnapshot: client.snapshot,
     }),
   });
@@ -956,7 +993,8 @@ dom.newGameButton.addEventListener("click", async () => {
     await createNewGame();
     render({
       animateScene: shouldAnimateScene({
-        source: "bootstrap",
+        source: "newGame",
+        previousSnapshot: null,
         nextSnapshot: client.snapshot,
       }),
     });

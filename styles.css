@@ -356,6 +356,18 @@ body::before {
   border-color: rgba(194, 59, 34, 0.24);
 }
 
+.scene-debug-badge {
+  align-self: flex-start;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(87, 66, 51, 0.18);
+  background: rgba(255, 250, 244, 0.92);
+  color: #6b4b37;
+  font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+}
+
 .scene-text {
   color: #3f3026;
   line-height: 1.8;
@@ -979,6 +991,10 @@ body::before {
 
   .scene-copy {
     padding: 20px 16px 18px;
+  }
+
+  .scene-debug-badge {
+    font-size: 0.7rem;
   }
 
   .scene-text {

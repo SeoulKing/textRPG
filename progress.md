@@ -24,6 +24,11 @@ Original prompt: Implement a location-stock-based first farming quest where the 
 - Reworked the log panel into a slim single-line timeline: each log entry now stores a Korean `timestampLabel + message` pair, legacy English string logs are normalized into Korean on load, and the client renders time and content side-by-side instead of repeating a generic "기록" card title.
 
 - Wired the user-supplied PNG scene art into `shelter`, `convenience`, and `kitchen`, and refreshed location-card caching so both new games and existing saves can pick up updated `imagePath` values instead of staying on the older SVG art.
+- Expanded the client-side scene preservation logic so background sync no longer auto-swaps any same-location scene while the player is still idle there; the displayed scene now stays put until the player acts or leaves.
+- Refactored scene progression so the server now keeps the currently presented narrative fixed until a successful player action occurs, then advances to the next narrative step. The service layer now explicitly assembles `current narrative -> available choices -> next narrative after action`, and intro flags are consumed on action success instead of on render.
+- Added scene-link debugging around the explicit scene object flow: the UI now shows the current `scene id`, and each available choice/action exposes its resolved `nextSceneId` so we can verify scene-to-scene wiring directly.
+- Reframed the opening as a real `prologue_event` with chained scenes (`prologue_opening -> prologue_old_woman_visit -> shelter_first_intro`). While a scene belongs to an event, only scene-authored choices are shown; location actions unlock only after the event exits into the normal shelter flow.
+- Confirmed a stale local server on port 3000 was still serving the pre-event build (`activeEventId: null`, shelter actions visible in `prologue_opening`). Rebuilt, restarted the local server, and re-verified that a fresh `/api/games` response now returns `activeEventId: "prologue_event"` with only `opening_commit` available for `prologue_opening`.
 
 TODO
 - If browser persistence still feels sticky, clear old local storage keys and confirm a fresh v8 game starts automatically.

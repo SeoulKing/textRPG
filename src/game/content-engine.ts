@@ -44,8 +44,24 @@ export function resolveSceneDefinition(
 ): SceneDefinition {
   if (state.sceneId && registry.scenes[state.sceneId]) {
     const byId = registry.scenes[state.sceneId];
-    if (byId.locationId === locationId && byId.conditions.every((condition) => evaluateCondition(condition, state))) {
+    if (byId.locationId === locationId) {
       return byId;
+    }
+  }
+
+  return resolveNextSceneDefinition(state, registry, locationId);
+}
+
+export function resolveNextSceneDefinition(
+  state: GameState,
+  registry: ContentRegistry = worldRegistry,
+  locationId = state.location,
+  preferredSceneId?: string,
+): SceneDefinition {
+  if (preferredSceneId && registry.scenes[preferredSceneId]) {
+    const preferred = registry.scenes[preferredSceneId];
+    if (preferred.locationId === locationId && preferred.conditions.every((condition) => evaluateCondition(condition, state))) {
+      return preferred;
     }
   }
 
