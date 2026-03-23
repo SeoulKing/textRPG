@@ -1,4 +1,4 @@
-﻿import {
+import {
   AUTO_FULLNESS_TICK_MS,
   PHASE_DURATION_MS,
   PHASES,
@@ -9,7 +9,7 @@
   baseLocations,
 } from "./base-data";
 import { worldRegistry } from "./data/registry";
-import { resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
+import { actionConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
 import { appendLogEntry, applyEffect, evaluateCondition, evaluateObjective } from "./state-utils";
 import type { ActionDefinition, ChoiceDefinition, GameAction, GameState } from "./schemas";
 import { questDefinitions } from "./quest-definitions";
@@ -181,7 +181,10 @@ export function applySystemNote(previousState: GameState, nextState: GameState, 
 }
 
 export function syncScene(state: GameState, preferredSceneId?: string) {
-  const scene = resolveNextSceneDefinition(state, worldRegistry, state.location, preferredSceneId);
+  const scene =
+    preferredSceneId !== undefined && preferredSceneId !== ""
+      ? resolveNextSceneDefinition(state, worldRegistry, state.location, preferredSceneId)
+      : resolveSceneDefinition(state, worldRegistry, state.location);
   state.sceneId = scene.id;
   state.activeEventId = scene.eventId ?? null;
 }
@@ -354,11 +357,83 @@ function consumeCurrentSceneIntro(state: GameState) {
   state.flags[introFlag] = true;
 }
 
+function jumpToNextDaybreak(state: GameState) {
+  const previousDay = state.day;
+  state.worldElapsedMs = Math.floor(state.worldElapsedMs / REAL_DAY_MS) * REAL_DAY_MS + REAL_DAY_MS;
+  setClockFromElapsed(state);
+  applyDayTransition(state, previousDay);
+  refreshLocationKnowledge(state);
+}
+
+type ExecutionResult = {
+  fallbackNote: string;
+  preferredSceneId?: string;
+};
+
+function applyDefinitionEffects(state: GameState, effects: ActionDefinition["effects"] | ChoiceDefinition["effects"]) {
+  effects.forEach((effect) => {
+    if (effect.type === "advance_to_daybreak") {
+      jumpToNextDaybreak(state);
+      return;
+    }
+    applyEffect(effect, state);
+  });
+}
+
+function executeActionDefinition(state: GameState, action: ActionDefinition): ExecutionResult {
+  if (!actionConditionsMet(action, state)) {
+    if (action.presentationMode !== "always") {
+      throw new Error("지금은 그 행동을 할 수 없다.");
+    }
+
+    applyDefinitionEffects(state, action.failureEffects);
+    return {
+      preferredSceneId: action.nextSceneId,
+      fallbackNote: action.failureNote ?? action.label,
+    };
+  }
+
+  consumeCurrentSceneIntro(state);
+  applyDefinitionEffects(state, action.effects);
+  return {
+    preferredSceneId: action.nextSceneId,
+    fallbackNote: action.label,
+  };
+}
+
+function executeChoiceDefinition(state: GameState, choice: ChoiceDefinition): ExecutionResult {
+  if (!choice.conditions.every((condition) => evaluateCondition(condition, state))) {
+    throw new Error("지금은 그 선택지를 고를 수 없다.");
+  }
+
+  consumeCurrentSceneIntro(state);
+  applyDefinitionEffects(state, choice.effects);
+  return {
+    preferredSceneId: choice.nextSceneId,
+    fallbackNote: choice.label,
+  };
+}
+
 function runActionDefinition(state: GameState, action: ActionDefinition) {
   if (!action.conditions.every((condition) => evaluateCondition(condition, state))) {
     throw new Error("지금은 그 행동을 할 수 없다.");
   }
   consumeCurrentSceneIntro(state);
+
+  if (action.id === "sleep_at_shelter") {
+    const canSleep = evaluateCondition({ type: "shelter_sleep_window" }, state);
+    if (!canSleep) {
+      const detail =
+        "아직 해가 지지 않았다. 잠자리는 상단 시계 기준 오후 6시가 지난 뒤부터 이용할 수 있고, 잠들면 다음날 아침 6시에 깨어난다.";
+      addLog(state, detail);
+      state.systemNote = "오후 6시 이후부터 잠자기를 이용할 수 있다.";
+      return action.nextSceneId;
+    }
+    action.effects.forEach((effect) => applyEffect(effect, state));
+    jumpToNextDaybreak(state);
+    return action.nextSceneId;
+  }
+
   action.effects.forEach((effect) => applyEffect(effect, state));
   return action.nextSceneId;
 }
@@ -403,8 +478,7 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 행동 '${action.actionId}'이다.`);
       }
-      preferredSceneId = runActionDefinition(state, definition);
-      fallbackNote = definition.label;
+      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
       break;
     }
     case "content_choice": {
@@ -412,18 +486,17 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 선택지 '${action.choiceId}'이다.`);
       }
-      preferredSceneId = runChoiceDefinition(state, definition);
-      fallbackNote = definition.label;
+      ({ preferredSceneId, fallbackNote } = executeChoiceDefinition(state, definition));
       break;
     }
     case "rest": {
-      preferredSceneId = runActionDefinition(state, worldRegistry.actions.rest_at_shelter);
-      fallbackNote = worldRegistry.actions.rest_at_shelter.label;
+      preferredSceneId = runActionDefinition(state, worldRegistry.actions.rest_light_at_shelter);
+      fallbackNote = worldRegistry.actions.rest_light_at_shelter.label;
       break;
     }
     case "cook": {
-      preferredSceneId = runActionDefinition(state, worldRegistry.actions.cook_simple_meal);
-      fallbackNote = worldRegistry.actions.cook_simple_meal.label;
+      preferredSceneId = runActionDefinition(state, worldRegistry.actions.cook_at_shelter);
+      fallbackNote = worldRegistry.actions.cook_at_shelter.label;
       break;
     }
     case "buy_meal": {

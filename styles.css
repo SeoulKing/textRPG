@@ -374,6 +374,15 @@ body::before {
   font-size: 1.01rem;
 }
 
+.scene-text .scene-headline {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #3a2a1f;
+  line-height: 1.35;
+}
+
 .scene-text p {
   margin: 0 0 14px;
 }

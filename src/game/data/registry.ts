@@ -4,8 +4,7 @@
 
 export { baseItems } from "./items";
 export { basePeople } from "./people";
-export { baseLocations, type BaseLocation } from "./locations";
-export { actionDefinitions } from "./actions";
+export { actionDefinitions, baseLocations, type BaseLocation } from "./locations";
 export { choiceDefinitions } from "./choices";
 export { eventDefinitions } from "./events";
 export { sceneDefinitions } from "./scenes";
@@ -14,8 +13,7 @@ export { baseSkills } from "../base-data";
 
 import { baseItems } from "./items";
 import { basePeople } from "./people";
-import { baseLocations } from "./locations";
-import { actionDefinitions } from "./actions";
+import { actionDefinitions, baseLocations } from "./locations";
 import { choiceDefinitions } from "./choices";
 import { eventDefinitions } from "./events";
 import { sceneDefinitions } from "./scenes";
@@ -51,6 +49,13 @@ function stockNodeEntries() {
 
 function findStockNode(nodeId: string) {
   return stockNodeEntries().find((entry) => entry.node.id === nodeId) ?? null;
+}
+
+function assertKnownStockNodeInLocation(locationId: string, nodeId: string, source: string) {
+  const entry = findStockNode(nodeId);
+  if (!entry || entry.locationId !== locationId) {
+    throw new Error(`${source} references unknown stock node '${nodeId}' in location '${locationId}'.`);
+  }
 }
 
 function assertKnownLocation(id: string, source: string) {
@@ -119,6 +124,11 @@ function validateCondition(condition: Condition, source: string) {
     case "stock_item_lt":
       assertKnownStockItem(condition.locationId, condition.nodeId, condition.itemId, source);
       break;
+    case "stock_money_gte":
+    case "stock_money_lt":
+      assertKnownLocation(condition.locationId, source);
+      assertKnownStockNodeInLocation(condition.locationId, condition.nodeId, source);
+      break;
     case "stock_node_discovered":
     case "active_stock_node":
     case "active_stock_node_not":
@@ -152,6 +162,10 @@ function validateEffect(effect: Effect, source: string) {
     case "collect_stock_item":
       assertKnownStockItem(effect.locationId, effect.nodeId, effect.itemId, source);
       break;
+    case "collect_stock_money":
+      assertKnownLocation(effect.locationId, source);
+      assertKnownStockNodeInLocation(effect.locationId, effect.nodeId, source);
+      break;
     default:
       break;
   }
@@ -165,6 +179,7 @@ function validateAction(action: ActionDefinition) {
   if (action.nextSceneId) assertKnownScene(action.nextSceneId, `action:${action.id}`);
   action.conditions.forEach((condition) => validateCondition(condition, `action:${action.id}`));
   action.effects.forEach((effect) => validateEffect(effect, `action:${action.id}`));
+  action.failureEffects.forEach((effect) => validateEffect(effect, `action:${action.id}:failure`));
 }
 
 function validateChoice(choice: ChoiceDefinition) {
@@ -176,14 +191,25 @@ function validateChoice(choice: ChoiceDefinition) {
 
 export function validateContent() {
   const seenStockNodeIds = new Set<string>();
+  const globalInteractionIds = new Set<string>();
 
   for (const location of Object.values(worldRegistry.locations)) {
     location.neighbors.forEach((neighborId) => assertKnownLocation(neighborId, `location:${location.id}`));
     Object.keys(location.links).forEach((neighborId) => assertKnownLocation(neighborId, `location:${location.id}`));
-    location.availableActionIds.forEach((actionId) => {
-      if (!worldRegistry.actions[actionId]) {
-        throw new Error(`location:${location.id} references unknown action '${actionId}'.`);
+    const seenIds = new Set<string>();
+    location.interactionChoices.forEach((action) => {
+      if (seenIds.has(action.id)) {
+        throw new Error(`location:${location.id} duplicate interaction choice id '${action.id}'.`);
       }
+      seenIds.add(action.id);
+      if (globalInteractionIds.has(action.id)) {
+        throw new Error(`interaction choice id '${action.id}' is defined on more than one location.`);
+      }
+      globalInteractionIds.add(action.id);
+      if (!action.locationIds.includes(location.id)) {
+        throw new Error(`location:${location.id} choice '${action.id}' must list this location in locationIds.`);
+      }
+      validateAction(action);
     });
     location.eventIds.forEach((eventId) => assertKnownEvent(eventId, `location:${location.id}`));
     location.obtainableItemIds.forEach((itemId) => {

@@ -17,6 +17,10 @@ export function getStockStateKey(locationId: string, nodeId: string, itemId: str
   return `${locationId}:${nodeId}:${itemId}`;
 }
 
+export function getStockMoneyKey(locationId: string, nodeId: string) {
+  return `${locationId}:${nodeId}:$money`;
+}
+
 export function getStockNode(locationId: string, nodeId: string) {
   const location = baseLocations[locationId];
   if (!location) {
@@ -34,10 +38,15 @@ export function getStockNodeLocationId(nodeId: string) {
   return null;
 }
 
-export function formatClockLabelFromElapsed(worldElapsedMs: number) {
+/** 게임 내 시계(06:00를 하루 시작으로 하는 표시 시각) 기준, 자정 이후 경과 분(0–1439). */
+export function getGameClockShiftedMinutes(worldElapsedMs: number) {
   const elapsedInDay = ((worldElapsedMs % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
   const totalMinutes = Math.floor((elapsedInDay / REAL_DAY_MS) * 24 * 60);
-  const shiftedMinutes = (totalMinutes + 6 * 60) % (24 * 60);
+  return (totalMinutes + 6 * 60) % (24 * 60);
+}
+
+export function formatClockLabelFromElapsed(worldElapsedMs: number) {
+  const shiftedMinutes = getGameClockShiftedMinutes(worldElapsedMs);
   const roundedMinutes = Math.floor(shiftedMinutes / 10) * 10;
   const hours = String(Math.floor(roundedMinutes / 60)).padStart(2, "0");
   const minutes = String(roundedMinutes % 60).padStart(2, "0");
@@ -67,8 +76,22 @@ export function getStockQuantity(state: GameState, locationId: string, nodeId: s
   return stockItem?.initialQuantity ?? 0;
 }
 
+export function getStockMoney(state: GameState, locationId: string, nodeId: string) {
+  const key = getStockMoneyKey(locationId, nodeId);
+  if (typeof state.stockState[key] === "number") {
+    return state.stockState[key];
+  }
+
+  const node = getStockNode(locationId, nodeId);
+  return node?.money ?? 0;
+}
+
 function setStockQuantity(state: GameState, locationId: string, nodeId: string, itemId: string, nextQuantity: number) {
   state.stockState[getStockStateKey(locationId, nodeId, itemId)] = Math.max(0, nextQuantity);
+}
+
+function setStockMoney(state: GameState, locationId: string, nodeId: string, nextAmount: number) {
+  state.stockState[getStockMoneyKey(locationId, nodeId)] = Math.max(0, nextAmount);
 }
 
 function hasDiscoveredStockNode(state: GameState, nodeId: string) {
@@ -132,14 +155,24 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
       return state.quests[condition.questId] === condition.status;
     case "stock_item_gte":
       return getStockQuantity(state, condition.locationId, condition.nodeId, condition.itemId) >= condition.amount;
+    case "stock_money_gte":
+      return getStockMoney(state, condition.locationId, condition.nodeId) >= condition.amount;
     case "stock_item_lt":
       return getStockQuantity(state, condition.locationId, condition.nodeId, condition.itemId) < condition.amount;
+    case "stock_money_lt":
+      return getStockMoney(state, condition.locationId, condition.nodeId) < condition.amount;
     case "stock_node_discovered":
       return hasDiscoveredStockNode(state, condition.nodeId);
     case "active_stock_node":
       return state.activeStockNodeId === condition.nodeId;
     case "active_stock_node_not":
       return state.activeStockNodeId !== condition.nodeId;
+    case "shelter_sleep_window": {
+      const m = getGameClockShiftedMinutes(state.worldElapsedMs);
+      const evening = 18 * 60;
+      const morning = 6 * 60;
+      return m >= evening || m < morning;
+    }
     default:
       return false;
   }
@@ -212,6 +245,16 @@ export function applyEffect(effect: Effect, state: GameState): void {
       const collected = Math.min(effect.amount, current);
       setStockQuantity(state, effect.locationId, effect.nodeId, effect.itemId, current - collected);
       state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + collected;
+      break;
+    }
+    case "collect_stock_money": {
+      const current = getStockMoney(state, effect.locationId, effect.nodeId);
+      if (current <= 0) {
+        break;
+      }
+      const collected = Math.min(effect.amount, current);
+      setStockMoney(state, effect.locationId, effect.nodeId, current - collected);
+      state.money = Math.max(0, state.money + collected);
       break;
     }
   }

@@ -1,8 +1,9 @@
-﻿import { mkdir, readFile, writeFile, appendFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 import {
   GameSessionSchema,
   TemplateStoreSchema,
+  WorldInstanceSchema,
   type EventCard,
   type GameSession,
   type GameState,
@@ -12,6 +13,7 @@ import {
   type ProtagonistCard,
   type SceneCard,
   type TemplateStore,
+  type WorldInstance,
 } from "./schemas";
 import { SAVE_VERSION, baseLocations } from "./base-data";
 import { basePeople } from "./data/people";
@@ -32,6 +34,7 @@ const validStockStateKeys = new Set<string>();
 for (const location of Object.values(baseLocations)) {
   for (const node of location.stockNodes) {
     validStockNodeLocationIds.set(node.id, location.id);
+    validStockStateKeys.add(`${location.id}:${node.id}:$money`);
     for (const item of node.items) {
       validStockStateKeys.add(`${location.id}:${node.id}:${item.itemId}`);
     }
@@ -278,22 +281,47 @@ export function normalizeTemplateStore(raw: unknown): TemplateStore {
   });
 }
 
+const emptyWorld: WorldInstance = {
+  locationCards: {},
+  personCards: {},
+  itemCards: {},
+  eventCards: {},
+  sceneCards: {},
+  protagonistCard: null,
+};
+
+/** 게임 저장본의 world를 보존한다. (예전에는 템플릿 정규화로 카드가 전부 비워져 로드 직후 상태가 꼬일 수 있었다.) */
+function normalizeWorldPayload(raw: unknown): WorldInstance {
+  if (!raw || typeof raw !== "object") {
+    return WorldInstanceSchema.parse(emptyWorld);
+  }
+  const w = raw as Record<string, unknown>;
+  const candidate = {
+    locationCards: w.locationCards && typeof w.locationCards === "object" ? w.locationCards : {},
+    personCards: w.personCards && typeof w.personCards === "object" ? w.personCards : {},
+    itemCards: normalizeItemCards(w.itemCards),
+    eventCards: w.eventCards && typeof w.eventCards === "object" ? w.eventCards : {},
+    sceneCards: w.sceneCards && typeof w.sceneCards === "object" ? w.sceneCards : {},
+    protagonistCard: w.protagonistCard ?? null,
+  };
+  const parsed = WorldInstanceSchema.safeParse(candidate);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  return WorldInstanceSchema.parse({
+    ...emptyWorld,
+    itemCards: candidate.itemCards,
+  });
+}
+
 export function normalizeGameSession(raw: unknown): GameSession {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const world = (parsed.world && typeof parsed.world === "object") ? parsed.world as Record<string, unknown> : {};
-  const normalizedTemplates = normalizeTemplateStore(world);
   const nextState = pruneState(parsed.state as GameState);
+  const nextWorld = normalizeWorldPayload(parsed.world);
   return GameSessionSchema.parse({
     ...parsed,
     state: nextState,
-    world: {
-      locationCards: normalizedTemplates.locationCards,
-      personCards: normalizedTemplates.personCards,
-      itemCards: normalizedTemplates.itemCards,
-      eventCards: normalizedTemplates.eventCards,
-      sceneCards: normalizedTemplates.sceneCards,
-      protagonistCard: normalizedTemplates.protagonistCard,
-    },
+    world: nextWorld,
   });
 }
 

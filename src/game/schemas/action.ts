@@ -15,6 +15,7 @@ export const GameActionSchema = z.discriminatedUnion("type", [
 
 export const ActionTypeSchema = z.enum(["travel", "search", "rest", "use", "talk", "explore"]);
 export const ActionVisibilitySchema = z.enum(["scene", "event"]);
+export const ActionPresentationModeSchema = z.enum(["when_conditions_met", "always"]);
 
 export const ActionDefinitionSchema = z.object({
   id: z.string(),
@@ -22,9 +23,12 @@ export const ActionDefinitionSchema = z.object({
   type: ActionTypeSchema,
   outcomeHint: z.string().default("Push the situation forward."),
   visibility: ActionVisibilitySchema.default("scene"),
+  presentationMode: ActionPresentationModeSchema.default("when_conditions_met"),
   locationIds: z.array(z.string()).default([]),
   conditions: z.array(ConditionSchema).default([]),
   effects: z.array(EffectSchema).default([]),
+  failureEffects: z.array(EffectSchema).default([]),
+  failureNote: z.string().optional(),
   nextEventId: z.string().optional(),
   nextSceneId: z.string().optional(),
   tags: z.array(z.string()).default([]),

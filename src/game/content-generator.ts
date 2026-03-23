@@ -1,4 +1,4 @@
-﻿import { baseItems, baseLocations, basePeople, PHASES } from "./base-data";
+import { baseItems, baseLocations, basePeople, PHASES } from "./base-data";
 import { summarizeState } from "./rules";
 import type {
   ActionChoice,
@@ -52,12 +52,12 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-const SCENE_CARD_CACHE_VERSION = 2;
+const SCENE_CARD_CACHE_VERSION = 5;
 
 class TemplateContentGenerator implements ContentGenerator {
   async generateLocationCard(locationId: string, input: GeneratorInput) {
     const location = baseLocations[locationId];
-    const availableActionIds = [...location.availableActionIds];
+    const availableActionIds = (location.interactionChoices ?? []).map((choice) => choice.id);
     return LocationCardSchema.parse({
       id: location.id,
       name: location.name,
@@ -233,6 +233,8 @@ class RemoteContentGenerator implements ContentGenerator {
     });
     return SceneCardSchema.parse({
       ...generated,
+      id: fallback.id,
+      locationId: scene.locationId,
       choices,
       eventId: scene.eventId,
       introFlag: scene.introFlag,
@@ -248,7 +250,14 @@ class RemoteContentGenerator implements ContentGenerator {
       storyMaterials: input.storyMaterials,
       choiceIds: choices.map((choice) => choice.id),
     });
-    return EventCardSchema.parse({ ...generated, choices, startSceneId: event.startSceneId, sceneIds: event.sceneIds });
+    return EventCardSchema.parse({
+      ...generated,
+      id: fallback.id,
+      locationId: event.locationId,
+      choices,
+      startSceneId: event.startSceneId,
+      sceneIds: event.sceneIds,
+    });
   }
 }
 

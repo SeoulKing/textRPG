@@ -1,17 +1,16 @@
-﻿import { randomUUID } from "node:crypto";
-import { baseLocations, getQuestEntries, getSkillEntries } from "./base-data";
+import { randomUUID } from "node:crypto";
+import { baseLocations, getQuestEntries, getSkillEntries, PHASES } from "./base-data";
 import {
   buildStoryChoiceFromChoice,
-  resolveAvailableActions,
   resolveEventChoices,
-  resolveSceneChoices,
   resolveSceneDefinition,
   resolveTriggeredEvents,
 } from "./content-engine";
 import { createContentGenerator, type ContentGenerator } from "./content-generator";
 import { worldRegistry } from "./data/registry";
 import type { GameRepository } from "./repository";
-import { applySystemNote, createInitialGameState, performAction, refreshLocationKnowledge, syncClock, syncQuestState } from "./rules";
+import { applySystemNote, createInitialGameState, performAction, refreshLocationKnowledge, syncClock, syncQuestState, syncScene } from "./rules";
+import { buildActionCatalogFromStoryChoices, resolveStoryFrame } from "./story-flow";
 import type {
   ActionChoice,
   EventCard,
@@ -24,16 +23,15 @@ import type {
   ProtagonistCard,
   SceneCard,
   StateSnapshot,
-  StoryChoice,
   StoryMaterials,
 } from "./schemas";
-import { StateSnapshotSchema } from "./schemas";
+import { SceneCardSchema, StateSnapshotSchema } from "./schemas";
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-const SCENE_CARD_CACHE_VERSION = 2;
+const SCENE_CARD_CACHE_VERSION = 5;
 
 export class GameService {
   constructor(
@@ -68,6 +66,7 @@ export class GameService {
     const previousState = structuredClone(session.state);
     syncClock(session.state);
     syncQuestState(session.state);
+    syncScene(session.state);
     applySystemNote(previousState, session.state);
     session.updatedAt = nowIso();
     await this.ensureCards(session);
@@ -85,9 +84,7 @@ export class GameService {
     session.world.sceneCards = {};
 
     let latestEvent: EventCard | null = null;
-    if (action.type === "generate_event") {
-      latestEvent = await this.ensureTriggeredEventCard(session, action.locationId || session.state.location);
-    } else if (followUpEventId) {
+    if (followUpEventId) {
       latestEvent = await this.ensureEventCardById(session, followUpEventId);
     } else if (this.isExploreAction(action)) {
       latestEvent = await this.ensureTriggeredEventCard(session, session.state.location);
@@ -109,6 +106,7 @@ export class GameService {
   async getMap(gameId: string) {
     const session = await this.repository.loadGame(gameId);
     syncClock(session.state);
+    syncScene(session.state);
     await this.ensureCards(session);
     await this.repository.saveGame(session);
     return {
@@ -123,6 +121,7 @@ export class GameService {
   async getInventory(gameId: string) {
     const session = await this.repository.loadGame(gameId);
     syncClock(session.state);
+    syncScene(session.state);
     await this.ensureCards(session);
     await this.repository.saveGame(session);
     return {
@@ -200,8 +199,8 @@ export class GameService {
   }
 
   private previewNextSceneId(state: GameSession["state"], action: GameAction) {
-    const previewState = structuredClone(state);
     try {
+      const previewState = structuredClone(state);
       performAction(previewState, action);
       return previewState.sceneId;
     } catch {
@@ -209,41 +208,15 @@ export class GameService {
     }
   }
 
-  // 2. 선택지: 현재 서사에 매달린 choice와 location action을 한 번에 조립한다.
-  private presentedChoices(session: GameSession, scene = this.presentedSceneDefinition(session)): StoryChoice[] {
-    const sceneChoices = resolveSceneChoices(session.state, scene, worldRegistry).map((choice) => {
-      const built = buildStoryChoiceFromChoice(choice);
-      return {
-        ...built,
-        nextSceneId: this.previewNextSceneId(session.state, built.serverActionHint) ?? built.nextSceneId,
-      };
-    });
-
-    // Event scenes are self-contained narrative beats: only scene-authored choices belong here.
-    if (scene.eventId) {
-      return sceneChoices;
-    }
-
-    const location = worldRegistry.locations[session.state.location];
-    const locationActions = resolveAvailableActions(session.state, location, worldRegistry).map((action) => ({
-      id: action.id,
-      label: action.label,
-      outcomeHint: action.outcomeHint,
-      riskHint: action.riskHint,
-      serverActionHint: { type: "content_action" as const, actionId: action.id },
-      nextSceneId: this.previewNextSceneId(session.state, { type: "content_action", actionId: action.id }),
-    }));
-
-    return [...sceneChoices, ...locationActions];
+  private presentedChoices(session: GameSession, scene = this.presentedSceneDefinition(session)) {
+    return resolveStoryFrame(session.state, worldRegistry, {
+      scene,
+      resolveNextSceneId: (action) => this.previewNextSceneId(session.state, action),
+    }).choices;
   }
 
   private buildActionCatalog(session: GameSession): ActionChoice[] {
-    return this.presentedChoices(session).map((choice) => ({
-      id: choice.id,
-      label: choice.label,
-      outcomeHint: choice.outcomeHint,
-      action: choice.serverActionHint,
-    }));
+    return buildActionCatalogFromStoryChoices(this.presentedChoices(session));
   }
 
   private async ensureLocationCard(session: GameSession, locationId: string) {
@@ -335,31 +308,49 @@ export class GameService {
     return card;
   }
 
-  private async ensureSceneCard(session: GameSession) {
+  /** 스냅샷·저장 월드와 동일: 레지스트리 SceneDefinition + presentedChoices에서만 조립(LLM/캐시로 문단 고정 안 함). */
+  private buildAuthoringSceneCard(session: GameSession, storyMaterials: StoryMaterials): SceneCard {
     const sceneDef = this.presentedSceneDefinition(session);
-    const sceneKey = this.sceneKeyFor(session);
     const storyChoices = this.presentedChoices(session, sceneDef);
-    const existing = session.world.sceneCards[sceneKey];
-    if (
-      existing
-      && existing.introFlag === sceneDef.introFlag
-      && existing.choices.length === storyChoices.length
-      && existing.choices.every((choice, index) => choice.id === storyChoices[index]?.id)
-    ) {
-      return existing;
-    }
+    return SceneCardSchema.parse({
+      id: `scene:${sceneDef.id}:v${SCENE_CARD_CACHE_VERSION}:${session.state.day}:${session.state.phaseIndex}`,
+      eventId: sceneDef.eventId,
+      locationId: sceneDef.locationId,
+      title: `${sceneDef.title} (${PHASES[session.state.phaseIndex]})`,
+      paragraphs: [...sceneDef.paragraphs],
+      introFlag: sceneDef.introFlag,
+      choices: storyChoices,
+      materialIds: {
+        locationIds: storyMaterials.locations.map((entry) => entry.id),
+        personIds: storyMaterials.people.map((entry) => entry.id),
+        itemIds: storyMaterials.items.map((entry) => entry.id),
+      },
+      source: "template",
+      generatedAt: nowIso(),
+    });
+  }
 
-    const card = await this.generator.generateSceneCard(sceneDef, storyChoices, {
-      ...this.generatorInput(session, true),
-    });
+  private async ensureSceneCard(session: GameSession) {
+    const sceneKey = this.sceneKeyFor(session);
+    const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true });
+    const card = this.buildAuthoringSceneCard(session, storyMaterials);
+    const prev = session.world.sceneCards[sceneKey];
+    const narrativeSignature = `${card.title}\n${card.paragraphs.join("\n")}`;
+    const prevNarrativeSignature = prev ? `${prev.title}\n${prev.paragraphs.join("\n")}` : "";
+    const choiceSig = card.choices.map((c) => c.id).join("|");
+    const prevChoiceSig = prev?.choices.map((c) => c.id).join("|") ?? "";
+
     session.world.sceneCards[sceneKey] = card;
-    await this.repository.appendGenerationLog({
-      gameId: session.id,
-      kind: "sceneCard",
-      id: sceneKey,
-      at: nowIso(),
-      source: card.source,
-    });
+
+    if (!prev || narrativeSignature !== prevNarrativeSignature || choiceSig !== prevChoiceSig) {
+      await this.repository.appendGenerationLog({
+        gameId: session.id,
+        kind: "sceneCard",
+        id: sceneKey,
+        at: nowIso(),
+        source: card.source,
+      });
+    }
     return card;
   }
 
@@ -488,9 +479,12 @@ export class GameService {
   }
 
   private buildSnapshot(session: GameSession, latestEvent: EventCard | null): StateSnapshot {
-    const sceneKey = this.sceneKeyFor(session);
     const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true });
-    const currentScene = session.world.sceneCards[sceneKey] as SceneCard;
+    const currentScene = this.buildAuthoringSceneCard(session, storyMaterials);
+    const sceneDef = this.presentedSceneDefinition(session);
+    const locationChoices = this.presentedChoices(session, sceneDef);
+    const storyChoices =
+      latestEvent && latestEvent.choices.length > 0 ? latestEvent.choices : locationChoices;
     const snapshot = {
       gameId: session.id,
       state: structuredClone(session.state),
@@ -511,13 +505,7 @@ export class GameService {
         status: session.state.quests[quest.id],
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
-      availableActions: currentScene.choices.map((choice) => ({
-        id: choice.id,
-        label: choice.label,
-        outcomeHint: choice.outcomeHint,
-        action: choice.serverActionHint,
-        nextSceneId: choice.nextSceneId,
-      })),
+      availableActions: buildActionCatalogFromStoryChoices(storyChoices),
       mapEntries: this.buildMapEntries(session),
       latestEvent,
     };
@@ -542,4 +530,3 @@ export class GameService {
     return worldRegistry.actions[action.actionId]?.type === "explore";
   }
 }
-
