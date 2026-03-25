@@ -160,9 +160,11 @@ function validateEffect(effect: Effect, source: string) {
       assertKnownStockNode(effect.nodeId, source);
       break;
     case "collect_stock_item":
+    case "collect_stock_item_all":
       assertKnownStockItem(effect.locationId, effect.nodeId, effect.itemId, source);
       break;
     case "collect_stock_money":
+    case "collect_stock_money_all":
       assertKnownLocation(effect.locationId, source);
       assertKnownStockNodeInLocation(effect.locationId, effect.nodeId, source);
       break;

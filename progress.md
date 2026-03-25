@@ -59,3 +59,19 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   the broken `.runtime/templates.json` was backed up,
   a clean cache file was regenerated,
   and `POST /api/games` succeeded again immediately after restart.
+- Convenience salvage collection tweak:
+  the convenience supply pile no longer requires repeated clicks per material type for wood/cloth.
+- Added a new `collect_stock_item_all` effect so authored content can mean “take all remaining of this item from this node” without hardcoding inflated amounts.
+- Updated `collect_wood_from_supply_pile` and `collect_cloth_from_supply_pile` to use the new effect.
+- Runtime verification confirmed:
+  one click on wood yielded `woodPlank: 3`,
+  one click on cloth yielded `clothScrap: 2`,
+  and the supply-pile scene advanced to the next remaining-material state correctly.
+- Convenience register collection tweak:
+  the cash register no longer requires three clicks to empty.
+- Added `collect_stock_money_all` so authored content can mean “take all remaining money from this node” without tying the action to a fixed amount.
+- Updated `collect_cash_from_register` to use the new effect.
+- Runtime verification confirmed:
+  `convenience_register_full` -> one click on `collect_cash_from_register` ->
+  money `6500 -> 8300` ->
+  scene changed directly to `convenience_register_empty`.

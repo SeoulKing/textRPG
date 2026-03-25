@@ -67,10 +67,21 @@ export const EffectSchema = z.discriminatedUnion("type", [
     amount: z.number().int().min(1).default(1),
   }),
   z.object({
+    type: z.literal("collect_stock_item_all"),
+    locationId: z.string(),
+    nodeId: z.string(),
+    itemId: z.string(),
+  }),
+  z.object({
     type: z.literal("collect_stock_money"),
     locationId: z.string(),
     nodeId: z.string(),
     amount: z.number().int().min(1).default(1),
+  }),
+  z.object({
+    type: z.literal("collect_stock_money_all"),
+    locationId: z.string(),
+    nodeId: z.string(),
   }),
 ]);
 

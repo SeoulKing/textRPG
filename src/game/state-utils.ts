@@ -247,6 +247,15 @@ export function applyEffect(effect: Effect, state: GameState): void {
       state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + collected;
       break;
     }
+    case "collect_stock_item_all": {
+      const current = getStockQuantity(state, effect.locationId, effect.nodeId, effect.itemId);
+      if (current <= 0) {
+        break;
+      }
+      setStockQuantity(state, effect.locationId, effect.nodeId, effect.itemId, 0);
+      state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + current;
+      break;
+    }
     case "collect_stock_money": {
       const current = getStockMoney(state, effect.locationId, effect.nodeId);
       if (current <= 0) {
@@ -255,6 +264,15 @@ export function applyEffect(effect: Effect, state: GameState): void {
       const collected = Math.min(effect.amount, current);
       setStockMoney(state, effect.locationId, effect.nodeId, current - collected);
       state.money = Math.max(0, state.money + collected);
+      break;
+    }
+    case "collect_stock_money_all": {
+      const current = getStockMoney(state, effect.locationId, effect.nodeId);
+      if (current <= 0) {
+        break;
+      }
+      setStockMoney(state, effect.locationId, effect.nodeId, 0);
+      state.money = Math.max(0, state.money + current);
       break;
     }
   }

@@ -73,42 +73,42 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   choice({
     id: "collect_cash_from_register",
     label: "남은 돈을 챙긴다",
-    outcomeHint: "서랍 안 구석에 남은 지폐와 동전을 긁어모아 당장 쓸 수 있는 현금으로 바꾼다.",
+    outcomeHint: "서랍 안 구석에 남은 지폐와 동전을 남김없이 긁어모아 한 번에 챙긴다.",
     conditions: [
       { type: "active_stock_node", nodeId: "convenience_register" },
       { type: "stock_money_gte", locationId: "convenience", nodeId: "convenience_register", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_money", locationId: "convenience", nodeId: "convenience_register", amount: 600 },
-      { type: "log", message: "당신은 계산대 서랍 구석에 남은 지폐와 동전을 모아 조심스럽게 주머니에 넣는다." },
+      { type: "collect_stock_money_all", locationId: "convenience", nodeId: "convenience_register" },
+      { type: "log", message: "당신은 계산대 서랍 구석에 남은 지폐와 동전을 남김없이 긁어모아 조심스럽게 주머니에 넣는다." },
     ],
     riskHint: "low",
   }),
   choice({
     id: "collect_wood_from_supply_pile",
     label: "쓸 만한 판자를 챙긴다",
-    outcomeHint: "썩지 않은 판자 한 장을 골라 거처 보강과 불쏘시개에 쓸 자재로 챙긴다.",
+    outcomeHint: "썩지 않은 판자들을 한데 추려, 거처 보강과 불쏘시개에 쓸 목재를 한 번에 챙긴다.",
     conditions: [
       { type: "active_stock_node", nodeId: "convenience_supply_pile" },
       { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_item", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
-      { type: "log", message: "당신은 아직 단단한 판자 한 장을 골라 어깨에 걸친다." },
+      { type: "collect_stock_item_all", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank" },
+      { type: "log", message: "당신은 아직 단단한 판자들을 한데 모아 어깨에 걸친다." },
     ],
     riskHint: "low",
   }),
   choice({
     id: "collect_cloth_from_supply_pile",
     label: "질긴 천 조각을 챙긴다",
-    outcomeHint: "젖지 않고 질긴 천 조각을 골라 거처 틈을 막거나 묶는 데 쓸 재료로 챙긴다.",
+    outcomeHint: "젖지 않고 질긴 천 조각을 남김없이 추려, 거처 틈을 막거나 묶는 데 쓸 재료를 한 번에 챙긴다.",
     conditions: [
       { type: "active_stock_node", nodeId: "convenience_supply_pile" },
       { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_item", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
-      { type: "log", message: "당신은 먼지를 털어 낸 천 조각을 접어 품속에 넣는다." },
+      { type: "collect_stock_item_all", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap" },
+      { type: "log", message: "당신은 먼지를 털어 낸 천 조각들을 한데 접어 품속에 넣는다." },
     ],
     riskHint: "low",
   }),
