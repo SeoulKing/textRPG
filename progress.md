@@ -103,3 +103,18 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
 - Runtime verification confirmed:
   one click on `collect_canned_food_from_shelf` now yields `cannedFood: 3` with shelf stock `3 -> 0`,
   and `collect_scrap_from_kitchen_heap` still yields `scrapMetal: 2` with heap stock `2 -> 0`.
+- Convenience narrative pass:
+  rewrote `src/game/data/regions/convenience/choices.ts` and `src/game/data/regions/convenience/scenes.ts` so the text now matches the take-all behavior.
+- The shelf scenes now explicitly tell the player how many cans are in front of them:
+  `convenience_shelf_three` says there are 3 cans,
+  `convenience_shelf_two` says 2 remain,
+  `convenience_shelf_one` says the last single can remains,
+  and the empty scene reflects that everything in view was already taken.
+- The canned-food choice copy now also matches the mechanic:
+  label -> `남은 통조림을 전부 챙긴다`
+  outcome hint/log -> explicitly say the remaining cans are swept up in one action.
+- Runtime verification confirmed the actual story frame content:
+  shelf focus resolved to `convenience_shelf_three`,
+  paragraphs mentioned `통조림 세 개`,
+  the choice label was `남은 통조림을 전부 챙긴다`,
+  and after taking it the scene changed to `convenience_shelf_empty`.
