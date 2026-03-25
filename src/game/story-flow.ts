@@ -1,7 +1,9 @@
 import { SCENE_IDS_WITHOUT_LOCATION_INTERACTIONS } from "./data/scenes";
 import { worldRegistry } from "./data/registry";
 import {
+  actionConditionsMet,
   buildStoryChoiceFromChoice,
+  choiceConditionsMet,
   resolveAvailableActions,
   resolveSceneChoices,
   resolveSceneDefinition,
@@ -28,6 +30,7 @@ function isDetailFocusActive(state: GameState) {
 }
 
 function buildStoryChoiceFromActionDefinition(
+  state: GameState,
   action: ActionDefinition,
   resolveNextSceneId?: NextScenePreviewResolver,
 ): StoryChoice {
@@ -36,6 +39,7 @@ function buildStoryChoiceFromActionDefinition(
     id: action.id,
     label: action.label,
     outcomeHint: action.outcomeHint,
+    isAvailable: actionConditionsMet(action, state),
     conditions: action.conditions,
     effects: action.effects,
     riskHint: action.riskHint,
@@ -60,6 +64,7 @@ export function resolveStoryFrame(
     const built = buildStoryChoiceFromChoice(choice);
     return {
       ...built,
+      isAvailable: choiceConditionsMet(choice, state),
       nextSceneId: options.resolveNextSceneId?.(built.serverActionHint) ?? built.nextSceneId,
     };
   });
@@ -70,7 +75,7 @@ export function resolveStoryFrame(
 
   const location = registry.locations[locationId];
   const locationChoices = resolveAvailableActions(state, location, registry).map((action) =>
-    buildStoryChoiceFromActionDefinition(action, options.resolveNextSceneId),
+    buildStoryChoiceFromActionDefinition(state, action, options.resolveNextSceneId),
   );
   const locationChoiceIds = new Set(locationChoices.map((choice) => choice.id));
   const narrativeOnlyChoices = sceneChoices.filter((choice) => !locationChoiceIds.has(choice.id));
@@ -86,6 +91,7 @@ export function buildActionCatalogFromStoryChoices(storyChoices: StoryChoice[]):
     label: choice.label,
     outcomeHint: choice.outcomeHint,
     action: choice.serverActionHint,
+    isAvailable: choice.isAvailable,
     nextSceneId: choice.nextSceneId,
   }));
 }

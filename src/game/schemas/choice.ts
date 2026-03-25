@@ -11,6 +11,7 @@ export const StoryChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   serverActionHint: GameActionSchema,
+  isAvailable: z.boolean().default(true),
   descriptionTag: z.string().optional(),
   conditions: z.array(ConditionSchema).optional(),
   effects: z.array(EffectSchema).optional(),
@@ -25,6 +26,7 @@ export const ActionChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   action: GameActionSchema,
+  isAvailable: z.boolean().default(true),
   nextSceneId: z.string().optional(),
 });
 

@@ -382,7 +382,9 @@ function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
 function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
-  return list.map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}`).join("|");
+  return list
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.isAvailable ? "1" : "0"}`)
+    .join("|");
 }
 
 function preserveDisplayedSceneSnapshot(previousSnapshot, nextSnapshot) {
@@ -619,14 +621,32 @@ function renderChoices() {
   snapshot.availableActions.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
+    const status = fragment.querySelector(".choice-status");
     const label = fragment.querySelector(".choice-label");
     const meta = fragment.querySelector(".choice-meta");
+    const isCraftingMenu = currentSceneDefinitionId(snapshot) === "shelter_crafting_menu";
+    const isCraftingRecipe = isCraftingMenu && choice.id !== "leave_shelter_crafting";
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
     meta.textContent = choice.nextSceneId
       ? `${choice.outcomeHint} -> ${choice.nextSceneId}`
       : choice.outcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
+    button.classList.toggle("is-crafting-option", isCraftingRecipe);
+    button.classList.toggle("is-recipe-available", isCraftingRecipe && choice.isAvailable);
+    button.classList.toggle("is-recipe-unavailable", isCraftingRecipe && !choice.isAvailable);
+    if (isCraftingRecipe) {
+      status.hidden = false;
+      status.textContent = choice.isAvailable ? "제작 가능" : "재료 부족";
+      status.classList.toggle("is-available", choice.isAvailable);
+      status.classList.toggle("is-unavailable", !choice.isAvailable);
+      meta.textContent = `${status.textContent} · ${choice.outcomeHint}`;
+    } else {
+      status.hidden = true;
+      status.textContent = "";
+      status.classList.remove("is-available", "is-unavailable");
+    }
+
     button.disabled = client.actionInFlight;
     button.addEventListener("click", () => submitAction(choice.action));
     dom.choices.appendChild(fragment);

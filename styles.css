@@ -435,6 +435,29 @@ body::before {
   opacity: 0.56;
 }
 
+.choice-status {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.77rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.choice-status.is-available {
+  color: #1f6e39;
+  background: rgba(54, 150, 86, 0.14);
+  border: 1px solid rgba(54, 150, 86, 0.22);
+}
+
+.choice-status.is-unavailable {
+  color: #7f6a58;
+  background: rgba(132, 103, 72, 0.08);
+  border: 1px solid rgba(125, 94, 65, 0.14);
+}
+
 .choice-label {
   display: block;
   font-size: 1rem;
@@ -444,6 +467,44 @@ body::before {
   display: block;
   margin-top: 6px;
   color: var(--muted);
+}
+
+.choice-button.is-crafting-option {
+  border-width: 1.5px;
+}
+
+.choice-button.is-recipe-available {
+  background: linear-gradient(180deg, rgba(222, 245, 228, 0.96), rgba(203, 235, 212, 0.98));
+  border-color: rgba(65, 146, 90, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.choice-button.is-recipe-available:hover {
+  background: linear-gradient(180deg, rgba(229, 248, 234, 1), rgba(210, 240, 219, 0.98));
+  border-color: rgba(65, 146, 90, 0.54);
+}
+
+.choice-button.is-recipe-available .choice-label {
+  color: #1e5f34;
+}
+
+.choice-button.is-recipe-available .choice-meta {
+  color: #356947;
+}
+
+.choice-button.is-recipe-unavailable {
+  background: rgba(132, 103, 72, 0.05);
+  border-color: rgba(125, 94, 65, 0.12);
+}
+
+.choice-button.is-recipe-unavailable:hover {
+  background: rgba(132, 103, 72, 0.07);
+  border-color: rgba(125, 94, 65, 0.18);
+}
+
+.choice-button.is-recipe-unavailable .choice-label,
+.choice-button.is-recipe-unavailable .choice-meta {
+  color: #8e7b6b;
 }
 
 .utility-dock {

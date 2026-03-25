@@ -157,3 +157,12 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   each recipe surfaces its material requirements in `outcomeHint`,
   failed crafting writes the expected failure note without closing the menu,
   and successful wall-patch crafting consumed `woodPlank 1 + clothScrap 2` and set `shelter_wall_patch=true`.
+
+- Crafting menu affordance pass:
+  available actions now carry `isAvailable` from the server snapshot so the frontend can distinguish "visible but not currently executable" options from actually craftable ones.
+- `buildActionCatalogFromStoryChoices()` now preserves per-choice availability,
+  and scene/location story choice builders compute that from the current state instead of forcing the frontend to infer it from text.
+- Shelter crafting UI polish:
+  added a small status pill inside each recipe button and styled recipes so craftable ones render green while blocked recipes render in a more faded muted tone.
+- Frontend refresh correctness:
+  `availableActionsSignature()` now includes availability state, so a recipe turning from blocked to craftable immediately re-renders during action/background sync.
