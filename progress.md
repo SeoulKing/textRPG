@@ -128,3 +128,12 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   at kitchen top level, available choices are now `buy_meal_at_kitchen` and `go_to_kitchen_scrap_heap`,
   and selecting the latter transitions immediately to `kitchen_scrap_heap_full` with only
   `collect_scrap_from_kitchen_heap`, `collect_cloth_from_kitchen_heap`, and `leave_kitchen_scrap_heap`.
+- Kitchen return-label clarification:
+  after emptying the scrap heap, the exit choice was still present in the data, but the wording was too container-focused.
+- Updated `leave_kitchen_scrap_heap` so the player now sees an explicit top-level return:
+  label -> `급식소로 돌아간다`
+  outcome hint -> says it returns to the soup kitchen main space
+  empty-heap scene text also now says the player can go straight back to the main area.
+- Runtime verification confirmed:
+  after collecting both kitchen heap resources, the empty scene still resolves with one action and that action now surfaces as
+  `leave_kitchen_scrap_heap` -> `급식소로 돌아간다`.

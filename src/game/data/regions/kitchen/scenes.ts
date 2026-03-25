@@ -36,6 +36,7 @@ export const kitchenSceneDefinitions: SceneDefinition[] = [
     title: "비워진 폐자재 더미",
     paragraphs: [
       "손에 잡힐 만한 건 이미 다 추려 냈다. 지금 더 뒤져 봐야 먼지와 부스러기밖에 남지 않았다.",
+      "이제 이 앞에 더 머물 이유는 없다. 몸을 빼면 곧바로 급식소 메인 공간으로 돌아갈 수 있다.",
     ],
     choiceIds: ["leave_kitchen_scrap_heap"],
     conditions: [

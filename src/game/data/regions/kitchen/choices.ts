@@ -43,12 +43,12 @@ export const kitchenChoiceDefinitions: ChoiceDefinition[] = [
   }),
   choice({
     id: "leave_kitchen_scrap_heap",
-    label: "폐자재 더미에서 물러선다",
-    outcomeHint: "더미 앞에서 몸을 빼고 다시 급식소의 메인 공간으로 돌아간다.",
+    label: "급식소로 돌아간다",
+    outcomeHint: "폐자재 더미 앞에서 몸을 빼고 다시 급식소 메인 공간으로 돌아간다.",
     conditions: [{ type: "active_stock_node", nodeId: "kitchen_scrap_heap" }],
     effects: [
       { type: "clear_stock_node_focus" },
-      { type: "log", message: "당신은 챙길 것을 추린 뒤 다시 배식줄이 보이는 쪽으로 물러선다." },
+      { type: "log", message: "당신은 챙길 것을 추린 뒤 다시 배식줄이 보이는 급식소 쪽으로 물러선다." },
     ],
     riskHint: "low",
   }),
