@@ -44,6 +44,16 @@ export function canPresentChoice(choice: ChoiceDefinition, state: GameState) {
   return choice.presentationMode === "always" || choiceConditionsMet(choice, state);
 }
 
+function sceneMatchesDetailFocus(scene: SceneDefinition, state: GameState) {
+  const focusConditions = scene.conditions.filter((condition) => condition.type === "active_stock_node");
+
+  if (!state.activeStockNodeId) {
+    return focusConditions.length === 0;
+  }
+
+  return focusConditions.some((condition) => condition.nodeId === state.activeStockNodeId);
+}
+
 export function resolveSceneDefinition(
   state: GameState,
   registry: ContentRegistry = worldRegistry,
@@ -53,6 +63,7 @@ export function resolveSceneDefinition(
     const byId = registry.scenes[state.sceneId];
     if (
       byId.locationId === locationId &&
+      sceneMatchesDetailFocus(byId, state) &&
       byId.conditions.every((condition) => evaluateCondition(condition, state))
     ) {
       return byId;
@@ -77,6 +88,7 @@ export function resolveNextSceneDefinition(
 
   const candidates = Object.values(registry.scenes)
     .filter((scene) => scene.locationId === locationId)
+    .filter((scene) => sceneMatchesDetailFocus(scene, state))
     .filter((scene) => scene.conditions.every((condition) => evaluateCondition(condition, state)));
 
   const matched = candidates[0];

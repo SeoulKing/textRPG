@@ -171,3 +171,6 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
 - Hotfix:
   a PowerShell rewrite accidentally re-saved `app-api.js` with broken string encoding, which produced a browser-side syntax error and stopped the whole client from booting.
 - Recovered `app-api.js` from the last good version, re-applied the intended "color only" crafting cue change, and verified the page boots again in headless Edge with the prologue scene rendered.
+- Detail-scene focus fix:
+  `resolveSceneDefinition()` was reusing generic location scenes even after `activeStockNodeId` changed, so entering the kitchen scrap heap stayed on `kitchen_repeat_intro` and produced no harvest/return choices.
+- Added focus-aware scene matching in `content-engine.ts` so when a stock-node detail view is active, only scenes with the matching `active_stock_node` condition can remain selected or be picked as candidates.
