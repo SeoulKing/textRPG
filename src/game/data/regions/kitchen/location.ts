@@ -12,27 +12,21 @@ export const kitchenChoices: ActionDefinition[] = [
       { type: "change_money", amount: -4500 },
       { type: "add_item", itemId: "hotMeal", amount: 1 },
       { type: "set_flag", flag: "mealSecured" },
-      { type: "log", message: "당신은 아끼던 돈을 꺼내 한 끼의 온기를 산다." },
+      { type: "log", message: "당신은 아껴 둔 돈을 꺼내 오늘 몫의 따뜻한 식사를 산다." },
     ],
     tags: ["food", "trade"],
     riskHint: "low",
   }),
   interactionFor("kitchen", {
-    id: "search_kitchen_backroom",
-    label: "주방 뒤편 폐자재를 뒤진다",
+    id: "go_to_kitchen_scrap_heap",
+    label: "폐자재 더미로 간다",
     type: "search",
-    outcomeHint: "찢긴 앞치마와 구부러진 냄비 손잡이, 못 쓰는 금속 부품 사이에서 제작에 쓸 자재를 찾아낸다.",
-    conditions: [{ type: "flag_not", flag: "kitchen_salvage_found" }],
+    outcomeHint: "배식줄 옆 구석에 쌓인 폐자재 더미 앞으로 가, 쓸 만한 고철과 천 조각을 직접 뒤진다.",
     effects: [
-      { type: "set_flag", flag: "kitchen_salvage_found" },
-      { type: "discover_stock_node", nodeId: "kitchen_scrap_heap" },
-      {
-        type: "log",
-        message:
-          "당신은 배식대 뒤편 구석을 뒤져 찢긴 천과 고철이 쌓인 폐자재 더미를 찾아낸다. 거처를 손볼 재료로는 충분히 쓸 만해 보인다.",
-      },
+      { type: "focus_stock_node", nodeId: "kitchen_scrap_heap" },
+      { type: "log", message: "당신은 사람들의 시선을 피해 배식줄 옆 폐자재 더미 앞으로 다가선다." },
     ],
-    tags: ["survey", "craft"],
+    tags: ["craft", "salvage"],
     riskHint: "low",
   }),
 ];
@@ -42,7 +36,7 @@ export const kitchenLocation: LocationDefinition = {
   name: "급식소",
   risk: "low",
   imagePath: "assets/scenes/kitchen.png",
-  summary: "끓는 냄비와 지친 대화가 뒤섞인 채, 하루를 버티게 해 주는 배식 거점이다.",
+  summary: "지친 사람들과 눅눅한 공기가 한데 엉켜, 하루를 버티게 해 주는 밥 한 끼와 작은 소문이 오가는 장소다.",
   tags: ["food", "water"],
   traits: ["meal purchase", "rumors", "salvage"],
   obtainableItemIds: ["hotMeal", "waterBottle", "rationTicket", "rawRice", "vegetables", "scrapMetal", "clothScrap"],
@@ -51,13 +45,13 @@ export const kitchenLocation: LocationDefinition = {
   interactionChoices: kitchenChoices,
   eventIds: [],
   links: {
-    shelter: { note: "연기 냄새가 배어 있는 길을 따라 거처로 돌아간다." },
+    shelter: { note: "허기를 잠시 달랜 뒤 거처 쪽으로 다시 발걸음을 돌린다." },
   },
   stockNodes: [
     {
       id: "kitchen_scrap_heap",
       name: "폐자재 더미",
-      summary: "배식대 뒤편에 찢긴 앞치마와 구부러진 금속 부품, 못 쓰는 조리 도구가 한데 쌓여 있다.",
+      summary: "배식줄 옆 구석에 찢긴 앞치마와 굽은 금속 부품, 낡은 조리 도구가 한데 얽혀 있다.",
       money: 0,
       items: [
         { itemId: "scrapMetal", initialQuantity: 2 },

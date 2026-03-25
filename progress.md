@@ -118,3 +118,13 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   paragraphs mentioned `통조림 세 개`,
   the choice label was `남은 통조림을 전부 챙긴다`,
   and after taking it the scene changed to `convenience_shelf_empty`.
+- Kitchen salvage flow simplification:
+  removed the extra discovery step so the soup kitchen now exposes the scrap heap directly from the top-level location choices.
+- Rewrote `src/game/data/regions/kitchen/location.ts`, `choices.ts`, and `scenes.ts` around the simpler flow:
+  top-level kitchen actions now include `go_to_kitchen_scrap_heap`,
+  the old `search_kitchen_backroom` action and `kitchen_salvage_found` gate are gone,
+  and the temporary `kitchen_salvage_discovered` scene was removed.
+- Runtime verification confirmed:
+  at kitchen top level, available choices are now `buy_meal_at_kitchen` and `go_to_kitchen_scrap_heap`,
+  and selecting the latter transitions immediately to `kitchen_scrap_heap_full` with only
+  `collect_scrap_from_kitchen_heap`, `collect_cloth_from_kitchen_heap`, and `leave_kitchen_scrap_heap`.
