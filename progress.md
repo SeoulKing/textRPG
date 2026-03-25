@@ -168,3 +168,6 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `availableActionsSignature()` now includes availability state, so a recipe turning from blocked to craftable immediately re-renders during action/background sync.
 - Follow-up UI trim:
   removed the explicit `제작 가능` / `재료 부족` pill text from the shelter crafting menu and kept only the color treatment so the menu reads cleaner while still signaling availability.
+- Hotfix:
+  a PowerShell rewrite accidentally re-saved `app-api.js` with broken string encoding, which produced a browser-side syntax error and stopped the whole client from booting.
+- Recovered `app-api.js` from the last good version, re-applied the intended "color only" crafting cue change, and verified the page boots again in headless Edge with the prologue scene rendered.

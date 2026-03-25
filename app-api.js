@@ -1,4 +1,4 @@
-const STORAGE_KEY = "ruined-seoul-stage1-game-id-v9";
+﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id-v9";
 const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id",
   "ruined-seoul-stage1-game-id-v8",
@@ -112,24 +112,24 @@ function buildHexBoardLayout(slots) {
 
 const PANEL_CONFIG = {
   map: {
-    title: "?�동",
-    subtitle: "지�??�악???�동 경로�?지?�로 ?�리?�습?�다.",
+    title: "이동",
+    subtitle: "지금 파악한 이동 경로를 지도로 정리했습니다.",
   },
   inventory: {
-    title: "?�이??,
-    subtitle: "가�?물건�??�을 ?�인?�고 바로 ?�용?????�습?�다.",
+    title: "아이템",
+    subtitle: "가진 물건과 돈을 확인하고 바로 사용할 수 있습니다.",
   },
   skills: {
-    title: "?�킬",
-    subtitle: "?�재 보유 중인 ?�존 방식?�니??",
+    title: "스킬",
+    subtitle: "현재 보유 중인 생존 방식입니다.",
   },
   quests: {
-    title: "?�스??,
-    subtitle: "?�늘 버티�??�해 ?�요???�선?�위?�니??",
+    title: "퀘스트",
+    subtitle: "오늘 버티기 위해 필요한 우선순위입니다.",
   },
   log: {
     title: "기록",
-    subtitle: "최근 ?�택�??�동 기록?�니??",
+    subtitle: "최근 선택과 이동 기록입니다.",
   },
 };
 
@@ -268,13 +268,13 @@ function currentSceneId(snapshot = client.snapshot) {
   return snapshot?.currentScene?.id || "";
 }
 
-/** 메인 ?�사가 ?�벤??카드(?�택지 ?�함)�?????true ??buildSnapshot�??�일 조건 */
+/** 메인 서사가 이벤트 카드(선택지 포함)를 쓸 때 true — buildSnapshot과 동일 조건 */
 function isEventStoryActive(snapshot) {
   const ev = snapshot?.latestEvent;
   return Boolean(ev && Array.isArray(ev.choices) && ev.choices.length > 0);
 }
 
-/** ???�벤???�환·backgroundSync 보존 ?�별???�면 ??*/
+/** 씬/이벤트 전환·backgroundSync 보존 판별용 표면 키 */
 function storySurfaceId(snapshot) {
   if (!snapshot) {
     return "";
@@ -365,23 +365,23 @@ function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
     return false;
   }
 
-  // ?�벤?????�시 ???�환 ???�전 ??카드�?붙잡???�면 복�? 직후 본문???�긋?�다.
+  // 이벤트 ↔ 평시 씬 전환 시 이전 씬 카드만 붙잡아 두면 복귀 직후 본문이 어긋난다.
   if (storySurfaceId(previousSnapshot) !== storySurfaceId(nextSnapshot)) {
     return false;
   }
 
-  // 같�? ?�벤???�면?�면 본문?� latestEvent 기�??�라 ??카드 id 변?�만?�로???��? ?�는??
+  // 같은 이벤트 표면이면 본문은 latestEvent 기준이라 씬 카드 id 변화만으로는 끊지 않는다.
   if (isEventStoryActive(previousSnapshot) && isEventStoryActive(nextSnapshot)) {
     return true;
   }
 
-  // 같�? ??카드 ???�짜·?�이즈·캐??버전 ?�함)???�만 ?�전 본문???��??�다.
+  // 같은 씬 카드 키(날짜·페이즈·캐시 버전 포함)일 때만 이전 본문을 유지한다.
   return currentSceneId(previousSnapshot) === currentSceneId(nextSnapshot);
 }
 
 function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
-  // id�?보면 ?�벨·?�트�?바�??�버 ?�답?�서 actionsChanged가 false가 ?�어 ?�택지 DOM??갱신?��? ?�는??
+  // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
     .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.isAvailable ? "1" : "0"}`)
     .join("|");
@@ -391,8 +391,8 @@ function preserveDisplayedSceneSnapshot(previousSnapshot, nextSnapshot) {
   return {
     ...nextSnapshot,
     currentScene: previousSnapshot.currentScene,
-    // ?�버???�동 목록?� ??�� 반영?�다. ?�전 ?�냅?�을 ?��??????�이즈만 바�?backgroundSync ??
-    // ??scene 카드?� ?�께 버튼�??��? 채로 ?�는 문제�?막는??
+    // 서버의 행동 목록은 항상 반영한다. 이전 스냅샷을 유지할 때(페이즈만 바뀐 backgroundSync 등)
+    // 옛 scene 카드와 함께 버튼만 낡은 채로 남는 문제를 막는다.
     availableActions: nextSnapshot.availableActions,
   };
 }
@@ -558,17 +558,17 @@ function openStatusPopover(statKey, options = {}) {
     hp: {
       title: "체력",
       value: `${snapshot.stats.hp} / 10`,
-      note: "부?�을 견디�??�직일 ???�는 ?�태?�니??",
+      note: "부상을 견디고 움직일 수 있는 상태입니다.",
     },
     mind: {
-      title: "?�신??,
+      title: "정신력",
       value: `${snapshot.stats.mind} / 10`,
-      note: "불안�??�로 ?�에?�도 ?�단???��??�는 ?�입?�다.",
+      note: "불안과 피로 속에서도 판단을 유지하는 힘입니다.",
     },
     fullness: {
-      title: "?�만�?,
+      title: "포만감",
       value: `${snapshot.stats.fullness} / 10`,
-      note: "?�간??지?�면 줄어?�고, ?�식�?물로 ?�복?�니??",
+      note: "시간이 지나면 줄어들고, 음식과 물로 회복합니다.",
     },
   }[statKey];
 
@@ -601,9 +601,9 @@ function renderStatusBar() {
   dom.mindFill.style.width = `${snapshot.stats.mind * 10}%`;
   dom.fullnessFill.style.width = `${snapshot.stats.fullness * 10}%`;
   dom.hpStatus.setAttribute("aria-label", `체력 ${snapshot.stats.hp} / 10`);
-  dom.mindStatus.setAttribute("aria-label", `?�신??${snapshot.stats.mind} / 10`);
-  dom.fullnessStatus.setAttribute("aria-label", `?�만�?${snapshot.stats.fullness} / 10`);
-  dom.timeIndicator.textContent = `${snapshot.day}?�차 ${gameClockLabel()}`;
+  dom.mindStatus.setAttribute("aria-label", `정신력 ${snapshot.stats.mind} / 10`);
+  dom.fullnessStatus.setAttribute("aria-label", `포만감 ${snapshot.stats.fullness} / 10`);
+  dom.timeIndicator.textContent = `${snapshot.day}일차 ${gameClockLabel()}`;
 
   if (client.activeStatusPopoverKey) {
     openStatusPopover(client.activeStatusPopoverKey, { toggle: false });
@@ -625,7 +625,7 @@ function renderChoices() {
     const meta = fragment.querySelector(".choice-meta");
     const isCraftingMenu = currentSceneDefinitionId(snapshot) === "shelter_crafting_menu";
     const isCraftingRecipe = isCraftingMenu && choice.id !== "leave_shelter_crafting";
-    const isQuestChoice = choice.label.startsWith("?�스??");
+    const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
     meta.textContent = choice.nextSceneId
       ? `${choice.outcomeHint} -> ${choice.nextSceneId}`
@@ -654,7 +654,7 @@ function renderScene(animateText = true) {
 
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
   dom.sceneLocationBadge.textContent = location.name;
-  dom.sceneRiskBadge.textContent = isEventStoryActive(snapshot) ? "?�벤?? : location.risk;
+  dom.sceneRiskBadge.textContent = isEventStoryActive(snapshot) ? "이벤트" : location.risk;
   const eventId = currentEventId(snapshot);
   const actionCount = snapshot.availableActions?.length ?? 0;
   const actionIds = (snapshot.availableActions ?? []).map((c) => c.id).join(", ");
@@ -714,13 +714,13 @@ function renderMapPanel() {
     ].filter(Boolean).join(" ");
 
     const meta = state.isCurrent
-      ? "?�재 ?�치"
+      ? "현재 위치"
       : state.isControlled
-        ? "?�제??
+        ? "통제됨"
         : state.isReachable
-          ? "?�동 가??
+          ? "이동 가능"
           : state.isVisited
-            ? "방문??
+            ? "방문함"
             : "";
 
     return `
@@ -757,7 +757,7 @@ function renderMapPanel() {
             <span class="tag">${location.risk}</span>
           </div>
           <p>${location.summary}</p>
-          ${entry.isReachable ? "" : `<small class="tiny">${entry.reason || "?�동 불�?"}</small>`}
+          ${entry.isReachable ? "" : `<small class="tiny">${entry.reason || "이동 불가"}</small>`}
         </article>
       `;
     }).join("");
@@ -796,7 +796,7 @@ function renderMapPanel() {
         return;
       }
       if (entry.isCurrent) {
-        client.mapHint = `${location.name}???��? 머물???�다.`;
+        client.mapHint = `${location.name}에 이미 머물러 있다.`;
         renderPanel();
         return;
       }
@@ -806,12 +806,12 @@ function renderMapPanel() {
         return;
       }
       if (entry.isControlled) {
-        client.mapHint = entry.reason || "?�직 ?�동?????�다.";
+        client.mapHint = entry.reason || "아직 이동할 수 없다.";
         renderPanel();
         return;
       }
       if (entry.isAdjacent) {
-        client.mapHint = entry.reason || "?�직 ?�동?????�는 경로??";
+        client.mapHint = entry.reason || "아직 이동할 수 없는 경로다.";
         renderPanel();
       }
     });
@@ -831,17 +831,17 @@ function renderInventoryPanel() {
   const moneyCard = `
     <article class="info-card inventory-card">
       <div class="inventory-card-head">
-        <h3>??/h3>
-        <span class="tag">${snapshot.state.money.toLocaleString()}??/span>
+        <h3>돈</h3>
+        <span class="tag">${snapshot.state.money.toLocaleString()}원</span>
       </div>
-      <p>???��? ?�고, ?�요??물건??마련?�는 ???�는 ?�금?�다.</p>
+      <p>한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다.</p>
     </article>
   `;
 
   if (itemCards.length === 0) {
     dom.panelContent.innerHTML = `
       <div class="panel-grid">${moneyCard}</div>
-      <p class="empty-state">지�?가�?물건???�다.</p>
+      <p class="empty-state">지금 가진 물건이 없다.</p>
     `;
     return;
   }
@@ -857,7 +857,7 @@ function renderInventoryPanel() {
             <div class="inventory-card-head">
               <h3>${item.name} ${count > 1 ? `x${count}` : ""}</h3>
               <div class="item-actions">
-                ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">?�용</button>` : ""}
+                ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">사용</button>` : ""}
               </div>
             </div>
             <p>${item.description}</p>
@@ -877,7 +877,7 @@ function renderInventoryPanel() {
 function renderSkillsPanel() {
   const skills = client.snapshot.skills || [];
   if (!skills.length) {
-    dom.panelContent.innerHTML = `<p class="empty-state">?�직 ?��? ?�존 방식???�다.</p>`;
+    dom.panelContent.innerHTML = `<p class="empty-state">아직 얻은 생존 방식이 없다.</p>`;
     return;
   }
 
@@ -895,18 +895,18 @@ function renderSkillsPanel() {
 
 function questStatusLabel(status) {
   if (status === "active") {
-    return "진행 �?;
+    return "진행 중";
   }
   if (status === "completed") {
-    return "?�료";
+    return "완료";
   }
-  return "?��?;
+  return "대기";
 }
 
 function renderQuestsPanel() {
   const visibleQuests = (client.snapshot.quests || []).filter((quest) => quest.status !== "inactive");
   if (!visibleQuests.length) {
-    dom.panelContent.innerHTML = `<p class="empty-state">?�직 받�? ?�스?��? ?�다.</p>`;
+    dom.panelContent.innerHTML = `<p class="empty-state">아직 받은 퀘스트가 없다.</p>`;
     return;
   }
 
@@ -928,7 +928,7 @@ function renderQuestsPanel() {
 function renderLogPanel() {
   const logs = client.snapshot.state.log || [];
   if (!logs.length) {
-    dom.panelContent.innerHTML = `<p class="empty-state">?�직 ?�겨�?기록???�습?�다.</p>`;
+    dom.panelContent.innerHTML = `<p class="empty-state">아직 남겨진 기록이 없습니다.</p>`;
     return;
   }
 
@@ -936,7 +936,7 @@ function renderLogPanel() {
     <div class="log-list">
       ${logs.map((entry) => {
         const timestampLabel = typeof entry === "string"
-          ? `${client.snapshot.day}?�차 ${gameClockLabel()}`
+          ? `${client.snapshot.day}일차 ${gameClockLabel()}`
           : entry.timestampLabel;
         const message = typeof entry === "string" ? entry : entry.message;
         return `
@@ -1017,7 +1017,7 @@ async function submitAction(action) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   } catch (error) {
-    window.alert(error instanceof Error ? error.message : "?�션 처리???�패?�습?�다.");
+    window.alert(error instanceof Error ? error.message : "액션 처리에 실패했습니다.");
   } finally {
     client.actionInFlight = false;
   }
@@ -1073,7 +1073,7 @@ async function bootstrap() {
   clearLegacyGameIds();
   const health = await api("/api/health");
   if (!health.ok) {
-    throw new Error("?�버 ?�태가 ?�바르�? ?�습?�다.");
+    throw new Error("서버 상태가 올바르지 않습니다.");
   }
   await loadGameState();
   render({
@@ -1123,7 +1123,7 @@ dom.sceneFrame.addEventListener("click", (event) => {
 });
 
 dom.newGameButton.addEventListener("click", async () => {
-  const confirmed = window.confirm("??게임???�작?�면 ?�재 진행 중인 ?�션 ?�?????�션??만들?�집?�다.");
+  const confirmed = window.confirm("새 게임을 시작하면 현재 진행 중인 세션 대신 새 세션이 만들어집니다.");
   if (!confirmed) {
     return;
   }
@@ -1139,13 +1139,12 @@ dom.newGameButton.addEventListener("click", async () => {
     });
   } catch (error) {
     console.error(error);
-    window.alert(error instanceof Error ? error.message : "??게임???�작?��? 못했?�니??");
+    window.alert(error instanceof Error ? error.message : "새 게임을 시작하지 못했습니다.");
   }
 });
 
 bootstrap().catch((error) => {
   console.error(error);
-  dom.sceneText.innerHTML = `<p>?�버???�결?��? 못했?�니?? ?�시 ???�시 ?�도??주세??</p>`;
-  dom.panelContent.innerHTML = `<p class="empty-state">API ?�버가 ?�요?�니??</p>`;
+  dom.sceneText.innerHTML = `<p>서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>`;
+  dom.panelContent.innerHTML = `<p class="empty-state">API 서버가 필요합니다.</p>`;
 });
-
