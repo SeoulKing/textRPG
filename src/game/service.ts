@@ -306,9 +306,11 @@ export class GameService {
       }
     }
 
-    const card = await (isDynamic ? this.generator : this.templateGenerator).generateLocationCard(locationId, {
+    const cardRaw = await (isDynamic ? this.generator : this.templateGenerator).generateLocationCard(locationId, {
       ...this.generatorInput(session, false, registry),
     });
+    // LLM이 id를 바꾸면 클라이언트가 state.location과 매칭하지 못해 씬·선택지가 통째로 안 그려진다.
+    const card = { ...cardRaw, id: locationId };
     session.world.locationCards[locationId] = card;
 
     if (!isDynamic) {
@@ -338,9 +340,10 @@ export class GameService {
       }
     }
 
-    const card = await (isDynamic ? this.generator : this.templateGenerator).generatePersonCard(personId, {
+    const cardRaw = await (isDynamic ? this.generator : this.templateGenerator).generatePersonCard(personId, {
       ...this.generatorInput(session, false, registry),
     });
+    const card = { ...cardRaw, id: personId };
     session.world.personCards[personId] = card;
 
     if (!isDynamic) {
@@ -370,9 +373,10 @@ export class GameService {
       }
     }
 
-    const card = await (isDynamic ? this.generator : this.templateGenerator).generateItemCard(itemId, {
+    const cardRaw = await (isDynamic ? this.generator : this.templateGenerator).generateItemCard(itemId, {
       ...this.generatorInput(session, false, registry),
     });
+    const card = { ...cardRaw, id: itemId };
     session.world.itemCards[itemId] = card;
 
     if (!isDynamic) {

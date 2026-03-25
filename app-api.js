@@ -191,7 +191,7 @@ function isDynamicId(id) {
   return String(id || "").startsWith("dyn_");
 }
 
-function buildDevBadgeText({ id, source }) {
+function buildDevBadgeText({ id, source, packageTraits = [] }) {
   if (!DEV_OBJECT_BADGES) {
     return "";
   }
@@ -199,6 +199,11 @@ function buildDevBadgeText({ id, source }) {
   const parts = [];
   if (id) {
     parts.push(isDynamicId(id) ? "dynamic" : "seed");
+  }
+  if (packageTraits.includes("planner:llm")) {
+    parts.push("llm-package");
+  } else if (packageTraits.includes("planner:template")) {
+    parts.push("template-package");
   }
   if (source) {
     parts.push(source);
@@ -210,6 +215,12 @@ function buildDevBadgeMarkup(entry, fallback = {}) {
   const badgeText = buildDevBadgeText({
     id: entry?.id || fallback.id || entry?.locationId || fallback.locationId || "",
     source: entry?.source || fallback.source || "",
+    packageTraits: [
+      ...(Array.isArray(entry?.traits) ? entry.traits : []),
+      ...(Array.isArray(entry?.tags) ? entry.tags : []),
+      ...(Array.isArray(fallback?.traits) ? fallback.traits : []),
+      ...(Array.isArray(fallback?.tags) ? fallback.tags : []),
+    ],
   });
   if (!badgeText) {
     return "";

@@ -19,7 +19,7 @@ import { eventDefinitions } from "./events";
 import { sceneDefinitions } from "./scenes";
 import { questDefinitions } from "../quest-definitions";
 import { baseSkills } from "../base-data";
-import type { ActionDefinition, ChoiceDefinition, Condition, ContentRegistry, Effect } from "../schemas";
+import type { ActionDefinition, ChoiceDefinition, Condition, ContentRegistry, Effect, Objective, QuestDefinition, QuestReward } from "../schemas";
 
 function asRecord<T extends { id: string }>(entries: T[]) {
   return Object.fromEntries(entries.map((entry) => [entry.id, entry])) as Record<string, T>;
@@ -240,6 +240,40 @@ export function validateRegistry(registry: ContentRegistry) {
 
   Object.values(registry.actions).forEach((action) => validateAction(registry, action));
   Object.values(registry.choices).forEach((choice) => validateChoice(registry, choice));
+  Object.values(registry.quests).forEach((questDefinition) => {
+    const quest = questDefinition as QuestDefinition;
+    quest.objectives.forEach((objective: Objective) => {
+      switch (objective.type) {
+        case "obtain_item":
+          if (!registry.items[objective.itemId]) {
+            throw new Error(`quest:${quest.id} objective references unknown item '${objective.itemId}'.`);
+          }
+          break;
+        case "return_to_npc":
+          if (!registry.people[objective.npcId]) {
+            throw new Error(`quest:${quest.id} objective references unknown npc '${objective.npcId}'.`);
+          }
+          break;
+        case "reach_location":
+          assertKnownLocation(registry, objective.locationId, `quest:${quest.id}`);
+          break;
+        default:
+          break;
+      }
+    });
+    quest.rewards.forEach((reward: QuestReward) => {
+      if (reward.type === "add_item" && !registry.items[reward.itemId]) {
+        throw new Error(`quest:${quest.id} reward references unknown item '${reward.itemId}'.`);
+      }
+    });
+    quest.prerequisites.forEach((condition: Condition) => validateCondition(registry, condition, `quest:${quest.id}`));
+    quest.relatedNpcIds.forEach((npcId: string) => {
+      if (!registry.people[npcId]) {
+        throw new Error(`quest:${quest.id} references unknown npc '${npcId}'.`);
+      }
+    });
+    quest.relatedLocationIds.forEach((locationId: string) => assertKnownLocation(registry, locationId, `quest:${quest.id}`));
+  });
 
   Object.values(registry.events).forEach((event) => {
     assertKnownLocation(registry, event.locationId, `event:${event.id}`);

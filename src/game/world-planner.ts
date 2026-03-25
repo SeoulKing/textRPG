@@ -404,6 +404,19 @@ function buildTomorrowPlanFromDynamicWorld(state: GameState): WorldPlan["tomorro
   };
 }
 
+function markPackageSource(pkg: GeneratedRegionPackage, source: "llm" | "template") {
+  const next = structuredClone(pkg);
+  const location = next.registry.locations[next.locationId];
+  if (!location) {
+    return next;
+  }
+
+  const marker = source === "llm" ? "planner:llm" : "planner:template";
+  location.traits = location.traits.filter((trait) => trait !== "planner:llm" && trait !== "planner:template");
+  location.traits.push(marker);
+  return next;
+}
+
 class TemplateWorldPlanner implements WorldPlanner {
   async generateRegionPackage(input: PlannerInput) {
     const theme = FRONTIER_THEMES[(input.sequence - 1) % FRONTIER_THEMES.length];
@@ -681,7 +694,7 @@ class TemplateWorldPlanner implements WorldPlanner {
       ],
     });
 
-    return validateGeneratedPackage(input.state, input.registry, {
+    return markPackageSource(validateGeneratedPackage(input.state, input.registry, {
       locationId,
       sourceLocationId: input.sourceLocationId,
       sourceFrontierActionId: input.sourceFrontierActionId,
@@ -691,7 +704,7 @@ class TemplateWorldPlanner implements WorldPlanner {
       entryEventId,
       registry,
       tomorrowEvolution,
-    });
+    }), "template");
   }
 
   async planTomorrow(state: GameState, _registry: ContentRegistry) {
@@ -746,7 +759,7 @@ class RemoteWorldPlanner implements WorldPlanner {
   async generateRegionPackage(input: PlannerInput) {
     const fallback = await this.fallback.generateRegionPackage(input);
     try {
-      return validateGeneratedPackage(
+      return markPackageSource(validateGeneratedPackage(
         input.state,
         input.registry,
         await this.generateJson<GeneratedRegionPackage>("generatedRegionPackage", {
@@ -757,7 +770,7 @@ class RemoteWorldPlanner implements WorldPlanner {
           sourceFrontierActionId: input.sourceFrontierActionId,
           recentLog: input.recentLog,
         }),
-      );
+      ), "llm");
     } catch {
       return fallback;
     }
@@ -797,7 +810,7 @@ class GeminiWorldPlanner implements WorldPlanner {
   async generateRegionPackage(input: PlannerInput) {
     const fallback = await this.fallback.generateRegionPackage(input);
     try {
-      return validateGeneratedPackage(
+      return markPackageSource(validateGeneratedPackage(
         input.state,
         input.registry,
         await this.generateJson<GeneratedRegionPackage>("generatedRegionPackage", {
@@ -808,7 +821,7 @@ class GeminiWorldPlanner implements WorldPlanner {
           sourceFrontierActionId: input.sourceFrontierActionId,
           recentLog: input.recentLog,
         }),
-      );
+      ), "llm");
     } catch {
       return fallback;
     }

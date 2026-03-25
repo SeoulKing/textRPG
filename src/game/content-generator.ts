@@ -185,7 +185,7 @@ class GenericRemoteContentGenerator implements ContentGenerator {
         messages: [
           {
             role: "system",
-            content: `You generate JSON only. Output must satisfy this schema: ${schemaPrompt}. Do not change action ids or choice wiring. Focus only on the current location and local materials. Improve prose only.`,
+            content: `You generate JSON only. Output must satisfy this schema: ${schemaPrompt}. Do not change action ids or choice wiring. Keep the root "id" field exactly equal to payload.fallback.id. Focus only on the current location and local materials. Improve prose only.`,
           },
           {
             role: "user",
@@ -310,6 +310,7 @@ class GeminiContentGenerator implements ContentGenerator {
       `You generate JSON only for a survival text RPG.
 Output must satisfy this schema description: ${schemaPrompt}.
 Do not change action ids or choice wiring.
+Keep the root "id" field exactly equal to payload.fallback.id.
 Focus only on the current location and local materials.
 Improve prose only.
 Return valid JSON with no markdown fences.`,
