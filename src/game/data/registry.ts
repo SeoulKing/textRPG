@@ -189,6 +189,7 @@ function validateChoice(choice: ChoiceDefinition) {
   if (choice.nextSceneId) assertKnownScene(choice.nextSceneId, `choice:${choice.id}`);
   choice.conditions.forEach((condition) => validateCondition(condition, `choice:${choice.id}`));
   choice.effects.forEach((effect) => validateEffect(effect, `choice:${choice.id}`));
+  (choice.failureEffects ?? []).forEach((effect) => validateEffect(effect, `choice:${choice.id}:failure`));
 }
 
 export function validateContent() {

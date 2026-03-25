@@ -4,6 +4,7 @@ export const shelterSceneIdsWithoutLocationInteractions = [
   "prologue_opening",
   "prologue_repeat",
   "prologue_old_woman_visit",
+  "shelter_crafting_menu",
 ] as const;
 
 export const shelterSceneDefinitions: SceneDefinition[] = [
@@ -13,8 +14,8 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     locationId: "shelter",
     title: "프롤로그",
     paragraphs: [
-      "지붕이라 부르기에도 민망한 천막 조각과 판자 틈새 사이로 스민 찬 공기가 새벽보다 먼저 폐 안으로 파고든다. 눈을 뜨자마자 떠오르는 것은 어젯밤의 꿈이 아니라, 오늘을 버티지 못하면 여기서 끝난다는 감각이다.",
-      "사람들은 저마다 몸을 웅크린 채 누워 있지만, 깊이 잠든 얼굴은 거의 없다. 몸을 일으키기도 전에 마음속에서는 이미 한 문장이 또렷해진다. \"오늘은 어떻게든 살아남아야 한다.\"",
+      "지붕이라 부르기에도 민망한 천막 조각과 젖은 판자 사이로 스며드는 차가운 공기가, 눈을 뜨자마자 오늘이 악몽의 연장이 아니라 현실이라는 사실을 다시 알려 준다.",
+      "주변 사람들은 저마다 몸을 웅크린 채 겨우 숨을 붙들고 있지만, 길게 말을 잇는 사람은 거의 없다. 마음속에 떠오르는 문장은 하나뿐이다. \"오늘은 어떻게든 살아남아야 한다.\"",
     ],
     choiceIds: ["opening_commit"],
     conditions: [
@@ -30,7 +31,7 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     locationId: "shelter",
     title: "프롤로그",
     paragraphs: [
-      "오늘은 그저 시간을 견디는 날이 아니다. \"어떻게든 살아남겠다\"고 스스로에게 말해야만 비로소 몸이 움직일 것 같은 순간이 아직 가슴 한복판에 붙어 있다.",
+      "\"어떻게든 살아남아야 한다.\" 그 문장을 붙잡고 있어야만 몸이 다시 움직일 것 같은 시간이 아직 가슴팍에 달라붙어 있다.",
     ],
     choiceIds: ["opening_commit"],
     conditions: [
@@ -45,8 +46,8 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     locationId: "shelter",
     title: "프롤로그",
     paragraphs: [
-      "간신히 마음을 다잡은 순간, 천막 자락이 들리며 급식소 배식을 맡는 노파가 얼굴을 내민다. 주름이 깊게 패인 얼굴은 피곤해 보였지만, 목소리만은 이상하리만치 또렷했다. \"오늘 나가는 죽으로는 오래 못 버틴다. 편의점 잔해로 가 봐. 안쪽 진열대엔 아직 손 안 탄 통조림이 남았을지도 몰라.\"",
-      "그 말은 위로라기보다 오늘을 버티기 위한 지시처럼 들린다. 노파는 더 설명하지 않고 천막 안쪽 사람들을 턱짓으로 가리킨 뒤, \"살 생각이 있으면 지금 움직여\" 하고 낮게 덧붙이며 조용히 자리를 비켜 선다.",
+      "마음을 다잡을 즈음, 천막 자락이 들리며 급식소 배식을 맡는 노파가 안으로 고개를 내민다. \"오늘 굶는 쪽으론 오래 못 버텨. 편의점 폐허에 가 봐. 안쪽 진열대에 아직 통조림이 남았을지도 몰라.\"",
+      "그녀는 충고를 다 던져 놓고는 다른 생존자들을 살피러 돌아선다. \"생각만 있으면 지금 움직여.\" 짧은 한마디가 천막 안에 오래 남는다.",
     ],
     choiceIds: ["accept_first_canned_food_quest"],
     conditions: [
@@ -57,13 +58,33 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     introFlag: "prologue_old_woman_seen",
   },
   {
+    id: "shelter_crafting_menu",
+    locationId: "shelter",
+    title: "제작 자리",
+    paragraphs: [
+      "당신은 주워 온 자재를 천막 바닥에 펼쳐 놓고, 지금 만들 수 있는 것들을 차분히 따져 본다.",
+      "각 레시피에는 필요한 재료와 완성했을 때 도움이 되는 점이 적혀 있다. 재료가 모자라면 지금 당장은 만들 수 없지만, 무엇을 노려야 할지는 분명해진다.",
+    ],
+    choiceIds: [
+      "craft_shelter_wall_patch",
+      "craft_shelter_brazier",
+      "craft_shelter_rain_bucket",
+      "cook_at_shelter",
+      "leave_shelter_crafting",
+    ],
+    conditions: [
+      { type: "location", locationId: "shelter" },
+      { type: "flag", flag: "shelter_crafting_open" },
+    ],
+  },
+  {
     id: "shelter_first_intro",
     eventId: "prologue_event",
     locationId: "shelter",
     title: "임시 거처",
     paragraphs: [
-      "임시 거처는 방이라기보다, 천막과 덧댄 판자를 겨우 이어 붙여 만든 숨 돌릴 틈에 가깝다. 바람은 사방에서 스며들고 틈새마다 냉기가 배어 나오지만, 사람들은 그마저도 이곳에서야 겨우 등을 기대고 숨을 고른다.",
-      "젖은 천 냄새와 눅눅한 흙 냄새 사이로 낮은 기침 소리와 금세 식어 버린 냄비의 쇳소리가 얇게 깔려 있다. 이곳이 바깥보다 안전하다는 말은, 결국 여기에서만 다음 한 끼를 생각할 여유를 낼 수 있다는 뜻인지도 모른다.",
+      "임시 거처는 방이라기보다 천막과 낡은 판자를 겨우 이어 붙인 막사에 가깝다. 바람은 틈새로 스며들고, 습기는 천 조각마다 눅눅하게 배어 있다.",
+      "그래도 당장 비를 피하고 숨을 고를 곳은 여기뿐이다. 오늘 밤을 넘기려면 쉬거나, 잠자리를 챙기거나, 주운 재료로 거처를 손볼 방법을 생각해야 한다.",
     ],
     choiceIds: [],
     conditions: [
@@ -79,7 +100,7 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     locationId: "shelter",
     title: "임시 거처",
     paragraphs: [
-      "천막 아래 공기는 여전히 축축하고 차갑다. 그래도 이제는 무엇을 해야 하는지 분명하다. 편의점 잔해에서 통조림만 찾아 와도, 오늘 하루는 조금 덜 잔인해질 것이다.",
+      "천막 아래 공기는 여전히 차갑고 축축하지만, 이제는 여기서 무엇을 해야 하는지 조금은 분명하다. 쉬고, 만들고, 내일을 버틸 준비를 하는 곳이 바로 이 거처다.",
     ],
     choiceIds: [],
     conditions: [
@@ -94,8 +115,8 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     locationId: "shelter",
     title: "임시 거처",
     paragraphs: [
-      "임시 거처 안은 여전히 눅눅하고 비좁지만, 바깥으로 나가기 전 마지막으로 생각을 정리하기에는 이만한 곳도 없다.",
-      "아까 노파가 남긴 말이 아직 귓가에 걸려 있다. \"살 생각이 있으면 지금 움직여.\" 오늘 첫 식량이 필요하다면, 편의점 잔해부터 확인하는 편이 가장 현실적이다.",
+      "임시 거처는 여전히 서늘하고 비좁지만, 바깥으로 나가기 전에 숨을 고르기엔 이만한 곳도 없다.",
+      "노파가 남긴 말이 아직 귀에 걸려 있다. \"생각만 있으면 지금 움직여.\" 오늘 식량이 필요하다면 편의점 폐허부터 확인해야 한다.",
     ],
     choiceIds: ["accept_first_canned_food_quest"],
     conditions: [

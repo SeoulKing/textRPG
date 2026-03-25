@@ -137,3 +137,23 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
 - Runtime verification confirmed:
   after collecting both kitchen heap resources, the empty scene still resolves with one action and that action now surfaces as
   `leave_kitchen_scrap_heap` -> `급식소로 돌아간다`.
+
+- Shelter crafting flow refactor:
+  the shelter now always exposes a top-level `제작하기` action, and crafting no longer depends on hidden location actions appearing only after materials are collected.
+- Added scene-choice presentation support:
+  `ChoiceDefinition` now supports `presentationMode`, `failureEffects`, and `failureNote`,
+  `resolveSceneChoices()` now allows authored choices to stay visible even when conditions are not met,
+  and `performAction()` now routes story choices through the same always-visible failure-aware execution flow.
+- Rebuilt the shelter content around a dedicated crafting menu:
+  `open_shelter_crafting` opens `shelter_crafting_menu`,
+  the menu lists wall patch / brazier / rain bucket / cooking / leave actions,
+  and each recipe now explains required materials plus what benefit it gives after completion.
+- Recipe behavior is now authored instead of implied:
+  missing materials keep the player in the crafting menu and show a recipe-specific failure note/log,
+  successful crafting consumes materials, sets the shelter upgrade flag, and returns to the same crafting menu so multiple crafts can be chained.
+- Runtime verification confirmed:
+  shelter top level now includes `open_shelter_crafting`,
+  entering it resolves to `shelter_crafting_menu`,
+  each recipe surfaces its material requirements in `outcomeHint`,
+  failed crafting writes the expected failure note without closing the menu,
+  and successful wall-patch crafting consumed `woodPlank 1 + clothScrap 2` and set `shelter_wall_patch=true`.

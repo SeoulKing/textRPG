@@ -1,13 +1,15 @@
 import type { ChoiceDefinition } from "../../../schemas";
 import { collectStockItemEffect } from "../../stock-node-choice-helpers";
 
-type ChoiceInput = Omit<ChoiceDefinition, "conditions" | "hidden"> &
-  Partial<Pick<ChoiceDefinition, "conditions" | "hidden">>;
+type ChoiceInput = Omit<ChoiceDefinition, "conditions" | "hidden" | "presentationMode" | "failureEffects"> &
+  Partial<Pick<ChoiceDefinition, "conditions" | "hidden" | "presentationMode" | "failureEffects">>;
 
 function choice(definition: ChoiceInput): ChoiceDefinition {
   return {
     conditions: [],
     hidden: false,
+    presentationMode: "when_conditions_met",
+    failureEffects: [],
     ...definition,
   };
 }

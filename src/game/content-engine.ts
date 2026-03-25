@@ -35,6 +35,14 @@ export function canPresentAction(action: ActionDefinition, state: GameState) {
   return action.presentationMode === "always" || actionConditionsMet(action, state);
 }
 
+export function choiceConditionsMet(choice: ChoiceDefinition, state: GameState) {
+  return choice.conditions.every((condition) => evaluateCondition(condition, state));
+}
+
+export function canPresentChoice(choice: ChoiceDefinition, state: GameState) {
+  return choice.presentationMode === "always" || choiceConditionsMet(choice, state);
+}
+
 export function resolveSceneDefinition(
   state: GameState,
   registry: ContentRegistry = worldRegistry,
@@ -96,7 +104,7 @@ export function resolveSceneChoices(
     .map((choiceId) => registry.choices[choiceId])
     .filter(Boolean)
     .filter((choice) => !choice.hidden)
-    .filter((choice) => choice.conditions.every((condition) => evaluateCondition(condition, state)));
+    .filter((choice) => canPresentChoice(choice, state));
 }
 
 export function resolveTriggeredEvents(

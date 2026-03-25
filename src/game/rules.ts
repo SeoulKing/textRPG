@@ -9,7 +9,7 @@ import {
   baseLocations,
 } from "./base-data";
 import { worldRegistry } from "./data/registry";
-import { actionConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
+import { actionConditionsMet, choiceConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
 import { appendLogEntry, applyEffect, evaluateCondition, evaluateObjective } from "./state-utils";
 import type { ActionDefinition, ChoiceDefinition, GameAction, GameState } from "./schemas";
 import { questDefinitions } from "./quest-definitions";
@@ -447,8 +447,29 @@ function executeActionDefinition(state: GameState, action: ActionDefinition): Ex
 }
 
 function executeChoiceDefinition(state: GameState, choice: ChoiceDefinition): ExecutionResult {
-  if (!choice.conditions.every((condition) => evaluateCondition(condition, state))) {
+  if (!choiceConditionsMet(choice, state)) {
     throw new Error("지금은 그 선택지를 고를 수 없다.");
+  }
+
+  consumeCurrentSceneIntro(state);
+  applyDefinitionEffects(state, choice.effects);
+  return {
+    preferredSceneId: choice.nextSceneId,
+    fallbackNote: choice.label,
+  };
+}
+
+function executeSceneChoiceDefinition(state: GameState, choice: ChoiceDefinition): ExecutionResult {
+  if (!choiceConditionsMet(choice, state)) {
+    if (choice.presentationMode !== "always") {
+      throw new Error("Scene choice is not currently available.");
+    }
+
+    applyDefinitionEffects(state, choice.failureEffects);
+    return {
+      preferredSceneId: choice.nextSceneId,
+      fallbackNote: choice.failureNote ?? choice.label,
+    };
   }
 
   consumeCurrentSceneIntro(state);
@@ -531,7 +552,7 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 선택지 '${action.choiceId}'이다.`);
       }
-      ({ preferredSceneId, fallbackNote } = executeChoiceDefinition(state, definition));
+      ({ preferredSceneId, fallbackNote } = executeSceneChoiceDefinition(state, definition));
       break;
     }
     case "rest": {
