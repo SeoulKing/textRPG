@@ -23,6 +23,10 @@ export type StoryFrame = {
   choices: StoryChoice[];
 };
 
+function isDetailFocusActive(state: GameState) {
+  return Boolean(state.activeStockNodeId);
+}
+
 function buildStoryChoiceFromActionDefinition(
   action: ActionDefinition,
   resolveNextSceneId?: NextScenePreviewResolver,
@@ -60,7 +64,7 @@ export function resolveStoryFrame(
     };
   });
 
-  if (SCENE_IDS_WITHOUT_LOCATION_INTERACTIONS.has(scene.id)) {
+  if (SCENE_IDS_WITHOUT_LOCATION_INTERACTIONS.has(scene.id) || isDetailFocusActive(state)) {
     return { scene, choices: sceneChoices };
   }
 

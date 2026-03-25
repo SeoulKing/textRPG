@@ -75,3 +75,11 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `convenience_register_full` -> one click on `collect_cash_from_register` ->
   money `6500 -> 8300` ->
   scene changed directly to `convenience_register_empty`.
+- Detail-focus flow cleanup:
+  while focused on a stock node (for example `kitchen_scrap_heap`), the engine now treats that as a detail sublocation and suppresses top-level location interactions.
+- Updated `resolveStoryFrame()` so `activeStockNodeId` behaves like opening a box/container:
+  only the focused node's scene choices are shown until the player backs out.
+- Runtime verification confirmed:
+  at `kitchen_scrap_heap_full`, the available choices are only
+  `collect_scrap_from_kitchen_heap`, `collect_cloth_from_kitchen_heap`, and `leave_kitchen_scrap_heap`;
+  `buy_meal_at_kitchen` no longer appears while inside the heap detail view.
