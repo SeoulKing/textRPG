@@ -27,8 +27,8 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   choice({
     id: "accept_first_canned_food_quest",
-    label: "편의점에 남은 통조림을 찾으러 간다",
-    outcomeHint: "노파의 말을 따라 편의점 폐허로 가, 오늘 버틸 첫 식량부터 확보한다.",
+    label: "퀘스트: 노파의 부탁을 수락하고 편의점 통조림을 찾으러 간다",
+    outcomeHint: "첫 생존 퀘스트를 수락한다. 노파의 부탁을 받아 편의점 폐허에서 오늘 버틸 식량을 확보하러 움직인다.",
     conditions: [{ type: "flag_not", flag: "first_canned_food_started" }],
     effects: [
       { type: "set_flag", flag: "first_canned_food_started" },
