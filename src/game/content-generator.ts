@@ -248,13 +248,9 @@ class GenericRemoteContentGenerator implements ContentGenerator {
   }
 
   async generateProtagonistCard(input: GeneratorInput) {
-    return this.withFallback(
-      async () => {
-        const fallback = await this.fallback.generateProtagonistCard(input);
-        return ProtagonistCardSchema.parse(await this.generateJson("protagonistCard", "protagonist card json", { fallback, currentState: summarizeState(input.state) }));
-      },
-      () => this.fallback.generateProtagonistCard(input),
-    );
+    // This card reflects live stats and is regenerated on nearly every request,
+    // so using a remote model here only adds latency without meaningful gain.
+    return this.fallback.generateProtagonistCard(input);
   }
 
   async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
@@ -379,18 +375,9 @@ Return valid JSON with no markdown fences.`,
   }
 
   async generateProtagonistCard(input: GeneratorInput) {
-    return this.withFallback(
-      async () => {
-        const fallback = await this.fallback.generateProtagonistCard(input);
-        return ProtagonistCardSchema.parse(
-          await this.generateJson("protagonistCard", "protagonist card json", {
-            fallback,
-            currentState: summarizeState(input.state),
-          }),
-        );
-      },
-      () => this.fallback.generateProtagonistCard(input),
-    );
+    // This card reflects live stats and is regenerated on nearly every request,
+    // so using Gemini here only adds latency without meaningful gain.
+    return this.fallback.generateProtagonistCard(input);
   }
 
   async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
@@ -457,4 +444,8 @@ export function createContentGenerator() {
   }
 
   return new GenericRemoteContentGenerator(apiUrl, apiKey, model, fallback);
+}
+
+export function createTemplateContentGenerator(): ContentGenerator {
+  return new TemplateContentGenerator();
 }

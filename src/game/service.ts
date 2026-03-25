@@ -6,7 +6,7 @@ import {
   resolveSceneDefinition,
   resolveTriggeredEvents,
 } from "./content-engine";
-import { createContentGenerator, type ContentGenerator } from "./content-generator";
+import { createContentGenerator, createTemplateContentGenerator, type ContentGenerator } from "./content-generator";
 import type { GameRepository } from "./repository";
 import {
   applySystemNote,
@@ -49,6 +49,7 @@ export class GameService {
   constructor(
     private readonly repository: GameRepository,
     private readonly generator: ContentGenerator = createContentGenerator(),
+    private readonly templateGenerator: ContentGenerator = createTemplateContentGenerator(),
     private readonly planner: WorldPlanner = createWorldPlanner(),
   ) {}
 
@@ -305,7 +306,7 @@ export class GameService {
       }
     }
 
-    const card = await this.generator.generateLocationCard(locationId, {
+    const card = await (isDynamic ? this.generator : this.templateGenerator).generateLocationCard(locationId, {
       ...this.generatorInput(session, false, registry),
     });
     session.world.locationCards[locationId] = card;
@@ -337,7 +338,7 @@ export class GameService {
       }
     }
 
-    const card = await this.generator.generatePersonCard(personId, {
+    const card = await (isDynamic ? this.generator : this.templateGenerator).generatePersonCard(personId, {
       ...this.generatorInput(session, false, registry),
     });
     session.world.personCards[personId] = card;
@@ -369,7 +370,7 @@ export class GameService {
       }
     }
 
-    const card = await this.generator.generateItemCard(itemId, {
+    const card = await (isDynamic ? this.generator : this.templateGenerator).generateItemCard(itemId, {
       ...this.generatorInput(session, false, registry),
     });
     session.world.itemCards[itemId] = card;
