@@ -89,6 +89,56 @@ export function getStockMoney(state: GameState, locationId: string, nodeId: stri
   return node?.money ?? 0;
 }
 
+function getEquivalentInventoryItemIds(state: GameState, itemId: string) {
+  const directCount = state.inventory[itemId] ?? 0;
+  if (!itemId.startsWith("dyn_")) {
+    return directCount > 0 ? [itemId] : [];
+  }
+
+  const registry = buildRuntimeRegistry(state);
+  const targetName = (registry.items[itemId] as { name?: string } | undefined)?.name;
+  if (!targetName) {
+    return directCount > 0 ? [itemId] : [];
+  }
+
+  const matchingIds = Object.keys(state.inventory).filter(
+    (candidateId) =>
+      (state.inventory[candidateId] ?? 0) > 0 &&
+      candidateId.startsWith("dyn_") &&
+      (registry.items[candidateId] as { name?: string } | undefined)?.name === targetName,
+  );
+
+  return Array.from(new Set([itemId, ...matchingIds])).filter((candidateId) => (state.inventory[candidateId] ?? 0) > 0);
+}
+
+function getInventoryAmount(state: GameState, itemId: string) {
+  return getEquivalentInventoryItemIds(state, itemId).reduce(
+    (total, candidateId) => total + (state.inventory[candidateId] ?? 0),
+    0,
+  );
+}
+
+function removeInventoryAmount(state: GameState, itemId: string, amount: number) {
+  let remaining = amount;
+  for (const candidateId of getEquivalentInventoryItemIds(state, itemId)) {
+    if (remaining <= 0) {
+      break;
+    }
+
+    const current = state.inventory[candidateId] ?? 0;
+    const consumed = Math.min(current, remaining);
+    const next = current - consumed;
+    if (next <= 0) {
+      delete state.inventory[candidateId];
+    } else {
+      state.inventory[candidateId] = next;
+    }
+    remaining -= consumed;
+  }
+
+  return amount - remaining;
+}
+
 function setStockQuantity(state: GameState, locationId: string, nodeId: string, itemId: string, nextQuantity: number) {
   state.stockState[getStockStateKey(locationId, nodeId, itemId)] = Math.max(0, nextQuantity);
 }
@@ -104,7 +154,7 @@ function hasDiscoveredStockNode(state: GameState, nodeId: string) {
 export function evaluateObjective(objective: Objective, state: GameState): boolean {
   switch (objective.type) {
     case "obtain_item":
-      return (state.inventory[objective.itemId] ?? 0) >= objective.amount;
+      return getInventoryAmount(state, objective.itemId) >= objective.amount;
     case "return_to_npc":
       return Boolean(state.flags[`returned_to_${objective.npcId}`]);
     case "reach_location":
@@ -137,7 +187,7 @@ export function applyQuestReward(reward: QuestReward, state: GameState): void {
 export function evaluateCondition(condition: Condition, state: GameState): boolean {
   switch (condition.type) {
     case "has_item":
-      return (state.inventory[condition.itemId] ?? 0) >= condition.amount;
+      return getInventoryAmount(state, condition.itemId) >= condition.amount;
     case "skill_gte":
       return state.skills.includes(condition.skillId);
     case "flag":
@@ -200,10 +250,7 @@ export function applyEffect(effect: Effect, state: GameState): void {
       state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + effect.amount;
       break;
     case "remove_item": {
-      const current = state.inventory[effect.itemId] ?? 0;
-      const next = Math.max(0, current - effect.amount);
-      if (next === 0) delete state.inventory[effect.itemId];
-      else state.inventory[effect.itemId] = next;
+      removeInventoryAmount(state, effect.itemId, effect.amount);
       break;
     }
     case "change_money":

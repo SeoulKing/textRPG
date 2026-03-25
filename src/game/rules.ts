@@ -584,6 +584,33 @@ function executeShelterCookingAction(state: GameState, action: ActionDefinition)
   };
 }
 
+function dynamicDeliverFailureNote(state: GameState, action: ActionDefinition) {
+  if (!(action.id.startsWith("dyn_action_") && action.id.endsWith("_deliver"))) {
+    return action.failureNote ?? action.label;
+  }
+
+  const questAccepted = action.conditions.find((condition) => condition.type === "flag");
+  if (questAccepted?.type === "flag" && !state.flags[questAccepted.flag]) {
+    return "먼저 이 부탁을 수락해야 한다.";
+  }
+
+  const questDelivered = action.conditions.find((condition) => condition.type === "flag_not");
+  if (questDelivered?.type === "flag_not" && state.flags[questDelivered.flag]) {
+    return "이미 물건을 건넸다.";
+  }
+
+  const itemCondition = action.conditions.find((condition) => condition.type === "has_item");
+  if (itemCondition?.type === "has_item") {
+    const registry = buildRuntimeRegistry(state);
+    const itemName = (registry.items[itemCondition.itemId] as { name?: string } | undefined)?.name;
+    if (itemName) {
+      return `${itemName}이 아직 손에 없다.`;
+    }
+  }
+
+  return action.failureNote ?? action.label;
+}
+
 function executeActionDefinition(state: GameState, action: ActionDefinition): ExecutionResult {
   if (!actionConditionsMet(action, state)) {
     if (action.presentationMode !== "always") {
@@ -593,7 +620,7 @@ function executeActionDefinition(state: GameState, action: ActionDefinition): Ex
     applyDefinitionEffects(state, action.failureEffects);
     return {
       preferredSceneId: action.nextSceneId,
-      fallbackNote: action.failureNote ?? action.label,
+      fallbackNote: dynamicDeliverFailureNote(state, action),
     };
   }
 
