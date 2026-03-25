@@ -1,5 +1,6 @@
 import { PHASES } from "./base-data";
 import { validateRegistry } from "./data/registry";
+import { generateGeminiJson, geminiModel, hasGeminiConfig } from "./gemini-client";
 import { buildRuntimeRegistry, getRuntimeLocationDefinition, mergeDynamicWorldRegistry } from "./runtime-registry";
 import type {
   ActionDefinition,
@@ -763,8 +764,63 @@ class RemoteWorldPlanner implements WorldPlanner {
   }
 }
 
+class GeminiWorldPlanner implements WorldPlanner {
+  constructor(private readonly fallback: TemplateWorldPlanner) {}
+
+  private async generateJson<T>(schemaName: string, payload: Record<string, unknown>) {
+    return generateGeminiJson<T>(
+      "You generate JSON only for a survival text RPG. Stay inside the provided schema and existing action/condition/effect vocabulary. Never invent new schema keys. All generated ids must start with dyn_. Return valid JSON only.",
+      { schemaName, payload },
+      {
+        model: geminiModel(),
+        temperature: 0.9,
+      },
+    );
+  }
+
+  async generateRegionPackage(input: PlannerInput) {
+    const fallback = await this.fallback.generateRegionPackage(input);
+    try {
+      return validateGeneratedPackage(
+        input.state,
+        input.registry,
+        await this.generateJson<GeneratedRegionPackage>("generatedRegionPackage", {
+          fallback,
+          currentDay: input.state.day,
+          currentPhase: PHASES[input.state.phaseIndex],
+          sourceLocationId: input.sourceLocationId,
+          sourceFrontierActionId: input.sourceFrontierActionId,
+          recentLog: input.recentLog,
+        }),
+      );
+    } catch {
+      return fallback;
+    }
+  }
+
+  async planTomorrow(state: GameState, registry: ContentRegistry) {
+    const fallback = await this.fallback.planTomorrow(state, registry);
+    try {
+      return WorldPlanSchema.shape.tomorrow.parse(
+        await this.generateJson("worldTomorrowPlan", {
+          fallback,
+          currentDay: state.day,
+          dynamicLocations: Object.keys(state.dynamicContent.locations),
+          recentLog: state.log.slice(0, 6).map((entry) => entry.message),
+        }),
+      );
+    } catch {
+      return fallback;
+    }
+  }
+}
+
 export function createWorldPlanner() {
   const fallback = new TemplateWorldPlanner();
+  if (hasGeminiConfig()) {
+    return new GeminiWorldPlanner(fallback);
+  }
+
   const apiUrl = process.env.LLM_API_URL;
   const apiKey = process.env.LLM_API_KEY;
   const model = process.env.LLM_MODEL || "gpt-4.1-mini";

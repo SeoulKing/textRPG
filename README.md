@@ -1,33 +1,58 @@
 # textRPG
 
-서버 권한으로 진행되는 선택형 생존 TRPG 프로토타입이다.
-클라이언트는 `StateSnapshot`을 렌더링하고, 실제 장면 진행과 조건 판정은 서버 엔진이 담당한다.
+Server-driven survival text RPG set in a collapsing Seoul.
 
-## 실행
+The game keeps authored starter content for the prologue, shelter, convenience store, and kitchen.
+Beyond that frontier, the server can expand the world with dynamic regions, people, items, and quests.
+
+## Run
 
 ```powershell
 cd D:\BANG\project\textRPG
 npm install
+copy .env.example .env
+```
+
+Open `.env` and set:
+
+```text
+GEMINI_API_KEY=your_key_here
+```
+
+Then start the server:
+
+```powershell
 npm run start
 ```
 
-브라우저에서 [http://localhost:3000](http://localhost:3000) 을 연다.
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
-## 환경 변수
+## Gemini Setup
 
-`.env.example` 참고.
+Only `GEMINI_API_KEY` is required.
+
+Optional settings:
+
+- `GEMINI_MODEL`
+- `GEMINI_API_URL`
+
+If `GEMINI_API_KEY` is present, the server uses Gemini for:
+
+- dynamic frontier region generation
+- tomorrow world evolution planning
+- narrative card generation
+
+If Gemini is not configured, the game falls back to the built-in template generator so the project still runs locally.
+
+## Other Environment Variables
 
 - `PORT`
 - `DATABASE_URL`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `LLM_API_URL`
-- `LLM_API_KEY`
-- `LLM_MODEL`
 
-`DATABASE_URL`이 없으면 `.runtime` 파일 저장소를 사용한다.
-`LLM_API_URL`과 `LLM_API_KEY`가 없으면 템플릿 기반 생성기로 동작한다.
+If `DATABASE_URL` is empty, the game uses the local file repository under `.runtime`.
 
-## 문서
+## Docs
 
-- 현재 구조 기준 문서: `OBJECT_MODEL.md`
+- Project structure: `OBJECT_MODEL.md`

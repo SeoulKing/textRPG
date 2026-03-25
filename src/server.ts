@@ -1,3 +1,4 @@
+import "./load-env";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import Fastify from "fastify";
