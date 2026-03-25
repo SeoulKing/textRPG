@@ -166,3 +166,5 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   added a small status pill inside each recipe button and styled recipes so craftable ones render green while blocked recipes render in a more faded muted tone.
 - Frontend refresh correctness:
   `availableActionsSignature()` now includes availability state, so a recipe turning from blocked to craftable immediately re-renders during action/background sync.
+- Follow-up UI trim:
+  removed the explicit `제작 가능` / `재료 부족` pill text from the shelter crafting menu and kept only the color treatment so the menu reads cleaner while still signaling availability.

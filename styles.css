@@ -435,29 +435,6 @@ body::before {
   opacity: 0.56;
 }
 
-.choice-status {
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 10px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  font-size: 0.77rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.choice-status.is-available {
-  color: #1f6e39;
-  background: rgba(54, 150, 86, 0.14);
-  border: 1px solid rgba(54, 150, 86, 0.22);
-}
-
-.choice-status.is-unavailable {
-  color: #7f6a58;
-  background: rgba(132, 103, 72, 0.08);
-  border: 1px solid rgba(125, 94, 65, 0.14);
-}
-
 .choice-label {
   display: block;
   font-size: 1rem;
