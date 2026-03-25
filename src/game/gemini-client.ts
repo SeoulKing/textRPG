@@ -20,7 +20,7 @@ type GeminiGenerateResponse = {
 };
 
 const DEFAULT_GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite";
 
 function stripCodeFence(raw: string) {
   return raw

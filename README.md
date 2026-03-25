@@ -36,6 +36,8 @@ Optional settings:
 - `GEMINI_MODEL`
 - `GEMINI_API_URL`
 
+Default model: `gemini-2.5-flash-lite`
+
 If `GEMINI_API_KEY` is present, the server uses Gemini for:
 
 - dynamic frontier region generation
