@@ -40,3 +40,15 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
 - API smoke test against the restarted local server passed:
   after convenience survey, available actions included `go_to_convenience_shelf`, `go_to_convenience_register`, and `go_to_convenience_supply_pile`.
 - Playwright-based UI verification is still blocked because `node_modules/playwright` is not present in this workspace.
+- Follow-up bug fix:
+  material collection was working in state, but the UI stayed on the generic location scene because `convenience_scene_discovered` did not exclude `convenience_supply_pile` focus and kitchen intro scenes stayed valid after salvage discovery.
+- Fixed scene gating so the player now actually enters the salvage scenes:
+  `go_to_convenience_supply_pile` now resolves to `convenience_supply_pile_*` scenes,
+  `search_kitchen_backroom` now transitions out of kitchen intro/repeat into `kitchen_salvage_discovered`,
+  and `go_to_kitchen_scrap_heap` opens the heap scene with harvest choices.
+- Runtime verification after the fix confirmed:
+  convenience survey -> `go_to_convenience_supply_pile`
+  supply pile focus -> `collect_wood_from_supply_pile`, `collect_cloth_from_supply_pile`, `collect_metal_from_supply_pile`
+  after collecting wood -> inventory contained `woodPlank=1`
+  kitchen search -> `go_to_kitchen_scrap_heap`
+  heap focus -> `collect_scrap_from_kitchen_heap`, `collect_cloth_from_kitchen_heap`

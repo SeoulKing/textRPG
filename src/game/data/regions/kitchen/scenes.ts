@@ -71,6 +71,7 @@ export const kitchenSceneDefinitions: SceneDefinition[] = [
     conditions: [
       { type: "location", locationId: "kitchen" },
       { type: "flag_not", flag: "intro_seen_kitchen" },
+      { type: "flag_not", flag: "kitchen_salvage_found" },
     ],
     introFlag: "intro_seen_kitchen",
   },
@@ -85,6 +86,7 @@ export const kitchenSceneDefinitions: SceneDefinition[] = [
     conditions: [
       { type: "location", locationId: "kitchen" },
       { type: "flag", flag: "intro_seen_kitchen" },
+      { type: "flag_not", flag: "kitchen_salvage_found" },
     ],
   },
 ];

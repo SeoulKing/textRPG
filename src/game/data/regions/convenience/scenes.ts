@@ -187,6 +187,7 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
       { type: "flag", flag: "convenience_shelf_found" },
       { type: "active_stock_node_not", nodeId: "convenience_shelf" },
       { type: "active_stock_node_not", nodeId: "convenience_register" },
+      { type: "active_stock_node_not", nodeId: "convenience_supply_pile" },
     ],
   },
   {
