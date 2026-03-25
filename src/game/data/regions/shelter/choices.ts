@@ -39,7 +39,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   choice({
     id: "craft_shelter_wall_patch",
-    label: "천막 틈을 막아 거처를 보강한다",
+    label: "거처 보강하기",
     outcomeHint: "필요 재료: 목재 판자 1 / 천 조각 2. 완성하면 잠자기 후 체력과 정신력이 조금 더 회복된다.",
     presentationMode: "always",
     conditions: [
@@ -65,7 +65,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   choice({
     id: "craft_shelter_brazier",
-    label: "간이 화로를 만든다",
+    label: "간이 화로 제작하기",
     outcomeHint: "필요 재료: 고철 2 / 목재 판자 1. 완성하면 거처에서 요리하기 레시피를 사용할 수 있다.",
     presentationMode: "always",
     conditions: [
@@ -91,7 +91,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   choice({
     id: "craft_shelter_rain_bucket",
-    label: "빗물통을 손본다",
+    label: "빗물통 정비하기",
     outcomeHint: "필요 재료: 고철 1 / 천 조각 1. 완성하면 하루에 한 번 물 한 병을 받을 수 있다.",
     presentationMode: "always",
     conditions: [
@@ -117,7 +117,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   choice({
     id: "cook_at_shelter",
-    label: "따뜻한 식사를 만든다",
+    label: "따뜻한 식사 조리하기",
     outcomeHint: "전제: 간이 화로 완성. 필요 재료: 쌀 1 / 채소 1 / 목재 판자 1. 완성하면 따뜻한 식사 1개를 만든다.",
     presentationMode: "always",
     conditions: [
@@ -145,7 +145,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   choice({
     id: "leave_shelter_crafting",
-    label: "제작 자리에서 물러난다",
+    label: "제작 종료하기",
     outcomeHint: "재료를 다시 정리해 두고, 임시 거처의 메인 공간으로 돌아간다.",
     effects: [
       { type: "clear_flag", flag: "shelter_crafting_open" },

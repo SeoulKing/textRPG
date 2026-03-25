@@ -4,7 +4,7 @@ import { interactionFor } from "../../location-interaction-helpers";
 export const shelterChoices: ActionDefinition[] = [
   interactionFor("shelter", {
     id: "rest_light_at_shelter",
-    label: "휴식한다",
+    label: "휴식하기",
     type: "rest",
     outcomeHint: "긴장을 조금 내려놓고 체력과 정신력을 추스른다. 밤을 넘기진 않지만 숨을 고를 수 있다.",
     effects: [
@@ -17,7 +17,7 @@ export const shelterChoices: ActionDefinition[] = [
   }),
   interactionFor("shelter", {
     id: "sleep_at_shelter",
-    label: "잠자기",
+    label: "취침하기",
     type: "use",
     presentationMode: "always",
     outcomeHint: "오후 6시 전에는 아직 잘 수 없다는 안내만 본다. 이후에는 다음 날 아침 6시에 깨어나며 체력과 정신력이 조금 회복된다.",
@@ -53,7 +53,7 @@ export const shelterChoices: ActionDefinition[] = [
   }),
   interactionFor("shelter", {
     id: "collect_rainwater_at_shelter",
-    label: "빗물통에서 물을 받는다",
+    label: "물 확보하기",
     type: "use",
     outcomeHint: "오늘 고인 빗물을 병에 나눠 담아 물 한 병을 확보한다.",
     conditions: [

@@ -176,3 +176,5 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
 - Added focus-aware scene matching in `content-engine.ts` so when a stock-node detail view is active, only scenes with the matching `active_stock_node` condition can remain selected or be picked as candidates.
 - Prologue quest affordance pass:
   rewrote `accept_first_canned_food_quest` so the second prologue choice now explicitly reads like accepting a quest, including a `퀘스트:` prefix that reuses the existing quest-button visual treatment in the client.
+- Shelter action label normalization:
+  updated the shelter hub and crafting-menu choice labels to a unified menu tone (`~하기`) so the temporary shelter reads like one consistent interaction list instead of mixing sentence-style and menu-style wording.
