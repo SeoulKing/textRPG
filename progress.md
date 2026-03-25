@@ -83,3 +83,23 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   at `kitchen_scrap_heap_full`, the available choices are only
   `collect_scrap_from_kitchen_heap`, `collect_cloth_from_kitchen_heap`, and `leave_kitchen_scrap_heap`;
   `buy_meal_at_kitchen` no longer appears while inside the heap detail view.
+- Unified stock-node item pickup behavior:
+  authored stock-item collection choices now use `src/game/data/stock-node-choice-helpers.ts` so one rule decides whether an item is taken one-by-one or all at once.
+- Exception rule is now explicit in one place:
+  `cannedFood` stays per-pickup, while salvage/material items default to `collect_stock_item_all`.
+- Updated convenience and kitchen stock-node choices to go through the helper instead of manually mixing `collect_stock_item` and `collect_stock_item_all`.
+- Runtime verification confirmed:
+  one click on `collect_canned_food_from_shelf` yields `cannedFood: 1` with shelf stock `3 -> 2`,
+  one click on `collect_scrap_from_kitchen_heap` yields `scrapMetal: 2` with heap stock `2 -> 0`,
+  one click on `collect_cloth_from_kitchen_heap` yields `clothScrap: 2` with heap stock `2 -> 0`,
+  and one click on `collect_metal_from_supply_pile` empties the remaining convenience scrap metal in one action.
+- Validation rerun passed after the helper refactor:
+  `npm run typecheck`
+  `npm run content:validate`
+  `npm run build`
+- Follow-up rule change:
+  the temporary `cannedFood` exception was removed, so stock-node item pickup is now fully uniform.
+- `collectStockItemEffect()` now always resolves to `collect_stock_item_all`, which means shelf food, salvage piles, and future stock-node items all empty their remaining stack in one action.
+- Runtime verification confirmed:
+  one click on `collect_canned_food_from_shelf` now yields `cannedFood: 3` with shelf stock `3 -> 0`,
+  and `collect_scrap_from_kitchen_heap` still yields `scrapMetal: 2` with heap stock `2 -> 0`.

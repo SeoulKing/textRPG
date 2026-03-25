@@ -1,4 +1,5 @@
 import type { ChoiceDefinition } from "../../../schemas";
+import { collectStockItemEffect } from "../../stock-node-choice-helpers";
 
 type ChoiceInput = Omit<ChoiceDefinition, "conditions" | "hidden"> &
   Partial<Pick<ChoiceDefinition, "conditions" | "hidden">>;
@@ -35,7 +36,7 @@ export const kitchenChoiceDefinitions: ChoiceDefinition[] = [
       { type: "stock_item_gte", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "scrapMetal", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_item", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "scrapMetal", amount: 1 },
+      collectStockItemEffect({ locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "scrapMetal" }),
       { type: "log", message: "당신은 덜 녹슨 금속 부품 몇 개를 추려내 챙긴다." },
     ],
     riskHint: "low",
@@ -49,7 +50,7 @@ export const kitchenChoiceDefinitions: ChoiceDefinition[] = [
       { type: "stock_item_gte", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "clothScrap", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_item", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "clothScrap", amount: 1 },
+      collectStockItemEffect({ locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "clothScrap" }),
       { type: "log", message: "당신은 아직 질긴 천 조각만 골라 접어 챙긴다." },
     ],
     riskHint: "low",

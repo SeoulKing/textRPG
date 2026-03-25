@@ -1,4 +1,5 @@
 import type { ChoiceDefinition } from "../../../schemas";
+import { collectStockItemEffect } from "../../stock-node-choice-helpers";
 
 type ChoiceInput = Omit<ChoiceDefinition, "conditions" | "hidden"> &
   Partial<Pick<ChoiceDefinition, "conditions" | "hidden">>;
@@ -63,7 +64,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
       { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_shelf", itemId: "cannedFood", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_item", locationId: "convenience", nodeId: "convenience_shelf", itemId: "cannedFood", amount: 1 },
+      collectStockItemEffect({ locationId: "convenience", nodeId: "convenience_shelf", itemId: "cannedFood" }),
       { type: "set_flag", flag: "first_canned_food_started" },
       { type: "set_flag", flag: "first_canned_food_secured" },
       { type: "log", message: "당신은 먼지를 털어 낸 통조림 하나를 조용히 챙겨 품속에 넣는다." },
@@ -93,7 +94,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
       { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_item_all", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank" },
+      collectStockItemEffect({ locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank" }),
       { type: "log", message: "당신은 아직 단단한 판자들을 한데 모아 어깨에 걸친다." },
     ],
     riskHint: "low",
@@ -107,7 +108,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
       { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_item_all", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap" },
+      collectStockItemEffect({ locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap" }),
       { type: "log", message: "당신은 먼지를 털어 낸 천 조각들을 한데 접어 품속에 넣는다." },
     ],
     riskHint: "low",
@@ -121,7 +122,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
       { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
     ],
     effects: [
-      { type: "collect_stock_item", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
+      collectStockItemEffect({ locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal" }),
       { type: "log", message: "당신은 선반 모서리에 걸린 금속 부품을 비틀어 떼어 낸다." },
     ],
     riskHint: "low",
