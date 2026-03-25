@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, appendFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rename, unlink, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 import {
   GameSessionSchema,
@@ -49,6 +49,10 @@ export const emptyTemplateStore: TemplateStore = {
   sceneCards: {},
   protagonistCard: null,
 };
+
+function isJsonParseError(error: unknown) {
+  return error instanceof SyntaxError;
+}
 
 function fallbackSceneId(locationId: string) {
   const scene = Object.values(worldRegistry.scenes).find((entry) => entry.locationId === locationId);
@@ -352,14 +356,41 @@ export class FileGameRepository implements GameRepository {
     this.generationLogPath = path.join(this.runtimeDir, "generation-log.jsonl");
   }
 
+  private async writeTemplatesAtomically(templates: TemplateStore) {
+    const tmpPath = `${this.templatesPath}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(templates, null, 2), "utf8");
+    try {
+      await rename(tmpPath, this.templatesPath);
+    } catch {
+      await copyFile(tmpPath, this.templatesPath);
+      await unlink(tmpPath).catch(() => undefined);
+    }
+  }
+
+  private async recoverTemplatesFile(raw: string, reason: unknown) {
+    const backupPath = `${this.templatesPath}.corrupt-${Date.now()}.json`;
+    await writeFile(backupPath, raw, "utf8");
+    if (!isJsonParseError(reason)) {
+      throw reason;
+    }
+    await this.writeTemplatesAtomically(emptyTemplateStore);
+    return structuredClone(emptyTemplateStore);
+  }
+
   async init() {
     await mkdir(this.gamesDir, { recursive: true });
     try {
       const raw = await readFile(this.templatesPath, "utf8");
       const normalized = normalizeTemplateStore(JSON.parse(raw));
-      await writeFile(this.templatesPath, JSON.stringify(normalized, null, 2), "utf8");
-    } catch {
-      await writeFile(this.templatesPath, JSON.stringify(emptyTemplateStore, null, 2), "utf8");
+      await this.writeTemplatesAtomically(normalized);
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        await this.writeTemplatesAtomically(emptyTemplateStore);
+        return;
+      }
+
+      const raw = await readFile(this.templatesPath, "utf8").catch(() => "");
+      await this.recoverTemplatesFile(raw, error);
     }
   }
 
@@ -378,7 +409,11 @@ export class FileGameRepository implements GameRepository {
 
   async loadTemplates() {
     const raw = await readFile(this.templatesPath, "utf8");
-    return normalizeTemplateStore(JSON.parse(raw));
+    try {
+      return normalizeTemplateStore(JSON.parse(raw));
+    } catch (error) {
+      return this.recoverTemplatesFile(raw, error);
+    }
   }
 
   async getTemplate(kind: CardKind, id: string) {
@@ -389,13 +424,13 @@ export class FileGameRepository implements GameRepository {
   async saveTemplate(kind: CardKind, id: string, card: StoredCard) {
     const templates = await this.loadTemplates();
     templates[kind][id] = card as never;
-    await writeFile(this.templatesPath, JSON.stringify(templates, null, 2), "utf8");
+    await this.writeTemplatesAtomically(templates);
   }
 
   async saveProtagonistTemplate(card: ProtagonistCard) {
     const templates = await this.loadTemplates();
     templates.protagonistCard = card;
-    await writeFile(this.templatesPath, JSON.stringify(templates, null, 2), "utf8");
+    await this.writeTemplatesAtomically(templates);
   }
 
   async appendActionLog(entry: Record<string, unknown>) {

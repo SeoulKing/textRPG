@@ -52,3 +52,10 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   after collecting wood -> inventory contained `woodPlank=1`
   kitchen search -> `go_to_kitchen_scrap_heap`
   heap focus -> `collect_scrap_from_kitchen_heap`, `collect_cloth_from_kitchen_heap`
+- Template cache recovery hardening:
+  `.runtime/templates.json` became corrupted with extra trailing JSON fragments, which caused `POST /api/games` to fail with `Unexpected non-whitespace character after JSON`.
+- Added recovery in `FileGameRepository` so template writes are now atomic (`templates.json.tmp` -> rename/copy fallback), and corrupted `templates.json` files are backed up to `templates.json.corrupt-<timestamp>.json` before resetting to `emptyTemplateStore`.
+- Verified the recovery path:
+  the broken `.runtime/templates.json` was backed up,
+  a clean cache file was regenerated,
+  and `POST /api/games` succeeded again immediately after restart.
