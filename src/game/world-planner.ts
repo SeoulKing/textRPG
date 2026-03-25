@@ -1,5 +1,6 @@
 import { PHASES } from "./base-data";
 import { validateRegistry } from "./data/registry";
+import { appendDevLlmTraceForGame } from "./dev-llm-trace";
 import { createUniqueDynamicLocationName, normalizeDynamicLocationNames } from "./dynamic-location-naming";
 import { generateGeminiJson, geminiModel, hasGeminiConfig } from "./gemini-client";
 import { buildRuntimeRegistry, getRuntimeLocationDefinition, mergeDynamicWorldRegistry } from "./runtime-registry";
@@ -24,6 +25,7 @@ import {
 } from "./schemas";
 
 type PlannerInput = {
+  gameId: string;
   state: GameState;
   registry: ContentRegistry;
   sourceLocationId: string;
@@ -34,8 +36,48 @@ type PlannerInput = {
 
 export interface WorldPlanner {
   generateRegionPackage(input: PlannerInput): Promise<GeneratedRegionPackage>;
-  planTomorrow(state: GameState, registry: ContentRegistry): Promise<WorldPlan["tomorrow"]>;
+  planTomorrow(state: GameState, registry: ContentRegistry, gameId: string): Promise<WorldPlan["tomorrow"]>;
 }
+
+const ALLOWED_CONDITION_TYPES = [
+  "has_item",
+  "skill_gte",
+  "flag",
+  "flag_not",
+  "location",
+  "location_visited",
+  "day_gte",
+  "day_lt",
+  "money_gte",
+  "quest_state",
+  "stock_item_gte",
+  "stock_money_gte",
+  "stock_item_lt",
+  "stock_money_lt",
+  "stock_node_discovered",
+  "active_stock_node",
+  "active_stock_node_not",
+];
+
+const ALLOWED_EFFECT_TYPES = [
+  "change_stat",
+  "set_flag",
+  "clear_flag",
+  "add_item",
+  "remove_item",
+  "change_money",
+  "travel",
+  "start_quest",
+  "complete_quest",
+  "log",
+  "discover_stock_node",
+  "focus_stock_node",
+  "clear_stock_node_focus",
+  "collect_stock_item",
+  "collect_stock_item_all",
+  "collect_stock_money",
+  "collect_stock_money_all",
+];
 
 type FrontierTheme = {
   slug: string;
@@ -194,6 +236,67 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function unwrapGeneratedPackageCandidate(candidate: unknown): Record<string, unknown> {
+  if (Array.isArray(candidate)) {
+    const firstObject = candidate.find((entry) => isRecord(entry));
+    return firstObject ? unwrapGeneratedPackageCandidate(firstObject) : {};
+  }
+
+  if (!isRecord(candidate)) {
+    return {};
+  }
+
+  if (!("registry" in candidate) && "payload" in candidate) {
+    return unwrapGeneratedPackageCandidate(candidate.payload);
+  }
+
+  if (!("registry" in candidate) && "fallback" in candidate) {
+    return unwrapGeneratedPackageCandidate(candidate.fallback);
+  }
+
+  return structuredClone(candidate);
+}
+
+function mergeGeneratedPackageValue<T>(fallbackValue: T, candidateValue: unknown): T {
+  if (candidateValue === undefined) {
+    return structuredClone(fallbackValue);
+  }
+
+  if (Array.isArray(fallbackValue) && Array.isArray(candidateValue)) {
+    const fallbackHasIds = fallbackValue.every((entry) => isRecord(entry) && typeof entry.id === "string");
+    if (fallbackHasIds) {
+      return fallbackValue.map((fallbackEntry, index) => {
+        const matchedCandidate = candidateValue.find((entry) => isRecord(entry) && entry.id === (fallbackEntry as { id: string }).id)
+          ?? candidateValue[index];
+        return mergeGeneratedPackageValue(fallbackEntry, matchedCandidate);
+      }) as T;
+    }
+    return (candidateValue.length > 0 ? structuredClone(candidateValue) : structuredClone(fallbackValue)) as T;
+  }
+
+  if (isRecord(fallbackValue) && isRecord(candidateValue)) {
+    const merged = structuredClone(fallbackValue);
+    Object.entries(candidateValue).forEach(([key, value]) => {
+      const fallbackEntry = (fallbackValue as Record<string, unknown>)[key];
+      (merged as Record<string, unknown>)[key] = key in fallbackValue
+        ? mergeGeneratedPackageValue(fallbackEntry, value)
+        : structuredClone(value);
+    });
+    return merged as T;
+  }
+
+  return structuredClone(candidateValue) as T;
+}
+
+function mergeGeneratedPackageOntoFallback(fallback: GeneratedRegionPackage, candidate: unknown) {
+  const unwrappedCandidate = unwrapGeneratedPackageCandidate(candidate);
+  return mergeGeneratedPackageValue(fallback, unwrappedCandidate);
+}
+
 function ensureDynId(id: string, source: string) {
   if (!id.startsWith(DEFAULT_GENERATION_GUARDRAILS.requiredIdPrefix)) {
     throw new Error(`${source} must start with '${DEFAULT_GENERATION_GUARDRAILS.requiredIdPrefix}'.`);
@@ -237,7 +340,8 @@ function validateGeneratedPackage(
   registry: ContentRegistry,
   rawPackage: GeneratedRegionPackage,
 ) {
-  const parsed = GeneratedRegionPackageSchema.parse(rawPackage);
+  const canonicalized = canonicalizeGeneratedPackage(rawPackage);
+  const parsed = GeneratedRegionPackageSchema.parse(canonicalized);
   const normalizedRegistry = normalizeDynamicLocationNames(
     parsed.registry,
     Object.values(registry.locations).map((location) => location.name),
@@ -307,6 +411,41 @@ function validateGeneratedPackage(
   }
 
   return normalized;
+}
+
+function canonicalizeGeneratedPackage(rawPackage: GeneratedRegionPackage) {
+  const draft = structuredClone(rawPackage) as GeneratedRegionPackage & {
+    registry: DynamicWorldRegistry & {
+      stockNodes?: Record<string, unknown>;
+    };
+  };
+  const dynamicRegistry = draft.registry as DynamicWorldRegistry & {
+    actions?: Record<string, ActionDefinition>;
+    stockNodes?: Record<string, unknown>;
+  };
+  const topLevelStockNodes = dynamicRegistry.stockNodes && typeof dynamicRegistry.stockNodes === "object"
+    ? dynamicRegistry.stockNodes
+    : {};
+
+  Object.values(draft.registry.locations ?? {}).forEach((location) => {
+    location.interactionChoices = (location.interactionChoices ?? []).map((entry) => {
+      if (typeof entry !== "string") {
+        return entry;
+      }
+      return dynamicRegistry.actions?.[entry] ?? entry;
+    }) as typeof location.interactionChoices;
+
+    location.stockNodes = (location.stockNodes ?? []).map((entry) => {
+      if (typeof entry !== "string") {
+        return entry;
+      }
+      const mapped = topLevelStockNodes[entry];
+      return mapped && typeof mapped === "object" ? structuredClone(mapped) : entry;
+    }) as typeof location.stockNodes;
+  });
+
+  delete dynamicRegistry.stockNodes;
+  return draft;
 }
 
 function buildQuestRewardSummary(theme: FrontierTheme) {
@@ -415,6 +554,28 @@ function markPackageSource(pkg: GeneratedRegionPackage, source: "llm" | "templat
   location.traits = location.traits.filter((trait) => trait !== "planner:llm" && trait !== "planner:template");
   location.traits.push(marker);
   return next;
+}
+
+function plannerGuidancePayload(input: PlannerInput) {
+  return {
+    existingItemIds: Object.keys(input.registry.items),
+    existingPersonIds: Object.keys(input.registry.people),
+    existingLocationIds: Object.keys(input.registry.locations),
+    existingQuestIds: Object.keys(input.registry.quests),
+    allowedConditionTypes: ALLOWED_CONDITION_TYPES,
+    allowedEffectTypes: ALLOWED_EFFECT_TYPES,
+    guardrails: DEFAULT_GENERATION_GUARDRAILS,
+    hardRules: [
+      "Every referenced id must either already exist in the current registry or be declared inside registry of this package.",
+      "Do not reference undeclared itemId, npcId, locationId, questId, sceneId, eventId, actionId, or choiceId.",
+      "All new ids must start with dyn_.",
+      "Generated content cannot use set_scene or advance_to_daybreak.",
+      "If you create a new item and reference it in a quest reward or objective, declare that item in registry.items first.",
+      "Prefer reusing existing static items like waterBottle, cannedFood, painRelief, rationTicket, rawRice, vegetables, woodPlank, scrapMetal, clothScrap when possible.",
+      "Write all player-facing strings in Korean.",
+      "location.interactionChoices must contain full action objects, and location.stockNodes must contain full stock node objects.",
+    ],
+  };
 }
 
 class TemplateWorldPlanner implements WorldPlanner {
@@ -707,7 +868,7 @@ class TemplateWorldPlanner implements WorldPlanner {
     }), "template");
   }
 
-  async planTomorrow(state: GameState, _registry: ContentRegistry) {
+  async planTomorrow(state: GameState, _registry: ContentRegistry, _gameId: string) {
     return buildTomorrowPlanFromDynamicWorld(state);
   }
 }
@@ -776,8 +937,8 @@ class RemoteWorldPlanner implements WorldPlanner {
     }
   }
 
-  async planTomorrow(state: GameState, registry: ContentRegistry) {
-    const fallback = await this.fallback.planTomorrow(state, registry);
+  async planTomorrow(state: GameState, registry: ContentRegistry, gameId: string) {
+    const fallback = await this.fallback.planTomorrow(state, registry, gameId);
     try {
       return WorldPlanSchema.shape.tomorrow.parse(
         await this.generateJson("worldTomorrowPlan", {
@@ -796,13 +957,31 @@ class RemoteWorldPlanner implements WorldPlanner {
 class GeminiWorldPlanner implements WorldPlanner {
   constructor(private readonly fallback: TemplateWorldPlanner) {}
 
-  private async generateJson<T>(schemaName: string, payload: Record<string, unknown>) {
+  private async generateJson<T>(
+    gameId: string,
+    target: string,
+    schemaName: string,
+    payload: Record<string, unknown>,
+  ) {
     return generateGeminiJson<T>(
-      "You generate JSON only for a survival text RPG. Stay inside the provided schema and existing action/condition/effect vocabulary. Never invent new schema keys. All generated ids must start with dyn_. Return valid JSON only.",
+      `You generate JSON only for a survival text RPG.
+Stay inside the provided schema and existing action/condition/effect vocabulary.
+Never invent new schema keys.
+All generated ids must start with dyn_.
+Every referenced id must either already exist in the current registry or be declared inside the package registry itself.
+If you create a new item and use it in a quest objective, reward, stock node, or effect, define it in registry.items first.
+Write all player-facing strings in Korean.
+location.interactionChoices must contain full action objects, and location.stockNodes must contain full stock node objects.
+Return valid JSON only.`,
       { schemaName, payload },
       {
         model: geminiModel(),
         temperature: 0.9,
+        trace: {
+          gameId,
+          scope: "planner",
+          target,
+        },
       },
     );
   }
@@ -810,35 +989,87 @@ class GeminiWorldPlanner implements WorldPlanner {
   async generateRegionPackage(input: PlannerInput) {
     const fallback = await this.fallback.generateRegionPackage(input);
     try {
-      return markPackageSource(validateGeneratedPackage(
-        input.state,
-        input.registry,
-        await this.generateJson<GeneratedRegionPackage>("generatedRegionPackage", {
+      const initialAttempt = await this.generateJson<unknown>(input.gameId, `generatedRegionPackage:${input.sequence}:initial`, "generatedRegionPackage", {
+        fallback,
+        currentDay: input.state.day,
+        currentPhase: PHASES[input.state.phaseIndex],
+        sourceLocationId: input.sourceLocationId,
+        sourceFrontierActionId: input.sourceFrontierActionId,
+        recentLog: input.recentLog,
+        plannerGuidance: plannerGuidancePayload(input),
+      });
+      const mergedInitialAttempt = mergeGeneratedPackageOntoFallback(fallback, initialAttempt);
+
+      try {
+        return markPackageSource(validateGeneratedPackage(
+          input.state,
+          input.registry,
+          mergedInitialAttempt,
+        ), "llm");
+      } catch (validationError) {
+        appendDevLlmTraceForGame(input.gameId, {
+          scope: "planner",
+          target: `generatedRegionPackage:${input.sequence}:validation`,
+          model: geminiModel(),
+          status: "error",
+          request: "",
+          response: "",
+          message: validationError instanceof Error ? validationError.message : "Initial generated package validation failed.",
+        });
+        const repairAttempt = await this.generateJson<unknown>(input.gameId, `generatedRegionPackage:${input.sequence}:repair`, "generatedRegionPackageRepair", {
           fallback,
+          previousAttempt: initialAttempt,
+          validationError: validationError instanceof Error ? validationError.message : "Unknown validation error",
           currentDay: input.state.day,
           currentPhase: PHASES[input.state.phaseIndex],
           sourceLocationId: input.sourceLocationId,
           sourceFrontierActionId: input.sourceFrontierActionId,
           recentLog: input.recentLog,
-        }),
-      ), "llm");
-    } catch {
+          plannerGuidance: plannerGuidancePayload(input),
+        });
+        const mergedRepairAttempt = mergeGeneratedPackageOntoFallback(fallback, repairAttempt);
+
+        return markPackageSource(validateGeneratedPackage(
+          input.state,
+          input.registry,
+          mergedRepairAttempt,
+        ), "llm");
+      }
+    } catch (error) {
+      appendDevLlmTraceForGame(input.gameId, {
+        scope: "planner",
+        target: `generatedRegionPackage:${input.sequence}:fallback`,
+        model: geminiModel(),
+        status: "fallback",
+        request: "",
+        response: "",
+        message: error instanceof Error ? error.message : "Gemini planner failed, using template package.",
+      });
       return fallback;
     }
   }
 
-  async planTomorrow(state: GameState, registry: ContentRegistry) {
-    const fallback = await this.fallback.planTomorrow(state, registry);
+  async planTomorrow(state: GameState, registry: ContentRegistry, gameId: string) {
+    const fallback = await this.fallback.planTomorrow(state, registry, gameId);
     try {
       return WorldPlanSchema.shape.tomorrow.parse(
-        await this.generateJson("worldTomorrowPlan", {
+        await this.generateJson(gameId, `worldTomorrowPlan:day${state.day + 1}`, "worldTomorrowPlan", {
           fallback,
           currentDay: state.day,
           dynamicLocations: Object.keys(state.dynamicContent.locations),
           recentLog: state.log.slice(0, 6).map((entry) => entry.message),
         }),
       );
-    } catch {
+    } catch (error) {
+      appendDevLlmTraceForGame(gameId, {
+        scope: "planner",
+        target: `worldTomorrowPlan:day${state.day + 1}:fallback`,
+        model: geminiModel(),
+        status: "fallback",
+        request: "",
+        response: "",
+        message: error instanceof Error ? error.message : "Gemini tomorrow planner failed, using template plan.",
+      });
       return fallback;
     }
   }

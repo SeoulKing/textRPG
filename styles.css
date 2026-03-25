@@ -516,6 +516,137 @@ body::before {
   margin-top: 12px;
 }
 
+.llm-debug-panel {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(87, 66, 51, 0.16);
+  background: rgba(255, 249, 242, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.llm-debug-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(87, 66, 51, 0.12);
+}
+
+.llm-debug-header p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.llm-debug-header span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.llm-debug-list {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.llm-debug-empty {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.llm-debug-entry {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(87, 66, 51, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.llm-debug-entry.is-success {
+  border-color: rgba(65, 146, 90, 0.28);
+}
+
+.llm-debug-entry.is-fallback {
+  border-color: rgba(207, 122, 48, 0.28);
+}
+
+.llm-debug-entry.is-error {
+  border-color: rgba(214, 106, 79, 0.3);
+}
+
+.llm-debug-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.llm-debug-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.llm-debug-status.is-success {
+  color: #1e5f34;
+  background: rgba(65, 146, 90, 0.12);
+}
+
+.llm-debug-status.is-fallback {
+  color: #8f5628;
+  background: rgba(207, 122, 48, 0.14);
+}
+
+.llm-debug-status.is-error {
+  color: #9f341b;
+  background: rgba(214, 106, 79, 0.14);
+}
+
+.llm-debug-target,
+.llm-debug-time,
+.llm-debug-model {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.llm-debug-message {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+
+.llm-debug-block {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.llm-debug-block strong {
+  font-size: 0.84rem;
+}
+
+.llm-debug-block pre {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(63, 48, 38, 0.06);
+  border: 1px solid rgba(87, 66, 51, 0.12);
+  color: #3f3026;
+  font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .dock-buttons {
   display: flex;
   gap: 10px;

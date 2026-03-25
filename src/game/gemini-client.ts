@@ -1,8 +1,14 @@
 import "../load-env";
+import { appendDevLlmTraceForGame, toTraceRequest } from "./dev-llm-trace";
 
 type GeminiJsonOptions = {
   model?: string;
   temperature?: number;
+  trace?: {
+    gameId: string;
+    scope: "planner" | "card";
+    target: string;
+  };
 };
 
 type GeminiGenerateResponse = {
@@ -64,34 +70,93 @@ export async function generateGeminiJson<T>(
 
   const apiUrl = (process.env.GEMINI_API_URL || DEFAULT_GEMINI_API_URL).replace(/\/$/, "");
   const model = options.model || geminiModel();
-  const response = await fetch(`${apiUrl}/models/${model}:generateContent`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: systemPrompt }],
+  const traceRequest = options.trace ? toTraceRequest(userPayload, systemPrompt) : "";
+  let traceLogged = false;
+
+  try {
+    const response = await fetch(`${apiUrl}/models/${model}:generateContent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
       },
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: JSON.stringify(userPayload) }],
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }],
         },
-      ],
-      generationConfig: {
-        temperature: options.temperature ?? 0.8,
-        responseMimeType: "application/json",
-      },
-    }),
-  });
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: JSON.stringify(userPayload) }],
+          },
+        ],
+        generationConfig: {
+          temperature: options.temperature ?? 0.8,
+          responseMimeType: "application/json",
+        },
+      }),
+    });
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Gemini request failed: ${response.status}${body ? ` ${body}` : ""}`);
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const message = `Gemini request failed: ${response.status}${body ? ` ${body}` : ""}`;
+      if (options.trace) {
+        appendDevLlmTraceForGame(options.trace.gameId, {
+          scope: options.trace.scope,
+          target: options.trace.target,
+          model,
+          status: "error",
+          request: traceRequest,
+          response: body,
+          message,
+        });
+        traceLogged = true;
+      }
+      throw new Error(message);
+    }
+
+    const payload = await response.json() as GeminiGenerateResponse;
+    const rawText = extractCandidateText(payload);
+    try {
+      const parsed = JSON.parse(stripCodeFence(rawText)) as T;
+      if (options.trace) {
+        appendDevLlmTraceForGame(options.trace.gameId, {
+          scope: options.trace.scope,
+          target: options.trace.target,
+          model,
+          status: "success",
+          request: traceRequest,
+          response: rawText,
+          message: "Gemini response parsed successfully.",
+        });
+      }
+      return parsed;
+    } catch (error) {
+      if (options.trace) {
+        appendDevLlmTraceForGame(options.trace.gameId, {
+          scope: options.trace.scope,
+          target: options.trace.target,
+          model,
+          status: "error",
+          request: traceRequest,
+          response: rawText,
+          message: error instanceof Error ? error.message : "Failed to parse Gemini JSON response.",
+        });
+      }
+      throw error;
+    }
+  } catch (error) {
+    if (options.trace && !traceLogged && !(error instanceof SyntaxError)) {
+      appendDevLlmTraceForGame(options.trace.gameId, {
+        scope: options.trace.scope,
+        target: options.trace.target,
+        model,
+        status: "error",
+        request: traceRequest,
+        response: "",
+        message: error instanceof Error ? error.message : "Gemini request failed.",
+      });
+    }
+    throw error;
   }
-
-  const payload = await response.json() as GeminiGenerateResponse;
-  return JSON.parse(stripCodeFence(extractCandidateText(payload))) as T;
 }

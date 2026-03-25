@@ -232,3 +232,31 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `npm run content:validate`
   all passed, and server logs now show `GET /api/games/:id/state` returning 200
   after the fallback change instead of the earlier Gemini-driven 500 crash.
+
+- Added a dev-only LLM trace pipeline so frontier-generation requests and responses can be inspected from the live game UI.
+- `StateSnapshot` now carries `devLlmTrace`, backed by the new in-memory trace helper in `src/game/dev-llm-trace.ts`.
+- `src/game/gemini-client.ts` now records planner/card request payloads, raw Gemini responses, and explicit error/fallback messages without double-logging the same HTTP failure.
+- Simplified live gameplay LLM responsibilities:
+  `GameService` now uses the template generator for runtime location/person/item/event cards,
+  so Gemini is no longer spammed for secondary card-polish requests after a frontier action.
+  The planner is now the single LLM path that matters for expanding the world.
+- Added a dev-only panel below the game in `index.html`, `styles.css`, and `app-api.js`
+  that renders recent LLM traces with status, target, request body, raw response, and fallback/error notes.
+- Hardened dynamic planner ingestion in `src/game/world-planner.ts`:
+  added prompt guidance for Korean player-facing text,
+  canonicalized common Gemini compact forms (`interactionChoices` as ids, `stockNodes` as ids with a top-level `registry.stockNodes` map),
+  and merged partial/quirky Gemini payloads onto the authored fallback package before validation.
+- This changed the observed frontier behavior:
+  before the fix, frontier generation often ended as `planner:template` after `initial -> validation -> repair -> fallback`;
+  after the fix, the same convenience frontier probe completed as `planner:llm` with a single successful `generatedRegionPackage:1:initial` trace entry.
+- Verification:
+  `node --check app-api.js`
+  `npm run typecheck`
+  `npm run build`
+  `npm run content:validate`
+  all passed.
+- Runtime verification against the restarted local server:
+  `POST /api/games` succeeded,
+  prologue -> convenience -> `push_beyond_convenience_ruins` created `dyn_location_1_subway_gate`,
+  the resulting location carried `planner:llm`,
+  and the state snapshot included one successful LLM trace with non-empty request/response bodies.

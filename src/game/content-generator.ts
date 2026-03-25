@@ -1,4 +1,5 @@
 import { PHASES } from "./base-data";
+import { appendDevLlmTraceForGame } from "./dev-llm-trace";
 import { generateGeminiJson, geminiModel, hasGeminiConfig } from "./gemini-client";
 import { summarizeState } from "./rules";
 import { buildRuntimeRegistry } from "./runtime-registry";
@@ -305,7 +306,13 @@ class GenericRemoteContentGenerator implements ContentGenerator {
 class GeminiContentGenerator implements ContentGenerator {
   constructor(private readonly fallback: TemplateContentGenerator) {}
 
-  private async generateJson<T>(schemaName: string, schemaPrompt: string, payload: Record<string, unknown>) {
+  private async generateJson<T>(
+    gameId: string,
+    target: string,
+    schemaName: string,
+    schemaPrompt: string,
+    payload: Record<string, unknown>,
+  ) {
     return generateGeminiJson<T>(
       `You generate JSON only for a survival text RPG.
 Output must satisfy this schema description: ${schemaPrompt}.
@@ -318,24 +325,45 @@ Return valid JSON with no markdown fences.`,
       {
         model: geminiModel(),
         temperature: 0.8,
+        trace: {
+          gameId,
+          scope: "card",
+          target,
+        },
       },
     );
   }
 
-  private async withFallback<T>(work: () => Promise<T>, fallback: () => Promise<T>) {
+  private async withFallback<T>(
+    gameId: string,
+    target: string,
+    work: () => Promise<T>,
+    fallback: () => Promise<T>,
+  ) {
     try {
       return await work();
-    } catch {
+    } catch (error) {
+      appendDevLlmTraceForGame(gameId, {
+        scope: "card",
+        target,
+        model: geminiModel(),
+        status: "fallback",
+        request: "",
+        response: "",
+        message: error instanceof Error ? error.message : "Gemini card generation failed, using template fallback.",
+      });
       return fallback();
     }
   }
 
   async generateLocationCard(locationId: string, input: GeneratorInput) {
     return this.withFallback(
+      input.gameId,
+      `locationCard:${locationId}`,
       async () => {
         const fallback = await this.fallback.generateLocationCard(locationId, input);
         return LocationCardSchema.parse(
-          await this.generateJson("locationCard", "location card json", {
+          await this.generateJson(input.gameId, `locationCard:${locationId}`, "locationCard", "location card json", {
             fallback,
             currentState: summarizeState(input.state),
           }),
@@ -347,10 +375,12 @@ Return valid JSON with no markdown fences.`,
 
   async generatePersonCard(personId: string, input: GeneratorInput) {
     return this.withFallback(
+      input.gameId,
+      `personCard:${personId}`,
       async () => {
         const fallback = await this.fallback.generatePersonCard(personId, input);
         return PersonCardSchema.parse(
-          await this.generateJson("personCard", "person card json", {
+          await this.generateJson(input.gameId, `personCard:${personId}`, "personCard", "person card json", {
             fallback,
             currentState: summarizeState(input.state),
           }),
@@ -362,10 +392,12 @@ Return valid JSON with no markdown fences.`,
 
   async generateItemCard(itemId: string, input: GeneratorInput) {
     return this.withFallback(
+      input.gameId,
+      `itemCard:${itemId}`,
       async () => {
         const fallback = await this.fallback.generateItemCard(itemId, input);
         return ItemCardSchema.parse(
-          await this.generateJson("itemCard", "item card json", {
+          await this.generateJson(input.gameId, `itemCard:${itemId}`, "itemCard", "item card json", {
             fallback,
             currentState: summarizeState(input.state),
           }),
@@ -383,9 +415,11 @@ Return valid JSON with no markdown fences.`,
 
   async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
     return this.withFallback(
+      input.gameId,
+      `sceneCard:${scene.id}`,
       async () => {
         const fallback = await this.fallback.generateSceneCard(scene, choices, input);
-        const generated = await this.generateJson<SceneCard>("sceneCard", "scene card json", {
+        const generated = await this.generateJson<SceneCard>(input.gameId, `sceneCard:${scene.id}`, "sceneCard", "scene card json", {
           fallback,
           currentState: summarizeState(input.state),
           recentLog: input.recentLog,
@@ -407,9 +441,11 @@ Return valid JSON with no markdown fences.`,
 
   async generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput) {
     return this.withFallback(
+      input.gameId,
+      `eventCard:${event.id}`,
       async () => {
         const fallback = await this.fallback.generateEventCard(event, choices, input);
-        const generated = await this.generateJson<EventCard>("eventCard", "event card json", {
+        const generated = await this.generateJson<EventCard>(input.gameId, `eventCard:${event.id}`, "eventCard", "event card json", {
           fallback,
           currentState: summarizeState(input.state),
           recentLog: input.recentLog,

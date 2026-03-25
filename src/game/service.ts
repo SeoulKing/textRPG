@@ -6,7 +6,8 @@ import {
   resolveSceneDefinition,
   resolveTriggeredEvents,
 } from "./content-engine";
-import { createContentGenerator, createTemplateContentGenerator, type ContentGenerator } from "./content-generator";
+import { createTemplateContentGenerator, type ContentGenerator } from "./content-generator";
+import { clearDevLlmTrace, getDevLlmTrace } from "./dev-llm-trace";
 import type { GameRepository } from "./repository";
 import {
   applySystemNote,
@@ -48,7 +49,6 @@ const SCENE_CARD_CACHE_VERSION = 5;
 export class GameService {
   constructor(
     private readonly repository: GameRepository,
-    private readonly generator: ContentGenerator = createContentGenerator(),
     private readonly templateGenerator: ContentGenerator = createTemplateContentGenerator(),
     private readonly planner: WorldPlanner = createWorldPlanner(),
   ) {}
@@ -69,6 +69,7 @@ export class GameService {
       },
     };
 
+    clearDevLlmTrace(session.id);
     await this.ensureCards(session);
     const snapshot = this.buildSnapshot(session, null);
     await this.repository.saveGame(session);
@@ -190,7 +191,7 @@ export class GameService {
       regions: session.state.worldPlan.today.regions.filter((region) => session.state.flags[`visited_${region.locationId}`] || region.createdDay === session.state.day),
       notes: session.state.worldPlan.today.notes,
     };
-    session.state.worldPlan.tomorrow = await this.planner.planTomorrow(session.state, this.runtimeRegistry(session));
+    session.state.worldPlan.tomorrow = await this.planner.planTomorrow(session.state, this.runtimeRegistry(session), session.id);
   }
 
   private async ensureCards(session: GameSession) {
@@ -292,8 +293,7 @@ export class GameService {
       return existing;
     }
 
-    const isDynamic = locationId.startsWith("dyn_");
-    if (!isDynamic) {
+    if (!locationId.startsWith("dyn_")) {
       const cached = await this.repository.getTemplate("locationCards", locationId);
       if (
         cached &&
@@ -306,14 +306,14 @@ export class GameService {
       }
     }
 
-    const cardRaw = await (isDynamic ? this.generator : this.templateGenerator).generateLocationCard(locationId, {
+    const cardRaw = await this.templateGenerator.generateLocationCard(locationId, {
       ...this.generatorInput(session, false, registry),
     });
     // LLM이 id를 바꾸면 클라이언트가 state.location과 매칭하지 못해 씬·선택지가 통째로 안 그려진다.
     const card = { ...cardRaw, id: locationId };
     session.world.locationCards[locationId] = card;
 
-    if (!isDynamic) {
+    if (!locationId.startsWith("dyn_")) {
       await this.repository.saveTemplate("locationCards", locationId, card);
     }
     await this.repository.appendGenerationLog({
@@ -331,8 +331,7 @@ export class GameService {
       return session.world.personCards[personId];
     }
 
-    const isDynamic = personId.startsWith("dyn_");
-    if (!isDynamic) {
+    if (!personId.startsWith("dyn_")) {
       const cached = await this.repository.getTemplate("personCards", personId);
       if (cached) {
         session.world.personCards[personId] = cached as PersonCard;
@@ -340,13 +339,13 @@ export class GameService {
       }
     }
 
-    const cardRaw = await (isDynamic ? this.generator : this.templateGenerator).generatePersonCard(personId, {
+    const cardRaw = await this.templateGenerator.generatePersonCard(personId, {
       ...this.generatorInput(session, false, registry),
     });
     const card = { ...cardRaw, id: personId };
     session.world.personCards[personId] = card;
 
-    if (!isDynamic) {
+    if (!personId.startsWith("dyn_")) {
       await this.repository.saveTemplate("personCards", personId, card);
     }
     await this.repository.appendGenerationLog({
@@ -364,8 +363,7 @@ export class GameService {
       return session.world.itemCards[itemId];
     }
 
-    const isDynamic = itemId.startsWith("dyn_");
-    if (!isDynamic) {
+    if (!itemId.startsWith("dyn_")) {
       const cached = await this.repository.getTemplate("itemCards", itemId);
       if (cached) {
         session.world.itemCards[itemId] = cached as ItemCard;
@@ -373,13 +371,13 @@ export class GameService {
       }
     }
 
-    const cardRaw = await (isDynamic ? this.generator : this.templateGenerator).generateItemCard(itemId, {
+    const cardRaw = await this.templateGenerator.generateItemCard(itemId, {
       ...this.generatorInput(session, false, registry),
     });
     const card = { ...cardRaw, id: itemId };
     session.world.itemCards[itemId] = card;
 
-    if (!isDynamic) {
+    if (!itemId.startsWith("dyn_")) {
       await this.repository.saveTemplate("itemCards", itemId, card);
     }
     await this.repository.appendGenerationLog({
@@ -393,7 +391,7 @@ export class GameService {
   }
 
   private async ensureProtagonistCard(session: GameSession) {
-    const card = await this.generator.generateProtagonistCard({
+    const card = await this.templateGenerator.generateProtagonistCard({
       ...this.generatorInput(session, false),
     });
     session.world.protagonistCard = card;
@@ -466,7 +464,7 @@ export class GameService {
     }
 
     const storyChoices = resolveEventChoices(session.state, eventDef, registry).map(buildStoryChoiceFromChoice);
-    const card = await this.generator.generateEventCard(eventDef, storyChoices, {
+    const card = await this.templateGenerator.generateEventCard(eventDef, storyChoices, {
       ...this.generatorInput(session, true, registry),
     });
     session.world.eventCards[eventKey] = card;
@@ -603,6 +601,7 @@ export class GameService {
       availableActions: buildActionCatalogFromStoryChoices(storyChoices),
       mapEntries: this.buildMapEntries(session, registry),
       latestEvent,
+      devLlmTrace: getDevLlmTrace(session.id),
     };
 
     return StateSnapshotSchema.parse(snapshot);
@@ -671,6 +670,7 @@ export class GameService {
     let latestEvent: EventCard | null = null;
     try {
       const pkg = await this.planner.generateRegionPackage({
+        gameId: session.id,
         state: session.state,
         registry,
         sourceLocationId,
@@ -695,6 +695,7 @@ export class GameService {
           ...session.state.worldPlan.today.regions.filter((region) => region.locationId !== pkg.locationId),
           buildPlannedRegionSummary(
             {
+              gameId: session.id,
               state: session.state,
               registry,
               sourceLocationId,

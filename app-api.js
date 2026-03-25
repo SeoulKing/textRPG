@@ -157,6 +157,8 @@ const dom = {
   panelTitle: document.querySelector("#panel-title"),
   panelSubtitle: document.querySelector("#panel-subtitle"),
   panelContent: document.querySelector("#panel-content"),
+  llmDebugPanel: document.querySelector("#llm-debug-panel"),
+  llmDebugList: document.querySelector("#llm-debug-list"),
   dockButtons: Array.from(document.querySelectorAll(".dock-button")),
   newGameButton: document.querySelector("#new-game-button"),
 };
@@ -1025,6 +1027,77 @@ function renderPanel() {
   });
 }
 
+function llmStatusLabel(status) {
+  if (status === "success") {
+    return "성공";
+  }
+  if (status === "fallback") {
+    return "폴백";
+  }
+  return "오류";
+}
+
+function formatTraceTime(iso) {
+  if (!iso) {
+    return "";
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function renderLlmDebugPanel() {
+  if (!dom.llmDebugPanel || !dom.llmDebugList) {
+    return;
+  }
+
+  if (!DEV_OBJECT_BADGES) {
+    dom.llmDebugPanel.hidden = true;
+    dom.llmDebugList.innerHTML = "";
+    return;
+  }
+
+  const entries = client.snapshot?.devLlmTrace || [];
+  dom.llmDebugPanel.hidden = false;
+
+  if (!entries.length) {
+    dom.llmDebugList.innerHTML = `
+      <p class="llm-debug-empty">아직 기록된 LLM 요청이 없습니다. 프런티어 확장처럼 동적 지역이 생성되는 행동을 실행하면 여기서 바로 확인할 수 있습니다.</p>
+    `;
+    return;
+  }
+
+  dom.llmDebugList.innerHTML = entries.map((entry) => `
+    <article class="llm-debug-entry is-${escapeHtml(entry.status)}">
+      <div class="llm-debug-meta">
+        <span class="llm-debug-status is-${escapeHtml(entry.status)}">${llmStatusLabel(entry.status)}</span>
+        <span class="llm-debug-target">${escapeHtml(entry.scope)} / ${escapeHtml(entry.target)}</span>
+        <span class="llm-debug-model">${escapeHtml(entry.model)}</span>
+        <span class="llm-debug-time">${escapeHtml(formatTraceTime(entry.at))}</span>
+      </div>
+      <p class="llm-debug-message">${escapeHtml(entry.message)}</p>
+      ${entry.request ? `
+        <div class="llm-debug-block">
+          <strong>요청</strong>
+          <pre>${escapeHtml(entry.request)}</pre>
+        </div>
+      ` : ""}
+      ${entry.response ? `
+        <div class="llm-debug-block">
+          <strong>응답</strong>
+          <pre>${escapeHtml(entry.response)}</pre>
+        </div>
+      ` : ""}
+    </article>
+  `).join("");
+}
+
 function render(options = {}) {
   if (!client.snapshot) {
     return;
@@ -1032,6 +1105,7 @@ function render(options = {}) {
   renderStatusBar();
   renderScene(options.animateScene !== false);
   renderPanel();
+  renderLlmDebugPanel();
   client.justCreatedGame = false;
 }
 
