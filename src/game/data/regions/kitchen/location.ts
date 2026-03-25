@@ -29,6 +29,20 @@ export const kitchenChoices: ActionDefinition[] = [
     tags: ["craft", "salvage"],
     riskHint: "low",
   }),
+  interactionFor("kitchen", {
+    id: "push_beyond_kitchen_lane",
+    label: "배식소 뒤편으로 나아가기",
+    type: "explore",
+    outcomeHint: "급식소를 지나 생활 구역 뒤편의 더 낯선 공간으로 발을 들이며 새로운 경계를 연다.",
+    effects: [
+      {
+        type: "log",
+        message: "배식소 뒤편의 좁은 길로 몸을 틀며, 지금까지 닿지 않았던 서울의 다른 조각을 향해 나아간다.",
+      },
+    ],
+    tags: ["frontier", "explore"],
+    riskHint: "medium",
+  }),
 ];
 
 export const kitchenLocation: LocationDefinition = {

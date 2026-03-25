@@ -2,7 +2,8 @@
  * GameState helpers.
  */
 
-import { PHASES, REAL_DAY_MS, baseLocations } from "./base-data";
+import { PHASES, REAL_DAY_MS } from "./base-data";
+import { buildRuntimeRegistry } from "./runtime-registry";
 import type { Condition, Effect, GameState, GameStateV2, Objective, Player, QuestReward, WorldState } from "./schemas";
 
 function activeDayKey(state: GameState, flag: string) {
@@ -21,16 +22,18 @@ export function getStockMoneyKey(locationId: string, nodeId: string) {
   return `${locationId}:${nodeId}:$money`;
 }
 
-export function getStockNode(locationId: string, nodeId: string) {
-  const location = baseLocations[locationId];
+export function getStockNode(state: GameState, locationId: string, nodeId: string) {
+  const registry = buildRuntimeRegistry(state);
+  const location = registry.locations[locationId];
   if (!location) {
     return null;
   }
   return location.stockNodes.find((node) => node.id === nodeId) ?? null;
 }
 
-export function getStockNodeLocationId(nodeId: string) {
-  for (const location of Object.values(baseLocations)) {
+export function getStockNodeLocationId(state: GameState, nodeId: string) {
+  const registry = buildRuntimeRegistry(state);
+  for (const location of Object.values(registry.locations)) {
     if (location.stockNodes.some((node) => node.id === nodeId)) {
       return location.id;
     }
@@ -71,7 +74,7 @@ export function getStockQuantity(state: GameState, locationId: string, nodeId: s
     return state.stockState[key];
   }
 
-  const node = getStockNode(locationId, nodeId);
+  const node = getStockNode(state, locationId, nodeId);
   const stockItem = node?.items.find((entry) => entry.itemId === itemId);
   return stockItem?.initialQuantity ?? 0;
 }
@@ -82,7 +85,7 @@ export function getStockMoney(state: GameState, locationId: string, nodeId: stri
     return state.stockState[key];
   }
 
-  const node = getStockNode(locationId, nodeId);
+  const node = getStockNode(state, locationId, nodeId);
   return node?.money ?? 0;
 }
 

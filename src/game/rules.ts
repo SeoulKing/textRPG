@@ -5,14 +5,11 @@ import {
   REAL_DAY_MS,
   SAVE_VERSION,
   STARVATION_TICK_MS,
-  baseItems,
-  baseLocations,
 } from "./base-data";
-import { worldRegistry } from "./data/registry";
 import { actionConditionsMet, choiceConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
-import { appendLogEntry, applyEffect, evaluateCondition, evaluateObjective } from "./state-utils";
-import type { ActionDefinition, ChoiceDefinition, GameAction, GameState } from "./schemas";
-import { questDefinitions } from "./quest-definitions";
+import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLinkedLocationIds, getRuntimeLocationDefinition } from "./runtime-registry";
+import { appendLogEntry, applyEffect, evaluateCondition, evaluateObjective, getStockMoneyKey, getStockStateKey } from "./state-utils";
+import type { ActionDefinition, ChoiceDefinition, DayEvolutionUpdate, GameAction, GameState } from "./schemas";
 
 const STAT_LABELS = {
   hp: "체력",
@@ -46,20 +43,49 @@ function activeDayKey(state: GameState, name: string) {
   return `day${state.day}_${name}`;
 }
 
-export function syncQuestState(state: GameState) {
-  for (const def of questDefinitions) {
+function addLog(state: GameState, message: string) {
+  appendLogEntry(state, message);
+}
+
+export function syncQuestState(
+  state: GameState,
+  previousQuests: Record<string, "inactive" | "active" | "completed"> = state.quests,
+) {
+  const registry = buildRuntimeRegistry(state);
+  for (const def of getQuestDefinitions(registry)) {
     const prereqPass = def.prerequisites.every((condition) => evaluateCondition(condition, state));
     if (!prereqPass) {
       state.quests[def.id] = "inactive";
       continue;
     }
-    const allObjectivesMet = def.objectives.every((objective) => evaluateObjective(objective, state));
-    state.quests[def.id] = allObjectivesMet ? "completed" : "active";
-  }
-}
 
-function addLog(state: GameState, message: string) {
-  appendLogEntry(state, message);
+    const allObjectivesMet = def.objectives.every((objective) => evaluateObjective(objective, state));
+    if (!allObjectivesMet) {
+      state.quests[def.id] = "active";
+      continue;
+    }
+
+    state.quests[def.id] = "completed";
+    if (previousQuests[def.id] === "completed" || state.flags[`quest_rewarded_${def.id}`]) {
+      continue;
+    }
+
+    def.rewards.forEach((reward) => {
+      applyEffect(
+        reward.type === "money"
+          ? { type: "change_money", amount: reward.amount }
+          : reward.type === "add_item"
+            ? { type: "add_item", itemId: reward.itemId, amount: reward.amount }
+            : { type: "set_flag", flag: reward.flag },
+        state,
+      );
+    });
+
+    if (def.rewards.length > 0) {
+      state.flags[`quest_rewarded_${def.id}`] = true;
+      addLog(state, `퀘스트 보상을 받았다: ${def.title}`);
+    }
+  }
 }
 
 function markLocationKnown(state: GameState, locationId: string) {
@@ -67,9 +93,10 @@ function markLocationKnown(state: GameState, locationId: string) {
 }
 
 export function refreshLocationKnowledge(state: GameState) {
+  const registry = buildRuntimeRegistry(state);
   markLocationKnown(state, state.location);
   state.flags[`visited_${state.location}`] = true;
-  Object.keys(baseLocations[state.location].links).forEach((locationId) => {
+  getRuntimeLinkedLocationIds(state, registry, state.location).forEach((locationId) => {
     markLocationKnown(state, locationId);
   });
 }
@@ -93,8 +120,9 @@ function formatSignedDelta(value: number, label: string) {
   return `${sign} ${Math.abs(value)} ${label}`;
 }
 
-function findStockNodeName(nodeId: string) {
-  for (const location of Object.values(baseLocations)) {
+function findStockNodeName(state: GameState, nodeId: string) {
+  const registry = buildRuntimeRegistry(state);
+  for (const location of Object.values(registry.locations)) {
     const node = location.stockNodes.find((entry) => entry.id === nodeId);
     if (node) {
       return node.name;
@@ -103,11 +131,19 @@ function findStockNodeName(nodeId: string) {
   return nodeId;
 }
 
-function questTitle(questId: string) {
-  return questDefinitions.find((quest) => quest.id === questId)?.title ?? questId;
+function questTitle(state: GameState, questId: string) {
+  const registry = buildRuntimeRegistry(state);
+  return getQuestDefinitions(registry).find((quest) => quest.id === questId)?.title ?? questId;
+}
+
+function itemName(state: GameState, itemId: string) {
+  const registry = buildRuntimeRegistry(state);
+  const item = registry.items[itemId] as { name?: string } | undefined;
+  return String(item?.name ?? itemId);
 }
 
 function summarizeSystemNote(previousState: GameState, nextState: GameState, fallback = "") {
+  const nextRegistry = buildRuntimeRegistry(nextState);
   const parts: string[] = [];
 
   if (!previousState.isGameOver && nextState.isGameOver && nextState.gameOverReason) {
@@ -115,7 +151,7 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
   }
 
   if (previousState.location !== nextState.location) {
-    parts.push(`이동: ${baseLocations[nextState.location]?.name ?? nextState.location}`);
+    parts.push(`이동: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`);
   }
 
   (Object.keys(STAT_LABELS) as Array<keyof typeof STAT_LABELS>).forEach((statKey) => {
@@ -138,22 +174,22 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
   itemIds.forEach((itemId) => {
     const delta = (nextState.inventory[itemId] ?? 0) - (previousState.inventory[itemId] ?? 0);
     if (delta !== 0) {
-      parts.push(formatSignedDelta(delta, baseItems[itemId as keyof typeof baseItems]?.name ?? itemId));
+      parts.push(formatSignedDelta(delta, itemName(nextState, itemId)));
     }
   });
 
   const previousDiscovered = new Set(previousState.discoveredStockNodeIds || []);
   (nextState.discoveredStockNodeIds || []).forEach((nodeId) => {
     if (!previousDiscovered.has(nodeId)) {
-      parts.push(`발견: ${findStockNodeName(nodeId)}`);
+      parts.push(`발견: ${findStockNodeName(nextState, nodeId)}`);
     }
   });
 
   if (previousState.activeStockNodeId !== nextState.activeStockNodeId) {
     if (nextState.activeStockNodeId) {
-      parts.push(`확인: ${findStockNodeName(nextState.activeStockNodeId)}`);
+      parts.push(`확인: ${findStockNodeName(nextState, nextState.activeStockNodeId)}`);
     } else if (previousState.activeStockNodeId) {
-      parts.push(`복귀: ${baseLocations[nextState.location]?.name ?? nextState.location}`);
+      parts.push(`복귀: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`);
     }
   }
 
@@ -165,9 +201,9 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
     const previousStatus = previousState.quests[questId];
     const nextStatus = nextState.quests[questId];
     if (previousStatus !== "completed" && nextStatus === "completed") {
-      parts.push(`퀘스트 완료: ${questTitle(questId)}`);
+      parts.push(`퀘스트 완료: ${questTitle(nextState, questId)}`);
     } else if ((previousStatus === "inactive" || !previousStatus) && nextStatus === "active") {
-      parts.push(`퀘스트 시작: ${questTitle(questId)}`);
+      parts.push(`퀘스트 시작: ${questTitle(nextState, questId)}`);
     }
   });
 
@@ -185,12 +221,113 @@ export function applySystemNote(previousState: GameState, nextState: GameState, 
 }
 
 export function syncScene(state: GameState, preferredSceneId?: string) {
+  const registry = buildRuntimeRegistry(state);
   const scene =
     preferredSceneId !== undefined && preferredSceneId !== ""
-      ? resolveNextSceneDefinition(state, worldRegistry, state.location, preferredSceneId)
-      : resolveSceneDefinition(state, worldRegistry, state.location);
+      ? resolveNextSceneDefinition(state, registry, state.location, preferredSceneId)
+      : resolveSceneDefinition(state, registry, state.location);
   state.sceneId = scene.id;
   state.activeEventId = scene.eventId ?? null;
+}
+
+function applyEvolutionUpdate(state: GameState, update: DayEvolutionUpdate) {
+  switch (update.type) {
+    case "stock_item":
+      state.stockState[getStockStateKey(update.locationId, update.nodeId, update.itemId)] = Math.max(0, update.quantity);
+      break;
+    case "stock_money":
+      state.stockState[getStockMoneyKey(update.locationId, update.nodeId)] = Math.max(0, update.amount);
+      break;
+    case "move_person": {
+      const person = state.dynamicContent.people[update.personId];
+      if (!person) {
+        break;
+      }
+      const previousLocationId = person.locationId;
+      person.locationId = update.locationId;
+      if (update.summary) {
+        person.summary = update.summary;
+      }
+      if (update.relationToPlayer) {
+        person.relationToPlayer = update.relationToPlayer;
+      }
+      const previousLocation = state.dynamicContent.locations[previousLocationId];
+      if (previousLocation) {
+        previousLocation.residentIds = previousLocation.residentIds.filter((residentId) => residentId !== update.personId);
+      }
+      const nextLocation = state.dynamicContent.locations[update.locationId];
+      if (nextLocation && !nextLocation.residentIds.includes(update.personId)) {
+        nextLocation.residentIds.push(update.personId);
+      }
+      break;
+    }
+    case "scene_text": {
+      const scene = state.dynamicContent.scenes[update.sceneId];
+      if (!scene) {
+        break;
+      }
+      if (update.title) {
+        scene.title = update.title;
+      }
+      if (update.paragraphs) {
+        scene.paragraphs = [...update.paragraphs];
+      }
+      break;
+    }
+    case "location_text": {
+      const location = state.dynamicContent.locations[update.locationId];
+      if (!location) {
+        break;
+      }
+      if (update.summary) {
+        location.summary = update.summary;
+      }
+      if (update.traits) {
+        location.traits = [...update.traits];
+      }
+      if (update.tags) {
+        location.tags = [...update.tags];
+      }
+      break;
+    }
+    case "activate_quest":
+      if (state.quests[update.questId] !== "completed") {
+        state.quests[update.questId] = "active";
+      }
+      break;
+    case "complete_quest":
+      state.quests[update.questId] = "completed";
+      break;
+    case "set_flag":
+      state.flags[update.flag] = true;
+      break;
+    case "clear_flag":
+      delete state.flags[update.flag];
+      break;
+  }
+}
+
+function applyPlannedWorldEvolution(state: GameState) {
+  const tomorrow = state.worldPlan.tomorrow;
+  if (!tomorrow || tomorrow.day !== state.day) {
+    return;
+  }
+
+  tomorrow.evolutions.forEach((evolution) => {
+    evolution.updates.forEach((update) => applyEvolutionUpdate(state, update));
+    addLog(state, evolution.summary);
+  });
+
+  state.worldPlan.today = {
+    day: state.day,
+    regions: [...state.worldPlan.today.regions],
+    notes: [...tomorrow.notes],
+  };
+  state.worldPlan.tomorrow = {
+    day: state.day + 1,
+    evolutions: [],
+    notes: [],
+  };
 }
 
 function applyDayTransition(state: GameState, previousDay: number) {
@@ -204,8 +341,8 @@ function applyDayTransition(state: GameState, previousDay: number) {
   state.flags[`day${state.day}_mealSecured`] = false;
   state.flags[`day${state.day}_waterSecured`] = false;
   state.lastSleepFullness = state.stats.fullness;
-  syncQuestState(state);
-  addLog(state, `${state.day}일차가 시작된다.`);
+  applyPlannedWorldEvolution(state);
+  addLog(state, `${state.day}일차가 시작되었다.`);
 }
 
 export function syncClock(state: GameState, now = Date.now()) {
@@ -252,12 +389,13 @@ export function syncClock(state: GameState, now = Date.now()) {
     triggerGameOver(state, "도시보다 먼저 정신이 무너졌다.");
   }
   if (state.stats.hp <= 0) {
-    triggerGameOver(state, "몸이 더는 생존을 버텨 내지 못했다.");
+    triggerGameOver(state, "몸이 더는 생존을 버티지 못했다.");
   }
 }
 
 export function createInitialGameState(): GameState {
   const now = Date.now();
+  const registry = buildRuntimeRegistry();
   const state: GameState = {
     saveVersion: SAVE_VERSION,
     sceneId: "prologue_opening",
@@ -286,27 +424,48 @@ export function createInitialGameState(): GameState {
     stockState: {},
     discoveredStockNodeIds: [],
     activeStockNodeId: null,
+    dynamicContent: {
+      locations: {},
+      items: {},
+      people: {},
+      quests: {},
+      skills: {},
+      actions: {},
+      choices: {},
+      events: {},
+      scenes: {},
+    },
+    worldPlan: {
+      today: { day: 1, regions: [], notes: [] },
+      tomorrow: { day: 2, evolutions: [], notes: [] },
+    },
+    frontierState: {
+      nextSequence: 1,
+      slots: {},
+    },
     flags: {
       visited_shelter: true,
     },
-    quests: Object.fromEntries(questDefinitions.map((quest) => [quest.id, "inactive" as const])),
+    quests: Object.fromEntries(getQuestDefinitions(registry).map((quest) => [quest.id, "inactive" as const])),
     lastSleepFullness: 8,
     starvationLevel: 0,
-    log: [{ timestampLabel: "1일차 06:00", message: "눈을 뜬 당신은 오늘 하루를 어떻게든 버텨 내야 한다는 사실부터 떠올린다." }],
+    log: [{ timestampLabel: "1일차 06:00", message: "눈을 뜬 당신은 오늘 하루를 어떻게든 버텨야 한다는 사실부터 떠올린다." }],
     systemNote: "",
   };
   refreshLocationKnowledge(state);
   syncScene(state, state.sceneId);
-  syncQuestState(state);
+  syncQuestState(state, {});
   return state;
 }
 
 function resolveTravelRequirement(state: GameState, targetId: string) {
-  const link = baseLocations[state.location].links[targetId];
+  const registry = buildRuntimeRegistry(state);
+  const currentLocation = getRuntimeLocationDefinition(state, registry, state.location);
+  const link = currentLocation.links[targetId];
   if (!link) {
     return {
       allowed: false,
-      reason: "여기서 바로 이어지는 길은 아니다.",
+      reason: "거기로 바로 이어지는 길은 아직 없다.",
     };
   }
 
@@ -320,8 +479,13 @@ function resolveTravelRequirement(state: GameState, targetId: string) {
   return { allowed: true, reason: "" };
 }
 
-function useItem(state: GameState, itemId: keyof typeof baseItems) {
-  const item = baseItems[itemId];
+function useItem(state: GameState, itemId: string) {
+  const registry = buildRuntimeRegistry(state);
+  const item = registry.items[itemId] as {
+    name: string;
+    kind: string;
+    effects: { hp: number; mind: number; fullness: number; starvationRelief: number };
+  } | undefined;
   const count = state.inventory[itemId] || 0;
   if (!item || count <= 0) {
     throw new Error("지금은 그 아이템을 사용할 수 없다.");
@@ -356,7 +520,8 @@ function useItem(state: GameState, itemId: keyof typeof baseItems) {
 }
 
 function consumeCurrentSceneIntro(state: GameState) {
-  const scene = resolveSceneDefinition(state, worldRegistry, state.location);
+  const registry = buildRuntimeRegistry(state);
+  const scene = resolveSceneDefinition(state, registry, state.location);
   const introFlag = scene.introFlag;
   if (!introFlag || state.flags[introFlag]) {
     return;
@@ -395,7 +560,7 @@ function applyShelterSleepBonus(state: GameState) {
 
   adjustStat(state, "hp", 1);
   adjustStat(state, "mind", 1);
-  addLog(state, "덧댄 천막 덕분에 밤새 찬바람을 덜 맞았다. 잠에서 깨어난 몸과 마음이 조금 더 또렷하다.");
+  addLog(state, "보강해 둔 천막이 바람을 조금 막아 주어, 한숨 자고 난 뒤 몸과 마음이 한결 가벼워졌다.");
 }
 
 function executeShelterCookingAction(state: GameState, action: ActionDefinition): ExecutionResult {
@@ -446,23 +611,10 @@ function executeActionDefinition(state: GameState, action: ActionDefinition): Ex
   };
 }
 
-function executeChoiceDefinition(state: GameState, choice: ChoiceDefinition): ExecutionResult {
-  if (!choiceConditionsMet(choice, state)) {
-    throw new Error("지금은 그 선택지를 고를 수 없다.");
-  }
-
-  consumeCurrentSceneIntro(state);
-  applyDefinitionEffects(state, choice.effects);
-  return {
-    preferredSceneId: choice.nextSceneId,
-    fallbackNote: choice.label,
-  };
-}
-
 function executeSceneChoiceDefinition(state: GameState, choice: ChoiceDefinition): ExecutionResult {
   if (!choiceConditionsMet(choice, state)) {
     if (choice.presentationMode !== "always") {
-      throw new Error("Scene choice is not currently available.");
+      throw new Error("지금은 그 선택지를 고를 수 없다.");
     }
 
     applyDefinitionEffects(state, choice.failureEffects);
@@ -480,42 +632,10 @@ function executeSceneChoiceDefinition(state: GameState, choice: ChoiceDefinition
   };
 }
 
-function runActionDefinition(state: GameState, action: ActionDefinition) {
-  if (!action.conditions.every((condition) => evaluateCondition(condition, state))) {
-    throw new Error("지금은 그 행동을 할 수 없다.");
-  }
-  consumeCurrentSceneIntro(state);
-
-  if (action.id === "sleep_at_shelter") {
-    const canSleep = evaluateCondition({ type: "shelter_sleep_window" }, state);
-    if (!canSleep) {
-      const detail =
-        "아직 해가 지지 않았다. 잠자리는 상단 시계 기준 오후 6시가 지난 뒤부터 이용할 수 있고, 잠들면 다음날 아침 6시에 깨어난다.";
-      addLog(state, detail);
-      state.systemNote = "오후 6시 이후부터 잠자기를 이용할 수 있다.";
-      return action.nextSceneId;
-    }
-    action.effects.forEach((effect) => applyEffect(effect, state));
-    jumpToNextDaybreak(state);
-    return action.nextSceneId;
-  }
-
-  action.effects.forEach((effect) => applyEffect(effect, state));
-  return action.nextSceneId;
-}
-
-function runChoiceDefinition(state: GameState, choice: ChoiceDefinition) {
-  if (!choice.conditions.every((condition) => evaluateCondition(condition, state))) {
-    throw new Error("지금은 그 선택지를 고를 수 없다.");
-  }
-  consumeCurrentSceneIntro(state);
-  choice.effects.forEach((effect) => applyEffect(effect, state));
-  return choice.nextSceneId;
-}
-
 export function performAction(state: GameState, action: GameAction) {
   const previousState = structuredClone(state);
   syncClock(state);
+  const registry = buildRuntimeRegistry(state);
   let fallbackNote = "";
   let preferredSceneId: string | undefined;
 
@@ -530,17 +650,17 @@ export function performAction(state: GameState, action: GameAction) {
       state.flags[`visited_${action.targetId}`] = true;
       state.activeStockNodeId = null;
       refreshLocationKnowledge(state);
-      fallbackNote = `이동: ${baseLocations[action.targetId].name}`;
-      addLog(state, `${baseLocations[action.targetId].name}(으)로 움직였다.`);
+      fallbackNote = `이동: ${String(registry.locations[action.targetId]?.name ?? action.targetId)}`;
+      addLog(state, `${String(registry.locations[action.targetId]?.name ?? action.targetId)}(으)로 움직였다.`);
       break;
     }
     case "use_item": {
-      useItem(state, action.itemId as keyof typeof baseItems);
-      fallbackNote = baseItems[action.itemId as keyof typeof baseItems]?.name ?? action.itemId;
+      useItem(state, action.itemId);
+      fallbackNote = itemName(state, action.itemId);
       break;
     }
     case "content_action": {
-      const definition = worldRegistry.actions[action.actionId];
+      const definition = registry.actions[action.actionId];
       if (!definition) {
         throw new Error(`알 수 없는 행동 '${action.actionId}'이다.`);
       }
@@ -548,7 +668,7 @@ export function performAction(state: GameState, action: GameAction) {
       break;
     }
     case "content_choice": {
-      const definition = worldRegistry.choices[action.choiceId];
+      const definition = registry.choices[action.choiceId];
       if (!definition) {
         throw new Error(`알 수 없는 선택지 '${action.choiceId}'이다.`);
       }
@@ -556,20 +676,23 @@ export function performAction(state: GameState, action: GameAction) {
       break;
     }
     case "rest": {
-      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, worldRegistry.actions.rest_light_at_shelter));
+      const definition = registry.actions.rest_light_at_shelter;
+      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
       break;
     }
     case "cook": {
-      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, worldRegistry.actions.cook_at_shelter));
+      const definition = registry.actions.cook_at_shelter;
+      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
       break;
     }
     case "buy_meal": {
-      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, worldRegistry.actions.buy_meal_at_kitchen));
+      const definition = registry.actions.buy_meal_at_kitchen;
+      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
       break;
     }
     case "generate_event": {
       consumeCurrentSceneIntro(state);
-      fallbackNote = "새 단서를 살핀다";
+      fallbackNote = "이야기를 이어간다.";
       break;
     }
     default: {
@@ -578,17 +701,17 @@ export function performAction(state: GameState, action: GameAction) {
     }
   }
 
-  syncQuestState(state);
-  // 3. 선택 결과 서사: 성공한 액션 뒤에만 다음 scene을 계산한다.
+  syncQuestState(state, previousState.quests);
   syncScene(state, preferredSceneId);
   applySystemNote(previousState, state, fallbackNote);
 }
 
 export function summarizeState(state: GameState) {
+  const registry = buildRuntimeRegistry(state);
   return {
     day: state.day,
     phase: PHASES[state.phaseIndex],
-    location: baseLocations[state.location].name,
+    location: String(registry.locations[state.location]?.name ?? state.location),
     hp: state.stats.hp,
     mind: state.stats.mind,
     fullness: state.stats.fullness,

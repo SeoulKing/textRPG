@@ -23,6 +23,20 @@ export const convenienceChoices: ActionDefinition[] = [
     ],
     tags: ["survey"],
   }),
+  interactionFor("convenience", {
+    id: "push_beyond_convenience_ruins",
+    label: "골목 안쪽으로 나아가기",
+    type: "explore",
+    outcomeHint: "편의점 폐허 너머의 막힌 골목을 더 밀고 들어가며, 아직 닿지 않은 구역을 연다.",
+    effects: [
+      {
+        type: "log",
+        message: "편의점 폐허를 지나 더 깊은 골목으로 발을 옮긴다. 익숙한 생활 구역 바깥의 기척이 가까워진다.",
+      },
+    ],
+    tags: ["frontier", "explore"],
+    riskHint: "medium",
+  }),
 ];
 
 export const convenienceLocation: LocationDefinition = {

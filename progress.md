@@ -178,3 +178,42 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   rewrote `accept_first_canned_food_quest` so the second prologue choice now explicitly reads like accepting a quest, including a `퀘스트:` prefix that reuses the existing quest-button visual treatment in the client.
 - Shelter action label normalization:
   updated the shelter hub and crafting-menu choice labels to a unified menu tone (`~하기`) so the temporary shelter reads like one consistent interaction list instead of mixing sentence-style and menu-style wording.
+- Implemented the first dynamic-world expansion spine:
+  `GameState` now persists `dynamicContent`, `worldPlan`, and `frontierState`, and new schemas live in `src/game/schemas/dynamic-world.ts`.
+- Added `src/game/runtime-registry.ts` so runtime logic now merges seed registry + per-save dynamic registry and exposes frontier-expanded links from save state.
+- Generalized static registry validation:
+  `src/game/data/registry.ts` now exports `validateRegistry(registry)` so generated packages can be checked with the same structural rules as authored seed content.
+- Added `src/game/world-planner.ts`:
+  template fallback world planner + optional remote planner,
+  generated region package schema/guardrails,
+  deterministic region themes (`subway_gate`, `apartment_office`, `street_pharmacy`),
+  and tomorrow-evolution planning.
+- Rebuilt `src/game/rules.ts` around runtime registry lookups instead of hardcoded `baseLocations/baseItems/worldRegistry`.
+  This includes dynamic quest syncing/rewards, dynamic stock-node resolution, dynamic travel validation, dynamic item usage, and applying `worldPlan.tomorrow` evolutions on day transition.
+- Rebuilt `src/game/service.ts` around runtime registry + frontier expansion flow.
+  `content_action` with `frontier` tag is now intercepted by the service:
+  planner -> validate -> merge `dynamicContent` -> update `frontierState`/`worldPlan` -> move player -> optional entry event -> snapshot rebuild.
+- Seed boundary actions added:
+  `push_beyond_convenience_ruins`
+  `push_beyond_kitchen_lane`
+  so authored start regions remain fixed while frontier growth begins at explicit exits.
+- Repository normalization now preserves generated ids instead of pruning them:
+  dynamic locations/items/quests/scenes/events/stock state survive save/load,
+  and item-card normalization allows dynamic inventory items.
+- Content generator now reads from runtime registry, so generated locations / people / items produce cards through the existing pipeline without a parallel system.
+- Runtime verification passed with direct `GameService` probes:
+  1. prologue -> convenience frontier -> generated region package
+  2. generated entry event surfaced a quest acceptance choice
+  3. generated region actions (`inspect`, `talk`, `frontier`, `deliver`) rendered
+  4. generated stock node could be entered and looted
+  5. save/load preserved `dynamicContent.locations`
+  6. day transition applied generated evolution flags
+  7. generated frontier chained into a second dynamic region from the first generated region
+- Validation / build checks passed after the dynamic-world implementation:
+  `npm run typecheck`
+  `npm run content:validate`
+  `npm run build`
+- Browser/server smoke check passed:
+  restarted local server on port 3000,
+  `/api/health` returned ok,
+  and headless Edge DOM dump showed the game booting and rendering the prologue scene without client-side boot failure.

@@ -1,5 +1,6 @@
-import { baseItems, baseLocations, basePeople, PHASES } from "./base-data";
+import { PHASES } from "./base-data";
 import { summarizeState } from "./rules";
+import { buildRuntimeRegistry } from "./runtime-registry";
 import type {
   ActionChoice,
   EventCard,
@@ -56,7 +57,8 @@ const SCENE_CARD_CACHE_VERSION = 5;
 
 class TemplateContentGenerator implements ContentGenerator {
   async generateLocationCard(locationId: string, input: GeneratorInput) {
-    const location = baseLocations[locationId];
+    const registry = buildRuntimeRegistry(input.state);
+    const location = registry.locations[locationId];
     const availableActionIds = (location.interactionChoices ?? []).map((choice) => choice.id);
     return LocationCardSchema.parse({
       id: location.id,
@@ -78,7 +80,11 @@ class TemplateContentGenerator implements ContentGenerator {
   }
 
   async generatePersonCard(personId: string, _input: GeneratorInput) {
-    const person = basePeople[personId as keyof typeof basePeople];
+    const registry = buildRuntimeRegistry(_input.state);
+    const person = registry.people[personId] as Omit<PersonCard, "source" | "generatedAt"> | undefined;
+    if (!person) {
+      throw new Error(`Unknown person '${personId}'.`);
+    }
     return PersonCardSchema.parse({
       ...person,
       source: "template",
@@ -87,7 +93,11 @@ class TemplateContentGenerator implements ContentGenerator {
   }
 
   async generateItemCard(itemId: string, _input: GeneratorInput) {
-    const item = baseItems[itemId as keyof typeof baseItems];
+    const registry = buildRuntimeRegistry(_input.state);
+    const item = registry.items[itemId] as Omit<ItemCard, "source" | "generatedAt"> | undefined;
+    if (!item) {
+      throw new Error(`Unknown item '${itemId}'.`);
+    }
     return ItemCardSchema.parse({
       ...item,
       source: "template",
@@ -273,4 +283,3 @@ export function createContentGenerator() {
 
   return new RemoteContentGenerator(apiUrl, apiKey, model, fallback);
 }
-

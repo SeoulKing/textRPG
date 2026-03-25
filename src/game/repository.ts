@@ -1,8 +1,11 @@
 import { copyFile, mkdir, readFile, rename, unlink, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 import {
+  DynamicWorldRegistrySchema,
+  FrontierStateSchema,
   GameSessionSchema,
   TemplateStoreSchema,
+  WorldPlanSchema,
   WorldInstanceSchema,
   type EventCard,
   type GameSession,
@@ -15,31 +18,23 @@ import {
   type TemplateStore,
   type WorldInstance,
 } from "./schemas";
-import { SAVE_VERSION, baseLocations } from "./base-data";
-import { basePeople } from "./data/people";
+import { SAVE_VERSION } from "./base-data";
 import { worldRegistry } from "./data/registry";
 import { formatLogTimestamp } from "./state-utils";
+import { buildRuntimeRegistry, emptyDynamicWorldRegistry } from "./runtime-registry";
 
 export type CardKind = "locationCards" | "personCards" | "itemCards" | "eventCards" | "sceneCards";
 export type StoredCard = LocationCard | PersonCard | ItemCard | EventCard | SceneCard;
 
-const validLocationIds = new Set(Object.keys(baseLocations));
-const validQuestIds = new Set(Object.keys(worldRegistry.quests));
-const validSceneIds = new Set(Object.keys(worldRegistry.scenes));
-const validEventFlags = new Set(Object.keys(worldRegistry.events).map((eventId) => `event_seen_${eventId}`));
-const validItemIds = new Set(Object.keys(worldRegistry.items));
-const validStockNodeLocationIds = new Map<string, string>();
-const validStockStateKeys = new Set<string>();
-
-for (const location of Object.values(baseLocations)) {
-  for (const node of location.stockNodes) {
-    validStockNodeLocationIds.set(node.id, location.id);
-    validStockStateKeys.add(`${location.id}:${node.id}:$money`);
-    for (const item of node.items) {
-      validStockStateKeys.add(`${location.id}:${node.id}:${item.itemId}`);
-    }
-  }
-}
+type ValidContentIds = {
+  validLocationIds: Set<string>;
+  validQuestIds: Set<string>;
+  validSceneIds: Set<string>;
+  validEventFlags: Set<string>;
+  validItemIds: Set<string>;
+  validStockNodeLocationIds: Map<string, string>;
+  validStockStateKeys: Set<string>;
+};
 
 export const emptyTemplateStore: TemplateStore = {
   locationCards: {},
@@ -50,16 +45,80 @@ export const emptyTemplateStore: TemplateStore = {
   protagonistCard: null,
 };
 
+function normalizeDynamicContent(raw: unknown) {
+  const parsed = DynamicWorldRegistrySchema.safeParse(raw && typeof raw === "object" ? raw : {});
+  return parsed.success ? parsed.data : structuredClone(emptyDynamicWorldRegistry);
+}
+
+function normalizeWorldPlan(raw: unknown, currentDay: number) {
+  const parsed = WorldPlanSchema.safeParse(raw);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  return WorldPlanSchema.parse({
+    today: { day: currentDay, regions: [], notes: [] },
+    tomorrow: { day: currentDay + 1, evolutions: [], notes: [] },
+  });
+}
+
+function normalizeFrontierState(raw: unknown) {
+  const parsed = FrontierStateSchema.safeParse(raw);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  return FrontierStateSchema.parse({ nextSequence: 1, slots: {} });
+}
+
+function buildValidContentIds(dynamicContent: GameState["dynamicContent"]): ValidContentIds {
+  const registry = buildRuntimeRegistry({ dynamicContent });
+  const validLocationIds = new Set(Object.keys(registry.locations));
+  const validQuestIds = new Set(Object.keys(registry.quests));
+  const validSceneIds = new Set(Object.keys(registry.scenes));
+  const validEventFlags = new Set(Object.keys(registry.events).map((eventId) => `event_seen_${eventId}`));
+  const validItemIds = new Set(Object.keys(registry.items));
+  const validStockNodeLocationIds = new Map<string, string>();
+  const validStockStateKeys = new Set<string>();
+
+  for (const location of Object.values(registry.locations)) {
+    for (const node of location.stockNodes) {
+      validStockNodeLocationIds.set(node.id, location.id);
+      validStockStateKeys.add(`${location.id}:${node.id}:$money`);
+      for (const item of node.items) {
+        validStockStateKeys.add(`${location.id}:${node.id}:${item.itemId}`);
+      }
+    }
+  }
+
+  return {
+    validLocationIds,
+    validQuestIds,
+    validSceneIds,
+    validEventFlags,
+    validItemIds,
+    validStockNodeLocationIds,
+    validStockStateKeys,
+  };
+}
+
 function isJsonParseError(error: unknown) {
   return error instanceof SyntaxError;
 }
 
-function fallbackSceneId(locationId: string) {
-  const scene = Object.values(worldRegistry.scenes).find((entry) => entry.locationId === locationId);
-  return scene?.id || "shelter_day_intro";
+function fallbackSceneId(locationId: string, validSceneIds: Set<string>, dynamicContent: GameState["dynamicContent"]) {
+  const registry = buildRuntimeRegistry({ dynamicContent });
+  const scene = Object.values(registry.scenes).find((entry) => entry.locationId === locationId);
+  if (scene && validSceneIds.has(scene.id)) {
+    return scene.id;
+  }
+  const seedScene = Object.values(worldRegistry.scenes).find((entry) => entry.locationId === locationId);
+  return seedScene?.id || "shelter_day_intro";
 }
 
-function pruneFlags(flags: Record<string, boolean | number | string>) {
+function pruneFlags(
+  flags: Record<string, boolean | number | string>,
+  validLocationIds: Set<string>,
+  validEventFlags: Set<string>,
+) {
   return Object.fromEntries(
     Object.entries(flags).filter(([key]) => {
       if (key.startsWith("visited_") || key.startsWith("known_")) {
@@ -74,13 +133,16 @@ function pruneFlags(flags: Record<string, boolean | number | string>) {
   );
 }
 
-function pruneQuests(quests: Record<string, "inactive" | "active" | "completed">) {
+function pruneQuests(
+  quests: Record<string, "inactive" | "active" | "completed">,
+  validQuestIds: Set<string>,
+) {
   return Object.fromEntries(
     Array.from(validQuestIds).map((questId) => [questId, quests[questId] ?? "inactive"]),
   ) as Record<string, "inactive" | "active" | "completed">;
 }
 
-function pruneStockState(rawStockState: unknown) {
+function pruneStockState(rawStockState: unknown, validStockStateKeys: Set<string>) {
   if (!rawStockState || typeof rawStockState !== "object") {
     return {};
   }
@@ -92,7 +154,7 @@ function pruneStockState(rawStockState: unknown) {
   ) as Record<string, number>;
 }
 
-function pruneDiscoveredStockNodes(rawNodeIds: unknown) {
+function pruneDiscoveredStockNodes(rawNodeIds: unknown, validStockNodeLocationIds: Map<string, string>) {
   if (!Array.isArray(rawNodeIds)) {
     return [];
   }
@@ -185,7 +247,7 @@ function normalizeLogEntries(rawValue: unknown, day: number, worldElapsedMs: num
   }).slice(0, 20);
 }
 
-function normalizeInventory(rawInventory: unknown) {
+function normalizeInventory(rawInventory: unknown, validItemIds: Set<string>) {
   if (!rawInventory || typeof rawInventory !== "object") {
     return {};
   }
@@ -208,6 +270,9 @@ function normalizeStats(rawStats: unknown) {
 
 function pruneState(state: unknown): GameState {
   const rawState = (state && typeof state === "object" ? state : {}) as Partial<GameState> & Record<string, unknown>;
+  const dynamicContent = normalizeDynamicContent(rawState.dynamicContent);
+  const { validLocationIds, validQuestIds, validSceneIds, validEventFlags, validItemIds, validStockNodeLocationIds, validStockStateKeys } =
+    buildValidContentIds(dynamicContent);
   const rawLocation = typeof rawState.location === "string" ? rawState.location : "shelter";
   const nextLocation = validLocationIds.has(rawLocation) ? rawLocation : "shelter";
   const nextDay = normalizeInt(rawState.day, 1, 1);
@@ -216,26 +281,31 @@ function pruneState(state: unknown): GameState {
     rawState.flags && typeof rawState.flags === "object"
       ? rawState.flags as Record<string, boolean | number | string>
       : {},
+    validLocationIds,
+    validEventFlags,
   );
   const nextQuests = pruneQuests(
     rawState.quests && typeof rawState.quests === "object"
       ? rawState.quests as Record<string, "inactive" | "active" | "completed">
       : {},
+    validQuestIds,
   );
-  const nextStockState = pruneStockState(rawState.stockState);
-  const discoveredStockNodeIds = pruneDiscoveredStockNodes(rawState.discoveredStockNodeIds);
+  const nextStockState = pruneStockState(rawState.stockState, validStockStateKeys);
+  const discoveredStockNodeIds = pruneDiscoveredStockNodes(rawState.discoveredStockNodeIds, validStockNodeLocationIds);
   const rawActiveStockNodeId = typeof rawState.activeStockNodeId === "string" ? rawState.activeStockNodeId : null;
   const activeStockNodeId = rawActiveStockNodeId && validStockNodeLocationIds.get(rawActiveStockNodeId) === nextLocation
     ? rawActiveStockNodeId
     : null;
+  const frontierState = normalizeFrontierState(rawState.frontierState);
+  const worldPlan = normalizeWorldPlan(rawState.worldPlan, nextDay);
   nextFlags[`visited_${nextLocation}`] = true;
   return {
     saveVersion: SAVE_VERSION,
     location: nextLocation,
     sceneId: typeof rawState.sceneId === "string" && validSceneIds.has(rawState.sceneId)
       ? rawState.sceneId
-      : fallbackSceneId(nextLocation),
-    activeEventId: typeof rawState.activeEventId === "string" && worldRegistry.events[rawState.activeEventId]
+      : fallbackSceneId(nextLocation, validSceneIds, dynamicContent),
+    activeEventId: typeof rawState.activeEventId === "string" && validEventFlags.has(`event_seen_${rawState.activeEventId}`)
       ? rawState.activeEventId
       : null,
     day: nextDay,
@@ -250,7 +320,10 @@ function pruneState(state: unknown): GameState {
     stats: normalizeStats(rawState.stats),
     money: normalizeInt(rawState.money, 0, 0),
     skills: normalizeStringArray(rawState.skills),
-    inventory: normalizeInventory(rawState.inventory),
+    inventory: normalizeInventory(rawState.inventory, validItemIds),
+    dynamicContent,
+    worldPlan,
+    frontierState,
     flags: nextFlags,
     quests: nextQuests,
     lastSleepFullness: normalizeInt(rawState.lastSleepFullness, 8, 0, 10),
@@ -265,7 +338,7 @@ function pruneState(state: unknown): GameState {
   };
 }
 
-function normalizeItemCards(raw: unknown) {
+function normalizeItemCards(raw: unknown, validItemIds: Set<string>) {
   const cards = raw && typeof raw === "object" ? raw as Record<string, ItemCard> : {};
   return Object.fromEntries(
     Object.entries(cards).filter(([id]) => validItemIds.has(id)),
@@ -274,11 +347,12 @@ function normalizeItemCards(raw: unknown) {
 
 export function normalizeTemplateStore(raw: unknown): TemplateStore {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Partial<TemplateStore> & Record<string, unknown>;
+  const validItemIds = new Set(Object.keys(worldRegistry.items));
 
   return TemplateStoreSchema.parse({
     locationCards: {},
     personCards: {},
-    itemCards: normalizeItemCards(parsed.itemCards),
+    itemCards: normalizeItemCards(parsed.itemCards, validItemIds),
     eventCards: {},
     sceneCards: {},
     protagonistCard: parsed.protagonistCard ?? null,
@@ -295,7 +369,7 @@ const emptyWorld: WorldInstance = {
 };
 
 /** 게임 저장본의 world를 보존한다. (예전에는 템플릿 정규화로 카드가 전부 비워져 로드 직후 상태가 꼬일 수 있었다.) */
-function normalizeWorldPayload(raw: unknown): WorldInstance {
+function normalizeWorldPayload(raw: unknown, validItemIds: Set<string>): WorldInstance {
   if (!raw || typeof raw !== "object") {
     return WorldInstanceSchema.parse(emptyWorld);
   }
@@ -303,7 +377,7 @@ function normalizeWorldPayload(raw: unknown): WorldInstance {
   const candidate = {
     locationCards: w.locationCards && typeof w.locationCards === "object" ? w.locationCards : {},
     personCards: w.personCards && typeof w.personCards === "object" ? w.personCards : {},
-    itemCards: normalizeItemCards(w.itemCards),
+    itemCards: normalizeItemCards(w.itemCards, validItemIds),
     eventCards: w.eventCards && typeof w.eventCards === "object" ? w.eventCards : {},
     sceneCards: w.sceneCards && typeof w.sceneCards === "object" ? w.sceneCards : {},
     protagonistCard: w.protagonistCard ?? null,
@@ -321,7 +395,8 @@ function normalizeWorldPayload(raw: unknown): WorldInstance {
 export function normalizeGameSession(raw: unknown): GameSession {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const nextState = pruneState(parsed.state as GameState);
-  const nextWorld = normalizeWorldPayload(parsed.world);
+  const { validItemIds } = buildValidContentIds(nextState.dynamicContent);
+  const nextWorld = normalizeWorldPayload(parsed.world, validItemIds);
   return GameSessionSchema.parse({
     ...parsed,
     state: nextState,

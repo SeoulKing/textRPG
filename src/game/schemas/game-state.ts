@@ -2,6 +2,7 @@ import { z } from "zod";
 import { PlayerSchema } from "./player";
 import { WorldStateSchema } from "./world-state";
 import { QuestStateSchema } from "./quest";
+import { DynamicWorldRegistrySchema, FrontierStateSchema, WorldPlanSchema } from "./dynamic-world";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -33,6 +34,22 @@ export const GameStateSchema = z.object({
   stockState: z.record(z.string(), z.number().int().nonnegative()).default({}),
   discoveredStockNodeIds: z.array(z.string()).default([]),
   activeStockNodeId: z.string().nullable().default(null),
+  dynamicContent: DynamicWorldRegistrySchema.default({
+    locations: {},
+    items: {},
+    people: {},
+    quests: {},
+    skills: {},
+    actions: {},
+    choices: {},
+    events: {},
+    scenes: {},
+  }),
+  worldPlan: WorldPlanSchema.default({
+    today: { day: 1, regions: [], notes: [] },
+    tomorrow: { day: 2, evolutions: [], notes: [] },
+  }),
+  frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),
   lastSleepFullness: z.number().int().min(0).max(10),

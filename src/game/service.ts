@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { baseLocations, getQuestEntries, getSkillEntries, PHASES } from "./base-data";
+import { PHASES, getSkillEntries } from "./base-data";
 import {
   buildStoryChoiceFromChoice,
   resolveEventChoices,
@@ -7,13 +7,24 @@ import {
   resolveTriggeredEvents,
 } from "./content-engine";
 import { createContentGenerator, type ContentGenerator } from "./content-generator";
-import { worldRegistry } from "./data/registry";
 import type { GameRepository } from "./repository";
-import { applySystemNote, createInitialGameState, performAction, refreshLocationKnowledge, syncClock, syncQuestState, syncScene } from "./rules";
+import {
+  applySystemNote,
+  createInitialGameState,
+  performAction,
+  refreshLocationKnowledge,
+  syncClock,
+  syncQuestState,
+  syncScene,
+} from "./rules";
+import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition, mergeDynamicWorldRegistry } from "./runtime-registry";
 import { buildActionCatalogFromStoryChoices, resolveStoryFrame } from "./story-flow";
 import type {
   ActionChoice,
+  ActionDefinition,
+  ContentRegistry,
   EventCard,
+  EventDefinition,
   GameAction,
   GameSession,
   ItemCard,
@@ -25,7 +36,8 @@ import type {
   StateSnapshot,
   StoryMaterials,
 } from "./schemas";
-import { SceneCardSchema, StateSnapshotSchema } from "./schemas";
+import { EventCardSchema, SceneCardSchema, StateSnapshotSchema } from "./schemas";
+import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from "./world-planner";
 
 function nowIso() {
   return new Date().toISOString();
@@ -37,6 +49,7 @@ export class GameService {
   constructor(
     private readonly repository: GameRepository,
     private readonly generator: ContentGenerator = createContentGenerator(),
+    private readonly planner: WorldPlanner = createWorldPlanner(),
   ) {}
 
   async createGame() {
@@ -65,9 +78,10 @@ export class GameService {
     const session = await this.repository.loadGame(gameId);
     const previousState = structuredClone(session.state);
     syncClock(session.state);
-    syncQuestState(session.state);
+    syncQuestState(session.state, previousState.quests);
     syncScene(session.state);
     applySystemNote(previousState, session.state);
+    await this.replanTomorrowIfNeeded(session, previousState.day);
     session.updatedAt = nowIso();
     await this.ensureCards(session);
     const snapshot = this.buildSnapshot(session, null);
@@ -77,17 +91,28 @@ export class GameService {
 
   async performAction(gameId: string, action: GameAction) {
     const session = await this.repository.loadGame(gameId);
-    const followUpEventId = this.followUpEventId(action);
+    const previousDay = session.state.day;
+    const registry = this.runtimeRegistry(session);
 
+    if (this.isFrontierAction(action, registry)) {
+      const snapshot = await this.expandFrontier(session, action, registry);
+      await this.repository.saveGame(session);
+      return snapshot;
+    }
+
+    const followUpEventId = this.followUpEventId(action, registry);
     performAction(session.state, action);
     session.updatedAt = nowIso();
     session.world.sceneCards = {};
 
+    await this.replanTomorrowIfNeeded(session, previousDay);
+    const nextRegistry = this.runtimeRegistry(session);
+
     let latestEvent: EventCard | null = null;
     if (followUpEventId) {
-      latestEvent = await this.ensureEventCardById(session, followUpEventId);
-    } else if (this.isExploreAction(action)) {
-      latestEvent = await this.ensureTriggeredEventCard(session, session.state.location);
+      latestEvent = await this.ensureEventCardById(session, followUpEventId, nextRegistry);
+    } else if (this.isExploreAction(action, nextRegistry)) {
+      latestEvent = await this.ensureTriggeredEventCard(session, session.state.location, nextRegistry);
     }
 
     await this.ensureCards(session);
@@ -105,23 +130,27 @@ export class GameService {
 
   async getMap(gameId: string) {
     const session = await this.repository.loadGame(gameId);
+    const previousDay = session.state.day;
     syncClock(session.state);
+    syncQuestState(session.state);
     syncScene(session.state);
+    await this.replanTomorrowIfNeeded(session, previousDay);
     await this.ensureCards(session);
     await this.repository.saveGame(session);
     return {
       gameId,
       location: session.state.location,
-      visibleLocations: this.visibleLocationIds(session.state.location, session.state.flags).map(
-        (locationId) => session.world.locationCards[locationId],
-      ),
+      visibleLocations: this.visibleLocationIds(session).map((locationId) => session.world.locationCards[locationId]),
     };
   }
 
   async getInventory(gameId: string) {
     const session = await this.repository.loadGame(gameId);
+    const previousDay = session.state.day;
     syncClock(session.state);
+    syncQuestState(session.state);
     syncScene(session.state);
+    await this.replanTomorrowIfNeeded(session, previousDay);
     await this.ensureCards(session);
     await this.repository.saveGame(session);
     return {
@@ -131,31 +160,54 @@ export class GameService {
     };
   }
 
-  private visibleLocationIds(currentLocationId: string, flags: Record<string, boolean | number | string>) {
-    const ids = new Set<string>([currentLocationId]);
-    Object.keys(baseLocations).forEach((locationId) => {
-      if (flags[`visited_${locationId}`] || flags[`known_${locationId}`]) {
+  private runtimeRegistry(session: Pick<GameSession, "state"> | Pick<{ state: GameSession["state"] }, "state">) {
+    return buildRuntimeRegistry(session.state);
+  }
+
+  private visibleLocationIds(session: Pick<GameSession, "state">) {
+    const registry = this.runtimeRegistry(session);
+    const ids = new Set<string>([session.state.location]);
+    Object.keys(registry.locations).forEach((locationId) => {
+      if (session.state.flags[`visited_${locationId}`] || session.state.flags[`known_${locationId}`]) {
         ids.add(locationId);
       }
     });
     return Array.from(ids);
   }
 
-  private async ensureCards(session: GameSession) {
-    const visibleLocationIds = this.visibleLocationIds(session.state.location, session.state.flags);
-    const allMapLocationIds = Object.keys(baseLocations);
-    for (const locationId of new Set([...visibleLocationIds, ...allMapLocationIds])) {
-      await this.ensureLocationCard(session, locationId);
+  private currentLocation(session: Pick<GameSession, "state">, registry = this.runtimeRegistry(session)) {
+    return getRuntimeLocationDefinition(session.state, registry, session.state.location);
+  }
+
+  private async replanTomorrowIfNeeded(session: GameSession, previousDay: number) {
+    if (session.state.day === previousDay && session.state.worldPlan.tomorrow && session.state.worldPlan.tomorrow.day === session.state.day + 1) {
+      return;
     }
 
-    const visiblePersonIds = this.visiblePersonIds(session);
+    session.state.worldPlan.today = {
+      day: session.state.day,
+      regions: session.state.worldPlan.today.regions.filter((region) => session.state.flags[`visited_${region.locationId}`] || region.createdDay === session.state.day),
+      notes: session.state.worldPlan.today.notes,
+    };
+    session.state.worldPlan.tomorrow = await this.planner.planTomorrow(session.state, this.runtimeRegistry(session));
+  }
+
+  private async ensureCards(session: GameSession) {
+    const registry = this.runtimeRegistry(session);
+    const visibleLocationIds = this.visibleLocationIds(session);
+    const allMapLocationIds = Object.keys(registry.locations);
+    for (const locationId of new Set([...visibleLocationIds, ...allMapLocationIds])) {
+      await this.ensureLocationCard(session, locationId, registry);
+    }
+
+    const visiblePersonIds = this.visiblePersonIds(session, registry);
     for (const personId of visiblePersonIds) {
-      await this.ensurePersonCard(session, personId);
+      await this.ensurePersonCard(session, personId, registry);
     }
 
     const itemIds = new Set<string>(Object.keys(session.state.inventory));
     visibleLocationIds.forEach((locationId) => {
-      baseLocations[locationId].obtainableItemIds.forEach((itemId) => itemIds.add(itemId));
+      registry.locations[locationId]?.obtainableItemIds.forEach((itemId) => itemIds.add(itemId));
     });
     visiblePersonIds.forEach((personId) => {
       const person = session.world.personCards[personId];
@@ -163,24 +215,24 @@ export class GameService {
     });
 
     for (const itemId of itemIds) {
-      await this.ensureItemCard(session, itemId);
+      await this.ensureItemCard(session, itemId, registry);
     }
 
     await this.ensureProtagonistCard(session);
-    await this.ensureSceneCard(session);
+    await this.ensureSceneCard(session, registry);
   }
 
-  private visiblePersonIds(session: GameSession) {
-    return [...baseLocations[session.state.location].residentIds];
+  private visiblePersonIds(session: Pick<GameSession, "state" | "world">, registry = this.runtimeRegistry(session)) {
+    return [...this.currentLocation(session, registry).residentIds];
   }
 
-  private generatorInput(session: GameSession, includeProtagonist: boolean) {
+  private generatorInput(session: GameSession, includeProtagonist: boolean, registry = this.runtimeRegistry(session)) {
     return {
       state: session.state,
       gameId: session.id,
       recentLog: session.state.log.slice(-6).map((entry) => entry.message),
-      allowedActions: this.buildActionCatalog(session),
-      storyMaterials: this.buildStoryMaterials(session, { includeProtagonist }),
+      allowedActions: this.buildActionCatalog(session, registry),
+      storyMaterials: this.buildStoryMaterials(session, { includeProtagonist }, registry),
     };
   }
 
@@ -188,18 +240,20 @@ export class GameService {
     return `event:${eventId}:${session.state.day}:${session.state.phaseIndex}`;
   }
 
-  // 1. 서사: 지금 화면에 유지되어야 하는 sceneId를 그대로 읽는다.
-  private presentedSceneDefinition(session: GameSession) {
-    return resolveSceneDefinition(session.state, worldRegistry, session.state.location);
+  private presentedSceneDefinition(session: GameSession, registry = this.runtimeRegistry(session)) {
+    return resolveSceneDefinition(session.state, registry, session.state.location);
   }
 
-  private sceneKeyFor(session: GameSession) {
-    const scene = this.presentedSceneDefinition(session);
+  private sceneKeyFor(session: GameSession, registry = this.runtimeRegistry(session)) {
+    const scene = this.presentedSceneDefinition(session, registry);
     return `scene:${scene.id}:v${SCENE_CARD_CACHE_VERSION}:${session.state.day}:${session.state.phaseIndex}`;
   }
 
-  private previewNextSceneId(state: GameSession["state"], action: GameAction) {
+  private previewNextSceneId(state: GameSession["state"], action: GameAction, registry: ContentRegistry) {
     try {
+      if (action.type === "content_action" && registry.actions[action.actionId]?.tags?.includes("frontier")) {
+        return undefined;
+      }
       const previewState = structuredClone(state);
       performAction(previewState, action);
       return previewState.sceneId;
@@ -208,35 +262,45 @@ export class GameService {
     }
   }
 
-  private presentedChoices(session: GameSession, scene = this.presentedSceneDefinition(session)) {
-    return resolveStoryFrame(session.state, worldRegistry, {
+  private presentedChoices(
+    session: GameSession,
+    scene = this.presentedSceneDefinition(session),
+    registry = this.runtimeRegistry(session),
+  ) {
+    return resolveStoryFrame(session.state, registry, {
       scene,
-      resolveNextSceneId: (action) => this.previewNextSceneId(session.state, action),
+      resolveNextSceneId: (action) => this.previewNextSceneId(session.state, action, registry),
     }).choices;
   }
 
-  private buildActionCatalog(session: GameSession): ActionChoice[] {
-    return buildActionCatalogFromStoryChoices(this.presentedChoices(session));
+  private buildActionCatalog(session: GameSession, registry = this.runtimeRegistry(session)): ActionChoice[] {
+    return buildActionCatalogFromStoryChoices(this.presentedChoices(session, this.presentedSceneDefinition(session, registry), registry));
   }
 
-  private async ensureLocationCard(session: GameSession, locationId: string) {
-    const expectedImagePath = baseLocations[locationId]?.imagePath ?? null;
+  private async ensureLocationCard(session: GameSession, locationId: string, registry: ContentRegistry) {
+    const expectedImagePath = registry.locations[locationId]?.imagePath ?? null;
     const existing = session.world.locationCards[locationId];
     if (existing && existing.imagePath === expectedImagePath) {
       return existing;
     }
 
-    const cached = await this.repository.getTemplate("locationCards", locationId);
-    if (cached && (cached as LocationCard).imagePath === expectedImagePath) {
-      session.world.locationCards[locationId] = cached as LocationCard;
-      return cached;
+    const isDynamic = locationId.startsWith("dyn_");
+    if (!isDynamic) {
+      const cached = await this.repository.getTemplate("locationCards", locationId);
+      if (cached && (cached as LocationCard).imagePath === expectedImagePath) {
+        session.world.locationCards[locationId] = cached as LocationCard;
+        return cached;
+      }
     }
 
     const card = await this.generator.generateLocationCard(locationId, {
-      ...this.generatorInput(session, false),
+      ...this.generatorInput(session, false, registry),
     });
     session.world.locationCards[locationId] = card;
-    await this.repository.saveTemplate("locationCards", locationId, card);
+
+    if (!isDynamic) {
+      await this.repository.saveTemplate("locationCards", locationId, card);
+    }
     await this.repository.appendGenerationLog({
       gameId: session.id,
       kind: "locationCard",
@@ -247,22 +311,28 @@ export class GameService {
     return card;
   }
 
-  private async ensurePersonCard(session: GameSession, personId: string) {
+  private async ensurePersonCard(session: GameSession, personId: string, registry: ContentRegistry) {
     if (session.world.personCards[personId]) {
       return session.world.personCards[personId];
     }
 
-    const cached = await this.repository.getTemplate("personCards", personId);
-    if (cached) {
-      session.world.personCards[personId] = cached as PersonCard;
-      return cached;
+    const isDynamic = personId.startsWith("dyn_");
+    if (!isDynamic) {
+      const cached = await this.repository.getTemplate("personCards", personId);
+      if (cached) {
+        session.world.personCards[personId] = cached as PersonCard;
+        return cached;
+      }
     }
 
     const card = await this.generator.generatePersonCard(personId, {
-      ...this.generatorInput(session, false),
+      ...this.generatorInput(session, false, registry),
     });
     session.world.personCards[personId] = card;
-    await this.repository.saveTemplate("personCards", personId, card);
+
+    if (!isDynamic) {
+      await this.repository.saveTemplate("personCards", personId, card);
+    }
     await this.repository.appendGenerationLog({
       gameId: session.id,
       kind: "personCard",
@@ -273,22 +343,28 @@ export class GameService {
     return card;
   }
 
-  private async ensureItemCard(session: GameSession, itemId: string) {
+  private async ensureItemCard(session: GameSession, itemId: string, registry: ContentRegistry) {
     if (session.world.itemCards[itemId]) {
       return session.world.itemCards[itemId];
     }
 
-    const cached = await this.repository.getTemplate("itemCards", itemId);
-    if (cached) {
-      session.world.itemCards[itemId] = cached as ItemCard;
-      return cached;
+    const isDynamic = itemId.startsWith("dyn_");
+    if (!isDynamic) {
+      const cached = await this.repository.getTemplate("itemCards", itemId);
+      if (cached) {
+        session.world.itemCards[itemId] = cached as ItemCard;
+        return cached;
+      }
     }
 
     const card = await this.generator.generateItemCard(itemId, {
-      ...this.generatorInput(session, false),
+      ...this.generatorInput(session, false, registry),
     });
     session.world.itemCards[itemId] = card;
-    await this.repository.saveTemplate("itemCards", itemId, card);
+
+    if (!isDynamic) {
+      await this.repository.saveTemplate("itemCards", itemId, card);
+    }
     await this.repository.appendGenerationLog({
       gameId: session.id,
       kind: "itemCard",
@@ -308,10 +384,9 @@ export class GameService {
     return card;
   }
 
-  /** 스냅샷·저장 월드와 동일: 레지스트리 SceneDefinition + presentedChoices에서만 조립(LLM/캐시로 문단 고정 안 함). */
-  private buildAuthoringSceneCard(session: GameSession, storyMaterials: StoryMaterials): SceneCard {
-    const sceneDef = this.presentedSceneDefinition(session);
-    const storyChoices = this.presentedChoices(session, sceneDef);
+  private buildAuthoringSceneCard(session: GameSession, storyMaterials: StoryMaterials, registry: ContentRegistry): SceneCard {
+    const sceneDef = this.presentedSceneDefinition(session, registry);
+    const storyChoices = this.presentedChoices(session, sceneDef, registry);
     return SceneCardSchema.parse({
       id: `scene:${sceneDef.id}:v${SCENE_CARD_CACHE_VERSION}:${session.state.day}:${session.state.phaseIndex}`,
       eventId: sceneDef.eventId,
@@ -330,15 +405,15 @@ export class GameService {
     });
   }
 
-  private async ensureSceneCard(session: GameSession) {
-    const sceneKey = this.sceneKeyFor(session);
-    const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true });
-    const card = this.buildAuthoringSceneCard(session, storyMaterials);
+  private async ensureSceneCard(session: GameSession, registry: ContentRegistry) {
+    const sceneKey = this.sceneKeyFor(session, registry);
+    const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true }, registry);
+    const card = this.buildAuthoringSceneCard(session, storyMaterials, registry);
     const prev = session.world.sceneCards[sceneKey];
     const narrativeSignature = `${card.title}\n${card.paragraphs.join("\n")}`;
     const prevNarrativeSignature = prev ? `${prev.title}\n${prev.paragraphs.join("\n")}` : "";
-    const choiceSig = card.choices.map((c) => c.id).join("|");
-    const prevChoiceSig = prev?.choices.map((c) => c.id).join("|") ?? "";
+    const choiceSig = card.choices.map((choice) => `${choice.id}:${choice.isAvailable ? "1" : "0"}`).join("|");
+    const prevChoiceSig = prev?.choices.map((choice) => `${choice.id}:${choice.isAvailable ? "1" : "0"}`).join("|") ?? "";
 
     session.world.sceneCards[sceneKey] = card;
 
@@ -354,16 +429,16 @@ export class GameService {
     return card;
   }
 
-  private async ensureTriggeredEventCard(session: GameSession, locationId: string) {
-    const eventDef = resolveTriggeredEvents(session.state, locationId, worldRegistry)[0];
+  private async ensureTriggeredEventCard(session: GameSession, locationId: string, registry: ContentRegistry) {
+    const eventDef = resolveTriggeredEvents(session.state, locationId, registry)[0];
     if (!eventDef) {
       return null;
     }
-    return this.ensureEventCardById(session, eventDef.id);
+    return this.ensureEventCardById(session, eventDef.id, registry);
   }
 
-  private async ensureEventCardById(session: GameSession, eventId: string) {
-    const eventDef = worldRegistry.events[eventId];
+  private async ensureEventCardById(session: GameSession, eventId: string, registry: ContentRegistry) {
+    const eventDef = registry.events[eventId] as EventDefinition | undefined;
     if (!eventDef) {
       return null;
     }
@@ -373,9 +448,9 @@ export class GameService {
       return session.world.eventCards[eventKey];
     }
 
-    const storyChoices = resolveEventChoices(session.state, eventDef, worldRegistry).map(buildStoryChoiceFromChoice);
+    const storyChoices = resolveEventChoices(session.state, eventDef, registry).map(buildStoryChoiceFromChoice);
     const card = await this.generator.generateEventCard(eventDef, storyChoices, {
-      ...this.generatorInput(session, true),
+      ...this.generatorInput(session, true, registry),
     });
     session.world.eventCards[eventKey] = card;
     session.state.flags[`event_seen_${eventId}`] = true;
@@ -392,15 +467,16 @@ export class GameService {
   private buildStoryMaterials(
     session: GameSession,
     options: { includeProtagonist: boolean },
+    registry = this.runtimeRegistry(session),
   ): StoryMaterials {
     const currentLocation = session.world.locationCards[session.state.location];
     const location = currentLocation ? [currentLocation] : [];
-    const localPersonIds = baseLocations[session.state.location].residentIds;
+    const localPersonIds = this.currentLocation(session, registry).residentIds;
     const people = localPersonIds
       .map((personId) => session.world.personCards[personId])
       .filter(Boolean) as PersonCard[];
     const itemIds = new Set<string>(Object.keys(session.state.inventory));
-    baseLocations[session.state.location].obtainableItemIds.forEach((itemId) => itemIds.add(itemId));
+    this.currentLocation(session, registry).obtainableItemIds.forEach((itemId) => itemIds.add(itemId));
     people.forEach((person) => {
       person.inventoryItemIds.forEach((itemId) => itemIds.add(itemId));
     });
@@ -436,10 +512,10 @@ export class GameService {
     };
   }
 
-  private buildMapEntries(session: GameSession): MapEntry[] {
+  private buildMapEntries(session: GameSession, registry = this.runtimeRegistry(session)): MapEntry[] {
     refreshLocationKnowledge(session.state);
-    const allLocationIds = Object.keys(baseLocations);
-    const currentLinks = baseLocations[session.state.location].links;
+    const allLocationIds = Object.keys(registry.locations);
+    const currentLinks = this.currentLocation(session, registry).links;
     return allLocationIds.map((locationId) => {
       const link = currentLinks[locationId];
       const requiredFlag = link?.requiredFlag;
@@ -447,11 +523,11 @@ export class GameService {
       const isKnown = Boolean(session.state.flags[`known_${locationId}`]) || Boolean(session.state.flags[`visited_${locationId}`]) || isCurrent;
       const isAdjacent = Boolean(link);
       const isReachable = !isCurrent && isAdjacent && (!requiredFlag || Boolean(session.state.flags[requiredFlag]));
-      const incomingRoutes = Object.entries(baseLocations)
-        .filter(([, location]) => Boolean(location.links[locationId]))
-        .map(([sourceId, location]) => ({
+      const incomingRoutes = Object.keys(registry.locations)
+        .filter((sourceId) => Boolean(getRuntimeLocationDefinition(session.state, registry, sourceId).links[locationId]))
+        .map((sourceId) => ({
           sourceId,
-          link: location.links[locationId],
+          link: getRuntimeLocationDefinition(session.state, registry, sourceId).links[locationId],
           sourceAccessible: sourceId === session.state.location || Boolean(session.state.flags[`visited_${sourceId}`]),
         }))
         .filter((route) => route.sourceAccessible);
@@ -478,21 +554,21 @@ export class GameService {
     });
   }
 
-  private buildSnapshot(session: GameSession, latestEvent: EventCard | null): StateSnapshot {
-    const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true });
-    const currentScene = this.buildAuthoringSceneCard(session, storyMaterials);
-    const sceneDef = this.presentedSceneDefinition(session);
-    const locationChoices = this.presentedChoices(session, sceneDef);
+  private buildSnapshot(session: GameSession, latestEvent: EventCard | null, registry = this.runtimeRegistry(session)): StateSnapshot {
+    const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true }, registry);
+    const currentScene = this.buildAuthoringSceneCard(session, storyMaterials, registry);
+    const sceneDef = this.presentedSceneDefinition(session, registry);
+    const locationChoices = this.presentedChoices(session, sceneDef, registry);
     const storyChoices =
       latestEvent && latestEvent.choices.length > 0 ? latestEvent.choices : locationChoices;
     const snapshot = {
       gameId: session.id,
       state: structuredClone(session.state),
       currentScene,
-      visibleLocations: this.visibleLocationIds(session.state.location, session.state.flags).map(
+      visibleLocations: this.visibleLocationIds(session).map(
         (locationId) => session.world.locationCards[locationId] as LocationCard,
       ).filter(Boolean),
-      visiblePeople: this.visiblePersonIds(session).map(
+      visiblePeople: this.visiblePersonIds(session, registry).map(
         (personId) => session.world.personCards[personId] as PersonCard,
       ),
       inventoryCards: Object.keys(session.state.inventory).map(
@@ -500,33 +576,177 @@ export class GameService {
       ),
       protagonist: session.world.protagonistCard as ProtagonistCard,
       storyMaterials,
-      quests: getQuestEntries().map((quest) => ({
-        ...quest,
-        status: session.state.quests[quest.id],
+      quests: getQuestDefinitions(registry).map((quest) => ({
+        id: quest.id,
+        name: quest.title,
+        summary: quest.description,
+        status: session.state.quests[quest.id] ?? "inactive",
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
       availableActions: buildActionCatalogFromStoryChoices(storyChoices),
-      mapEntries: this.buildMapEntries(session),
+      mapEntries: this.buildMapEntries(session, registry),
       latestEvent,
     };
 
     return StateSnapshotSchema.parse(snapshot);
   }
 
-  private followUpEventId(action: GameAction) {
+  private followUpEventId(action: GameAction, registry: ContentRegistry) {
     if (action.type === "content_action") {
-      return worldRegistry.actions[action.actionId]?.nextEventId || null;
+      return registry.actions[action.actionId]?.nextEventId || null;
     }
     if (action.type === "content_choice") {
-      return worldRegistry.choices[action.choiceId]?.nextEventId || null;
+      return registry.choices[action.choiceId]?.nextEventId || null;
     }
     return null;
   }
 
-  private isExploreAction(action: GameAction) {
+  private isExploreAction(action: GameAction, registry: ContentRegistry) {
     if (action.type !== "content_action") {
       return false;
     }
-    return worldRegistry.actions[action.actionId]?.type === "explore";
+    return registry.actions[action.actionId]?.type === "explore";
+  }
+
+  private isFrontierAction(action: GameAction, registry: ContentRegistry) {
+    return action.type === "content_action" && Boolean(registry.actions[action.actionId]?.tags?.includes("frontier"));
+  }
+
+  private buildFrontierFallbackEvent(session: GameSession, actionDef: ActionDefinition) {
+    return EventCardSchema.parse({
+      id: `event:frontier-fallback:${actionDef.id}:${session.state.day}:${session.state.phaseIndex}`,
+      locationId: session.state.location,
+      title: "앞쪽은 아직 닫혀 있다",
+      summary: "길을 더 밀고 들어가 보려 했지만, 무너진 잔해와 불안한 기척 탓에 지금은 무리해서 넘을 수 없다는 판단이 선다.",
+      trigger: `${session.state.day} / ${PHASES[session.state.phaseIndex]}`,
+      choices: [],
+      rewards: [],
+      flags: [],
+      source: "template",
+      generatedAt: nowIso(),
+    });
+  }
+
+  private async expandFrontier(session: GameSession, action: GameAction, registry: ContentRegistry) {
+    const actionDef = registry.actions[(action as Extract<GameAction, { type: "content_action" }>).actionId];
+    if (!actionDef) {
+      throw new Error("Unknown frontier action.");
+    }
+
+    const existingSlot = session.state.frontierState.slots[actionDef.id];
+    if (existingSlot?.generatedLocationId && registry.locations[existingSlot.generatedLocationId]) {
+      performAction(session.state, { type: "travel", targetId: existingSlot.generatedLocationId });
+      session.updatedAt = nowIso();
+      await this.ensureCards(session);
+      return this.buildSnapshot(session, null);
+    }
+
+    const sourceLocationId = session.state.location;
+    const slot = existingSlot ?? {
+      actionId: actionDef.id,
+      sourceLocationId,
+      generatedLocationId: null,
+      note: actionDef.outcomeHint,
+      status: "unexpanded" as const,
+      lastExpandedDay: null,
+    };
+
+    let latestEvent: EventCard | null = null;
+    try {
+      const pkg = await this.planner.generateRegionPackage({
+        state: session.state,
+        registry,
+        sourceLocationId,
+        sourceFrontierActionId: actionDef.id,
+        sequence: session.state.frontierState.nextSequence,
+        recentLog: session.state.log.slice(0, 6).map((entry) => entry.message),
+      });
+
+      session.state.dynamicContent = mergeDynamicWorldRegistry(session.state.dynamicContent, pkg.registry);
+      session.state.frontierState.nextSequence += 1;
+      session.state.frontierState.slots[actionDef.id] = {
+        ...slot,
+        generatedLocationId: pkg.locationId,
+        status: "expanded",
+        lastExpandedDay: session.state.day,
+        note: actionDef.outcomeHint,
+      };
+
+      session.state.worldPlan.today = {
+        day: session.state.day,
+        regions: [
+          ...session.state.worldPlan.today.regions.filter((region) => region.locationId !== pkg.locationId),
+          buildPlannedRegionSummary(
+            {
+              state: session.state,
+              registry,
+              sourceLocationId,
+              sourceFrontierActionId: actionDef.id,
+              sequence: session.state.frontierState.nextSequence - 1,
+              recentLog: session.state.log.slice(0, 6).map((entry) => entry.message),
+            },
+            pkg,
+          ),
+        ],
+        notes: [...session.state.worldPlan.today.notes],
+      };
+
+      if (!session.state.worldPlan.tomorrow || session.state.worldPlan.tomorrow.day !== session.state.day + 1) {
+        session.state.worldPlan.tomorrow = {
+          day: session.state.day + 1,
+          evolutions: [],
+          notes: [],
+        };
+      }
+      if (pkg.tomorrowEvolution) {
+        session.state.worldPlan.tomorrow.evolutions = [
+          ...session.state.worldPlan.tomorrow.evolutions.filter((evolution) => evolution.id !== pkg.tomorrowEvolution?.id),
+          pkg.tomorrowEvolution,
+        ];
+        session.state.worldPlan.tomorrow.notes = [
+          ...session.state.worldPlan.tomorrow.notes,
+          pkg.tomorrowEvolution.summary,
+        ];
+      }
+
+      session.state.location = pkg.locationId;
+      session.state.activeStockNodeId = null;
+      session.state.flags[`visited_${pkg.locationId}`] = true;
+      refreshLocationKnowledge(session.state);
+      syncQuestState(session.state);
+      syncScene(session.state);
+      session.updatedAt = nowIso();
+
+      const nextRegistry = this.runtimeRegistry(session);
+      if (pkg.entryEventId) {
+        latestEvent = await this.ensureEventCardById(session, pkg.entryEventId, nextRegistry);
+      }
+      await this.ensureCards(session);
+      await this.repository.appendGenerationLog({
+        gameId: session.id,
+        kind: "generatedRegionPackage",
+        id: pkg.locationId,
+        at: session.updatedAt,
+        sourceLocationId,
+        frontierActionId: actionDef.id,
+      });
+      await this.repository.appendActionLog({
+        gameId: session.id,
+        action,
+        at: session.updatedAt,
+        location: session.state.location,
+        day: session.state.day,
+      });
+      return this.buildSnapshot(session, latestEvent, nextRegistry);
+    } catch (error) {
+      session.state.frontierState.slots[actionDef.id] = {
+        ...slot,
+        status: "blocked",
+        note: actionDef.outcomeHint,
+      };
+      session.state.systemNote = "앞쪽 길은 아직 안전하지 않다.";
+      await this.ensureCards(session);
+      return this.buildSnapshot(session, this.buildFrontierFallbackEvent(session, actionDef), registry);
+    }
   }
 }
