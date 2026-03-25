@@ -28,6 +28,10 @@ function adjustStat(state: GameState, statKey: "hp" | "mind" | "fullness", delta
   state.stats[statKey] = clamp(state.stats[statKey] + delta, 0, 10);
 }
 
+function hasItemAmount(state: GameState, itemId: string, amount = 1) {
+  return (state.inventory[itemId] ?? 0) >= amount;
+}
+
 function setClockFromElapsed(state: GameState) {
   const totalElapsed = Math.max(0, state.worldElapsedMs || 0);
   state.worldElapsedMs = totalElapsed;
@@ -196,6 +200,7 @@ function applyDayTransition(state: GameState, previousDay: number) {
 
   state.autoFullnessElapsedMs = 0;
   state.starvationElapsedMs = 0;
+  delete state.flags.rain_bucket_drawn_today;
   state.flags[`day${state.day}_mealSecured`] = false;
   state.flags[`day${state.day}_waterSecured`] = false;
   state.lastSleepFullness = state.stats.fullness;
@@ -321,6 +326,9 @@ function useItem(state: GameState, itemId: keyof typeof baseItems) {
   if (!item || count <= 0) {
     throw new Error("지금은 그 아이템을 사용할 수 없다.");
   }
+  if (!["food", "drink", "medicine"].includes(item.kind)) {
+    throw new Error("그 물건은 바로 사용할 수 없다.");
+  }
 
   consumeCurrentSceneIntro(state);
   state.inventory[itemId] = count - 1;
@@ -380,6 +388,37 @@ function applyDefinitionEffects(state: GameState, effects: ActionDefinition["eff
   });
 }
 
+function applyShelterSleepBonus(state: GameState) {
+  if (!state.flags.shelter_wall_patch) {
+    return;
+  }
+
+  adjustStat(state, "hp", 1);
+  adjustStat(state, "mind", 1);
+  addLog(state, "덧댄 천막 덕분에 밤새 찬바람을 덜 맞았다. 잠에서 깨어난 몸과 마음이 조금 더 또렷하다.");
+}
+
+function executeShelterCookingAction(state: GameState, action: ActionDefinition): ExecutionResult {
+  const hasIngredients =
+    hasItemAmount(state, "rawRice", 1) &&
+    hasItemAmount(state, "vegetables", 1) &&
+    hasItemAmount(state, "woodPlank", 1);
+
+  if (!hasIngredients) {
+    applyDefinitionEffects(state, action.failureEffects);
+    return {
+      preferredSceneId: action.nextSceneId,
+      fallbackNote: action.failureNote ?? action.label,
+    };
+  }
+
+  applyDefinitionEffects(state, action.effects);
+  return {
+    preferredSceneId: action.nextSceneId,
+    fallbackNote: action.label,
+  };
+}
+
 function executeActionDefinition(state: GameState, action: ActionDefinition): ExecutionResult {
   if (!actionConditionsMet(action, state)) {
     if (action.presentationMode !== "always") {
@@ -394,7 +433,13 @@ function executeActionDefinition(state: GameState, action: ActionDefinition): Ex
   }
 
   consumeCurrentSceneIntro(state);
+  if (action.id === "cook_at_shelter") {
+    return executeShelterCookingAction(state, action);
+  }
   applyDefinitionEffects(state, action.effects);
+  if (action.id === "sleep_at_shelter") {
+    applyShelterSleepBonus(state);
+  }
   return {
     preferredSceneId: action.nextSceneId,
     fallbackNote: action.label,
@@ -490,18 +535,15 @@ export function performAction(state: GameState, action: GameAction) {
       break;
     }
     case "rest": {
-      preferredSceneId = runActionDefinition(state, worldRegistry.actions.rest_light_at_shelter);
-      fallbackNote = worldRegistry.actions.rest_light_at_shelter.label;
+      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, worldRegistry.actions.rest_light_at_shelter));
       break;
     }
     case "cook": {
-      preferredSceneId = runActionDefinition(state, worldRegistry.actions.cook_at_shelter);
-      fallbackNote = worldRegistry.actions.cook_at_shelter.label;
+      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, worldRegistry.actions.cook_at_shelter));
       break;
     }
     case "buy_meal": {
-      preferredSceneId = runActionDefinition(state, worldRegistry.actions.buy_meal_at_kitchen);
-      fallbackNote = worldRegistry.actions.buy_meal_at_kitchen.label;
+      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, worldRegistry.actions.buy_meal_at_kitchen));
       break;
     }
     case "generate_event": {

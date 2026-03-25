@@ -844,12 +844,13 @@ function renderInventoryPanel() {
       ${moneyCard}
       ${itemCards.map((item) => {
         const count = snapshot.state.inventory[item.id] || 0;
+        const isUsable = item.kind === "food" || item.kind === "drink" || item.kind === "medicine";
         return `
           <article class="info-card inventory-card">
             <div class="inventory-card-head">
               <h3>${item.name} ${count > 1 ? `x${count}` : ""}</h3>
               <div class="item-actions">
-                <button class="inline-action" data-use-item="${item.id}" type="button">사용</button>
+                ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">사용</button>` : ""}
               </div>
             </div>
             <p>${item.description}</p>

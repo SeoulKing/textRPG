@@ -11,7 +11,7 @@ export const ItemCardSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
-  kind: z.enum(["food", "drink", "medicine", "trade", "ticket"]),
+  kind: z.enum(["food", "drink", "medicine", "trade", "ticket", "material"]),
   rarity: z.enum(["common", "uncommon", "rare"]),
   price: z.number().int().nonnegative(),
   tags: z.array(z.string()),

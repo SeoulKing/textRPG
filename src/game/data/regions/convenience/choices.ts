@@ -41,6 +41,20 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     riskHint: "low",
   }),
   choice({
+    id: "go_to_convenience_supply_pile",
+    label: "창고 자재 더미로 간다",
+    outcomeHint: "무너진 선반 안쪽으로 몸을 들이밀어, 제작에 쓸 만한 판자와 천 조각, 금속 부품을 직접 확인한다.",
+    conditions: [
+      { type: "flag", flag: "convenience_materials_found" },
+      { type: "active_stock_node_not", nodeId: "convenience_supply_pile" },
+    ],
+    effects: [
+      { type: "focus_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "log", message: "당신은 반쯤 주저앉은 창고 선반 아래로 몸을 숙여 자재 더미 앞에 선다." },
+    ],
+    riskHint: "low",
+  }),
+  choice({
     id: "collect_canned_food_from_shelf",
     label: "통조림 하나를 챙긴다",
     outcomeHint: "손에 닿는 통조림 하나를 조심스럽게 챙겨, 오늘을 버틸 가능성을 손안에 넣는다.",
@@ -71,6 +85,48 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     riskHint: "low",
   }),
   choice({
+    id: "collect_wood_from_supply_pile",
+    label: "쓸 만한 판자를 챙긴다",
+    outcomeHint: "썩지 않은 판자 한 장을 골라 거처 보강과 불쏘시개에 쓸 자재로 챙긴다.",
+    conditions: [
+      { type: "active_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
+    ],
+    effects: [
+      { type: "collect_stock_item", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
+      { type: "log", message: "당신은 아직 단단한 판자 한 장을 골라 어깨에 걸친다." },
+    ],
+    riskHint: "low",
+  }),
+  choice({
+    id: "collect_cloth_from_supply_pile",
+    label: "질긴 천 조각을 챙긴다",
+    outcomeHint: "젖지 않고 질긴 천 조각을 골라 거처 틈을 막거나 묶는 데 쓸 재료로 챙긴다.",
+    conditions: [
+      { type: "active_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
+    ],
+    effects: [
+      { type: "collect_stock_item", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
+      { type: "log", message: "당신은 먼지를 털어 낸 천 조각을 접어 품속에 넣는다." },
+    ],
+    riskHint: "low",
+  }),
+  choice({
+    id: "collect_metal_from_supply_pile",
+    label: "금속 부품을 챙긴다",
+    outcomeHint: "휘어진 금속 부품과 철판 조각을 모아 간이 제작에 쓸 고철로 챙긴다.",
+    conditions: [
+      { type: "active_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
+    ],
+    effects: [
+      { type: "collect_stock_item", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
+      { type: "log", message: "당신은 선반 모서리에 걸린 금속 부품을 비틀어 떼어 낸다." },
+    ],
+    riskHint: "low",
+  }),
+  choice({
     id: "leave_stock_node",
     label: "가게 안쪽으로 물러난다",
     outcomeHint: "진열대 앞에서 한 걸음 물러나, 다시 가게 안 전체를 살필 수 있는 자리로 돌아간다.",
@@ -78,6 +134,17 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       { type: "clear_stock_node_focus" },
       { type: "log", message: "당신은 손에 쥔 것을 확인한 뒤, 조심스럽게 한 걸음 물러난다." },
+    ],
+    riskHint: "low",
+  }),
+  choice({
+    id: "leave_convenience_supply_pile",
+    label: "자재 더미에서 물러난다",
+    outcomeHint: "창고 선반 아래에서 몸을 빼내고, 다시 가게 안 전체를 살필 수 있는 자리로 돌아간다.",
+    conditions: [{ type: "active_stock_node", nodeId: "convenience_supply_pile" }],
+    effects: [
+      { type: "clear_stock_node_focus" },
+      { type: "log", message: "당신은 자재 더미에서 챙길 것을 추린 뒤, 다시 가게 안쪽으로 몸을 뺀다." },
     ],
     riskHint: "low",
   }),

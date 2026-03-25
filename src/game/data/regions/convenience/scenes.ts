@@ -105,13 +105,83 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     ],
   },
   {
+    id: "convenience_supply_pile_full",
+    locationId: "convenience",
+    title: "창고 자재 더미",
+    paragraphs: [
+      "반쯤 쓰러진 선반 아래에는 아직 썩지 않은 판자와 찢긴 천, 구부러진 금속 부품이 뒤엉켜 남아 있다. 급히 털고 간 흔적 속에서도 쓸 만한 것들이 제법 눈에 띈다.",
+    ],
+    choiceIds: [
+      "collect_wood_from_supply_pile",
+      "collect_cloth_from_supply_pile",
+      "collect_metal_from_supply_pile",
+      "leave_convenience_supply_pile",
+    ],
+    conditions: [
+      { type: "location", locationId: "convenience" },
+      { type: "active_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
+    ],
+  },
+  {
+    id: "convenience_supply_pile_cloth",
+    locationId: "convenience",
+    title: "창고 자재 더미",
+    paragraphs: [
+      "굵은 판자는 거의 다 챙겼고, 이제는 젖지 않은 천 조각과 마지막 금속 부품 몇 개만 더미 안쪽에 남아 있다.",
+    ],
+    choiceIds: [
+      "collect_cloth_from_supply_pile",
+      "collect_metal_from_supply_pile",
+      "leave_convenience_supply_pile",
+    ],
+    conditions: [
+      { type: "location", locationId: "convenience" },
+      { type: "active_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
+      { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
+    ],
+  },
+  {
+    id: "convenience_supply_pile_metal",
+    locationId: "convenience",
+    title: "창고 자재 더미",
+    paragraphs: [
+      "천 조각까지 거의 추려 내고 나니, 선반 틈에는 마지막 금속 부품 하나만 삐죽하게 걸려 있다.",
+    ],
+    choiceIds: ["collect_metal_from_supply_pile", "leave_convenience_supply_pile"],
+    conditions: [
+      { type: "location", locationId: "convenience" },
+      { type: "active_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
+      { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
+    ],
+  },
+  {
+    id: "convenience_supply_pile_empty",
+    locationId: "convenience",
+    title: "비워진 자재 더미",
+    paragraphs: [
+      "창고 자재 더미에는 썩은 먼지와 쪼개진 부스러기만 남아 있다. 지금 더 뒤져 봐야 쓸 만한 것은 없을 것 같다.",
+    ],
+    choiceIds: ["leave_convenience_supply_pile"],
+    conditions: [
+      { type: "location", locationId: "convenience" },
+      { type: "active_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
+    ],
+  },
+  {
     id: "convenience_scene_discovered",
     locationId: "convenience",
     title: "편의점 잔해",
     paragraphs: [
-      "무너진 안쪽 벽 틈 사이로 아직 완전히 쓰러지지 않은 진열대가 보이고, 입구 가까운 계산대 서랍도 반쯤 열린 채 걸려 있다. 식량이든 돈이든, 이 가게는 아직 마지막 몫을 조금쯤 숨겨 두고 있는 듯하다.",
+      "무너진 안쪽 벽 틈 사이로 아직 완전히 쓰러지지 않은 진열대가 보이고, 입구 가까운 계산대 서랍도 반쯤 열린 채 걸려 있다. 창고 선반 아래에는 판자와 천 조각이 뒤엉킨 자재 더미까지 남아 있다. 식량이든 돈이든, 이 가게는 아직 마지막 몫을 조금쯤 숨겨 두고 있는 듯하다.",
     ],
-    choiceIds: ["go_to_convenience_shelf", "go_to_convenience_register"],
+    choiceIds: ["go_to_convenience_shelf", "go_to_convenience_register", "go_to_convenience_supply_pile"],
     conditions: [
       { type: "location", locationId: "convenience" },
       { type: "flag", flag: "convenience_shelf_found" },
@@ -125,7 +195,7 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     title: "편의점 잔해",
     paragraphs: [
       "편의점은 반쯤 주저앉은 채, 마지막 형태만 간신히 붙들고 있다. 깨진 자동문은 비스듬히 매달려 있고 바닥에는 유리 조각과 찢긴 포장지, 누군가 급히 쓸고 간 흔적이 먼지 위에 어지럽게 남아 있다.",
-      "진열대 대부분은 이미 비어 있고 계산대는 비스듬히 기울어 있지만, 그 공백조차 아직 생활의 자취를 품고 있다. 누군가가 허겁지겁 챙겨 간 뒤에도, 이곳 어딘가에는 아직 손대지 못한 식량이나 돈이 숨어 있을 것만 같다.",
+      "진열대 대부분은 이미 비어 있고 계산대는 비스듬히 기울어 있지만, 그 공백조차 아직 생활의 자취를 품고 있다. 누군가가 허겁지겁 챙겨 간 뒤에도, 이곳 어딘가에는 아직 손대지 못한 식량이나 돈, 쓸 만한 자재가 숨어 있을 것만 같다.",
     ],
     choiceIds: [],
     conditions: [

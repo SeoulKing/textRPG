@@ -2,6 +2,64 @@ import type { SceneDefinition } from "../../../schemas";
 
 export const kitchenSceneDefinitions: SceneDefinition[] = [
   {
+    id: "kitchen_scrap_heap_full",
+    locationId: "kitchen",
+    title: "폐자재 더미",
+    paragraphs: [
+      "배식대 뒤편 구석에는 찢긴 앞치마와 휘어진 국자 손잡이, 눌어붙은 철판 조각이 어지럽게 쌓여 있다. 제대로 고르면 거처를 손볼 자재로 쓸 만한 것들이 아직 남아 있다.",
+    ],
+    choiceIds: ["collect_scrap_from_kitchen_heap", "collect_cloth_from_kitchen_heap", "leave_kitchen_scrap_heap"],
+    conditions: [
+      { type: "location", locationId: "kitchen" },
+      { type: "active_stock_node", nodeId: "kitchen_scrap_heap" },
+      { type: "stock_item_gte", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "scrapMetal", amount: 1 },
+    ],
+  },
+  {
+    id: "kitchen_scrap_heap_cloth",
+    locationId: "kitchen",
+    title: "폐자재 더미",
+    paragraphs: [
+      "금속 부품은 거의 추려 냈고, 이제는 젖지 않은 천 조각만 더미 안쪽에 조금 남아 있다.",
+    ],
+    choiceIds: ["collect_cloth_from_kitchen_heap", "leave_kitchen_scrap_heap"],
+    conditions: [
+      { type: "location", locationId: "kitchen" },
+      { type: "active_stock_node", nodeId: "kitchen_scrap_heap" },
+      { type: "stock_item_lt", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "scrapMetal", amount: 1 },
+      { type: "stock_item_gte", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "clothScrap", amount: 1 },
+    ],
+  },
+  {
+    id: "kitchen_scrap_heap_empty",
+    locationId: "kitchen",
+    title: "비워진 폐자재 더미",
+    paragraphs: [
+      "남은 것은 눅눅한 부스러기뿐이다. 지금 더 뒤져 봐야 손에 잡힐 만한 자재는 없을 것 같다.",
+    ],
+    choiceIds: ["leave_kitchen_scrap_heap"],
+    conditions: [
+      { type: "location", locationId: "kitchen" },
+      { type: "active_stock_node", nodeId: "kitchen_scrap_heap" },
+      { type: "stock_item_lt", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "scrapMetal", amount: 1 },
+      { type: "stock_item_lt", locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "clothScrap", amount: 1 },
+    ],
+  },
+  {
+    id: "kitchen_salvage_discovered",
+    locationId: "kitchen",
+    title: "급식소",
+    paragraphs: [
+      "배식대 뒤편 구석에 쓸 만한 폐자재 더미가 눈에 들어온다. 줄 선 사람들 틈만 잘 피하면, 거처를 손볼 만한 자재를 몇 개쯤 챙길 수 있을 것 같다.",
+    ],
+    choiceIds: ["go_to_kitchen_scrap_heap"],
+    conditions: [
+      { type: "location", locationId: "kitchen" },
+      { type: "flag", flag: "kitchen_salvage_found" },
+      { type: "active_stock_node_not", nodeId: "kitchen_scrap_heap" },
+    ],
+  },
+  {
     id: "kitchen_first_intro",
     locationId: "kitchen",
     title: "급식소",
