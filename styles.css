@@ -358,6 +358,9 @@ body::before {
 
 .scene-debug-badge {
   align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid rgba(87, 66, 51, 0.18);
@@ -365,6 +368,25 @@ body::before {
   color: #6b4b37;
   font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
   font-size: 0.76rem;
+  letter-spacing: 0.02em;
+}
+
+.scene-debug-text {
+  align-self: center;
+}
+
+.dev-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(86, 66, 51, 0.1);
+  border: 1px solid rgba(86, 66, 51, 0.18);
+  color: #6b4b37;
+  font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
+  font-size: 0.7rem;
   letter-spacing: 0.02em;
 }
 
@@ -672,6 +694,12 @@ body::before {
   margin-top: 6px;
 }
 
+.map-card .dev-badge,
+.inventory-card .dev-badge,
+.quest-card .dev-badge {
+  margin-bottom: 8px;
+}
+
 .map-card.is-reachable {
   cursor: pointer;
   transition:
@@ -774,6 +802,17 @@ body::before {
 .hex-tile-risk {
   font-size: 0.72rem;
   color: var(--muted);
+}
+
+.hex-tile .dev-badge {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  padding: 3px 7px;
+  font-size: 0.62rem;
+  background: rgba(255, 250, 244, 0.92);
 }
 
 .hex-tile-name {

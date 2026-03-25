@@ -217,3 +217,18 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   restarted local server on port 3000,
   `/api/health` returned ok,
   and headless Edge DOM dump showed the game booting and rendering the prologue scene without client-side boot failure.
+- Investigated the new `Failed to fetch` boot error after switching Gemini models.
+  Root cause: startup card generation still hard-failed when Gemini fetch itself failed,
+  so `POST /api/games` returned 500 before the client could open a session.
+- Updated `src/game/content-generator.ts` so both Gemini and generic remote generators
+  now fall back to the existing template generator on any per-card request failure.
+  This keeps local/dev gameplay bootable even when the external model is unreachable.
+- Updated Gemini defaults/documentation to `gemini-3.1-flash-lite-preview`
+  in `src/game/gemini-client.ts`, `.env.example`, and `README.md`,
+  and rebuilt `.server-dist` so the new default is actually used at runtime.
+- Verification:
+  `npm run typecheck`
+  `npm run build`
+  `npm run content:validate`
+  all passed, and server logs now show `GET /api/games/:id/state` returning 200
+  after the fallback change instead of the earlier Gemini-driven 500 crash.

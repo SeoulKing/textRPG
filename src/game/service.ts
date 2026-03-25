@@ -279,15 +279,27 @@ export class GameService {
 
   private async ensureLocationCard(session: GameSession, locationId: string, registry: ContentRegistry) {
     const expectedImagePath = registry.locations[locationId]?.imagePath ?? null;
+    const expectedName = (registry.locations[locationId] as { name?: string } | undefined)?.name ?? "";
+    const expectedSummary = (registry.locations[locationId] as { summary?: string } | undefined)?.summary ?? "";
     const existing = session.world.locationCards[locationId];
-    if (existing && existing.imagePath === expectedImagePath) {
+    if (
+      existing &&
+      existing.imagePath === expectedImagePath &&
+      existing.name === expectedName &&
+      existing.summary === expectedSummary
+    ) {
       return existing;
     }
 
     const isDynamic = locationId.startsWith("dyn_");
     if (!isDynamic) {
       const cached = await this.repository.getTemplate("locationCards", locationId);
-      if (cached && (cached as LocationCard).imagePath === expectedImagePath) {
+      if (
+        cached &&
+        (cached as LocationCard).imagePath === expectedImagePath &&
+        (cached as LocationCard).name === expectedName &&
+        (cached as LocationCard).summary === expectedSummary
+      ) {
         session.world.locationCards[locationId] = cached as LocationCard;
         return cached;
       }

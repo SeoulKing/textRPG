@@ -36,7 +36,7 @@ Optional settings:
 - `GEMINI_MODEL`
 - `GEMINI_API_URL`
 
-Default model: `gemini-2.5-flash-lite`
+Default model: `gemini-3.1-flash-lite-preview`
 
 If `GEMINI_API_KEY` is present, the server uses Gemini for:
 

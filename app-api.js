@@ -10,6 +10,7 @@ const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
 const CLIENT_SAVE_VERSION = 9;
 const HEX_RATIO = Math.sqrt(3) / 2;
+const DEV_OBJECT_BADGES = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
 
 const HEX_BOARD_TEMPLATE = [
   { slotId: "northwest", col: 0, row: 0, locationId: null },
@@ -184,6 +185,37 @@ function currentState() {
 function currentLocationCard() {
   const locationId = currentState()?.location;
   return client.snapshot?.visibleLocations.find((entry) => entry.id === locationId) || null;
+}
+
+function isDynamicId(id) {
+  return String(id || "").startsWith("dyn_");
+}
+
+function buildDevBadgeText({ id, source }) {
+  if (!DEV_OBJECT_BADGES) {
+    return "";
+  }
+
+  const parts = [];
+  if (id) {
+    parts.push(isDynamicId(id) ? "dynamic" : "seed");
+  }
+  if (source) {
+    parts.push(source);
+  }
+  return parts.join(" / ");
+}
+
+function buildDevBadgeMarkup(entry, fallback = {}) {
+  const badgeText = buildDevBadgeText({
+    id: entry?.id || fallback.id || entry?.locationId || fallback.locationId || "",
+    source: entry?.source || fallback.source || "",
+  });
+  if (!badgeText) {
+    return "";
+  }
+
+  return `<span class="dev-badge">${escapeHtml(badgeText)}</span>`;
 }
 
 function projectedWorldElapsedMs() {
@@ -658,9 +690,16 @@ function renderScene(animateText = true) {
   const eventId = currentEventId(snapshot);
   const actionCount = snapshot.availableActions?.length ?? 0;
   const actionIds = (snapshot.availableActions ?? []).map((c) => c.id).join(", ");
-  dom.sceneDebugBadge.textContent = eventId
+  const debugText = eventId
     ? `event: ${eventId} / scene: ${currentSceneDefinitionId(snapshot)} / actions: ${actionCount} [${actionIds}]`
     : `scene: ${currentSceneDefinitionId(snapshot)} / actions: ${actionCount} [${actionIds}]`;
+  const debugBadges = DEV_OBJECT_BADGES
+    ? [
+        buildDevBadgeMarkup(location),
+        buildDevBadgeMarkup({ id: scene.locationId || location.id, source: scene.source }),
+      ].filter(Boolean).join("")
+    : "";
+  dom.sceneDebugBadge.innerHTML = `${debugBadges}<span class="scene-debug-text">${escapeHtml(debugText)}</span>`;
   renderSystemNote(snapshot.state.systemNote || "");
 
   clearSceneAnimation();
@@ -731,6 +770,7 @@ function renderMapPanel() {
         style="left:${position.x}px; top:${position.y}px; width:${boardLayout.dimensions.width}px; min-height:${boardLayout.dimensions.height}px;"
       >
         <span class="hex-tile-body">
+          ${buildDevBadgeMarkup(location)}
           <span class="hex-tile-risk">${location.risk}</span>
           <span class="hex-tile-name">${location.name}</span>
           ${meta ? `<span class="hex-tile-meta">${meta}</span>` : ""}
@@ -756,6 +796,7 @@ function renderMapPanel() {
             <h3>${location.name}</h3>
             <span class="tag">${location.risk}</span>
           </div>
+          ${buildDevBadgeMarkup(location)}
           <p>${location.summary}</p>
           ${entry.isReachable ? "" : `<small class="tiny">${entry.reason || "이동 불가"}</small>`}
         </article>
@@ -769,6 +810,7 @@ function renderMapPanel() {
           <h3>${currentLocation.name}</h3>
           <span class="tag">${currentLocation.risk}</span>
         </div>
+        ${buildDevBadgeMarkup(currentLocation)}
         <p>${currentLocation.summary}</p>
       </article>
 
@@ -860,6 +902,7 @@ function renderInventoryPanel() {
                 ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">사용</button>` : ""}
               </div>
             </div>
+            ${buildDevBadgeMarkup(item)}
             <p>${item.description}</p>
           </article>
         `;
@@ -918,6 +961,7 @@ function renderQuestsPanel() {
             <h3>${quest.name}</h3>
             <span class="tag">${questStatusLabel(quest.status)}</span>
           </div>
+          ${buildDevBadgeMarkup(quest)}
           <p>${quest.summary}</p>
         </article>
       `).join("")}

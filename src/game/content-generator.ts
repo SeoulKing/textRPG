@@ -209,62 +209,100 @@ class GenericRemoteContentGenerator implements ContentGenerator {
     return JSON.parse(stripCodeFence(content)) as T;
   }
 
+  private async withFallback<T>(work: () => Promise<T>, fallback: () => Promise<T>) {
+    try {
+      return await work();
+    } catch {
+      return fallback();
+    }
+  }
+
   async generateLocationCard(locationId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generateLocationCard(locationId, input);
-    return LocationCardSchema.parse(await this.generateJson("locationCard", "location card json", { fallback, currentState: summarizeState(input.state) }));
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateLocationCard(locationId, input);
+        return LocationCardSchema.parse(await this.generateJson("locationCard", "location card json", { fallback, currentState: summarizeState(input.state) }));
+      },
+      () => this.fallback.generateLocationCard(locationId, input),
+    );
   }
 
   async generatePersonCard(personId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generatePersonCard(personId, input);
-    return PersonCardSchema.parse(await this.generateJson("personCard", "person card json", { fallback, currentState: summarizeState(input.state) }));
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generatePersonCard(personId, input);
+        return PersonCardSchema.parse(await this.generateJson("personCard", "person card json", { fallback, currentState: summarizeState(input.state) }));
+      },
+      () => this.fallback.generatePersonCard(personId, input),
+    );
   }
 
   async generateItemCard(itemId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generateItemCard(itemId, input);
-    return ItemCardSchema.parse(await this.generateJson("itemCard", "item card json", { fallback, currentState: summarizeState(input.state) }));
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateItemCard(itemId, input);
+        return ItemCardSchema.parse(await this.generateJson("itemCard", "item card json", { fallback, currentState: summarizeState(input.state) }));
+      },
+      () => this.fallback.generateItemCard(itemId, input),
+    );
   }
 
   async generateProtagonistCard(input: GeneratorInput) {
-    const fallback = await this.fallback.generateProtagonistCard(input);
-    return ProtagonistCardSchema.parse(await this.generateJson("protagonistCard", "protagonist card json", { fallback, currentState: summarizeState(input.state) }));
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateProtagonistCard(input);
+        return ProtagonistCardSchema.parse(await this.generateJson("protagonistCard", "protagonist card json", { fallback, currentState: summarizeState(input.state) }));
+      },
+      () => this.fallback.generateProtagonistCard(input),
+    );
   }
 
   async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
-    const fallback = await this.fallback.generateSceneCard(scene, choices, input);
-    const generated = await this.generateJson<SceneCard>("sceneCard", "scene card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      choiceIds: choices.map((choice) => choice.id),
-    });
-    return SceneCardSchema.parse({
-      ...generated,
-      id: fallback.id,
-      locationId: scene.locationId,
-      choices,
-      eventId: scene.eventId,
-      introFlag: scene.introFlag,
-    });
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateSceneCard(scene, choices, input);
+        const generated = await this.generateJson<SceneCard>("sceneCard", "scene card json", {
+          fallback,
+          currentState: summarizeState(input.state),
+          recentLog: input.recentLog,
+          storyMaterials: input.storyMaterials,
+          choiceIds: choices.map((choice) => choice.id),
+        });
+        return SceneCardSchema.parse({
+          ...generated,
+          id: fallback.id,
+          locationId: scene.locationId,
+          choices,
+          eventId: scene.eventId,
+          introFlag: scene.introFlag,
+        });
+      },
+      () => this.fallback.generateSceneCard(scene, choices, input),
+    );
   }
 
   async generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput) {
-    const fallback = await this.fallback.generateEventCard(event, choices, input);
-    const generated = await this.generateJson<EventCard>("eventCard", "event card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      choiceIds: choices.map((choice) => choice.id),
-    });
-    return EventCardSchema.parse({
-      ...generated,
-      id: fallback.id,
-      locationId: event.locationId,
-      choices,
-      startSceneId: event.startSceneId,
-      sceneIds: event.sceneIds,
-    });
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateEventCard(event, choices, input);
+        const generated = await this.generateJson<EventCard>("eventCard", "event card json", {
+          fallback,
+          currentState: summarizeState(input.state),
+          recentLog: input.recentLog,
+          storyMaterials: input.storyMaterials,
+          choiceIds: choices.map((choice) => choice.id),
+        });
+        return EventCardSchema.parse({
+          ...generated,
+          id: fallback.id,
+          locationId: event.locationId,
+          choices,
+          startSceneId: event.startSceneId,
+          sceneIds: event.sceneIds,
+        });
+      },
+      () => this.fallback.generateEventCard(event, choices, input),
+    );
   }
 }
 
@@ -287,82 +325,120 @@ Return valid JSON with no markdown fences.`,
     );
   }
 
+  private async withFallback<T>(work: () => Promise<T>, fallback: () => Promise<T>) {
+    try {
+      return await work();
+    } catch {
+      return fallback();
+    }
+  }
+
   async generateLocationCard(locationId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generateLocationCard(locationId, input);
-    return LocationCardSchema.parse(
-      await this.generateJson("locationCard", "location card json", {
-        fallback,
-        currentState: summarizeState(input.state),
-      }),
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateLocationCard(locationId, input);
+        return LocationCardSchema.parse(
+          await this.generateJson("locationCard", "location card json", {
+            fallback,
+            currentState: summarizeState(input.state),
+          }),
+        );
+      },
+      () => this.fallback.generateLocationCard(locationId, input),
     );
   }
 
   async generatePersonCard(personId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generatePersonCard(personId, input);
-    return PersonCardSchema.parse(
-      await this.generateJson("personCard", "person card json", {
-        fallback,
-        currentState: summarizeState(input.state),
-      }),
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generatePersonCard(personId, input);
+        return PersonCardSchema.parse(
+          await this.generateJson("personCard", "person card json", {
+            fallback,
+            currentState: summarizeState(input.state),
+          }),
+        );
+      },
+      () => this.fallback.generatePersonCard(personId, input),
     );
   }
 
   async generateItemCard(itemId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generateItemCard(itemId, input);
-    return ItemCardSchema.parse(
-      await this.generateJson("itemCard", "item card json", {
-        fallback,
-        currentState: summarizeState(input.state),
-      }),
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateItemCard(itemId, input);
+        return ItemCardSchema.parse(
+          await this.generateJson("itemCard", "item card json", {
+            fallback,
+            currentState: summarizeState(input.state),
+          }),
+        );
+      },
+      () => this.fallback.generateItemCard(itemId, input),
     );
   }
 
   async generateProtagonistCard(input: GeneratorInput) {
-    const fallback = await this.fallback.generateProtagonistCard(input);
-    return ProtagonistCardSchema.parse(
-      await this.generateJson("protagonistCard", "protagonist card json", {
-        fallback,
-        currentState: summarizeState(input.state),
-      }),
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateProtagonistCard(input);
+        return ProtagonistCardSchema.parse(
+          await this.generateJson("protagonistCard", "protagonist card json", {
+            fallback,
+            currentState: summarizeState(input.state),
+          }),
+        );
+      },
+      () => this.fallback.generateProtagonistCard(input),
     );
   }
 
   async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
-    const fallback = await this.fallback.generateSceneCard(scene, choices, input);
-    const generated = await this.generateJson<SceneCard>("sceneCard", "scene card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      choiceIds: choices.map((choice) => choice.id),
-    });
-    return SceneCardSchema.parse({
-      ...generated,
-      id: fallback.id,
-      locationId: scene.locationId,
-      choices,
-      eventId: scene.eventId,
-      introFlag: scene.introFlag,
-    });
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateSceneCard(scene, choices, input);
+        const generated = await this.generateJson<SceneCard>("sceneCard", "scene card json", {
+          fallback,
+          currentState: summarizeState(input.state),
+          recentLog: input.recentLog,
+          storyMaterials: input.storyMaterials,
+          choiceIds: choices.map((choice) => choice.id),
+        });
+        return SceneCardSchema.parse({
+          ...generated,
+          id: fallback.id,
+          locationId: scene.locationId,
+          choices,
+          eventId: scene.eventId,
+          introFlag: scene.introFlag,
+        });
+      },
+      () => this.fallback.generateSceneCard(scene, choices, input),
+    );
   }
 
   async generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput) {
-    const fallback = await this.fallback.generateEventCard(event, choices, input);
-    const generated = await this.generateJson<EventCard>("eventCard", "event card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      choiceIds: choices.map((choice) => choice.id),
-    });
-    return EventCardSchema.parse({
-      ...generated,
-      id: fallback.id,
-      locationId: event.locationId,
-      choices,
-      startSceneId: event.startSceneId,
-      sceneIds: event.sceneIds,
-    });
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateEventCard(event, choices, input);
+        const generated = await this.generateJson<EventCard>("eventCard", "event card json", {
+          fallback,
+          currentState: summarizeState(input.state),
+          recentLog: input.recentLog,
+          storyMaterials: input.storyMaterials,
+          choiceIds: choices.map((choice) => choice.id),
+        });
+        return EventCardSchema.parse({
+          ...generated,
+          id: fallback.id,
+          locationId: event.locationId,
+          choices,
+          startSceneId: event.startSceneId,
+          sceneIds: event.sceneIds,
+        });
+      },
+      () => this.fallback.generateEventCard(event, choices, input),
+    );
   }
 }
 

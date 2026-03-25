@@ -20,6 +20,7 @@ import {
 } from "./schemas";
 import { SAVE_VERSION } from "./base-data";
 import { worldRegistry } from "./data/registry";
+import { normalizeDynamicLocationNames } from "./dynamic-location-naming";
 import { formatLogTimestamp } from "./state-utils";
 import { buildRuntimeRegistry, emptyDynamicWorldRegistry } from "./runtime-registry";
 
@@ -47,7 +48,9 @@ export const emptyTemplateStore: TemplateStore = {
 
 function normalizeDynamicContent(raw: unknown) {
   const parsed = DynamicWorldRegistrySchema.safeParse(raw && typeof raw === "object" ? raw : {});
-  return parsed.success ? parsed.data : structuredClone(emptyDynamicWorldRegistry);
+  return parsed.success
+    ? normalizeDynamicLocationNames(parsed.data, Object.values(worldRegistry.locations).map((location) => location.name))
+    : structuredClone(emptyDynamicWorldRegistry);
 }
 
 function normalizeWorldPlan(raw: unknown, currentDay: number) {

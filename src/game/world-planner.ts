@@ -1,5 +1,6 @@
 import { PHASES } from "./base-data";
 import { validateRegistry } from "./data/registry";
+import { createUniqueDynamicLocationName, normalizeDynamicLocationNames } from "./dynamic-location-naming";
 import { generateGeminiJson, geminiModel, hasGeminiConfig } from "./gemini-client";
 import { buildRuntimeRegistry, getRuntimeLocationDefinition, mergeDynamicWorldRegistry } from "./runtime-registry";
 import type {
@@ -237,26 +238,36 @@ function validateGeneratedPackage(
   rawPackage: GeneratedRegionPackage,
 ) {
   const parsed = GeneratedRegionPackageSchema.parse(rawPackage);
-  ensureDynId(parsed.locationId, `location '${parsed.locationId}'`);
-  ensureDynId(parsed.frontierActionId, `frontier action '${parsed.frontierActionId}'`);
-  if (parsed.entryEventId) {
-    ensureDynId(parsed.entryEventId, `entry event '${parsed.entryEventId}'`);
+  const normalizedRegistry = normalizeDynamicLocationNames(
+    parsed.registry,
+    Object.values(registry.locations).map((location) => location.name),
+  );
+  const normalized = {
+    ...parsed,
+    registry: normalizedRegistry,
+    title: normalizedRegistry.locations[parsed.locationId]?.name ?? parsed.title,
+  };
+
+  ensureDynId(normalized.locationId, `location '${normalized.locationId}'`);
+  ensureDynId(normalized.frontierActionId, `frontier action '${normalized.frontierActionId}'`);
+  if (normalized.entryEventId) {
+    ensureDynId(normalized.entryEventId, `entry event '${normalized.entryEventId}'`);
   }
 
-  Object.keys(parsed.registry.locations).forEach((id) => ensureDynId(id, `location '${id}'`));
-  Object.keys(parsed.registry.items).forEach((id) => ensureDynId(id, `item '${id}'`));
-  Object.keys(parsed.registry.people).forEach((id) => ensureDynId(id, `person '${id}'`));
-  Object.keys(parsed.registry.quests).forEach((id) => ensureDynId(id, `quest '${id}'`));
-  Object.keys(parsed.registry.skills).forEach((id) => ensureDynId(id, `skill '${id}'`));
-  Object.keys(parsed.registry.actions).forEach((id) => ensureDynId(id, `action '${id}'`));
-  Object.keys(parsed.registry.choices).forEach((id) => ensureDynId(id, `choice '${id}'`));
-  Object.keys(parsed.registry.events).forEach((id) => ensureDynId(id, `event '${id}'`));
-  Object.keys(parsed.registry.scenes).forEach((id) => ensureDynId(id, `scene '${id}'`));
+  Object.keys(normalized.registry.locations).forEach((id) => ensureDynId(id, `location '${id}'`));
+  Object.keys(normalized.registry.items).forEach((id) => ensureDynId(id, `item '${id}'`));
+  Object.keys(normalized.registry.people).forEach((id) => ensureDynId(id, `person '${id}'`));
+  Object.keys(normalized.registry.quests).forEach((id) => ensureDynId(id, `quest '${id}'`));
+  Object.keys(normalized.registry.skills).forEach((id) => ensureDynId(id, `skill '${id}'`));
+  Object.keys(normalized.registry.actions).forEach((id) => ensureDynId(id, `action '${id}'`));
+  Object.keys(normalized.registry.choices).forEach((id) => ensureDynId(id, `choice '${id}'`));
+  Object.keys(normalized.registry.events).forEach((id) => ensureDynId(id, `event '${id}'`));
+  Object.keys(normalized.registry.scenes).forEach((id) => ensureDynId(id, `scene '${id}'`));
 
-  Object.values(parsed.registry.actions).forEach(validateGeneratedAction);
-  Object.values(parsed.registry.choices).forEach(validateGeneratedChoice);
+  Object.values(normalized.registry.actions).forEach(validateGeneratedAction);
+  Object.values(normalized.registry.choices).forEach(validateGeneratedChoice);
 
-  Object.values(parsed.registry.locations).forEach((location) => {
+  Object.values(normalized.registry.locations).forEach((location) => {
     location.stockNodes.forEach((node) => {
       if (node.money > DEFAULT_GENERATION_GUARDRAILS.maxMoneyDeltaPerEffect) {
         throw new Error(`stock node '${node.id}' exceeds money guardrail.`);
@@ -269,7 +280,7 @@ function validateGeneratedPackage(
     });
   });
 
-  Object.values(parsed.registry.quests).forEach((quest) => {
+  Object.values(normalized.registry.quests).forEach((quest) => {
     ensureDynId(quest.id, `quest '${quest.id}'`);
     quest.objectives.forEach((objective) => {
       if (!DEFAULT_GENERATION_GUARDRAILS.allowedQuestObjectiveTypes.includes(objective.type)) {
@@ -283,19 +294,19 @@ function validateGeneratedPackage(
     });
   });
 
-  if (parsed.tomorrowEvolution) {
-    ensureDynId(parsed.tomorrowEvolution.id, `evolution '${parsed.tomorrowEvolution.id}'`);
+  if (normalized.tomorrowEvolution) {
+    ensureDynId(normalized.tomorrowEvolution.id, `evolution '${normalized.tomorrowEvolution.id}'`);
   }
 
-  const mergedDynamic = mergeDynamicWorldRegistry(state.dynamicContent, parsed.registry);
+  const mergedDynamic = mergeDynamicWorldRegistry(state.dynamicContent, normalized.registry);
   const mergedRegistry = buildRuntimeRegistry({ dynamicContent: mergedDynamic });
   validateRegistry(mergedRegistry);
 
-  if (!registry.locations[parsed.sourceLocationId]) {
-    throw new Error(`Unknown source location '${parsed.sourceLocationId}'.`);
+  if (!registry.locations[normalized.sourceLocationId]) {
+    throw new Error(`Unknown source location '${normalized.sourceLocationId}'.`);
   }
 
-  return parsed;
+  return normalized;
 }
 
 function buildQuestRewardSummary(theme: FrontierTheme) {
@@ -397,6 +408,11 @@ class TemplateWorldPlanner implements WorldPlanner {
   async generateRegionPackage(input: PlannerInput) {
     const theme = FRONTIER_THEMES[(input.sequence - 1) % FRONTIER_THEMES.length];
     const sourceLocation = getRuntimeLocationDefinition(input.state, input.registry, input.sourceLocationId);
+    const locationName = createUniqueDynamicLocationName(
+      theme.locationName,
+      Object.values(input.registry.locations).map((location) => location.name),
+      input.sequence,
+    );
     const locationId = `dyn_location_${input.sequence}_${theme.slug}`;
     const personId = `dyn_person_${input.sequence}_${theme.slug}`;
     const questId = `dyn_quest_${input.sequence}_${theme.slug}`;
@@ -443,7 +459,7 @@ class TemplateWorldPlanner implements WorldPlanner {
       type: "explore",
       locationIds: [locationId],
       outcomeHint: theme.frontierOutcome,
-      effects: [{ type: "log", message: `${theme.locationName} 너머의 더 깊은 구역을 향해 발걸음을 옮긴다.` }],
+      effects: [{ type: "log", message: `${locationName} 너머의 더 깊은 구역을 향해 발걸음을 옮긴다.` }],
       tags: ["dynamic", "frontier"],
     });
     const deliverAction = defineAction({
@@ -496,7 +512,7 @@ class TemplateWorldPlanner implements WorldPlanner {
     });
     const leaveChoice = defineChoice({
       id: leaveChoiceId,
-      label: `${theme.locationName} 쪽으로 물러나기`,
+      label: `${locationName} 쪽으로 물러나기`,
       outcomeHint: "세부 위치에서 빠져나와 상위 공간으로 돌아간다.",
       effects: [{ type: "clear_stock_node_focus" }],
       nextSceneId: introSceneId,
@@ -544,7 +560,7 @@ class TemplateWorldPlanner implements WorldPlanner {
       locations: {
         [locationId]: {
           id: locationId,
-          name: theme.locationName,
+          name: locationName,
           risk: "low",
           imagePath: null,
           summary: theme.summary,
@@ -670,7 +686,7 @@ class TemplateWorldPlanner implements WorldPlanner {
       sourceLocationId: input.sourceLocationId,
       sourceFrontierActionId: input.sourceFrontierActionId,
       frontierActionId,
-      title: theme.locationName,
+      title: locationName,
       summary: theme.summary,
       entryEventId,
       registry,
