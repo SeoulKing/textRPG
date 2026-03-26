@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ActionDefinitionSchema } from "./action";
 import { ChoiceDefinitionSchema } from "./choice";
 import { LocationDefinitionSchema } from "./content";
+import { EffectSchema } from "./condition-effect";
 import { EventDefinitionSchema } from "./event";
 import { ItemEffectsSchema } from "./item";
 import { QuestDefinitionSchema } from "./quest";
@@ -160,6 +161,72 @@ export const GeneratedRegionPackageSchema = z.object({
   tomorrowEvolution: DayEvolutionPlanSchema.nullable().default(null),
 });
 
+export const NarrativeContinuationRequestSchema = z.object({
+  gameId: z.string(),
+  locationId: z.string(),
+  anchorLocationId: z.string(),
+  anchorLocationName: z.string(),
+  sourceSceneId: z.string(),
+  sourceSceneTitle: z.string(),
+  sourceSceneParagraphs: z.array(z.string()).min(1),
+  trigger: z.object({
+    kind: z.enum(["action", "choice"]),
+    id: z.string(),
+    label: z.string(),
+    outcomeHint: z.string(),
+    tags: z.array(z.string()).default([]),
+  }),
+  recentLog: z.array(z.string()).default([]),
+  inventoryItemIds: z.array(z.string()).default([]),
+  activeQuestIds: z.array(z.string()).default([]),
+  localSceneIds: z.array(z.string()).default([]),
+  localPeopleIds: z.array(z.string()).default([]),
+  localStockNodeIds: z.array(z.string()).default([]),
+  lineageSceneIds: z.array(z.string()).default([]),
+  sequence: z.number().int().positive(),
+});
+
+export const GeneratedStoryBeatPatchSchema = z.object({
+  sceneId: z.string(),
+  registry: DynamicWorldRegistrySchema,
+  immediateEffects: z.array(EffectSchema).default([]),
+});
+
+export const GeneratedStoryBeatSchema = z.object({
+  id: z.string(),
+  locationId: z.string(),
+  anchorLocationId: z.string(),
+  sourceSceneId: z.string(),
+  sourceTriggerId: z.string(),
+  summary: z.string(),
+  patch: GeneratedStoryBeatPatchSchema,
+});
+
+export const NarrativeHistoryEntrySchema = z.object({
+  beatId: z.string(),
+  locationId: z.string(),
+  sceneId: z.string(),
+  sourceSceneId: z.string(),
+  triggerId: z.string(),
+  at: z.string(),
+});
+
+export const PregeneratedBeatCacheEntrySchema = z.object({
+  key: z.string(),
+  locationId: z.string(),
+  sourceSceneId: z.string(),
+  triggerId: z.string(),
+  stateHash: z.string(),
+  createdAt: z.string(),
+  beat: GeneratedStoryBeatSchema,
+});
+
+export const NarrativeStateSchema = z.object({
+  nextBeatSequence: z.number().int().positive().default(1),
+  history: z.array(NarrativeHistoryEntrySchema).default([]),
+  pregenerated: z.record(z.string(), PregeneratedBeatCacheEntrySchema).default({}),
+});
+
 export const GenerationGuardrailsSchema = z.object({
   requiredIdPrefix: z.literal("dyn_"),
   maxStatDeltaPerEffect: z.number().int().positive(),
@@ -179,4 +246,10 @@ export type WorldPlan = z.infer<typeof WorldPlanSchema>;
 export type FrontierSlot = z.infer<typeof FrontierSlotSchema>;
 export type FrontierState = z.infer<typeof FrontierStateSchema>;
 export type GeneratedRegionPackage = z.infer<typeof GeneratedRegionPackageSchema>;
+export type NarrativeContinuationRequest = z.infer<typeof NarrativeContinuationRequestSchema>;
+export type GeneratedStoryBeatPatch = z.infer<typeof GeneratedStoryBeatPatchSchema>;
+export type GeneratedStoryBeat = z.infer<typeof GeneratedStoryBeatSchema>;
+export type NarrativeHistoryEntry = z.infer<typeof NarrativeHistoryEntrySchema>;
+export type PregeneratedBeatCacheEntry = z.infer<typeof PregeneratedBeatCacheEntrySchema>;
+export type NarrativeState = z.infer<typeof NarrativeStateSchema>;
 export type GenerationGuardrails = z.infer<typeof GenerationGuardrailsSchema>;

@@ -260,3 +260,20 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   prologue -> convenience -> `push_beyond_convenience_ruins` created `dyn_location_1_subway_gate`,
   the resulting location carried `planner:llm`,
   and the state snapshot included one successful LLM trace with non-empty request/response bodies.
+
+- 2026-03-25 continuation-generation update:
+  split dynamic generation into frontier region packages plus same-location narrative beats.
+- Added `narrativeState` to saves with beat history and pregenerated cache, and bumped save/client version to `10`.
+- Added `GeneratedStoryBeat`, `NarrativeContinuationRequest`, and pregenerated cache schemas so the planner can build the next scene inside the current dynamic location without adding a new map node.
+- Dynamic frontier intro actions like inspect/talk now carry the `continuation` tag; `GameService` intercepts those before normal rules execution and asks the planner for a same-location beat.
+- Generated beat scenes set `suppressLocationInteractions` so detail scenes behave like micro-locations inside the same map location.
+- Implemented immediate post-beat pre-generation for the next continuation trigger, stored in `state.narrativeState.pregenerated`, and verified cache hits by checking trace count stays flat when the cached continuation is used.
+- Strengthened `mergeDynamicWorldRegistry()` so repeated same-location patches merge location arrays instead of overwriting the whole dynamic location object.
+- Fixed a new save corruption race caused by background pre-generation: `saveGame()` now writes game files atomically through unique temp files before rename/copy.
+- Runtime probe verified:
+  `convenience -> push_beyond_convenience_ruins -> dyn intro -> accept quest -> inspect`
+  keeps the player in the same `dyn_location_*`,
+  swaps only the scene,
+  and exposes continuation choices like `continue` / `return` instead of creating another map tile.
+- Dev trace now distinguishes planner calls as `region:*` and `beat:*`.
+- Playwright UI automation is still blocked in this workspace because `node_modules/playwright` is not installed.

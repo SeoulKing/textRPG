@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { PHASES, getSkillEntries } from "./base-data";
 import {
   buildStoryChoiceFromChoice,
@@ -19,6 +19,7 @@ import {
   syncScene,
 } from "./rules";
 import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition, mergeDynamicWorldRegistry } from "./runtime-registry";
+import { applyEffect } from "./state-utils";
 import { buildActionCatalogFromStoryChoices, resolveStoryFrame } from "./story-flow";
 import type {
   ActionChoice,
@@ -28,9 +29,11 @@ import type {
   EventDefinition,
   GameAction,
   GameSession,
+  GeneratedStoryBeat,
   ItemCard,
   LocationCard,
   MapEntry,
+  NarrativeContinuationRequest,
   PersonCard,
   ProtagonistCard,
   SceneCard,
@@ -99,6 +102,14 @@ export class GameService {
     if (this.isFrontierAction(action, registry)) {
       const snapshot = await this.expandFrontier(session, action, registry);
       await this.repository.saveGame(session);
+      void this.preGenerateNarrativeBeats(gameId).catch(() => undefined);
+      return snapshot;
+    }
+
+    if (this.isNarrativeContinuation(action, registry)) {
+      const snapshot = await this.performNarrativeContinuation(session, action, registry);
+      await this.repository.saveGame(session);
+      void this.preGenerateNarrativeBeats(gameId).catch(() => undefined);
       return snapshot;
     }
 
@@ -127,6 +138,7 @@ export class GameService {
     });
     const snapshot = this.buildSnapshot(session, latestEvent);
     await this.repository.saveGame(session);
+    void this.preGenerateNarrativeBeats(gameId).catch(() => undefined);
     return snapshot;
   }
 
@@ -254,6 +266,9 @@ export class GameService {
   private previewNextSceneId(state: GameSession["state"], action: GameAction, registry: ContentRegistry) {
     try {
       if (action.type === "content_action" && registry.actions[action.actionId]?.tags?.includes("frontier")) {
+        return undefined;
+      }
+      if (this.isNarrativeContinuation(action, registry)) {
         return undefined;
       }
       const previewState = structuredClone(state);
@@ -605,6 +620,293 @@ export class GameService {
     };
 
     return StateSnapshotSchema.parse(snapshot);
+  }
+
+  private narrativeTriggerForAction(action: GameAction, registry: ContentRegistry) {
+    if (action.type === "content_action") {
+      const definition = registry.actions[action.actionId];
+      if (!definition?.tags?.includes("continuation")) {
+        return null;
+      }
+      return {
+        kind: "action" as const,
+        id: definition.id,
+        label: definition.label,
+        outcomeHint: definition.outcomeHint,
+        tags: [...definition.tags],
+      };
+    }
+
+    if (action.type === "content_choice") {
+      const definition = registry.choices[action.choiceId];
+      if (!definition?.tags?.includes("continuation")) {
+        return null;
+      }
+      return {
+        kind: "choice" as const,
+        id: definition.id,
+        label: definition.label,
+        outcomeHint: definition.outcomeHint,
+        tags: [...(definition.tags ?? [])],
+      };
+    }
+
+    return null;
+  }
+
+  private isNarrativeContinuation(action: GameAction, registry: ContentRegistry) {
+    return Boolean(this.narrativeTriggerForAction(action, registry));
+  }
+
+  private narrativeStateHash(state: GameSession["state"]) {
+    const stockState = Object.fromEntries(
+      Object.entries(state.stockState)
+        .filter(([key]) => key.includes(state.location))
+        .sort(([left], [right]) => left.localeCompare(right)),
+    );
+    const flags = Object.fromEntries(
+      Object.entries(state.flags)
+        .filter(([key]) => key.startsWith("dyn_") || key.includes(state.location))
+        .sort(([left], [right]) => left.localeCompare(right)),
+    );
+    const inventory = Object.fromEntries(
+      Object.entries(state.inventory).sort(([left], [right]) => left.localeCompare(right)),
+    );
+    const quests = Object.fromEntries(
+      Object.entries(state.quests).sort(([left], [right]) => left.localeCompare(right)),
+    );
+
+    return createHash("sha1").update(JSON.stringify({
+      location: state.location,
+      sceneId: state.sceneId,
+      day: state.day,
+      phaseIndex: state.phaseIndex,
+      inventory,
+      quests,
+      flags,
+      stockState,
+      activeStockNodeId: state.activeStockNodeId,
+    })).digest("hex").slice(0, 16);
+  }
+
+  private narrativeCacheKey(gameId: string, sceneId: string, triggerId: string, stateHash: string) {
+    return `${gameId}:${sceneId}:${triggerId}:${stateHash}`;
+  }
+
+  private reserveNarrativeSequence(session: GameSession) {
+    const sequence = session.state.narrativeState.nextBeatSequence;
+    session.state.narrativeState.nextBeatSequence += 1;
+    return sequence;
+  }
+
+  private clearNarrativeCacheEntry(session: GameSession, key: string) {
+    if (!session.state.narrativeState.pregenerated[key]) {
+      return;
+    }
+    delete session.state.narrativeState.pregenerated[key];
+  }
+
+  private prunePregeneratedNarrativeBeats(session: GameSession, maxEntries = 8) {
+    const entries = Object.values(session.state.narrativeState.pregenerated)
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+    while (entries.length > maxEntries) {
+      const oldest = entries.shift();
+      if (!oldest) {
+        break;
+      }
+      delete session.state.narrativeState.pregenerated[oldest.key];
+    }
+  }
+
+  private buildNarrativeRequest(
+    session: GameSession,
+    action: GameAction,
+    registry: ContentRegistry,
+    sequence: number,
+  ): { key: string; stateHash: string; request: NarrativeContinuationRequest } {
+    const trigger = this.narrativeTriggerForAction(action, registry);
+    if (!trigger) {
+      throw new Error("Not a narrative continuation trigger.");
+    }
+
+    const scene = this.presentedSceneDefinition(session, registry);
+    const location = this.currentLocation(session, registry);
+    const stateHash = this.narrativeStateHash(session.state);
+    const localSceneIds = Object.values(registry.scenes)
+      .filter((entry) => entry.locationId === session.state.location)
+      .map((entry) => entry.id);
+    const lineageSceneIds = session.state.narrativeState.history
+      .filter((entry) => entry.locationId === session.state.location)
+      .slice(-6)
+      .map((entry) => entry.sceneId);
+    const request: NarrativeContinuationRequest = {
+      gameId: session.id,
+      locationId: session.state.location,
+      anchorLocationId: session.state.location,
+      anchorLocationName: location.name,
+      sourceSceneId: scene.id,
+      sourceSceneTitle: scene.title,
+      sourceSceneParagraphs: [...scene.paragraphs],
+      trigger,
+      recentLog: session.state.log.slice(-6).map((entry) => entry.message),
+      inventoryItemIds: Object.keys(session.state.inventory),
+      activeQuestIds: Object.entries(session.state.quests)
+        .filter(([, status]) => status === "active")
+        .map(([questId]) => questId),
+      localSceneIds,
+      localPeopleIds: [...location.residentIds],
+      localStockNodeIds: location.stockNodes.map((node) => node.id),
+      lineageSceneIds,
+      sequence,
+    };
+
+    return {
+      key: this.narrativeCacheKey(session.id, scene.id, trigger.id, stateHash),
+      stateHash,
+      request,
+    };
+  }
+
+  private applyGeneratedStoryBeat(session: GameSession, beat: GeneratedStoryBeat, triggerLabel: string, registry: ContentRegistry) {
+    const previousState = structuredClone(session.state);
+    const currentScene = this.presentedSceneDefinition(session, registry);
+    if (currentScene.introFlag && !session.state.flags[currentScene.introFlag]) {
+      session.state.flags[currentScene.introFlag] = true;
+    }
+
+    session.state.dynamicContent = mergeDynamicWorldRegistry(session.state.dynamicContent, beat.patch.registry);
+    beat.patch.immediateEffects.forEach((effect) => applyEffect(effect, session.state));
+    session.state.sceneId = beat.patch.sceneId;
+    refreshLocationKnowledge(session.state);
+    syncQuestState(session.state, previousState.quests);
+    syncScene(session.state, beat.patch.sceneId);
+    applySystemNote(previousState, session.state, triggerLabel);
+    session.state.narrativeState.history.push({
+      beatId: beat.id,
+      locationId: beat.locationId,
+      sceneId: beat.patch.sceneId,
+      sourceSceneId: beat.sourceSceneId,
+      triggerId: beat.sourceTriggerId,
+      at: nowIso(),
+    });
+    session.state.narrativeState.history = session.state.narrativeState.history.slice(-24);
+    session.world.sceneCards = {};
+  }
+
+  private narrativeContinuationChoices(session: GameSession, registry = this.runtimeRegistry(session)) {
+    const scene = this.presentedSceneDefinition(session, registry);
+    return this.presentedChoices(session, scene, registry)
+      .filter((choice) => choice.tags?.includes("continuation"));
+  }
+
+  private async performNarrativeContinuation(session: GameSession, action: GameAction, registry: ContentRegistry) {
+    const preview = this.buildNarrativeRequest(session, action, registry, 1);
+    const cached = session.state.narrativeState.pregenerated[preview.key];
+    const { key, request, stateHash } = cached
+      ? preview
+      : this.buildNarrativeRequest(session, action, registry, this.reserveNarrativeSequence(session));
+
+    const beat = cached
+      ? cached.beat
+      : await this.planner.generateStoryBeat({
+          ...request,
+          state: session.state,
+          registry,
+        });
+    const trigger = this.narrativeTriggerForAction(action, registry);
+    if (!trigger) {
+      throw new Error("Narrative trigger metadata is missing.");
+    }
+
+    this.clearNarrativeCacheEntry(session, key);
+    this.applyGeneratedStoryBeat(session, beat, trigger.label, registry);
+    session.updatedAt = nowIso();
+
+    const nextRegistry = this.runtimeRegistry(session);
+    await this.ensureCards(session);
+    await this.repository.appendGenerationLog({
+      gameId: session.id,
+      kind: cached ? "generatedStoryBeatCacheHit" : "generatedStoryBeat",
+      id: beat.id,
+      at: session.updatedAt,
+      locationId: beat.locationId,
+      sourceSceneId: beat.sourceSceneId,
+      triggerId: beat.sourceTriggerId,
+      stateHash,
+    });
+    await this.repository.appendActionLog({
+      gameId: session.id,
+      action,
+      at: session.updatedAt,
+      location: session.state.location,
+      day: session.state.day,
+    });
+    return this.buildSnapshot(session, null, nextRegistry);
+  }
+
+  private async preGenerateNarrativeBeats(gameId: string) {
+    const session = await this.repository.loadGame(gameId);
+    const registry = this.runtimeRegistry(session);
+    const candidates = this.narrativeContinuationChoices(session, registry).slice(0, 1);
+    if (candidates.length === 0) {
+      return;
+    }
+
+    const pending = candidates
+      .map((choice) => {
+        const action = choice.serverActionHint;
+        if (!this.isNarrativeContinuation(action, registry)) {
+          return null;
+        }
+        const sequence = this.reserveNarrativeSequence(session);
+        const built = this.buildNarrativeRequest(session, action, registry, sequence);
+        if (session.state.narrativeState.pregenerated[built.key]) {
+          return null;
+        }
+        return built;
+      })
+      .filter(Boolean) as Array<{ key: string; stateHash: string; request: NarrativeContinuationRequest }>;
+
+    if (pending.length === 0) {
+      return;
+    }
+
+    session.updatedAt = nowIso();
+    await this.repository.saveGame(session);
+
+    for (const entry of pending) {
+      try {
+        const beat = await this.planner.generateStoryBeat({
+          ...entry.request,
+          state: session.state,
+          registry,
+        });
+        const latest = await this.repository.loadGame(gameId);
+        latest.state.narrativeState.pregenerated[entry.key] = {
+          key: entry.key,
+          locationId: entry.request.locationId,
+          sourceSceneId: entry.request.sourceSceneId,
+          triggerId: entry.request.trigger.id,
+          stateHash: entry.stateHash,
+          createdAt: nowIso(),
+          beat,
+        };
+        this.prunePregeneratedNarrativeBeats(latest);
+        latest.updatedAt = nowIso();
+        await this.repository.appendGenerationLog({
+          gameId,
+          kind: "generatedStoryBeatPregenerated",
+          id: beat.id,
+          at: latest.updatedAt,
+          locationId: beat.locationId,
+          sourceSceneId: beat.sourceSceneId,
+          triggerId: beat.sourceTriggerId,
+        });
+        await this.repository.saveGame(latest);
+      } catch {
+        continue;
+      }
+    }
   }
 
   private followUpEventId(action: GameAction, registry: ContentRegistry) {

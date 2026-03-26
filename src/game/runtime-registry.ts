@@ -25,12 +25,45 @@ function dedupeStrings(values: string[]) {
   return Array.from(new Set(values));
 }
 
+function mergeActionArraysById<T extends { id: string }>(base: T[], addition: T[]) {
+  const merged = new Map(base.map((entry) => [entry.id, structuredClone(entry)]));
+  addition.forEach((entry) => {
+    merged.set(entry.id, structuredClone(entry));
+  });
+  return Array.from(merged.values());
+}
+
+function mergeLocationDefinitions(base: LocationDefinition | undefined, addition: LocationDefinition) {
+  if (!base) {
+    return structuredClone(addition);
+  }
+
+  return {
+    ...base,
+    ...addition,
+    tags: dedupeStrings([...base.tags, ...addition.tags]),
+    traits: dedupeStrings([...base.traits, ...addition.traits]),
+    obtainableItemIds: dedupeStrings([...base.obtainableItemIds, ...addition.obtainableItemIds]),
+    residentIds: dedupeStrings([...base.residentIds, ...addition.residentIds]),
+    neighbors: dedupeStrings([...base.neighbors, ...addition.neighbors]),
+    interactionChoices: mergeActionArraysById(base.interactionChoices, addition.interactionChoices),
+    eventIds: dedupeStrings([...base.eventIds, ...addition.eventIds]),
+    links: { ...base.links, ...addition.links },
+    stockNodes: mergeActionArraysById(base.stockNodes, addition.stockNodes),
+  } satisfies LocationDefinition;
+}
+
 export function mergeDynamicWorldRegistry(
   base: DynamicWorldRegistry,
   addition: DynamicWorldRegistry,
 ): DynamicWorldRegistry {
+  const locations = { ...base.locations };
+  Object.entries(addition.locations).forEach(([locationId, location]) => {
+    locations[locationId] = mergeLocationDefinitions(base.locations[locationId], location);
+  });
+
   return {
-    locations: { ...base.locations, ...addition.locations },
+    locations,
     items: { ...base.items, ...addition.items },
     people: { ...base.people, ...addition.people },
     quests: { ...base.quests, ...addition.quests },

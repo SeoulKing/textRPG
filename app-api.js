@@ -1,6 +1,8 @@
 ﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id-v9";
+const ACTIVE_STORAGE_KEY = "ruined-seoul-stage1-game-id-v10";
 const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id",
+  "ruined-seoul-stage1-game-id-v9",
   "ruined-seoul-stage1-game-id-v8",
   "ruined-seoul-stage1-game-id-v7",
 ];
@@ -8,7 +10,7 @@ const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const CLIENT_SAVE_VERSION = 9;
+const CLIENT_SAVE_VERSION = 10;
 const HEX_RATIO = Math.sqrt(3) / 2;
 const DEV_OBJECT_BADGES = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
 
@@ -166,7 +168,7 @@ const dom = {
 const client = {
   activePanel: "map",
   snapshot: null,
-  gameId: window.localStorage.getItem(STORAGE_KEY) || "",
+  gameId: window.localStorage.getItem(ACTIVE_STORAGE_KEY) || "",
   lastFetchedAt: 0,
   syncTimer: null,
   mapHint: "",
@@ -282,7 +284,7 @@ async function createNewGame() {
   client.mapHint = "";
   client.justCreatedGame = true;
   clearLegacyGameIds();
-  window.localStorage.setItem(STORAGE_KEY, client.gameId);
+  window.localStorage.setItem(ACTIVE_STORAGE_KEY, client.gameId);
 }
 
 function needsFreshGame(snapshot) {

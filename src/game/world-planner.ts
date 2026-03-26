@@ -12,15 +12,19 @@ import type {
   DynamicWorldRegistry,
   Effect,
   GameState,
+  GeneratedStoryBeat,
   GeneratedRegionPackage,
   GenerationGuardrails,
+  NarrativeContinuationRequest,
   PlannedRegionSummary,
   WorldPlan,
 } from "./schemas";
 import {
   DayEvolutionPlanSchema,
+  GeneratedStoryBeatSchema,
   GeneratedRegionPackageSchema,
   GenerationGuardrailsSchema,
+  NarrativeContinuationRequestSchema,
   WorldPlanSchema,
 } from "./schemas";
 
@@ -34,8 +38,14 @@ type PlannerInput = {
   recentLog: string[];
 };
 
+type StoryBeatPlannerInput = NarrativeContinuationRequest & {
+  state: GameState;
+  registry: ContentRegistry;
+};
+
 export interface WorldPlanner {
   generateRegionPackage(input: PlannerInput): Promise<GeneratedRegionPackage>;
+  generateStoryBeat(request: StoryBeatPlannerInput): Promise<GeneratedStoryBeat>;
   planTomorrow(state: GameState, registry: ContentRegistry, gameId: string): Promise<WorldPlan["tomorrow"]>;
 }
 
@@ -78,6 +88,8 @@ const ALLOWED_EFFECT_TYPES = [
   "collect_stock_money",
   "collect_stock_money_all",
 ];
+
+const CONTINUATION_TAG = "continuation";
 
 type FrontierTheme = {
   slug: string;
@@ -297,6 +309,72 @@ function mergeGeneratedPackageOntoFallback(fallback: GeneratedRegionPackage, can
   return mergeGeneratedPackageValue(fallback, unwrappedCandidate);
 }
 
+function mergeGeneratedStoryBeatOntoFallback(fallback: GeneratedStoryBeat, candidate: unknown) {
+  const unwrappedCandidate = unwrapGeneratedPackageCandidate(candidate);
+  return mergeGeneratedPackageValue(fallback, unwrappedCandidate);
+}
+
+function validateGeneratedStoryBeat(
+  request: StoryBeatPlannerInput,
+  rawBeat: GeneratedStoryBeat,
+) {
+  const parsed = GeneratedStoryBeatSchema.parse(rawBeat);
+
+  ensureDynId(parsed.id, `story beat '${parsed.id}'`);
+  ensureDynId(parsed.patch.sceneId, `story beat scene '${parsed.patch.sceneId}'`);
+  if (parsed.locationId !== request.locationId) {
+    throw new Error(`Story beat location '${parsed.locationId}' must match '${request.locationId}'.`);
+  }
+  if (parsed.anchorLocationId !== request.anchorLocationId) {
+    throw new Error(`Story beat anchor '${parsed.anchorLocationId}' must match '${request.anchorLocationId}'.`);
+  }
+  if (parsed.sourceSceneId !== request.sourceSceneId) {
+    throw new Error(`Story beat source scene '${parsed.sourceSceneId}' must match '${request.sourceSceneId}'.`);
+  }
+  if (parsed.sourceTriggerId !== request.trigger.id) {
+    throw new Error(`Story beat trigger '${parsed.sourceTriggerId}' must match '${request.trigger.id}'.`);
+  }
+
+  Object.keys(parsed.patch.registry.items).forEach((itemId) => {
+    if (!request.registry.items[itemId]) {
+      throw new Error(`Story beat cannot introduce new item '${itemId}'.`);
+    }
+  });
+  Object.keys(parsed.patch.registry.locations).forEach((locationId) => {
+    if (locationId !== request.locationId) {
+      throw new Error(`Story beat cannot create or patch location '${locationId}'.`);
+    }
+  });
+  Object.keys(parsed.patch.registry.people).forEach((personId) => ensureDynId(personId, `story beat person '${personId}'`));
+  Object.keys(parsed.patch.registry.quests).forEach((questId) => ensureDynId(questId, `story beat quest '${questId}'`));
+  Object.keys(parsed.patch.registry.actions).forEach((actionId) => ensureDynId(actionId, `story beat action '${actionId}'`));
+  Object.keys(parsed.patch.registry.choices).forEach((choiceId) => ensureDynId(choiceId, `story beat choice '${choiceId}'`));
+  Object.keys(parsed.patch.registry.events).forEach((eventId) => ensureDynId(eventId, `story beat event '${eventId}'`));
+  Object.keys(parsed.patch.registry.scenes).forEach((sceneId) => ensureDynId(sceneId, `story beat scene '${sceneId}'`));
+
+  validateGeneratedEffects(parsed.patch.immediateEffects, `story beat '${parsed.id}' immediate`);
+  if (parsed.patch.immediateEffects.some((effect) => effect.type === "travel")) {
+    throw new Error(`Story beat '${parsed.id}' cannot travel to another location directly.`);
+  }
+
+  Object.values(parsed.patch.registry.actions).forEach(validateGeneratedAction);
+  Object.values(parsed.patch.registry.choices).forEach(validateGeneratedChoice);
+
+  const mergedDynamic = mergeDynamicWorldRegistry(request.state.dynamicContent, parsed.patch.registry);
+  const mergedRegistry = buildRuntimeRegistry({ dynamicContent: mergedDynamic });
+  validateRegistry(mergedRegistry);
+
+  const scene = mergedRegistry.scenes[parsed.patch.sceneId];
+  if (!scene) {
+    throw new Error(`Story beat scene '${parsed.patch.sceneId}' was not defined.`);
+  }
+  if (scene.locationId !== request.locationId) {
+    throw new Error(`Story beat scene '${parsed.patch.sceneId}' must stay inside '${request.locationId}'.`);
+  }
+
+  return parsed;
+}
+
 function ensureDynId(id: string, source: string) {
   if (!id.startsWith(DEFAULT_GENERATION_GUARDRAILS.requiredIdPrefix)) {
     throw new Error(`${source} must start with '${DEFAULT_GENERATION_GUARDRAILS.requiredIdPrefix}'.`);
@@ -466,6 +544,117 @@ function buildPlannedSummary(input: PlannerInput, locationId: string, title: str
   };
 }
 
+function beatSlugFor(locationId: string) {
+  return locationId.replace(/^dyn_location_\d+_/, "") || locationId.replace(/[^a-z0-9_]+/gi, "_");
+}
+
+function buildNarrativeChoice(
+  choice: Pick<ChoiceDefinition, "id" | "label" | "outcomeHint"> & Partial<Omit<ChoiceDefinition, "id" | "label" | "outcomeHint">>,
+) {
+  return defineChoice({
+    tags: [],
+    ...choice,
+  });
+}
+
+function buildFallbackStoryBeat(request: StoryBeatPlannerInput): GeneratedStoryBeat {
+  const slug = beatSlugFor(request.anchorLocationId);
+  const beatId = `dyn_beat_${request.sequence}_${slug}`;
+  const sceneId = `dyn_scene_${request.sequence}_${slug}_beat`;
+  const continueChoiceId = `dyn_choice_${request.sequence}_${slug}_continue`;
+  const returnChoiceId = `dyn_choice_${request.sequence}_${slug}_return`;
+  const stashChoiceId = `dyn_choice_${request.sequence}_${slug}_stash`;
+  const stashTakenFlag = `${beatId}_stash_taken`;
+  const currentLocation = request.registry.locations[request.locationId];
+  const likelyItemId = currentLocation.obtainableItemIds.find((itemId) => !itemId.startsWith("emergencySnack"))
+    ?? currentLocation.obtainableItemIds[0]
+    ?? "waterBottle";
+  const likelyItemName = (request.registry.items[likelyItemId] as { name?: string } | undefined)?.name ?? likelyItemId;
+  const isTalkBeat = request.trigger.tags.includes("talk");
+  const isSearchBeat = request.trigger.tags.includes("search");
+  const sceneTitle = isTalkBeat
+    ? `${request.anchorLocationName}의 숨은 사정`
+    : isSearchBeat
+      ? `${request.anchorLocationName} 안쪽 흔적`
+      : `${request.anchorLocationName}의 다음 기척`;
+  const sceneParagraphs = isTalkBeat
+    ? [
+        `${request.anchorLocationName} 안쪽 공기는 여전히 가라앉아 있지만, 상대는 방금 전보다 조금 더 긴 문장으로 상황을 풀어 놓는다.`,
+        `짧은 대화 사이로 이 장소가 단순한 통로가 아니라, 저마다 사정을 숨긴 사람들이 버티고 있는 생활 공간이라는 사실이 선명해진다.`,
+      ]
+    : isSearchBeat
+      ? [
+          `${request.anchorLocationName}의 손이 닿지 않던 구석에는 급히 뒤집힌 흔적과 함께 아직 살펴볼 만한 여지가 남아 있다.`,
+          `허둥지둥 휩쓸고 지나간 자국 사이로, 무엇을 먼저 건드릴지에 따라 다음 상황이 달라질 것 같은 기척이 선다.`,
+        ]
+      : [
+          `${request.anchorLocationName}의 다음 구획으로 시선을 옮기자, 방금 전에는 보이지 않던 단서와 움직임이 천천히 윤곽을 드러낸다.`,
+          `지금 어떤 쪽으로 발을 옮기느냐에 따라 이 지역의 다음 이야기가 갈라질 듯하다.`,
+        ];
+
+  const continueChoice = buildNarrativeChoice({
+    id: continueChoiceId,
+    label: isTalkBeat ? "조금 더 깊게 이야기를 이어간다" : "조금 더 안쪽을 살펴본다",
+    outcomeHint: `${request.anchorLocationName} 안의 다음 상황을 이어서 만든다.`,
+    tags: [CONTINUATION_TAG],
+  });
+  const returnChoice = buildNarrativeChoice({
+    id: returnChoiceId,
+    label: "직전 상황으로 돌아간다",
+    outcomeHint: "바로 전 장면으로 물러나 다시 판단한다.",
+    nextSceneId: request.sourceSceneId,
+  });
+  const stashChoice = buildNarrativeChoice({
+    id: stashChoiceId,
+    label: `${likelyItemName}을 챙긴다`,
+    outcomeHint: `눈에 들어온 ${likelyItemName}을 챙겨 다음 선택의 여지를 넓힌다.`,
+    conditions: [{ type: "flag_not", flag: stashTakenFlag }],
+    effects: [
+      { type: "set_flag", flag: stashTakenFlag },
+      { type: "add_item", itemId: likelyItemId, amount: 1 },
+      { type: "log", message: `${request.anchorLocationName} 안쪽에서 ${likelyItemName}을 챙겼다.` },
+    ],
+  });
+
+  return GeneratedStoryBeatSchema.parse({
+    id: beatId,
+    locationId: request.locationId,
+    anchorLocationId: request.anchorLocationId,
+    sourceSceneId: request.sourceSceneId,
+    sourceTriggerId: request.trigger.id,
+    summary: `${request.anchorLocationName} 안에서 ${request.trigger.label} 이후의 다음 상황이 열린다.`,
+    patch: {
+      sceneId,
+      immediateEffects: [],
+      registry: {
+        locations: {},
+        items: {},
+        people: {},
+        quests: {},
+        skills: {},
+        actions: {},
+        choices: {
+          [continueChoiceId]: continueChoice,
+          [returnChoiceId]: returnChoice,
+          [stashChoiceId]: stashChoice,
+        },
+        events: {},
+        scenes: {
+          [sceneId]: {
+            id: sceneId,
+            locationId: request.locationId,
+            title: sceneTitle,
+            paragraphs: sceneParagraphs,
+            choiceIds: [stashChoiceId, continueChoiceId, returnChoiceId],
+            conditions: [],
+            suppressLocationInteractions: true,
+          },
+        },
+      },
+    },
+  });
+}
+
 function defineAction(
   action: Pick<ActionDefinition, "id" | "label" | "type" | "outcomeHint" | "locationIds"> &
     Partial<Omit<ActionDefinition, "id" | "label" | "type" | "outcomeHint" | "locationIds">>,
@@ -578,6 +767,52 @@ function plannerGuidancePayload(input: PlannerInput) {
   };
 }
 
+function storyBeatGuidancePayload(request: StoryBeatPlannerInput) {
+  const currentLocation = request.registry.locations[request.locationId];
+  const localPeople = Object.values(request.registry.people)
+    .filter((person): person is { id: string; name: string; role: string; summary: string; locationId: string } =>
+      Boolean(person) &&
+      person !== null &&
+      typeof person === "object" &&
+      "locationId" in person &&
+      person.locationId === request.locationId,
+    )
+    .map((person) => ({
+      id: person.id,
+      name: person.name,
+      role: person.role,
+      summary: person.summary,
+    }));
+
+  return {
+    existingItemIds: Object.keys(request.registry.items),
+    allowedConditionTypes: ALLOWED_CONDITION_TYPES,
+    allowedEffectTypes: ALLOWED_EFFECT_TYPES,
+    guardrails: DEFAULT_GENERATION_GUARDRAILS,
+    currentLocation: currentLocation
+      ? {
+          id: currentLocation.id,
+          name: currentLocation.name,
+          summary: currentLocation.summary,
+          stockNodes: currentLocation.stockNodes.map((node) => ({
+            id: node.id,
+            name: node.name,
+          })),
+        }
+      : null,
+    localPeople,
+    hardRules: [
+      "Keep the anchor location exactly as given. Do not rename or replace it.",
+      "This continuation must stay inside the same location. Do not create or travel to a new map location.",
+      "Do not create new items. Reuse only item ids that already exist in existingItemIds.",
+      "Return 2 to 4 natural Korean choices for the current scene.",
+      `Choices or actions that should continue the story again must include the '${CONTINUATION_TAG}' tag.`,
+      "If this is a detail scene inside the current location, set scene.suppressLocationInteractions to true.",
+      "At least one choice should stabilize or return the player from the current micro-situation.",
+    ],
+  };
+}
+
 class TemplateWorldPlanner implements WorldPlanner {
   async generateRegionPackage(input: PlannerInput) {
     const theme = FRONTIER_THEMES[(input.sequence - 1) % FRONTIER_THEMES.length];
@@ -616,7 +851,7 @@ class TemplateWorldPlanner implements WorldPlanner {
         { type: "focus_stock_node", nodeId },
         { type: "log", message: `${theme.stockName} 쪽으로 몸을 낮춰 안을 훑어본다.` },
       ],
-      tags: ["dynamic", "search"],
+      tags: ["dynamic", "search", CONTINUATION_TAG],
     });
     const talkAction = defineAction({
       id: talkActionId,
@@ -625,7 +860,7 @@ class TemplateWorldPlanner implements WorldPlanner {
       locationIds: [locationId],
       outcomeHint: "이곳에 남은 사람의 반응과 사정을 더 듣는다.",
       effects: [{ type: "log", message: `"${theme.personName}"은(는) 짧게 고개를 끄덕이며 당신을 경계 어린 눈빛으로 살핀다.` }],
-      tags: ["dynamic", "talk"],
+      tags: ["dynamic", "talk", CONTINUATION_TAG],
     });
     const frontierAction = defineAction({
       id: frontierActionId,
@@ -868,6 +1103,10 @@ class TemplateWorldPlanner implements WorldPlanner {
     }), "template");
   }
 
+  async generateStoryBeat(request: StoryBeatPlannerInput) {
+    return validateGeneratedStoryBeat(request, buildFallbackStoryBeat(request));
+  }
+
   async planTomorrow(state: GameState, _registry: ContentRegistry, _gameId: string) {
     return buildTomorrowPlanFromDynamicWorld(state);
   }
@@ -937,6 +1176,43 @@ class RemoteWorldPlanner implements WorldPlanner {
     }
   }
 
+  async generateStoryBeat(request: StoryBeatPlannerInput) {
+    const fallback = await this.fallback.generateStoryBeat(request);
+    const payload = NarrativeContinuationRequestSchema.parse({
+      gameId: request.gameId,
+      locationId: request.locationId,
+      anchorLocationId: request.anchorLocationId,
+      anchorLocationName: request.anchorLocationName,
+      sourceSceneId: request.sourceSceneId,
+      sourceSceneTitle: request.sourceSceneTitle,
+      sourceSceneParagraphs: request.sourceSceneParagraphs,
+      trigger: request.trigger,
+      recentLog: request.recentLog,
+      inventoryItemIds: request.inventoryItemIds,
+      activeQuestIds: request.activeQuestIds,
+      localSceneIds: request.localSceneIds,
+      localPeopleIds: request.localPeopleIds,
+      localStockNodeIds: request.localStockNodeIds,
+      lineageSceneIds: request.lineageSceneIds,
+      sequence: request.sequence,
+    });
+
+    try {
+      return validateGeneratedStoryBeat(
+        request,
+        mergeGeneratedStoryBeatOntoFallback(
+          fallback,
+          await this.generateJson<GeneratedStoryBeat>("generatedStoryBeat", {
+            fallback,
+            request: payload,
+          }),
+        ),
+      );
+    } catch {
+      return fallback;
+    }
+  }
+
   async planTomorrow(state: GameState, registry: ContentRegistry, gameId: string) {
     const fallback = await this.fallback.planTomorrow(state, registry, gameId);
     try {
@@ -989,7 +1265,7 @@ Return valid JSON only.`,
   async generateRegionPackage(input: PlannerInput) {
     const fallback = await this.fallback.generateRegionPackage(input);
     try {
-      const initialAttempt = await this.generateJson<unknown>(input.gameId, `generatedRegionPackage:${input.sequence}:initial`, "generatedRegionPackage", {
+      const initialAttempt = await this.generateJson<unknown>(input.gameId, `region:${input.sequence}:initial`, "generatedRegionPackage", {
         fallback,
         currentDay: input.state.day,
         currentPhase: PHASES[input.state.phaseIndex],
@@ -1009,14 +1285,14 @@ Return valid JSON only.`,
       } catch (validationError) {
         appendDevLlmTraceForGame(input.gameId, {
           scope: "planner",
-          target: `generatedRegionPackage:${input.sequence}:validation`,
+          target: `region:${input.sequence}:validation`,
           model: geminiModel(),
           status: "error",
           request: "",
           response: "",
           message: validationError instanceof Error ? validationError.message : "Initial generated package validation failed.",
         });
-        const repairAttempt = await this.generateJson<unknown>(input.gameId, `generatedRegionPackage:${input.sequence}:repair`, "generatedRegionPackageRepair", {
+        const repairAttempt = await this.generateJson<unknown>(input.gameId, `region:${input.sequence}:repair`, "generatedRegionPackageRepair", {
           fallback,
           previousAttempt: initialAttempt,
           validationError: validationError instanceof Error ? validationError.message : "Unknown validation error",
@@ -1038,12 +1314,86 @@ Return valid JSON only.`,
     } catch (error) {
       appendDevLlmTraceForGame(input.gameId, {
         scope: "planner",
-        target: `generatedRegionPackage:${input.sequence}:fallback`,
+        target: `region:${input.sequence}:fallback`,
         model: geminiModel(),
         status: "fallback",
         request: "",
         response: "",
         message: error instanceof Error ? error.message : "Gemini planner failed, using template package.",
+      });
+      return fallback;
+    }
+  }
+
+  async generateStoryBeat(request: StoryBeatPlannerInput) {
+    const fallback = await this.fallback.generateStoryBeat(request);
+    const payload = NarrativeContinuationRequestSchema.parse({
+      gameId: request.gameId,
+      locationId: request.locationId,
+      anchorLocationId: request.anchorLocationId,
+      anchorLocationName: request.anchorLocationName,
+      sourceSceneId: request.sourceSceneId,
+      sourceSceneTitle: request.sourceSceneTitle,
+      sourceSceneParagraphs: request.sourceSceneParagraphs,
+      trigger: request.trigger,
+      recentLog: request.recentLog,
+      inventoryItemIds: request.inventoryItemIds,
+      activeQuestIds: request.activeQuestIds,
+      localSceneIds: request.localSceneIds,
+      localPeopleIds: request.localPeopleIds,
+      localStockNodeIds: request.localStockNodeIds,
+      lineageSceneIds: request.lineageSceneIds,
+      sequence: request.sequence,
+    });
+
+    try {
+      const initialAttempt = await this.generateJson<unknown>(
+        request.gameId,
+        `beat:${request.sequence}:initial`,
+        "generatedStoryBeat",
+        {
+          fallback,
+          request: payload,
+          plannerGuidance: storyBeatGuidancePayload(request),
+        },
+      );
+      const mergedInitialAttempt = mergeGeneratedStoryBeatOntoFallback(fallback, initialAttempt);
+
+      try {
+        return validateGeneratedStoryBeat(request, mergedInitialAttempt);
+      } catch (validationError) {
+        appendDevLlmTraceForGame(request.gameId, {
+          scope: "planner",
+          target: `beat:${request.sequence}:validation`,
+          model: geminiModel(),
+          status: "error",
+          request: "",
+          response: "",
+          message: validationError instanceof Error ? validationError.message : "Initial generated story beat validation failed.",
+        });
+        const repairAttempt = await this.generateJson<unknown>(
+          request.gameId,
+          `beat:${request.sequence}:repair`,
+          "generatedStoryBeatRepair",
+          {
+            fallback,
+            previousAttempt: initialAttempt,
+            validationError: validationError instanceof Error ? validationError.message : "Unknown validation error",
+            request: payload,
+            plannerGuidance: storyBeatGuidancePayload(request),
+          },
+        );
+        return validateGeneratedStoryBeat(request, mergeGeneratedStoryBeatOntoFallback(fallback, repairAttempt));
+      }
+    } catch (error) {
+      appendDevLlmTraceForGame(request.gameId, {
+        scope: "planner",
+        target: `beat:${request.sequence}:fallback`,
+        model: geminiModel(),
+        status: "fallback",
+        request: "",
+        response: "",
+        message: error instanceof Error ? error.message : "Gemini story beat failed, using template beat.",
       });
       return fallback;
     }

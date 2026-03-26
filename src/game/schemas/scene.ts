@@ -11,6 +11,7 @@ export const SceneDefinitionSchema = z.object({
   choiceIds: z.array(z.string()).default([]),
   conditions: z.array(ConditionSchema).default([]),
   introFlag: z.string().optional(),
+  suppressLocationInteractions: z.boolean().optional(),
 });
 
 export const SceneCardSchema = z.object({

@@ -4,6 +4,7 @@ import {
   DynamicWorldRegistrySchema,
   FrontierStateSchema,
   GameSessionSchema,
+  NarrativeStateSchema,
   TemplateStoreSchema,
   WorldPlanSchema,
   WorldInstanceSchema,
@@ -70,6 +71,14 @@ function normalizeFrontierState(raw: unknown) {
     return parsed.data;
   }
   return FrontierStateSchema.parse({ nextSequence: 1, slots: {} });
+}
+
+function normalizeNarrativeState(raw: unknown) {
+  const parsed = NarrativeStateSchema.safeParse(raw);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  return NarrativeStateSchema.parse({ nextBeatSequence: 1, history: [], pregenerated: {} });
 }
 
 function buildValidContentIds(dynamicContent: GameState["dynamicContent"]): ValidContentIds {
@@ -300,6 +309,7 @@ function pruneState(state: unknown): GameState {
     ? rawActiveStockNodeId
     : null;
   const frontierState = normalizeFrontierState(rawState.frontierState);
+  const narrativeState = normalizeNarrativeState(rawState.narrativeState);
   const worldPlan = normalizeWorldPlan(rawState.worldPlan, nextDay);
   nextFlags[`visited_${nextLocation}`] = true;
   return {
@@ -327,6 +337,7 @@ function pruneState(state: unknown): GameState {
     dynamicContent,
     worldPlan,
     frontierState,
+    narrativeState,
     flags: nextFlags,
     quests: nextQuests,
     lastSleepFullness: normalizeInt(rawState.lastSleepFullness, 8, 0, 10),
@@ -476,8 +487,20 @@ export class FileGameRepository implements GameRepository {
     return path.join(this.gamesDir, `${gameId}.json`);
   }
 
+  private async writeGameAtomically(session: GameSession) {
+    const targetPath = this.gamePath(session.id);
+    const tmpPath = `${targetPath}.${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(session, null, 2), "utf8");
+    try {
+      await rename(tmpPath, targetPath);
+    } catch {
+      await copyFile(tmpPath, targetPath);
+      await unlink(tmpPath).catch(() => undefined);
+    }
+  }
+
   async saveGame(session: GameSession) {
-    await writeFile(this.gamePath(session.id), JSON.stringify(session, null, 2), "utf8");
+    await this.writeGameAtomically(session);
   }
 
   async loadGame(gameId: string) {

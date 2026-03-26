@@ -443,6 +443,11 @@ export function createInitialGameState(): GameState {
       nextSequence: 1,
       slots: {},
     },
+    narrativeState: {
+      nextBeatSequence: 1,
+      history: [],
+      pregenerated: {},
+    },
     flags: {
       visited_shelter: true,
     },

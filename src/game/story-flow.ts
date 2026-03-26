@@ -40,6 +40,7 @@ function buildStoryChoiceFromActionDefinition(
     label: action.label,
     outcomeHint: action.outcomeHint,
     isAvailable: actionConditionsMet(action, state),
+    tags: action.tags,
     conditions: action.conditions,
     effects: action.effects,
     riskHint: action.riskHint,
@@ -70,6 +71,10 @@ export function resolveStoryFrame(
   });
 
   if (SCENE_IDS_WITHOUT_LOCATION_INTERACTIONS.has(scene.id) || isDetailFocusActive(state)) {
+    return { scene, choices: sceneChoices };
+  }
+
+  if (scene.suppressLocationInteractions) {
     return { scene, choices: sceneChoices };
   }
 
