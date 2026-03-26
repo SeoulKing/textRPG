@@ -358,6 +358,9 @@ body::before {
 
 .scene-debug-badge {
   align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid rgba(87, 66, 51, 0.18);
@@ -368,10 +371,38 @@ body::before {
   letter-spacing: 0.02em;
 }
 
+.scene-debug-text {
+  align-self: center;
+}
+
+.dev-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(86, 66, 51, 0.1);
+  border: 1px solid rgba(86, 66, 51, 0.18);
+  color: #6b4b37;
+  font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
 .scene-text {
   color: #3f3026;
   line-height: 1.8;
   font-size: 1.01rem;
+}
+
+.scene-text .scene-headline {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #3a2a1f;
+  line-height: 1.35;
 }
 
 .scene-text p {
@@ -437,6 +468,44 @@ body::before {
   color: var(--muted);
 }
 
+.choice-button.is-crafting-option {
+  border-width: 1.5px;
+}
+
+.choice-button.is-recipe-available {
+  background: linear-gradient(180deg, rgba(222, 245, 228, 0.96), rgba(203, 235, 212, 0.98));
+  border-color: rgba(65, 146, 90, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.choice-button.is-recipe-available:hover {
+  background: linear-gradient(180deg, rgba(229, 248, 234, 1), rgba(210, 240, 219, 0.98));
+  border-color: rgba(65, 146, 90, 0.54);
+}
+
+.choice-button.is-recipe-available .choice-label {
+  color: #1e5f34;
+}
+
+.choice-button.is-recipe-available .choice-meta {
+  color: #356947;
+}
+
+.choice-button.is-recipe-unavailable {
+  background: rgba(132, 103, 72, 0.05);
+  border-color: rgba(125, 94, 65, 0.12);
+}
+
+.choice-button.is-recipe-unavailable:hover {
+  background: rgba(132, 103, 72, 0.07);
+  border-color: rgba(125, 94, 65, 0.18);
+}
+
+.choice-button.is-recipe-unavailable .choice-label,
+.choice-button.is-recipe-unavailable .choice-meta {
+  color: #8e7b6b;
+}
+
 .utility-dock {
   margin-top: 18px;
 }
@@ -445,6 +514,137 @@ body::before {
   display: flex;
   justify-content: flex-end;
   margin-top: 12px;
+}
+
+.llm-debug-panel {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(87, 66, 51, 0.16);
+  background: rgba(255, 249, 242, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.llm-debug-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(87, 66, 51, 0.12);
+}
+
+.llm-debug-header p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.llm-debug-header span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.llm-debug-list {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.llm-debug-empty {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.llm-debug-entry {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(87, 66, 51, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.llm-debug-entry.is-success {
+  border-color: rgba(65, 146, 90, 0.28);
+}
+
+.llm-debug-entry.is-fallback {
+  border-color: rgba(207, 122, 48, 0.28);
+}
+
+.llm-debug-entry.is-error {
+  border-color: rgba(214, 106, 79, 0.3);
+}
+
+.llm-debug-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.llm-debug-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.llm-debug-status.is-success {
+  color: #1e5f34;
+  background: rgba(65, 146, 90, 0.12);
+}
+
+.llm-debug-status.is-fallback {
+  color: #8f5628;
+  background: rgba(207, 122, 48, 0.14);
+}
+
+.llm-debug-status.is-error {
+  color: #9f341b;
+  background: rgba(214, 106, 79, 0.14);
+}
+
+.llm-debug-target,
+.llm-debug-time,
+.llm-debug-model {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.llm-debug-message {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+
+.llm-debug-block {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.llm-debug-block strong {
+  font-size: 0.84rem;
+}
+
+.llm-debug-block pre {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(63, 48, 38, 0.06);
+  border: 1px solid rgba(87, 66, 51, 0.12);
+  color: #3f3026;
+  font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .dock-buttons {
@@ -625,6 +825,12 @@ body::before {
   margin-top: 6px;
 }
 
+.map-card .dev-badge,
+.inventory-card .dev-badge,
+.quest-card .dev-badge {
+  margin-bottom: 8px;
+}
+
 .map-card.is-reachable {
   cursor: pointer;
   transition:
@@ -727,6 +933,17 @@ body::before {
 .hex-tile-risk {
   font-size: 0.72rem;
   color: var(--muted);
+}
+
+.hex-tile .dev-badge {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  padding: 3px 7px;
+  font-size: 0.62rem;
+  background: rgba(255, 250, 244, 0.92);
 }
 
 .hex-tile-name {

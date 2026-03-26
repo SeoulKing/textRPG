@@ -9,6 +9,18 @@ import { ProtagonistCardSchema } from "./person";
 import { QuestStateSchema } from "./quest";
 import { ActionChoiceSchema } from "./choice";
 
+export const DevLlmTraceEntrySchema = z.object({
+  id: z.string(),
+  at: z.string(),
+  scope: z.enum(["planner", "card"]),
+  target: z.string(),
+  model: z.string(),
+  status: z.enum(["success", "fallback", "error"]),
+  request: z.string(),
+  response: z.string(),
+  message: z.string(),
+});
+
 export const WorldInstanceSchema = z.object({
   locationCards: z.record(z.string(), LocationCardSchema),
   personCards: z.record(z.string(), PersonCardSchema),
@@ -81,6 +93,7 @@ export const StateSnapshotSchema = z.object({
   availableActions: z.array(ActionChoiceSchema),
   mapEntries: z.array(MapEntrySchema),
   latestEvent: EventCardSchema.nullable(),
+  devLlmTrace: z.array(DevLlmTraceEntrySchema).default([]),
 });
 
 export type WorldInstance = z.infer<typeof WorldInstanceSchema>;
@@ -89,3 +102,4 @@ export type TemplateStore = z.infer<typeof TemplateStoreSchema>;
 export type StoryMaterials = z.infer<typeof StoryMaterialsSchema>;
 export type MapEntry = z.infer<typeof MapEntrySchema>;
 export type StateSnapshot = z.infer<typeof StateSnapshotSchema>;
+export type DevLlmTraceEntry = z.infer<typeof DevLlmTraceEntrySchema>;

@@ -17,3 +17,4 @@ export * from "./choice";
 export * from "./event";
 export * from "./scene";
 export * from "./session";
+export * from "./dynamic-world";

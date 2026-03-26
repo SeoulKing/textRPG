@@ -1,446 +1,368 @@
-# 객체 모델 설계
+# 프로젝트 구조
 
-이 문서는 텍스트 RPG의 핵심 객체 구조를 정리한 것이다.  
-**현재 구조**와 **목표 구조**를 매핑하고, 단계별 마이그레이션 방향을 제시한다.
+이 문서는 현재 코드에 실제로 존재하는 파일과 책임만 정리한 구조 문서다.
+설명과 코드가 충돌하면 코드를 기준으로 본다.
 
----
+## 1. 한눈에 보는 실행 경로
 
-## 1. 핵심 객체 목록
-
-| 객체 | 설명 | 현재 대응 | 우선순위 |
-|------|------|----------|----------|
-| **GameState** | 세션 전체 상태 (저장/불러오기 단위) | `GameSession` + `GameStateSchema` | 최상 |
-| **Player** | 플레이어 상태 (hp, inventory, flags 등) | `GameStateSchema` 내 stats/inventory/flags | 최상 |
-| **Location** | 장소 (배경이 아닌 플레이 가능 공간) | `LocationCard` + `baseLocations` | 최상 |
-| **Event** | 장면 단위 (텍스트, 이미지, 선택지) | `EventCard`, `SceneCard` | 최상 |
-| **Choice** | 선택지 (Event 내 분기) | `StoryChoice`, `ActionChoice` | 최상 |
-| **Quest** | 퀘스트 (목표, 보상, 조건) | `baseQuests` + `quests` 상태 | 최상 |
-| **WorldState** | 세계 전체 변화 (시간, 해금 등) | `GameState` 내 day/phaseIndex/flags | 최상 |
-| **Action** | 공용 행동 (이동, 조사, 사용 등) | `GameAction` + `buildActionCatalog` | 중 |
-| **NPC** | 캐릭터 (퀘스트, 대화) | `PersonCard` | 중 |
-| **Item** | 아이템 (효과, 태그) | `ItemCard` | 중 |
-| **Skill** | 스킬 정의 | `baseSkills` | 중 |
-| **Condition** | 조건 규칙 객체 | 없음 (문자열/플래그로 분산) | 권장 |
-| **Effect** | 결과 규칙 객체 | `ItemEffects`, `performAction` 내부 | 권장 |
-
----
-
-## 2. GameState (최상위)
-
-**역할**: 게임 저장/불러오기의 단위. "지금 이 세션이 어디까지 진행됐는가"를 담는다.
-
-### 목표 구조
-
-```json
-{
-  "player": {},
-  "currentLocationId": "camp",
-  "currentEventId": "event_camp_intro",
-  "worldState": {},
-  "activeQuestIds": ["quest_medicine"],
-  "completedQuestIds": [],
-  "visitedLocationIds": ["camp"],
-  "time": "night",
-  "turn": 12
-}
+```text
+브라우저
+  -> src/server.ts
+  -> GameService (src/game/service.ts)
+  -> rules.ts / content-engine.ts / story-flow.ts
+  -> repository.ts or postgres-repository.ts
+  -> StateSnapshot 반환
 ```
 
-### 현재 구조
-
-- `GameSession`: `id`, `state`, `world`
-- `GameStateSchema`: `location`, `day`, `phaseIndex`, `stats`, `inventory`, `flags`, `quests`, `log` 등이 **한 객체에 혼재**
-
-### 매핑
-
-| 목표 필드 | 현재 필드 |
-|----------|----------|
-| `player` | `state.stats`, `state.inventory`, `state.skills`, `state.flags` → **Player로 분리** |
-| `currentLocationId` | `state.location` |
-| `currentEventId` | `state.sceneId` 또는 `sceneKey` |
-| `worldState` | `state.day`, `state.phaseIndex`, `state.flags` 일부 → **WorldState로 분리** |
-| `activeQuestIds` | `state.quests` 중 `active` |
-| `completedQuestIds` | `state.quests` 중 `completed` |
-| `visitedLocationIds` | `state.flags` 중 `visited_*` |
-| `time` | `state.phaseIndex` → PHASES[phaseIndex] |
-| `turn` | 없음 (추가 가능) |
-
----
-
-## 3. Player
-
-**역할**: 플레이어 개인 상태. 선택지 해금의 핵심 기준.
-
-### 목표 구조
-
-```json
-{
-  "id": "player_1",
-  "name": "player",
-  "hp": 8,
-  "sanity": 6,
-  "hunger": 4,
-  "money": 120,
-  "inventory": ["flashlight", "painkiller"],
-  "skills": { "observation": 3, "persuasion": 2 },
-  "flags": ["met_doctor", "opened_subway_gate"],
-  "statusEffects": ["bleeding"]
-}
-```
-
-### 현재 구조
-
-- `state.stats`: hp, mind, fullness
-- `state.money`
-- `state.inventory`
-- `state.skills` (배열)
-- `state.flags` (객체)
-
-### 매핑
-
-| 목표 필드 | 현재 필드 |
-|----------|----------|
-| `hp` | `stats.hp` |
-| `sanity` | `stats.mind` |
-| `hunger` | `stats.fullness` |
-| `money` | `money` |
-| `inventory` | `inventory` (record → array 변환 가능) |
-| `skills` | `skills` (배열 → 레벨 객체 가능) |
-| `flags` | `flags` (객체 → 배열 또는 유지) |
-| `statusEffects` | 없음 (추가) |
-
----
-
-## 4. Location
-
-**역할**: 플레이 가능한 공간 단위. 배경이 아니라 행동·이벤트·NPC가 붙는 단위.
-
-### 목표 구조
-
-```json
-{
-  "id": "hospital_lobby",
-  "name": "폐허 병원 로비",
-  "shortDescription": "정전된 병원 로비",
-  "fullDescription": "천장 일부가 무너져 있고...",
-  "image": "locations/hospital_lobby_night.png",
-  "neighbors": ["camp", "hospital_2f"],
-  "availableActionIds": ["search_reception", "listen_noise"],
-  "eventIds": ["event_hospital_intro"],
-  "npcIds": ["npc_injured_survivor"],
-  "dangerLevel": 3,
-  "tags": ["indoor", "medical", "dark"]
-}
-```
-
-### 현재 구조
-
-- `LocationCard`: id, name, risk, summary, description, tags, traits, obtainableItemIds, residentIds, neighbors, imagePath
-- `baseLocations`: links (Record<targetId, LinkDefinition>), requiredFlag
-
-### 매핑
-
-| 목표 필드 | 현재 필드 |
-|----------|----------|
-| `neighbors` | `links` 키 목록 |
-| `availableActionIds` | 없음 (Action과 연동 필요) |
-| `eventIds` | 없음 (Event와 연동 필요) |
-| `npcIds` | `residentIds` |
-| `dangerLevel` | `risk` (문자열 → 숫자 매핑) |
+액션 요청은 실제로 아래 순서로 흐른다.
+
+1. `src/server.ts`
+   `POST /api/games/:gameId/actions`에서 요청을 받고 `GameActionSchema`로 검증한다.
+2. `src/game/service.ts`
+   `GameService.performAction()`이 세션을 로드하고 `rules.performAction()`을 호출한다.
+3. `src/game/rules.ts`
+   상태를 변경하고 `syncQuestState()`와 `syncScene()`을 실행한다.
+4. `src/game/service.ts`
+   카드와 스냅샷을 다시 조립한다.
+5. `src/game/story-flow.ts`
+   현재 씬 기준으로 보여줄 `StoryChoice[]`를 만든다.
+6. `src/game/story-flow.ts`
+   `buildActionCatalogFromStoryChoices()`로 `availableActions`를 만든다.
+
+## 2. 디렉터리 구조
+
+### 루트
+
+- `src/server.ts`
+  Fastify 서버 진입점. 콘텐츠 검증, 저장소 선택, API 라우트 등록을 맡는다.
+- `app-api.js`
+  브라우저 쪽 렌더러. 서버가 준 `StateSnapshot`을 화면에 그린다.
+- `index.html`
+  앱 진입 HTML.
+- `styles.css`
+  클라이언트 스타일.
+
+### `src/game`
+
+- `service.ts`
+  세션 단위 오케스트레이션. 로드, 저장, 카드 보장, 스냅샷 조립을 맡는다.
+- `rules.ts`
+  `GameState`를 실제로 바꾸는 규칙 실행기다.
+- `content-engine.ts`
+  씬, 선택지, 이벤트, 장소 행동을 현재 상태 기준으로 고르는 해석기다.
+- `story-flow.ts`
+  현재 씬과 장소 행동을 합쳐 지금 화면에 보여줄 선택지를 만드는 계층이다.
+- `state-utils.ts`
+  조건 판정, 효과 적용, 로그 유틸이 모여 있다.
+- `repository.ts`
+  파일 저장소 구현과 세이브 정규화 로직이 있다.
+- `postgres-repository.ts`
+  Postgres 저장소 구현이다.
+- `content-generator.ts`
+  카드 생성기. 템플릿 기반 생성기와 원격 LLM 생성기를 모두 포함한다.
+- `base-data.ts`
+  시간 상수, 기본 스킬, `baseItems/basePeople/baseLocations` 재수출, 퀘스트/스킬 헬퍼를 둔다.
+- `quest-definitions.ts`
+  퀘스트 정의만 가진다.
+
+### `src/game/data`
+
+- `locations.ts`
+  `src/game/data/regions/*`를 모아 `baseLocations`와 `actionDefinitions`를 다시 내보내는 집계 파일이다.
+- `choices.ts`
+  `src/game/data/regions/*`의 선택지를 다시 내보내는 집계 파일이다.
+- `scenes.ts`
+  `src/game/data/regions/*`의 씬과 `SCENE_IDS_WITHOUT_LOCATION_INTERACTIONS`를 다시 내보내는 집계 파일이다.
+- `events.ts`
+  `src/game/data/regions/*`의 이벤트를 다시 내보내는 집계 파일이다.
+- `location-interaction-helpers.ts`
+  `interactionFor()`로 장소 액션 객체를 만들 때 기본값을 채워 준다.
+- `regions/`
+  실제 지역 콘텐츠 작성 폴더다. 지역별 `location.ts`, `choices.ts`, `scenes.ts`, `events.ts`와 지역 `index.ts`가 들어 있다.
+- `items.ts`
+  아이템 정의가 있다.
+- `people.ts`
+  인물 정의가 있다.
+- `registry.ts`
+  위 데이터를 `worldRegistry`로 묶고 정적 검증을 수행한다.
+- `story-templates.ts`
+  파일은 존재하지만, 현재 `src/game/**/*.ts` 기준 참조되는 곳이 없다.
+
+### `src/game/schemas`
+
+- `game-state.ts`
+  런타임 상태인 `GameState` 스키마.
+- `session.ts`
+  서버 응답과 세이브 구조인 `StateSnapshot`, `GameSession`, 카드 스키마.
+- `action.ts`
+  `GameAction`, `ActionDefinition` 스키마.
+- `choice.ts`, `scene.ts`, `event.ts`, `location.ts`, `item.ts`, `person.ts`, `quest.ts`
+  콘텐츠 객체 스키마.
+- `condition-effect.ts`
+  조건과 효과 타입 정의.
+- `index.ts`
+  스키마 재수출.
+
+## 3. 핵심 파일별 실제 책임
+
+### `src/server.ts`
+
+- 앱 시작 시 `validateContent()`를 한 번 실행한다.
+- `DATABASE_URL` 유무에 따라 `PostgresGameRepository` 또는 `FileGameRepository`를 선택한다.
+- `GameService` 인스턴스를 만들고 API를 연결한다.
+
+현재 제공하는 주요 API는 아래와 같다.
+
+- `POST /api/games`
+- `GET /api/games/:gameId/state`
+- `GET /api/games/:gameId/map`
+- `GET /api/games/:gameId/inventory`
+- `POST /api/games/:gameId/actions`
 
----
+### `src/game/service.ts`
 
-## 5. Action
+`GameService`는 상태 자체를 바꾸는 규칙 파일은 아니고, 세션 단위 흐름을 묶는다.
 
-**역할**: 플레이어가 할 수 있는 공용 행동. "버튼" 단위.
+주요 메서드:
 
-### 목표 구조
+- `createGame()`
+  새 세션을 만들고 초기 카드를 채운 뒤 첫 스냅샷을 반환한다.
+- `getState()`
+  세션을 로드하고 `syncClock()`, `syncQuestState()`, `syncScene()`를 적용한 뒤 스냅샷을 반환한다.
+- `performAction()`
+  세션을 로드하고 `rules.performAction()`을 실행한 뒤 최신 이벤트 카드와 스냅샷을 만든다.
+- `getMap()`
+  시간과 씬만 동기화해서 지도 응답을 만든다.
+- `getInventory()`
+  시간과 씬만 동기화해서 인벤토리 응답을 만든다.
 
-```json
-{
-  "id": "search_reception",
-  "label": "접수대를 조사한다",
-  "type": "search",
-  "conditions": [],
-  "effects": [
-    { "type": "add_item", "itemId": "painkiller", "amount": 1 },
-    { "type": "set_flag", "flag": "searched_reception" }
-  ],
-  "nextEventId": "event_reception_result",
-  "tags": ["search", "loot"]
-}
-```
+내부 책임:
 
-### 현재 구조
+- `ensureLocationCard()`, `ensurePersonCard()`, `ensureItemCard()`, `ensureEventCardById()`
+  카드 캐시를 보장한다.
+- `buildAuthoringSceneCard()`
+  현재는 씬 카드를 `content-generator.ts`에 맡기지 않고 서비스 내부에서 직접 조립한다.
+- `presentedChoices()`
+  `resolveStoryFrame()` 결과에 다음 씬 미리보기를 붙인다.
+- `buildSnapshot()`
+  최종 `StateSnapshot`을 만든다.
 
-- `GameAction`: travel, use_item, rest, generate_event
-- `buildActionCatalog`: links 기반 travel + inventory 기반 use_item + rest + generate_event
-
-### 매핑
-
-- `travel` → Action type: "travel"
-- `use_item` → Action type: "use"
-- `rest` → Action type: "rest"
-- `generate_event` → Action type: "explore" 또는 "event"
-
----
-
-## 6. Event
-
-**역할**: 특정 상황을 서술하는 장면. 자동으로 뜨는 장면.
-
-### 목표 구조
-
-```json
-{
-  "id": "event_injured_survivor",
-  "locationId": "hospital_lobby",
-  "title": "신음소리",
-  "text": "접수대 너머에서 낮은 신음소리가 들린다.",
-  "triggerConditions": ["flag:hospital_first_visit"],
-  "choiceIds": ["choice_approach_survivor", "choice_ignore_survivor"],
-  "once": true,
-  "priority": 10,
-  "tags": ["npc", "story", "medical"]
-}
-```
+### `src/game/content-engine.ts`
 
-### 현재 구조
+현재 상태에서 어떤 콘텐츠가 유효한지 판단하는 해석기다.
 
-- `EventCard`: id, locationId, title, summary, trigger, choices, rewards, flags
-- `SceneCard`: id, locationId, title, paragraphs, choices (장소+시간 기반 장면)
+주요 함수:
 
-### 매핑
-
-- `SceneCard` = 장소+시간대별 기본 장면
-- `EventCard` = 특정 조건에서 뜨는 이벤트
-- `triggerConditions` → `trigger` 문자열 또는 구조화된 Condition[]
-
----
+- `resolveSceneDefinition()`
+  현재 `state.sceneId`를 유지할 수 있으면 유지하고, 아니면 다음 유효 씬을 찾는다.
+- `resolveNextSceneDefinition()`
+  위치와 조건을 기준으로 다음 유효 씬을 찾는다.
+- `resolveAvailableActions()`
+  현재 장소의 `interactionChoices` 중 화면에 보여줄 액션만 고른다.
+- `resolveSceneChoices()`
+  현재 씬의 `choiceIds`를 실제 `ChoiceDefinition[]`으로 바꾼다.
+- `resolveTriggeredEvents()`
+  현재 상태에서 발동 가능한 이벤트를 찾는다.
+- `resolveEventChoices()`
+  이벤트에 연결된 선택지를 읽는다.
+- `actionConditionsMet()`, `canPresentAction()`
+  액션 노출 조건 판정 헬퍼다.
 
-## 7. Choice
-
-**역할**: Event 안에서 플레이어가 고르는 분기.
+### `src/game/story-flow.ts`
 
-### 목표 구조
+화면에 보여줄 선택지를 최종 병합하는 계층이다.
 
-```json
-{
-  "id": "choice_approach_survivor",
-  "label": "신음소리가 나는 쪽으로 다가간다",
-  "descriptionTag": "대화 가능",
-  "conditions": [],
-  "effects": [
-    { "type": "set_flag", "flag": "met_injured_survivor" }
-  ],
-  "nextEventId": "event_survivor_dialogue",
-  "hidden": false,
-  "riskHint": "low"
-}
-```
+주요 함수:
 
-### 현재 구조
+- `resolveStoryFrame()`
+  현재 씬 선택지와 현재 장소 행동을 합친 `StoryFrame`을 만든다.
+- `buildActionCatalogFromStoryChoices()`
+  `StoryChoice[]`를 클라이언트용 `availableActions`로 바꾼다.
 
-- `StoryChoice`: id, label, outcomeHint, serverActionHint
-- `ActionChoice`: id, label, outcomeHint, action
+중요한 점:
 
-### 매핑
+- 씬이 `SCENE_IDS_WITHOUT_LOCATION_INTERACTIONS`에 포함되면 장소 행동은 숨긴다.
+- 그렇지 않으면 장소 행동과 씬 선택지를 함께 보여준다.
 
-| 목표 필드 | 현재 필드 |
-|----------|----------|
-| `descriptionTag` | `outcomeHint` (방향만 알려주는 용도) |
-| `riskHint` | 없음 (추가) |
-| `conditions` | 서버 `actionCatalog` 검증으로 대체 |
-| `effects` | `performAction` 내부 로직 |
-| `nextEventId` | `serverActionHint`로 서버가 처리 |
+### `src/game/rules.ts`
 
----
+`GameState`를 바꾸는 실제 실행기다.
 
-## 8. Quest
+주요 함수:
 
-**역할**: 플레이어에게 방향을 주는 객체. 조건·완료 판정 가능.
+- `createInitialGameState()`
+  새 게임의 기본 상태를 만든다.
+- `syncClock()`
+  실시간 경과를 게임 시간에 반영한다.
+- `syncQuestState()`
+  퀘스트 상태를 갱신한다.
+- `syncScene()`
+  현재 상태에 맞는 `sceneId`와 `activeEventId`를 다시 맞춘다.
+- `performAction()`
+  실제 액션 실행 진입점이다.
+- `applySystemNote()`
+  이전 상태와 현재 상태 차이로 시스템 노트를 만든다.
 
-### 목표 구조
+실행 경로:
 
-```json
-{
-  "id": "quest_medicine",
-  "title": "약을 구해 와라",
-  "description": "캠프의 의사가 진통제와 항생제가 필요하다고 말했다.",
-  "type": "main",
-  "status": "active",
-  "objectives": [
-    { "type": "obtain_item", "itemId": "painkiller", "amount": 2 },
-    { "type": "return_to_npc", "npcId": "doctor_lee" }
-  ],
-  "rewards": [
-    { "type": "money", "amount": 100 },
-    { "type": "set_flag", "flag": "doctor_trust_1" }
-  ],
-  "prerequisites": [],
-  "relatedNpcIds": ["doctor_lee"],
-  "relatedLocationIds": ["camp", "hospital_lobby"]
-}
-```
+- `content_action`은 `executeActionDefinition()`으로 간다.
+- `content_choice`는 `executeChoiceDefinition()`으로 간다.
+- `travel`, `use_item`도 여기서 직접 처리한다.
 
-### 현재 구조
+현재 남아 있는 레거시 경로:
 
-- `baseQuests`: id, name, summary
-- `state.quests`: Record<questId, "inactive"|"active"|"completed">
-- 완료 판정: `syncQuestState`에서 flags 기반
+- `GameActionSchema`와 `performAction()`에는 아직 `rest`, `cook`, `buy_meal`, `generate_event` 케이스가 남아 있다.
+- 같은 파일 안에 `runActionDefinition()`과 `runChoiceDefinition()`도 남아 있다.
+- 현재 화면에서 생성되는 액션은 주로 `content_action` / `content_choice` 경로를 쓰지만, 레거시 케이스는 아직 제거되지 않았다.
 
-### 매핑
+### `src/game/state-utils.ts`
 
-- `objectives` → flags (mealSecured, waterSecured 등)로 분산
-- `rewards` → performAction 내부
-- 구조화된 objectives/rewards로 통일 권장
+공통 판정/효과 처리 유틸이다.
 
----
+주요 역할:
 
-## 9. WorldState
+- `evaluateCondition()`
+- `applyEffect()`
+- `appendLogEntry()`
+- `formatLogTimestamp()`
+- 퀘스트 목표 판정 보조
 
-**역할**: 플레이어 개인과 별개로 세계 전체의 변화.
-
-### 목표 구조
-
-```json
-{
-  "currentTime": "night",
-  "currentDay": 3,
-  "globalFlags": ["checkpoint_closed", "rumor_bunker_spread"],
-  "unlockedLocations": ["camp", "hospital_lobby", "market_ruins"],
-  "factionStates": { "militia": 1, "traders": 0 },
-  "worldEvents": ["night_raids_active"]
-}
-```
+### `src/game/repository.ts`
 
-### 현재 구조
-
-- `state.day`, `state.phaseIndex`
-- `state.flags` (visited_*, known_*, alleyRouteOpened 등)
-- `state.worldElapsedMs`
-
-### 매핑
+파일 저장소와 세이브 정규화가 같이 들어 있다.
 
-| 목표 필드 | 현재 필드 |
-|----------|----------|
-| `currentTime` | PHASES[phaseIndex] |
-| `currentDay` | day |
-| `globalFlags` | flags 중 world 관련 |
-| `unlockedLocations` | flags 중 known_*, visited_* |
-| `factionStates` | 없음 (추가) |
-| `worldEvents` | 없음 (추가) |
+주요 역할:
 
----
+- `.runtime/games/*.json` 저장/로드
+- `.runtime/templates.json` 저장/로드
+- 액션 로그와 생성 로그 append
+- 예전 세이브를 현재 스키마로 정규화
 
-## 10. Condition / Effect (공통 규칙)
+정규화 시 실제로 다루는 것:
 
-**역할**: 조건과 결과를 문자열이 아닌 구조화된 객체로 관리.
+- 잘못된 location/scene/item/quest/stock 상태 정리
+- 로그 메시지 번역
+- world 카드 payload 보존
 
-### Condition 예시
+### `src/game/content-generator.ts`
 
-```json
-{ "type": "has_item", "itemId": "flashlight", "amount": 1 }
-{ "type": "skill_gte", "skillId": "observation", "value": 3 }
-{ "type": "flag", "flag": "met_doctor" }
-{ "type": "location", "locationId": "camp" }
-```
-
-### Effect 예시
-
-```json
-{ "type": "change_stat", "stat": "hp", "value": -2 }
-{ "type": "set_flag", "flag": "opened_hidden_room" }
-{ "type": "add_item", "itemId": "painkiller", "amount": 1 }
-{ "type": "travel", "locationId": "hospital_lobby" }
-```
-
-### 현재 구조
-
-- 조건: `requiredFlag`, `link?.requiredFlag` 등 문자열/플래그로 분산
-- 결과: `performAction`, `useItem`, `adjustStat` 등 함수 내부에 하드코딩
-
----
-
-## 11. 마이그레이션 단계
-
-### Phase 1: 최소 객체 안정화 ✅ (구현 완료)
-
-1. **Condition / Effect 스키마** 정의 → `schemas.ts`에 추가
-2. **Player** 객체 분리 → `PlayerSchema`, `derivePlayer(state)`
-3. **WorldState** 객체 분리 → `WorldStateSchema`, `deriveWorldState(state)`
-4. **GameStateV2** → `toGameStateV2(state)`로 변환
-5. **Condition 평가** → `evaluateCondition(condition, state)`
-6. **Effect 적용** → `applyEffect(effect, state)`
-
-구현 파일: `src/game/schemas/` (객체별 분리), `src/game/state-utils.ts`
-
-### 기본 데이터 파일 구조 (`src/game/data/`)
-
-| 파일 | 내용 |
-|------|------|
-| `items.ts` | baseItems (아이템 정의) |
-| `locations.ts` | baseLocations (장소 정의) |
-| `people.ts` | basePeople (인물/NPC 정의) |
-| `index.ts` | re-export |
-
-### 스키마 파일 구조 (`src/game/schemas/`)
-
-| 파일 | 객체 |
-|------|------|
-| `base.ts` | RiskSchema |
-| `condition-effect.ts` | Condition, Effect |
-| `quest.ts` | Objective, QuestReward, QuestDefinition, QuestState |
-| `action.ts` | GameAction, ActionDefinition |
-| `player.ts` | Player |
-| `world-state.ts` | WorldState |
-| `game-state.ts` | GameState, GameStateV2 |
-| `location.ts` | LocationCard |
-| `item.ts` | ItemCard, ItemEffects |
-| `person.ts` | PersonCard, ProtagonistCard |
-| `choice.ts` | StoryChoice, ActionChoice |
-| `event.ts` | EventCard |
-| `scene.ts` | SceneCard |
-| `session.ts` | GameSession, WorldInstance, StateSnapshot, MapEntry 등 |
-| `index.ts` | 전체 re-export |
-
-### Phase 2: Location / Event / Choice 강화 ✅ (구현 완료)
-
-1. **Location**에 `availableActionIds`, `eventIds` 추가 → `LocationCardSchema`, `TemplateContentGenerator`
-2. **Event**에 `triggerConditions` (Condition[]), `choiceIds`, `once`, `priority` 추가 → `EventCardSchema`
-3. **Choice**에 `conditions`, `effects`, `descriptionTag`, `riskHint`, `hidden`, `nextEventId` 추가 → `StoryChoiceSchema`
-
-### Phase 3: Quest / Action 구조화 ✅ (구현 완료)
-
-1. **Quest**에 `objectives`, `rewards`, `prerequisites` 구조화
-   - `ObjectiveSchema`, `QuestRewardSchema`, `QuestDefinitionSchema`
-   - `quest-definitions.ts`: meal, water, rumor, anomaly, survive
-   - `evaluateObjective`, `applyQuestReward` in state-utils
-   - `syncQuestState`가 questDefinitions 기반으로 완료 판정
-2. **Action**은 `GameService.buildActionCatalog`에서 동적 생성
-
----
-
-## 12. 현재 코드와의 호환
-
-- 기존 `GameSession`, `StateSnapshot`, API 응답 형식은 **점진적 마이그레이션** 시 유지 가능
-- `buildSnapshot`에서 `player`, `worldState`를 분리해 반환하되, 클라이언트는 기존 `state` 필드도 계속 받을 수 있게 둘 수 있음
-- LLM 입력용 `StoryMaterials`는 Player, Location, Item, NPC( Person) 구조를 그대로 활용 가능
-
----
-
-## 13. 참고: 최소 MVP 객체 세트
-
-```
-GameState
-Player
-Location
-Event
-Choice
-Quest
-Item
-WorldState
-+ Condition (공통)
-+ Effect (공통)
-```
-
-이 10개를 먼저 안정화한 뒤, Action, NPC, Skill을 확장하는 것을 권장한다.
+카드 생성 전용 계층이다.
+
+- `TemplateContentGenerator`
+  코드에 정의된 기본 데이터만으로 카드 JSON을 만든다.
+- `RemoteContentGenerator`
+  `LLM_API_URL`과 `LLM_API_KEY`가 있으면 원격 모델을 호출한다.
+- `createContentGenerator()`
+  환경 변수에 따라 둘 중 하나를 선택한다.
+
+현재 사용 방식:
+
+- 장소/인물/아이템/주인공 카드 생성에 사용된다.
+- 이벤트 카드 생성에도 사용된다.
+- 씬 카드는 현재 `GameService.buildAuthoringSceneCard()`에서 직접 만든다.
+
+## 4. 현재 데이터의 단일 소스
+
+현재 코드에서 실제 단일 소스는 아래와 같다.
+
+- 장소별 행동
+  `src/game/data/regions/<지역>/location.ts`의 `interactionChoices`
+- 장면 전용 선택지
+  `src/game/data/regions/<지역>/choices.ts`
+- 씬 정의
+  `src/game/data/regions/<지역>/scenes.ts`
+- 이벤트 정의
+  `src/game/data/regions/<지역>/events.ts`
+- 퀘스트 정의
+  `src/game/quest-definitions.ts`
+- 전체 참조용 레지스트리
+  `src/game/data/registry.ts`의 `worldRegistry`
+
+`src/game/data/locations.ts`, `src/game/data/choices.ts`, `src/game/data/scenes.ts`, `src/game/data/events.ts`는 이제 작성용 원본이 아니라 집계 레이어다.
+실제 지역 콘텐츠는 `src/game/data/regions/` 아래에 있고, 집계 파일이 이를 평탄화해 `registry.ts`로 넘긴다.
+
+## 5. 현재 액션 모델
+
+### 클라이언트가 보내는 액션 타입
+
+`src/game/schemas/action.ts`의 `GameActionSchema`는 현재 아래 타입을 받는다.
+
+- `travel`
+- `use_item`
+- `content_action`
+- `content_choice`
+- `rest`
+- `cook`
+- `buy_meal`
+- `generate_event`
+
+즉, API 기준으로는 아직 레거시 액션 타입도 살아 있다.
+
+### 데이터로 정의되는 장소 행동
+
+장소 행동 객체는 `ActionDefinition`이고, 현재 주요 필드는 아래다.
+
+- `id`
+- `label`
+- `type`
+- `visibility`
+- `presentationMode`
+- `locationIds`
+- `conditions`
+- `effects`
+- `failureEffects`
+- `failureNote`
+- `nextEventId`
+- `nextSceneId`
+
+현재 장소 행동 노출은 `presentationMode`와 `conditions`를 같이 본다.
+
+- `when_conditions_met`
+  조건을 만족할 때만 화면에 보인다.
+- `always`
+  화면에는 보이고, 실행 시 실패 분기와 `failureNote`를 탈 수 있다.
+
+## 6. 현재 흐름 계산이 실제로 분산된 위치
+
+흐름 계산은 한 파일에 몰려 있지 않다.
+
+- 씬 선택
+  `src/game/content-engine.ts`
+  `resolveSceneDefinition()`, `resolveNextSceneDefinition()`
+- 화면용 선택지 병합
+  `src/game/story-flow.ts`
+  `resolveStoryFrame()`
+- 다음 씬 미리보기
+  `src/game/service.ts`
+  `previewNextSceneId()`, `presentedChoices()`
+- 실행 후 씬/퀘스트 재동기화
+  `src/game/rules.ts`
+  `performAction()`, `syncScene()`, `syncQuestState()`
+
+즉, 현재 구조에서 흐름 계산은 `content-engine.ts`, `story-flow.ts`, `service.ts`, `rules.ts`에 나뉘어 있다.
+
+## 7. 지금 코드 기준으로 수정할 위치
+
+- 장소에서 할 수 있는 행동을 바꿀 때
+  `src/game/data/regions/<지역>/location.ts`
+- 씬 전용 선택지를 바꿀 때
+  `src/game/data/regions/<지역>/choices.ts`
+- 어떤 씬을 보여줄지 조건을 바꿀 때
+  `src/game/data/regions/<지역>/scenes.ts`와 `src/game/content-engine.ts`
+- 장소 행동과 씬 선택지를 어떤 기준으로 합칠지 바꿀 때
+  `src/game/story-flow.ts`
+- 행동 결과로 상태가 어떻게 바뀌는지 바꿀 때
+  `src/game/rules.ts`와 `src/game/state-utils.ts`
+- API 응답 모양을 바꿀 때
+  `src/game/schemas/session.ts`와 `src/game/service.ts`
+- 세이브 정규화나 저장 방식을 바꿀 때
+  `src/game/repository.ts` 또는 `src/game/postgres-repository.ts`
+
+## 8. 현재 구조 문서에서 의도적으로 적지 않은 것
+
+이 문서는 현재 구조 문서다.
+아래 내용은 일부러 넣지 않았다.
+
+- 미래 리팩터링 계획
+- 아직 제거되지 않은 코드를 “이미 정리된 것처럼” 설명하는 표현
+- 파일에 없는 책임을 단정하는 설명

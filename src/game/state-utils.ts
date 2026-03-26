@@ -2,7 +2,8 @@
  * GameState helpers.
  */
 
-import { PHASES, REAL_DAY_MS, baseLocations } from "./base-data";
+import { PHASES, REAL_DAY_MS } from "./base-data";
+import { buildRuntimeRegistry } from "./runtime-registry";
 import type { Condition, Effect, GameState, GameStateV2, Objective, Player, QuestReward, WorldState } from "./schemas";
 
 function activeDayKey(state: GameState, flag: string) {
@@ -17,16 +18,22 @@ export function getStockStateKey(locationId: string, nodeId: string, itemId: str
   return `${locationId}:${nodeId}:${itemId}`;
 }
 
-export function getStockNode(locationId: string, nodeId: string) {
-  const location = baseLocations[locationId];
+export function getStockMoneyKey(locationId: string, nodeId: string) {
+  return `${locationId}:${nodeId}:$money`;
+}
+
+export function getStockNode(state: GameState, locationId: string, nodeId: string) {
+  const registry = buildRuntimeRegistry(state);
+  const location = registry.locations[locationId];
   if (!location) {
     return null;
   }
   return location.stockNodes.find((node) => node.id === nodeId) ?? null;
 }
 
-export function getStockNodeLocationId(nodeId: string) {
-  for (const location of Object.values(baseLocations)) {
+export function getStockNodeLocationId(state: GameState, nodeId: string) {
+  const registry = buildRuntimeRegistry(state);
+  for (const location of Object.values(registry.locations)) {
     if (location.stockNodes.some((node) => node.id === nodeId)) {
       return location.id;
     }
@@ -34,10 +41,15 @@ export function getStockNodeLocationId(nodeId: string) {
   return null;
 }
 
-export function formatClockLabelFromElapsed(worldElapsedMs: number) {
+/** 게임 내 시계(06:00를 하루 시작으로 하는 표시 시각) 기준, 자정 이후 경과 분(0–1439). */
+export function getGameClockShiftedMinutes(worldElapsedMs: number) {
   const elapsedInDay = ((worldElapsedMs % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
   const totalMinutes = Math.floor((elapsedInDay / REAL_DAY_MS) * 24 * 60);
-  const shiftedMinutes = (totalMinutes + 6 * 60) % (24 * 60);
+  return (totalMinutes + 6 * 60) % (24 * 60);
+}
+
+export function formatClockLabelFromElapsed(worldElapsedMs: number) {
+  const shiftedMinutes = getGameClockShiftedMinutes(worldElapsedMs);
   const roundedMinutes = Math.floor(shiftedMinutes / 10) * 10;
   const hours = String(Math.floor(roundedMinutes / 60)).padStart(2, "0");
   const minutes = String(roundedMinutes % 60).padStart(2, "0");
@@ -62,13 +74,77 @@ export function getStockQuantity(state: GameState, locationId: string, nodeId: s
     return state.stockState[key];
   }
 
-  const node = getStockNode(locationId, nodeId);
+  const node = getStockNode(state, locationId, nodeId);
   const stockItem = node?.items.find((entry) => entry.itemId === itemId);
   return stockItem?.initialQuantity ?? 0;
 }
 
+export function getStockMoney(state: GameState, locationId: string, nodeId: string) {
+  const key = getStockMoneyKey(locationId, nodeId);
+  if (typeof state.stockState[key] === "number") {
+    return state.stockState[key];
+  }
+
+  const node = getStockNode(state, locationId, nodeId);
+  return node?.money ?? 0;
+}
+
+function getEquivalentInventoryItemIds(state: GameState, itemId: string) {
+  const directCount = state.inventory[itemId] ?? 0;
+  if (!itemId.startsWith("dyn_")) {
+    return directCount > 0 ? [itemId] : [];
+  }
+
+  const registry = buildRuntimeRegistry(state);
+  const targetName = (registry.items[itemId] as { name?: string } | undefined)?.name;
+  if (!targetName) {
+    return directCount > 0 ? [itemId] : [];
+  }
+
+  const matchingIds = Object.keys(state.inventory).filter(
+    (candidateId) =>
+      (state.inventory[candidateId] ?? 0) > 0 &&
+      candidateId.startsWith("dyn_") &&
+      (registry.items[candidateId] as { name?: string } | undefined)?.name === targetName,
+  );
+
+  return Array.from(new Set([itemId, ...matchingIds])).filter((candidateId) => (state.inventory[candidateId] ?? 0) > 0);
+}
+
+function getInventoryAmount(state: GameState, itemId: string) {
+  return getEquivalentInventoryItemIds(state, itemId).reduce(
+    (total, candidateId) => total + (state.inventory[candidateId] ?? 0),
+    0,
+  );
+}
+
+function removeInventoryAmount(state: GameState, itemId: string, amount: number) {
+  let remaining = amount;
+  for (const candidateId of getEquivalentInventoryItemIds(state, itemId)) {
+    if (remaining <= 0) {
+      break;
+    }
+
+    const current = state.inventory[candidateId] ?? 0;
+    const consumed = Math.min(current, remaining);
+    const next = current - consumed;
+    if (next <= 0) {
+      delete state.inventory[candidateId];
+    } else {
+      state.inventory[candidateId] = next;
+    }
+    remaining -= consumed;
+  }
+
+  return amount - remaining;
+}
+
 function setStockQuantity(state: GameState, locationId: string, nodeId: string, itemId: string, nextQuantity: number) {
   state.stockState[getStockStateKey(locationId, nodeId, itemId)] = Math.max(0, nextQuantity);
+}
+
+function setStockMoney(state: GameState, locationId: string, nodeId: string, nextAmount: number) {
+  state.stockState[getStockMoneyKey(locationId, nodeId)] = Math.max(0, nextAmount);
 }
 
 function hasDiscoveredStockNode(state: GameState, nodeId: string) {
@@ -78,7 +154,7 @@ function hasDiscoveredStockNode(state: GameState, nodeId: string) {
 export function evaluateObjective(objective: Objective, state: GameState): boolean {
   switch (objective.type) {
     case "obtain_item":
-      return (state.inventory[objective.itemId] ?? 0) >= objective.amount;
+      return getInventoryAmount(state, objective.itemId) >= objective.amount;
     case "return_to_npc":
       return Boolean(state.flags[`returned_to_${objective.npcId}`]);
     case "reach_location":
@@ -111,7 +187,7 @@ export function applyQuestReward(reward: QuestReward, state: GameState): void {
 export function evaluateCondition(condition: Condition, state: GameState): boolean {
   switch (condition.type) {
     case "has_item":
-      return (state.inventory[condition.itemId] ?? 0) >= condition.amount;
+      return getInventoryAmount(state, condition.itemId) >= condition.amount;
     case "skill_gte":
       return state.skills.includes(condition.skillId);
     case "flag":
@@ -132,14 +208,24 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
       return state.quests[condition.questId] === condition.status;
     case "stock_item_gte":
       return getStockQuantity(state, condition.locationId, condition.nodeId, condition.itemId) >= condition.amount;
+    case "stock_money_gte":
+      return getStockMoney(state, condition.locationId, condition.nodeId) >= condition.amount;
     case "stock_item_lt":
       return getStockQuantity(state, condition.locationId, condition.nodeId, condition.itemId) < condition.amount;
+    case "stock_money_lt":
+      return getStockMoney(state, condition.locationId, condition.nodeId) < condition.amount;
     case "stock_node_discovered":
       return hasDiscoveredStockNode(state, condition.nodeId);
     case "active_stock_node":
       return state.activeStockNodeId === condition.nodeId;
     case "active_stock_node_not":
       return state.activeStockNodeId !== condition.nodeId;
+    case "shelter_sleep_window": {
+      const m = getGameClockShiftedMinutes(state.worldElapsedMs);
+      const evening = 18 * 60;
+      const morning = 6 * 60;
+      return m >= evening || m < morning;
+    }
     default:
       return false;
   }
@@ -164,10 +250,7 @@ export function applyEffect(effect: Effect, state: GameState): void {
       state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + effect.amount;
       break;
     case "remove_item": {
-      const current = state.inventory[effect.itemId] ?? 0;
-      const next = Math.max(0, current - effect.amount);
-      if (next === 0) delete state.inventory[effect.itemId];
-      else state.inventory[effect.itemId] = next;
+      removeInventoryAmount(state, effect.itemId, effect.amount);
       break;
     }
     case "change_money":
@@ -212,6 +295,34 @@ export function applyEffect(effect: Effect, state: GameState): void {
       const collected = Math.min(effect.amount, current);
       setStockQuantity(state, effect.locationId, effect.nodeId, effect.itemId, current - collected);
       state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + collected;
+      break;
+    }
+    case "collect_stock_item_all": {
+      const current = getStockQuantity(state, effect.locationId, effect.nodeId, effect.itemId);
+      if (current <= 0) {
+        break;
+      }
+      setStockQuantity(state, effect.locationId, effect.nodeId, effect.itemId, 0);
+      state.inventory[effect.itemId] = (state.inventory[effect.itemId] ?? 0) + current;
+      break;
+    }
+    case "collect_stock_money": {
+      const current = getStockMoney(state, effect.locationId, effect.nodeId);
+      if (current <= 0) {
+        break;
+      }
+      const collected = Math.min(effect.amount, current);
+      setStockMoney(state, effect.locationId, effect.nodeId, current - collected);
+      state.money = Math.max(0, state.money + collected);
+      break;
+    }
+    case "collect_stock_money_all": {
+      const current = getStockMoney(state, effect.locationId, effect.nodeId);
+      if (current <= 0) {
+        break;
+      }
+      setStockMoney(state, effect.locationId, effect.nodeId, 0);
+      state.money = Math.max(0, state.money + current);
       break;
     }
   }

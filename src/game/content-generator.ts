@@ -1,5 +1,8 @@
-﻿import { baseItems, baseLocations, basePeople, PHASES } from "./base-data";
+import { PHASES } from "./base-data";
+import { appendDevLlmTraceForGame } from "./dev-llm-trace";
+import { generateGeminiJson, geminiModel, hasGeminiConfig } from "./gemini-client";
 import { summarizeState } from "./rules";
+import { buildRuntimeRegistry } from "./runtime-registry";
 import type {
   ActionChoice,
   EventCard,
@@ -40,24 +43,21 @@ export interface ContentGenerator {
   generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput): Promise<EventCard>;
 }
 
-function stripCodeFence(raw: string) {
-  return raw
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/, "")
-    .trim();
-}
-
 function nowIso() {
   return new Date().toISOString();
 }
 
-const SCENE_CARD_CACHE_VERSION = 2;
+function stripCodeFence(raw: string) {
+  return raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/, "").trim();
+}
+
+const SCENE_CARD_CACHE_VERSION = 5;
 
 class TemplateContentGenerator implements ContentGenerator {
   async generateLocationCard(locationId: string, input: GeneratorInput) {
-    const location = baseLocations[locationId];
-    const availableActionIds = [...location.availableActionIds];
+    const registry = buildRuntimeRegistry(input.state);
+    const location = registry.locations[locationId];
+    const availableActionIds = (location.interactionChoices ?? []).map((choice) => choice.id);
     return LocationCardSchema.parse({
       id: location.id,
       name: location.name,
@@ -78,7 +78,11 @@ class TemplateContentGenerator implements ContentGenerator {
   }
 
   async generatePersonCard(personId: string, _input: GeneratorInput) {
-    const person = basePeople[personId as keyof typeof basePeople];
+    const registry = buildRuntimeRegistry(_input.state);
+    const person = registry.people[personId] as Omit<PersonCard, "source" | "generatedAt"> | undefined;
+    if (!person) {
+      throw new Error(`Unknown person '${personId}'.`);
+    }
     return PersonCardSchema.parse({
       ...person,
       source: "template",
@@ -87,7 +91,11 @@ class TemplateContentGenerator implements ContentGenerator {
   }
 
   async generateItemCard(itemId: string, _input: GeneratorInput) {
-    const item = baseItems[itemId as keyof typeof baseItems];
+    const registry = buildRuntimeRegistry(_input.state);
+    const item = registry.items[itemId] as Omit<ItemCard, "source" | "generatedAt"> | undefined;
+    if (!item) {
+      throw new Error(`Unknown item '${itemId}'.`);
+    }
     return ItemCardSchema.parse({
       ...item,
       source: "template",
@@ -158,7 +166,7 @@ class TemplateContentGenerator implements ContentGenerator {
   }
 }
 
-class RemoteContentGenerator implements ContentGenerator {
+class GenericRemoteContentGenerator implements ContentGenerator {
   constructor(
     private readonly apiUrl: string,
     private readonly apiKey: string,
@@ -178,7 +186,7 @@ class RemoteContentGenerator implements ContentGenerator {
         messages: [
           {
             role: "system",
-            content: `You generate JSON only. Output must satisfy this schema: ${schemaPrompt}. Do not change action ids or choice wiring. Focus only on the current location and local materials. Improve prose only.`,
+            content: `You generate JSON only. Output must satisfy this schema: ${schemaPrompt}. Do not change action ids or choice wiring. Keep the root "id" field exactly equal to payload.fallback.id. Focus only on the current location and local materials. Improve prose only.`,
           },
           {
             role: "user",
@@ -202,58 +210,268 @@ class RemoteContentGenerator implements ContentGenerator {
     return JSON.parse(stripCodeFence(content)) as T;
   }
 
+  private async withFallback<T>(work: () => Promise<T>, fallback: () => Promise<T>) {
+    try {
+      return await work();
+    } catch {
+      return fallback();
+    }
+  }
+
   async generateLocationCard(locationId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generateLocationCard(locationId, input);
-    return LocationCardSchema.parse(await this.generateJson("locationCard", "location card json", { fallback, currentState: summarizeState(input.state) }));
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateLocationCard(locationId, input);
+        return LocationCardSchema.parse(await this.generateJson("locationCard", "location card json", { fallback, currentState: summarizeState(input.state) }));
+      },
+      () => this.fallback.generateLocationCard(locationId, input),
+    );
   }
 
   async generatePersonCard(personId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generatePersonCard(personId, input);
-    return PersonCardSchema.parse(await this.generateJson("personCard", "person card json", { fallback, currentState: summarizeState(input.state) }));
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generatePersonCard(personId, input);
+        return PersonCardSchema.parse(await this.generateJson("personCard", "person card json", { fallback, currentState: summarizeState(input.state) }));
+      },
+      () => this.fallback.generatePersonCard(personId, input),
+    );
   }
 
   async generateItemCard(itemId: string, input: GeneratorInput) {
-    const fallback = await this.fallback.generateItemCard(itemId, input);
-    return ItemCardSchema.parse(await this.generateJson("itemCard", "item card json", { fallback, currentState: summarizeState(input.state) }));
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateItemCard(itemId, input);
+        return ItemCardSchema.parse(await this.generateJson("itemCard", "item card json", { fallback, currentState: summarizeState(input.state) }));
+      },
+      () => this.fallback.generateItemCard(itemId, input),
+    );
   }
 
   async generateProtagonistCard(input: GeneratorInput) {
-    const fallback = await this.fallback.generateProtagonistCard(input);
-    return ProtagonistCardSchema.parse(await this.generateJson("protagonistCard", "protagonist card json", { fallback, currentState: summarizeState(input.state) }));
+    // This card reflects live stats and is regenerated on nearly every request,
+    // so using a remote model here only adds latency without meaningful gain.
+    return this.fallback.generateProtagonistCard(input);
   }
 
   async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
-    const fallback = await this.fallback.generateSceneCard(scene, choices, input);
-    const generated = await this.generateJson<SceneCard>("sceneCard", "scene card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      choiceIds: choices.map((choice) => choice.id),
-    });
-    return SceneCardSchema.parse({
-      ...generated,
-      choices,
-      eventId: scene.eventId,
-      introFlag: scene.introFlag,
-    });
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateSceneCard(scene, choices, input);
+        const generated = await this.generateJson<SceneCard>("sceneCard", "scene card json", {
+          fallback,
+          currentState: summarizeState(input.state),
+          recentLog: input.recentLog,
+          storyMaterials: input.storyMaterials,
+          choiceIds: choices.map((choice) => choice.id),
+        });
+        return SceneCardSchema.parse({
+          ...generated,
+          id: fallback.id,
+          locationId: scene.locationId,
+          choices,
+          eventId: scene.eventId,
+          introFlag: scene.introFlag,
+        });
+      },
+      () => this.fallback.generateSceneCard(scene, choices, input),
+    );
   }
 
   async generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput) {
-    const fallback = await this.fallback.generateEventCard(event, choices, input);
-    const generated = await this.generateJson<EventCard>("eventCard", "event card json", {
-      fallback,
-      currentState: summarizeState(input.state),
-      recentLog: input.recentLog,
-      storyMaterials: input.storyMaterials,
-      choiceIds: choices.map((choice) => choice.id),
-    });
-    return EventCardSchema.parse({ ...generated, choices, startSceneId: event.startSceneId, sceneIds: event.sceneIds });
+    return this.withFallback(
+      async () => {
+        const fallback = await this.fallback.generateEventCard(event, choices, input);
+        const generated = await this.generateJson<EventCard>("eventCard", "event card json", {
+          fallback,
+          currentState: summarizeState(input.state),
+          recentLog: input.recentLog,
+          storyMaterials: input.storyMaterials,
+          choiceIds: choices.map((choice) => choice.id),
+        });
+        return EventCardSchema.parse({
+          ...generated,
+          id: fallback.id,
+          locationId: event.locationId,
+          choices,
+          startSceneId: event.startSceneId,
+          sceneIds: event.sceneIds,
+        });
+      },
+      () => this.fallback.generateEventCard(event, choices, input),
+    );
+  }
+}
+
+class GeminiContentGenerator implements ContentGenerator {
+  constructor(private readonly fallback: TemplateContentGenerator) {}
+
+  private async generateJson<T>(
+    gameId: string,
+    target: string,
+    schemaName: string,
+    schemaPrompt: string,
+    payload: Record<string, unknown>,
+  ) {
+    return generateGeminiJson<T>(
+      `You generate JSON only for a survival text RPG.
+Output must satisfy this schema description: ${schemaPrompt}.
+Do not change action ids or choice wiring.
+Keep the root "id" field exactly equal to payload.fallback.id.
+Focus only on the current location and local materials.
+Improve prose only.
+Return valid JSON with no markdown fences.`,
+      { schemaName, payload },
+      {
+        model: geminiModel(),
+        temperature: 0.8,
+        trace: {
+          gameId,
+          scope: "card",
+          target,
+        },
+      },
+    );
+  }
+
+  private async withFallback<T>(
+    gameId: string,
+    target: string,
+    work: () => Promise<T>,
+    fallback: () => Promise<T>,
+  ) {
+    try {
+      return await work();
+    } catch (error) {
+      appendDevLlmTraceForGame(gameId, {
+        scope: "card",
+        target,
+        model: geminiModel(),
+        status: "fallback",
+        request: "",
+        response: "",
+        message: error instanceof Error ? error.message : "Gemini card generation failed, using template fallback.",
+      });
+      return fallback();
+    }
+  }
+
+  async generateLocationCard(locationId: string, input: GeneratorInput) {
+    return this.withFallback(
+      input.gameId,
+      `locationCard:${locationId}`,
+      async () => {
+        const fallback = await this.fallback.generateLocationCard(locationId, input);
+        return LocationCardSchema.parse(
+          await this.generateJson(input.gameId, `locationCard:${locationId}`, "locationCard", "location card json", {
+            fallback,
+            currentState: summarizeState(input.state),
+          }),
+        );
+      },
+      () => this.fallback.generateLocationCard(locationId, input),
+    );
+  }
+
+  async generatePersonCard(personId: string, input: GeneratorInput) {
+    return this.withFallback(
+      input.gameId,
+      `personCard:${personId}`,
+      async () => {
+        const fallback = await this.fallback.generatePersonCard(personId, input);
+        return PersonCardSchema.parse(
+          await this.generateJson(input.gameId, `personCard:${personId}`, "personCard", "person card json", {
+            fallback,
+            currentState: summarizeState(input.state),
+          }),
+        );
+      },
+      () => this.fallback.generatePersonCard(personId, input),
+    );
+  }
+
+  async generateItemCard(itemId: string, input: GeneratorInput) {
+    return this.withFallback(
+      input.gameId,
+      `itemCard:${itemId}`,
+      async () => {
+        const fallback = await this.fallback.generateItemCard(itemId, input);
+        return ItemCardSchema.parse(
+          await this.generateJson(input.gameId, `itemCard:${itemId}`, "itemCard", "item card json", {
+            fallback,
+            currentState: summarizeState(input.state),
+          }),
+        );
+      },
+      () => this.fallback.generateItemCard(itemId, input),
+    );
+  }
+
+  async generateProtagonistCard(input: GeneratorInput) {
+    // This card reflects live stats and is regenerated on nearly every request,
+    // so using Gemini here only adds latency without meaningful gain.
+    return this.fallback.generateProtagonistCard(input);
+  }
+
+  async generateSceneCard(scene: SceneDefinition, choices: StoryChoice[], input: GeneratorInput) {
+    return this.withFallback(
+      input.gameId,
+      `sceneCard:${scene.id}`,
+      async () => {
+        const fallback = await this.fallback.generateSceneCard(scene, choices, input);
+        const generated = await this.generateJson<SceneCard>(input.gameId, `sceneCard:${scene.id}`, "sceneCard", "scene card json", {
+          fallback,
+          currentState: summarizeState(input.state),
+          recentLog: input.recentLog,
+          storyMaterials: input.storyMaterials,
+          choiceIds: choices.map((choice) => choice.id),
+        });
+        return SceneCardSchema.parse({
+          ...generated,
+          id: fallback.id,
+          locationId: scene.locationId,
+          choices,
+          eventId: scene.eventId,
+          introFlag: scene.introFlag,
+        });
+      },
+      () => this.fallback.generateSceneCard(scene, choices, input),
+    );
+  }
+
+  async generateEventCard(event: EventDefinition, choices: StoryChoice[], input: GeneratorInput) {
+    return this.withFallback(
+      input.gameId,
+      `eventCard:${event.id}`,
+      async () => {
+        const fallback = await this.fallback.generateEventCard(event, choices, input);
+        const generated = await this.generateJson<EventCard>(input.gameId, `eventCard:${event.id}`, "eventCard", "event card json", {
+          fallback,
+          currentState: summarizeState(input.state),
+          recentLog: input.recentLog,
+          storyMaterials: input.storyMaterials,
+          choiceIds: choices.map((choice) => choice.id),
+        });
+        return EventCardSchema.parse({
+          ...generated,
+          id: fallback.id,
+          locationId: event.locationId,
+          choices,
+          startSceneId: event.startSceneId,
+          sceneIds: event.sceneIds,
+        });
+      },
+      () => this.fallback.generateEventCard(event, choices, input),
+    );
   }
 }
 
 export function createContentGenerator() {
   const fallback = new TemplateContentGenerator();
+  if (hasGeminiConfig()) {
+    return new GeminiContentGenerator(fallback);
+  }
+
   const apiUrl = process.env.LLM_API_URL;
   const apiKey = process.env.LLM_API_KEY;
   const model = process.env.LLM_MODEL || "gpt-4.1-mini";
@@ -262,6 +480,9 @@ export function createContentGenerator() {
     return fallback;
   }
 
-  return new RemoteContentGenerator(apiUrl, apiKey, model, fallback);
+  return new GenericRemoteContentGenerator(apiUrl, apiKey, model, fallback);
 }
 
+export function createTemplateContentGenerator(): ContentGenerator {
+  return new TemplateContentGenerator();
+}

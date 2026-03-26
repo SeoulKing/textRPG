@@ -1,11 +1,18 @@
-﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id-v8";
-const LEGACY_STORAGE_KEYS = ["ruined-seoul-stage1-game-id", "ruined-seoul-stage1-game-id-v7"];
+﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id-v9";
+const ACTIVE_STORAGE_KEY = "ruined-seoul-stage1-game-id-v10";
+const LEGACY_STORAGE_KEYS = [
+  "ruined-seoul-stage1-game-id",
+  "ruined-seoul-stage1-game-id-v9",
+  "ruined-seoul-stage1-game-id-v8",
+  "ruined-seoul-stage1-game-id-v7",
+];
 const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
-const TYPEWRITER_CHAR_DELAY = 35;
+const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const CLIENT_SAVE_VERSION = 8;
+const CLIENT_SAVE_VERSION = 10;
 const HEX_RATIO = Math.sqrt(3) / 2;
+const DEV_OBJECT_BADGES = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
 
 const HEX_BOARD_TEMPLATE = [
   { slotId: "northwest", col: 0, row: 0, locationId: null },
@@ -152,6 +159,8 @@ const dom = {
   panelTitle: document.querySelector("#panel-title"),
   panelSubtitle: document.querySelector("#panel-subtitle"),
   panelContent: document.querySelector("#panel-content"),
+  llmDebugPanel: document.querySelector("#llm-debug-panel"),
+  llmDebugList: document.querySelector("#llm-debug-list"),
   dockButtons: Array.from(document.querySelectorAll(".dock-button")),
   newGameButton: document.querySelector("#new-game-button"),
 };
@@ -159,7 +168,7 @@ const dom = {
 const client = {
   activePanel: "map",
   snapshot: null,
-  gameId: window.localStorage.getItem(STORAGE_KEY) || "",
+  gameId: window.localStorage.getItem(ACTIVE_STORAGE_KEY) || "",
   lastFetchedAt: 0,
   syncTimer: null,
   mapHint: "",
@@ -167,7 +176,7 @@ const client = {
   actionInFlight: false,
   sceneRenderToken: 0,
   activeSceneTimer: null,
-  activeAnimatedScene: null,
+  activeAnimatedStory: null,
   isSceneTyping: false,
   justCreatedGame: false,
   renderedSystemNote: "",
@@ -180,6 +189,48 @@ function currentState() {
 function currentLocationCard() {
   const locationId = currentState()?.location;
   return client.snapshot?.visibleLocations.find((entry) => entry.id === locationId) || null;
+}
+
+function isDynamicId(id) {
+  return String(id || "").startsWith("dyn_");
+}
+
+function buildDevBadgeText({ id, source, packageTraits = [] }) {
+  if (!DEV_OBJECT_BADGES) {
+    return "";
+  }
+
+  const parts = [];
+  if (id) {
+    parts.push(isDynamicId(id) ? "dynamic" : "seed");
+  }
+  if (packageTraits.includes("planner:llm")) {
+    parts.push("llm-package");
+  } else if (packageTraits.includes("planner:template")) {
+    parts.push("template-package");
+  }
+  if (source) {
+    parts.push(source);
+  }
+  return parts.join(" / ");
+}
+
+function buildDevBadgeMarkup(entry, fallback = {}) {
+  const badgeText = buildDevBadgeText({
+    id: entry?.id || fallback.id || entry?.locationId || fallback.locationId || "",
+    source: entry?.source || fallback.source || "",
+    packageTraits: [
+      ...(Array.isArray(entry?.traits) ? entry.traits : []),
+      ...(Array.isArray(entry?.tags) ? entry.tags : []),
+      ...(Array.isArray(fallback?.traits) ? fallback.traits : []),
+      ...(Array.isArray(fallback?.tags) ? fallback.tags : []),
+    ],
+  });
+  if (!badgeText) {
+    return "";
+  }
+
+  return `<span class="dev-badge">${escapeHtml(badgeText)}</span>`;
 }
 
 function projectedWorldElapsedMs() {
@@ -233,7 +284,7 @@ async function createNewGame() {
   client.mapHint = "";
   client.justCreatedGame = true;
   clearLegacyGameIds();
-  window.localStorage.setItem(STORAGE_KEY, client.gameId);
+  window.localStorage.setItem(ACTIVE_STORAGE_KEY, client.gameId);
 }
 
 function needsFreshGame(snapshot) {
@@ -264,6 +315,50 @@ function currentSceneId(snapshot = client.snapshot) {
   return snapshot?.currentScene?.id || "";
 }
 
+/** 메인 서사가 이벤트 카드(선택지 포함)를 쓸 때 true — buildSnapshot과 동일 조건 */
+function isEventStoryActive(snapshot) {
+  const ev = snapshot?.latestEvent;
+  return Boolean(ev && Array.isArray(ev.choices) && ev.choices.length > 0);
+}
+
+/** 씬/이벤트 전환·backgroundSync 보존 판별용 표면 키 */
+function storySurfaceId(snapshot) {
+  if (!snapshot) {
+    return "";
+  }
+  if (isEventStoryActive(snapshot)) {
+    return `event:${snapshot.latestEvent.id}`;
+  }
+  return `scene:${currentSceneId(snapshot)}`;
+}
+
+function splitSummaryToParagraphs(summary) {
+  if (!summary) {
+    return [];
+  }
+  return String(summary)
+    .split(/\n\n+/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+}
+
+function buildStoryDisplay(snapshot) {
+  if (!snapshot?.currentScene) {
+    return { headline: "", paragraphs: [] };
+  }
+  if (isEventStoryActive(snapshot)) {
+    const ev = snapshot.latestEvent;
+    return {
+      headline: ev.title || "",
+      paragraphs: splitSummaryToParagraphs(ev.summary),
+    };
+  }
+  return {
+    headline: "",
+    paragraphs: snapshot.currentScene.paragraphs || [],
+  };
+}
+
 function currentSceneDefinitionId(snapshot = client.snapshot) {
   return snapshot?.state?.sceneId || "";
 }
@@ -281,6 +376,21 @@ function hasConsumedIntroFlag(snapshot, introFlag) {
 }
 
 function shouldAnimateScene({ source, previousSnapshot, nextSnapshot }) {
+  if (source === "bootstrap" || source === "backgroundSync") {
+    return false;
+  }
+
+  const nextEventOn = isEventStoryActive(nextSnapshot);
+  const prevEventOn = previousSnapshot ? isEventStoryActive(previousSnapshot) : false;
+  const nextEvId = nextSnapshot?.latestEvent?.id || "";
+  const prevEvId = previousSnapshot?.latestEvent?.id || "";
+
+  if (nextEventOn && nextEvId) {
+    if (!prevEventOn || nextEvId !== prevEvId) {
+      return true;
+    }
+  }
+
   const introFlag = currentSceneIntroFlag(nextSnapshot);
   if (!introFlag) {
     return false;
@@ -288,10 +398,6 @@ function shouldAnimateScene({ source, previousSnapshot, nextSnapshot }) {
 
   if (source === "newGame") {
     return true;
-  }
-
-  if (source === "bootstrap" || source === "backgroundSync") {
-    return false;
   }
 
   return !hasConsumedIntroFlag(previousSnapshot, introFlag);
@@ -306,15 +412,35 @@ function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
     return false;
   }
 
-  // Keep the currently displayed scene on screen until the player acts or leaves.
-  return currentSceneId(previousSnapshot) !== currentSceneId(nextSnapshot);
+  // 이벤트 ↔ 평시 씬 전환 시 이전 씬 카드만 붙잡아 두면 복귀 직후 본문이 어긋난다.
+  if (storySurfaceId(previousSnapshot) !== storySurfaceId(nextSnapshot)) {
+    return false;
+  }
+
+  // 같은 이벤트 표면이면 본문은 latestEvent 기준이라 씬 카드 id 변화만으로는 끊지 않는다.
+  if (isEventStoryActive(previousSnapshot) && isEventStoryActive(nextSnapshot)) {
+    return true;
+  }
+
+  // 같은 씬 카드 키(날짜·페이즈·캐시 버전 포함)일 때만 이전 본문을 유지한다.
+  return currentSceneId(previousSnapshot) === currentSceneId(nextSnapshot);
+}
+
+function availableActionsSignature(snapshot) {
+  const list = snapshot?.availableActions ?? [];
+  // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
+  return list
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.isAvailable ? "1" : "0"}`)
+    .join("|");
 }
 
 function preserveDisplayedSceneSnapshot(previousSnapshot, nextSnapshot) {
   return {
     ...nextSnapshot,
     currentScene: previousSnapshot.currentScene,
-    availableActions: previousSnapshot.availableActions,
+    // 서버의 행동 목록은 항상 반영한다. 이전 스냅샷을 유지할 때(페이즈만 바뀐 backgroundSync 등)
+    // 옛 scene 카드와 함께 버튼만 낡은 채로 남는 문제를 막는다.
+    availableActions: nextSnapshot.availableActions,
   };
 }
 
@@ -334,7 +460,7 @@ function clearSceneAnimation() {
     window.clearTimeout(client.activeSceneTimer);
     client.activeSceneTimer = null;
   }
-  client.activeAnimatedScene = null;
+  client.activeAnimatedStory = null;
   client.isSceneTyping = false;
 }
 
@@ -357,17 +483,35 @@ async function typeParagraph(paragraphElement, text, token) {
   return token === client.sceneRenderToken;
 }
 
-async function animateSceneText(scene, token) {
-  client.activeAnimatedScene = scene;
+async function animateStoryText(story, token) {
+  client.activeAnimatedStory = story;
   client.isSceneTyping = true;
   dom.sceneText.innerHTML = "";
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed");
 
-  for (const paragraph of scene.paragraphs) {
+  if (story.headline) {
     if (token !== client.sceneRenderToken) {
       client.isSceneTyping = false;
-      client.activeAnimatedScene = null;
+      client.activeAnimatedStory = null;
+      return;
+    }
+    const headlineElement = document.createElement("p");
+    headlineElement.className = "scene-headline";
+    dom.sceneText.appendChild(headlineElement);
+    const headlineDone = await typeParagraph(headlineElement, story.headline, token);
+    if (!headlineDone) {
+      client.isSceneTyping = false;
+      client.activeAnimatedStory = null;
+      return;
+    }
+    await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
+  }
+
+  for (const paragraph of story.paragraphs) {
+    if (token !== client.sceneRenderToken) {
+      client.isSceneTyping = false;
+      client.activeAnimatedStory = null;
       return;
     }
     const paragraphElement = document.createElement("p");
@@ -375,7 +519,7 @@ async function animateSceneText(scene, token) {
     const completed = await typeParagraph(paragraphElement, paragraph, token);
     if (!completed) {
       client.isSceneTyping = false;
-      client.activeAnimatedScene = null;
+      client.activeAnimatedStory = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -383,18 +527,22 @@ async function animateSceneText(scene, token) {
 
   if (token === client.sceneRenderToken) {
     client.isSceneTyping = false;
-    client.activeAnimatedScene = null;
+    client.activeAnimatedStory = null;
     renderChoices();
   }
 }
 
 function skipSceneTyping() {
-  const scene = client.activeAnimatedScene;
-  if (!client.isSceneTyping || !scene) {
+  const story = client.activeAnimatedStory;
+  if (!client.isSceneTyping || !story) {
     return false;
   }
   clearSceneAnimation();
-  dom.sceneText.innerHTML = scene.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("");
+  const headlineBlock = story.headline
+    ? `<p class="scene-headline">${escapeHtml(story.headline)}</p>`
+    : "";
+  dom.sceneText.innerHTML =
+    headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
   renderChoices();
   return true;
 }
@@ -522,12 +670,17 @@ function renderChoices() {
     const button = fragment.querySelector("button");
     const label = fragment.querySelector(".choice-label");
     const meta = fragment.querySelector(".choice-meta");
+    const isCraftingMenu = currentSceneDefinitionId(snapshot) === "shelter_crafting_menu";
+    const isCraftingRecipe = isCraftingMenu && choice.id !== "leave_shelter_crafting";
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
     meta.textContent = choice.nextSceneId
       ? `${choice.outcomeHint} -> ${choice.nextSceneId}`
       : choice.outcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
+    button.classList.toggle("is-crafting-option", isCraftingRecipe);
+    button.classList.toggle("is-recipe-available", isCraftingRecipe && choice.isAvailable);
+    button.classList.toggle("is-recipe-unavailable", isCraftingRecipe && !choice.isAvailable);
     button.disabled = client.actionInFlight;
     button.addEventListener("click", () => submitAction(choice.action));
     dom.choices.appendChild(fragment);
@@ -544,24 +697,39 @@ function renderScene(animateText = true) {
     return;
   }
 
+  const story = buildStoryDisplay(snapshot);
+
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
   dom.sceneLocationBadge.textContent = location.name;
-  dom.sceneRiskBadge.textContent = location.risk;
+  dom.sceneRiskBadge.textContent = isEventStoryActive(snapshot) ? "이벤트" : location.risk;
   const eventId = currentEventId(snapshot);
-  dom.sceneDebugBadge.textContent = eventId
-    ? `event: ${eventId} / scene: ${currentSceneDefinitionId(snapshot)}`
-    : `scene: ${currentSceneDefinitionId(snapshot)}`;
+  const actionCount = snapshot.availableActions?.length ?? 0;
+  const actionIds = (snapshot.availableActions ?? []).map((c) => c.id).join(", ");
+  const debugText = eventId
+    ? `event: ${eventId} / scene: ${currentSceneDefinitionId(snapshot)} / actions: ${actionCount} [${actionIds}]`
+    : `scene: ${currentSceneDefinitionId(snapshot)} / actions: ${actionCount} [${actionIds}]`;
+  const debugBadges = DEV_OBJECT_BADGES
+    ? [
+        buildDevBadgeMarkup(location),
+        buildDevBadgeMarkup({ id: scene.locationId || location.id, source: scene.source }),
+      ].filter(Boolean).join("")
+    : "";
+  dom.sceneDebugBadge.innerHTML = `${debugBadges}<span class="scene-debug-text">${escapeHtml(debugText)}</span>`;
   renderSystemNote(snapshot.state.systemNote || "");
 
   clearSceneAnimation();
   if (!animateText) {
-    dom.sceneText.innerHTML = scene.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("");
+    const headlineBlock = story.headline
+      ? `<p class="scene-headline">${escapeHtml(story.headline)}</p>`
+      : "";
+    dom.sceneText.innerHTML =
+      headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
     renderChoices();
     return;
   }
 
   const token = client.sceneRenderToken;
-  animateSceneText(scene, token);
+  animateStoryText(story, token);
 }
 
 function locationMap() {
@@ -617,6 +785,7 @@ function renderMapPanel() {
         style="left:${position.x}px; top:${position.y}px; width:${boardLayout.dimensions.width}px; min-height:${boardLayout.dimensions.height}px;"
       >
         <span class="hex-tile-body">
+          ${buildDevBadgeMarkup(location)}
           <span class="hex-tile-risk">${location.risk}</span>
           <span class="hex-tile-name">${location.name}</span>
           ${meta ? `<span class="hex-tile-meta">${meta}</span>` : ""}
@@ -642,6 +811,7 @@ function renderMapPanel() {
             <h3>${location.name}</h3>
             <span class="tag">${location.risk}</span>
           </div>
+          ${buildDevBadgeMarkup(location)}
           <p>${location.summary}</p>
           ${entry.isReachable ? "" : `<small class="tiny">${entry.reason || "이동 불가"}</small>`}
         </article>
@@ -655,6 +825,7 @@ function renderMapPanel() {
           <h3>${currentLocation.name}</h3>
           <span class="tag">${currentLocation.risk}</span>
         </div>
+        ${buildDevBadgeMarkup(currentLocation)}
         <p>${currentLocation.summary}</p>
       </article>
 
@@ -737,14 +908,16 @@ function renderInventoryPanel() {
       ${moneyCard}
       ${itemCards.map((item) => {
         const count = snapshot.state.inventory[item.id] || 0;
+        const isUsable = item.kind === "food" || item.kind === "drink" || item.kind === "medicine";
         return `
           <article class="info-card inventory-card">
             <div class="inventory-card-head">
               <h3>${item.name} ${count > 1 ? `x${count}` : ""}</h3>
               <div class="item-actions">
-                <button class="inline-action" data-use-item="${item.id}" type="button">사용</button>
+                ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">사용</button>` : ""}
               </div>
             </div>
+            ${buildDevBadgeMarkup(item)}
             <p>${item.description}</p>
           </article>
         `;
@@ -803,6 +976,7 @@ function renderQuestsPanel() {
             <h3>${quest.name}</h3>
             <span class="tag">${questStatusLabel(quest.status)}</span>
           </div>
+          ${buildDevBadgeMarkup(quest)}
           <p>${quest.summary}</p>
         </article>
       `).join("")}
@@ -855,6 +1029,77 @@ function renderPanel() {
   });
 }
 
+function llmStatusLabel(status) {
+  if (status === "success") {
+    return "성공";
+  }
+  if (status === "fallback") {
+    return "폴백";
+  }
+  return "오류";
+}
+
+function formatTraceTime(iso) {
+  if (!iso) {
+    return "";
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function renderLlmDebugPanel() {
+  if (!dom.llmDebugPanel || !dom.llmDebugList) {
+    return;
+  }
+
+  if (!DEV_OBJECT_BADGES) {
+    dom.llmDebugPanel.hidden = true;
+    dom.llmDebugList.innerHTML = "";
+    return;
+  }
+
+  const entries = client.snapshot?.devLlmTrace || [];
+  dom.llmDebugPanel.hidden = false;
+
+  if (!entries.length) {
+    dom.llmDebugList.innerHTML = `
+      <p class="llm-debug-empty">아직 기록된 LLM 요청이 없습니다. 프런티어 확장처럼 동적 지역이 생성되는 행동을 실행하면 여기서 바로 확인할 수 있습니다.</p>
+    `;
+    return;
+  }
+
+  dom.llmDebugList.innerHTML = entries.map((entry) => `
+    <article class="llm-debug-entry is-${escapeHtml(entry.status)}">
+      <div class="llm-debug-meta">
+        <span class="llm-debug-status is-${escapeHtml(entry.status)}">${llmStatusLabel(entry.status)}</span>
+        <span class="llm-debug-target">${escapeHtml(entry.scope)} / ${escapeHtml(entry.target)}</span>
+        <span class="llm-debug-model">${escapeHtml(entry.model)}</span>
+        <span class="llm-debug-time">${escapeHtml(formatTraceTime(entry.at))}</span>
+      </div>
+      <p class="llm-debug-message">${escapeHtml(entry.message)}</p>
+      ${entry.request ? `
+        <div class="llm-debug-block">
+          <strong>요청</strong>
+          <pre>${escapeHtml(entry.request)}</pre>
+        </div>
+      ` : ""}
+      ${entry.response ? `
+        <div class="llm-debug-block">
+          <strong>응답</strong>
+          <pre>${escapeHtml(entry.response)}</pre>
+        </div>
+      ` : ""}
+    </article>
+  `).join("");
+}
+
 function render(options = {}) {
   if (!client.snapshot) {
     return;
@@ -862,6 +1107,7 @@ function render(options = {}) {
   renderStatusBar();
   renderScene(options.animateScene !== false);
   renderPanel();
+  renderLlmDebugPanel();
   client.justCreatedGame = false;
 }
 
@@ -876,6 +1122,17 @@ async function submitAction(action) {
       method: "POST",
       body: action,
     });
+    if (needsFreshGame(snapshot)) {
+      await createNewGame();
+      render({
+        animateScene: shouldAnimateScene({
+          source: "newGame",
+          previousSnapshot: null,
+          nextSnapshot: client.snapshot,
+        }),
+      });
+      return;
+    }
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
     client.mapHint = "";
@@ -904,17 +1161,30 @@ async function backgroundSync() {
   }
   try {
     const snapshot = await api(`/api/games/${client.gameId}/state`);
+    if (needsFreshGame(snapshot)) {
+      await createNewGame();
+      render({
+        animateScene: shouldAnimateScene({
+          source: "newGame",
+          previousSnapshot: null,
+          nextSnapshot: client.snapshot,
+        }),
+      });
+      return;
+    }
     const previousSnapshot = client.snapshot;
-    const previousSceneId = currentSceneId(previousSnapshot);
+    const previousSurfaceId = storySurfaceId(previousSnapshot);
     const previousNote = previousSnapshot?.state?.systemNote;
     const effectiveSnapshot = shouldPreserveDisplayedScene(previousSnapshot, snapshot)
       ? preserveDisplayedSceneSnapshot(previousSnapshot, snapshot)
       : snapshot;
     client.snapshot = effectiveSnapshot;
     client.lastFetchedAt = Date.now();
-    const sceneChanged = previousSceneId !== currentSceneId(effectiveSnapshot);
+    const surfaceChanged = previousSurfaceId !== storySurfaceId(effectiveSnapshot);
     const noteChanged = previousNote !== effectiveSnapshot.state.systemNote;
-    if (sceneChanged || noteChanged) {
+    const actionsChanged =
+      availableActionsSignature(previousSnapshot) !== availableActionsSignature(effectiveSnapshot);
+    if (surfaceChanged || noteChanged || actionsChanged) {
       render({
         animateScene: shouldAnimateScene({
           source: "backgroundSync",
@@ -1009,5 +1279,3 @@ bootstrap().catch((error) => {
   dom.sceneText.innerHTML = `<p>서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>`;
   dom.panelContent.innerHTML = `<p class="empty-state">API 서버가 필요합니다.</p>`;
 });
-
-

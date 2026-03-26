@@ -19,15 +19,28 @@ export const ConditionSchema = z.discriminatedUnion("type", [
     amount: z.number().int().min(1).default(1),
   }),
   z.object({
+    type: z.literal("stock_money_gte"),
+    locationId: z.string(),
+    nodeId: z.string(),
+    amount: z.number().int().min(1).default(1),
+  }),
+  z.object({
     type: z.literal("stock_item_lt"),
     locationId: z.string(),
     nodeId: z.string(),
     itemId: z.string(),
     amount: z.number().int().min(1).default(1),
   }),
+  z.object({
+    type: z.literal("stock_money_lt"),
+    locationId: z.string(),
+    nodeId: z.string(),
+    amount: z.number().int().min(1).default(1),
+  }),
   z.object({ type: z.literal("stock_node_discovered"), nodeId: z.string() }),
   z.object({ type: z.literal("active_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("active_stock_node_not"), nodeId: z.string() }),
+  z.object({ type: z.literal("shelter_sleep_window") }),
 ]);
 
 export const EffectSchema = z.discriminatedUnion("type", [
@@ -45,12 +58,30 @@ export const EffectSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("discover_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("focus_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("clear_stock_node_focus") }),
+  z.object({ type: z.literal("advance_to_daybreak") }),
   z.object({
     type: z.literal("collect_stock_item"),
     locationId: z.string(),
     nodeId: z.string(),
     itemId: z.string(),
     amount: z.number().int().min(1).default(1),
+  }),
+  z.object({
+    type: z.literal("collect_stock_item_all"),
+    locationId: z.string(),
+    nodeId: z.string(),
+    itemId: z.string(),
+  }),
+  z.object({
+    type: z.literal("collect_stock_money"),
+    locationId: z.string(),
+    nodeId: z.string(),
+    amount: z.number().int().min(1).default(1),
+  }),
+  z.object({
+    type: z.literal("collect_stock_money_all"),
+    locationId: z.string(),
+    nodeId: z.string(),
   }),
 ]);
 

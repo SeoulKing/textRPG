@@ -77,6 +77,14 @@
         <button id="new-game-button" class="ghost-button" type="button">새 게임</button>
       </div>
     </footer>
+
+    <section id="llm-debug-panel" class="llm-debug-panel" hidden>
+      <div class="llm-debug-header">
+        <p>LLM 요청 로그</p>
+        <span>개발 환경에서만 보입니다. 최근 요청과 응답을 확인할 수 있습니다.</span>
+      </div>
+      <div id="llm-debug-list" class="llm-debug-list"></div>
+    </section>
   </div>
 
   <template id="choice-template">

@@ -1,5 +1,4 @@
 import type {
-  ActionChoice,
   ActionDefinition,
   ChoiceDefinition,
   ContentRegistry,
@@ -17,7 +16,9 @@ export function buildStoryChoiceFromChoice(choice: ChoiceDefinition): StoryChoic
     id: choice.id,
     label: choice.label,
     outcomeHint: choice.outcomeHint,
+    isAvailable: true,
     descriptionTag: choice.descriptionTag,
+    tags: choice.tags,
     conditions: choice.conditions,
     effects: choice.effects,
     riskHint: choice.riskHint,
@@ -28,13 +29,30 @@ export function buildStoryChoiceFromChoice(choice: ChoiceDefinition): StoryChoic
   };
 }
 
-export function buildActionChoiceFromDefinition(action: ActionDefinition): ActionChoice {
-  return {
-    id: action.id,
-    label: action.label,
-    outcomeHint: action.outcomeHint,
-    action: { type: "content_action", actionId: action.id },
-  };
+export function actionConditionsMet(action: ActionDefinition, state: GameState) {
+  return action.conditions.every((condition) => evaluateCondition(condition, state));
+}
+
+export function canPresentAction(action: ActionDefinition, state: GameState) {
+  return action.presentationMode === "always" || actionConditionsMet(action, state);
+}
+
+export function choiceConditionsMet(choice: ChoiceDefinition, state: GameState) {
+  return choice.conditions.every((condition) => evaluateCondition(condition, state));
+}
+
+export function canPresentChoice(choice: ChoiceDefinition, state: GameState) {
+  return choice.presentationMode === "always" || choiceConditionsMet(choice, state);
+}
+
+function sceneMatchesDetailFocus(scene: SceneDefinition, state: GameState) {
+  const focusConditions = scene.conditions.filter((condition) => condition.type === "active_stock_node");
+
+  if (!state.activeStockNodeId) {
+    return focusConditions.length === 0;
+  }
+
+  return focusConditions.some((condition) => condition.nodeId === state.activeStockNodeId);
 }
 
 export function resolveSceneDefinition(
@@ -44,7 +62,11 @@ export function resolveSceneDefinition(
 ): SceneDefinition {
   if (state.sceneId && registry.scenes[state.sceneId]) {
     const byId = registry.scenes[state.sceneId];
-    if (byId.locationId === locationId) {
+    if (
+      byId.locationId === locationId &&
+      sceneMatchesDetailFocus(byId, state) &&
+      byId.conditions.every((condition) => evaluateCondition(condition, state))
+    ) {
       return byId;
     }
   }
@@ -67,6 +89,7 @@ export function resolveNextSceneDefinition(
 
   const candidates = Object.values(registry.scenes)
     .filter((scene) => scene.locationId === locationId)
+    .filter((scene) => sceneMatchesDetailFocus(scene, state))
     .filter((scene) => scene.conditions.every((condition) => evaluateCondition(condition, state)));
 
   const matched = candidates[0];
@@ -79,13 +102,11 @@ export function resolveNextSceneDefinition(
 export function resolveAvailableActions(
   state: GameState,
   location: LocationDefinition,
-  registry: ContentRegistry = worldRegistry,
+  _registry: ContentRegistry = worldRegistry,
 ): ActionDefinition[] {
-  return location.availableActionIds
-    .map((actionId) => registry.actions[actionId])
-    .filter(Boolean)
+  return (location.interactionChoices ?? [])
     .filter((action) => action.locationIds.length === 0 || action.locationIds.includes(location.id))
-    .filter((action) => action.conditions.every((condition) => evaluateCondition(condition, state)));
+    .filter((action) => canPresentAction(action, state));
 }
 
 export function resolveSceneChoices(
@@ -97,7 +118,7 @@ export function resolveSceneChoices(
     .map((choiceId) => registry.choices[choiceId])
     .filter(Boolean)
     .filter((choice) => !choice.hidden)
-    .filter((choice) => choice.conditions.every((condition) => evaluateCondition(condition, state)));
+    .filter((choice) => canPresentChoice(choice, state));
 }
 
 export function resolveTriggeredEvents(

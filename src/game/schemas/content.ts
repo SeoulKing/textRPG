@@ -20,6 +20,7 @@ export const StockNodeDefinitionSchema = z.object({
   id: z.string(),
   name: z.string(),
   summary: z.string(),
+  money: z.number().int().nonnegative().default(0),
   items: z.array(StockNodeItemDefinitionSchema).default([]),
 });
 
@@ -34,7 +35,8 @@ export const LocationDefinitionSchema = z.object({
   obtainableItemIds: z.array(z.string()),
   residentIds: z.array(z.string()),
   neighbors: z.array(z.string()),
-  availableActionIds: z.array(z.string()).default([]),
+  /** 이 장소에서 노출되는 상호작용(라벨·조건·효과는 각 객체에 정의). */
+  interactionChoices: z.array(ActionDefinitionSchema).default([]),
   eventIds: z.array(z.string()).default([]),
   links: z.record(z.string(), LinkDefinitionSchema),
   stockNodes: z.array(StockNodeDefinitionSchema).default([]),
