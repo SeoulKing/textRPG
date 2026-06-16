@@ -14,11 +14,13 @@ export const DevLlmTraceEntrySchema = z.object({
   at: z.string(),
   scope: z.enum(["planner", "card"]),
   target: z.string(),
+  stage: z.enum(["request", "raw_draft", "draft_validation", "compiler_summary", "compiled_result", "fallback", "error"]).optional(),
   model: z.string(),
   status: z.enum(["success", "fallback", "error"]),
   request: z.string(),
   response: z.string(),
   message: z.string(),
+  errorReason: z.string().optional(),
 });
 
 export const WorldInstanceSchema = z.object({
@@ -66,6 +68,19 @@ export const MapEntrySchema = z.object({
   reason: z.string(),
 });
 
+export const SurvivalGoalSchema = z.object({
+  targetDay: z.number().int().positive(),
+  daysRemaining: z.number().int().nonnegative(),
+  signalReady: z.boolean(),
+  signalParts: z.array(
+    z.object({
+      itemId: z.string(),
+      name: z.string(),
+      owned: z.boolean(),
+    })
+  ),
+});
+
 export const StateSnapshotSchema = z.object({
   gameId: z.string(),
   state: GameStateSchema,
@@ -94,6 +109,7 @@ export const StateSnapshotSchema = z.object({
   mapEntries: z.array(MapEntrySchema),
   latestEvent: EventCardSchema.nullable(),
   devLlmTrace: z.array(DevLlmTraceEntrySchema).default([]),
+  survivalGoal: SurvivalGoalSchema,
 });
 
 export type WorldInstance = z.infer<typeof WorldInstanceSchema>;
@@ -101,5 +117,6 @@ export type GameSession = z.infer<typeof GameSessionSchema>;
 export type TemplateStore = z.infer<typeof TemplateStoreSchema>;
 export type StoryMaterials = z.infer<typeof StoryMaterialsSchema>;
 export type MapEntry = z.infer<typeof MapEntrySchema>;
+export type SurvivalGoal = z.infer<typeof SurvivalGoalSchema>;
 export type StateSnapshot = z.infer<typeof StateSnapshotSchema>;
 export type DevLlmTraceEntry = z.infer<typeof DevLlmTraceEntrySchema>;

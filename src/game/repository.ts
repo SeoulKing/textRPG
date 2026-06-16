@@ -78,7 +78,7 @@ function normalizeNarrativeState(raw: unknown) {
   if (parsed.success) {
     return parsed.data;
   }
-  return NarrativeStateSchema.parse({ nextBeatSequence: 1, history: [], pregenerated: {} });
+  return NarrativeStateSchema.parse({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} });
 }
 
 function buildValidContentIds(dynamicContent: GameState["dynamicContent"]): ValidContentIds {
@@ -438,7 +438,9 @@ export class FileGameRepository implements GameRepository {
   private readonly generationLogPath: string;
 
   constructor(rootDir: string) {
-    this.runtimeDir = path.join(rootDir, ".runtime");
+    this.runtimeDir = process.env.RUNTIME_DIR
+      ? path.resolve(rootDir, process.env.RUNTIME_DIR)
+      : path.join(rootDir, ".runtime");
     this.gamesDir = path.join(this.runtimeDir, "games");
     this.templatesPath = path.join(this.runtimeDir, "templates.json");
     this.actionLogPath = path.join(this.runtimeDir, "action-log.jsonl");

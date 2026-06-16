@@ -38,6 +38,8 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `npm run content:validate`
   direct runtime probe through `.server-dist` confirmed salvage -> crafting -> rain bucket reset -> cooking -> improved sleep flow.
 - API smoke test against the restarted local server passed:
+- Added compatibility for stale clients that still POST `{ action: {...} }` to `/api/games/:gameId/actions`; the server now unwraps both old and current action payload shapes.
+- Added global `Cache-Control: no-store` headers in `src/server.ts` so browsers stop hanging onto stale `index.html`, `app-api.js`, and API snapshots during active development.
   after convenience survey, available actions included `go_to_convenience_shelf`, `go_to_convenience_register`, and `go_to_convenience_supply_pile`.
 - Playwright-based UI verification is still blocked because `node_modules/playwright` is not present in this workspace.
 - Follow-up bug fix:
@@ -103,6 +105,41 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
 - Runtime verification confirmed:
   one click on `collect_canned_food_from_shelf` now yields `cannedFood: 3` with shelf stock `3 -> 0`,
   and `collect_scrap_from_kitchen_heap` still yields `scrapMetal: 2` with heap stock `2 -> 0`.
+- Structure stabilization pass:
+  split the LLM world planner into draft generation (`gemini-world-planner.ts`, `template-world-planner.ts`), fallback drafts, validation/guardrails, and compiler orchestration.
+- The official dynamic narrative path is now:
+  `NarrativeAnchorDraft / NarrativeSceneDraft -> narrative-compiler -> validated DynamicWorldRegistry patch`.
+- Removed legacy planner outputs from the public `WorldPlanner` interface:
+  no more `generateRegionPackage()` / `generateStoryBeat()` calls from `GameService`.
+- Removed legacy `GameAction` request variants:
+  only `travel`, `use_item`, `content_action`, and `content_choice` remain in `GameActionSchema`; stale `{ action: ... }` API wrapper compatibility remains in `src/server.ts`.
+- Bumped server/client save version to v12 and moved the active client storage key to `ruined-seoul-stage1-game-id-v12`, with v11 treated as legacy client storage.
+- Rewrote `OBJECT_MODEL.md` around the current real structure:
+  narrative generation flow, static content flow, state mutation flow, and client render flow.
+- LLM trace now separates `request`, `raw_draft`, `draft_validation`, `compiler_summary`, `compiled_result`, `fallback`, and `error`, including explicit fallback/error reasons.
+- Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  API smoke: new game -> prologue -> quest accept -> convenience -> frontier anchor generation -> continuation scene generation.
+  Regression smoke: shelter crafting button remains visible, convenience canned food collects all at once, register cash collects all at once.
+- Gemini live generation was not observed in smoke because the test run went through the safe template fallback path; the trace clearly showed request/error/fallback/compiler stages.
+- Cleaned `dynamic-location-naming.ts` so duplicate generated location qualifiers use readable Korean labels instead of corrupted text.
+- Re-ran final verification after the naming cleanup:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  API smoke for frontier anchor + continuation passed again.
+- Narrative director pass:
+  LLM drafts now support richer director fields: `prose`, `tone`, `tension`, `dramaticQuestion`, `worldFacts`, `unresolvedQuestions`, `directorNotes`, and choice-level `storyPromise` / `risk`.
+- The compiler now uses `prose` as the primary scene text and carries director memory through `NarrativeAnchorMemory`, so later continuation prompts can inherit facts, unresolved questions, tone, and tension.
+- Gemini prompts were rewritten to treat the model as a TRPG game master/story director rather than a location-list generator.
+- Template fallback scenes were expanded into longer, more novel-like prose so generated play does not collapse into very short placeholder text when Gemini fails.
+- Verification after the narrative director pass:
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `npm.cmd run content:validate`
+  API smoke confirmed frontier anchor generation, continuation generation, director memory persistence, and continuation prose length over 300 characters.
 - Convenience narrative pass:
   rewrote `src/game/data/regions/convenience/choices.ts` and `src/game/data/regions/convenience/scenes.ts` so the text now matches the take-all behavior.
 - The shelf scenes now explicitly tell the player how many cans are in front of them:
@@ -277,3 +314,17 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   and exposes continuation choices like `continue` / `return` instead of creating another map tile.
 - Dev trace now distinguishes planner calls as `region:*` and `beat:*`.
 - Playwright UI automation is still blocked in this workspace because `node_modules/playwright` is not installed.
+- 10일 구조 대기 생존 MVP 전환 작업 진행:
+  `advance_time` 효과와 행동 시간 진행을 추가했고, 10일차 구조 판정은 `rescue_signal_ready`를 기준으로 처리하도록 만들었다.
+- 새 무전기 부품 아이템을 추가했다:
+  `radioBattery`, `radioAntenna`, `radioTransmitter`.
+- 임시 거처 제작 메뉴에 `assemble_rescue_radio`를 추가해 세 부품 + 고철 2 + 천 조각 1로 구조 신호를 준비할 수 있게 했다.
+- 병원, 지하철역, 검문소 region module을 추가하고 정적 registry에 연결했다.
+- 사용자의 자유도 피드백을 반영해 병원/지하철역/검문소는 날짜나 플래그로 막지 않고, 안내 선택지와 일차별 로그로만 흐름을 잡도록 수정했다.
+- 하단 목표바 시안은 사용자가 원하지 않아 제거했다. 구조 목표 안내는 퀘스트, 로그, 지역 단서, 제작 메뉴 문구 중심으로 유지한다.
+- README, `.env.example`, `OBJECT_MODEL.md`, `WORLD_DESIGN.md`를 업데이트해 LLM 월드 플래너가 기본이 아니라 명시적 opt-in임을 기록했다.
+- 검증 결과:
+  `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build` 통과.
+  API 스모크에서 병원 배터리, 지하철역 안테나, 검문소 송신기를 모아 임시 거처에서 구조 신호 조립까지 성공했다.
+  10일차까지 넘겼을 때 `stageClear=true`와 구조 성공 `systemNote`가 유지되는 것을 확인했다.
+  브라우저 새로고침 확인 결과 목표바는 없고, 이동 지도에 임시 거처/편의점 폐허/급식소/검문소/지하철역/작은 병원이 모두 표시된다.

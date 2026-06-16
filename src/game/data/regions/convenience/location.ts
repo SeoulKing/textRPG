@@ -20,21 +20,26 @@ export const convenienceChoices: ActionDefinition[] = [
         message:
           "당신은 무너진 가게 안쪽에서 아직 통조림이 남은 진열대, 서랍이 반쯤 열린 계산대, 그리고 창고 쪽에 쌓인 자재 더미까지 함께 찾아낸다.",
       },
+      { type: "advance_time", phases: 1 },
     ],
     tags: ["survey"],
   }),
   interactionFor("convenience", {
     id: "push_beyond_convenience_ruins",
-    label: "골목 안쪽으로 나아가기",
+    label: "병원 쪽 길을 확인하기",
     type: "explore",
-    outcomeHint: "편의점 폐허 너머의 막힌 골목을 더 밀고 들어가며, 아직 닿지 않은 구역을 연다.",
+    outcomeHint: "편의점 뒤편 골목을 살펴 약품 냄새가 남은 작은 병원 쪽 단서를 확인한다.",
+    conditions: [{ type: "flag_not", flag: "hospital_lead_checked" }],
     effects: [
+      { type: "set_flag", flag: "hospital_lead_checked" },
+      { type: "set_flag", flag: "known_hospital" },
       {
         type: "log",
-        message: "편의점 폐허를 지나 더 깊은 골목으로 발을 옮긴다. 익숙한 생활 구역 바깥의 기척이 가까워진다.",
+        message: "당신은 편의점 뒤편 골목 끝에서 깨진 간판이 매달린 작은 병원 입구를 찾아낸다. 약품을 찾을 희망이 생겼다.",
       },
+      { type: "advance_time", phases: 1 },
     ],
-    tags: ["frontier", "explore"],
+    tags: ["hint", "explore"],
     riskHint: "medium",
   }),
 ];
@@ -49,11 +54,14 @@ export const convenienceLocation: LocationDefinition = {
   traits: ["food", "water", "cash", "salvage"],
   obtainableItemIds: ["emergencySnack", "cannedFood", "rawRice", "vegetables", "waterBottle", "woodPlank", "scrapMetal", "clothScrap"],
   residentIds: [],
-  neighbors: ["shelter"],
+  neighbors: ["shelter", "hospital"],
   interactionChoices: convenienceChoices,
   eventIds: [],
   links: {
     shelter: { note: "무심한 발걸음처럼 가장한 채 거처 쪽으로 되돌아간다." },
+    hospital: {
+      note: "편의점 뒤편 골목을 지나 약품 냄새가 희미하게 남은 병원 쪽으로 간다.",
+    },
   },
   stockNodes: [
     {

@@ -70,6 +70,7 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
       "craft_shelter_brazier",
       "craft_shelter_rain_bucket",
       "cook_at_shelter",
+      "assemble_rescue_radio",
       "leave_shelter_crafting",
     ],
     conditions: [

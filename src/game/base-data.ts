@@ -3,11 +3,13 @@
  */
 
 export const PHASES = ["morning", "late morning", "afternoon", "evening", "night"] as const;
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 12;
 export const REAL_DAY_MS = 15 * 60 * 1000;
 export const PHASE_DURATION_MS = REAL_DAY_MS / PHASES.length;
-export const AUTO_FULLNESS_TICK_MS = REAL_DAY_MS / 4;
+export const AUTO_FULLNESS_TICK_MS = PHASE_DURATION_MS;
 export const STARVATION_TICK_MS = REAL_DAY_MS / 2;
+export const TARGET_RESCUE_DAY = 10;
+export const SIGNAL_PART_ITEM_IDS = ["radioBattery", "radioAntenna", "radioTransmitter"] as const;
 
 export const baseSkills = {
   keenEye: {

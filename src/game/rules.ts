@@ -5,6 +5,7 @@ import {
   REAL_DAY_MS,
   SAVE_VERSION,
   STARVATION_TICK_MS,
+  TARGET_RESCUE_DAY,
 } from "./base-data";
 import { actionConditionsMet, choiceConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
 import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLinkedLocationIds, getRuntimeLocationDefinition } from "./runtime-registry";
@@ -115,6 +116,38 @@ function triggerGameOver(state: GameState, reason: string) {
   addLog(state, `생존 실패: ${reason}`);
 }
 
+function triggerStageClear(state: GameState) {
+  if (state.isGameOver || state.stageClear) {
+    return;
+  }
+  state.stageClear = true;
+  state.systemNote = "구조 신호가 닿았다. 멀리서 헬기 소리가 서울의 먼지 낀 하늘을 갈라 온다.";
+  addLog(state, "10일차 아침, 조립한 무전기가 구조대에 좌표를 보냈다. 당신은 구조 신호가 닿았다는 응답을 듣는다.");
+}
+
+function evaluateSurvivalOutcome(state: GameState) {
+  if (state.isGameOver || state.stageClear) {
+    return;
+  }
+
+  if (state.stats.mind <= 0) {
+    triggerGameOver(state, "도시보다 먼저 정신이 무너졌다.");
+    return;
+  }
+  if (state.stats.hp <= 0) {
+    triggerGameOver(state, "몸이 더는 생존을 버티지 못했다.");
+    return;
+  }
+
+  if (state.day >= TARGET_RESCUE_DAY) {
+    if (state.flags.rescue_signal_ready) {
+      triggerStageClear(state);
+      return;
+    }
+    triggerGameOver(state, "10일차 구조 신호를 보낼 장비가 완성되지 않아 구조 기회를 놓쳤다.");
+  }
+}
+
 function formatSignedDelta(value: number, label: string) {
   const sign = value > 0 ? "+" : "-";
   return `${sign} ${Math.abs(value)} ${label}`;
@@ -211,6 +244,10 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
 }
 
 export function applySystemNote(previousState: GameState, nextState: GameState, fallback = "") {
+  if ((nextState.isGameOver || nextState.stageClear) && nextState.systemNote) {
+    return;
+  }
+
   const nextNote = summarizeSystemNote(previousState, nextState, fallback);
   if (nextNote) {
     nextState.systemNote = nextNote;
@@ -330,6 +367,40 @@ function applyPlannedWorldEvolution(state: GameState) {
   };
 }
 
+function applySurvivalMilestone(state: GameState) {
+  if (state.day === 2 && !state.flags.day2_refugee_crowd) {
+    state.flags.day2_refugee_crowd = true;
+    addLog(state, "피난민이 눈에 띄게 늘었다. 급식소의 줄은 더 길어졌고, 따뜻한 식사의 값도 조금 올랐다.");
+    return;
+  }
+
+  if (state.day === 4 && !state.flags.day4_hospital_hint) {
+    state.flags.day4_hospital_hint = true;
+    state.flags.known_hospital = true;
+    addLog(state, "작은 병원에 아직 약품과 무전기 배터리가 남아 있다는 소문이 돈다.");
+    return;
+  }
+
+  if (state.day === 6 && !state.flags.day6_subway_hint) {
+    state.flags.day6_subway_hint = true;
+    state.flags.known_subway = true;
+    addLog(state, "지하철역 신호함에서 안테나로 쓸 만한 부품을 봤다는 이야기가 들린다.");
+    return;
+  }
+
+  if (state.day === 8 && !state.flags.day8_checkpoint_hint) {
+    state.flags.day8_checkpoint_hint = true;
+    state.flags.known_checkpoint = true;
+    addLog(state, "검문소 쪽에서 구조대 무전 주파수와 송신기 부품에 관한 소문이 퍼진다.");
+    return;
+  }
+
+  if (state.day === TARGET_RESCUE_DAY && !state.flags.day10_rescue_judgement) {
+    state.flags.day10_rescue_judgement = true;
+    addLog(state, "10일차 아침이 밝았다. 구조대가 근처를 훑고 지나가기 전에 신호를 보낼 수 있어야 한다.");
+  }
+}
+
 function applyDayTransition(state: GameState, previousDay: number) {
   if (state.day === previousDay) {
     return;
@@ -342,24 +413,11 @@ function applyDayTransition(state: GameState, previousDay: number) {
   state.flags[`day${state.day}_waterSecured`] = false;
   state.lastSleepFullness = state.stats.fullness;
   applyPlannedWorldEvolution(state);
+  applySurvivalMilestone(state);
   addLog(state, `${state.day}일차가 시작되었다.`);
 }
 
-export function syncClock(state: GameState, now = Date.now()) {
-  if (state.isGameOver || state.stageClear) {
-    state.lastRealTimestamp = now;
-    return;
-  }
-
-  const elapsed = Math.max(0, now - state.lastRealTimestamp);
-  if (elapsed === 0) {
-    return;
-  }
-
-  state.lastRealTimestamp = now;
-  const previousDay = state.day;
-  state.worldElapsedMs += elapsed;
-
+function applySurvivalPressureForElapsed(state: GameState, elapsed: number) {
   state.autoFullnessElapsedMs += elapsed;
   while (state.autoFullnessElapsedMs >= AUTO_FULLNESS_TICK_MS) {
     state.autoFullnessElapsedMs -= AUTO_FULLNESS_TICK_MS;
@@ -380,17 +438,42 @@ export function syncClock(state: GameState, now = Date.now()) {
   } else {
     state.starvationElapsedMs = 0;
   }
+}
+
+function advanceGameTime(state: GameState, elapsed: number) {
+  if (state.isGameOver || state.stageClear) {
+    return;
+  }
+
+  const safeElapsed = Math.max(0, elapsed);
+  if (safeElapsed === 0) {
+    return;
+  }
+
+  const previousDay = state.day;
+  state.worldElapsedMs += safeElapsed;
+  applySurvivalPressureForElapsed(state, safeElapsed);
 
   setClockFromElapsed(state);
   applyDayTransition(state, previousDay);
   refreshLocationKnowledge(state);
+  evaluateSurvivalOutcome(state);
+}
 
-  if (state.stats.mind <= 0) {
-    triggerGameOver(state, "도시보다 먼저 정신이 무너졌다.");
+function advanceByPhases(state: GameState, phases: number) {
+  if (state.phaseIndex >= PHASES.length - 1) {
+    adjustStat(state, "hp", -1);
+    adjustStat(state, "mind", -1);
+    addLog(state, "밤이 깊은 뒤에도 움직인 탓에 몸과 마음이 동시에 깎여 나간다.");
   }
-  if (state.stats.hp <= 0) {
-    triggerGameOver(state, "몸이 더는 생존을 버티지 못했다.");
-  }
+  advanceGameTime(state, PHASE_DURATION_MS * Math.max(1, phases));
+}
+
+export function syncClock(state: GameState, now = Date.now()) {
+  state.lastRealTimestamp = now;
+  setClockFromElapsed(state);
+  refreshLocationKnowledge(state);
+  evaluateSurvivalOutcome(state);
 }
 
 export function createInitialGameState(): GameState {
@@ -447,6 +530,7 @@ export function createInitialGameState(): GameState {
       nextBeatSequence: 1,
       history: [],
       pregenerated: {},
+      anchors: {},
     },
     flags: {
       visited_shelter: true,
@@ -536,11 +620,8 @@ function consumeCurrentSceneIntro(state: GameState) {
 }
 
 function jumpToNextDaybreak(state: GameState) {
-  const previousDay = state.day;
-  state.worldElapsedMs = Math.floor(state.worldElapsedMs / REAL_DAY_MS) * REAL_DAY_MS + REAL_DAY_MS;
-  setClockFromElapsed(state);
-  applyDayTransition(state, previousDay);
-  refreshLocationKnowledge(state);
+  const nextDaybreakMs = Math.floor(state.worldElapsedMs / REAL_DAY_MS) * REAL_DAY_MS + REAL_DAY_MS;
+  advanceGameTime(state, Math.max(0, nextDaybreakMs - state.worldElapsedMs));
 }
 
 type ExecutionResult = {
@@ -552,6 +633,10 @@ function applyDefinitionEffects(state: GameState, effects: ActionDefinition["eff
   effects.forEach((effect) => {
     if (effect.type === "advance_to_daybreak") {
       jumpToNextDaybreak(state);
+      return;
+    }
+    if (effect.type === "advance_time") {
+      advanceByPhases(state, effect.phases);
       return;
     }
     applyEffect(effect, state);
@@ -684,6 +769,7 @@ export function performAction(state: GameState, action: GameAction) {
       refreshLocationKnowledge(state);
       fallbackNote = `이동: ${String(registry.locations[action.targetId]?.name ?? action.targetId)}`;
       addLog(state, `${String(registry.locations[action.targetId]?.name ?? action.targetId)}(으)로 움직였다.`);
+      advanceByPhases(state, 1);
       break;
     }
     case "use_item": {
@@ -705,26 +791,6 @@ export function performAction(state: GameState, action: GameAction) {
         throw new Error(`알 수 없는 선택지 '${action.choiceId}'이다.`);
       }
       ({ preferredSceneId, fallbackNote } = executeSceneChoiceDefinition(state, definition));
-      break;
-    }
-    case "rest": {
-      const definition = registry.actions.rest_light_at_shelter;
-      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
-      break;
-    }
-    case "cook": {
-      const definition = registry.actions.cook_at_shelter;
-      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
-      break;
-    }
-    case "buy_meal": {
-      const definition = registry.actions.buy_meal_at_kitchen;
-      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
-      break;
-    }
-    case "generate_event": {
-      consumeCurrentSceneIntro(state);
-      fallbackNote = "이야기를 이어간다.";
       break;
     }
     default: {

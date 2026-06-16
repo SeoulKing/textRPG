@@ -55,6 +55,7 @@ export const EffectSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("complete_quest"), questId: z.string() }),
   z.object({ type: z.literal("log"), message: z.string() }),
   z.object({ type: z.literal("set_scene"), sceneId: z.string() }),
+  z.object({ type: z.literal("advance_time"), phases: z.number().int().min(1).max(5).default(1) }),
   z.object({ type: z.literal("discover_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("focus_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("clear_stock_node_focus") }),

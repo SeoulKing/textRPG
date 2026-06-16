@@ -50,7 +50,7 @@ export const GameStateSchema = z.object({
     tomorrow: { day: 2, evolutions: [], notes: [] },
   }),
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
-  narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {} }),
+  narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),
   lastSleepFullness: z.number().int().min(0).max(10),

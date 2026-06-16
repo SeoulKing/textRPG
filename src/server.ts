@@ -20,10 +20,21 @@ const repository: GameRepository = process.env.DATABASE_URL
   ? new PostgresGameRepository(process.env.DATABASE_URL, webRoot)
   : new FileGameRepository(webRoot);
 const gameService = new GameService(repository);
+const ActionRequestSchema = z.union([
+  GameActionSchema,
+  z.object({
+    action: GameActionSchema,
+  }).transform((value) => value.action),
+]);
 
 async function bootstrap() {
   validateContent();
   await repository.init();
+
+  app.addHook("onSend", async (_request, reply, payload) => {
+    reply.header("Cache-Control", "no-store");
+    return payload;
+  });
 
   await app.register(cors, {
     origin: true,
@@ -80,7 +91,7 @@ async function bootstrap() {
     Params: { gameId: string };
     Body: unknown;
   }>("/api/games/:gameId/actions", async (request, reply) => {
-    const parsed = GameActionSchema.safeParse(request.body);
+    const parsed = ActionRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       reply.code(400);
       return {

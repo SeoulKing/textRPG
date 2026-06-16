@@ -26,6 +26,7 @@ export const kitchenChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "scrapMetal" }),
       { type: "log", message: "당신은 덜 녹슨 금속 부품을 한데 그러모아 조심스럽게 챙긴다." },
+      { type: "advance_time", phases: 1 },
     ],
     riskHint: "low",
   }),
@@ -40,6 +41,7 @@ export const kitchenChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "kitchen", nodeId: "kitchen_scrap_heap", itemId: "clothScrap" }),
       { type: "log", message: "당신은 아직 질긴 천 조각만 골라 접어 품속에 넣는다." },
+      { type: "advance_time", phases: 1 },
     ],
     riskHint: "low",
   }),

@@ -11,6 +11,7 @@ export const shelterChoices: ActionDefinition[] = [
       { type: "change_stat", stat: "hp", value: 1 },
       { type: "change_stat", stat: "mind", value: 1 },
       { type: "log", message: "당신은 천막 구석에 몸을 기대고 잠시 숨을 고른다. 완전히 편하진 않지만 몸이 조금은 가벼워진다." },
+      { type: "advance_time", phases: 1 },
     ],
     tags: ["recovery"],
     riskHint: "low",
@@ -67,6 +68,7 @@ export const shelterChoices: ActionDefinition[] = [
         type: "log",
         message: "당신은 천막 가장자리에 매달아 둔 물받이에 고인 빗물을 병에 조심스럽게 옮겨 담는다.",
       },
+      { type: "advance_time", phases: 1 },
     ],
     tags: ["water", "resource"],
     riskHint: "low",
@@ -81,21 +83,26 @@ export const shelterLocation: LocationDefinition = {
   summary: "지친 생존자들이 잠시 숨을 고르고, 오늘 밤을 버틸 방법을 궁리하는 허술한 천막 거처다.",
   tags: ["hub", "safe", "rest"],
   traits: ["rest", "crafting", "cooking"],
-  obtainableItemIds: ["emergencySnack", "waterBottle", "hotMeal", "rawRice", "vegetables", "woodPlank", "scrapMetal", "clothScrap"],
+  obtainableItemIds: ["emergencySnack", "waterBottle", "hotMeal", "rawRice", "vegetables", "woodPlank", "scrapMetal", "clothScrap", "radioBattery", "radioAntenna", "radioTransmitter"],
   residentIds: [],
-  neighbors: ["convenience", "kitchen"],
+  neighbors: ["convenience", "kitchen", "hospital", "subway", "checkpoint"],
   interactionChoices: shelterChoices,
   eventIds: [],
   links: {
     convenience: {
       note: "무너진 보도와 깨진 유리 조각을 밟으며 편의점 폐허 쪽으로 간다.",
-      requiredFlag: "opening_seen",
-      blockedReason: "먼저 마음을 다잡고 오늘을 버틸 이유부터 정해야 한다.",
     },
     kitchen: {
       note: "국물 냄새와 줄 선 사람들의 소리가 새어 나오는 급식소 쪽으로 향한다.",
-      requiredFlag: "opening_seen",
-      blockedReason: "먼저 오늘을 어떻게 버틸지 마음속으로라도 정리해야 한다.",
+    },
+    hospital: {
+      note: "약품 냄새가 희미하게 남은 작은 병원 쪽으로 조심스럽게 향한다.",
+    },
+    subway: {
+      note: "전기가 끊긴 지하철역 입구 쪽으로 내려간다.",
+    },
+    checkpoint: {
+      note: "구조대 무전 소문이 들린 검문소 쪽으로 향한다.",
     },
   },
   stockNodes: [],

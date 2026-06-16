@@ -104,11 +104,13 @@ export async function generateGeminiJson<T>(
         appendDevLlmTraceForGame(options.trace.gameId, {
           scope: options.trace.scope,
           target: options.trace.target,
+          stage: "request",
           model,
           status: "error",
           request: traceRequest,
           response: body,
           message,
+          errorReason: message,
         });
         traceLogged = true;
       }
@@ -123,6 +125,7 @@ export async function generateGeminiJson<T>(
         appendDevLlmTraceForGame(options.trace.gameId, {
           scope: options.trace.scope,
           target: options.trace.target,
+          stage: "request",
           model,
           status: "success",
           request: traceRequest,
@@ -136,26 +139,30 @@ export async function generateGeminiJson<T>(
         appendDevLlmTraceForGame(options.trace.gameId, {
           scope: options.trace.scope,
           target: options.trace.target,
+          stage: "error",
           model,
           status: "error",
           request: traceRequest,
           response: rawText,
           message: error instanceof Error ? error.message : "Failed to parse Gemini JSON response.",
+          errorReason: error instanceof Error ? error.message : "Failed to parse Gemini JSON response.",
         });
       }
       throw error;
     }
   } catch (error) {
     if (options.trace && !traceLogged && !(error instanceof SyntaxError)) {
-      appendDevLlmTraceForGame(options.trace.gameId, {
-        scope: options.trace.scope,
-        target: options.trace.target,
-        model,
-        status: "error",
-        request: traceRequest,
-        response: "",
-        message: error instanceof Error ? error.message : "Gemini request failed.",
-      });
+        appendDevLlmTraceForGame(options.trace.gameId, {
+          scope: options.trace.scope,
+          target: options.trace.target,
+          stage: "error",
+          model,
+          status: "error",
+          request: traceRequest,
+          response: "",
+          message: error instanceof Error ? error.message : "Gemini request failed.",
+          errorReason: error instanceof Error ? error.message : "Gemini request failed.",
+        });
     }
     throw error;
   }

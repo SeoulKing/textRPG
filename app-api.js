@@ -1,7 +1,9 @@
-﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id-v9";
-const ACTIVE_STORAGE_KEY = "ruined-seoul-stage1-game-id-v10";
+﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id-v12";
+const ACTIVE_STORAGE_KEY = "ruined-seoul-stage1-game-id-v12";
 const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id",
+  "ruined-seoul-stage1-game-id-v11",
+  "ruined-seoul-stage1-game-id-v10",
   "ruined-seoul-stage1-game-id-v9",
   "ruined-seoul-stage1-game-id-v8",
   "ruined-seoul-stage1-game-id-v7",
@@ -10,9 +12,8 @@ const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const CLIENT_SAVE_VERSION = 10;
+const CLIENT_SAVE_VERSION = 12;
 const HEX_RATIO = Math.sqrt(3) / 2;
-const DEV_OBJECT_BADGES = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
 
 const HEX_BOARD_TEMPLATE = [
   { slotId: "northwest", col: 0, row: 0, locationId: null },
@@ -21,9 +22,9 @@ const HEX_BOARD_TEMPLATE = [
   { slotId: "convenience", col: 0, row: 1, locationId: "convenience" },
   { slotId: "alley", col: 1, row: 1, locationId: null },
   { slotId: "kitchen", col: 2, row: 1, locationId: "kitchen" },
-  { slotId: "control", col: 3, row: 1, locationId: null },
-  { slotId: "subway", col: 0, row: 2, locationId: null },
-  { slotId: "hospital", col: 1, row: 2, locationId: null },
+  { slotId: "control", col: 3, row: 1, locationId: "checkpoint" },
+  { slotId: "subway", col: 0, row: 2, locationId: "subway" },
+  { slotId: "hospital", col: 1, row: 2, locationId: "hospital" },
   { slotId: "mart", col: 2, row: 2, locationId: null },
   { slotId: "riverside", col: 3, row: 2, locationId: null },
 ];
@@ -150,7 +151,6 @@ const dom = {
   sceneArt: document.querySelector("#scene-art"),
   sceneLocationBadge: document.querySelector("#scene-location-badge"),
   sceneRiskBadge: document.querySelector("#scene-risk-badge"),
-  sceneDebugBadge: document.querySelector("#scene-debug-badge"),
   sceneText: document.querySelector("#scene-text"),
   systemNote: document.querySelector("#system-note"),
   choices: document.querySelector("#choices"),
@@ -159,8 +159,6 @@ const dom = {
   panelTitle: document.querySelector("#panel-title"),
   panelSubtitle: document.querySelector("#panel-subtitle"),
   panelContent: document.querySelector("#panel-content"),
-  llmDebugPanel: document.querySelector("#llm-debug-panel"),
-  llmDebugList: document.querySelector("#llm-debug-list"),
   dockButtons: Array.from(document.querySelectorAll(".dock-button")),
   newGameButton: document.querySelector("#new-game-button"),
 };
@@ -191,55 +189,12 @@ function currentLocationCard() {
   return client.snapshot?.visibleLocations.find((entry) => entry.id === locationId) || null;
 }
 
-function isDynamicId(id) {
-  return String(id || "").startsWith("dyn_");
-}
-
-function buildDevBadgeText({ id, source, packageTraits = [] }) {
-  if (!DEV_OBJECT_BADGES) {
-    return "";
-  }
-
-  const parts = [];
-  if (id) {
-    parts.push(isDynamicId(id) ? "dynamic" : "seed");
-  }
-  if (packageTraits.includes("planner:llm")) {
-    parts.push("llm-package");
-  } else if (packageTraits.includes("planner:template")) {
-    parts.push("template-package");
-  }
-  if (source) {
-    parts.push(source);
-  }
-  return parts.join(" / ");
-}
-
-function buildDevBadgeMarkup(entry, fallback = {}) {
-  const badgeText = buildDevBadgeText({
-    id: entry?.id || fallback.id || entry?.locationId || fallback.locationId || "",
-    source: entry?.source || fallback.source || "",
-    packageTraits: [
-      ...(Array.isArray(entry?.traits) ? entry.traits : []),
-      ...(Array.isArray(entry?.tags) ? entry.tags : []),
-      ...(Array.isArray(fallback?.traits) ? fallback.traits : []),
-      ...(Array.isArray(fallback?.tags) ? fallback.tags : []),
-    ],
-  });
-  if (!badgeText) {
-    return "";
-  }
-
-  return `<span class="dev-badge">${escapeHtml(badgeText)}</span>`;
-}
-
 function projectedWorldElapsedMs() {
   const state = currentState();
   if (!state) {
     return 0;
   }
-  const elapsedSinceFetch = Date.now() - client.lastFetchedAt;
-  return state.worldElapsedMs + Math.max(0, elapsedSinceFetch);
+  return state.worldElapsedMs || 0;
 }
 
 function gameClockLabel() {
@@ -615,7 +570,7 @@ function openStatusPopover(statKey, options = {}) {
     fullness: {
       title: "포만감",
       value: `${snapshot.stats.fullness} / 10`,
-      note: "시간이 지나면 줄어들고, 음식과 물로 회복합니다.",
+      note: "행동 시간이 지나면 줄어들고, 음식과 물로 회복합니다.",
     },
   }[statKey];
 
@@ -674,9 +629,7 @@ function renderChoices() {
     const isCraftingRecipe = isCraftingMenu && choice.id !== "leave_shelter_crafting";
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
-    meta.textContent = choice.nextSceneId
-      ? `${choice.outcomeHint} -> ${choice.nextSceneId}`
-      : choice.outcomeHint;
+    meta.textContent = choice.outcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
     button.classList.toggle("is-crafting-option", isCraftingRecipe);
     button.classList.toggle("is-recipe-available", isCraftingRecipe && choice.isAvailable);
@@ -702,19 +655,6 @@ function renderScene(animateText = true) {
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
   dom.sceneLocationBadge.textContent = location.name;
   dom.sceneRiskBadge.textContent = isEventStoryActive(snapshot) ? "이벤트" : location.risk;
-  const eventId = currentEventId(snapshot);
-  const actionCount = snapshot.availableActions?.length ?? 0;
-  const actionIds = (snapshot.availableActions ?? []).map((c) => c.id).join(", ");
-  const debugText = eventId
-    ? `event: ${eventId} / scene: ${currentSceneDefinitionId(snapshot)} / actions: ${actionCount} [${actionIds}]`
-    : `scene: ${currentSceneDefinitionId(snapshot)} / actions: ${actionCount} [${actionIds}]`;
-  const debugBadges = DEV_OBJECT_BADGES
-    ? [
-        buildDevBadgeMarkup(location),
-        buildDevBadgeMarkup({ id: scene.locationId || location.id, source: scene.source }),
-      ].filter(Boolean).join("")
-    : "";
-  dom.sceneDebugBadge.innerHTML = `${debugBadges}<span class="scene-debug-text">${escapeHtml(debugText)}</span>`;
   renderSystemNote(snapshot.state.systemNote || "");
 
   clearSceneAnimation();
@@ -767,16 +707,6 @@ function renderMapPanel() {
       !state.isCurrent && !state.isAdjacent ? "is-known" : "",
     ].filter(Boolean).join(" ");
 
-    const meta = state.isCurrent
-      ? "현재 위치"
-      : state.isControlled
-        ? "통제됨"
-        : state.isReachable
-          ? "이동 가능"
-          : state.isVisited
-            ? "방문함"
-            : "";
-
     return `
       <button
         class="${classes}"
@@ -785,10 +715,7 @@ function renderMapPanel() {
         style="left:${position.x}px; top:${position.y}px; width:${boardLayout.dimensions.width}px; min-height:${boardLayout.dimensions.height}px;"
       >
         <span class="hex-tile-body">
-          ${buildDevBadgeMarkup(location)}
-          <span class="hex-tile-risk">${location.risk}</span>
           <span class="hex-tile-name">${location.name}</span>
-          ${meta ? `<span class="hex-tile-meta">${meta}</span>` : ""}
         </span>
       </button>
     `;
@@ -811,7 +738,6 @@ function renderMapPanel() {
             <h3>${location.name}</h3>
             <span class="tag">${location.risk}</span>
           </div>
-          ${buildDevBadgeMarkup(location)}
           <p>${location.summary}</p>
           ${entry.isReachable ? "" : `<small class="tiny">${entry.reason || "이동 불가"}</small>`}
         </article>
@@ -825,7 +751,6 @@ function renderMapPanel() {
           <h3>${currentLocation.name}</h3>
           <span class="tag">${currentLocation.risk}</span>
         </div>
-        ${buildDevBadgeMarkup(currentLocation)}
         <p>${currentLocation.summary}</p>
       </article>
 
@@ -917,7 +842,6 @@ function renderInventoryPanel() {
                 ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">사용</button>` : ""}
               </div>
             </div>
-            ${buildDevBadgeMarkup(item)}
             <p>${item.description}</p>
           </article>
         `;
@@ -976,7 +900,6 @@ function renderQuestsPanel() {
             <h3>${quest.name}</h3>
             <span class="tag">${questStatusLabel(quest.status)}</span>
           </div>
-          ${buildDevBadgeMarkup(quest)}
           <p>${quest.summary}</p>
         </article>
       `).join("")}
@@ -1029,77 +952,6 @@ function renderPanel() {
   });
 }
 
-function llmStatusLabel(status) {
-  if (status === "success") {
-    return "성공";
-  }
-  if (status === "fallback") {
-    return "폴백";
-  }
-  return "오류";
-}
-
-function formatTraceTime(iso) {
-  if (!iso) {
-    return "";
-  }
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return iso;
-  }
-  return date.toLocaleTimeString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-}
-
-function renderLlmDebugPanel() {
-  if (!dom.llmDebugPanel || !dom.llmDebugList) {
-    return;
-  }
-
-  if (!DEV_OBJECT_BADGES) {
-    dom.llmDebugPanel.hidden = true;
-    dom.llmDebugList.innerHTML = "";
-    return;
-  }
-
-  const entries = client.snapshot?.devLlmTrace || [];
-  dom.llmDebugPanel.hidden = false;
-
-  if (!entries.length) {
-    dom.llmDebugList.innerHTML = `
-      <p class="llm-debug-empty">아직 기록된 LLM 요청이 없습니다. 프런티어 확장처럼 동적 지역이 생성되는 행동을 실행하면 여기서 바로 확인할 수 있습니다.</p>
-    `;
-    return;
-  }
-
-  dom.llmDebugList.innerHTML = entries.map((entry) => `
-    <article class="llm-debug-entry is-${escapeHtml(entry.status)}">
-      <div class="llm-debug-meta">
-        <span class="llm-debug-status is-${escapeHtml(entry.status)}">${llmStatusLabel(entry.status)}</span>
-        <span class="llm-debug-target">${escapeHtml(entry.scope)} / ${escapeHtml(entry.target)}</span>
-        <span class="llm-debug-model">${escapeHtml(entry.model)}</span>
-        <span class="llm-debug-time">${escapeHtml(formatTraceTime(entry.at))}</span>
-      </div>
-      <p class="llm-debug-message">${escapeHtml(entry.message)}</p>
-      ${entry.request ? `
-        <div class="llm-debug-block">
-          <strong>요청</strong>
-          <pre>${escapeHtml(entry.request)}</pre>
-        </div>
-      ` : ""}
-      ${entry.response ? `
-        <div class="llm-debug-block">
-          <strong>응답</strong>
-          <pre>${escapeHtml(entry.response)}</pre>
-        </div>
-      ` : ""}
-    </article>
-  `).join("");
-}
-
 function render(options = {}) {
   if (!client.snapshot) {
     return;
@@ -1107,7 +959,6 @@ function render(options = {}) {
   renderStatusBar();
   renderScene(options.animateScene !== false);
   renderPanel();
-  renderLlmDebugPanel();
   client.justCreatedGame = false;
 }
 
@@ -1215,7 +1066,9 @@ async function bootstrap() {
     }),
   });
   client.syncTimer = window.setInterval(backgroundSync, 10000);
-  window.setInterval(() => renderStatusBar(), CLOCK_TICK_MS);
+  window.setInterval(() => {
+    renderStatusBar();
+  }, CLOCK_TICK_MS);
 }
 
 dom.dockButtons.forEach((button) => {

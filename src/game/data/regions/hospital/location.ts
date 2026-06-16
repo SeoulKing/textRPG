@@ -1,0 +1,65 @@
+import type { ActionDefinition, LocationDefinition } from "../../../schemas";
+import { interactionFor } from "../../location-interaction-helpers";
+
+export const hospitalChoices: ActionDefinition[] = [
+  interactionFor("hospital", {
+    id: "go_to_hospital_medicine_cabinet",
+    label: "약품 보관함을 살핀다",
+    type: "search",
+    outcomeHint: "깨진 접수대 뒤 약품 보관함을 열어, 남은 약과 무전기 배터리를 확인한다.",
+    effects: [
+      { type: "focus_stock_node", nodeId: "hospital_medicine_cabinet" },
+      { type: "log", message: "당신은 깨진 접수대 뒤로 몸을 낮춰 약품 보관함 앞에 선다." },
+    ],
+    tags: ["medicine", "signal", "search"],
+    riskHint: "medium",
+  }),
+  interactionFor("hospital", {
+    id: "receive_hospital_first_aid",
+    label: "응급 처치를 받는다",
+    type: "use",
+    outcomeHint: "돈 1800원을 내고 간단한 처치를 받는다. 체력은 회복되지만, 아픈 사람들을 지나치며 정신력은 조금 깎인다.",
+    conditions: [{ type: "money_gte", amount: 1800 }],
+    effects: [
+      { type: "change_money", amount: -1800 },
+      { type: "change_stat", stat: "hp", value: 2 },
+      { type: "change_stat", stat: "mind", value: -1 },
+      { type: "log", message: "당신은 남은 소독약과 붕대로 상처를 묶는다. 몸은 조금 나아졌지만, 병원 바닥의 신음은 오래 남는다." },
+      { type: "advance_time", phases: 1 },
+    ],
+    tags: ["medicine", "recovery"],
+    riskHint: "low",
+  }),
+];
+
+export const hospitalLocation: LocationDefinition = {
+  id: "hospital",
+  name: "작은 병원",
+  risk: "medium",
+  imagePath: "assets/scenes/hospital.svg",
+  summary: "깨진 유리와 소독약 냄새, 낮은 신음이 뒤섞인 작은 병원이다. 아직 쓸 만한 약품과 전원 부품이 남아 있다.",
+  tags: ["medicine", "signal", "day4"],
+  traits: ["first aid", "battery", "stress"],
+  obtainableItemIds: ["painRelief", "clothScrap", "radioBattery"],
+  residentIds: [],
+  neighbors: ["shelter", "convenience"],
+  interactionChoices: hospitalChoices,
+  eventIds: [],
+  links: {
+    shelter: { note: "약품 냄새가 밴 복도를 빠져나와 임시 거처로 돌아간다." },
+    convenience: { note: "병원 뒤편 골목을 거슬러 편의점 폐허 쪽으로 돌아간다." },
+  },
+  stockNodes: [
+    {
+      id: "hospital_medicine_cabinet",
+      name: "약품 보관함",
+      summary: "잠금장치가 휘어진 철제 보관함 안에 진통제와 천 조각, 묵직한 무전기 배터리가 남아 있다.",
+      money: 0,
+      items: [
+        { itemId: "painRelief", initialQuantity: 2 },
+        { itemId: "clothScrap", initialQuantity: 2 },
+        { itemId: "radioBattery", initialQuantity: 1 },
+      ],
+    },
+  ],
+};

@@ -7,12 +7,35 @@ export const kitchenChoices: ActionDefinition[] = [
     label: "돈을 내고 따뜻한 식사를 산다",
     type: "use",
     outcomeHint: "주머니는 가벼워지지만, 적어도 오늘 저녁의 막막함은 조금 옅어진다.",
-    conditions: [{ type: "money_gte", amount: 4500 }],
+    conditions: [
+      { type: "day_lt", value: 2 },
+      { type: "money_gte", amount: 4500 },
+    ],
     effects: [
       { type: "change_money", amount: -4500 },
       { type: "add_item", itemId: "hotMeal", amount: 1 },
       { type: "set_flag", flag: "mealSecured" },
       { type: "log", message: "당신은 아껴 둔 돈을 꺼내 오늘 몫의 따뜻한 식사를 산다." },
+      { type: "advance_time", phases: 1 },
+    ],
+    tags: ["food", "trade"],
+    riskHint: "low",
+  }),
+  interactionFor("kitchen", {
+    id: "buy_crowded_meal_at_kitchen",
+    label: "붐비는 배식줄에서 식사를 산다",
+    type: "use",
+    outcomeHint: "2일차부터 피난민이 늘어 식사 값이 올랐다. 돈을 내고 따뜻한 식사 1개를 확보한다.",
+    conditions: [
+      { type: "day_gte", value: 2 },
+      { type: "money_gte", amount: 5200 },
+    ],
+    effects: [
+      { type: "change_money", amount: -5200 },
+      { type: "add_item", itemId: "hotMeal", amount: 1 },
+      { type: "set_flag", flag: "mealSecured" },
+      { type: "log", message: "배식줄은 더 길어졌고 값도 올랐다. 당신은 돈을 치르고 따뜻한 식사 하나를 받아 든다." },
+      { type: "advance_time", phases: 1 },
     ],
     tags: ["food", "trade"],
     riskHint: "low",
@@ -31,16 +54,20 @@ export const kitchenChoices: ActionDefinition[] = [
   }),
   interactionFor("kitchen", {
     id: "push_beyond_kitchen_lane",
-    label: "배식소 뒤편으로 나아가기",
+    label: "지하철역 쪽 통로를 확인하기",
     type: "explore",
-    outcomeHint: "급식소를 지나 생활 구역 뒤편의 더 낯선 공간으로 발을 들이며 새로운 경계를 연다.",
+    outcomeHint: "급식소 뒤편 지하 통로를 확인해 안테나를 찾을 수 있다는 지하철역 단서를 정리한다.",
+    conditions: [{ type: "flag_not", flag: "subway_lead_checked" }],
     effects: [
+      { type: "set_flag", flag: "subway_lead_checked" },
+      { type: "set_flag", flag: "known_subway" },
       {
         type: "log",
-        message: "배식소 뒤편의 좁은 길로 몸을 틀며, 지금까지 닿지 않았던 서울의 다른 조각을 향해 나아간다.",
+        message: "당신은 급식소 뒤편의 막힌 계단 아래에서 지하철역으로 이어지는 통로를 찾아낸다. 어둠 속에서 금속 울림이 돌아온다.",
       },
+      { type: "advance_time", phases: 1 },
     ],
-    tags: ["frontier", "explore"],
+    tags: ["hint", "explore"],
     riskHint: "medium",
   }),
 ];
@@ -55,11 +82,14 @@ export const kitchenLocation: LocationDefinition = {
   traits: ["meal purchase", "rumors", "salvage"],
   obtainableItemIds: ["hotMeal", "waterBottle", "rationTicket", "rawRice", "vegetables", "scrapMetal", "clothScrap"],
   residentIds: ["oldCook"],
-  neighbors: ["shelter"],
+  neighbors: ["shelter", "subway"],
   interactionChoices: kitchenChoices,
   eventIds: [],
   links: {
     shelter: { note: "허기를 잠시 달랜 뒤 거처 쪽으로 다시 발걸음을 돌린다." },
+    subway: {
+      note: "급식소 뒤편 계단을 따라 전기가 끊긴 지하철역 쪽으로 내려간다.",
+    },
   },
   stockNodes: [
     {

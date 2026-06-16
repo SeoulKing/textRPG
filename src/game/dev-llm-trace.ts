@@ -35,6 +35,7 @@ export function appendDevLlmTraceForGame(
     request: clip(entry.request),
     response: clip(entry.response),
     message: clip(entry.message, 4000),
+    errorReason: entry.errorReason ? clip(entry.errorReason, 4000) : undefined,
   });
 
   const existing = traceStore.get(gameId) ?? [];

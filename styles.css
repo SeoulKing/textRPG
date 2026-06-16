@@ -356,40 +356,6 @@ body::before {
   border-color: rgba(194, 59, 34, 0.24);
 }
 
-.scene-debug-badge {
-  align-self: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(87, 66, 51, 0.18);
-  background: rgba(255, 250, 244, 0.92);
-  color: #6b4b37;
-  font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
-  font-size: 0.76rem;
-  letter-spacing: 0.02em;
-}
-
-.scene-debug-text {
-  align-self: center;
-}
-
-.dev-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  max-width: 100%;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(86, 66, 51, 0.1);
-  border: 1px solid rgba(86, 66, 51, 0.18);
-  color: #6b4b37;
-  font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.02em;
-}
-
 .scene-text {
   color: #3f3026;
   line-height: 1.8;
@@ -516,141 +482,11 @@ body::before {
   margin-top: 12px;
 }
 
-.llm-debug-panel {
-  margin-top: 18px;
-  padding: 18px 20px;
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(87, 66, 51, 0.16);
-  background: rgba(255, 249, 242, 0.92);
-  box-shadow: var(--shadow-soft);
-}
-
-.llm-debug-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(87, 66, 51, 0.12);
-}
-
-.llm-debug-header p {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.llm-debug-header span {
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
-.llm-debug-list {
-  display: grid;
-  gap: 12px;
-  padding-top: 14px;
-}
-
-.llm-debug-empty {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-.llm-debug-entry {
-  padding: 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(87, 66, 51, 0.12);
-  background: rgba(255, 255, 255, 0.82);
-}
-
-.llm-debug-entry.is-success {
-  border-color: rgba(65, 146, 90, 0.28);
-}
-
-.llm-debug-entry.is-fallback {
-  border-color: rgba(207, 122, 48, 0.28);
-}
-
-.llm-debug-entry.is-error {
-  border-color: rgba(214, 106, 79, 0.3);
-}
-
-.llm-debug-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.llm-debug-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.llm-debug-status.is-success {
-  color: #1e5f34;
-  background: rgba(65, 146, 90, 0.12);
-}
-
-.llm-debug-status.is-fallback {
-  color: #8f5628;
-  background: rgba(207, 122, 48, 0.14);
-}
-
-.llm-debug-status.is-error {
-  color: #9f341b;
-  background: rgba(214, 106, 79, 0.14);
-}
-
-.llm-debug-target,
-.llm-debug-time,
-.llm-debug-model {
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.llm-debug-message {
-  margin: 0 0 10px;
-  line-height: 1.6;
-}
-
-.llm-debug-block {
-  display: grid;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.llm-debug-block strong {
-  font-size: 0.84rem;
-}
-
-.llm-debug-block pre {
-  margin: 0;
-  max-height: 220px;
-  overflow: auto;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(63, 48, 38, 0.06);
-  border: 1px solid rgba(87, 66, 51, 0.12);
-  color: #3f3026;
-  font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
-  font-size: 0.76rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 .dock-buttons {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: space-between;
   scrollbar-width: none;
 }
 
@@ -659,11 +495,13 @@ body::before {
 }
 
 .dock-button {
+  flex: 1 1 0;
   min-width: 84px;
   padding: 12px 16px;
   border-radius: 999px;
   background: rgba(132, 103, 72, 0.08);
   color: var(--muted);
+  text-align: center;
 }
 
 .dock-button.active {
@@ -825,12 +663,6 @@ body::before {
   margin-top: 6px;
 }
 
-.map-card .dev-badge,
-.inventory-card .dev-badge,
-.quest-card .dev-badge {
-  margin-bottom: 8px;
-}
-
 .map-card.is-reachable {
   cursor: pointer;
   transition:
@@ -930,34 +762,12 @@ body::before {
     filter 140ms ease;
 }
 
-.hex-tile-risk {
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-.hex-tile .dev-badge {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: calc(100% - 24px);
-  padding: 3px 7px;
-  font-size: 0.62rem;
-  background: rgba(255, 250, 244, 0.92);
-}
-
 .hex-tile-name {
   font-size: 0.92rem;
   font-weight: 700;
   text-align: center;
   line-height: 1.2;
 }
-
-.hex-tile-meta {
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
 
 .hex-tile.is-current .hex-tile-body {
   border-color: rgba(214, 143, 75, 0.95);
@@ -968,51 +778,35 @@ body::before {
     0 18px 34px rgba(108, 64, 25, 0.24);
 }
 
-.hex-tile.is-current .hex-tile-risk,
-.hex-tile.is-current .hex-tile-meta {
-  color: rgba(255, 248, 241, 0.86);
-}
-
 .hex-tile.is-adjacent .hex-tile-body {
   border-color: rgba(214, 143, 75, 0.42);
 }
 
 .hex-tile.is-reachable .hex-tile-body {
-  background: linear-gradient(180deg, rgba(255, 250, 242, 1), rgba(249, 238, 224, 0.98));
+  border-color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(248, 248, 246, 0.98));
+  color: var(--text);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.55) inset,
-    0 16px 28px rgba(184, 108, 42, 0.2);
+    0 1px 0 rgba(255, 255, 255, 0.72) inset,
+    0 16px 28px rgba(53, 35, 19, 0.14);
 }
 
 .hex-tile.is-locked .hex-tile-body {
-  border-color: rgba(146, 115, 89, 0.52);
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(161, 117, 85, 0.14),
-      rgba(161, 117, 85, 0.14) 8px,
-      rgba(247, 239, 230, 0.96) 8px,
-      rgba(247, 239, 230, 0.96) 16px
-    ),
-    linear-gradient(180deg, rgba(250, 242, 233, 0.98), rgba(238, 225, 210, 0.96));
+  border-color: rgba(66, 66, 66, 0.68);
+  background: linear-gradient(180deg, rgba(92, 92, 92, 0.96), rgba(65, 65, 65, 0.98));
+  color: #f5efe6;
 }
 
 .hex-tile.is-controlled .hex-tile-body {
-  border-color: rgba(135, 111, 93, 0.64);
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(122, 91, 62, 0.16),
-      rgba(122, 91, 62, 0.16) 7px,
-      rgba(239, 232, 224, 0.96) 7px,
-      rgba(239, 232, 224, 0.96) 14px
-    ),
-    linear-gradient(180deg, rgba(243, 236, 229, 0.98), rgba(229, 220, 209, 0.96));
+  border-color: rgba(56, 56, 56, 0.72);
+  background: linear-gradient(180deg, rgba(76, 76, 76, 0.98), rgba(45, 45, 45, 0.98));
+  color: #f5efe6;
 }
 
 .hex-tile.is-known .hex-tile-body {
-  background: linear-gradient(180deg, rgba(241, 232, 221, 0.96), rgba(229, 217, 202, 0.94));
-  opacity: 0.88;
+  border-color: rgba(255, 255, 255, 0.64);
+  background: linear-gradient(180deg, rgba(250, 250, 247, 0.88), rgba(237, 237, 232, 0.82));
+  color: rgba(47, 36, 28, 0.72);
 }
 
 .hex-tile.is-visited .hex-tile-body {
@@ -1189,11 +983,6 @@ body::before {
     font-size: 0.8rem;
   }
 
-  .hex-tile-risk,
-  .hex-tile-meta {
-    font-size: 0.66rem;
-  }
-
   .scene-overlay {
     top: 14px;
     left: 14px;
@@ -1208,10 +997,6 @@ body::before {
 
   .scene-copy {
     padding: 20px 16px 18px;
-  }
-
-  .scene-debug-badge {
-    font-size: 0.7rem;
   }
 
   .scene-text {
@@ -1245,10 +1030,11 @@ body::before {
     position: sticky;
     bottom: 10px;
     z-index: 5;
+    width: 100%;
+    box-sizing: border-box;
     flex-wrap: nowrap;
     overflow-x: auto;
     padding: 6px;
-    margin: 0 -2px;
     border-radius: 999px;
     background: rgba(255, 250, 245, 0.88);
     border: 1px solid var(--line);
@@ -1257,8 +1043,8 @@ body::before {
   }
 
   .dock-button {
-    flex: 0 0 auto;
-    min-width: 78px;
+    flex: 1 1 0;
+    min-width: 0;
     padding: 11px 14px;
   }
 
