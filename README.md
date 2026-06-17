@@ -94,3 +94,4 @@ If `DATABASE_URL` is empty, the game uses the local file repository under `.runt
 
 - Project structure: `OBJECT_MODEL.md`
 - World design: `WORLD_DESIGN.md`
+- Content ledger: `CONTENT_LEDGER.md`
