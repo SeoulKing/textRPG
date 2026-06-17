@@ -462,4 +462,5 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   Existing game-over saves now reject further server-side actions with the stored game-over reason.
   Added a client game-over prompt that shows the game-over reason, reached day/time, total survived time, and asks whether to start a new game.
   Game-over renders now hide normal choice buttons and label the scene badge as `게임오버`.
-  Pending verification: run syntax/type/build checks and a focused runtime/UI probe for hp reaching 0.
+  Server snapshots now return no available actions while `state.isGameOver` is true.
+  Pending verification: rerun syntax/type/build checks and a focused runtime/UI probe for hp reaching 0.

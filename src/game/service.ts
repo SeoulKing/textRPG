@@ -651,8 +651,11 @@ export class GameService {
     const currentScene = this.buildAuthoringSceneCard(session, storyMaterials, registry);
     const sceneDef = this.presentedSceneDefinition(session, registry);
     const locationChoices = this.presentedChoices(session, sceneDef, registry);
-    const storyChoices =
-      latestEvent && latestEvent.choices.length > 0 ? latestEvent.choices : locationChoices;
+    const storyChoices = session.state.isGameOver
+      ? []
+      : latestEvent && latestEvent.choices.length > 0
+        ? latestEvent.choices
+        : locationChoices;
     const snapshot = {
       gameId: session.id,
       state: structuredClone(session.state),
