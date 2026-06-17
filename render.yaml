@@ -4,6 +4,7 @@ services:
     runtime: node
     plan: free
     region: singapore
+    branch: codex/region-content-structure
     buildCommand: npm ci && npm run build
     startCommand: node .server-dist/server.js
     healthCheckPath: /api/health
