@@ -19,10 +19,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     id: "go_to_convenience_shelf",
     label: "진열대로 간다",
     outcomeHint: "기울어진 선반 안쪽으로 다가가, 남아 있는 통조림이 얼마나 되는지 직접 확인한다.",
-    conditions: [
-      { type: "flag", flag: "convenience_shelf_found" },
-      { type: "active_stock_node_not", nodeId: "convenience_shelf" },
-    ],
+    conditions: [{ type: "active_stock_node_not", nodeId: "convenience_shelf" }],
     effects: [
       { type: "focus_stock_node", nodeId: "convenience_shelf" },
       { type: "log", message: "당신은 유리 조각을 피해, 숨을 죽인 채 진열대 앞으로 천천히 다가선다." },
@@ -33,10 +30,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     id: "go_to_convenience_register",
     label: "계산대로 간다",
     outcomeHint: "먼지가 얇게 내려앉은 계산대 앞으로 다가가, 서랍 안에 남은 돈이 있는지 확인한다.",
-    conditions: [
-      { type: "flag", flag: "convenience_register_found" },
-      { type: "active_stock_node_not", nodeId: "convenience_register" },
-    ],
+    conditions: [{ type: "active_stock_node_not", nodeId: "convenience_register" }],
     effects: [
       { type: "focus_stock_node", nodeId: "convenience_register" },
       { type: "log", message: "당신은 깨진 플라스틱 조각을 밀어내며 계산대 앞으로 몸을 숙인다." },
@@ -47,10 +41,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     id: "go_to_convenience_supply_pile",
     label: "창고 자재 더미로 간다",
     outcomeHint: "무너진 선반 아래로 몸을 들이밀어, 쓸 만한 판자와 천 조각, 금속 부품을 직접 살핀다.",
-    conditions: [
-      { type: "flag", flag: "convenience_materials_found" },
-      { type: "active_stock_node_not", nodeId: "convenience_supply_pile" },
-    ],
+    conditions: [{ type: "active_stock_node_not", nodeId: "convenience_supply_pile" }],
     effects: [
       { type: "focus_stock_node", nodeId: "convenience_supply_pile" },
       { type: "log", message: "당신은 반쯤 주저앉은 창고 선반 아래로 몸을 들이밀어 자재 더미 앞에 선다." },

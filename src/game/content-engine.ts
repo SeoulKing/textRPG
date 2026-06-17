@@ -16,6 +16,7 @@ export function buildStoryChoiceFromChoice(choice: ChoiceDefinition): StoryChoic
     id: choice.id,
     label: choice.label,
     outcomeHint: choice.outcomeHint,
+    showOutcomeHint: choice.showOutcomeHint,
     isAvailable: true,
     descriptionTag: choice.descriptionTag,
     tags: choice.tags,

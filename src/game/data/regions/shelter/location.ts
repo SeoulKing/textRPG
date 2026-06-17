@@ -79,13 +79,14 @@ export const shelterLocation: LocationDefinition = {
   id: "shelter",
   name: "임시 거처",
   risk: "safe",
+  mapPosition: { q: 0, r: 0 },
   imagePath: "assets/scenes/shelter.png",
   summary: "지친 생존자들이 잠시 숨을 고르고, 오늘 밤을 버틸 방법을 궁리하는 허술한 천막 거처다.",
   tags: ["hub", "safe", "rest"],
   traits: ["rest", "crafting", "cooking"],
   obtainableItemIds: ["emergencySnack", "waterBottle", "hotMeal", "rawRice", "vegetables", "woodPlank", "scrapMetal", "clothScrap", "radioBattery", "radioAntenna", "radioTransmitter"],
   residentIds: [],
-  neighbors: ["convenience", "kitchen", "hospital", "subway", "checkpoint"],
+  neighbors: ["convenience", "kitchen"],
   interactionChoices: shelterChoices,
   eventIds: [],
   links: {
@@ -94,15 +95,6 @@ export const shelterLocation: LocationDefinition = {
     },
     kitchen: {
       note: "국물 냄새와 줄 선 사람들의 소리가 새어 나오는 급식소 쪽으로 향한다.",
-    },
-    hospital: {
-      note: "약품 냄새가 희미하게 남은 작은 병원 쪽으로 조심스럽게 향한다.",
-    },
-    subway: {
-      note: "전기가 끊긴 지하철역 입구 쪽으로 내려간다.",
-    },
-    checkpoint: {
-      note: "구조대 무전 소문이 들린 검문소 쪽으로 향한다.",
     },
   },
   stockNodes: [],

@@ -13,95 +13,117 @@ const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
 const CLIENT_SAVE_VERSION = 12;
-const HEX_RATIO = Math.sqrt(3) / 2;
-
-const HEX_BOARD_TEMPLATE = [
-  { slotId: "northwest", col: 0, row: 0, locationId: null },
-  { slotId: "shelter", col: 1, row: 0, locationId: "shelter" },
-  { slotId: "northeast", col: 2, row: 0, locationId: null },
-  { slotId: "convenience", col: 0, row: 1, locationId: "convenience" },
-  { slotId: "alley", col: 1, row: 1, locationId: null },
-  { slotId: "kitchen", col: 2, row: 1, locationId: "kitchen" },
-  { slotId: "control", col: 3, row: 1, locationId: "checkpoint" },
-  { slotId: "subway", col: 0, row: 2, locationId: "subway" },
-  { slotId: "hospital", col: 1, row: 2, locationId: "hospital" },
-  { slotId: "mart", col: 2, row: 2, locationId: null },
-  { slotId: "riverside", col: 3, row: 2, locationId: null },
+const SQRT_3 = Math.sqrt(3);
+const DEFAULT_HEX_COORDS = {
+  shelter: { q: 0, r: 0 },
+  convenience: { q: -1, r: 1 },
+  kitchen: { q: 1, r: 0 },
+  subway: { q: 2, r: 0 },
+  hospital: { q: -2, r: 2 },
+  checkpoint: { q: 3, r: 0 },
+};
+const HEX_DIRECTIONS = [
+  { q: 1, r: 0 },
+  { q: 1, r: -1 },
+  { q: 0, r: -1 },
+  { q: -1, r: 0 },
+  { q: -1, r: 1 },
+  { q: 0, r: 1 },
 ];
 
 function currentHexDimensions() {
   if (window.matchMedia("(max-width: 620px)").matches) {
-    const width = 92;
+    const size = 42;
     return {
-      width,
-      height: Math.round(width * HEX_RATIO),
-      padding: 14,
+      size,
+      padding: 28,
     };
   }
 
-  const width = 116;
   return {
-    width,
-    height: Math.round(width * HEX_RATIO),
-    padding: 18,
+    size: 58,
+    padding: 34,
   };
 }
 
-function buildBoardSlots(visible, states) {
-  const occupiedTemplateSlots = HEX_BOARD_TEMPLATE.filter((slot) => {
-    if (!slot.locationId) {
-      return false;
-    }
-    return visible.has(slot.locationId) || states.has(slot.locationId);
-  });
-  const usedLocationIds = new Set(occupiedTemplateSlots.map((slot) => slot.locationId));
-  const spilloverStartRow = HEX_BOARD_TEMPLATE.reduce((maxRow, slot) => Math.max(maxRow, slot.row), 0) + 1;
-  const extraLocationIds = Array.from(new Set([
-    ...states.keys(),
-    ...visible.keys(),
-  ])).filter((locationId) => locationId && !usedLocationIds.has(locationId));
-  const extraSlots = extraLocationIds.map((locationId, index) => ({
-    slotId: `auto-${locationId}`,
-    locationId,
-    col: index % 4,
-    row: spilloverStartRow + Math.floor(index / 4),
-  }));
-
-  return [...occupiedTemplateSlots, ...extraSlots];
+function locationHexCoord(location) {
+  return location?.mapPosition || DEFAULT_HEX_COORDS[location?.id] || null;
 }
 
-function buildHexBoardLayout(slots) {
+function isHexNeighbor(left, right) {
+  if (!left || !right) {
+    return false;
+  }
+  return HEX_DIRECTIONS.some((direction) =>
+    left.q + direction.q === right.q && left.r + direction.r === right.r
+  );
+}
+
+function hexToPixel(q, r, size) {
+  return {
+    x: size * 1.5 * q,
+    y: size * SQRT_3 * (r + q / 2),
+  };
+}
+
+function hexPoints(cx, cy, size) {
+  return Array.from({ length: 6 }, (_, index) => {
+    const angle = (Math.PI / 180) * (60 * index);
+    const x = cx + size * Math.cos(angle);
+    const y = cy + size * Math.sin(angle);
+    return `${Math.round(x * 100) / 100},${Math.round(y * 100) / 100}`;
+  }).join(" ");
+}
+
+function buildBoardNodes(visible) {
+  const nodes = [];
+  const usedLocationIds = new Set();
+  visible.forEach((location, locationId) => {
+    const coord = locationHexCoord(location);
+    if (!coord) {
+      return;
+    }
+    nodes.push({ locationId, q: coord.q, r: coord.r });
+    usedLocationIds.add(locationId);
+  });
+
+  const maxR = nodes.length ? Math.max(...nodes.map((node) => node.r)) : 0;
+  Array.from(visible.keys())
+    .filter((locationId) => !usedLocationIds.has(locationId))
+    .forEach((locationId, index) => {
+      nodes.push({
+        locationId,
+        q: index,
+        r: maxR + 2 + Math.floor(index / 4),
+      });
+    });
+
+  return nodes;
+}
+
+function buildHexBoardLayout(nodes) {
   const dimensions = currentHexDimensions();
-  const stepX = dimensions.width * 0.75;
-  const stepY = dimensions.height;
   const inset = {
     top: dimensions.padding,
     right: dimensions.padding,
     bottom: dimensions.padding,
     left: dimensions.padding,
   };
-  const layoutSlots = slots.length ? slots : HEX_BOARD_TEMPLATE.filter((slot) => slot.locationId);
-  const positions = layoutSlots.map((slot) => {
-    const x = (dimensions.width / 2) + (slot.col * stepX);
-    const y = (dimensions.height / 2) + (slot.row * stepY) + ((slot.col % 2) * (dimensions.height / 2));
+  const layoutNodes = nodes.length ? nodes : [{ locationId: "fallback", q: 0, r: 0 }];
+  const rawPositions = layoutNodes.map((node) => {
+    const { x, y } = hexToPixel(node.q, node.r, dimensions.size);
     return {
-      slotId: slot.slotId,
-      locationId: slot.locationId,
-      x: Math.round(x),
-      y: Math.round(y),
+      locationId: node.locationId,
+      x,
+      y,
     };
   });
-  const layoutPositions = positions.length ? positions : [{
-    slotId: "fallback",
-    locationId: null,
-    x: Math.round(dimensions.width / 2),
-    y: Math.round(dimensions.height / 2),
-  }];
-  const minLeft = Math.min(...layoutPositions.map((position) => position.x - (dimensions.width / 2)), 0);
-  const maxRight = Math.max(...layoutPositions.map((position) => position.x + (dimensions.width / 2)), dimensions.width);
-  const minTop = Math.min(...layoutPositions.map((position) => position.y - (dimensions.height / 2)), 0);
-  const maxBottom = Math.max(...layoutPositions.map((position) => position.y + (dimensions.height / 2)), dimensions.height);
-  const positionsMap = new Map(positions.map((position) => [position.slotId, {
+
+  const minLeft = Math.min(...rawPositions.map((position) => position.x - dimensions.size));
+  const maxRight = Math.max(...rawPositions.map((position) => position.x + dimensions.size));
+  const minTop = Math.min(...rawPositions.map((position) => position.y - dimensions.size));
+  const maxBottom = Math.max(...rawPositions.map((position) => position.y + dimensions.size));
+  const positionsMap = new Map(rawPositions.map((position) => [position.locationId, {
     x: Math.round(position.x - minLeft + inset.left),
     y: Math.round(position.y - minTop + inset.top),
   }]));
@@ -117,23 +139,21 @@ function buildHexBoardLayout(slots) {
 const PANEL_CONFIG = {
   map: {
     title: "이동",
-    subtitle: "지금 파악한 이동 경로를 지도로 정리했습니다.",
   },
   inventory: {
     title: "아이템",
-    subtitle: "가진 물건과 돈을 확인하고 바로 사용할 수 있습니다.",
   },
-  skills: {
-    title: "스킬",
-    subtitle: "현재 보유 중인 생존 방식입니다.",
+  status: {
+    title: "상태",
   },
   quests: {
     title: "퀘스트",
-    subtitle: "오늘 버티기 위해 필요한 우선순위입니다.",
   },
   log: {
     title: "기록",
-    subtitle: "최근 선택과 이동 기록입니다.",
+  },
+  menu: {
+    title: "메뉴",
   },
 };
 
@@ -157,10 +177,8 @@ const dom = {
   choiceTemplate: document.querySelector("#choice-template"),
   panelShell: document.querySelector(".panel-shell"),
   panelTitle: document.querySelector("#panel-title"),
-  panelSubtitle: document.querySelector("#panel-subtitle"),
   panelContent: document.querySelector("#panel-content"),
   dockButtons: Array.from(document.querySelectorAll(".dock-button")),
-  newGameButton: document.querySelector("#new-game-button"),
 };
 
 const client = {
@@ -172,6 +190,7 @@ const client = {
   syncTimer: null,
   mapHint: "",
   activeStatusPopoverKey: null,
+  activeStatusPanelView: "status",
   actionInFlight: false,
   sceneRenderToken: 0,
   activeSceneTimer: null,
@@ -179,6 +198,7 @@ const client = {
   isSceneTyping: false,
   justCreatedGame: false,
   renderedSystemNote: "",
+  gameOverPromptKey: "",
 };
 
 function currentState() {
@@ -206,6 +226,112 @@ function gameClockLabel() {
   const hours = String(Math.floor(roundedMinutes / 60)).padStart(2, "0");
   const minutes = String(roundedMinutes % 60).padStart(2, "0");
   return `${hours}:${minutes}`;
+}
+
+function survivalTimeSummary(snapshot) {
+  const elapsedMs = Math.max(0, snapshot?.state?.worldElapsedMs || 0);
+  const totalMinutes = Math.floor((elapsedMs / REAL_DAY_MS) * 24 * 60);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+
+  if (days > 0) {
+    parts.push(`${days}일`);
+  }
+  if (hours > 0) {
+    parts.push(`${hours}시간`);
+  }
+  if (minutes > 0 || parts.length === 0) {
+    parts.push(`${minutes}분`);
+  }
+
+  const previousSnapshot = client.snapshot;
+  client.snapshot = snapshot;
+  const clock = gameClockLabel();
+  client.snapshot = previousSnapshot;
+
+  return {
+    reached: `${snapshot?.day || snapshot?.state?.day || 1}일차 ${clock}`,
+    total: parts.join(" "),
+  };
+}
+
+function gameOverMessage(snapshot) {
+  const reason = snapshot?.state?.gameOverReason || "더 이상 생존을 이어갈 수 없습니다.";
+  const survival = survivalTimeSummary(snapshot);
+  return [
+    "게임오버",
+    "",
+    reason,
+    "",
+    `생존 기록: ${survival.reached}`,
+    `총 생존 시간: ${survival.total}`,
+    "",
+    "새 게임을 시작하시겠습니까?",
+  ].join("\n");
+}
+
+function maybePromptGameOver() {
+  const snapshot = client.snapshot;
+  if (!snapshot?.state?.isGameOver) {
+    return;
+  }
+
+  const promptKey = `${snapshot.gameId}:${snapshot.state.gameOverReason}:${snapshot.state.worldElapsedMs}`;
+  if (client.gameOverPromptKey === promptKey) {
+    return;
+  }
+  client.gameOverPromptKey = promptKey;
+
+  window.setTimeout(async () => {
+    if (!client.snapshot?.state?.isGameOver || client.gameId !== snapshot.gameId) {
+      return;
+    }
+
+    const shouldStartNewGame = window.confirm(gameOverMessage(snapshot));
+    if (!shouldStartNewGame) {
+      return;
+    }
+
+    clearSceneAnimation();
+    try {
+      await createNewGame();
+      render({
+        animateScene: shouldAnimateScene({
+          source: "newGame",
+          previousSnapshot: null,
+          nextSnapshot: client.snapshot,
+        }),
+      });
+    } catch (error) {
+      console.error(error);
+      window.alert(error instanceof Error ? error.message : "새 게임을 시작하지 못했습니다.");
+    }
+  }, 0);
+}
+
+function riskLabel(risk) {
+  const labels = {
+    safe: "안전",
+    low: "낮음",
+    medium: "중간",
+    high: "높음",
+  };
+  return labels[risk] || risk;
+}
+
+function pairKey(left, right) {
+  return [left, right].sort().join("::");
+}
+
+function hexLabelMarkup(name) {
+  const words = String(name).split(/\s+/).filter(Boolean);
+  const lines = words.length > 1 ? words : [String(name)];
+  const startDy = lines.length > 1 ? -4 : 5;
+  return lines.map((line, index) =>
+    `<tspan x="0" dy="${index === 0 ? startDy : 15}">${escapeHtml(line)}</tspan>`
+  ).join("");
 }
 
 async function api(path, options = {}) {
@@ -237,8 +363,10 @@ async function createNewGame() {
   client.snapshot = snapshot;
   client.lastFetchedAt = Date.now();
   client.activePanel = "map";
+  client.isPanelOpen = false;
   client.mapHint = "";
   client.justCreatedGame = true;
+  client.gameOverPromptKey = "";
   clearLegacyGameIds();
   window.localStorage.setItem(ACTIVE_STORAGE_KEY, client.gameId);
 }
@@ -286,6 +414,16 @@ function storySurfaceId(snapshot) {
     return `event:${snapshot.latestEvent.id}`;
   }
   return `scene:${currentSceneId(snapshot)}`;
+}
+
+function storyAnimationSurfaceId(snapshot) {
+  if (!snapshot) {
+    return "";
+  }
+  if (isEventStoryActive(snapshot)) {
+    return `event:${snapshot.latestEvent.id}`;
+  }
+  return `scene:${currentSceneDefinitionId(snapshot)}`;
 }
 
 function splitSummaryToParagraphs(summary) {
@@ -347,13 +485,17 @@ function shouldAnimateScene({ source, previousSnapshot, nextSnapshot }) {
     }
   }
 
+  if (source === "newGame") {
+    return true;
+  }
+
+  if (previousSnapshot && storyAnimationSurfaceId(previousSnapshot) !== storyAnimationSurfaceId(nextSnapshot)) {
+    return true;
+  }
+
   const introFlag = currentSceneIntroFlag(nextSnapshot);
   if (!introFlag) {
     return false;
-  }
-
-  if (source === "newGame") {
-    return true;
   }
 
   return !hasConsumedIntroFlag(previousSnapshot, introFlag);
@@ -386,7 +528,7 @@ function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.isAvailable ? "1" : "0"}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}`)
     .join("|");
 }
 
@@ -620,6 +762,10 @@ function renderChoices() {
   if (!snapshot) {
     return;
   }
+  if (snapshot.state.isGameOver) {
+    dom.choices.classList.add("revealed");
+    return;
+  }
 
   snapshot.availableActions.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
@@ -630,7 +776,10 @@ function renderChoices() {
     const isCraftingRecipe = isCraftingMenu && choice.id !== "leave_shelter_crafting";
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
-    meta.textContent = choice.outcomeHint;
+    const outcomeHint = choice.outcomeHint || "";
+    const shouldShowOutcomeHint = Boolean(choice.showOutcomeHint && outcomeHint);
+    meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
+    meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
     button.classList.toggle("is-crafting-option", isCraftingRecipe);
     button.classList.toggle("is-recipe-available", isCraftingRecipe && choice.isAvailable);
@@ -655,7 +804,11 @@ function renderScene(animateText = true) {
 
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
   dom.sceneLocationBadge.textContent = location.name;
-  dom.sceneRiskBadge.textContent = isEventStoryActive(snapshot) ? "이벤트" : location.risk;
+  dom.sceneRiskBadge.textContent = snapshot.state.isGameOver
+    ? "게임오버"
+    : isEventStoryActive(snapshot)
+      ? "이벤트"
+      : riskLabel(location.risk);
   renderSystemNote(snapshot.state.systemNote || "");
 
   clearSceneAnimation();
@@ -687,13 +840,53 @@ function renderMapPanel() {
 
   const currentLocation = currentLocationCard();
   const { visible, states } = locationMap();
-  const boardSlots = buildBoardSlots(visible, states);
-  const boardLayout = buildHexBoardLayout(boardSlots);
+  const boardNodes = buildBoardNodes(visible);
+  const boardLayout = buildHexBoardLayout(boardNodes);
+  const edgeKeys = new Set();
+  const edgeMarkup = Array.from(visible.values()).flatMap((location) => {
+    const fromPosition = boardLayout.positions.get(location.id);
+    if (!fromPosition) {
+      return [];
+    }
 
-  const tileMarkup = boardSlots.map((slot) => {
-    const position = boardLayout.positions.get(slot.slotId) || { x: 0, y: 0 };
-    const location = visible.get(slot.locationId);
-    const state = states.get(slot.locationId);
+    return (location.neighbors || []).flatMap((neighborId) => {
+      if (!visible.has(neighborId)) {
+        return [];
+      }
+      const edgeKey = pairKey(location.id, neighborId);
+      if (edgeKeys.has(edgeKey)) {
+        return [];
+      }
+      const neighbor = visible.get(neighborId);
+      const fromCoord = locationHexCoord(location);
+      const toCoord = locationHexCoord(neighbor);
+      if (fromCoord && toCoord && !isHexNeighbor(fromCoord, toCoord)) {
+        return [];
+      }
+      const toPosition = boardLayout.positions.get(neighborId);
+      if (!toPosition) {
+        return [];
+      }
+      edgeKeys.add(edgeKey);
+      const leftState = states.get(location.id);
+      const rightState = states.get(neighborId);
+      const isActiveRoute = Boolean(leftState?.isCurrent || rightState?.isCurrent);
+      return `
+        <line
+          class="hex-route-line ${isActiveRoute ? "is-active" : ""}"
+          x1="${fromPosition.x}"
+          y1="${fromPosition.y}"
+          x2="${toPosition.x}"
+          y2="${toPosition.y}"
+        />
+      `;
+    });
+  }).join("");
+
+  const tileMarkup = boardNodes.map((node) => {
+    const position = boardLayout.positions.get(node.locationId) || { x: 0, y: 0 };
+    const location = visible.get(node.locationId);
+    const state = states.get(node.locationId);
     if (!location || !state) {
       return "";
     }
@@ -705,39 +898,88 @@ function renderMapPanel() {
       state.isVisited ? "is-visited" : "",
       state.isControlled ? "is-controlled" : "",
       state.isAdjacent && !state.isReachable ? "is-locked" : "",
-      !state.isCurrent && !state.isAdjacent ? "is-known" : "",
+      !state.isCurrent && !state.isAdjacent && !state.isReachable ? "is-known" : "",
     ].filter(Boolean).join(" ");
 
     return `
-      <button
+      <g
         class="${classes}"
-        data-hex-location="${slot.locationId}"
-        type="button"
-        style="left:${position.x}px; top:${position.y}px; width:${boardLayout.dimensions.width}px; min-height:${boardLayout.dimensions.height}px;"
+        data-hex-location="${node.locationId}"
+        role="button"
+        tabindex="${state.isCurrent || state.isReachable || state.isAdjacent ? "0" : "-1"}"
+        aria-label="${escapeHtml(location.name)}"
+        transform="translate(${position.x} ${position.y})"
       >
-        <span class="hex-tile-body">
-          <span class="hex-tile-name">${location.name}</span>
-        </span>
-      </button>
+        <polygon class="hex-tile-shape" points="${hexPoints(0, 0, boardLayout.dimensions.size)}"></polygon>
+        <text class="hex-tile-name" text-anchor="middle">${hexLabelMarkup(location.name)}</text>
+        <title>${escapeHtml(location.name)}</title>
+      </g>
     `;
   }).join("");
 
-  const adjacentCards = snapshot.mapEntries
+  const hexMapDefs = `
+    <defs>
+      <linearGradient id="hex-fill-default" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#f9fbfb"></stop>
+        <stop offset="100%" stop-color="#e4ebee"></stop>
+      </linearGradient>
+      <linearGradient id="hex-fill-reachable" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#d5dee4"></stop>
+        <stop offset="100%" stop-color="#aebdc7"></stop>
+      </linearGradient>
+      <linearGradient id="hex-fill-reachable-hover" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#c8d6dd"></stop>
+        <stop offset="100%" stop-color="#9fb3be"></stop>
+      </linearGradient>
+      <linearGradient id="hex-fill-current" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#3b927b"></stop>
+        <stop offset="100%" stop-color="#236451"></stop>
+      </linearGradient>
+      <linearGradient id="hex-fill-known" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#f6f8f8"></stop>
+        <stop offset="100%" stop-color="#dfe7ea"></stop>
+      </linearGradient>
+      <linearGradient id="hex-fill-locked" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#646a70"></stop>
+        <stop offset="100%" stop-color="#3d4349"></stop>
+      </linearGradient>
+      <filter id="hex-shadow-soft" x="-28%" y="-28%" width="156%" height="156%">
+        <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#1f2937" flood-opacity="0.12"></feDropShadow>
+      </filter>
+      <filter id="hex-shadow-current" x="-32%" y="-32%" width="164%" height="164%">
+        <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#1f4e42" flood-opacity="0.18"></feDropShadow>
+      </filter>
+    </defs>
+  `;
+
+  const travelCards = snapshot.mapEntries
     .filter((entry) => visible.has(entry.locationId))
-    .filter((entry) => entry.isAdjacent && !entry.isCurrent)
+    .filter((entry) => !entry.isCurrent && (entry.isReachable || entry.isAdjacent))
+    .sort((left, right) => {
+      const leftDistance = left.routeDistance || 99;
+      const rightDistance = right.routeDistance || 99;
+      return leftDistance - rightDistance;
+    })
     .map((entry) => {
       const location = visible.get(entry.locationId);
       if (!location) {
         return "";
       }
+      const routeDistance = Number(entry.routeDistance || 0);
+      const routeTag = entry.isReachable && routeDistance > 1
+        ? `<span class="tag tag-route">${routeDistance}구간</span>`
+        : "";
       return `
         <article
-          class="map-card map-card-compact ${entry.isReachable ? "is-reachable" : "is-locked"}"
+          class="map-card map-card-compact ${entry.isReachable ? "is-reachable" : "is-locked"} ${entry.isAdjacent ? "is-adjacent" : "is-distant"}"
           ${entry.isReachable ? `data-travel-card="${entry.locationId}"` : ""}
         >
           <div class="map-meta">
             <h3>${location.name}</h3>
-            <span class="tag">${location.risk}</span>
+            <div class="map-card-tags">
+              <span class="tag">${riskLabel(location.risk)}</span>
+              ${routeTag}
+            </div>
           </div>
           <p>${location.summary}</p>
           ${entry.isReachable ? "" : `<small class="tiny">${entry.reason || "이동 불가"}</small>`}
@@ -750,29 +992,34 @@ function renderMapPanel() {
       <article class="map-card map-current-card">
         <div class="map-meta">
           <h3>${currentLocation.name}</h3>
-          <span class="tag">${currentLocation.risk}</span>
+          <span class="tag">${riskLabel(currentLocation.risk)}</span>
         </div>
         <p>${currentLocation.summary}</p>
       </article>
 
       <div class="hex-map-board">
-        <div
+        <svg
           class="hex-map-stage"
-          style="width:${boardLayout.pixelWidth}px; height:${boardLayout.pixelHeight}px; --hex-width:${boardLayout.dimensions.width}px; --hex-height:${boardLayout.dimensions.height}px;"
+          viewBox="0 0 ${boardLayout.pixelWidth} ${boardLayout.pixelHeight}"
+          style="width:${boardLayout.pixelWidth}px; height:${boardLayout.pixelHeight}px; --hex-size:${boardLayout.dimensions.size}px;"
+          role="img"
+          aria-label="지역 지도"
         >
+          ${hexMapDefs}
+          ${edgeMarkup}
           ${tileMarkup}
-        </div>
+        </svg>
       </div>
 
       <div class="map-list">
-        ${adjacentCards}
+        ${travelCards}
       </div>
     </section>
   `;
 
-  dom.panelContent.querySelectorAll("[data-hex-location]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const locationId = button.dataset.hexLocation;
+  dom.panelContent.querySelectorAll("[data-hex-location]").forEach((tile) => {
+    const activateTile = () => {
+      const locationId = tile.dataset.hexLocation;
       const entry = states.get(locationId);
       const location = visible.get(locationId);
       if (!entry || !location) {
@@ -797,6 +1044,15 @@ function renderMapPanel() {
         client.mapHint = entry.reason || "아직 이동할 수 없는 경로다.";
         renderPanel();
       }
+    };
+
+    tile.addEventListener("click", activateTile);
+    tile.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      activateTile();
     });
   });
 
@@ -823,14 +1079,14 @@ function renderInventoryPanel() {
 
   if (itemCards.length === 0) {
     dom.panelContent.innerHTML = `
-      <div class="panel-grid">${moneyCard}</div>
+      <div class="panel-grid inventory-grid">${moneyCard}</div>
       <p class="empty-state">지금 가진 물건이 없다.</p>
     `;
     return;
   }
 
   dom.panelContent.innerHTML = `
-    <div class="panel-grid">
+    <div class="panel-grid inventory-grid">
       ${moneyCard}
       ${itemCards.map((item) => {
         const count = snapshot.state.inventory[item.id] || 0;
@@ -857,14 +1113,13 @@ function renderInventoryPanel() {
   });
 }
 
-function renderSkillsPanel() {
+function skillsPanelMarkup() {
   const skills = client.snapshot.skills || [];
   if (!skills.length) {
-    dom.panelContent.innerHTML = `<p class="empty-state">아직 얻은 생존 방식이 없다.</p>`;
-    return;
+    return `<p class="empty-state">아직 얻은 생존 방식이 없다.</p>`;
   }
 
-  dom.panelContent.innerHTML = `
+  return `
     <div class="panel-grid">
       ${skills.map((skill) => `
         <article class="info-card">
@@ -873,6 +1128,96 @@ function renderSkillsPanel() {
         </article>
       `).join("")}
     </div>
+  `;
+}
+
+function renderSkillsPanel() {
+  dom.panelContent.innerHTML = skillsPanelMarkup();
+}
+
+function statusValueLabel(value) {
+  if (value >= 8) {
+    return "양호";
+  }
+  if (value >= 5) {
+    return "주의";
+  }
+  return "위험";
+}
+
+function statusDetailMarkup() {
+  const snapshot = client.snapshot;
+  const state = snapshot.state;
+  const location = currentLocationCard();
+  const stats = [
+    {
+      key: "hp",
+      title: "체력",
+      value: state.stats.hp,
+      note: "부상을 견디고 움직일 수 있는 힘입니다.",
+    },
+    {
+      key: "mind",
+      title: "정신력",
+      value: state.stats.mind,
+      note: "불안과 피로 속에서도 판단을 유지하는 힘입니다.",
+    },
+    {
+      key: "fullness",
+      title: "포만감",
+      value: state.stats.fullness,
+      note: "행동 시간이 지나면 줄어들고 음식과 물로 회복합니다.",
+    },
+  ];
+
+  return `
+    <div class="status-detail-stack">
+      ${stats.map((stat) => `
+        <article class="status-detail-card is-${stat.key}">
+          <div class="status-detail-head">
+            <h3>${stat.title}</h3>
+            <span class="tag">${statusValueLabel(stat.value)} · ${stat.value} / 10</span>
+          </div>
+          <div class="status-detail-meter">
+            <span style="width:${Math.max(0, Math.min(100, stat.value * 10))}%"></span>
+          </div>
+          <p>${stat.note}</p>
+        </article>
+      `).join("")}
+    </div>
+    <div class="status-summary-grid">
+      <article class="info-card status-summary-card">
+        <h3>시간</h3>
+        <p>${snapshot.day}일차 ${gameClockLabel()}</p>
+      </article>
+      <article class="info-card status-summary-card">
+        <h3>위치</h3>
+        <p>${location ? location.name : "알 수 없음"}</p>
+      </article>
+      <article class="info-card status-summary-card">
+        <h3>돈</h3>
+        <p>${state.money.toLocaleString()}원</p>
+      </article>
+    </div>
+  `;
+}
+
+function renderStatusPanel() {
+  const activeView = client.activeStatusPanelView || "status";
+  dom.panelContent.innerHTML = `
+    <div class="panel-switch">
+      <button
+        class="panel-switch-button ${activeView === "status" ? "active" : ""}"
+        data-status-view="status"
+        type="button"
+      >상태</button>
+      <button
+        class="panel-switch-button ${activeView === "skills" ? "active" : ""}"
+        data-status-view="skills"
+        type="button"
+      >스킬</button>
+    </div>
+    ${activeView === "skills" ? skillsPanelMarkup() : statusDetailMarkup()}
   `;
 }
 
@@ -933,25 +1278,43 @@ function renderLogPanel() {
   `;
 }
 
+function renderMenuPanel() {
+  dom.panelContent.innerHTML = `
+    <div class="menu-actions">
+      <button class="menu-action" data-menu-action="log" type="button">
+        <span>기록</span>
+      </button>
+      <button class="menu-action danger" data-menu-action="new-game" type="button">
+        <span>새 게임</span>
+      </button>
+    </div>
+  `;
+}
+
 function renderPanel() {
   const config = PANEL_CONFIG[client.activePanel];
   dom.panelTitle.textContent = config.title;
-  dom.panelSubtitle.textContent = config.subtitle;
   if (client.activePanel === "map") {
     renderMapPanel();
   } else if (client.activePanel === "inventory") {
     renderInventoryPanel();
-  } else if (client.activePanel === "skills") {
-    renderSkillsPanel();
+  } else if (client.activePanel === "status") {
+    renderStatusPanel();
   } else if (client.activePanel === "quests") {
     renderQuestsPanel();
-  } else {
+  } else if (client.activePanel === "log") {
     renderLogPanel();
+  } else {
+    renderMenuPanel();
   }
   dom.panelShell.classList.toggle("is-open", client.isPanelOpen);
   dom.panelShell.setAttribute("aria-hidden", client.isPanelOpen ? "false" : "true");
   dom.dockButtons.forEach((button) => {
-    const isActive = client.isPanelOpen && button.dataset.panel === client.activePanel;
+    const isMenuContent = client.activePanel === "menu" || client.activePanel === "log";
+    const isActive = client.isPanelOpen && (
+      button.dataset.panel === client.activePanel ||
+      (button.dataset.panel === "menu" && isMenuContent)
+    );
     button.classList.toggle("active", isActive);
     button.setAttribute("aria-expanded", isActive ? "true" : "false");
   });
@@ -964,11 +1327,16 @@ function render(options = {}) {
   renderStatusBar();
   renderScene(options.animateScene !== false);
   renderPanel();
+  maybePromptGameOver();
   client.justCreatedGame = false;
 }
 
 async function submitAction(action) {
   if (!client.gameId || client.actionInFlight) {
+    return;
+  }
+  if (client.snapshot?.state?.isGameOver) {
+    maybePromptGameOver();
     return;
   }
   client.actionInFlight = true;
@@ -989,9 +1357,15 @@ async function submitAction(action) {
       });
       return;
     }
+    const didMove = previousSnapshot?.state?.location &&
+      snapshot?.state?.location &&
+      previousSnapshot.state.location !== snapshot.state.location;
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
     client.mapHint = "";
+    if (didMove) {
+      client.isPanelOpen = false;
+    }
     client.actionInFlight = false;
     render({
       animateScene: shouldAnimateScene({
@@ -1000,7 +1374,7 @@ async function submitAction(action) {
         nextSnapshot: snapshot,
       }),
     });
-    if (action?.type === "travel") {
+    if (didMove) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   } catch (error) {
@@ -1079,6 +1453,9 @@ async function bootstrap() {
 dom.dockButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const nextPanel = button.dataset.panel;
+    if (nextPanel === "status" && client.activePanel !== "status") {
+      client.activeStatusPanelView = "status";
+    }
     client.isPanelOpen = client.activePanel === nextPanel ? !client.isPanelOpen : true;
     client.activePanel = nextPanel;
     renderPanel();
@@ -1094,13 +1471,23 @@ dom.dockButtons.forEach((button) => {
 });
 
 document.addEventListener("click", (event) => {
-  if (dom.statusPopover.hidden) {
+  if (!dom.statusPopover.hidden && !dom.statusPopover.contains(event.target)) {
+    closeStatusPopover();
+  }
+
+  if (!client.isPanelOpen) {
     return;
   }
-  if (dom.statusPopover.contains(event.target)) {
+  const eventPath = typeof event.composedPath === "function" ? event.composedPath() : [];
+  const startedInPanel = eventPath.includes(dom.panelShell) || dom.panelShell.contains(event.target);
+  const startedInDock = eventPath.some((node) =>
+    node instanceof Element && node.classList.contains("utility-dock")
+  ) || (event.target instanceof Element && event.target.closest(".utility-dock"));
+  if (startedInPanel || startedInDock) {
     return;
   }
-  closeStatusPopover();
+  client.isPanelOpen = false;
+  renderPanel();
 });
 
 dom.sceneFrame.addEventListener("click", (event) => {
@@ -1110,7 +1497,7 @@ dom.sceneFrame.addEventListener("click", (event) => {
   skipSceneTyping();
 });
 
-dom.newGameButton.addEventListener("click", async () => {
+async function startNewGameFromMenu() {
   const confirmed = window.confirm("새 게임을 시작하면 현재 진행 중인 세션 대신 새 세션이 만들어집니다.");
   if (!confirmed) {
     return;
@@ -1128,6 +1515,33 @@ dom.newGameButton.addEventListener("click", async () => {
   } catch (error) {
     console.error(error);
     window.alert(error instanceof Error ? error.message : "새 게임을 시작하지 못했습니다.");
+  }
+}
+
+dom.panelContent.addEventListener("click", (event) => {
+  const statusViewButton = event.target.closest("[data-status-view]");
+  if (statusViewButton) {
+    client.activeStatusPanelView = statusViewButton.dataset.statusView;
+    client.activePanel = "status";
+    client.isPanelOpen = true;
+    renderPanel();
+    return;
+  }
+
+  const actionButton = event.target.closest("[data-menu-action]");
+  if (!actionButton) {
+    return;
+  }
+
+  const action = actionButton.dataset.menuAction;
+  if (action === "log") {
+    client.activePanel = "log";
+    client.isPanelOpen = true;
+    renderPanel();
+    return;
+  }
+  if (action === "new-game") {
+    startNewGameFromMenu();
   }
 });
 

@@ -4,7 +4,7 @@ import { interactionFor } from "../../location-interaction-helpers";
 export const checkpointChoices: ActionDefinition[] = [
   interactionFor("checkpoint", {
     id: "go_to_checkpoint_radio_truck",
-    label: "통신 차량 살펴보기",
+    label: "통신 차량으로 간다",
     type: "search",
     outcomeHint: "검문소 안쪽에 버려진 통신 차량을 뒤져 송신기와 구조대 흔적을 확인한다.",
     effects: [
@@ -35,17 +35,17 @@ export const checkpointLocation: LocationDefinition = {
   id: "checkpoint",
   name: "검문소",
   risk: "high",
+  mapPosition: { q: 3, r: 0 },
   imagePath: "assets/scenes/checkpoint.svg",
   summary: "뒤집힌 차단봉과 버려진 통신 차량이 남은 검문소다. 구조대의 무전 흔적과 송신기 부품을 찾을 수 있다.",
   tags: ["signal", "rescue", "tension"],
   traits: ["transmitter", "rescue rumor", "danger"],
   obtainableItemIds: ["radioTransmitter", "painRelief", "rationTicket"],
   residentIds: [],
-  neighbors: ["shelter", "subway"],
+  neighbors: ["subway"],
   interactionChoices: checkpointChoices,
   eventIds: [],
   links: {
-    shelter: { note: "검문소 외곽 도로를 따라 임시 거처 쪽으로 돌아간다." },
     subway: { note: "부서진 지하 출구를 통해 지하철역 쪽으로 내려간다." },
   },
   stockNodes: [

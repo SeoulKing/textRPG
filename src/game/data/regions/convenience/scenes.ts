@@ -182,12 +182,13 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     locationId: "convenience",
     title: "편의점 폐허",
     paragraphs: [
-      "무너진 편의점 안쪽을 둘러보면 아직 완전히 쓸리지 않은 자리들이 남아 있다. 진열대에는 통조림 세 개가 그대로 놓여 있고, 입구 가까운 계산대 서랍에는 현금이 남아 있으며, 창고 선반 아래에는 판자와 천 조각, 금속 부품이 뒤엉킨 자재 더미까지 보인다.",
+      "무너진 편의점 안쪽에는 아직 완전히 쓸리지 않은 자리들이 남아 있다. 진열대에는 통조림 몇 개가 그대로 놓여 있고, 입구 가까운 계산대 서랍에는 현금이 남아 있으며, 창고 선반 아래에는 판자와 천 조각, 금속 부품이 뒤엉킨 자재 더미가 보인다.",
+      "뒤편 골목으로는 약품 냄새가 희미하게 흘러온다. 깨진 간판 너머로 작은 병원 쪽 길이 이어지는 듯하다.",
     ],
     choiceIds: ["go_to_convenience_shelf", "go_to_convenience_register", "go_to_convenience_supply_pile"],
     conditions: [
       { type: "location", locationId: "convenience" },
-      { type: "flag", flag: "convenience_shelf_found" },
+      { type: "flag", flag: "intro_seen_convenience" },
       { type: "active_stock_node_not", nodeId: "convenience_shelf" },
       { type: "active_stock_node_not", nodeId: "convenience_register" },
       { type: "active_stock_node_not", nodeId: "convenience_supply_pile" },
@@ -199,12 +200,11 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     title: "편의점 폐허",
     paragraphs: [
       "편의점은 반쯤 주저앉은 채 마지막 형태만 간신히 붙들고 있다. 깨진 자동문은 비스듬히 매달려 있고 바닥에는 유리 조각과 찢긴 포장지, 누군가 급히 훑고 간 흔적이 여기저기 남아 있다.",
-      "진열대 대부분은 이미 비어 있지만, 계산대와 창고 쪽에는 아직 손이 덜 닿은 자리도 보인다. 조금만 더 살피면 오늘을 버틸 식량이나 손에 쥘 만한 자재를 찾을 수 있을 것 같다.",
+      "진열대 대부분은 이미 비어 있지만, 계산대와 창고 쪽에는 아직 손이 덜 닿은 자리도 보인다. 뒤편 골목에서는 희미한 약품 냄새가 흘러오고, 깨진 간판 너머로 작은 병원 쪽 길이 이어지는 듯하다.",
     ],
-    choiceIds: [],
+    choiceIds: ["go_to_convenience_shelf", "go_to_convenience_register", "go_to_convenience_supply_pile"],
     conditions: [
       { type: "location", locationId: "convenience" },
-      { type: "flag_not", flag: "convenience_shelf_found" },
       { type: "flag_not", flag: "intro_seen_convenience" },
     ],
     introFlag: "intro_seen_convenience",
@@ -214,12 +214,12 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     locationId: "convenience",
     title: "편의점 폐허",
     paragraphs: [
-      "반쯤 무너진 가게 안에는 아직 먼지와 생활의 잔해가 그대로 남아 있다. 조금만 더 살피면 오늘을 버틸 식량이나 돈, 혹은 제작에 쓸 자재를 건질 수 있을지도 모른다.",
+      "반쯤 무너진 가게 안에는 아직 먼지와 생활의 잔해가 그대로 남아 있다. 진열대, 계산대, 창고 자재 더미 사이에서 지금 챙길 것을 골라야 한다.",
+      "뒤편 골목은 작은 병원 쪽으로 이어진다. 약품이나 전원 부품이 필요해지면 그 길을 따라가 볼 수 있다.",
     ],
-    choiceIds: [],
+    choiceIds: ["go_to_convenience_shelf", "go_to_convenience_register", "go_to_convenience_supply_pile"],
     conditions: [
       { type: "location", locationId: "convenience" },
-      { type: "flag_not", flag: "convenience_shelf_found" },
       { type: "flag", flag: "intro_seen_convenience" },
     ],
   },

@@ -62,6 +62,7 @@ class TemplateContentGenerator implements ContentGenerator {
       id: location.id,
       name: location.name,
       risk: location.risk,
+      mapPosition: location.mapPosition,
       summary: location.summary,
       description: `${location.summary} ${summarizeState(input.state).phase.toLowerCase()}의 공기는 이곳의 먼지와 기척을 더 또렷하게 드러낸다.`,
       tags: [...location.tags],

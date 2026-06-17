@@ -50,9 +50,8 @@ export function getGameClockShiftedMinutes(worldElapsedMs: number) {
 
 export function formatClockLabelFromElapsed(worldElapsedMs: number) {
   const shiftedMinutes = getGameClockShiftedMinutes(worldElapsedMs);
-  const roundedMinutes = Math.floor(shiftedMinutes / 10) * 10;
-  const hours = String(Math.floor(roundedMinutes / 60)).padStart(2, "0");
-  const minutes = String(roundedMinutes % 60).padStart(2, "0");
+  const hours = String(Math.floor(shiftedMinutes / 60)).padStart(2, "0");
+  const minutes = String(shiftedMinutes % 60).padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 

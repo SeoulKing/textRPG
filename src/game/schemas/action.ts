@@ -18,6 +18,7 @@ export const ActionDefinitionSchema = z.object({
   label: z.string(),
   type: ActionTypeSchema,
   outcomeHint: z.string().default("Push the situation forward."),
+  showOutcomeHint: z.boolean().optional(),
   visibility: ActionVisibilitySchema.default("scene"),
   presentationMode: ActionPresentationModeSchema.default("when_conditions_met"),
   locationIds: z.array(z.string()).default([]),

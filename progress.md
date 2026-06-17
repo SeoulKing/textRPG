@@ -78,6 +78,10 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   money `6500 -> 8300` ->
   scene changed directly to `convenience_register_empty`.
 - Detail-focus flow cleanup:
+
+- Bug fix: the bottom dock showed the Move tab as active on fresh load/new game because `index.html` hardcoded `class="dock-button active"` on the Move button.
+- Removed the hardcoded active class and reset `client.isPanelOpen = false` in `createNewGame()` so starting a new game closes any open utility panel instead of leaving the Map/Move tab visually pressed.
+- Verified locally in the in-app browser after reload and through Menu -> New Game: all dock buttons had `active=false`, `aria-expanded=false`, and `.panel-shell` stayed closed.
   while focused on a stock node (for example `kitchen_scrap_heap`), the engine now treats that as a detail sublocation and suppresses top-level location interactions.
 - Updated `resolveStoryFrame()` so `activeStockNodeId` behaves like opening a box/container:
   only the focused node's scene choices are shown until the player backs out.
@@ -328,3 +332,134 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   API 스모크에서 병원 배터리, 지하철역 안테나, 검문소 송신기를 모아 임시 거처에서 구조 신호 조립까지 성공했다.
   10일차까지 넘겼을 때 `stageClear=true`와 구조 성공 `systemNote`가 유지되는 것을 확인했다.
   브라우저 새로고침 확인 결과 목표바는 없고, 이동 지도에 임시 거처/편의점 폐허/급식소/검문소/지하철역/작은 병원이 모두 표시된다.
+
+- 2026-06-17 movement-discovery update:
+  initial map knowledge now starts with shelter, convenience ruins, and kitchen only.
+  Hospital, subway, and checkpoint no longer auto-appear from day hints or shelter links.
+  Each later tile is learned through authored exploration actions from adjacent regions:
+  convenience -> hospital, kitchen -> subway, subway -> checkpoint.
+  Verified by API smoke probes plus `npm.cmd run content:validate` and `npm.cmd run build`.
+  Follow-up verification also passed `npm.cmd run typecheck`, browser reload confirmed only the three starting locations are visible,
+  and corrected API action-shape probes confirmed the discovery chain.
+
+- 2026-06-17 hex map visual polish:
+  added SVG gradients and softer SVG-native drop shadows for map hex tiles.
+  Tile fills now follow the actual polygon shape instead of reading like a flat clipped rectangle.
+  Verified with `node --check app-api.js`, `npm.cmd run build`, and an in-app browser screenshot.
+
+- 2026-06-17 location entry gameplay cleanup:
+  removed the extra `survey_convenience` step and the explicit route-check actions for hospital/subway/checkpoint discovery.
+  Convenience now shows concrete subarea choices immediately on arrival: shelf, register, and supply pile.
+  Adjacent-region discovery now happens when the previous region is reached:
+  convenience reveals hospital, kitchen reveals subway, and subway reveals checkpoint.
+  Arrival prose now carries those route clues directly.
+  Also renamed target-specific search buttons to `...으로 간다` where appropriate.
+  Verified with `npm.cmd run content:validate`, `npm.cmd run typecheck`, `npm.cmd run build`,
+  API smoke checks, and a browser reload showing the updated convenience scene and choices.
+
+- 2026-06-17 system note discovery feedback:
+  system notes now compare previous/next known or visited locations and emit `신규 지역: <location name>` whenever a new region becomes known.
+  API smoke checks verified:
+  convenience -> `신규 지역: 작은 병원`,
+  kitchen -> `신규 지역: 지하철역`,
+  subway -> `신규 지역: 검문소`.
+  `npm.cmd run typecheck`, `npm.cmd run content:validate`, and `npm.cmd run build` passed.
+
+- 2026-06-17 system note detail reduction:
+  removed stock-node level `발견: ...`, `확인: ...`, and stock-focus fallback notes from system feedback.
+  System notes still report major changes like movement, newly known regions, stat/resource/item deltas, and quest state.
+  API smoke check verified entering the convenience shelf no longer emits detail-level notes,
+  while collecting canned food still reports item/fullness/quest changes.
+
+- 2026-06-17 movement bottom-sheet behavior:
+  `submitAction()` now compares previous and next location ids and closes the utility bottom sheet whenever an action actually changes location.
+  Verified in the in-app browser by opening the Move panel at convenience, traveling to shelter, and confirming `.panel-shell.is-open=false`
+  with all dock buttons inactive after movement.
+
+- 2026-06-17 scene typing animation fix:
+  `shouldAnimateScene()` no longer requires `introFlag` before animating.
+  It now compares the previous and next authored scene/event surface, so detail scenes like shelf/register/supply pile also type out when entered.
+  Verified with `node --check app-api.js`, `npm.cmd run build`, and in-app browser interaction:
+  entering the register scene produced `.typing=true` immediately after click.
+
+- 2026-06-17 kitchen prose formatting:
+  split the kitchen first-intro dialogue `"다음 사람, 빨리."` into its own paragraph,
+  with the following narration moved to a separate paragraph for a more novel-like reading rhythm.
+  Verified with `npm.cmd run content:validate` and `npm.cmd run build`.
+
+- 2026-06-17 inventory panel compact grid:
+  item cards in the bottom-sheet inventory panel now use an `inventory-grid` class and render two cards per row on mobile.
+  Verified with `npm.cmd run build` and in-app browser DOM checks:
+  the inventory grid computed as two columns, the first two cards shared a row, there was no horizontal overflow, and console error count was 0.
+  The web-game Playwright client remains unavailable because this workspace still has no local `node_modules/playwright`.
+
+- 2026-06-17 status/skills bottom-sheet split:
+  replaced the bottom dock `스킬` button with `상태`.
+  The new status panel includes a top two-way switch: `상태` on the left and `스킬` on the right.
+  `상태` shows hp/mind/fullness detail cards plus time, location, and money; `스킬` reuses the current skill-card list.
+  Verified with `npm.cmd run build`, `node --check app-api.js`, and a localhost 200 response.
+  In-app browser automation could not complete visual verification because the Browser webview timed out while attaching, and local `node_modules/playwright` is still absent.
+
+- 2026-06-17 status/skills switch polish:
+  removed the visible outer switch container styling and tablist semantics from the `상태/스킬` selector.
+  The selector now renders as two standalone buttons with their own borders and active state.
+  Verified with `node --check app-api.js`, `npm.cmd run build`, and the served `styles.css` response.
+
+- 2026-06-17 route-aligned map positions:
+  updated late-route map positions so the authored path reads spatially as kitchen -> subway -> checkpoint.
+  `subway` moved to `{ q: 2, r: 0 }`, directly down-right from kitchen `{ q: 1, r: 0 }`.
+  `checkpoint` moved to `{ q: 3, r: 0 }`, directly down-right from subway.
+  Updated both the authored location definitions and the frontend fallback coordinates.
+  Verified with `npm.cmd run content:validate`, `npm.cmd run build`, and `node --check app-api.js`.
+
+- 2026-06-17 bottom-sheet stacking correction:
+  adjusted the bottom sheet/menu ordering to work like PPT send-back/bring-front layering.
+  The bottom sheet remains positioned above the dock when open, but its closed transform starts below the dock.
+  `.dock-buttons` is now explicitly positioned with `z-index: 20`, while `.panel-shell` remains at `z-index: 19`, so the menu bar is the front layer and masks the sheet as it animates behind it.
+  The dock background is opaque white to avoid the sheet showing through while passing behind the menu.
+  Verified with `npm.cmd run build`, served CSS inspection, and selector checks.
+
+- 2026-06-17 choice helper text restore:
+  choice buttons now render `outcomeHint` as helper text under the main button label.
+  Kitchen meal purchase copy now keeps the button label short and puts the cost/reward below it:
+  `4,500원을 내고 따뜻한 식사 1개를 얻는다.`
+  Verified with `node --check app-api.js`, `npm.cmd run content:validate`, `npm.cmd run build`, API smoke output,
+  and an in-app browser reload at the kitchen scene.
+
+- 2026-06-17 selective choice helper visibility:
+  added optional `showOutcomeHint` plumbing through action/choice schemas, story choices, action catalogs, and the browser renderer.
+  `outcomeHint` data remains authored for every choice, but the UI only displays it when `showOutcomeHint` is true.
+  Enabled the visible helper text only for the two kitchen meal purchase actions.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`,
+  and an in-app browser check: kitchen meal purchase showed the cost/reward helper, while `폐자재 더미로 간다` kept its hidden helper span.
+
+- 2026-06-17 material stock rebalance:
+  increased early crafting material availability in the convenience ruins and soup kitchen salvage piles.
+  Convenience supply pile now starts with `clothScrap: 4` and `scrapMetal: 3` while keeping `woodPlank: 3`.
+  Kitchen scrap heap now starts with `scrapMetal: 4` and `clothScrap: 4`.
+  Verified with `npm.cmd run content:validate`, `npm.cmd run build`, `npm.cmd run typecheck`,
+  built JS inspection, and API smoke checks confirming new-game collection totals:
+  convenience `scrapMetal=3`, `clothScrap=4`; kitchen `scrapMetal=4`, `clothScrap=4`.
+
+- 2026-06-17 travel time rebalance:
+  replaced the old large "phase" travel cost with a 15-minute game-time travel duration per route segment.
+  Hunger now ticks once per in-game hour (`AUTO_FULLNESS_TICK_MS = GAME_HOUR_MS`) instead of once per day phase.
+  General authored `advance_time` actions now use 15-minute units as well, so scavenging/crafting no longer consumes a whole day phase.
+  Travel now calls `advanceTravelTime()` directly and no longer applies the late-night hp/mind penalty through `advanceByPhases()`.
+  Clock formatting no longer rounds down to 10-minute labels, so 15-minute movement displays accurately.
+  Verified with `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, built JS inspection, and API smoke:
+  one move produced `worldElapsedMs=9375` and kept fullness at 7; four moves produced `worldElapsedMs=37500` and fullness 6.
+
+- 2026-06-17 multi-hop travel:
+  changed travel validation from direct-link-only to shortest known unlocked route resolution.
+  A travel action now walks each route segment in order, marking intermediate locations visited and applying the existing `TRAVEL_DURATION_MS` movement cost once per segment.
+  Map entries now include `routeDistance` and `routePath`; reachable non-adjacent locations are selectable and show a route-distance tag such as `2구간`.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`,
+  and a rules smoke test confirming shelter-to-subway multi-hop travel lands at `subway`, consumes two travel-duration units (`worldElapsedMs=18750`), and keeps `phaseIndex=0` / fullness 7.
+
+- 2026-06-17 hp-zero game-over rule:
+  added a final survival-outcome evaluation at the end of `performAction()` so any action/effect that leaves hp at 0 immediately marks the save as game over.
+  Existing game-over saves now reject further server-side actions with the stored game-over reason.
+  Added a client game-over prompt that shows the game-over reason, reached day/time, total survived time, and asks whether to start a new game.
+  Game-over renders now hide normal choice buttons and label the scene badge as `게임오버`.
+  Pending verification: run syntax/type/build checks and a focused runtime/UI probe for hp reaching 0.

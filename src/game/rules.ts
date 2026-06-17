@@ -1,4 +1,5 @@
 import {
+  ACTION_TIME_UNIT_MS,
   AUTO_FULLNESS_TICK_MS,
   PHASE_DURATION_MS,
   PHASES,
@@ -6,9 +7,10 @@ import {
   SAVE_VERSION,
   STARVATION_TICK_MS,
   TARGET_RESCUE_DAY,
+  TRAVEL_DURATION_MS,
 } from "./base-data";
 import { actionConditionsMet, choiceConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
-import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLinkedLocationIds, getRuntimeLocationDefinition } from "./runtime-registry";
+import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition } from "./runtime-registry";
 import { appendLogEntry, applyEffect, evaluateCondition, evaluateObjective, getStockMoneyKey, getStockStateKey } from "./state-utils";
 import type { ActionDefinition, ChoiceDefinition, DayEvolutionUpdate, GameAction, GameState } from "./schemas";
 
@@ -93,13 +95,29 @@ function markLocationKnown(state: GameState, locationId: string) {
   state.flags[`known_${locationId}`] = true;
 }
 
+const DISCOVERY_UNLOCK_FLAGS: Record<string, string[]> = {
+  hospital: ["hospital_lead_checked", "visited_convenience", "visited_hospital"],
+  subway: ["subway_lead_checked", "visited_kitchen", "visited_subway"],
+  checkpoint: ["checkpoint_lead_checked", "visited_subway", "visited_checkpoint"],
+};
+
+function normalizeExplorationKnowledge(state: GameState) {
+  state.flags.known_convenience = true;
+  state.flags.known_kitchen = true;
+
+  Object.entries(DISCOVERY_UNLOCK_FLAGS).forEach(([locationId, unlockFlags]) => {
+    if (unlockFlags.some((flag) => state.flags[flag])) {
+      state.flags[`known_${locationId}`] = true;
+      return;
+    }
+    delete state.flags[`known_${locationId}`];
+  });
+}
+
 export function refreshLocationKnowledge(state: GameState) {
-  const registry = buildRuntimeRegistry(state);
   markLocationKnown(state, state.location);
   state.flags[`visited_${state.location}`] = true;
-  getRuntimeLinkedLocationIds(state, registry, state.location).forEach((locationId) => {
-    markLocationKnown(state, locationId);
-  });
+  normalizeExplorationKnowledge(state);
 }
 
 function relieveStarvation(state: GameState, amount = 1) {
@@ -153,17 +171,6 @@ function formatSignedDelta(value: number, label: string) {
   return `${sign} ${Math.abs(value)} ${label}`;
 }
 
-function findStockNodeName(state: GameState, nodeId: string) {
-  const registry = buildRuntimeRegistry(state);
-  for (const location of Object.values(registry.locations)) {
-    const node = location.stockNodes.find((entry) => entry.id === nodeId);
-    if (node) {
-      return node.name;
-    }
-  }
-  return nodeId;
-}
-
 function questTitle(state: GameState, questId: string) {
   const registry = buildRuntimeRegistry(state);
   return getQuestDefinitions(registry).find((quest) => quest.id === questId)?.title ?? questId;
@@ -173,6 +180,11 @@ function itemName(state: GameState, itemId: string) {
   const registry = buildRuntimeRegistry(state);
   const item = registry.items[itemId] as { name?: string } | undefined;
   return String(item?.name ?? itemId);
+}
+
+function locationName(state: GameState, locationId: string) {
+  const registry = buildRuntimeRegistry(state);
+  return String(registry.locations[locationId]?.name ?? locationId);
 }
 
 function summarizeSystemNote(previousState: GameState, nextState: GameState, fallback = "") {
@@ -186,6 +198,14 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
   if (previousState.location !== nextState.location) {
     parts.push(`이동: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`);
   }
+
+  Object.keys(nextRegistry.locations).forEach((locationId) => {
+    const wasKnown = Boolean(previousState.flags[`known_${locationId}`] || previousState.flags[`visited_${locationId}`]);
+    const isKnown = Boolean(nextState.flags[`known_${locationId}`] || nextState.flags[`visited_${locationId}`]);
+    if (!wasKnown && isKnown) {
+      parts.push(`신규 지역: ${locationName(nextState, locationId)}`);
+    }
+  });
 
   (Object.keys(STAT_LABELS) as Array<keyof typeof STAT_LABELS>).forEach((statKey) => {
     const delta = nextState.stats[statKey] - previousState.stats[statKey];
@@ -211,21 +231,6 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
     }
   });
 
-  const previousDiscovered = new Set(previousState.discoveredStockNodeIds || []);
-  (nextState.discoveredStockNodeIds || []).forEach((nodeId) => {
-    if (!previousDiscovered.has(nodeId)) {
-      parts.push(`발견: ${findStockNodeName(nextState, nodeId)}`);
-    }
-  });
-
-  if (previousState.activeStockNodeId !== nextState.activeStockNodeId) {
-    if (nextState.activeStockNodeId) {
-      parts.push(`확인: ${findStockNodeName(nextState, nextState.activeStockNodeId)}`);
-    } else if (previousState.activeStockNodeId) {
-      parts.push(`복귀: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`);
-    }
-  }
-
   const questIds = new Set<string>([
     ...Object.keys(previousState.quests || {}),
     ...Object.keys(nextState.quests || {}),
@@ -239,6 +244,13 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
       parts.push(`퀘스트 시작: ${questTitle(nextState, questId)}`);
     }
   });
+
+  const stockFocusChanged = previousState.activeStockNodeId !== nextState.activeStockNodeId;
+  const previousDiscovered = new Set(previousState.discoveredStockNodeIds || []);
+  const stockDiscoveryChanged = (nextState.discoveredStockNodeIds || []).some((nodeId) => !previousDiscovered.has(nodeId));
+  if (parts.length === 0 && (stockFocusChanged || stockDiscoveryChanged)) {
+    return "";
+  }
 
   return parts.length > 0 ? parts.join(" / ") : fallback;
 }
@@ -376,22 +388,19 @@ function applySurvivalMilestone(state: GameState) {
 
   if (state.day === 4 && !state.flags.day4_hospital_hint) {
     state.flags.day4_hospital_hint = true;
-    state.flags.known_hospital = true;
-    addLog(state, "작은 병원에 아직 약품과 무전기 배터리가 남아 있다는 소문이 돈다.");
+    addLog(state, "편의점 폐허 뒤편 골목에 작은 병원이 있다는 소문이 돈다. 직접 길을 확인해야 지도에 남길 수 있다.");
     return;
   }
 
   if (state.day === 6 && !state.flags.day6_subway_hint) {
     state.flags.day6_subway_hint = true;
-    state.flags.known_subway = true;
-    addLog(state, "지하철역 신호함에서 안테나로 쓸 만한 부품을 봤다는 이야기가 들린다.");
+    addLog(state, "급식소 뒤편 통로 아래에 지하철역이 이어진다는 이야기가 들린다. 어두운 길은 직접 살펴야 한다.");
     return;
   }
 
   if (state.day === 8 && !state.flags.day8_checkpoint_hint) {
     state.flags.day8_checkpoint_hint = true;
-    state.flags.known_checkpoint = true;
-    addLog(state, "검문소 쪽에서 구조대 무전 주파수와 송신기 부품에 관한 소문이 퍼진다.");
+    addLog(state, "지하철역 반대편 출구 너머 검문소에 구조대 무전 기록이 남았다는 소문이 퍼진다.");
     return;
   }
 
@@ -466,7 +475,11 @@ function advanceByPhases(state: GameState, phases: number) {
     adjustStat(state, "mind", -1);
     addLog(state, "밤이 깊은 뒤에도 움직인 탓에 몸과 마음이 동시에 깎여 나간다.");
   }
-  advanceGameTime(state, PHASE_DURATION_MS * Math.max(1, phases));
+  advanceGameTime(state, ACTION_TIME_UNIT_MS * Math.max(1, phases));
+}
+
+function advanceTravelTime(state: GameState) {
+  advanceGameTime(state, TRAVEL_DURATION_MS);
 }
 
 export function syncClock(state: GameState, now = Date.now()) {
@@ -534,6 +547,8 @@ export function createInitialGameState(): GameState {
     },
     flags: {
       visited_shelter: true,
+      known_convenience: true,
+      known_kitchen: true,
     },
     quests: Object.fromEntries(getQuestDefinitions(registry).map((quest) => [quest.id, "inactive" as const])),
     lastSleepFullness: 8,
@@ -547,14 +562,82 @@ export function createInitialGameState(): GameState {
   return state;
 }
 
+function isKnownTravelLocation(state: GameState, locationId: string) {
+  return (
+    locationId === state.location ||
+    Boolean(state.flags[`known_${locationId}`]) ||
+    Boolean(state.flags[`visited_${locationId}`])
+  );
+}
+
+export function resolveTravelPath(state: GameState, targetId: string, registry = buildRuntimeRegistry(state)) {
+  if (!registry.locations[targetId]) {
+    return null;
+  }
+
+  if (targetId === state.location) {
+    return [state.location];
+  }
+
+  if (!isKnownTravelLocation(state, targetId)) {
+    return null;
+  }
+
+  const queue: string[][] = [[state.location]];
+  const visited = new Set<string>([state.location]);
+
+  while (queue.length > 0) {
+    const path = queue.shift();
+    if (!path) {
+      break;
+    }
+
+    const sourceId = path[path.length - 1];
+    const sourceLocation = registry.locations[sourceId];
+    if (!sourceLocation) {
+      continue;
+    }
+
+    for (const [nextId, link] of Object.entries(sourceLocation.links)) {
+      if (visited.has(nextId) || !registry.locations[nextId]) {
+        continue;
+      }
+
+      if (!isKnownTravelLocation(state, nextId)) {
+        continue;
+      }
+
+      if (link.requiredFlag && !state.flags[link.requiredFlag]) {
+        continue;
+      }
+
+      const nextPath = [...path, nextId];
+      if (nextId === targetId) {
+        return nextPath;
+      }
+
+      visited.add(nextId);
+      queue.push(nextPath);
+    }
+  }
+
+  return null;
+}
+
 function resolveTravelRequirement(state: GameState, targetId: string) {
   const registry = buildRuntimeRegistry(state);
+  const path = resolveTravelPath(state, targetId, registry);
+  if (path && path.length > 1) {
+    return { allowed: true, reason: "", path };
+  }
+
   const currentLocation = getRuntimeLocationDefinition(state, registry, state.location);
   const link = currentLocation.links[targetId];
   if (!link) {
     return {
       allowed: false,
-      reason: "거기로 바로 이어지는 길은 아직 없다.",
+      reason: "거기로 이어지는 경로가 아직 없다.",
+      path: null,
     };
   }
 
@@ -562,10 +645,11 @@ function resolveTravelRequirement(state: GameState, targetId: string) {
     return {
       allowed: false,
       reason: link.blockedReason || "아직 열리지 않은 길이다.",
+      path: null,
     };
   }
 
-  return { allowed: true, reason: "" };
+  return { allowed: false, reason: "아직 이동할 수 없는 경로다.", path: null };
 }
 
 function useItem(state: GameState, itemId: string) {
@@ -752,24 +836,39 @@ function executeSceneChoiceDefinition(state: GameState, choice: ChoiceDefinition
 export function performAction(state: GameState, action: GameAction) {
   const previousState = structuredClone(state);
   syncClock(state);
+  if (state.isGameOver) {
+    throw new Error(state.gameOverReason || "이미 게임오버 상태입니다.");
+  }
   const registry = buildRuntimeRegistry(state);
   let fallbackNote = "";
   let preferredSceneId: string | undefined;
 
   switch (action.type) {
     case "travel": {
-      const { allowed, reason } = resolveTravelRequirement(state, action.targetId);
-      if (!allowed) {
+      const { allowed, reason, path } = resolveTravelRequirement(state, action.targetId);
+      if (!allowed || !path || path.length < 2) {
         throw new Error(reason);
       }
+      const routeTargets = path.slice(1);
+      const destinationId = routeTargets[routeTargets.length - 1];
+      const destinationName = String(registry.locations[destinationId]?.name ?? destinationId);
       consumeCurrentSceneIntro(state);
-      state.location = action.targetId;
-      state.flags[`visited_${action.targetId}`] = true;
-      state.activeStockNodeId = null;
-      refreshLocationKnowledge(state);
-      fallbackNote = `이동: ${String(registry.locations[action.targetId]?.name ?? action.targetId)}`;
-      addLog(state, `${String(registry.locations[action.targetId]?.name ?? action.targetId)}(으)로 움직였다.`);
-      advanceByPhases(state, 1);
+      for (const stepTargetId of routeTargets) {
+        state.location = stepTargetId;
+        state.flags[`visited_${stepTargetId}`] = true;
+        state.activeStockNodeId = null;
+        refreshLocationKnowledge(state);
+        advanceTravelTime(state);
+        if (state.isGameOver || state.stageClear) {
+          break;
+        }
+      }
+      fallbackNote = routeTargets.length > 1
+        ? `이동: ${destinationName} (${routeTargets.length}구간)`
+        : `이동: ${destinationName}`;
+      addLog(state, routeTargets.length > 1
+        ? `${destinationName}(으)로 ${routeTargets.length}구간 이동했다.`
+        : `${destinationName}(으)로 이동했다.`);
       break;
     }
     case "use_item": {
@@ -800,6 +899,7 @@ export function performAction(state: GameState, action: GameAction) {
   }
 
   syncQuestState(state, previousState.quests);
+  evaluateSurvivalOutcome(state);
   syncScene(state, preferredSceneId);
   applySystemNote(previousState, state, fallbackNote);
 }

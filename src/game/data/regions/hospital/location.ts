@@ -4,7 +4,7 @@ import { interactionFor } from "../../location-interaction-helpers";
 export const hospitalChoices: ActionDefinition[] = [
   interactionFor("hospital", {
     id: "go_to_hospital_medicine_cabinet",
-    label: "약품 보관함을 살핀다",
+    label: "약품 보관함으로 간다",
     type: "search",
     outcomeHint: "깨진 접수대 뒤 약품 보관함을 열어, 남은 약과 무전기 배터리를 확인한다.",
     effects: [
@@ -36,17 +36,17 @@ export const hospitalLocation: LocationDefinition = {
   id: "hospital",
   name: "작은 병원",
   risk: "medium",
+  mapPosition: { q: -2, r: 2 },
   imagePath: "assets/scenes/hospital.svg",
   summary: "깨진 유리와 소독약 냄새, 낮은 신음이 뒤섞인 작은 병원이다. 아직 쓸 만한 약품과 전원 부품이 남아 있다.",
   tags: ["medicine", "signal", "day4"],
   traits: ["first aid", "battery", "stress"],
   obtainableItemIds: ["painRelief", "clothScrap", "radioBattery"],
   residentIds: [],
-  neighbors: ["shelter", "convenience"],
+  neighbors: ["convenience"],
   interactionChoices: hospitalChoices,
   eventIds: [],
   links: {
-    shelter: { note: "약품 냄새가 밴 복도를 빠져나와 임시 거처로 돌아간다." },
     convenience: { note: "병원 뒤편 골목을 거슬러 편의점 폐허 쪽으로 돌아간다." },
   },
   stockNodes: [

@@ -15,6 +15,7 @@ import {
   createInitialGameState,
   performAction,
   refreshLocationKnowledge,
+  resolveTravelPath,
   syncClock,
   syncQuestState,
   syncScene,
@@ -46,6 +47,33 @@ import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+type AxialCoord = { q: number; r: number };
+
+const HEX_DIRECTIONS: AxialCoord[] = [
+  { q: 1, r: 0 },
+  { q: 1, r: -1 },
+  { q: 0, r: -1 },
+  { q: -1, r: 0 },
+  { q: -1, r: 1 },
+  { q: 0, r: 1 },
+];
+
+function sameAxialCoord(left?: AxialCoord, right?: AxialCoord) {
+  if (!left && !right) {
+    return true;
+  }
+  return Boolean(left && right && left.q === right.q && left.r === right.r);
+}
+
+function isHexNeighbor(left?: AxialCoord, right?: AxialCoord) {
+  if (!left || !right) {
+    return false;
+  }
+  return HEX_DIRECTIONS.some((direction) =>
+    left.q + direction.q === right.q && left.r + direction.r === right.r
+  );
 }
 
 const SCENE_CARD_CACHE_VERSION = 5;
@@ -180,6 +208,7 @@ export class GameService {
   }
 
   private visibleLocationIds(session: Pick<GameSession, "state">) {
+    refreshLocationKnowledge(session.state);
     const registry = this.runtimeRegistry(session);
     const ids = new Set<string>([session.state.location]);
     Object.keys(registry.locations).forEach((locationId) => {
@@ -296,15 +325,18 @@ export class GameService {
   }
 
   private async ensureLocationCard(session: GameSession, locationId: string, registry: ContentRegistry) {
-    const expectedImagePath = registry.locations[locationId]?.imagePath ?? null;
-    const expectedName = (registry.locations[locationId] as { name?: string } | undefined)?.name ?? "";
-    const expectedSummary = (registry.locations[locationId] as { summary?: string } | undefined)?.summary ?? "";
+    const definition = registry.locations[locationId];
+    const expectedImagePath = definition?.imagePath ?? null;
+    const expectedName = definition?.name ?? "";
+    const expectedSummary = definition?.summary ?? "";
+    const expectedMapPosition = definition?.mapPosition;
     const existing = session.world.locationCards[locationId];
     if (
       existing &&
       existing.imagePath === expectedImagePath &&
       existing.name === expectedName &&
-      existing.summary === expectedSummary
+      existing.summary === expectedSummary &&
+      sameAxialCoord(existing.mapPosition, expectedMapPosition)
     ) {
       return existing;
     }
@@ -315,7 +347,8 @@ export class GameService {
         cached &&
         (cached as LocationCard).imagePath === expectedImagePath &&
         (cached as LocationCard).name === expectedName &&
-        (cached as LocationCard).summary === expectedSummary
+        (cached as LocationCard).summary === expectedSummary &&
+        sameAxialCoord((cached as LocationCard).mapPosition, expectedMapPosition)
       ) {
         session.world.locationCards[locationId] = cached as LocationCard;
         return cached;
@@ -546,14 +579,23 @@ export class GameService {
   private buildMapEntries(session: GameSession, registry = this.runtimeRegistry(session)): MapEntry[] {
     refreshLocationKnowledge(session.state);
     const allLocationIds = Object.keys(registry.locations);
-    const currentLinks = this.currentLocation(session, registry).links;
+    const currentLocation = this.currentLocation(session, registry);
+    const currentLinks = currentLocation.links;
     return allLocationIds.map((locationId) => {
+      const targetLocation = getRuntimeLocationDefinition(session.state, registry, locationId);
       const link = currentLinks[locationId];
-      const requiredFlag = link?.requiredFlag;
       const isCurrent = locationId === session.state.location;
       const isKnown = Boolean(session.state.flags[`known_${locationId}`]) || Boolean(session.state.flags[`visited_${locationId}`]) || isCurrent;
-      const isAdjacent = Boolean(link);
-      const isReachable = !isCurrent && isAdjacent && (!requiredFlag || Boolean(session.state.flags[requiredFlag]));
+      const routePath = isCurrent ? [locationId] : (resolveTravelPath(session.state, locationId, registry) ?? []);
+      const routeDistance = routePath.length > 1 ? routePath.length - 1 : 0;
+      const hasPositionPair = Boolean(currentLocation.mapPosition && targetLocation.mapPosition);
+      const isAdjacent = !isCurrent && (
+        hasPositionPair
+          ? isHexNeighbor(currentLocation.mapPosition, targetLocation.mapPosition)
+          : Boolean(link)
+      );
+      const hasRoute = Boolean(link);
+      const isReachable = !isCurrent && routeDistance > 0;
       const incomingRoutes = Object.keys(registry.locations)
         .filter((sourceId) => Boolean(getRuntimeLocationDefinition(session.state, registry, sourceId).links[locationId]))
         .map((sourceId) => ({
@@ -569,7 +611,11 @@ export class GameService {
         (route) => route.link.requiredFlag && !session.state.flags[route.link.requiredFlag],
       );
       const isControlled = !isCurrent && !isReachable && !hasUnlockedKnownRoute && Boolean(blockedRoute);
-      const reason = blockedRoute ? (blockedRoute.link.blockedReason || "That route is still blocked.") : "";
+      const reason = !hasRoute && isAdjacent
+        ? "인접하지만 아직 확인된 이동 경로가 없다."
+        : blockedRoute
+          ? (blockedRoute.link.blockedReason || "That route is still blocked.")
+          : "";
 
       return {
         locationId,
@@ -579,6 +625,8 @@ export class GameService {
         isVisited: Boolean(session.state.flags[`visited_${locationId}`]) || isCurrent,
         isAdjacent,
         isReachable,
+        routeDistance,
+        routePath,
         isControlled,
         reason,
       };

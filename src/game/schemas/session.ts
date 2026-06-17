@@ -64,6 +64,8 @@ export const MapEntrySchema = z.object({
   isVisited: z.boolean(),
   isAdjacent: z.boolean(),
   isReachable: z.boolean(),
+  routeDistance: z.number().int().nonnegative().default(0),
+  routePath: z.array(z.string()).default([]),
   isControlled: z.boolean(),
   reason: z.string(),
 });

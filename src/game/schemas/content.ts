@@ -11,6 +11,11 @@ export const LinkDefinitionSchema = z.object({
   blockedReason: z.string().optional(),
 });
 
+export const AxialCoordSchema = z.object({
+  q: z.number().int(),
+  r: z.number().int(),
+});
+
 export const StockNodeItemDefinitionSchema = z.object({
   itemId: z.string(),
   initialQuantity: z.number().int().nonnegative(),
@@ -28,6 +33,7 @@ export const LocationDefinitionSchema = z.object({
   id: z.string(),
   name: z.string(),
   risk: RiskSchema,
+  mapPosition: AxialCoordSchema.optional(),
   imagePath: z.string().nullable(),
   summary: z.string(),
   tags: z.array(z.string()),

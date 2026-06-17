@@ -6,7 +6,8 @@ export const kitchenChoices: ActionDefinition[] = [
     id: "buy_meal_at_kitchen",
     label: "돈을 내고 따뜻한 식사를 산다",
     type: "use",
-    outcomeHint: "주머니는 가벼워지지만, 적어도 오늘 저녁의 막막함은 조금 옅어진다.",
+    outcomeHint: "4,500원을 내고 따뜻한 식사 1개를 얻는다.",
+    showOutcomeHint: true,
     conditions: [
       { type: "day_lt", value: 2 },
       { type: "money_gte", amount: 4500 },
@@ -25,7 +26,8 @@ export const kitchenChoices: ActionDefinition[] = [
     id: "buy_crowded_meal_at_kitchen",
     label: "붐비는 배식줄에서 식사를 산다",
     type: "use",
-    outcomeHint: "2일차부터 피난민이 늘어 식사 값이 올랐다. 돈을 내고 따뜻한 식사 1개를 확보한다.",
+    outcomeHint: "피난민이 늘어 오른 가격이다. 5,200원을 내고 따뜻한 식사 1개를 얻는다.",
+    showOutcomeHint: true,
     conditions: [
       { type: "day_gte", value: 2 },
       { type: "money_gte", amount: 5200 },
@@ -52,30 +54,13 @@ export const kitchenChoices: ActionDefinition[] = [
     tags: ["craft", "salvage"],
     riskHint: "low",
   }),
-  interactionFor("kitchen", {
-    id: "push_beyond_kitchen_lane",
-    label: "지하철역 쪽 통로를 확인하기",
-    type: "explore",
-    outcomeHint: "급식소 뒤편 지하 통로를 확인해 안테나를 찾을 수 있다는 지하철역 단서를 정리한다.",
-    conditions: [{ type: "flag_not", flag: "subway_lead_checked" }],
-    effects: [
-      { type: "set_flag", flag: "subway_lead_checked" },
-      { type: "set_flag", flag: "known_subway" },
-      {
-        type: "log",
-        message: "당신은 급식소 뒤편의 막힌 계단 아래에서 지하철역으로 이어지는 통로를 찾아낸다. 어둠 속에서 금속 울림이 돌아온다.",
-      },
-      { type: "advance_time", phases: 1 },
-    ],
-    tags: ["hint", "explore"],
-    riskHint: "medium",
-  }),
 ];
 
 export const kitchenLocation: LocationDefinition = {
   id: "kitchen",
   name: "급식소",
   risk: "low",
+  mapPosition: { q: 1, r: 0 },
   imagePath: "assets/scenes/kitchen.png",
   summary: "지친 사람들과 눅눅한 공기가 한데 엉켜, 하루를 버티게 해 주는 밥 한 끼와 작은 소문이 오가는 장소다.",
   tags: ["food", "water"],
@@ -98,8 +83,8 @@ export const kitchenLocation: LocationDefinition = {
       summary: "배식줄 옆 구석에 찢긴 앞치마와 굽은 금속 부품, 낡은 조리 도구가 한데 얽혀 있다.",
       money: 0,
       items: [
-        { itemId: "scrapMetal", initialQuantity: 2 },
-        { itemId: "clothScrap", initialQuantity: 2 },
+        { itemId: "scrapMetal", initialQuantity: 4 },
+        { itemId: "clothScrap", initialQuantity: 4 },
       ],
     },
   ],

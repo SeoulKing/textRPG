@@ -5,6 +5,10 @@ export const LocationCardSchema = z.object({
   id: z.string(),
   name: z.string(),
   risk: RiskSchema,
+  mapPosition: z.object({
+    q: z.number().int(),
+    r: z.number().int(),
+  }).optional(),
   summary: z.string(),
   description: z.string(),
   tags: z.array(z.string()),

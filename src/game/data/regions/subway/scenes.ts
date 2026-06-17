@@ -27,6 +27,7 @@ export const subwaySceneDefinitions: SceneDefinition[] = [
     paragraphs: [
       "지하철역 입구는 낮에도 밤처럼 어둡다. 멈춘 에스컬레이터 아래로 먼지와 쇳냄새가 고여 있고, 발소리는 생각보다 멀리 울린다.",
       "역무실 쪽 벽에는 아직 통신 장비 일부가 남아 있다. 구조 신호를 멀리 보내려면 안테나가 필요하다.",
+      "승강장 반대편 출구 너머로는 뒤집힌 차단봉과 낡은 초소가 어렴풋이 보인다. 구조대 무전 소문이 돌던 검문소는 저 방향일 것이다.",
     ],
     choiceIds: [],
     conditions: [
@@ -41,6 +42,7 @@ export const subwaySceneDefinitions: SceneDefinition[] = [
     title: "지하철역",
     paragraphs: [
       "어두운 승강장과 역무실은 여전히 숨을 죽이고 있다. 이곳에서 얻을 수 있는 건 분명 있지만, 오래 머물수록 마음이 먼저 닳는다.",
+      "반대편 출구는 검문소 방향으로 열려 있다. 구조 신호를 완성할 단서가 있다면, 그 끝에 남아 있을 가능성이 크다.",
     ],
     choiceIds: [],
     conditions: [

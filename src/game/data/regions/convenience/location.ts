@@ -1,53 +1,12 @@
 import type { ActionDefinition, LocationDefinition } from "../../../schemas";
-import { interactionFor } from "../../location-interaction-helpers";
 
-export const convenienceChoices: ActionDefinition[] = [
-  interactionFor("convenience", {
-    id: "survey_convenience",
-    label: "살펴보기",
-    type: "search",
-    outcomeHint: "무너진 가게 안을 더듬어, 아직 털리지 않은 진열대와 계산대, 자재가 남은 창고 쪽을 찾아낸다.",
-    conditions: [{ type: "flag_not", flag: "convenience_materials_found" }],
-    effects: [
-      { type: "set_flag", flag: "convenience_shelf_found" },
-      { type: "set_flag", flag: "convenience_register_found" },
-      { type: "set_flag", flag: "convenience_materials_found" },
-      { type: "discover_stock_node", nodeId: "convenience_shelf" },
-      { type: "discover_stock_node", nodeId: "convenience_register" },
-      { type: "discover_stock_node", nodeId: "convenience_supply_pile" },
-      {
-        type: "log",
-        message:
-          "당신은 무너진 가게 안쪽에서 아직 통조림이 남은 진열대, 서랍이 반쯤 열린 계산대, 그리고 창고 쪽에 쌓인 자재 더미까지 함께 찾아낸다.",
-      },
-      { type: "advance_time", phases: 1 },
-    ],
-    tags: ["survey"],
-  }),
-  interactionFor("convenience", {
-    id: "push_beyond_convenience_ruins",
-    label: "병원 쪽 길을 확인하기",
-    type: "explore",
-    outcomeHint: "편의점 뒤편 골목을 살펴 약품 냄새가 남은 작은 병원 쪽 단서를 확인한다.",
-    conditions: [{ type: "flag_not", flag: "hospital_lead_checked" }],
-    effects: [
-      { type: "set_flag", flag: "hospital_lead_checked" },
-      { type: "set_flag", flag: "known_hospital" },
-      {
-        type: "log",
-        message: "당신은 편의점 뒤편 골목 끝에서 깨진 간판이 매달린 작은 병원 입구를 찾아낸다. 약품을 찾을 희망이 생겼다.",
-      },
-      { type: "advance_time", phases: 1 },
-    ],
-    tags: ["hint", "explore"],
-    riskHint: "medium",
-  }),
-];
+export const convenienceChoices: ActionDefinition[] = [];
 
 export const convenienceLocation: LocationDefinition = {
   id: "convenience",
   name: "편의점 폐허",
   risk: "low",
+  mapPosition: { q: -1, r: 1 },
   imagePath: "assets/scenes/convenience.png",
   summary: "반쯤 무너진 가게 안에, 허기와 급박한 생활의 흔적이 아직 어지럽게 남아 있다.",
   tags: ["supplies", "early scavenging"],
@@ -85,8 +44,8 @@ export const convenienceLocation: LocationDefinition = {
       money: 0,
       items: [
         { itemId: "woodPlank", initialQuantity: 3 },
-        { itemId: "clothScrap", initialQuantity: 2 },
-        { itemId: "scrapMetal", initialQuantity: 1 },
+        { itemId: "clothScrap", initialQuantity: 4 },
+        { itemId: "scrapMetal", initialQuantity: 3 },
       ],
     },
   ],
