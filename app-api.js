@@ -218,14 +218,17 @@ function projectedWorldElapsedMs() {
   return state.worldElapsedMs || 0;
 }
 
-function gameClockLabel() {
-  const elapsedInDay = ((projectedWorldElapsedMs() % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
+function clockLabelFromElapsed(worldElapsedMs) {
+  const elapsedInDay = ((worldElapsedMs % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
   const totalMinutes = Math.floor((elapsedInDay / REAL_DAY_MS) * 24 * 60);
   const shiftedMinutes = (totalMinutes + 6 * 60) % (24 * 60);
-  const roundedMinutes = Math.floor(shiftedMinutes / 10) * 10;
-  const hours = String(Math.floor(roundedMinutes / 60)).padStart(2, "0");
-  const minutes = String(roundedMinutes % 60).padStart(2, "0");
+  const hours = String(Math.floor(shiftedMinutes / 60)).padStart(2, "0");
+  const minutes = String(shiftedMinutes % 60).padStart(2, "0");
   return `${hours}:${minutes}`;
+}
+
+function gameClockLabel() {
+  return clockLabelFromElapsed(projectedWorldElapsedMs());
 }
 
 function survivalTimeSummary(snapshot) {
@@ -246,13 +249,8 @@ function survivalTimeSummary(snapshot) {
     parts.push(`${minutes}분`);
   }
 
-  const previousSnapshot = client.snapshot;
-  client.snapshot = snapshot;
-  const clock = gameClockLabel();
-  client.snapshot = previousSnapshot;
-
   return {
-    reached: `${snapshot?.day || snapshot?.state?.day || 1}일차 ${clock}`,
+    reached: `${snapshot?.day || snapshot?.state?.day || 1}일차 ${clockLabelFromElapsed(elapsedMs)}`,
     total: parts.join(" "),
   };
 }

@@ -99,6 +99,8 @@ body::before {
 .choice-button,
 .inline-action,
 .status-trigger {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   border: 0;
   cursor: pointer;
   transition:
@@ -396,6 +398,8 @@ body::before {
 }
 
 .choice-button {
+  -webkit-touch-callout: none;
+  user-select: none;
   width: 100%;
   min-height: 68px;
   text-align: left;
@@ -409,6 +413,12 @@ body::before {
 .choice-button:hover {
   background: rgba(47, 125, 104, 0.08);
   border-color: rgba(47, 125, 104, 0.24);
+}
+
+.choice-button:active {
+  background: rgba(31, 41, 55, 0.04);
+  border-color: var(--line);
+  transform: none;
 }
 
 .choice-button.is-quest {

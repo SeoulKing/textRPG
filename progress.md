@@ -463,4 +463,19 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   Added a client game-over prompt that shows the game-over reason, reached day/time, total survived time, and asks whether to start a new game.
   Game-over renders now hide normal choice buttons and label the scene badge as `게임오버`.
   Server snapshots now return no available actions while `state.isGameOver` is true.
-  Pending verification: rerun syntax/type/build checks and a focused runtime/UI probe for hp reaching 0.
+  Refined the client survival-time formatter so game-over prompt clock labels are computed without mutating `client.snapshot`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  focused runtime probe confirmed hp `1 -> 0`, `isGameOver=true`, non-empty reason, and `availableActions=0`.
+  fake-DOM client probe confirmed one confirm prompt with `게임오버`, reached day/time, total survived time, `게임오버` scene badge, and no rendered choice buttons.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-17 mobile choice tap polish:
+  disabled the default mobile tap highlight on app buttons and prevented choice text selection/callout.
+  Added an explicit `.choice-button:active` state that keeps the normal choice background instead of flashing a blue pressed color.
+  Also aligned the client clock formatter with the 15-minute travel model by removing the old 10-minute rounding in `app-api.js`.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`,
+  and an in-app browser style check confirming choice buttons use `touch-action: manipulation` and `user-select: none`.
