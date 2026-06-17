@@ -55,7 +55,7 @@ body::before {
   z-index: 1;
   width: min(1100px, calc(100% - 24px));
   margin: 0 auto;
-  padding: clamp(14px, 3vw, 28px) 0 calc(28px + env(safe-area-inset-bottom));
+  padding: clamp(14px, 3vw, 28px) 0 calc(132px + env(safe-area-inset-bottom));
 }
 
 .story-shell,
@@ -473,13 +473,30 @@ body::before {
 }
 
 .utility-dock {
-  margin-top: 18px;
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 20;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  width: min(1100px, calc(100% - 24px));
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .utility-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px;
+  pointer-events: auto;
+}
+
+.utility-dock .utility-actions .ghost-button {
+  width: auto;
+  min-width: 112px;
+  min-height: 38px;
+  padding: 9px 14px;
+  box-shadow: var(--shadow-soft);
 }
 
 .dock-buttons {
@@ -487,6 +504,13 @@ body::before {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: space-between;
+  padding: 8px;
+  border-radius: 999px;
+  background: rgba(255, 250, 245, 0.9);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
+  pointer-events: auto;
   scrollbar-width: none;
 }
 
@@ -510,9 +534,29 @@ body::before {
 }
 
 .panel-shell {
-  margin-top: 12px;
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: calc(136px + env(safe-area-inset-bottom));
+  z-index: 19;
+  width: min(1100px, calc(100% - 24px));
+  max-height: min(64vh, 640px);
+  margin-top: 0;
   border-radius: var(--radius-lg);
   padding: 22px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, calc(100% + 120px));
+  transition:
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+
+.panel-shell.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
 }
 
 .panel-header {
@@ -537,6 +581,9 @@ body::before {
 
 .panel-content {
   min-height: 96px;
+  max-height: calc(min(64vh, 640px) - 94px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding-top: 18px;
 }
 
@@ -912,7 +959,7 @@ body::before {
   .app-shell {
     width: calc(100% - 16px);
     padding-top: 12px;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    padding-bottom: calc(118px + env(safe-area-inset-bottom));
   }
 
   .status-strip {
@@ -1027,9 +1074,6 @@ body::before {
   }
 
   .dock-buttons {
-    position: sticky;
-    bottom: 10px;
-    z-index: 5;
     width: 100%;
     box-sizing: border-box;
     flex-wrap: nowrap;
@@ -1057,7 +1101,10 @@ body::before {
   }
 
   .panel-shell {
-    margin-top: 10px;
+    bottom: calc(128px + env(safe-area-inset-bottom));
+    width: calc(100% - 16px);
+    max-height: min(62vh, 620px);
+    margin-top: 0;
     padding: 16px;
   }
 
@@ -1066,7 +1113,7 @@ body::before {
   }
 
   .panel-content {
-    max-height: 42vh;
+    max-height: calc(min(62vh, 620px) - 84px);
     overflow-y: auto;
     overscroll-behavior: contain;
     padding-top: 14px;

@@ -165,6 +165,7 @@ const dom = {
 
 const client = {
   activePanel: "map",
+  isPanelOpen: false,
   snapshot: null,
   gameId: window.localStorage.getItem(ACTIVE_STORAGE_KEY) || "",
   lastFetchedAt: 0,
@@ -947,8 +948,12 @@ function renderPanel() {
   } else {
     renderLogPanel();
   }
+  dom.panelShell.classList.toggle("is-open", client.isPanelOpen);
+  dom.panelShell.setAttribute("aria-hidden", client.isPanelOpen ? "false" : "true");
   dom.dockButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.panel === client.activePanel);
+    const isActive = client.isPanelOpen && button.dataset.panel === client.activePanel;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-expanded", isActive ? "true" : "false");
   });
 }
 
@@ -1073,11 +1078,10 @@ async function bootstrap() {
 
 dom.dockButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    client.activePanel = button.dataset.panel;
+    const nextPanel = button.dataset.panel;
+    client.isPanelOpen = client.activePanel === nextPanel ? !client.isPanelOpen : true;
+    client.activePanel = nextPanel;
     renderPanel();
-    if (client.activePanel === "map" && dom.panelShell) {
-      dom.panelShell.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
   });
 });
 
