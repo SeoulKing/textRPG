@@ -479,3 +479,11 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   Also aligned the client clock formatter with the 15-minute travel model by removing the old 10-minute rounding in `app-api.js`.
   Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`,
   and an in-app browser style check confirming choice buttons use `touch-action: manipulation` and `user-select: none`.
+
+- 2026-06-17 mobile viewport density pass:
+  made the mobile status header fixed and flush to the top edge, matching the bottom dock's full-width attached feel.
+  Removed outer mobile padding around the main story stage and made the scene frame fill the space between the fixed header and dock.
+  Changed the mobile story body into a fixed-height flex column: narrative text scrolls internally while the choices stay pinned to the bottom of the scene area.
+  Reduced mobile choice button height/padding and added mobile auto-scroll so long narrative text clips from the top while the user can scroll upward to read earlier text.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+  Playwright web-game verification could not run because the workspace still lacks the `playwright` package.

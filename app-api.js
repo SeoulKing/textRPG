@@ -560,6 +560,15 @@ function clearSceneAnimation() {
   client.isSceneTyping = false;
 }
 
+function pinSceneTextToBottomOnMobile() {
+  if (!window.matchMedia("(max-width: 620px)").matches) {
+    return;
+  }
+  window.requestAnimationFrame(() => {
+    dom.sceneText.scrollTop = dom.sceneText.scrollHeight;
+  });
+}
+
 async function typeParagraph(paragraphElement, text, token) {
   paragraphElement.classList.add("typing");
   for (let index = 1; index <= text.length; index += 1) {
@@ -567,6 +576,7 @@ async function typeParagraph(paragraphElement, text, token) {
       return false;
     }
     paragraphElement.textContent = text.slice(0, index);
+    pinSceneTextToBottomOnMobile();
     const currentChar = text[index - 1];
     const delay = /[.!?]/.test(currentChar)
       ? TYPEWRITER_CHAR_DELAY + 40
@@ -640,6 +650,7 @@ function skipSceneTyping() {
   dom.sceneText.innerHTML =
     headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
   renderChoices();
+  pinSceneTextToBottomOnMobile();
   return true;
 }
 
@@ -788,6 +799,7 @@ function renderChoices() {
   });
 
   dom.choices.classList.add("revealed");
+  pinSceneTextToBottomOnMobile();
 }
 
 function renderScene(animateText = true) {
@@ -817,6 +829,7 @@ function renderScene(animateText = true) {
     dom.sceneText.innerHTML =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
     renderChoices();
+    pinSceneTextToBottomOnMobile();
     return;
   }
 
