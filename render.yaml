@@ -23,6 +23,5 @@ databases:
   - name: textrpg-db
     plan: free
     region: singapore
-    diskSizeGB: 1
     databaseName: textrpg
     user: textrpg
