@@ -158,6 +158,7 @@ const PANEL_CONFIG = {
 };
 
 const dom = {
+  appShell: document.querySelector(".app-shell"),
   statusStrip: document.querySelector(".status-strip"),
   hpStatus: document.querySelector("#hp-status"),
   hpFill: document.querySelector("#hp-fill"),
@@ -565,7 +566,7 @@ function pinSceneTextToBottomOnMobile() {
     return;
   }
   window.requestAnimationFrame(() => {
-    dom.sceneText.scrollTop = dom.sceneText.scrollHeight;
+    dom.appShell.scrollTop = dom.appShell.scrollHeight;
   });
 }
 

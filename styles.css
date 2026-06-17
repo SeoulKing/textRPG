@@ -1158,6 +1158,7 @@ body::before {
   :root {
     --mobile-status-height: 44px;
     --mobile-dock-height: 58px;
+    --mobile-choice-zone-height: 164px;
   }
 
   html,
@@ -1174,14 +1175,16 @@ body::before {
     width: 100%;
     height: 100dvh;
     min-height: 100dvh;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     padding-top: calc(var(--mobile-status-height) + env(safe-area-inset-top));
-    padding-bottom: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--mobile-dock-height) + var(--mobile-choice-zone-height) + env(safe-area-inset-bottom));
   }
 
   .story-shell {
-    height: 100%;
-    min-height: 0;
+    min-height: calc(100dvh - var(--mobile-status-height) - var(--mobile-dock-height) - var(--mobile-choice-zone-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     gap: 0;
   }
 
@@ -1202,10 +1205,9 @@ body::before {
   }
 
   .story-stage {
-    display: flex;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
+    display: block;
+    min-height: 100%;
+    overflow: visible;
     border: 0;
     border-radius: 0;
     box-shadow: none;
@@ -1247,16 +1249,13 @@ body::before {
   }
 
   .scene-art-wrap {
-    flex: 0 0 auto;
     aspect-ratio: 48 / 10;
     max-height: 112px;
   }
 
   .scene-frame {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+    display: block;
+    min-height: 100%;
   }
 
   .hex-map-board {
@@ -1291,23 +1290,17 @@ body::before {
   }
 
   .scene-copy {
-    flex: 1 1 auto;
-    min-height: 0;
     padding: 0;
     background: var(--bg);
   }
 
   .system-note {
-    flex: 0 0 auto;
     width: auto;
     margin: 10px 12px 6px;
   }
 
   .scene-text {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    overflow: visible;
     padding: 14px 16px 4px;
     font-size: 0.96rem;
     line-height: 1.7;
@@ -1318,13 +1311,22 @@ body::before {
   }
 
   .choice-list {
-    flex: 0 0 auto;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom));
+    z-index: 18;
+    box-sizing: border-box;
+    max-height: var(--mobile-choice-zone-height);
     gap: 8px;
     margin-top: 0;
     min-height: 0;
     padding: 10px 12px 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border-top: 1px solid var(--line);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), #fff);
+    box-shadow: 0 -10px 24px rgba(31, 41, 55, 0.08);
   }
 
   .choice-list:empty {

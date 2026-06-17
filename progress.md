@@ -487,3 +487,11 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   Reduced mobile choice button height/padding and added mobile auto-scroll so long narrative text clips from the top while the user can scroll upward to read earlier text.
   Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
   Playwright web-game verification could not run because the workspace still lacks the `playwright` package.
+
+- 2026-06-17 mobile scroll area revision:
+  changed the mobile scroll model again so only the top status header and bottom dock remain fixed.
+  The scene image and narrative now scroll together in `.app-shell`; the choice list is excluded from that flow and fixed directly above the bottom dock.
+  Added a reserved mobile choice-zone height to the scroll container so narrative content does not disappear behind fixed choices.
+  Updated the mobile auto-scroll helper to scroll `.app-shell` instead of the narrative-only text box.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
