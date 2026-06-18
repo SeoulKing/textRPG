@@ -2,8 +2,10 @@
  * 아이템 기본 데이터
  */
 
+import { defineItem } from "./item-helpers";
+
 export const baseItems = {
-  emergencySnack: {
+  emergencySnack: defineItem({
     id: "emergencySnack",
     name: "비상식량",
     description: "바로 먹어 허기를 눌러 주는 작은 식량이다.",
@@ -11,9 +13,9 @@ export const baseItems = {
     rarity: "common",
     price: 1500,
     tags: ["식량", "응급"],
-    effects: { hp: 0, mind: 0, energy: 5, exhaustionRelief: 1 },
-  },
-  cannedFood: {
+    effects: { energy: 5, exhaustionRelief: 1 },
+  }),
+  cannedFood: defineItem({
     id: "cannedFood",
     name: "캔 음식",
     description: "차갑지만 든든한 한 끼를 대신할 수 있다.",
@@ -21,9 +23,10 @@ export const baseItems = {
     rarity: "common",
     price: 2500,
     tags: ["식량", "보존식"],
-    effects: { hp: 0, mind: 0, energy: 5, exhaustionRelief: 2 },
-  },
-  hotMeal: {
+    effects: { energy: 5, exhaustionRelief: 2 },
+    useMinutes: 10,
+  }),
+  hotMeal: defineItem({
     id: "hotMeal",
     name: "따뜻한 식사",
     description: "속이 풀리면서 정신도 조금 안정되는 식사다.",
@@ -31,9 +34,9 @@ export const baseItems = {
     rarity: "uncommon",
     price: 4500,
     tags: ["식량", "회복"],
-    effects: { hp: 0, mind: 1, energy: 4, exhaustionRelief: 3 },
-  },
-  waterBottle: {
+    effects: { mind: 1, energy: 4, exhaustionRelief: 3 },
+  }),
+  waterBottle: defineItem({
     id: "waterBottle",
     name: "물병",
     description: "목을 축이고 정신을 조금 붙잡을 수 있다.",
@@ -41,9 +44,9 @@ export const baseItems = {
     rarity: "common",
     price: 1200,
     tags: ["음료", "회복"],
-    effects: { hp: 0, mind: 1, energy: 1, exhaustionRelief: 1 },
-  },
-  painRelief: {
+    effects: { mind: 1, energy: 1, exhaustionRelief: 1 },
+  }),
+  painRelief: defineItem({
     id: "painRelief",
     name: "진통제",
     description: "통증을 가라앉히는 응급 약품이다.",
@@ -51,9 +54,9 @@ export const baseItems = {
     rarity: "uncommon",
     price: 3800,
     tags: ["약품"],
-    effects: { hp: 2, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  scrapBundle: {
+    effects: { hp: 2 },
+  }),
+  scrapBundle: defineItem({
     id: "scrapBundle",
     name: "교환용 잡화",
     description: "거래와 흥정에서 값을 만들어 주는 묶음이다.",
@@ -61,9 +64,8 @@ export const baseItems = {
     rarity: "common",
     price: 1800,
     tags: ["거래"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  rationTicket: {
+  }),
+  rationTicket: defineItem({
     id: "rationTicket",
     name: "배식권",
     description: "급식소에서 무료 한 끼로 바꿀 수 있는 종이다.",
@@ -71,9 +73,8 @@ export const baseItems = {
     rarity: "common",
     price: 0,
     tags: ["배식", "교환"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  woodPlank: {
+  }),
+  woodPlank: defineItem({
     id: "woodPlank",
     name: "목재 판자",
     description: "부서진 선반이나 가구에서 뜯어 낸 판자다. 거처 보강과 불쏘시개에 쓸 수 있다.",
@@ -81,9 +82,8 @@ export const baseItems = {
     rarity: "common",
     price: 700,
     tags: ["재료", "목재", "제작"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  scrapMetal: {
+  }),
+  scrapMetal: defineItem({
     id: "scrapMetal",
     name: "고철 조각",
     description: "휘어진 철판과 금속 부품을 모아 묶은 것이다. 간이 제작과 수리에 두루 쓰인다.",
@@ -91,9 +91,8 @@ export const baseItems = {
     rarity: "common",
     price: 900,
     tags: ["재료", "금속", "제작"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  clothScrap: {
+  }),
+  clothScrap: defineItem({
     id: "clothScrap",
     name: "천 조각",
     description: "찢긴 앞치마와 천막 자락에서 뜯어 낸 질긴 천이다. 틈을 막거나 묶는 데 유용하다.",
@@ -101,9 +100,8 @@ export const baseItems = {
     rarity: "common",
     price: 500,
     tags: ["재료", "천", "제작"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  rawRice: {
+  }),
+  rawRice: defineItem({
     id: "rawRice",
     name: "쌀",
     description: "요리 재료. 급식소나 캠프에서 끓이면 밥이 된다.",
@@ -111,9 +109,8 @@ export const baseItems = {
     rarity: "common",
     price: 800,
     tags: ["재료", "요리"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  vegetables: {
+  }),
+  vegetables: defineItem({
     id: "vegetables",
     name: "채소",
     description: "요리 재료. 끓이거나 구우면 한 끼를 보탠다.",
@@ -121,9 +118,8 @@ export const baseItems = {
     rarity: "common",
     price: 600,
     tags: ["재료", "요리"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  radioBattery: {
+  }),
+  radioBattery: defineItem({
     id: "radioBattery",
     name: "무전기 배터리",
     description: "오래된 구조 무전기에 전원을 넣을 수 있는 묵직한 배터리다.",
@@ -131,9 +127,8 @@ export const baseItems = {
     rarity: "rare",
     price: 0,
     tags: ["구조", "무전기", "부품"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  radioAntenna: {
+  }),
+  radioAntenna: defineItem({
     id: "radioAntenna",
     name: "무전기 안테나",
     description: "짧은 신호라도 더 멀리 밀어 보낼 수 있는 접이식 안테나다.",
@@ -141,9 +136,8 @@ export const baseItems = {
     rarity: "rare",
     price: 0,
     tags: ["구조", "무전기", "부품"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
-  radioTransmitter: {
+  }),
+  radioTransmitter: defineItem({
     id: "radioTransmitter",
     name: "무전기 송신기",
     description: "구조대 주파수에 좌표와 생존 신호를 실어 보낼 핵심 송신 모듈이다.",
@@ -151,6 +145,5 @@ export const baseItems = {
     rarity: "rare",
     price: 0,
     tags: ["구조", "무전기", "부품"],
-    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
-  },
+  }),
 } as const;

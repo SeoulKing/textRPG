@@ -42,7 +42,7 @@ import type {
   StateSnapshot,
   StoryMaterials,
 } from "./schemas";
-import { EventCardSchema, SceneCardSchema, StateSnapshotSchema } from "./schemas";
+import { EventCardSchema, ItemCardSchema, SceneCardSchema, StateSnapshotSchema } from "./schemas";
 import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from "./world-planner";
 
 function nowIso() {
@@ -409,21 +409,23 @@ export class GameService {
 
   private async ensureItemCard(session: GameSession, itemId: string, registry: ContentRegistry) {
     if (session.world.itemCards[itemId]) {
+      session.world.itemCards[itemId] = this.withRuntimeItemFields(session.world.itemCards[itemId] as ItemCard, itemId, registry);
       return session.world.itemCards[itemId];
     }
 
     if (!itemId.startsWith("dyn_")) {
       const cached = await this.repository.getTemplate("itemCards", itemId);
       if (cached) {
-        session.world.itemCards[itemId] = cached as ItemCard;
-        return cached;
+        const card = this.withRuntimeItemFields(cached as ItemCard, itemId, registry);
+        session.world.itemCards[itemId] = card;
+        return card;
       }
     }
 
     const cardRaw = await this.templateGenerator.generateItemCard(itemId, {
       ...this.generatorInput(session, false, registry),
     });
-    const card = { ...cardRaw, id: itemId };
+    const card = this.withRuntimeItemFields({ ...cardRaw, id: itemId }, itemId, registry);
     session.world.itemCards[itemId] = card;
 
     if (!itemId.startsWith("dyn_")) {
@@ -437,6 +439,14 @@ export class GameService {
       source: card.source,
     });
     return card;
+  }
+
+  private withRuntimeItemFields(card: ItemCard, itemId: string, registry: ContentRegistry): ItemCard {
+    const runtimeItem = registry.items[itemId] as { useMinutes?: number } | undefined;
+    return ItemCardSchema.parse({
+      ...card,
+      useMinutes: runtimeItem?.useMinutes ?? card.useMinutes,
+    });
   }
 
   private async ensureProtagonistCard(session: GameSession) {
@@ -667,7 +677,7 @@ export class GameService {
         (personId) => session.world.personCards[personId] as PersonCard,
       ),
       inventoryCards: Object.keys(session.state.inventory).map(
-        (itemId) => session.world.itemCards[itemId] as ItemCard,
+        (itemId) => this.withRuntimeItemFields(session.world.itemCards[itemId] as ItemCard, itemId, registry),
       ),
       protagonist: session.world.protagonistCard as ProtagonistCard,
       storyMaterials,

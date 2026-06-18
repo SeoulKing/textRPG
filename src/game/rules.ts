@@ -11,7 +11,16 @@ import {
 } from "./base-data";
 import { actionConditionsMet, choiceConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
 import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition } from "./runtime-registry";
-import { appendLogEntry, applyEffect, changeSurvivalStat, evaluateCondition, evaluateObjective, getStockMoneyKey, getStockStateKey } from "./state-utils";
+import {
+  appendLogEntry,
+  applyEffect,
+  changeSurvivalStat,
+  evaluateCondition,
+  evaluateObjective,
+  getStockMoneyKey,
+  getStockStateKey,
+  isTimeEffect,
+} from "./state-utils";
 import type { ActionDefinition, ChoiceDefinition, DayEvolutionUpdate, GameAction, GameState } from "./schemas";
 
 const STAT_LABELS = {
@@ -672,6 +681,7 @@ function useItem(state: GameState, itemId: string) {
     name: string;
     kind: string;
     effects: { hp: number; mind: number; energy: number; exhaustionRelief: number };
+    useMinutes?: number;
   } | undefined;
   const count = state.inventory[itemId] || 0;
   if (!item || count <= 0) {
@@ -692,6 +702,10 @@ function useItem(state: GameState, itemId: string) {
   adjustStat(state, "energy", item.effects.energy);
   if (item.effects.exhaustionRelief > 0) {
     relieveExhaustion(state, item.effects.exhaustionRelief);
+  }
+
+  if (item.useMinutes && item.useMinutes > 0) {
+    advanceByMinutes(state, item.useMinutes);
   }
 
   if (itemId === "emergencySnack" || itemId === "cannedFood" || itemId === "hotMeal") {
@@ -729,12 +743,12 @@ type ExecutionResult = {
 
 function applyDefinitionEffects(state: GameState, effects: ActionDefinition["effects"] | ChoiceDefinition["effects"]) {
   effects.forEach((effect) => {
-    if (effect.type === "advance_to_daybreak") {
-      jumpToNextDaybreak(state);
-      return;
-    }
-    if (effect.type === "advance_time") {
-      advanceByMinutes(state, effect.minutes);
+    if (isTimeEffect(effect)) {
+      if (effect.type === "advance_to_daybreak") {
+        jumpToNextDaybreak(state);
+      } else {
+        advanceByMinutes(state, effect.minutes);
+      }
       return;
     }
     applyEffect(effect, state);

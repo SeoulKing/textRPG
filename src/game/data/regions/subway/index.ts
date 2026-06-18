@@ -1,12 +1,10 @@
-import type { RegionContentModule } from "../types";
+import { defineRegion } from "../types";
 import { subwayChoiceDefinitions } from "./choices";
-import { subwayEventDefinitions } from "./events";
 import { subwayLocation } from "./location";
 import { subwaySceneDefinitions } from "./scenes";
 
-export const subwayRegion: RegionContentModule = {
+export const subwayRegion = defineRegion({
   location: subwayLocation,
   choices: subwayChoiceDefinitions,
-  events: subwayEventDefinitions,
   scenes: subwaySceneDefinitions,
-};
+});

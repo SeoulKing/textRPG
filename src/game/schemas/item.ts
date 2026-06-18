@@ -29,6 +29,7 @@ export const ItemCardSchema = z.object({
   price: z.number().int().nonnegative(),
   tags: z.array(z.string()),
   effects: ItemEffectsSchema,
+  useMinutes: z.number().int().min(0).max(24 * 60).optional(),
   source: z.enum(["template", "llm"]),
   generatedAt: z.string(),
 });

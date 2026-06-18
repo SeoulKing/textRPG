@@ -1,5 +1,5 @@
-import type { ActionDefinition, LocationDefinition } from "../../../schemas";
-import { interactionFor } from "../../location-interaction-helpers";
+import type { ActionDefinition } from "../../../schemas";
+import { defineLocation, interactionFor, stockNode } from "../../location-helpers";
 
 export const subwayChoices: ActionDefinition[] = [
   interactionFor("subway", {
@@ -16,7 +16,7 @@ export const subwayChoices: ActionDefinition[] = [
   }),
 ];
 
-export const subwayLocation: LocationDefinition = {
+export const subwayLocation = defineLocation({
   id: "subway",
   name: "지하철역",
   risk: "high",
@@ -26,10 +26,8 @@ export const subwayLocation: LocationDefinition = {
   tags: ["signal", "underground", "day6"],
   traits: ["antenna", "metal", "stress"],
   obtainableItemIds: ["radioAntenna", "scrapMetal", "waterBottle"],
-  residentIds: [],
   neighbors: ["kitchen", "checkpoint"],
   interactionChoices: subwayChoices,
-  eventIds: [],
   links: {
     kitchen: { note: "급식소 뒤편 계단으로 되돌아간다." },
     checkpoint: {
@@ -37,16 +35,15 @@ export const subwayLocation: LocationDefinition = {
     },
   },
   stockNodes: [
-    {
+    stockNode({
       id: "subway_signal_box",
       name: "역무실 신호함",
       summary: "벽면 신호함 안에 접이식 안테나와 고철 조각, 미개봉 물병 하나가 끼어 있다.",
-      money: 0,
       items: [
         { itemId: "radioAntenna", initialQuantity: 1 },
         { itemId: "scrapMetal", initialQuantity: 2 },
         { itemId: "waterBottle", initialQuantity: 1 },
       ],
-    },
+    }),
   ],
-};
+});

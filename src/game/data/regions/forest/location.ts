@@ -1,5 +1,5 @@
-import type { ActionDefinition, LocationDefinition } from "../../../schemas";
-import { interactionFor } from "../../location-interaction-helpers";
+import type { ActionDefinition } from "../../../schemas";
+import { defineLocation, interactionFor } from "../../location-helpers";
 import { forestResultSceneTags } from "./result-scene-tags";
 
 export const forestChoices: ActionDefinition[] = [
@@ -76,7 +76,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
 ];
 
-export const forestLocation: LocationDefinition = {
+export const forestLocation = defineLocation({
   id: "forest",
   name: "숲",
   risk: "low",
@@ -86,14 +86,11 @@ export const forestLocation: LocationDefinition = {
   tags: ["resource", "forest", "forage"],
   traits: ["woodcutting", "foraging", "repeatable resources"],
   obtainableItemIds: ["woodPlank", "cannedFood", "scrapMetal", "clothScrap"],
-  residentIds: [],
   neighbors: ["shelter", "convenience", "kitchen"],
   interactionChoices: forestChoices,
-  eventIds: [],
   links: {
     shelter: { note: "언덕길을 거슬러 임시 거처의 천막 불빛 쪽으로 돌아간다." },
     convenience: { note: "나무 사이로 난 비탈길을 지나 편의점 폐허 쪽으로 내려간다." },
     kitchen: { note: "젖은 흙길을 따라 배식줄 소리가 들리는 급식소 쪽으로 빠져나간다." },
   },
-  stockNodes: [],
-};
+});

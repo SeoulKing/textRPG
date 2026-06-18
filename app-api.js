@@ -279,6 +279,20 @@ function survivalTimeSummary(snapshot) {
   };
 }
 
+function formatMinutesLabel(totalMinutes) {
+  const minutesValue = Math.max(0, Math.round(Number(totalMinutes) || 0));
+  const hours = Math.floor(minutesValue / 60);
+  const minutes = minutesValue % 60;
+  const parts = [];
+  if (hours > 0) {
+    parts.push(`${hours}시간`);
+  }
+  if (minutes > 0 || parts.length === 0) {
+    parts.push(`${minutes}분`);
+  }
+  return parts.join(" ");
+}
+
 function gameOverDetails(snapshot) {
   const reason = snapshot?.state?.gameOverReason || "더 이상 생존을 이어갈 수 없습니다.";
   const survival = survivalTimeSummary(snapshot);
@@ -1255,9 +1269,10 @@ function renderInventoryPanel() {
   };
   const renderInventoryDetailSlot = () => {
     const detailText = inventoryDetails.get(client.activeInventoryDetailKey) || "";
+    const detailLines = String(detailText).split("\n").filter(Boolean);
     return `
       <div class="inventory-detail-slot" id="inventory-detail-slot" aria-live="polite">
-        ${detailText ? `<p>${detailText}</p>` : ""}
+        ${detailLines.map((line) => `<p>${line}</p>`).join("")}
       </div>
     `;
   };
@@ -1275,7 +1290,11 @@ function renderInventoryPanel() {
   const renderedCards = [
     moneyCard,
     ...itemCards.map((item) => {
-        inventoryDetails.set(item.id, item.description);
+        const detailLines = [item.description];
+        if (item.useMinutes && item.useMinutes > 0) {
+          detailLines.push(`사용 시간: ${formatMinutesLabel(item.useMinutes)}`);
+        }
+        inventoryDetails.set(item.id, detailLines.join("\n"));
         const count = snapshot.state.inventory[item.id] || 0;
         const isUsable = item.kind === "food" || item.kind === "drink" || item.kind === "medicine";
         const isActive = client.activeInventoryDetailKey === item.id;

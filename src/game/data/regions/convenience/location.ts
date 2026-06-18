@@ -1,8 +1,6 @@
-import type { ActionDefinition, LocationDefinition } from "../../../schemas";
+import { defineLocation, stockNode } from "../../location-helpers";
 
-export const convenienceChoices: ActionDefinition[] = [];
-
-export const convenienceLocation: LocationDefinition = {
+export const convenienceLocation = defineLocation({
   id: "convenience",
   name: "편의점 폐허",
   risk: "low",
@@ -12,10 +10,7 @@ export const convenienceLocation: LocationDefinition = {
   tags: ["supplies", "early scavenging"],
   traits: ["food", "water", "cash", "salvage"],
   obtainableItemIds: ["emergencySnack", "cannedFood", "rawRice", "vegetables", "waterBottle", "woodPlank", "scrapMetal", "clothScrap"],
-  residentIds: [],
   neighbors: ["shelter", "hospital", "forest"],
-  interactionChoices: convenienceChoices,
-  eventIds: [],
   links: {
     shelter: { note: "무심한 발걸음처럼 가장한 채 거처 쪽으로 되돌아간다." },
     hospital: {
@@ -26,30 +21,27 @@ export const convenienceLocation: LocationDefinition = {
     },
   },
   stockNodes: [
-    {
+    stockNode({
       id: "convenience_shelf",
       name: "진열대",
       summary: "무너진 선반 안쪽에 아직 손이 닿지 않은 통조림 몇 개가 남아 있다.",
-      money: 0,
       items: [{ itemId: "cannedFood", initialQuantity: 3 }],
-    },
-    {
+    }),
+    stockNode({
       id: "convenience_register",
       name: "계산대",
       summary: "유리 파편과 먼지 속에 파묻힌 계산대 서랍 안쪽에 아직 회수되지 않은 잔돈이 남아 있다.",
       money: 1800,
-      items: [],
-    },
-    {
+    }),
+    stockNode({
       id: "convenience_supply_pile",
       name: "창고 자재 더미",
       summary: "반쯤 무너진 창고 쪽 선반 아래에 판자와 천, 금속 부품이 뒤엉켜 쌓여 있다.",
-      money: 0,
       items: [
         { itemId: "woodPlank", initialQuantity: 3 },
         { itemId: "clothScrap", initialQuantity: 4 },
         { itemId: "scrapMetal", initialQuantity: 3 },
       ],
-    },
+    }),
   ],
-};
+});

@@ -1,5 +1,5 @@
-import type { ActionDefinition, LocationDefinition } from "../../../schemas";
-import { interactionFor } from "../../location-interaction-helpers";
+import type { ActionDefinition } from "../../../schemas";
+import { defineLocation, interactionFor } from "../../location-helpers";
 
 export const shelterChoices: ActionDefinition[] = [
   interactionFor("shelter", {
@@ -75,7 +75,7 @@ export const shelterChoices: ActionDefinition[] = [
   }),
 ];
 
-export const shelterLocation: LocationDefinition = {
+export const shelterLocation = defineLocation({
   id: "shelter",
   name: "임시 거처",
   risk: "safe",
@@ -85,10 +85,8 @@ export const shelterLocation: LocationDefinition = {
   tags: ["hub", "safe", "rest"],
   traits: ["rest", "crafting", "cooking"],
   obtainableItemIds: ["emergencySnack", "waterBottle", "hotMeal", "rawRice", "vegetables", "woodPlank", "scrapMetal", "clothScrap", "radioBattery", "radioAntenna", "radioTransmitter"],
-  residentIds: [],
   neighbors: ["convenience", "kitchen", "forest"],
   interactionChoices: shelterChoices,
-  eventIds: [],
   links: {
     convenience: {
       note: "무너진 보도와 깨진 유리 조각을 밟으며 편의점 폐허 쪽으로 간다.",
@@ -100,5 +98,4 @@ export const shelterLocation: LocationDefinition = {
       note: "천막 아래쪽의 젖은 흙길을 따라 작은 숲으로 내려간다.",
     },
   },
-  stockNodes: [],
-};
+});

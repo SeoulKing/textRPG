@@ -11,6 +11,7 @@ function activeDayKey(state: GameState, flag: string) {
 }
 
 type SurvivalStatKey = "hp" | "mind" | "energy";
+type TimeEffect = Extract<Effect, { type: "advance_time" | "advance_to_daybreak" }>;
 
 const SURVIVAL_STAT_MAX: Record<SurvivalStatKey, number> = {
   hp: 10,
@@ -185,6 +186,10 @@ function setStockMoney(state: GameState, locationId: string, nodeId: string, nex
 
 function hasDiscoveredStockNode(state: GameState, nodeId: string) {
   return state.discoveredStockNodeIds.includes(nodeId);
+}
+
+export function isTimeEffect(effect: Effect): effect is TimeEffect {
+  return effect.type === "advance_time" || effect.type === "advance_to_daybreak";
 }
 
 export function evaluateObjective(objective: Objective, state: GameState): boolean {
@@ -386,6 +391,13 @@ export function applyEffect(effect: Effect, state: GameState): void {
       setStockMoney(state, effect.locationId, effect.nodeId, 0);
       state.money = Math.max(0, state.money + current);
       break;
+    }
+    case "advance_time":
+    case "advance_to_daybreak":
+      throw new Error(`Time effect '${effect.type}' must be handled by the rules layer.`);
+    default: {
+      const exhaustiveCheck: never = effect;
+      return exhaustiveCheck;
     }
   }
 }

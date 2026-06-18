@@ -1,5 +1,5 @@
-import type { ActionDefinition, LocationDefinition } from "../../../schemas";
-import { interactionFor } from "../../location-interaction-helpers";
+import type { ActionDefinition } from "../../../schemas";
+import { defineLocation, interactionFor, stockNode } from "../../location-helpers";
 
 export const checkpointChoices: ActionDefinition[] = [
   interactionFor("checkpoint", {
@@ -31,7 +31,7 @@ export const checkpointChoices: ActionDefinition[] = [
   }),
 ];
 
-export const checkpointLocation: LocationDefinition = {
+export const checkpointLocation = defineLocation({
   id: "checkpoint",
   name: "검문소",
   risk: "high",
@@ -41,24 +41,21 @@ export const checkpointLocation: LocationDefinition = {
   tags: ["signal", "rescue", "tension"],
   traits: ["transmitter", "rescue rumor", "danger"],
   obtainableItemIds: ["radioTransmitter", "painRelief", "rationTicket"],
-  residentIds: [],
   neighbors: ["subway"],
   interactionChoices: checkpointChoices,
-  eventIds: [],
   links: {
     subway: { note: "부서진 지하 출구를 통해 지하철역 쪽으로 내려간다." },
   },
   stockNodes: [
-    {
+    stockNode({
       id: "checkpoint_radio_truck",
       name: "통신 차량",
       summary: "먼지가 내려앉은 통신 차량 안쪽에 송신기 모듈과 응급 가방, 배급표 한 장이 남아 있다.",
-      money: 0,
       items: [
         { itemId: "radioTransmitter", initialQuantity: 1 },
         { itemId: "painRelief", initialQuantity: 1 },
         { itemId: "rationTicket", initialQuantity: 1 },
       ],
-    },
+    }),
   ],
-};
+});

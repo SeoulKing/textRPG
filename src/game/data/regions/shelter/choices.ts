@@ -1,20 +1,8 @@
 import type { ChoiceDefinition } from "../../../schemas";
-
-type ChoiceInput = Omit<ChoiceDefinition, "conditions" | "hidden" | "presentationMode" | "failureEffects"> &
-  Partial<Pick<ChoiceDefinition, "conditions" | "hidden" | "presentationMode" | "failureEffects">>;
-
-function choice(definition: ChoiceInput): ChoiceDefinition {
-  return {
-    conditions: [],
-    hidden: false,
-    presentationMode: "when_conditions_met",
-    failureEffects: [],
-    ...definition,
-  };
-}
+import { sceneChoice } from "../../scene-choice-helpers";
 
 export const shelterChoiceDefinitions: ChoiceDefinition[] = [
-  choice({
+  sceneChoice({
     id: "opening_commit",
     label: "그래도 살아남아야 한다",
     outcomeHint: "멍하니 주저앉아 있기보다 오늘 하루를 버틸 방법부터 찾기로 마음먹는다.",
@@ -25,7 +13,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     nextSceneId: "prologue_old_woman_visit",
     riskHint: "low",
   }),
-  choice({
+  sceneChoice({
     id: "accept_first_canned_food_quest",
     label: "퀘스트: 노파의 부탁을 수락하고 편의점 통조림을 찾으러 간다",
     outcomeHint: "첫 생존 퀘스트를 수락한다. 노파의 부탁을 받아 편의점 폐허에서 오늘 버틸 식량을 확보하러 움직인다.",
@@ -37,7 +25,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     nextSceneId: "shelter_first_intro",
     riskHint: "low",
   }),
-  choice({
+  sceneChoice({
     id: "craft_shelter_wall_patch",
     label: "거처 보강하기",
     outcomeHint: "필요 재료: 목재 판자 1 / 천 조각 2. 완성하면 잠자기 후 체력과 정신력이 조금 더 회복된다.",
@@ -64,7 +52,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     nextSceneId: "shelter_crafting_menu",
     riskHint: "low",
   }),
-  choice({
+  sceneChoice({
     id: "craft_shelter_brazier",
     label: "간이 화로 제작하기",
     outcomeHint: "필요 재료: 고철 2 / 목재 판자 1. 완성하면 거처에서 요리하기 레시피를 사용할 수 있다.",
@@ -91,7 +79,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     nextSceneId: "shelter_crafting_menu",
     riskHint: "low",
   }),
-  choice({
+  sceneChoice({
     id: "craft_shelter_rain_bucket",
     label: "빗물통 정비하기",
     outcomeHint: "필요 재료: 고철 1 / 천 조각 1. 완성하면 하루에 한 번 물 한 병을 받을 수 있다.",
@@ -118,7 +106,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     nextSceneId: "shelter_crafting_menu",
     riskHint: "low",
   }),
-  choice({
+  sceneChoice({
     id: "cook_at_shelter",
     label: "따뜻한 식사 조리하기",
     outcomeHint: "전제: 간이 화로 완성. 필요 재료: 쌀 1 / 채소 1 / 목재 판자 1. 완성하면 따뜻한 식사 1개를 만든다.",
@@ -147,7 +135,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     nextSceneId: "shelter_crafting_menu",
     riskHint: "low",
   }),
-  choice({
+  sceneChoice({
     id: "assemble_rescue_radio",
     label: "무전기 조립하기",
     outcomeHint: "필요 부품: 무전기 배터리 / 무전기 안테나 / 무전기 송신기 / 고철 2 / 천 조각 1. 완성하면 10일차 구조 신호를 보낼 수 있다.",
@@ -174,7 +162,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     nextSceneId: "shelter_crafting_menu",
     riskHint: "low",
   }),
-  choice({
+  sceneChoice({
     id: "leave_shelter_crafting",
     label: "제작 종료하기",
     outcomeHint: "재료를 다시 정리해 두고, 임시 거처의 메인 공간으로 돌아간다.",

@@ -1,5 +1,5 @@
-import type { ActionDefinition, LocationDefinition } from "../../../schemas";
-import { interactionFor } from "../../location-interaction-helpers";
+import type { ActionDefinition } from "../../../schemas";
+import { defineLocation, interactionFor, stockNode } from "../../location-helpers";
 
 export const kitchenChoices: ActionDefinition[] = [
   interactionFor("kitchen", {
@@ -56,7 +56,7 @@ export const kitchenChoices: ActionDefinition[] = [
   }),
 ];
 
-export const kitchenLocation: LocationDefinition = {
+export const kitchenLocation = defineLocation({
   id: "kitchen",
   name: "급식소",
   risk: "low",
@@ -69,7 +69,6 @@ export const kitchenLocation: LocationDefinition = {
   residentIds: ["oldCook"],
   neighbors: ["shelter", "subway", "forest"],
   interactionChoices: kitchenChoices,
-  eventIds: [],
   links: {
     shelter: { note: "허기를 잠시 달랜 뒤 거처 쪽으로 다시 발걸음을 돌린다." },
     subway: {
@@ -80,15 +79,14 @@ export const kitchenLocation: LocationDefinition = {
     },
   },
   stockNodes: [
-    {
+    stockNode({
       id: "kitchen_scrap_heap",
       name: "폐자재 더미",
       summary: "배식줄 옆 구석에 찢긴 앞치마와 굽은 금속 부품, 낡은 조리 도구가 한데 얽혀 있다.",
-      money: 0,
       items: [
         { itemId: "scrapMetal", initialQuantity: 4 },
         { itemId: "clothScrap", initialQuantity: 4 },
       ],
-    },
+    }),
   ],
-};
+});

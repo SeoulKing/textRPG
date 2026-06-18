@@ -56,11 +56,14 @@ LLM은 저수준 `effect`나 `condition`을 직접 만들지 않습니다. LLM�
 
 ```text
 src/game/data/regions/<region>/
+  -> index.ts
   -> location.ts
-  -> choices.ts
   -> scenes.ts
-  -> events.ts
+  -> choices.ts  (scene choice가 있을 때만)
+  -> events.ts   (event가 있을 때만)
 ```
+
+각 지역의 `index.ts`는 `defineRegion()`으로 묶습니다. `location.ts`는 `defineLocation()`, `interactionFor()`, `stockNode()`를 사용해 빈 기본값과 반복 보일러플레이트를 줄입니다. `choices`와 `events`는 선택 필드라서 빈 파일을 만들 필요가 없습니다. 데이터 작성 진입점은 `src/game/data/README.md`, 지역 작성 방법은 `src/game/data/regions/README.md`에 정리되어 있습니다.
 
 집계 파일:
 
@@ -91,6 +94,12 @@ src/game/data/regions/<region>/
 - `src/game/repository.ts`: 파일 기반 세이브 저장, 로딩, 정규화를 담당합니다.
 
 프런티어와 continuation은 일반 `rules.performAction()`보다 먼저 `GameService`에서 가로채 처리합니다. 그 외 제작, 파밍, 이동, 아이템 사용은 기존 rules/effect 흐름으로 처리됩니다.
+
+효과 실행 경계:
+
+- `advance_time`, `advance_to_daybreak`: 시간과 생존 압박을 함께 움직이므로 `rules.ts`의 definition 실행 경로에서 처리합니다.
+- 그 외 즉시 상태 변경 효과와 `random_outcome`: `state-utils.applyEffect()`에서 처리합니다.
+- `applyEffect()`에 시간 효과를 직접 넘기면 오류가 납니다. 새 시간형 효과를 만들 때는 rules 계층에서 하루 전환, 기력 감소, 구조 판정까지 함께 검토해야 합니다.
 
 ## 4. 클라이언트 렌더 흐름
 

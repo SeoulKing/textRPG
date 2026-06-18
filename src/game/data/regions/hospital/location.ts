@@ -1,5 +1,5 @@
-import type { ActionDefinition, LocationDefinition } from "../../../schemas";
-import { interactionFor } from "../../location-interaction-helpers";
+import type { ActionDefinition } from "../../../schemas";
+import { defineLocation, interactionFor, stockNode } from "../../location-helpers";
 
 export const hospitalChoices: ActionDefinition[] = [
   interactionFor("hospital", {
@@ -32,7 +32,7 @@ export const hospitalChoices: ActionDefinition[] = [
   }),
 ];
 
-export const hospitalLocation: LocationDefinition = {
+export const hospitalLocation = defineLocation({
   id: "hospital",
   name: "작은 병원",
   risk: "medium",
@@ -42,24 +42,21 @@ export const hospitalLocation: LocationDefinition = {
   tags: ["medicine", "signal", "day4"],
   traits: ["first aid", "battery", "stress"],
   obtainableItemIds: ["painRelief", "clothScrap", "radioBattery"],
-  residentIds: [],
   neighbors: ["convenience"],
   interactionChoices: hospitalChoices,
-  eventIds: [],
   links: {
     convenience: { note: "병원 뒤편 골목을 거슬러 편의점 폐허 쪽으로 돌아간다." },
   },
   stockNodes: [
-    {
+    stockNode({
       id: "hospital_medicine_cabinet",
       name: "약품 보관함",
       summary: "잠금장치가 휘어진 철제 보관함 안에 진통제와 천 조각, 묵직한 무전기 배터리가 남아 있다.",
-      money: 0,
       items: [
         { itemId: "painRelief", initialQuantity: 2 },
         { itemId: "clothScrap", initialQuantity: 2 },
         { itemId: "radioBattery", initialQuantity: 1 },
       ],
-    },
+    }),
   ],
-};
+});

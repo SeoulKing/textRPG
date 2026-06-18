@@ -1,12 +1,8 @@
-import type { RegionContentModule } from "../types";
-import { forestChoiceDefinitions } from "./choices";
-import { forestEventDefinitions } from "./events";
+import { defineRegion } from "../types";
 import { forestLocation } from "./location";
 import { forestSceneDefinitions } from "./scenes";
 
-export const forestRegion: RegionContentModule = {
+export const forestRegion = defineRegion({
   location: forestLocation,
-  choices: forestChoiceDefinitions,
-  events: forestEventDefinitions,
   scenes: forestSceneDefinitions,
-};
+});

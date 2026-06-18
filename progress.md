@@ -699,3 +699,89 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   runtime probe confirmed chop scene variants with unchanged `+ 3 woodPlank`, deterministic search rolls for all five outcomes with result-specific scene variants, and no remaining candidate scene id list in the forest action file.
   `git diff --check` passed with only existing CRLF normalization warnings.
   Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 item use time:
+  added optional `useMinutes` to item cards and set `cannedFood.useMinutes = 10`.
+  `use_item` now advances game time by the item's authored `useMinutes` value after applying the item effects.
+  Inventory details show `사용 시간: 10분` for items that define a use duration, and cached item cards are merged with runtime item fields so old template cache entries still surface the new duration.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  runtime probe confirmed using canned food changes the clock from `06:00` to `06:10` and system note shows `+ 10분 / + 5 기력 / - 1 캔 음식`; using water still does not advance time because its duration is not authored yet.
+
+- 2026-06-18 region authoring cleanup:
+  added `defineRegion()` so region modules can omit empty `choices` and `events` arrays.
+  removed empty event files from checkpoint, convenience, forest, hospital, kitchen, and subway, and removed forest's empty choices file.
+  added shared `sceneChoice()` so scene-choice files no longer duplicate the same defaults for `conditions`, `hidden`, `presentationMode`, and `failureEffects`.
+  added `src/game/data/regions/README.md` with the minimal region file layout, `defineRegion()`, `sceneChoice()`, and random-scene tag authoring examples.
+  updated `OBJECT_MODEL.md` so the documented region structure matches the current optional `choices.ts` / `events.ts` model.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  `git diff --check` passed with only existing CRLF normalization warnings.
+
+- 2026-06-18 stock node choice cleanup:
+  expanded `stock-node-choice-helpers.ts` with active/inactive stock-node conditions, collect-item choice parts, and leave-stock-node choice parts.
+  converted convenience, hospital, kitchen, subway, and checkpoint stock-node choices to reuse the shared helper shape while preserving each authored reward, cost, time, and log message.
+  This keeps location files focused on "what happens here" instead of repeating boilerplate for stock-node availability and collection bookkeeping.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  `git diff --check` passed with only existing CRLF normalization warnings.
+  runtime probes confirmed hospital pain relief, kitchen scrap pile, subway antenna, convenience shelf, and convenience supply pile actions still apply their expected inventory/time/system notes.
+
+- 2026-06-18 location authoring helper cleanup:
+  replaced the old `location-interaction-helpers.ts` with `location-helpers.ts`.
+  Added `defineLocation()` so region `location.ts` files no longer repeat empty `residentIds`, `interactionChoices`, `eventIds`, and `stockNodes` defaults.
+  Added `stockNode()` so resource containers can omit default `money: 0` and `items: []` fields.
+  Converted shelter, convenience, kitchen, forest, hospital, subway, and checkpoint location definitions to the new helper style.
+  Updated `OBJECT_MODEL.md` and `src/game/data/regions/README.md` to document `defineLocation()`, `interactionFor()`, and `stockNode()` as the current region-authoring path.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  `git diff --check` passed with only existing CRLF normalization warnings.
+  runtime probe confirmed built `baseLocations` still expose expected interaction counts, event arrays, and stock-node money/item defaults.
+
+- 2026-06-18 effect schema duplication cleanup:
+  refactored `src/game/schemas/condition-effect.ts` so shared immediate effects are defined once in `InstantEffectSchemas`.
+  `BaseEffectSchemas` now composes immediate effects plus explicit time effects, while `RandomOutcomeEffectSchemas` reuses only immediate effects.
+  This keeps the existing design where an action owns time cost and a `random_outcome` only varies the result.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  runtime schema probe confirmed a normal `{ type: "advance_time" }` effect is valid, while nested `advance_time` inside `random_outcome` is rejected.
+
+- 2026-06-18 item authoring helper cleanup:
+  added `src/game/data/item-helpers.ts` with `defineItem()`.
+  Item definitions now get default zero effects automatically, so materials, trade goods, tickets, and radio parts no longer repeat `hp/mind/energy/exhaustionRelief: 0`.
+  Converted `src/game/data/items.ts` to the new helper style while preserving existing item ids, kinds, prices, tags, effects, and canned-food `useMinutes: 10`.
+  Added `src/game/data/README.md` as a data-authoring entry point and linked it from `OBJECT_MODEL.md`.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  `git diff --check` passed with only existing CRLF normalization warnings.
+  runtime item probe confirmed `cannedFood` keeps `energy: 5`, `exhaustionRelief: 2`, and `useMinutes: 10`, while `scrapMetal` and `radioBattery` receive zero-filled effects.
+
+- 2026-06-18 time effect execution boundary cleanup:
+  added `isTimeEffect()` in `state-utils.ts` and changed `rules.ts` definition execution to use it for `advance_time` / `advance_to_daybreak`.
+  `applyEffect()` now throws if a time effect is passed directly, preventing silent no-op behavior when adding future rules.
+  Updated `OBJECT_MODEL.md` to document that time effects belong to the rules layer, while immediate effects and `random_outcome` belong to `state-utils.applyEffect()`.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  `git diff --check` passed with only existing CRLF normalization warnings.
+  runtime probe confirmed direct `applyEffect({ type: "advance_time" })` throws, while normal travel plus forest chopping still advances time and grants `woodPlank +3`.
