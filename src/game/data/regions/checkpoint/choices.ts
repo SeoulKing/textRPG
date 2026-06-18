@@ -27,7 +27,7 @@ export const checkpointChoiceDefinitions: ChoiceDefinition[] = [
       collectStockItemEffect({ locationId: "checkpoint", nodeId: "checkpoint_radio_truck", itemId: "radioTransmitter" }),
       { type: "change_stat", stat: "mind", value: -1 },
       { type: "log", message: "검문소 통신 차량에서 무전기 송신기를 떼어냈다. 손끝은 떨렸지만, 구조 신호를 완성할 가능성이 또렷해졌다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "high",
   }),
@@ -42,7 +42,7 @@ export const checkpointChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "checkpoint", nodeId: "checkpoint_radio_truck", itemId: "painRelief" }),
       { type: "log", message: "검문소 응급 가방에서 아직 쓸 수 있는 진통제를 챙겼다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "medium",
   }),
@@ -57,7 +57,7 @@ export const checkpointChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "checkpoint", nodeId: "checkpoint_radio_truck", itemId: "rationTicket" }),
       { type: "log", message: "검문소 책상 위에서 구겨진 배급표를 챙겼다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "low",
   }),

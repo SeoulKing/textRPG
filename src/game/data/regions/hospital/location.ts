@@ -25,7 +25,7 @@ export const hospitalChoices: ActionDefinition[] = [
       { type: "change_stat", stat: "hp", value: 2 },
       { type: "change_stat", stat: "mind", value: -1 },
       { type: "log", message: "당신은 남은 소독약과 붕대로 상처를 묶는다. 몸은 조금 나아졌지만, 병원 바닥의 신음은 오래 남는다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     tags: ["medicine", "recovery"],
     riskHint: "low",

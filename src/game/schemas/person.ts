@@ -22,7 +22,7 @@ export const ProtagonistCardSchema = z.object({
   condition: z.object({
     hp: z.number().int().min(0).max(10),
     mind: z.number().int().min(0).max(10),
-    fullness: z.number().int().min(0).max(10),
+    energy: z.number().int().min(0).max(15),
     money: z.number().int().nonnegative(),
     locationId: z.string(),
     day: z.number().int().positive(),

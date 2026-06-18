@@ -10,8 +10,45 @@ function activeDayKey(state: GameState, flag: string) {
   return `day${state.day}_${flag}`;
 }
 
-function clampStat(value: number) {
-  return Math.max(0, Math.min(10, value));
+type SurvivalStatKey = "hp" | "mind" | "energy";
+
+const SURVIVAL_STAT_MAX: Record<SurvivalStatKey, number> = {
+  hp: 10,
+  mind: 10,
+  energy: 15,
+};
+
+function clampStat(statKey: SurvivalStatKey, value: number) {
+  return Math.max(0, Math.min(SURVIVAL_STAT_MAX[statKey], value));
+}
+
+function fallbackStatForDepleted(statKey: SurvivalStatKey): SurvivalStatKey | null {
+  if (statKey === "energy") {
+    return "mind";
+  }
+  if (statKey === "mind") {
+    return "hp";
+  }
+  return null;
+}
+
+export function changeSurvivalStat(state: GameState, statKey: SurvivalStatKey, delta: number) {
+  if (delta >= 0) {
+    state.stats[statKey] = clampStat(statKey, state.stats[statKey] + delta);
+    return;
+  }
+
+  let target: SurvivalStatKey | null = statKey;
+  let remaining = Math.abs(delta);
+  while (target && remaining > 0) {
+    if (state.stats[target] > 0) {
+      state.stats[target] = clampStat(target, state.stats[target] - 1);
+      remaining -= 1;
+      continue;
+    }
+
+    target = fallbackStatForDepleted(target);
+  }
 }
 
 export function getStockStateKey(locationId: string, nodeId: string, itemId: string) {
@@ -232,8 +269,22 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
 
 export function applyEffect(effect: Effect, state: GameState): void {
   switch (effect.type) {
+    case "random_outcome": {
+      const totalWeight = effect.outcomes.reduce((total, outcome) => total + outcome.weight, 0);
+      if (totalWeight <= 0) {
+        break;
+      }
+      const roll = Math.random() * totalWeight;
+      let cursor = 0;
+      const selected = effect.outcomes.find((outcome) => {
+        cursor += outcome.weight;
+        return roll < cursor;
+      }) ?? effect.outcomes[effect.outcomes.length - 1];
+      selected.effects.forEach((outcomeEffect) => applyEffect(outcomeEffect, state));
+      break;
+    }
     case "change_stat":
-      state.stats[effect.stat] = clampStat(state.stats[effect.stat] + effect.value);
+      changeSurvivalStat(state, effect.stat, effect.value);
       break;
     case "set_flag":
       state.flags[effect.flag] = true;
@@ -272,6 +323,18 @@ export function applyEffect(effect: Effect, state: GameState): void {
     case "set_scene":
       state.sceneId = effect.sceneId;
       break;
+    case "set_random_scene": {
+      const registry = buildRuntimeRegistry(state);
+      const candidates = Object.values(registry.scenes)
+        .filter((scene) => scene.locationId === state.location)
+        .filter((scene) => (scene.tags ?? []).includes(effect.tag))
+        .filter((scene) => scene.conditions.every((condition) => evaluateCondition(condition, state)));
+      if (candidates.length > 0) {
+        const index = Math.floor(Math.random() * candidates.length);
+        state.sceneId = candidates[Math.min(index, candidates.length - 1)].id;
+      }
+      break;
+    }
     case "discover_stock_node":
       if (!hasDiscoveredStockNode(state, effect.nodeId)) {
         state.discoveredStockNodeIds.push(effect.nodeId);
@@ -333,12 +396,12 @@ export function derivePlayer(state: GameState): Player {
     name: "Unnamed Survivor",
     hp: state.stats.hp,
     sanity: state.stats.mind,
-    hunger: state.stats.fullness,
+    energy: state.stats.energy,
     money: state.money,
     inventory: { ...state.inventory },
     skills: [...state.skills],
     flags: { ...state.flags },
-    statusEffects: state.starvationLevel > 0 ? ["starving"] : [],
+    statusEffects: state.exhaustionLevel > 0 ? ["exhausted"] : [],
   };
 }
 

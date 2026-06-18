@@ -115,7 +115,7 @@ class TemplateContentGenerator implements ContentGenerator {
       condition: {
         hp: state.hp,
         mind: state.mind,
-        fullness: state.fullness,
+        energy: state.energy,
         money: state.money,
         locationId: input.state.location,
         day: input.state.day,

@@ -26,7 +26,7 @@ export const hospitalChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "hospital", nodeId: "hospital_medicine_cabinet", itemId: "radioBattery" }),
       { type: "log", message: "당신은 보관함 깊숙한 곳에서 무전기 배터리를 꺼내 가방 안쪽에 고정한다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "medium",
   }),
@@ -41,7 +41,7 @@ export const hospitalChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "hospital", nodeId: "hospital_medicine_cabinet", itemId: "painRelief" }),
       { type: "log", message: "당신은 상자에 남은 진통제를 조심스럽게 챙긴다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "low",
   }),
@@ -56,7 +56,7 @@ export const hospitalChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "hospital", nodeId: "hospital_medicine_cabinet", itemId: "clothScrap" }),
       { type: "log", message: "당신은 아직 깨끗한 천 조각을 접어 넣는다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "low",
   }),

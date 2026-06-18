@@ -18,6 +18,7 @@ const DEFAULT_HEX_COORDS = {
   shelter: { q: 0, r: 0 },
   convenience: { q: -1, r: 1 },
   kitchen: { q: 1, r: 0 },
+  forest: { q: 0, r: 1 },
   subway: { q: 2, r: 0 },
   hospital: { q: -2, r: 2 },
   checkpoint: { q: 3, r: 0 },
@@ -157,6 +158,24 @@ const PANEL_CONFIG = {
   },
 };
 
+const STATUS_DETAILS = {
+  hp: {
+    title: "체력",
+    max: 10,
+    note: "부상을 견디고 움직일 수 있는 힘",
+  },
+  mind: {
+    title: "정신력",
+    max: 10,
+    note: "불안과 피로 속에서도 판단을 유지하는 힘",
+  },
+  energy: {
+    title: "기력",
+    max: 15,
+    note: "시간이 지나면 줄어들고 음식으로 회복 가능",
+  },
+};
+
 const dom = {
   appShell: document.querySelector(".app-shell"),
   statusStrip: document.querySelector(".status-strip"),
@@ -164,8 +183,8 @@ const dom = {
   hpFill: document.querySelector("#hp-fill"),
   mindStatus: document.querySelector("#mind-status"),
   mindFill: document.querySelector("#mind-fill"),
-  fullnessStatus: document.querySelector("#fullness-status"),
-  fullnessFill: document.querySelector("#fullness-fill"),
+  energyStatus: document.querySelector("#energy-status"),
+  energyFill: document.querySelector("#energy-fill"),
   timeIndicator: document.querySelector("#time-indicator"),
   statusPopover: document.querySelector("#status-popover"),
   sceneFrame: document.querySelector(".scene-frame"),
@@ -176,6 +195,7 @@ const dom = {
   systemNote: document.querySelector("#system-note"),
   choices: document.querySelector("#choices"),
   choiceTemplate: document.querySelector("#choice-template"),
+  gameOverScreen: null,
   panelShell: document.querySelector(".panel-shell"),
   panelTitle: document.querySelector("#panel-title"),
   panelContent: document.querySelector("#panel-content"),
@@ -192,6 +212,8 @@ const client = {
   mapHint: "",
   activeStatusPopoverKey: null,
   activeStatusPanelView: "status",
+  activeStatusDetailKey: null,
+  activeInventoryDetailKey: null,
   actionInFlight: false,
   sceneRenderToken: 0,
   activeSceneTimer: null,
@@ -199,7 +221,8 @@ const client = {
   isSceneTyping: false,
   justCreatedGame: false,
   renderedSystemNote: "",
-  gameOverPromptKey: "",
+  renderedSystemNoteKey: "",
+  renderedStorySurfaceId: "",
 };
 
 function currentState() {
@@ -256,58 +279,59 @@ function survivalTimeSummary(snapshot) {
   };
 }
 
-function gameOverMessage(snapshot) {
+function gameOverDetails(snapshot) {
   const reason = snapshot?.state?.gameOverReason || "더 이상 생존을 이어갈 수 없습니다.";
   const survival = survivalTimeSummary(snapshot);
-  return [
-    "게임오버",
-    "",
-    reason,
-    "",
-    `생존 기록: ${survival.reached}`,
-    `총 생존 시간: ${survival.total}`,
-    "",
-    "새 게임을 시작하시겠습니까?",
-  ].join("\n");
+
+  return { reason, survival };
 }
 
-function maybePromptGameOver() {
+function gameOverScreenElement() {
+  if (dom.gameOverScreen) {
+    return dom.gameOverScreen;
+  }
+
+  const screen = document.createElement("section");
+  screen.id = "game-over-screen";
+  screen.className = "game-over-screen";
+  screen.setAttribute("aria-live", "assertive");
+  screen.hidden = true;
+  document.body.appendChild(screen);
+  dom.gameOverScreen = screen;
+  return screen;
+}
+
+function renderGameOverScreen() {
+  const screen = gameOverScreenElement();
   const snapshot = client.snapshot;
   if (!snapshot?.state?.isGameOver) {
+    screen.hidden = true;
+    screen.classList.remove("is-visible");
+    screen.innerHTML = "";
     return;
   }
 
-  const promptKey = `${snapshot.gameId}:${snapshot.state.gameOverReason}:${snapshot.state.worldElapsedMs}`;
-  if (client.gameOverPromptKey === promptKey) {
-    return;
-  }
-  client.gameOverPromptKey = promptKey;
-
-  window.setTimeout(async () => {
-    if (!client.snapshot?.state?.isGameOver || client.gameId !== snapshot.gameId) {
-      return;
-    }
-
-    const shouldStartNewGame = window.confirm(gameOverMessage(snapshot));
-    if (!shouldStartNewGame) {
-      return;
-    }
-
-    clearSceneAnimation();
-    try {
-      await createNewGame();
-      render({
-        animateScene: shouldAnimateScene({
-          source: "newGame",
-          previousSnapshot: null,
-          nextSnapshot: client.snapshot,
-        }),
-      });
-    } catch (error) {
-      console.error(error);
-      window.alert(error instanceof Error ? error.message : "새 게임을 시작하지 못했습니다.");
-    }
-  }, 0);
+  const { reason, survival } = gameOverDetails(snapshot);
+  screen.innerHTML = `
+    <div class="game-over-content">
+      <p class="game-over-kicker">생존 종료</p>
+      <h1>게임오버</h1>
+      <p class="game-over-reason">${escapeHtml(reason)}</p>
+      <div class="game-over-records" aria-label="생존 기록">
+        <div>
+          <span>도달 시각</span>
+          <strong>${escapeHtml(survival.reached)}</strong>
+        </div>
+        <div>
+          <span>버틴 시간</span>
+          <strong>${escapeHtml(survival.total)}</strong>
+        </div>
+      </div>
+      <button class="game-over-action" data-game-over-action="new-game" type="button">새 게임</button>
+    </div>
+  `;
+  screen.hidden = false;
+  window.requestAnimationFrame(() => screen.classList.add("is-visible"));
 }
 
 function riskLabel(risk) {
@@ -365,9 +389,35 @@ async function createNewGame() {
   client.isPanelOpen = false;
   client.mapHint = "";
   client.justCreatedGame = true;
-  client.gameOverPromptKey = "";
+  client.renderedStorySurfaceId = "";
+  hideSystemNote();
+  renderGameOverScreen();
   clearLegacyGameIds();
   window.localStorage.setItem(ACTIVE_STORAGE_KEY, client.gameId);
+}
+
+async function restartGameFromOverlay() {
+  if (client.actionInFlight) {
+    return;
+  }
+  client.actionInFlight = true;
+  clearSceneAnimation();
+  try {
+    await createNewGame();
+    client.actionInFlight = false;
+    render({
+      animateScene: shouldAnimateScene({
+        source: "newGame",
+        previousSnapshot: null,
+        nextSnapshot: client.snapshot,
+      }),
+    });
+  } catch (error) {
+    console.error(error);
+    window.alert(error instanceof Error ? error.message : "새 게임을 시작하지 못했습니다.");
+  } finally {
+    client.actionInFlight = false;
+  }
 }
 
 function needsFreshGame(snapshot) {
@@ -396,6 +446,20 @@ async function loadGameState() {
 
 function currentSceneId(snapshot = client.snapshot) {
   return snapshot?.currentScene?.id || "";
+}
+
+function systemNoteKey(snapshot, note) {
+  if (!snapshot || !note) {
+    return "";
+  }
+  const state = snapshot.state || {};
+  return [
+    snapshot.gameId || client.gameId || "",
+    state.location || "",
+    state.sceneId || "",
+    state.worldElapsedMs ?? "",
+    note,
+  ].join("::");
 }
 
 /** 메인 서사가 이벤트 카드(선택지 포함)를 쓸 때 true — buildSnapshot과 동일 조건 */
@@ -570,6 +634,18 @@ function pinSceneTextToBottomOnMobile() {
   });
 }
 
+function syncMobileChoiceZoneHeight() {
+  if (!window.matchMedia("(max-width: 620px)").matches) {
+    document.documentElement.style.removeProperty("--mobile-choice-zone-height");
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    const height = dom.choices.childElementCount > 0 ? Math.ceil(dom.choices.getBoundingClientRect().height) : 0;
+    document.documentElement.style.setProperty("--mobile-choice-zone-height", `${height}px`);
+  });
+}
+
 async function typeParagraph(paragraphElement, text, token) {
   paragraphElement.classList.add("typing");
   for (let index = 1; index <= text.length; index += 1) {
@@ -664,18 +740,30 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function renderSystemNote(note) {
+function hideSystemNote() {
+  dom.systemNote.hidden = true;
+  dom.systemNote.innerHTML = "";
+  dom.systemNote.classList.remove("is-entering");
+  client.renderedSystemNote = "";
+  client.renderedSystemNoteKey = "";
+}
+
+function isElapsedTimeSystemNoteToken(value) {
+  return /^\+\s*(?:(?:\d+시간)(?:\s+\d+분)?|\d+분)$/.test(value);
+}
+
+function renderSystemNote(note, noteKey = "") {
   if (!note) {
-    dom.systemNote.hidden = true;
-    dom.systemNote.innerHTML = "";
-    dom.systemNote.classList.remove("is-entering");
-    client.renderedSystemNote = "";
+    hideSystemNote();
     return;
   }
 
   const changed = note !== client.renderedSystemNote;
   const parts = note.split(" / ").map((part) => {
     const trimmed = part.trim();
+    if (isElapsedTimeSystemNoteToken(trimmed)) {
+      return `<span class="system-note-token">${escapeHtml(trimmed)}</span>`;
+    }
     if (trimmed.startsWith("+")) {
       return `<span class="system-note-token is-positive">${escapeHtml(trimmed)}</span>`;
     }
@@ -693,6 +781,7 @@ function renderSystemNote(note) {
     dom.systemNote.classList.add("is-entering");
   }
   client.renderedSystemNote = note;
+  client.renderedSystemNoteKey = noteKey;
 }
 
 function openStatusPopover(statKey, options = {}) {
@@ -709,27 +798,12 @@ function openStatusPopover(statKey, options = {}) {
   }
 
   client.activeStatusPopoverKey = statKey;
-  const detail = {
-    hp: {
-      title: "체력",
-      value: `${snapshot.stats.hp} / 10`,
-      note: "부상을 견디고 움직일 수 있는 상태입니다.",
-    },
-    mind: {
-      title: "정신력",
-      value: `${snapshot.stats.mind} / 10`,
-      note: "불안과 피로 속에서도 판단을 유지하는 힘입니다.",
-    },
-    fullness: {
-      title: "포만감",
-      value: `${snapshot.stats.fullness} / 10`,
-      note: "행동 시간이 지나면 줄어들고, 음식과 물로 회복합니다.",
-    },
-  }[statKey];
+  const detail = STATUS_DETAILS[statKey];
+  const value = `${snapshot.stats[statKey]} / ${detail.max}`;
 
   dom.statusPopover.innerHTML = `
     <strong>${detail.title}</strong>
-    <p>${detail.value}</p>
+    <p>${value}</p>
     <p>${detail.note}</p>
   `;
 
@@ -746,18 +820,42 @@ function closeStatusPopover() {
   dom.statusPopover.innerHTML = "";
 }
 
+function statusSeverityClass(value) {
+  if (value <= 3) {
+    return "is-danger";
+  }
+  if (value <= 5) {
+    return "is-warning";
+  }
+  return "";
+}
+
+function applyStatusSeverity(element, value) {
+  element.classList.remove("is-warning", "is-danger");
+  const severityClass = statusSeverityClass(value);
+  if (severityClass) {
+    element.classList.add(severityClass);
+  }
+}
+
 function renderStatusBar() {
   const snapshot = currentState();
   if (!snapshot) {
     return;
   }
 
-  dom.hpFill.style.width = `${snapshot.stats.hp * 10}%`;
-  dom.mindFill.style.width = `${snapshot.stats.mind * 10}%`;
-  dom.fullnessFill.style.width = `${snapshot.stats.fullness * 10}%`;
-  dom.hpStatus.setAttribute("aria-label", `체력 ${snapshot.stats.hp} / 10`);
-  dom.mindStatus.setAttribute("aria-label", `정신력 ${snapshot.stats.mind} / 10`);
-  dom.fullnessStatus.setAttribute("aria-label", `포만감 ${snapshot.stats.fullness} / 10`);
+  const hpMax = STATUS_DETAILS.hp.max;
+  const mindMax = STATUS_DETAILS.mind.max;
+  const energyMax = STATUS_DETAILS.energy.max;
+  dom.hpFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.hp / hpMax) * 100))}%`;
+  dom.mindFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.mind / mindMax) * 100))}%`;
+  dom.energyFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.energy / energyMax) * 100))}%`;
+  dom.hpStatus.setAttribute("aria-label", `체력 ${snapshot.stats.hp} / ${hpMax}`);
+  dom.mindStatus.setAttribute("aria-label", `정신력 ${snapshot.stats.mind} / ${mindMax}`);
+  dom.energyStatus.setAttribute("aria-label", `기력 ${snapshot.stats.energy} / ${energyMax}`);
+  applyStatusSeverity(dom.hpStatus, snapshot.stats.hp);
+  applyStatusSeverity(dom.mindStatus, snapshot.stats.mind);
+  applyStatusSeverity(dom.energyStatus, snapshot.stats.energy);
   dom.timeIndicator.textContent = `${snapshot.day}일차 ${gameClockLabel()}`;
 
   if (client.activeStatusPopoverKey) {
@@ -770,10 +868,12 @@ function renderChoices() {
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed");
   if (!snapshot) {
+    syncMobileChoiceZoneHeight();
     return;
   }
   if (snapshot.state.isGameOver) {
     dom.choices.classList.add("revealed");
+    syncMobileChoiceZoneHeight();
     return;
   }
 
@@ -800,6 +900,7 @@ function renderChoices() {
   });
 
   dom.choices.classList.add("revealed");
+  syncMobileChoiceZoneHeight();
   pinSceneTextToBottomOnMobile();
 }
 
@@ -812,6 +913,12 @@ function renderScene(animateText = true) {
   }
 
   const story = buildStoryDisplay(snapshot);
+  const surfaceId = storySurfaceId(snapshot);
+  const previousRenderedNoteKey = client.renderedSystemNoteKey;
+  const surfaceChanged = Boolean(client.renderedStorySurfaceId && client.renderedStorySurfaceId !== surfaceId);
+  if (surfaceChanged) {
+    hideSystemNote();
+  }
 
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
   dom.sceneLocationBadge.textContent = location.name;
@@ -820,7 +927,14 @@ function renderScene(animateText = true) {
     : isEventStoryActive(snapshot)
       ? "이벤트"
       : riskLabel(location.risk);
-  renderSystemNote(snapshot.state.systemNote || "");
+  const systemNote = snapshot.state.systemNote || "";
+  const currentSystemNoteKey = systemNoteKey(snapshot, systemNote);
+  const isCarriedNoteAfterSurfaceChange =
+    surfaceChanged && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
+  if (systemNote && !isCarriedNoteAfterSurfaceChange) {
+    renderSystemNote(systemNote, currentSystemNoteKey);
+  }
+  client.renderedStorySurfaceId = surfaceId;
 
   clearSceneAnimation();
   if (!animateText) {
@@ -1079,50 +1193,121 @@ function renderMapPanel() {
 function renderInventoryPanel() {
   const snapshot = client.snapshot;
   const itemCards = snapshot.inventoryCards || [];
+  const moneyDetailKey = "money";
+  const isMoneyActive = client.activeInventoryDetailKey === moneyDetailKey;
+  const inventoryDetails = new Map([
+    [moneyDetailKey, "한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다."],
+  ]);
+  const selectInventoryDetail = (detailKey) => {
+    client.activeInventoryDetailKey = detailKey;
+    renderInventoryPanel();
+  };
+  const bindInventoryPanelInteractions = () => {
+    dom.panelContent.querySelectorAll("[data-inventory-detail]").forEach((card) => {
+      card.addEventListener("click", () => {
+        selectInventoryDetail(card.dataset.inventoryDetail);
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.target.closest("[data-use-item]")) {
+          return;
+        }
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+        event.preventDefault();
+        selectInventoryDetail(card.dataset.inventoryDetail);
+      });
+    });
+
+    dom.panelContent.querySelectorAll("[data-use-item]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        submitAction({ type: "use_item", itemId: button.dataset.useItem });
+      });
+    });
+  };
   const moneyCard = `
-    <article class="info-card inventory-card">
+    <article
+      class="info-card inventory-card ${isMoneyActive ? "is-active" : ""}"
+      data-inventory-detail="${moneyDetailKey}"
+      role="button"
+      tabindex="0"
+      aria-pressed="${isMoneyActive ? "true" : "false"}"
+    >
       <div class="inventory-card-head">
         <h3>돈</h3>
         <span class="tag">${snapshot.state.money.toLocaleString()}원</span>
       </div>
-      <p>한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다.</p>
     </article>
   `;
+  const renderInventoryGrid = (cards) => {
+    const columns = [[], []];
+    cards.forEach((card, index) => {
+      columns[index % 2].push(card);
+    });
+
+    return `
+      <div class="panel-grid inventory-grid">
+        <div class="inventory-column">${columns[0].join("")}</div>
+        <div class="inventory-column">${columns[1].join("")}</div>
+      </div>
+    `;
+  };
+  const renderInventoryDetailSlot = () => {
+    const detailText = inventoryDetails.get(client.activeInventoryDetailKey) || "";
+    return `
+      <div class="inventory-detail-slot" id="inventory-detail-slot" aria-live="polite">
+        ${detailText ? `<p>${detailText}</p>` : ""}
+      </div>
+    `;
+  };
 
   if (itemCards.length === 0) {
     dom.panelContent.innerHTML = `
-      <div class="panel-grid inventory-grid">${moneyCard}</div>
+      ${renderInventoryGrid([moneyCard])}
+      ${renderInventoryDetailSlot()}
       <p class="empty-state">지금 가진 물건이 없다.</p>
     `;
+    bindInventoryPanelInteractions();
     return;
   }
 
-  dom.panelContent.innerHTML = `
-    <div class="panel-grid inventory-grid">
-      ${moneyCard}
-      ${itemCards.map((item) => {
+  const renderedCards = [
+    moneyCard,
+    ...itemCards.map((item) => {
+        inventoryDetails.set(item.id, item.description);
         const count = snapshot.state.inventory[item.id] || 0;
         const isUsable = item.kind === "food" || item.kind === "drink" || item.kind === "medicine";
+        const isActive = client.activeInventoryDetailKey === item.id;
         return `
-          <article class="info-card inventory-card">
+          <article
+            class="info-card inventory-card ${isActive ? "is-active" : ""}"
+            data-inventory-detail="${item.id}"
+            role="button"
+            tabindex="0"
+            aria-pressed="${isActive ? "true" : "false"}"
+          >
             <div class="inventory-card-head">
               <h3>${item.name} ${count > 1 ? `x${count}` : ""}</h3>
               <div class="item-actions">
                 ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">사용</button>` : ""}
               </div>
             </div>
-            <p>${item.description}</p>
           </article>
         `;
-      }).join("")}
-    </div>
+      }),
+  ];
+
+  if (client.activeInventoryDetailKey && !inventoryDetails.has(client.activeInventoryDetailKey)) {
+    client.activeInventoryDetailKey = null;
+  }
+
+  dom.panelContent.innerHTML = `
+    ${renderInventoryGrid(renderedCards)}
+    ${renderInventoryDetailSlot()}
   `;
 
-  dom.panelContent.querySelectorAll("[data-use-item]").forEach((button) => {
-    button.addEventListener("click", () => {
-      submitAction({ type: "use_item", itemId: button.dataset.useItem });
-    });
-  });
+  bindInventoryPanelInteractions();
 }
 
 function skillsPanelMarkup() {
@@ -1147,65 +1332,50 @@ function renderSkillsPanel() {
   dom.panelContent.innerHTML = skillsPanelMarkup();
 }
 
-function statusValueLabel(value) {
-  if (value >= 8) {
-    return "양호";
-  }
-  if (value >= 5) {
-    return "주의";
-  }
-  return "위험";
-}
-
 function statusDetailMarkup() {
   const snapshot = client.snapshot;
   const state = snapshot.state;
-  const location = currentLocationCard();
   const stats = [
     {
       key: "hp",
-      title: "체력",
       value: state.stats.hp,
-      note: "부상을 견디고 움직일 수 있는 힘입니다.",
     },
     {
       key: "mind",
-      title: "정신력",
       value: state.stats.mind,
-      note: "불안과 피로 속에서도 판단을 유지하는 힘입니다.",
     },
     {
-      key: "fullness",
-      title: "포만감",
-      value: state.stats.fullness,
-      note: "행동 시간이 지나면 줄어들고 음식과 물로 회복합니다.",
+      key: "energy",
+      value: state.stats.energy,
     },
   ];
 
   return `
     <div class="status-detail-stack">
-      ${stats.map((stat) => `
-        <article class="status-detail-card is-${stat.key}">
-          <div class="status-detail-head">
-            <h3>${stat.title}</h3>
-            <span class="tag">${statusValueLabel(stat.value)} · ${stat.value} / 10</span>
+      ${stats.map((stat) => {
+        const detail = STATUS_DETAILS[stat.key];
+        const isActive = client.activeStatusDetailKey === stat.key;
+        const fillPercent = Math.max(0, Math.min(100, (stat.value / detail.max) * 100));
+        return `
+          <div class="status-detail-row-wrap">
+            <button
+              class="status-detail-row is-${stat.key} ${isActive ? "is-active" : ""}"
+              data-status-detail="${stat.key}"
+              type="button"
+              aria-expanded="${isActive ? "true" : "false"}"
+            >
+              <span class="status-detail-title">${detail.title}</span>
+              <span class="status-detail-meter" aria-hidden="true">
+                <span style="width:${fillPercent}%"></span>
+              </span>
+              <span class="status-detail-value">${stat.value} / ${detail.max}</span>
+            </button>
+            ${isActive ? `<p class="status-detail-note">${detail.note}</p>` : ""}
           </div>
-          <div class="status-detail-meter">
-            <span style="width:${Math.max(0, Math.min(100, stat.value * 10))}%"></span>
-          </div>
-          <p>${stat.note}</p>
-        </article>
-      `).join("")}
+        `;
+      }).join("")}
     </div>
-    <div class="status-summary-grid">
-      <article class="info-card status-summary-card">
-        <h3>시간</h3>
-        <p>${snapshot.day}일차 ${gameClockLabel()}</p>
-      </article>
-      <article class="info-card status-summary-card">
-        <h3>위치</h3>
-        <p>${location ? location.name : "알 수 없음"}</p>
-      </article>
+    <div class="status-summary-grid status-summary-grid-single">
       <article class="info-card status-summary-card">
         <h3>돈</h3>
         <p>${state.money.toLocaleString()}원</p>
@@ -1339,7 +1509,7 @@ function render(options = {}) {
   renderStatusBar();
   renderScene(options.animateScene !== false);
   renderPanel();
-  maybePromptGameOver();
+  renderGameOverScreen();
   client.justCreatedGame = false;
 }
 
@@ -1348,7 +1518,7 @@ async function submitAction(action) {
     return;
   }
   if (client.snapshot?.state?.isGameOver) {
-    maybePromptGameOver();
+    renderGameOverScreen();
     return;
   }
   client.actionInFlight = true;
@@ -1467,6 +1637,7 @@ dom.dockButtons.forEach((button) => {
     const nextPanel = button.dataset.panel;
     if (nextPanel === "status" && client.activePanel !== "status") {
       client.activeStatusPanelView = "status";
+      client.activeStatusDetailKey = null;
     }
     client.isPanelOpen = client.activePanel === nextPanel ? !client.isPanelOpen : true;
     client.activePanel = nextPanel;
@@ -1474,7 +1645,7 @@ dom.dockButtons.forEach((button) => {
   });
 });
 
-["hp", "mind", "fullness"].forEach((statKey) => {
+["hp", "mind", "energy"].forEach((statKey) => {
   const button = dom[`${statKey}Status`];
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1483,6 +1654,14 @@ dom.dockButtons.forEach((button) => {
 });
 
 document.addEventListener("click", (event) => {
+  const clickedElement = event.target instanceof Element ? event.target : null;
+  const gameOverAction = clickedElement?.closest("[data-game-over-action]");
+  if (gameOverAction) {
+    event.preventDefault();
+    restartGameFromOverlay();
+    return;
+  }
+
   if (!dom.statusPopover.hidden && !dom.statusPopover.contains(event.target)) {
     closeStatusPopover();
   }
@@ -1494,12 +1673,19 @@ document.addEventListener("click", (event) => {
   const startedInPanel = eventPath.includes(dom.panelShell) || dom.panelShell.contains(event.target);
   const startedInDock = eventPath.some((node) =>
     node instanceof Element && node.classList.contains("utility-dock")
-  ) || (event.target instanceof Element && event.target.closest(".utility-dock"));
+  ) || clickedElement?.closest(".utility-dock");
   if (startedInPanel || startedInDock) {
     return;
   }
   client.isPanelOpen = false;
   renderPanel();
+});
+
+window.addEventListener("resize", () => {
+  syncMobileChoiceZoneHeight();
+});
+window.addEventListener("orientationchange", () => {
+  syncMobileChoiceZoneHeight();
 });
 
 dom.sceneFrame.addEventListener("click", (event) => {
@@ -1534,6 +1720,20 @@ dom.panelContent.addEventListener("click", (event) => {
   const statusViewButton = event.target.closest("[data-status-view]");
   if (statusViewButton) {
     client.activeStatusPanelView = statusViewButton.dataset.statusView;
+    if (client.activeStatusPanelView !== "status") {
+      client.activeStatusDetailKey = null;
+    }
+    client.activePanel = "status";
+    client.isPanelOpen = true;
+    renderPanel();
+    return;
+  }
+
+  const statusDetailButton = event.target.closest("[data-status-detail]");
+  if (statusDetailButton) {
+    const nextDetailKey = statusDetailButton.dataset.statusDetail;
+    client.activeStatusDetailKey =
+      client.activeStatusDetailKey === nextDetailKey ? null : nextDetailKey;
     client.activePanel = "status";
     client.isPanelOpen = true;
     renderPanel();

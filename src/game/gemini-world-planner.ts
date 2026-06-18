@@ -48,7 +48,7 @@ function plannerGuidancePayload(input: PlannerInput) {
     playerState: {
       hp: input.state.stats.hp,
       mind: input.state.stats.mind,
-      fullness: input.state.stats.fullness,
+      energy: input.state.stats.energy,
       money: input.state.money,
       inventory: compactInventory(input.state),
     },
@@ -104,7 +104,7 @@ function storyBeatGuidancePayload(request: StoryBeatPlannerInput) {
     playerState: {
       hp: request.state.stats.hp,
       mind: request.state.stats.mind,
-      fullness: request.state.stats.fullness,
+      energy: request.state.stats.energy,
       money: request.state.money,
       inventory: compactInventory(request.state),
       activeQuestIds: request.activeQuestIds,

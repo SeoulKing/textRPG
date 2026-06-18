@@ -27,7 +27,7 @@ export const subwayChoiceDefinitions: ChoiceDefinition[] = [
       collectStockItemEffect({ locationId: "subway", nodeId: "subway_signal_box", itemId: "radioAntenna" }),
       { type: "change_stat", stat: "mind", value: -1 },
       { type: "log", message: "당신은 녹슨 나사를 비틀어 무전기 안테나를 떼어 낸다. 어둠 속 금속음이 한동안 귀에 남는다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "high",
   }),
@@ -42,7 +42,7 @@ export const subwayChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "subway", nodeId: "subway_signal_box", itemId: "scrapMetal" }),
       { type: "log", message: "당신은 신호함 안쪽의 금속 브래킷과 나사를 챙긴다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "medium",
   }),
@@ -57,7 +57,7 @@ export const subwayChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "subway", nodeId: "subway_signal_box", itemId: "waterBottle" }),
       { type: "log", message: "당신은 책상 아래 굴러 들어간 미개봉 물병을 꺼낸다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     riskHint: "low",
   }),

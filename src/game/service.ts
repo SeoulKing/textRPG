@@ -558,7 +558,7 @@ export class GameService {
           condition: {
             hp: session.state.stats.hp,
             mind: session.state.stats.mind,
-            fullness: session.state.stats.fullness,
+            energy: session.state.stats.energy,
             money: session.state.money,
             locationId: session.state.location,
             day: session.state.day,

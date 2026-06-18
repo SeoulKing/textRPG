@@ -17,7 +17,7 @@ export const kitchenChoices: ActionDefinition[] = [
       { type: "add_item", itemId: "hotMeal", amount: 1 },
       { type: "set_flag", flag: "mealSecured" },
       { type: "log", message: "당신은 아껴 둔 돈을 꺼내 오늘 몫의 따뜻한 식사를 산다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     tags: ["food", "trade"],
     riskHint: "low",
@@ -37,7 +37,7 @@ export const kitchenChoices: ActionDefinition[] = [
       { type: "add_item", itemId: "hotMeal", amount: 1 },
       { type: "set_flag", flag: "mealSecured" },
       { type: "log", message: "배식줄은 더 길어졌고 값도 올랐다. 당신은 돈을 치르고 따뜻한 식사 하나를 받아 든다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     tags: ["food", "trade"],
     riskHint: "low",
@@ -67,13 +67,16 @@ export const kitchenLocation: LocationDefinition = {
   traits: ["meal purchase", "rumors", "salvage"],
   obtainableItemIds: ["hotMeal", "waterBottle", "rationTicket", "rawRice", "vegetables", "scrapMetal", "clothScrap"],
   residentIds: ["oldCook"],
-  neighbors: ["shelter", "subway"],
+  neighbors: ["shelter", "subway", "forest"],
   interactionChoices: kitchenChoices,
   eventIds: [],
   links: {
     shelter: { note: "허기를 잠시 달랜 뒤 거처 쪽으로 다시 발걸음을 돌린다." },
     subway: {
       note: "급식소 뒤편 계단을 따라 전기가 끊긴 지하철역 쪽으로 내려간다.",
+    },
+    forest: {
+      note: "급식소 뒤편의 젖은 흙길을 따라 숲 쪽으로 빠져나간다.",
     },
   },
   stockNodes: [

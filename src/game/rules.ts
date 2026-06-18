@@ -1,31 +1,27 @@
 import {
-  ACTION_TIME_UNIT_MS,
-  AUTO_FULLNESS_TICK_MS,
+  AUTO_ENERGY_TICK_MS,
+  GAME_MINUTE_MS,
   PHASE_DURATION_MS,
   PHASES,
   REAL_DAY_MS,
   SAVE_VERSION,
-  STARVATION_TICK_MS,
+  EXHAUSTION_TICK_MS,
   TARGET_RESCUE_DAY,
   TRAVEL_DURATION_MS,
 } from "./base-data";
 import { actionConditionsMet, choiceConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
 import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition } from "./runtime-registry";
-import { appendLogEntry, applyEffect, evaluateCondition, evaluateObjective, getStockMoneyKey, getStockStateKey } from "./state-utils";
+import { appendLogEntry, applyEffect, changeSurvivalStat, evaluateCondition, evaluateObjective, getStockMoneyKey, getStockStateKey } from "./state-utils";
 import type { ActionDefinition, ChoiceDefinition, DayEvolutionUpdate, GameAction, GameState } from "./schemas";
 
 const STAT_LABELS = {
   hp: "체력",
   mind: "정신력",
-  fullness: "포만감",
+  energy: "기력",
 } as const;
 
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function adjustStat(state: GameState, statKey: "hp" | "mind" | "fullness", delta: number) {
-  state.stats[statKey] = clamp(state.stats[statKey] + delta, 0, 10);
+function adjustStat(state: GameState, statKey: "hp" | "mind" | "energy", delta: number) {
+  changeSurvivalStat(state, statKey, delta);
 }
 
 function hasItemAmount(state: GameState, itemId: string, amount = 1) {
@@ -104,6 +100,7 @@ const DISCOVERY_UNLOCK_FLAGS: Record<string, string[]> = {
 function normalizeExplorationKnowledge(state: GameState) {
   state.flags.known_convenience = true;
   state.flags.known_kitchen = true;
+  state.flags.known_forest = true;
 
   Object.entries(DISCOVERY_UNLOCK_FLAGS).forEach(([locationId, unlockFlags]) => {
     if (unlockFlags.some((flag) => state.flags[flag])) {
@@ -120,8 +117,8 @@ export function refreshLocationKnowledge(state: GameState) {
   normalizeExplorationKnowledge(state);
 }
 
-function relieveStarvation(state: GameState, amount = 1) {
-  state.starvationLevel = Math.max(0, state.starvationLevel - amount);
+function relieveExhaustion(state: GameState, amount = 1) {
+  state.exhaustionLevel = Math.max(0, state.exhaustionLevel - amount);
 }
 
 function triggerGameOver(state: GameState, reason: string) {
@@ -148,10 +145,6 @@ function evaluateSurvivalOutcome(state: GameState) {
     return;
   }
 
-  if (state.stats.mind <= 0) {
-    triggerGameOver(state, "도시보다 먼저 정신이 무너졌다.");
-    return;
-  }
   if (state.stats.hp <= 0) {
     triggerGameOver(state, "몸이 더는 생존을 버티지 못했다.");
     return;
@@ -169,6 +162,24 @@ function evaluateSurvivalOutcome(state: GameState) {
 function formatSignedDelta(value: number, label: string) {
   const sign = value > 0 ? "+" : "-";
   return `${sign} ${Math.abs(value)} ${label}`;
+}
+
+function formatElapsedTimeDelta(elapsedMs: number) {
+  const totalMinutes = Math.round((Math.max(0, elapsedMs) / REAL_DAY_MS) * 24 * 60);
+  if (totalMinutes <= 0) {
+    return "";
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const parts: string[] = [];
+  if (hours > 0) {
+    parts.push(`${hours}\uC2DC\uAC04`);
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes}\uBD84`);
+  }
+  return `+ ${parts.join(" ")}`;
 }
 
 function questTitle(state: GameState, questId: string) {
@@ -197,6 +208,11 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
 
   if (previousState.location !== nextState.location) {
     parts.push(`이동: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`);
+  }
+
+  const elapsedTimeNote = formatElapsedTimeDelta(nextState.worldElapsedMs - previousState.worldElapsedMs);
+  if (elapsedTimeNote) {
+    parts.push(elapsedTimeNote);
   }
 
   Object.keys(nextRegistry.locations).forEach((locationId) => {
@@ -266,7 +282,7 @@ export function applySystemNote(previousState: GameState, nextState: GameState, 
     return;
   }
 
-  nextState.systemNote = nextState.systemNote || previousState.systemNote || "";
+  nextState.systemNote = "";
 }
 
 export function syncScene(state: GameState, preferredSceneId?: string) {
@@ -415,37 +431,32 @@ function applyDayTransition(state: GameState, previousDay: number) {
     return;
   }
 
-  state.autoFullnessElapsedMs = 0;
-  state.starvationElapsedMs = 0;
+  state.autoEnergyElapsedMs = 0;
+  state.exhaustionElapsedMs = 0;
   delete state.flags.rain_bucket_drawn_today;
   state.flags[`day${state.day}_mealSecured`] = false;
   state.flags[`day${state.day}_waterSecured`] = false;
-  state.lastSleepFullness = state.stats.fullness;
+  state.lastSleepEnergy = state.stats.energy;
   applyPlannedWorldEvolution(state);
   applySurvivalMilestone(state);
   addLog(state, `${state.day}일차가 시작되었다.`);
 }
 
 function applySurvivalPressureForElapsed(state: GameState, elapsed: number) {
-  state.autoFullnessElapsedMs += elapsed;
-  while (state.autoFullnessElapsedMs >= AUTO_FULLNESS_TICK_MS) {
-    state.autoFullnessElapsedMs -= AUTO_FULLNESS_TICK_MS;
-    if (state.stats.fullness > 0) {
-      adjustStat(state, "fullness", -1);
-    }
+  state.autoEnergyElapsedMs += elapsed;
+  while (state.autoEnergyElapsedMs >= AUTO_ENERGY_TICK_MS) {
+    state.autoEnergyElapsedMs -= AUTO_ENERGY_TICK_MS;
+    adjustStat(state, "energy", -1);
   }
 
-  if (state.stats.fullness === 0) {
-    state.starvationElapsedMs += elapsed;
-    while (state.starvationElapsedMs >= STARVATION_TICK_MS) {
-      state.starvationElapsedMs -= STARVATION_TICK_MS;
-      state.starvationLevel += 1;
-      if (state.starvationLevel >= 3) {
-        adjustStat(state, "hp", -1);
-      }
+  if (state.stats.energy === 0) {
+    state.exhaustionElapsedMs += elapsed;
+    while (state.exhaustionElapsedMs >= EXHAUSTION_TICK_MS) {
+      state.exhaustionElapsedMs -= EXHAUSTION_TICK_MS;
+      state.exhaustionLevel += 1;
     }
   } else {
-    state.starvationElapsedMs = 0;
+    state.exhaustionElapsedMs = 0;
   }
 }
 
@@ -469,13 +480,15 @@ function advanceGameTime(state: GameState, elapsed: number) {
   evaluateSurvivalOutcome(state);
 }
 
-function advanceByPhases(state: GameState, phases: number) {
+function advanceByMinutes(state: GameState, minutes: number) {
   if (state.phaseIndex >= PHASES.length - 1) {
     adjustStat(state, "hp", -1);
-    adjustStat(state, "mind", -1);
+    if (state.stats.mind > 0) {
+      adjustStat(state, "mind", -1);
+    }
     addLog(state, "밤이 깊은 뒤에도 움직인 탓에 몸과 마음이 동시에 깎여 나간다.");
   }
-  advanceGameTime(state, ACTION_TIME_UNIT_MS * Math.max(1, phases));
+  advanceGameTime(state, GAME_MINUTE_MS * Math.max(1, minutes));
 }
 
 function advanceTravelTime(state: GameState) {
@@ -501,15 +514,15 @@ export function createInitialGameState(): GameState {
     phaseIndex: 0,
     worldElapsedMs: 0,
     lastRealTimestamp: now,
-    autoFullnessElapsedMs: 0,
-    starvationElapsedMs: 0,
+    autoEnergyElapsedMs: 0,
+    exhaustionElapsedMs: 0,
     isGameOver: false,
     gameOverReason: "",
     stageClear: false,
     stats: {
       hp: 8,
       mind: 6,
-      fullness: 7,
+      energy: 7,
     },
     money: 6500,
     skills: [],
@@ -549,10 +562,11 @@ export function createInitialGameState(): GameState {
       visited_shelter: true,
       known_convenience: true,
       known_kitchen: true,
+      known_forest: true,
     },
     quests: Object.fromEntries(getQuestDefinitions(registry).map((quest) => [quest.id, "inactive" as const])),
-    lastSleepFullness: 8,
-    starvationLevel: 0,
+    lastSleepEnergy: 8,
+    exhaustionLevel: 0,
     log: [{ timestampLabel: "1일차 06:00", message: "눈을 뜬 당신은 오늘 하루를 어떻게든 버텨야 한다는 사실부터 떠올린다." }],
     systemNote: "",
   };
@@ -657,7 +671,7 @@ function useItem(state: GameState, itemId: string) {
   const item = registry.items[itemId] as {
     name: string;
     kind: string;
-    effects: { hp: number; mind: number; fullness: number; starvationRelief: number };
+    effects: { hp: number; mind: number; energy: number; exhaustionRelief: number };
   } | undefined;
   const count = state.inventory[itemId] || 0;
   if (!item || count <= 0) {
@@ -675,9 +689,9 @@ function useItem(state: GameState, itemId: string) {
 
   adjustStat(state, "hp", item.effects.hp);
   adjustStat(state, "mind", item.effects.mind);
-  adjustStat(state, "fullness", item.effects.fullness);
-  if (item.effects.starvationRelief > 0) {
-    relieveStarvation(state, item.effects.starvationRelief);
+  adjustStat(state, "energy", item.effects.energy);
+  if (item.effects.exhaustionRelief > 0) {
+    relieveExhaustion(state, item.effects.exhaustionRelief);
   }
 
   if (itemId === "emergencySnack" || itemId === "cannedFood" || itemId === "hotMeal") {
@@ -720,7 +734,7 @@ function applyDefinitionEffects(state: GameState, effects: ActionDefinition["eff
       return;
     }
     if (effect.type === "advance_time") {
-      advanceByPhases(state, effect.phases);
+      advanceByMinutes(state, effect.minutes);
       return;
     }
     applyEffect(effect, state);
@@ -912,7 +926,7 @@ export function summarizeState(state: GameState) {
     location: String(registry.locations[state.location]?.name ?? state.location),
     hp: state.stats.hp,
     mind: state.stats.mind,
-    fullness: state.stats.fullness,
+    energy: state.stats.energy,
     money: state.money,
     skills: [...state.skills],
     inventory: { ...state.inventory },

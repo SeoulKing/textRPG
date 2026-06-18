@@ -8,10 +8,9 @@ export const REAL_DAY_MS = 15 * 60 * 1000;
 export const PHASE_DURATION_MS = REAL_DAY_MS / PHASES.length;
 export const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);
 export const GAME_HOUR_MS = GAME_MINUTE_MS * 60;
-export const ACTION_TIME_UNIT_MS = GAME_MINUTE_MS * 15;
 export const TRAVEL_DURATION_MS = GAME_MINUTE_MS * 15;
-export const AUTO_FULLNESS_TICK_MS = GAME_HOUR_MS;
-export const STARVATION_TICK_MS = REAL_DAY_MS / 2;
+export const AUTO_ENERGY_TICK_MS = GAME_HOUR_MS;
+export const EXHAUSTION_TICK_MS = REAL_DAY_MS / 2;
 export const TARGET_RESCUE_DAY = 10;
 export const SIGNAL_PART_ITEM_IDS = ["radioBattery", "radioAntenna", "radioTransmitter"] as const;
 

@@ -11,7 +11,7 @@ export const baseItems = {
     rarity: "common",
     price: 1500,
     tags: ["식량", "응급"],
-    effects: { hp: 0, mind: 0, fullness: 1, starvationRelief: 1 },
+    effects: { hp: 0, mind: 0, energy: 5, exhaustionRelief: 1 },
   },
   cannedFood: {
     id: "cannedFood",
@@ -21,7 +21,7 @@ export const baseItems = {
     rarity: "common",
     price: 2500,
     tags: ["식량", "보존식"],
-    effects: { hp: 0, mind: 0, fullness: 2, starvationRelief: 2 },
+    effects: { hp: 0, mind: 0, energy: 5, exhaustionRelief: 2 },
   },
   hotMeal: {
     id: "hotMeal",
@@ -31,7 +31,7 @@ export const baseItems = {
     rarity: "uncommon",
     price: 4500,
     tags: ["식량", "회복"],
-    effects: { hp: 0, mind: 1, fullness: 4, starvationRelief: 3 },
+    effects: { hp: 0, mind: 1, energy: 4, exhaustionRelief: 3 },
   },
   waterBottle: {
     id: "waterBottle",
@@ -41,7 +41,7 @@ export const baseItems = {
     rarity: "common",
     price: 1200,
     tags: ["음료", "회복"],
-    effects: { hp: 0, mind: 1, fullness: 1, starvationRelief: 1 },
+    effects: { hp: 0, mind: 1, energy: 1, exhaustionRelief: 1 },
   },
   painRelief: {
     id: "painRelief",
@@ -51,7 +51,7 @@ export const baseItems = {
     rarity: "uncommon",
     price: 3800,
     tags: ["약품"],
-    effects: { hp: 2, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 2, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   scrapBundle: {
     id: "scrapBundle",
@@ -61,7 +61,7 @@ export const baseItems = {
     rarity: "common",
     price: 1800,
     tags: ["거래"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   rationTicket: {
     id: "rationTicket",
@@ -71,7 +71,7 @@ export const baseItems = {
     rarity: "common",
     price: 0,
     tags: ["배식", "교환"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   woodPlank: {
     id: "woodPlank",
@@ -81,7 +81,7 @@ export const baseItems = {
     rarity: "common",
     price: 700,
     tags: ["재료", "목재", "제작"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   scrapMetal: {
     id: "scrapMetal",
@@ -91,7 +91,7 @@ export const baseItems = {
     rarity: "common",
     price: 900,
     tags: ["재료", "금속", "제작"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   clothScrap: {
     id: "clothScrap",
@@ -101,7 +101,7 @@ export const baseItems = {
     rarity: "common",
     price: 500,
     tags: ["재료", "천", "제작"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   rawRice: {
     id: "rawRice",
@@ -111,7 +111,7 @@ export const baseItems = {
     rarity: "common",
     price: 800,
     tags: ["재료", "요리"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   vegetables: {
     id: "vegetables",
@@ -121,7 +121,7 @@ export const baseItems = {
     rarity: "common",
     price: 600,
     tags: ["재료", "요리"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   radioBattery: {
     id: "radioBattery",
@@ -131,7 +131,7 @@ export const baseItems = {
     rarity: "rare",
     price: 0,
     tags: ["구조", "무전기", "부품"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   radioAntenna: {
     id: "radioAntenna",
@@ -141,7 +141,7 @@ export const baseItems = {
     rarity: "rare",
     price: 0,
     tags: ["구조", "무전기", "부품"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
   radioTransmitter: {
     id: "radioTransmitter",
@@ -151,6 +151,6 @@ export const baseItems = {
     rarity: "rare",
     price: 0,
     tags: ["구조", "무전기", "부품"],
-    effects: { hp: 0, mind: 0, fullness: 0, starvationRelief: 0 },
+    effects: { hp: 0, mind: 0, energy: 0, exhaustionRelief: 0 },
   },
 } as const;

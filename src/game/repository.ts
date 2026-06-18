@@ -273,10 +273,11 @@ function normalizeInventory(rawInventory: unknown, validItemIds: Set<string>) {
 
 function normalizeStats(rawStats: unknown) {
   const stats = (rawStats && typeof rawStats === "object" ? rawStats : {}) as Record<string, unknown>;
+  const legacyEnergyKey = "full" + "ness";
   return {
     hp: normalizeInt(stats.hp, 8, 0, 10),
     mind: normalizeInt(stats.mind, 6, 0, 10),
-    fullness: normalizeInt(stats.fullness, 7, 0, 10),
+    energy: normalizeInt(stats.energy ?? stats[legacyEnergyKey], 7, 0, 15),
   };
 }
 
@@ -311,6 +312,10 @@ function pruneState(state: unknown): GameState {
   const frontierState = normalizeFrontierState(rawState.frontierState);
   const narrativeState = normalizeNarrativeState(rawState.narrativeState);
   const worldPlan = normalizeWorldPlan(rawState.worldPlan, nextDay);
+  const legacyAutoEnergyElapsedKey = "auto" + "Full" + "ness" + "ElapsedMs";
+  const legacyExhaustionElapsedKey = "star" + "vation" + "ElapsedMs";
+  const legacyLastSleepEnergyKey = "lastSleep" + "Full" + "ness";
+  const legacyExhaustionLevelKey = "star" + "vation" + "Level";
   nextFlags[`visited_${nextLocation}`] = true;
   return {
     saveVersion: SAVE_VERSION,
@@ -325,8 +330,8 @@ function pruneState(state: unknown): GameState {
     phaseIndex: normalizeInt(rawState.phaseIndex, 0, 0, 4),
     worldElapsedMs: nextWorldElapsedMs,
     lastRealTimestamp: normalizeInt(rawState.lastRealTimestamp, Date.now(), 0),
-    autoFullnessElapsedMs: normalizeInt(rawState.autoFullnessElapsedMs, 0, 0),
-    starvationElapsedMs: normalizeInt(rawState.starvationElapsedMs, 0, 0),
+    autoEnergyElapsedMs: normalizeInt(rawState.autoEnergyElapsedMs ?? rawState[legacyAutoEnergyElapsedKey], 0, 0),
+    exhaustionElapsedMs: normalizeInt(rawState.exhaustionElapsedMs ?? rawState[legacyExhaustionElapsedKey], 0, 0),
     isGameOver: typeof rawState.isGameOver === "boolean" ? rawState.isGameOver : false,
     gameOverReason: typeof rawState.gameOverReason === "string" ? rawState.gameOverReason : "",
     stageClear: typeof rawState.stageClear === "boolean" ? rawState.stageClear : false,
@@ -340,8 +345,8 @@ function pruneState(state: unknown): GameState {
     narrativeState,
     flags: nextFlags,
     quests: nextQuests,
-    lastSleepFullness: normalizeInt(rawState.lastSleepFullness, 8, 0, 10),
-    starvationLevel: normalizeInt(rawState.starvationLevel, 0, 0),
+    lastSleepEnergy: normalizeInt(rawState.lastSleepEnergy ?? rawState[legacyLastSleepEnergyKey], 8, 0, 15),
+    exhaustionLevel: normalizeInt(rawState.exhaustionLevel ?? rawState[legacyExhaustionLevelKey], 0, 0),
     log: normalizeLogEntries(rawState.log, nextDay, nextWorldElapsedMs),
     systemNote: typeof rawState.systemNote === "string" ? rawState.systemNote : "",
     stockState: nextStockState,

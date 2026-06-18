@@ -473,6 +473,87 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   fake-DOM client probe confirmed one confirm prompt with `게임오버`, reached day/time, total survived time, `게임오버` scene badge, and no rendered choice buttons.
   Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
 
+- 2026-06-18 collapsible item/status helper text:
+  hid inventory helper descriptions by default, including the money card, and made each inventory card toggle its description below the card when selected.
+  kept item use buttons separate from the card toggle so using an item does not also open/close its description.
+  moved status helper notes below the selected status row so status and inventory panels share the same reveal direction.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-18 inventory card independent expansion:
+  set the inventory grid/items to start alignment so opening one card's helper text no longer stretches the other card in the same row.
+  Verified with `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+
+- 2026-06-18 inventory masonry columns:
+  changed the inventory panel from row-based grid cards to two independent column stacks, so opening a left-column item only moves cards below it in the left column and leaves the right column in place.
+  Verified with `node --check app-api.js`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+
+- 2026-06-18 status warning chip colors:
+  changed the energy status icon from food to a lightning bolt.
+  Added automatic status trigger severity backgrounds for hp, mind, and energy: values 5 or below use orange, and values 3 or below use red.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-18 inventory bottom detail slot:
+  removed inline inventory description expansion and changed item cards to selection-only chips.
+  Added a reserved bottom description slot in the inventory sheet, roughly one item-chip tall, where the selected item's helper text appears.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-18 elapsed-time system note:
+  system notes now include the actual game-time elapsed by the resolved action as a token such as `+ 15분` or `+ 1시간 10분`.
+  The note is derived from the `worldElapsedMs` delta after executing authored `advance_time`, `advance_to_daybreak`, and travel timing rather than hardcoded per choice.
+  Verified with `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, `node --check app-api.js`,
+  a travel runtime probe showing `이동: 편의점 폐허 / + 15분 / 신규 지역: 작은 병원`,
+  a shelf collection probe showing `+ 15분 / + 3 캔 음식 / 퀘스트 완료: 첫 식량 확보`,
+  and a formatter probe showing `+ 1시간 10분`.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 night strain double-hp fix:
+  investigated reports that hp sometimes dropped by 2 when mind was already 0.
+  Root cause: late-night `advanceByPhases()` applied direct hp -1 and mind -1 together; with mind already 0, the new spillover rule converted the mind loss into another hp -1.
+  Changed the late-night penalty so it still applies hp -1, and only applies mind -1 when mind is above 0. This prevents one night-strain event from double-dipping hp through spillover.
+  Verification passed:
+  repro before fix showed hp `3 -> 1` and `- 2 체력`;
+  after fix the same case showed hp `3 -> 2` and `- 1 체력`;
+  mind-positive night strain still showed hp `3 -> 2`, mind `2 -> 1`;
+  direct energy spillover with mind 0 still showed hp `3 -> 2`.
+  `npm.cmd run typecheck`, `npm.cmd run content:validate`, and `npm.cmd run build` passed.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 compact status sheet rows:
+  changed the bottom-sheet status view from large stat cards into one-line rows: stat name, meter, and numeric value remain visible.
+  Removed the qualitative `양호` / `주의` / `위험` labels and removed time/location cards from the status list.
+  Tapping a stat row toggles a small note above that row with the stat description; switching to skills clears the open note.
+  Shared the same status description definitions with the top status popover.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, `git diff --check`, and HTTP 200 on `localhost:3000`.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 full-screen game-over overlay:
+  replaced the game-over browser confirm prompt with an in-game full-screen overlay.
+  The overlay covers the whole viewport above the fixed header/dock, emphasizes a large `게임오버` title, shows the game-over reason and survival records, and provides a `새 게임` button.
+  The overlay new-game flow bypasses the menu confirmation and clears the in-flight flag before rendering the fresh save so choices are not left disabled.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, `git diff --check`, and HTTP 200 on `localhost:3000`.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 persistent system note until scene transition:
+  changed system notes to stay visible until the story scene/event surface changes instead of dismissing on a timer.
+  If the server clears `systemNote` while the player remains on the same surface, the client keeps the currently displayed note.
+  Scene/surface transitions still clear carried notes immediately, while genuinely new notes for the new surface can render normally.
+  System notes now render in normal story flow directly above the first narrative line, using the body text area while centering the note chips within that area.
+  Slimmed their chips with reduced vertical padding and line-height.
+  On mobile, unified the image-to-note and note-to-body spacing to the same 12px rhythm so the art and narrative block feel evenly separated.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, `git diff --check`, and HTTP 200 on `localhost:3000`.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 minute-based advance_time effects:
+  changed the `advance_time` effect schema from `phases` to explicit game-time `minutes`.
+  Runtime handling now calls `advanceByMinutes()` and multiplies by `GAME_MINUTE_MS`; the old `ACTION_TIME_UNIT_MS` constant was removed.
+  Converted existing authored content from `{ type: "advance_time", phases: 1 }` to `{ type: "advance_time", minutes: 15 }`.
+  Client system-note rendering now treats elapsed-time tokens such as `+ 15분` and `+ 1시간 15분` as neutral/default chips instead of positive green chips.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, `git diff --check`, HTTP 200 on `localhost:3000`, and a focused runtime probe confirming `collect_canned_food_from_shelf` advances exactly 15 game minutes.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
 - 2026-06-17 mobile choice tap polish:
   disabled the default mobile tap highlight on app buttons and prevented choice text selection/callout.
   Added an explicit `.choice-button:active` state that keeps the normal choice background instead of flashing a blue pressed color.
@@ -495,3 +576,126 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   Updated the mobile auto-scroll helper to scroll `.app-shell` instead of the narrative-only text box.
   Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
   Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-17 mobile fixed-choice refinement:
+  refined the mobile layout so the scrollable area is exactly the region from below the fixed status header to above the fixed choice area.
+  Kept choices fixed above the bottom dock, but removed the choice area's visible panel treatment: no top border, no shadow, no gradient background.
+  Reduced mobile choice buttons from 56px minimum height to 38px with tighter padding and line-height.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-18 mobile white background unification:
+  removed the mobile-only gray/empty-looking surfaces by forcing `body`, `.app-shell`, `.story-shell`, `.story-stage`, `.scene-copy`, and `.choice-list` to white.
+  Disabled the mobile `body::before` grid overlay and removed mobile header/dock shadows so the viewport reads as one continuous white surface.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-18 mobile choice full-height display:
+  removed the mobile choice list's fixed `max-height` and internal scrolling so every choice button is displayed.
+  Added `syncMobileChoiceZoneHeight()` to measure the rendered fixed choice area and feed that height into `--mobile-choice-zone-height`, keeping the story scroll region above the choices.
+  Re-syncs choice height after rendering choices and on resize/orientation changes.
+  Verified with `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, HTTP 200 on `localhost:3000`, and `git diff --check`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-18 narrative font update:
+  added a local-font `@font-face` stack for KoPub Batang/KoPubWorld Batang Medium and applied it to `.scene-text`.
+  Set scene narrative text and its inline headline to `font-weight: 500`; fallback remains Batang/Malgun Gothic if KoPub is not installed locally.
+  Verified with `git diff --check`, `npm.cmd run build`, and HTTP 200 on `localhost:3000`.
+
+- 2026-06-18 narrative font fallback quality fix:
+  local inspection showed KoPub is not installed on this Windows machine, so the scene text was falling through to the old Windows `Batang` font.
+  Added a cleaner `NarrativeBatang` local font stack that tries KoPub first, then `HCR Batang`, then Malgun Gothic before legacy Batang.
+  Added `text-rendering: optimizeLegibility` and `-webkit-font-smoothing: antialiased` to `.scene-text`.
+  Verified with `git diff --check`, `npm.cmd run build`, and HTTP 200 on `localhost:3000`.
+
+- 2026-06-18 bundled KoPub font:
+  copied the user-provided `KoPub Batang Medium.ttf` into `assets/fonts/KoPubBatangMedium.ttf`.
+  Updated the `NarrativeBatang` `@font-face` to load `/assets/fonts/KoPubBatangMedium.ttf` before local font fallbacks, so deployed builds use the same narrative font.
+  Verified the static font route returns `HTTP 200 font/ttf` with the expected 6,414,208 byte file, plus `npm.cmd run build` and `git diff --check`.
+
+- 2026-06-18 KoPub Light smoothing pass:
+  added the user-provided `KoPub Batang Light.ttf` as `assets/fonts/KoPubBatangLight.ttf`.
+  Registered it as `NarrativeBatang` weight 300 and switched `.scene-text` body copy from weight 500 to 300, with a slight font-size bump from 1.01rem to 1.04rem to reduce visible stair-stepping.
+  Kept `.scene-text .scene-headline` at weight 500 so headings continue to use the bundled Medium font.
+  Verified `/assets/fonts/KoPubBatangLight.ttf` returns `HTTP 200 font/ttf`, `npm.cmd run build`, `git diff --check`, and `/styles.css` contains the Light font URL.
+
+- 2026-06-18 transient system note clearing:
+  fixed `applySystemNote()` so reward/status tokens are cleared when the next action produces no new system note.
+  This prevents notes like `+ 1800원` from lingering after leaving the register or moving into another scene.
+  Game-over and stage-clear notes still keep their existing protected behavior.
+  Verified with `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, `git diff --check`, and a focused runtime probe confirming register cash collection shows a positive money note while leaving the register clears `systemNote`.
+
+- 2026-06-18 survival stat spillover rule:
+  added shared stat-change behavior so negative fullness at 0 spills into mind, and negative mind at 0 spills into hp.
+  Content `change_stat` effects and internal rule adjustments now share this same helper.
+  Auto fullness pressure no longer skips the tick at fullness 0; it attempts the fullness decrement and lets the spillover rule apply.
+  Starvation level/status can still accumulate while fullness is 0, but the old extra starvation hp tick was removed so hp loss follows the requested fullness -> mind -> hp chain.
+  Mind reaching 0 is no longer an immediate game-over condition; hp reaching 0 remains the game-over trigger.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  focused content-effect probe confirmed fullness 0 spills to mind, fullness+mind 0 spills to hp, and hp 0 triggers game over.
+  focused auto-time probe confirmed auto fullness pressure at fullness 0 spills to mind, and at fullness+mind 0 spills to hp/game over.
+  fake-DOM client probe confirmed one `게임오버` confirm prompt with reached day/time, total survived time, `게임오버` scene badge, and no rendered choice buttons.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 fullness-to-energy rename:
+  renamed the survival resource from `fullness` to `energy` across runtime state, item effects, schemas, planner/card payloads, frontend DOM ids/classes, and docs.
+  Player-facing labels now use `기력`; system-note stat deltas report `기력`.
+  Renamed depletion bookkeeping from starvation wording to exhaustion wording (`autoEnergyElapsedMs`, `exhaustionElapsedMs`, `exhaustionLevel`, `exhaustionRelief`, `AUTO_ENERGY_TICK_MS`, `EXHAUSTION_TICK_MS`).
+  Repository normalization still migrates legacy save keys into the new energy fields without leaving legacy terms in normal state output.
+  Verified no `fullness` / `포만감` / `hunger` / `starvation` occurrences remain in active app/source/docs search results.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  runtime probes confirmed energy spillover and hp-zero game over.
+  legacy save probe confirmed old resource keys migrate to `energy` / exhaustion fields.
+  legacy item-effect probe confirmed old resource/easing keys migrate to `energy` / `exhaustionRelief`.
+  fake-DOM client probe confirmed `기력 0 / 10` aria label and game-over confirm prompt.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 forest resource region:
+  added a new `forest` region at map position `{ q: 0, r: 1 }`, visually below the temporary shelter.
+  The forest is known from the start and links both ways with adjacent shelter, convenience ruins, and soup kitchen locations.
+  Added repeatable forest actions:
+  `chop_wood_at_forest` spends 30 game minutes and grants `woodPlank +3`;
+  `search_forest_resources` spends 30 game minutes and rolls weighted outcomes: 30% nothing, 10% canned food, 20% wood plank, 20% scrap metal, 20% cloth scrap.
+  Added a reusable `random_outcome` effect type for authored probabilistic rewards, keeping nested random outcomes limited to non-time effects so action time still comes from normal `advance_time` data.
+  Added `assets/scenes/forest.svg` for the forest scene.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `node --check app-api.js`
+  runtime probe confirmed forest links/actions, shelter/convenience/kitchen -> forest travel, chopping note `+ 30분 / + 3 목재 판자`, and all five deterministic search outcomes.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 energy max 15:
+  raised the energy stat maximum from 10 to 15 while keeping hp and mind capped at 10.
+  Updated runtime stat clamping, save normalization, GameState/Player/Protagonist schemas, and frontend status bars/popovers/detail rows so energy displays as `/ 15`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  runtime probe confirmed energy `14 + 5 -> 15`, schema accepts energy 15 and rejects 16, while hp/mind still cap at 10.
+  Localhost API smoke returned a new game successfully and the client code contains the energy `max: 15` UI definition.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
+
+- 2026-06-18 forest randomized result scenes:
+  changed forest repeat actions so their body text varies by selecting from authored scene variants after the action resolves.
+  Added scene-level `tags` and a `set_random_scene` effect for authored content. It selects from currently valid scenes that share the requested tag, so actions no longer list candidate scene ids directly.
+  Reworked `chop_wood_at_forest` so it always spends 30 minutes and grants `woodPlank +3`, then randomly shows one of the scenes tagged `forest:result:chop`.
+  Reworked `search_forest_resources` to keep the original outcome odds exactly intact: 30% nothing, 10% canned food, 20% wood plank, 20% scrap metal, 20% cloth scrap. Each outcome now chooses only its narrative scene variant by result tag.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  runtime probe confirmed chop scene variants with unchanged `+ 3 woodPlank`, deterministic search rolls for all five outcomes with result-specific scene variants, and no remaining candidate scene id list in the forest action file.
+  `git diff --check` passed with only existing CRLF normalization warnings.
+  Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.

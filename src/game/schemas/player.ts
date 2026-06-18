@@ -5,7 +5,7 @@ export const PlayerSchema = z.object({
   name: z.string(),
   hp: z.number().int().min(0).max(10),
   sanity: z.number().int().min(0).max(10),
-  hunger: z.number().int().min(0).max(10),
+  energy: z.number().int().min(0).max(15),
   money: z.number().int().nonnegative(),
   inventory: z.record(z.string(), z.number().int().nonnegative()),
   skills: z.array(z.string()),

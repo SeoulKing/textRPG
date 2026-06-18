@@ -1,12 +1,13 @@
 import type { LocationDefinition } from "../../schemas";
 import { checkpointRegion } from "./checkpoint";
 import { convenienceRegion } from "./convenience";
+import { forestRegion } from "./forest";
 import { hospitalRegion } from "./hospital";
 import { kitchenRegion } from "./kitchen";
 import { shelterRegion } from "./shelter";
 import { subwayRegion } from "./subway";
 
-export const regionModules = [shelterRegion, convenienceRegion, kitchenRegion, hospitalRegion, subwayRegion, checkpointRegion];
+export const regionModules = [shelterRegion, convenienceRegion, kitchenRegion, forestRegion, hospitalRegion, subwayRegion, checkpointRegion];
 
 export const baseLocations = Object.fromEntries(
   regionModules.map((region) => [region.location.id, region.location]),

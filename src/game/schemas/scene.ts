@@ -8,6 +8,7 @@ export const SceneDefinitionSchema = z.object({
   locationId: z.string(),
   title: z.string(),
   paragraphs: z.array(z.string()).min(1),
+  tags: z.array(z.string()).optional(),
   choiceIds: z.array(z.string()).default([]),
   conditions: z.array(ConditionSchema).default([]),
   introFlag: z.string().optional(),

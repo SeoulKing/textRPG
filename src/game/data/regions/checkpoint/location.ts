@@ -24,7 +24,7 @@ export const checkpointChoices: ActionDefinition[] = [
       { type: "set_flag", flag: "rescue_frequency_confirmed" },
       { type: "change_stat", stat: "mind", value: 1 },
       { type: "log", message: "검문소의 무전 기록에서 10일차 아침 구조대가 이 구역을 수색할 가능성을 확인했다. 신호만 준비되면 된다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     tags: ["hint", "signal"],
     riskHint: "medium",

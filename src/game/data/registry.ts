@@ -155,6 +155,18 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
     case "set_scene":
       assertKnownScene(registry, effect.sceneId, source);
       break;
+    case "set_random_scene": {
+      const matchingScenes = Object.values(registry.scenes).filter((scene) => (scene.tags ?? []).includes(effect.tag));
+      if (matchingScenes.length === 0) {
+        throw new Error(`${source} references unknown random scene tag '${effect.tag}'.`);
+      }
+      break;
+    }
+    case "random_outcome":
+      effect.outcomes.forEach((outcome, index) => {
+        outcome.effects.forEach((nestedEffect) => validateEffect(registry, nestedEffect, `${source}:outcome:${index + 1}`));
+      });
+      break;
     case "discover_stock_node":
     case "focus_stock_node":
       assertKnownStockNode(registry, effect.nodeId, source);

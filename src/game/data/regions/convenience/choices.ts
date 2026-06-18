@@ -61,7 +61,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
       { type: "set_flag", flag: "first_canned_food_started" },
       { type: "set_flag", flag: "first_canned_food_secured" },
       { type: "log", message: "당신은 진열대에 남아 있던 통조림을 전부 쓸어 담아 조심스럽게 품에 안는다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 5 },
     ],
     riskHint: "low",
   }),
@@ -76,7 +76,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       { type: "collect_stock_money_all", locationId: "convenience", nodeId: "convenience_register" },
       { type: "log", message: "당신은 계산대 서랍 구석에 남은 지폐와 동전을 빠짐없이 긁어모아 주머니에 넣는다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 5 },
     ],
     riskHint: "low",
   }),
@@ -91,7 +91,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank" }),
       { type: "log", message: "당신은 아직 단단한 판자들을 한데 모아 어깨에 걸친다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 10 },
     ],
     riskHint: "low",
   }),
@@ -106,7 +106,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap" }),
       { type: "log", message: "당신은 먼지를 털어 낸 천 조각들을 한데 접어 품속에 넣는다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 5 },
     ],
     riskHint: "low",
   }),
@@ -121,7 +121,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       collectStockItemEffect({ locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal" }),
       { type: "log", message: "당신은 선반 모서리에 걸린 금속 부품을 비틀어 떼어 낸다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 5 },
     ],
     riskHint: "low",
   }),

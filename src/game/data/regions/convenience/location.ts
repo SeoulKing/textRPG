@@ -13,13 +13,16 @@ export const convenienceLocation: LocationDefinition = {
   traits: ["food", "water", "cash", "salvage"],
   obtainableItemIds: ["emergencySnack", "cannedFood", "rawRice", "vegetables", "waterBottle", "woodPlank", "scrapMetal", "clothScrap"],
   residentIds: [],
-  neighbors: ["shelter", "hospital"],
+  neighbors: ["shelter", "hospital", "forest"],
   interactionChoices: convenienceChoices,
   eventIds: [],
   links: {
     shelter: { note: "무심한 발걸음처럼 가장한 채 거처 쪽으로 되돌아간다." },
     hospital: {
       note: "편의점 뒤편 골목을 지나 약품 냄새가 희미하게 남은 병원 쪽으로 간다.",
+    },
+    forest: {
+      note: "편의점 뒤편의 낮은 비탈을 타고 숲 가장자리로 올라간다.",
     },
   },
   stockNodes: [

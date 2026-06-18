@@ -25,7 +25,7 @@ const MAX_STAT_DELTA = 2;
 const MAX_ITEM_AMOUNT = 3;
 const MAX_MONEY_DELTA = 1200;
 const MAX_STOCK_QUANTITY = 4;
-const FORBIDDEN_GENERATED_EFFECTS = new Set(["set_scene", "advance_to_daybreak", "advance_time"]);
+const FORBIDDEN_GENERATED_EFFECTS = new Set(["set_scene", "set_random_scene", "advance_to_daybreak", "advance_time"]);
 
 function startsDyn(id: string) {
   return id.startsWith(DYN_PREFIX);

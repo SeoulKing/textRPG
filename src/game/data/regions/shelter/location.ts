@@ -11,7 +11,7 @@ export const shelterChoices: ActionDefinition[] = [
       { type: "change_stat", stat: "hp", value: 1 },
       { type: "change_stat", stat: "mind", value: 1 },
       { type: "log", message: "당신은 천막 구석에 몸을 기대고 잠시 숨을 고른다. 완전히 편하진 않지만 몸이 조금은 가벼워진다." },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     tags: ["recovery"],
     riskHint: "low",
@@ -68,7 +68,7 @@ export const shelterChoices: ActionDefinition[] = [
         type: "log",
         message: "당신은 천막 가장자리에 매달아 둔 물받이에 고인 빗물을 병에 조심스럽게 옮겨 담는다.",
       },
-      { type: "advance_time", phases: 1 },
+      { type: "advance_time", minutes: 15 },
     ],
     tags: ["water", "resource"],
     riskHint: "low",
@@ -86,7 +86,7 @@ export const shelterLocation: LocationDefinition = {
   traits: ["rest", "crafting", "cooking"],
   obtainableItemIds: ["emergencySnack", "waterBottle", "hotMeal", "rawRice", "vegetables", "woodPlank", "scrapMetal", "clothScrap", "radioBattery", "radioAntenna", "radioTransmitter"],
   residentIds: [],
-  neighbors: ["convenience", "kitchen"],
+  neighbors: ["convenience", "kitchen", "forest"],
   interactionChoices: shelterChoices,
   eventIds: [],
   links: {
@@ -95,6 +95,9 @@ export const shelterLocation: LocationDefinition = {
     },
     kitchen: {
       note: "국물 냄새와 줄 선 사람들의 소리가 새어 나오는 급식소 쪽으로 향한다.",
+    },
+    forest: {
+      note: "천막 아래쪽의 젖은 흙길을 따라 작은 숲으로 내려간다.",
     },
   },
   stockNodes: [],
