@@ -1012,3 +1012,11 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
 - 2026-06-22 home Kakao button polish:
   moved the home action block closer to the visual center of the cover screen and centered the auth panel.
   restyled the Kakao login link with the Kakao yellow container, dark label, rounded 12px shape, and speech-bubble symbol.
+
+- 2026-06-22 system note time ordering:
+  changed `summarizeSystemNote` so elapsed time tokens are appended after movement, new location, stat, money, item, and quest tokens.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  local API smoke confirmed shelter -> convenience travel now returns `이동: 편의점 폐허 / 신규 지역: 작은 병원 / + 15분`.

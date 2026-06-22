@@ -220,9 +220,6 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
   }
 
   const elapsedTimeNote = formatElapsedTimeDelta(nextState.worldElapsedMs - previousState.worldElapsedMs);
-  if (elapsedTimeNote) {
-    parts.push(elapsedTimeNote);
-  }
 
   Object.keys(nextRegistry.locations).forEach((locationId) => {
     const wasKnown = Boolean(previousState.flags[`known_${locationId}`] || previousState.flags[`visited_${locationId}`]);
@@ -269,6 +266,10 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
       parts.push(`퀘스트 시작: ${questTitle(nextState, questId)}`);
     }
   });
+
+  if (elapsedTimeNote) {
+    parts.push(elapsedTimeNote);
+  }
 
   const stockFocusChanged = previousState.activeStockNodeId !== nextState.activeStockNodeId;
   const previousDiscovered = new Set(previousState.discoveredStockNodeIds || []);
