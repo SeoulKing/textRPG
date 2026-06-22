@@ -1008,3 +1008,7 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `npm.cmd run build`
   API smoke on port 3100 confirmed `/api/auth/me`, missing Kakao config behavior, authenticated account save, account save info, and account restore.
   in-app browser smoke on port 3100 confirmed the home login panel renders the missing-key state and `새 게임` still enters gameplay without console errors.
+
+- 2026-06-22 home Kakao button polish:
+  moved the home action block closer to the visual center of the cover screen and centered the auth panel.
+  restyled the Kakao login link with the Kakao yellow container, dark label, rounded 12px shape, and speech-bubble symbol.

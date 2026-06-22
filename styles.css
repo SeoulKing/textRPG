@@ -101,7 +101,7 @@ body::before {
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  align-items: end;
+  align-items: center;
   overflow: hidden;
   color: #f8fafc;
   background: #111827;
@@ -124,7 +124,8 @@ body::before {
   position: relative;
   width: min(620px, calc(100% - 40px));
   margin: 0 auto;
-  padding: 0 0 max(46px, calc(32px + env(safe-area-inset-bottom)));
+  padding: max(42px, calc(30px + env(safe-area-inset-top))) 0 max(46px, calc(32px + env(safe-area-inset-bottom)));
+  transform: translateY(6vh);
 }
 
 .home-kicker {
@@ -155,6 +156,7 @@ body::before {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   max-width: 420px;
+  margin: 0 auto;
 }
 
 .home-action {
@@ -182,10 +184,11 @@ body::before {
 .home-auth-panel {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
   max-width: 420px;
-  margin-top: 14px;
+  margin: 14px auto 0;
 }
 
 .home-auth-status {
@@ -194,28 +197,54 @@ body::before {
   color: rgba(248, 250, 252, 0.66);
   font-size: 0.82rem;
   line-height: 1.45;
+  text-align: center;
 }
 
 .home-auth-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 8px 12px;
+  gap: 8px;
+  min-width: 150px;
+  min-height: 44px;
+  padding: 9px 18px;
   border: 1px solid rgba(248, 250, 252, 0.24);
-  border-radius: 8px;
+  border-radius: 12px;
   background: rgba(248, 250, 252, 0.1);
   color: #f8fafc;
-  font-size: 0.84rem;
+  font-size: 0.94rem;
   font-weight: 900;
   text-decoration: none;
   cursor: pointer;
 }
 
 .home-auth-button.kakao {
+  border: 0;
   border-color: #fee500;
   background: #fee500;
-  color: #191919;
+  color: rgba(0, 0, 0, 0.85);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.kakao-symbol {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 16px;
+  border-radius: 50%;
+  background: #000000;
+}
+
+.kakao-symbol::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  bottom: -4px;
+  width: 7px;
+  height: 7px;
+  background: #000000;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  transform: rotate(-18deg);
 }
 
 .home-auth-button[aria-disabled="true"] {
@@ -1988,7 +2017,9 @@ body::before {
 
   .home-content {
     width: min(100% - 32px, 440px);
-    padding-bottom: max(38px, calc(24px + env(safe-area-inset-bottom)));
+    padding-top: max(28px, calc(18px + env(safe-area-inset-top)));
+    padding-bottom: max(30px, calc(20px + env(safe-area-inset-bottom)));
+    transform: translateY(4vh);
   }
 
   .home-actions {
