@@ -15,27 +15,28 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "accept_first_canned_food_quest",
-    label: "퀘스트: 노파의 부탁을 수락하고 편의점 통조림을 찾으러 간다",
-    outcomeHint: "첫 생존 퀘스트를 수락한다. 노파의 부탁을 받아 편의점 폐허에서 오늘 버틸 식량을 확보하러 움직인다.",
+    label: "퀘스트: 편의점에서 통조림 세 개를 찾아 노파에게 가져다준다",
+    outcomeHint: "노파의 부탁을 받아 편의점 폐허의 진열대에서 통조림 세 개를 찾고, 급식소의 노파에게 직접 가져다주기로 한다.",
     conditions: [{ type: "flag_not", flag: "first_canned_food_started" }],
     effects: [
       { type: "set_flag", flag: "first_canned_food_started" },
-      { type: "log", message: "당신은 노파의 말을 되새기며, 오늘의 첫 목표를 통조림 확보로 정한다." },
+      { type: "log", message: "당신은 노파의 부탁을 받아, 편의점 폐허에서 통조림 세 개를 찾아 급식소의 노파에게 가져다주기로 정한다." },
     ],
     nextSceneId: "shelter_first_intro",
     riskHint: "low",
   }),
   sceneChoice({
     id: "craft_shelter_wall_patch",
-    label: "거처 보강하기",
-    outcomeHint: "필요 재료: 목재 판자 1 / 천 조각 2. 완성하면 잠자기 후 체력과 정신력이 조금 더 회복된다.",
+    showOutcomeHint: true,
+    label: "거처 보강",
+    outcomeHint: "효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: 목재 판자 1 / 천 조각 2.",
     presentationMode: "always",
     conditions: [
       { type: "flag_not", flag: "shelter_wall_patch" },
       { type: "has_item", itemId: "woodPlank", amount: 1 },
       { type: "has_item", itemId: "clothScrap", amount: 2 },
     ],
-    failureNote: "이미 보강을 끝냈거나 재료가 부족하다. 필요 재료: 목재 판자 1 / 천 조각 2. 완성하면 잠자리 회복이 좋아진다.",
+    failureNote: "이미 보강을 끝냈거나 재료가 부족하다. 효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: 목재 판자 1 / 천 조각 2.",
     failureEffects: [
       { type: "log", message: "벽 틈을 막으려면 목재 판자 한 장과 천 조각 두 장이 필요하다. 이미 손본 자리라면 더 건드릴 곳도 없다." },
     ],
@@ -54,15 +55,16 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_shelter_brazier",
-    label: "간이 화로 제작하기",
-    outcomeHint: "필요 재료: 고철 2 / 목재 판자 1. 완성하면 거처에서 요리하기 레시피를 사용할 수 있다.",
+    showOutcomeHint: true,
+    label: "간이 화로",
+    outcomeHint: "효과: 거처에서 따뜻한 식사 조리 가능. 필요 재료: 고철 2 / 목재 판자 1.",
     presentationMode: "always",
     conditions: [
       { type: "flag_not", flag: "shelter_brazier" },
       { type: "has_item", itemId: "scrapMetal", amount: 2 },
       { type: "has_item", itemId: "woodPlank", amount: 1 },
     ],
-    failureNote: "이미 화로가 있거나 재료가 부족하다. 필요 재료: 고철 2 / 목재 판자 1. 완성하면 조리가 가능해진다.",
+    failureNote: "이미 화로가 있거나 재료가 부족하다. 효과: 거처에서 따뜻한 식사 조리 가능. 필요 재료: 고철 2 / 목재 판자 1.",
     failureEffects: [
       { type: "log", message: "간이 화로를 만들려면 고철 두 조각과 판자 한 장이 필요하다. 이미 화로를 만들었다면 더 손댈 이유는 없다." },
     ],
@@ -81,15 +83,16 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_shelter_rain_bucket",
-    label: "빗물통 정비하기",
-    outcomeHint: "필요 재료: 고철 1 / 천 조각 1. 완성하면 하루에 한 번 물 한 병을 받을 수 있다.",
+    showOutcomeHint: true,
+    label: "빗물통",
+    outcomeHint: "효과: 하루에 한 번 물 한 병 확보 가능. 필요 재료: 고철 1 / 천 조각 1.",
     presentationMode: "always",
     conditions: [
       { type: "flag_not", flag: "shelter_rain_bucket" },
       { type: "has_item", itemId: "scrapMetal", amount: 1 },
       { type: "has_item", itemId: "clothScrap", amount: 1 },
     ],
-    failureNote: "이미 물받이를 만들어 두었거나 재료가 부족하다. 필요 재료: 고철 1 / 천 조각 1. 완성하면 하루 한 번 물을 확보한다.",
+    failureNote: "이미 물받이를 만들어 두었거나 재료가 부족하다. 효과: 하루에 한 번 물 한 병 확보 가능. 필요 재료: 고철 1 / 천 조각 1.",
     failureEffects: [
       { type: "log", message: "빗물통을 손보려면 고철 한 조각과 천 조각 한 장이 필요하다. 이미 완성해 둔 설비라면 더 만들 필요도 없다." },
     ],
@@ -108,8 +111,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "cook_at_shelter",
-    label: "따뜻한 식사 조리하기",
-    outcomeHint: "전제: 간이 화로 완성. 필요 재료: 쌀 1 / 채소 1 / 목재 판자 1. 완성하면 따뜻한 식사 1개를 만든다.",
+    showOutcomeHint: true,
+    label: "따뜻한 식사",
+    outcomeHint: "효과: +1 정신력 / +4 기력. 전제: 간이 화로. 필요 재료: 쌀 1 / 채소 1 / 목재 판자 1.",
     presentationMode: "always",
     conditions: [
       { type: "flag", flag: "shelter_brazier" },
@@ -117,7 +121,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "vegetables", amount: 1 },
       { type: "has_item", itemId: "woodPlank", amount: 1 },
     ],
-    failureNote: "간이 화로가 있어야 하고, 쌀 1 / 채소 1 / 목재 판자 1이 필요하다. 완성하면 따뜻한 식사 1개를 만든다.",
+    failureNote: "간이 화로가 있어야 하고, 쌀 1 / 채소 1 / 목재 판자 1이 필요하다. 효과: +1 정신력 / +4 기력.",
     failureEffects: [
       { type: "log", message: "조리를 하려면 먼저 간이 화로가 있어야 하고, 쌀과 채소, 그리고 불씨로 쓸 목재 판자 한 장이 필요하다." },
     ],
@@ -137,10 +141,12 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "assemble_rescue_radio",
-    label: "무전기 조립하기",
-    outcomeHint: "필요 부품: 무전기 배터리 / 무전기 안테나 / 무전기 송신기 / 고철 2 / 천 조각 1. 완성하면 10일차 구조 신호를 보낼 수 있다.",
+    showOutcomeHint: true,
+    label: "무전기",
+    outcomeHint: "효과: 10일차 구조 신호 준비. 필요 부품: 무전기 배터리 / 무전기 안테나 / 무전기 송신기 / 고철 2 / 천 조각 1.",
     presentationMode: "always",
     conditions: [
+      { type: "quest_state", questId: "prepare_rescue_signal", status: "active" },
       { type: "flag_not", flag: "rescue_signal_ready" },
       { type: "has_item", itemId: "radioBattery", amount: 1 },
       { type: "has_item", itemId: "radioAntenna", amount: 1 },
@@ -164,7 +170,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "leave_shelter_crafting",
-    label: "제작 종료하기",
+    label: "거처로 돌아가기",
     outcomeHint: "재료를 다시 정리해 두고, 임시 거처의 메인 공간으로 돌아간다.",
     effects: [
       { type: "clear_flag", flag: "shelter_crafting_open" },

@@ -469,6 +469,8 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `npm.cmd run typecheck`
   `npm.cmd run content:validate`
   `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed reachable map entries return `travelMinutes: 15` for one-route moves.
   focused runtime probe confirmed hp `1 -> 0`, `isGameOver=true`, non-empty reason, and `availableActions=0`.
   fake-DOM client probe confirmed one confirm prompt with `게임오버`, reached day/time, total survived time, `게임오버` scene badge, and no rendered choice buttons.
   Playwright web-game client remains unavailable because `node_modules/playwright` is not installed.
@@ -785,3 +787,224 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `node --check app-api.js`
   `git diff --check` passed with only existing CRLF normalization warnings.
   runtime probe confirmed direct `applyEffect({ type: "advance_time" })` throws, while normal travel plus forest chopping still advances time and grants `woodPlank +3`.
+
+- 2026-06-22 old-cook canned-food quest flow:
+  changed the first canned-food quest into the old cook's request instead of completing immediately at the convenience shelf.
+  collecting shelf cans now starts/updates the quest, and completion requires returning to the soup kitchen with three canned foods.
+  added a soup-kitchen delivery interaction where the old cook takes three cans, returns one can as the player's share, and rewards 3000 money.
+  added a dedicated reward scene and a client-side quest-complete burst animation so completed quests feel more visible.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `node --check app-api.js`
+  `npm.cmd run build`
+  `git diff --check`
+  runtime probe confirmed shelf collection leaves the quest active with 3 cans, then old-cook delivery completes the quest with 1 can, +3000 money, and the reward scene.
+
+- 2026-06-22 scene authoring dev source:
+  added `currentScene.devSource` to scene snapshots so local/dev play shows the source scene file and scene id for the currently rendered narrative.
+  the browser now displays a small `DEV scene: <path> · <sceneId>` strip on `localhost`, `127.0.0.1`, `::1`, or with `?dev=1`; `?dev=0` hides it.
+  clarified the old cook's quest-giving prose so she explicitly asks the player to bring three canned foods back to her at the soup kitchen.
+  clarified the quest choice label, outcome hint, and log message with the same target.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  API smoke confirmed `prologue_old_woman_visit` reports `src/game/data/regions/shelter/scenes.ts` and the updated quest text.
+  in-app browser confirmed the dev source strip and updated quest choice are visible on `http://127.0.0.1:3000/`.
+
+- 2026-06-22 inventory energy hint:
+  item detail hints now show energy gain as `+n 기력` for usable food/drink/medicine items whose runtime `effects.energy` is positive.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  in-app browser confirmed the water bottle detail shows `+1 기력` in the item panel.
+
+- 2026-06-22 inventory stat effect line:
+  item detail hints now show all visible stat effects from `effects.hp`, `effects.mind`, and `effects.energy` instead of only energy.
+  Effects render as a separate bottom line below the item description; mind is blue, energy is yellow, and hp uses a red tone.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  in-app browser confirmed hot meal shows `+1 정신력 +4 기력` on one bottom effect line with the expected blue/yellow colors.
+
+- 2026-06-22 hospital first-aid hint:
+  made the hospital `receive_hospital_first_aid` action show its outcome hint in the choice UI.
+  clarified the hint as `1,800원을 내고 응급 처치를 받는다. +2 체력, -1 정신력, +15분.`
+  Verification passed:
+  `npm.cmd run content:validate`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  in-app browser confirmed the hint appears under `응급 처치를 받는다` on `hospital_repeat_intro`.
+
+- 2026-06-22 hospital first-aid mind cost removal:
+  removed the `-1 mind` effect from hospital first aid.
+  simplified the first-aid hint to `-1,800원 / +2 체력 / +15분`.
+  Verification passed:
+  `npm.cmd run content:validate`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  in-app browser confirmed the updated hint on `hospital_repeat_intro`.
+
+- 2026-06-22 quest sheet requirements:
+  added per-quest `requirements` to the state snapshot and populated `prepare_rescue_signal` with radio battery, radio antenna, radio transmitter, scrap metal x2, and cloth scrap x1 progress.
+  updated the quest sheet so completed quests are collapsed by default and can be expanded/collapsed with a small button.
+  rendered required item checks under the structure signal quest description with owned/needed counts and completion marks.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  HTTP 200 from `http://127.0.0.1:3000/`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-22 choice hint authoring policy:
+  kept choice effect hints as an authoring policy instead of adding an automatic formatter.
+  documented the visible `outcomeHint` convention in `src/game/data/regions/README.md`: costs/spent resources first, gains/recovery next, time last.
+  after user clarification, reverted the over-eager soup-kitchen and forest `outcomeHint` text edits and left this as a forward-looking authoring policy only.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check` passed with only existing CRLF normalization warnings.
+  API smoke had confirmed the temporary edited hints before they were reverted.
+
+- 2026-06-22 completed quest group collapse:
+  replaced per-completed-quest folding with a single `완료한 퀘스트` group at the bottom of the quest sheet.
+  Active quests stay visible above, while completed quests are hidden behind the group toggle with a completed-count chip.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  HTTP 200 from `http://127.0.0.1:3000/`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-22 completed quest group hidden fix:
+  fixed the completed quest group not visually collapsing because `.quest-completed-list { display: grid; }` overrode the `hidden` attribute.
+  Added an explicit `.quest-completed-list[hidden] { display: none; }` rule.
+  Verification passed:
+  `npm.cmd run build`
+  `git diff --check`
+  HTTP 200 from `http://127.0.0.1:3000/`.
+
+- 2026-06-22 generic quest item requirements:
+  added `requiredItems` to quest definitions so any item-gated quest can surface the same item checklist UI used by `prepare_rescue_signal`.
+  `buildQuestRequirements()` now reads quest `requiredItems` and also includes any `obtain_item` objectives automatically.
+  Added item requirements for `first_canned_food` (`cannedFood x3`) and moved `prepare_rescue_signal` requirements into quest content data instead of hardcoding them in the service.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  HTTP 200 from `http://127.0.0.1:3000/`.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-22 shelter crafting visible recipe hints:
+  enabled `showOutcomeHint` on all shelter crafting recipes so the crafting menu now shows each recipe's required materials/prerequisites and completed effect under the button.
+  Covered `craft_shelter_wall_patch`, `craft_shelter_brazier`, `craft_shelter_rain_bucket`, `cook_at_shelter`, and `assemble_rescue_radio`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  direct TSX smoke confirmed all five recipe definitions have `showOutcomeHint: true` and non-empty hints.
+  local API smoke created a new game, opened `shelter_crafting_menu`, and confirmed all five crafting actions return `showOutcomeHint: true` with non-empty hints.
+  `git diff --check` passed with only existing CRLF normalization warnings.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-22 shelter crafting recipe cards:
+  turned shelter crafting choices into recipe-style cards: recipe labels no longer use `제작하기`/`조리하기`/`조립하기`, and each recipe shows a small `제작` action pill like the inventory `사용` button.
+  added `craftingRecipe` metadata to action choices with effect text, optional prerequisites, and required materials carrying `ownedAmount`, `requiredAmount`, and `met`.
+  the crafting UI now renders effect first, then prerequisites if any, then material chips like `목재 판자 (0/1)`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  service smoke and local API smoke confirmed all five shelter recipes return labels, effect text, actionLabel `제작`, and material counts.
+  `rg` confirmed `제작하기`, `조리하기`, `조립하기`, and `완성하면` no longer remain in the shelter crafting files touched for this UI.
+  Playwright web-game verification still cannot run because the workspace lacks the `playwright` package.
+
+- 2026-06-22 shelter crafting row compacting:
+  kept the required-material chip style unchanged, but made the crafting recipe `효과` and `조건` rows keep their label and value on the same line on mobile.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run build`
+  `git diff --check` passed with only existing CRLF normalization warnings.
+
+- 2026-06-22 movement sheet travel time tags:
+  added `travelMinutes` to map entries, calculated from the same `TRAVEL_DURATION_MS` value used by actual travel execution.
+  movement list cards now show time cost such as `15분` / `30분` instead of route-count labels like `2구간`.
+  Verification passed so far:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+
+- 2026-06-22 shelter crafting selected detail:
+  changed the crafting menu from showing every recipe's full detail inline to a compact recipe list plus one selected recipe detail panel.
+  Recipe rows now select the detail panel, while the separate small `제작` button submits the crafting action.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  local API smoke confirmed the shelter crafting menu still returns five recipes plus the leave action.
+
+- 2026-06-22 shelter crafting submit guard:
+  made the crafting recipe select button explicitly stop event propagation and only update the selected detail panel.
+  made the separate `제작` button explicitly stop propagation before submitting the crafting action, so recipe-card selection cannot accidentally craft.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run build`
+
+- 2026-06-22 hot meal crafting effect wording:
+  removed the redundant `따뜻한 식사:` prefix from the selected crafting detail effect; the hot meal effect now reads `+1 정신력 / +4 기력`.
+  Updated the fallback outcome/failure hint wording for the same recipe as well.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  local API smoke confirmed `cook_at_shelter.craftingRecipe.effect` returns `+1 정신력 / +4 기력`.
+
+- 2026-06-22 rescue radio single-use crafting:
+  added `quest_state prepare_rescue_signal active` to `assemble_rescue_radio` crafting conditions.
+  filtered `assemble_rescue_radio` out of the shelter crafting menu once `prepare_rescue_signal` is no longer active or `rescue_signal_ready` is already set, while still showing it during the active quest even if materials are missing.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  service smoke confirmed the radio recipe appears before assembly, then disappears after assembly sets `rescue_signal_ready` and completes the quest.
+  local API smoke confirmed a fresh active rescue-signal quest still shows the radio recipe.
+
+- 2026-06-22 home screen and manual save:
+  added a novel-cover style home screen with `새 게임` and disabled/enabled `이어하기` based on the last manual save slot.
+  changed continuation to use only the explicit manual save slot, while keeping `game_sessions` as the live work session.
+  added manual save APIs for save info, saving, and restoring, with both file storage and PostgreSQL support through `manual_saves`.
+  moved save controls into the menu with `저장하기`, `홈으로`, `기록`, and `새 게임`, including unsaved-progress confirmation and overwrite confirmation for a different saved game.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  API smoke confirmed missing save info, manual save creation, action progress, and restore back to the saved scene.
+  in-app browser smoke confirmed initial home, disabled `이어하기` without a save, new game entry, menu save status, home return, enabled `이어하기`, and restore into the saved game.
+
+- 2026-06-22 Kakao login MVP:
+  added REST API Kakao OAuth flow with signed HTTP-only app session cookies, CSRF state cookie, callback handling, and app logout.
+  added `auth_users` plus owner-linked `manual_saves` so logged-in users get one account-based manual save slot while guest browser saves still work.
+  added home-screen login status, Kakao login entry, logout button, and account-based `이어하기` restore.
+  documented Kakao setup and Render environment variables: `PUBLIC_BASE_URL`, `AUTH_SECRET`, `KAKAO_REST_API_KEY`, and optional `KAKAO_CLIENT_SECRET`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  API smoke on port 3100 confirmed `/api/auth/me`, missing Kakao config behavior, authenticated account save, account save info, and account restore.
+  in-app browser smoke on port 3100 confirmed the home login panel renders the missing-key state and `새 게임` still enters gameplay without console errors.

@@ -28,6 +28,11 @@ export const SceneCardSchema = z.object({
     personIds: z.array(z.string()),
     itemIds: z.array(z.string()),
   }),
+  devSource: z.object({
+    kind: z.enum(["scene"]),
+    path: z.string(),
+    id: z.string(),
+  }).optional(),
   source: z.enum(["template", "llm"]),
   generatedAt: z.string(),
 });

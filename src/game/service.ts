@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { PHASES, SIGNAL_PART_ITEM_IDS, TARGET_RESCUE_DAY, getSkillEntries } from "./base-data";
+import { GAME_MINUTE_MS, PHASES, SIGNAL_PART_ITEM_IDS, TARGET_RESCUE_DAY, TRAVEL_DURATION_MS, getSkillEntries } from "./base-data";
 import {
   buildStoryChoiceFromChoice,
   resolveEventChoices,
@@ -27,6 +27,7 @@ import type {
   ActionChoice,
   ActionDefinition,
   ContentRegistry,
+  CraftingRecipe,
   EventCard,
   EventDefinition,
   GameAction,
@@ -38,8 +39,11 @@ import type {
   NarrativeContinuationRequest,
   PersonCard,
   ProtagonistCard,
+  QuestDefinition,
   SceneCard,
+  SceneDefinition,
   StateSnapshot,
+  StoryChoice,
   StoryMaterials,
 } from "./schemas";
 import { EventCardSchema, ItemCardSchema, SceneCardSchema, StateSnapshotSchema } from "./schemas";
@@ -77,6 +81,39 @@ function isHexNeighbor(left?: AxialCoord, right?: AxialCoord) {
 }
 
 const SCENE_CARD_CACHE_VERSION = 5;
+
+const SHELTER_CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
+  craft_shelter_wall_patch: "잠자기 후 체력과 정신력 회복량 증가",
+  craft_shelter_brazier: "거처에서 따뜻한 식사 조리 가능",
+  craft_shelter_rain_bucket: "하루에 한 번 물 한 병 확보 가능",
+  cook_at_shelter: "+1 정신력 / +4 기력",
+  assemble_rescue_radio: "10일차 구조 신호 준비",
+};
+
+const SHELTER_CRAFTING_PREREQUISITES: Record<string, Array<{ flag: string; label: string }>> = {
+  cook_at_shelter: [{ flag: "shelter_brazier", label: "간이 화로" }],
+};
+
+const STATIC_SCENE_SOURCE_PATH_BY_LOCATION: Record<string, string> = {
+  checkpoint: "src/game/data/regions/checkpoint/scenes.ts",
+  convenience: "src/game/data/regions/convenience/scenes.ts",
+  forest: "src/game/data/regions/forest/scenes.ts",
+  hospital: "src/game/data/regions/hospital/scenes.ts",
+  kitchen: "src/game/data/regions/kitchen/scenes.ts",
+  shelter: "src/game/data/regions/shelter/scenes.ts",
+  subway: "src/game/data/regions/subway/scenes.ts",
+};
+
+const TRAVEL_MINUTES_PER_ROUTE = Math.round(TRAVEL_DURATION_MS / GAME_MINUTE_MS);
+
+function sceneDevSource(sceneDef: SceneDefinition) {
+  return {
+    kind: "scene" as const,
+    path: STATIC_SCENE_SOURCE_PATH_BY_LOCATION[sceneDef.locationId] ??
+      `src/game/data/regions/${sceneDef.locationId}/scenes.ts`,
+    id: sceneDef.id,
+  };
+}
 
 export class GameService {
   constructor(
@@ -201,6 +238,65 @@ export class GameService {
       inventoryCards: Object.keys(session.state.inventory).map((itemId) => session.world.itemCards[itemId]),
       money: session.state.money,
     };
+  }
+
+  async getManualSave(gameId: string) {
+    return this.repository.getManualSaveInfo(gameId);
+  }
+
+  async getManualSaveForUser(ownerId: string) {
+    return this.repository.getManualSaveInfoForUser(ownerId);
+  }
+
+  async saveManualGame(gameId: string, ownerId: string | null = null) {
+    const session = await this.repository.loadGame(gameId);
+    const previousDay = session.state.day;
+    syncClock(session.state);
+    syncQuestState(session.state);
+    syncScene(session.state);
+    await this.replanTomorrowIfNeeded(session, previousDay);
+    session.updatedAt = nowIso();
+    await this.ensureCards(session);
+    await this.repository.saveGame(session);
+    return this.repository.saveManualGame(session, session.updatedAt, ownerId);
+  }
+
+  async restoreManualGame(gameId: string) {
+    const record = await this.repository.loadManualGame(gameId);
+    if (!record) {
+      throw new Error("저장된 게임을 찾을 수 없습니다.");
+    }
+
+    const session = record.session;
+    const previousDay = session.state.day;
+    syncClock(session.state);
+    syncQuestState(session.state);
+    syncScene(session.state);
+    await this.replanTomorrowIfNeeded(session, previousDay);
+    session.updatedAt = nowIso();
+    await this.ensureCards(session);
+    const snapshot = this.buildSnapshot(session, null);
+    await this.repository.saveGame(session);
+    return snapshot;
+  }
+
+  async restoreManualGameForUser(ownerId: string) {
+    const record = await this.repository.loadManualGameForUser(ownerId);
+    if (!record) {
+      throw new Error("저장된 게임을 찾을 수 없습니다.");
+    }
+
+    const session = record.session;
+    const previousDay = session.state.day;
+    syncClock(session.state);
+    syncQuestState(session.state);
+    syncScene(session.state);
+    await this.replanTomorrowIfNeeded(session, previousDay);
+    session.updatedAt = nowIso();
+    await this.ensureCards(session);
+    const snapshot = this.buildSnapshot(session, null);
+    await this.repository.saveGame(session);
+    return snapshot;
   }
 
   private runtimeRegistry(session: Pick<GameSession, "state"> | Pick<{ state: GameSession["state"] }, "state">) {
@@ -474,6 +570,7 @@ export class GameService {
         personIds: storyMaterials.people.map((entry) => entry.id),
         itemIds: storyMaterials.items.map((entry) => entry.id),
       },
+      devSource: sceneDevSource(sceneDef),
       source: "template",
       generatedAt: nowIso(),
     });
@@ -598,6 +695,7 @@ export class GameService {
       const isKnown = Boolean(session.state.flags[`known_${locationId}`]) || Boolean(session.state.flags[`visited_${locationId}`]) || isCurrent;
       const routePath = isCurrent ? [locationId] : (resolveTravelPath(session.state, locationId, registry) ?? []);
       const routeDistance = routePath.length > 1 ? routePath.length - 1 : 0;
+      const travelMinutes = routeDistance * TRAVEL_MINUTES_PER_ROUTE;
       const hasPositionPair = Boolean(currentLocation.mapPosition && targetLocation.mapPosition);
       const isAdjacent = !isCurrent && (
         hasPositionPair
@@ -636,6 +734,7 @@ export class GameService {
         isAdjacent,
         isReachable,
         routeDistance,
+        travelMinutes,
         routePath,
         isControlled,
         reason,
@@ -654,6 +753,112 @@ export class GameService {
         owned: Boolean(session.state.flags.rescue_signal_ready) || (session.state.inventory[itemId] ?? 0) > 0,
       })),
     };
+  }
+
+  private buildQuestRequirements(session: GameSession, quest: QuestDefinition, registry = this.runtimeRegistry(session)) {
+    const requirementMap = new Map<string, number>();
+    const addRequirement = (itemId: string, amount = 1) => {
+      requirementMap.set(itemId, Math.max(requirementMap.get(itemId) ?? 0, amount));
+    };
+
+    quest.requiredItems.forEach((requirement) => {
+      addRequirement(requirement.itemId, requirement.amount);
+    });
+    quest.objectives.forEach((objective) => {
+      if (objective.type === "obtain_item") {
+        addRequirement(objective.itemId, objective.amount);
+      }
+    });
+
+    if (requirementMap.size === 0) {
+      return [];
+    }
+
+    const isCompleted = session.state.quests[quest.id] === "completed";
+
+    return Array.from(requirementMap.entries()).map(([itemId, amount]) => {
+      const actualAmount = session.state.inventory[itemId] ?? 0;
+      const ownedAmount = isCompleted ? amount : actualAmount;
+      return {
+        itemId,
+        name: String((registry.items[itemId] as { name?: string } | undefined)?.name ?? itemId),
+        amount,
+        ownedAmount,
+        met: ownedAmount >= amount,
+      };
+    });
+  }
+
+  private itemDisplayName(registry: ContentRegistry, itemId: string) {
+    return String((registry.items[itemId] as { name?: string } | undefined)?.name ?? itemId);
+  }
+
+  private buildShelterCraftingRecipe(
+    session: GameSession,
+    choice: StoryChoice,
+    registry: ContentRegistry,
+  ): CraftingRecipe | undefined {
+    const effect = SHELTER_CRAFTING_RECIPE_EFFECTS[choice.id];
+    if (!effect) {
+      return undefined;
+    }
+
+    const requirements = (choice.conditions ?? []).flatMap((condition) => {
+      if (condition.type !== "has_item") {
+        return [];
+      }
+
+      const ownedAmount = session.state.inventory[condition.itemId] ?? 0;
+      return [{
+        itemId: condition.itemId,
+        name: this.itemDisplayName(registry, condition.itemId),
+        requiredAmount: condition.amount,
+        ownedAmount,
+        met: ownedAmount >= condition.amount,
+      }];
+    });
+
+    const prerequisites = (SHELTER_CRAFTING_PREREQUISITES[choice.id] ?? []).map((prerequisite) => ({
+      label: prerequisite.label,
+      met: Boolean(session.state.flags[prerequisite.flag]),
+    }));
+
+    return {
+      actionLabel: "제작",
+      effect,
+      prerequisites,
+      requirements,
+    };
+  }
+
+  private shouldShowShelterCraftingAction(session: GameSession, action: ActionChoice) {
+    if (action.id !== "assemble_rescue_radio") {
+      return true;
+    }
+
+    return session.state.quests.prepare_rescue_signal === "active" &&
+      !session.state.flags.rescue_signal_ready;
+  }
+
+  private buildAvailableActions(
+    session: GameSession,
+    sceneDef: SceneDefinition,
+    storyChoices: StoryChoice[],
+    registry: ContentRegistry,
+  ): ActionChoice[] {
+    const actionCatalog = buildActionCatalogFromStoryChoices(storyChoices);
+    if (sceneDef.id !== "shelter_crafting_menu") {
+      return actionCatalog;
+    }
+
+    const storyChoiceById = new Map(storyChoices.map((choice) => [choice.id, choice]));
+    return actionCatalog.filter((action) => this.shouldShowShelterCraftingAction(session, action)).map((action) => {
+      const storyChoice = storyChoiceById.get(action.id);
+      const craftingRecipe = storyChoice
+        ? this.buildShelterCraftingRecipe(session, storyChoice, registry)
+        : undefined;
+      return craftingRecipe ? { ...action, craftingRecipe } : action;
+    });
   }
 
   private buildSnapshot(session: GameSession, latestEvent: EventCard | null, registry = this.runtimeRegistry(session)): StateSnapshot {
@@ -686,9 +891,10 @@ export class GameService {
         name: quest.title,
         summary: quest.description,
         status: session.state.quests[quest.id] ?? "inactive",
+        requirements: this.buildQuestRequirements(session, quest, registry),
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
-      availableActions: buildActionCatalogFromStoryChoices(storyChoices),
+      availableActions: this.buildAvailableActions(session, sceneDef, storyChoices, registry),
       mapEntries: this.buildMapEntries(session, registry),
       latestEvent,
       devLlmTrace: getDevLlmTrace(session.id),

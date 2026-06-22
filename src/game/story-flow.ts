@@ -97,6 +97,7 @@ export function buildActionCatalogFromStoryChoices(storyChoices: StoryChoice[]):
     label: choice.label,
     outcomeHint: choice.outcomeHint,
     showOutcomeHint: choice.showOutcomeHint,
+    craftingRecipe: choice.craftingRecipe,
     action: choice.serverActionHint,
     isAvailable: choice.isAvailable,
     nextSceneId: choice.nextSceneId,

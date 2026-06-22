@@ -18,12 +18,18 @@ export const QuestRewardSchema = z.discriminatedUnion("type", [
 
 export const QuestTypeSchema = z.enum(["main", "side", "discovery"]);
 
+export const QuestRequiredItemSchema = z.object({
+  itemId: z.string(),
+  amount: z.number().int().min(1).default(1),
+});
+
 export const QuestDefinitionSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
   type: QuestTypeSchema.default("side"),
   objectives: z.array(ObjectiveSchema),
+  requiredItems: z.array(QuestRequiredItemSchema).default([]),
   rewards: z.array(QuestRewardSchema).default([]),
   prerequisites: z.array(ConditionSchema).default([]),
   relatedNpcIds: z.array(z.string()).default([]),
@@ -33,5 +39,6 @@ export const QuestDefinitionSchema = z.object({
 export const QuestStateSchema = z.enum(["inactive", "active", "completed"]);
 
 export type Objective = z.infer<typeof ObjectiveSchema>;
+export type QuestRequiredItem = z.infer<typeof QuestRequiredItemSchema>;
 export type QuestReward = z.infer<typeof QuestRewardSchema>;
 export type QuestDefinition = z.infer<typeof QuestDefinitionSchema>;

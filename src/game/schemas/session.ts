@@ -65,6 +65,7 @@ export const MapEntrySchema = z.object({
   isAdjacent: z.boolean(),
   isReachable: z.boolean(),
   routeDistance: z.number().int().nonnegative().default(0),
+  travelMinutes: z.number().int().nonnegative().default(0),
   routePath: z.array(z.string()).default([]),
   isControlled: z.boolean(),
   reason: z.string(),
@@ -98,6 +99,15 @@ export const StateSnapshotSchema = z.object({
       name: z.string(),
       summary: z.string(),
       status: QuestStateSchema,
+      requirements: z.array(
+        z.object({
+          itemId: z.string(),
+          name: z.string(),
+          amount: z.number().int().positive(),
+          ownedAmount: z.number().int().nonnegative(),
+          met: z.boolean(),
+        })
+      ).default([]),
     })
   ),
   skills: z.array(

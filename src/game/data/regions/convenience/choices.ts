@@ -52,7 +52,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
       itemId: "cannedFood",
       extraEffects: [
         { type: "set_flag", flag: "first_canned_food_started" },
-        { type: "set_flag", flag: "first_canned_food_secured" },
+        { type: "set_flag", flag: "first_canned_food_collected" },
       ],
       logMessage: "당신은 진열대에 남아 있던 통조림을 전부 쓸어 담아 조심스럽게 품에 안는다.",
       minutes: 5,

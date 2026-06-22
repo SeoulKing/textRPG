@@ -273,6 +273,11 @@ export function validateRegistry(registry: ContentRegistry) {
           break;
       }
     });
+    quest.requiredItems.forEach((requiredItem) => {
+      if (!registry.items[requiredItem.itemId]) {
+        throw new Error(`quest:${quest.id} requiredItems references unknown item '${requiredItem.itemId}'.`);
+      }
+    });
     quest.rewards.forEach((reward: QuestReward) => {
       if (reward.type === "add_item" && !registry.items[reward.itemId]) {
         throw new Error(`quest:${quest.id} reward references unknown item '${reward.itemId}'.`);

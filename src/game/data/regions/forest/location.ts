@@ -22,7 +22,7 @@ export const forestChoices: ActionDefinition[] = [
     id: "search_forest_resources",
     label: "수색하기",
     type: "search",
-    outcomeHint: "30분을 들여 숲을 뒤진다. 허탕 30%, 캔 음식 10%, 목재/고철/천 조각 각 20%.",
+    outcomeHint: "30분을 들여 숲을 뒤진다.",
     showOutcomeHint: true,
     effects: [
       { type: "advance_time", minutes: 30 },
@@ -30,7 +30,7 @@ export const forestChoices: ActionDefinition[] = [
         type: "random_outcome",
         outcomes: [
           {
-            weight: 30,
+            weight: 50,
             effects: [
               { type: "log", message: "당신은 숲을 뒤졌지만 쓸 만한 물건을 찾지 못했다." },
               { type: "set_random_scene", tag: forestResultSceneTags.searchNothing },
@@ -53,7 +53,7 @@ export const forestChoices: ActionDefinition[] = [
             ],
           },
           {
-            weight: 20,
+            weight: 10,
             effects: [
               { type: "add_item", itemId: "scrapMetal", amount: 1 },
               { type: "log", message: "당신은 숲에서 고철 조각 하나를 주웠다." },
@@ -61,7 +61,7 @@ export const forestChoices: ActionDefinition[] = [
             ],
           },
           {
-            weight: 20,
+            weight: 10,
             effects: [
               { type: "add_item", itemId: "clothScrap", amount: 1 },
               { type: "log", message: "당신은 숲에서 천 조각 하나를 건졌다." },

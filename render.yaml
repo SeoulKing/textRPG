@@ -14,6 +14,14 @@ services:
         value: production
       - key: ENABLE_LLM_WORLD_PLANNER
         value: "false"
+      - key: PUBLIC_BASE_URL
+        value: https://textrpg-8ic8.onrender.com
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: KAKAO_REST_API_KEY
+        sync: false
+      - key: KAKAO_CLIENT_SECRET
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: textrpg-db

@@ -54,6 +54,30 @@ export const kitchenChoices: ActionDefinition[] = [
     tags: ["craft", "salvage"],
     riskHint: "low",
   }),
+  interactionFor("kitchen", {
+    id: "deliver_canned_food_to_old_cook",
+    label: "노파에게 통조림 세 개를 건넨다",
+    type: "talk",
+    outcomeHint: "편의점에서 챙긴 통조림 세 개를 노파에게 맡긴다. 노파는 두 개를 배식줄 쪽으로 돌리고, 하나는 당신 몫으로 되돌려 준다.",
+    conditions: [
+      { type: "quest_state", questId: "first_canned_food", status: "active" },
+      { type: "flag_not", flag: "first_canned_food_delivered" },
+      { type: "has_item", itemId: "cannedFood", amount: 3 },
+    ],
+    effects: [
+      { type: "remove_item", itemId: "cannedFood", amount: 3 },
+      { type: "set_flag", flag: "first_canned_food_delivered" },
+      { type: "set_flag", flag: "returned_to_oldCook" },
+      {
+        type: "log",
+        message: "당신은 통조림 세 개를 노파에게 건넸다. 노파는 두 개를 배식줄로 보내고, 하나는 당신 손에 다시 쥐여 주었다.",
+      },
+      { type: "advance_time", minutes: 10 },
+    ],
+    nextSceneId: "kitchen_old_cook_canned_food_reward",
+    tags: ["quest", "oldCook", "food"],
+    riskHint: "low",
+  }),
 ];
 
 export const kitchenLocation = defineLocation({

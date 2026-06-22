@@ -7,7 +7,25 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
+  <section id="home-screen" class="home-screen">
+    <div class="home-backdrop" aria-hidden="true"></div>
+    <div class="home-content">
+      <p class="home-kicker">10일 구조 대기 생존</p>
+      <h1>폐허 서울</h1>
+      <p id="home-save-status" class="home-save-status">저장된 게임을 확인하고 있습니다.</p>
+      <div class="home-actions">
+        <button id="home-new-game" class="home-action primary" type="button">새 게임</button>
+        <button id="home-continue" class="home-action" type="button" disabled>이어하기</button>
+      </div>
+      <div id="home-auth-panel" class="home-auth-panel">
+        <p id="home-auth-status" class="home-auth-status">로그인 상태를 확인하고 있습니다.</p>
+        <a id="home-kakao-login" class="home-auth-button kakao" href="/api/auth/kakao/start">카카오로 로그인</a>
+        <button id="home-logout" class="home-auth-button" type="button" hidden>로그아웃</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="app-shell" hidden>
     <section class="story-shell">
       <header class="status-strip">
         <div class="status-grid">
@@ -48,6 +66,7 @@
             </div>
           </div>
           <div class="scene-copy">
+            <div id="scene-dev-source" class="scene-dev-source" hidden></div>
             <div id="system-note" class="system-note" hidden></div>
             <div id="scene-text" class="scene-text"></div>
             <div id="choices" class="choice-list"></div>

@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Pool } from "pg";
 import type { GameSession, ProtagonistCard, TemplateStore } from "./schemas";
-import type { CardKind, GameRepository, StoredCard } from "./repository";
-import { emptyTemplateStore, normalizeGameSession, normalizeTemplateStore } from "./repository";
+import type { AuthUser, AuthUserInput, CardKind, GameRepository, ManualSaveRecord, StoredCard } from "./repository";
+import { buildManualSaveInfo, emptyTemplateStore, normalizeGameSession, normalizeTemplateStore } from "./repository";
 
 export class PostgresGameRepository implements GameRepository {
   private readonly pool: Pool;
@@ -83,6 +83,153 @@ export class PostgresGameRepository implements GameRepository {
       state: row.state_payload,
       world: row.world_payload,
     });
+  }
+
+  async saveManualGame(session: GameSession, savedAt: string, ownerId: string | null = null) {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+      if (ownerId) {
+        await client.query(
+          "delete from manual_saves where owner_id = $1 and game_id <> $2",
+          [ownerId, session.id],
+        );
+      }
+      await client.query(
+        `insert into manual_saves (game_id, owner_id, saved_at, state_payload, world_payload)
+         values ($1, $2, $3::timestamptz, $4::jsonb, $5::jsonb)
+         on conflict (game_id) do update
+         set owner_id = excluded.owner_id,
+             saved_at = excluded.saved_at,
+             state_payload = excluded.state_payload,
+             world_payload = excluded.world_payload`,
+        [session.id, ownerId, savedAt, JSON.stringify(session.state), JSON.stringify(session.world)],
+      );
+      await client.query("commit");
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+    return buildManualSaveInfo(session.id, { savedAt, session, ownerId });
+  }
+
+  async loadManualGame(gameId: string): Promise<ManualSaveRecord | null> {
+    const result = await this.pool.query(
+      `select game_id, owner_id, saved_at, state_payload, world_payload
+       from manual_saves
+       where game_id = $1`,
+      [gameId],
+    );
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    const row = result.rows[0] as {
+      game_id: string;
+      owner_id: string | null;
+      saved_at: Date | string;
+      state_payload: unknown;
+      world_payload: unknown;
+    };
+    const savedAt = new Date(row.saved_at).toISOString();
+    return {
+      savedAt,
+      ownerId: row.owner_id,
+      session: normalizeGameSession({
+        id: row.game_id,
+        createdAt: savedAt,
+        updatedAt: savedAt,
+        state: row.state_payload,
+        world: row.world_payload,
+      }),
+    };
+  }
+
+  async loadManualGameForUser(ownerId: string): Promise<ManualSaveRecord | null> {
+    const result = await this.pool.query(
+      `select game_id, owner_id, saved_at, state_payload, world_payload
+       from manual_saves
+       where owner_id = $1`,
+      [ownerId],
+    );
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    const row = result.rows[0] as {
+      game_id: string;
+      owner_id: string | null;
+      saved_at: Date | string;
+      state_payload: unknown;
+      world_payload: unknown;
+    };
+    const savedAt = new Date(row.saved_at).toISOString();
+    return {
+      savedAt,
+      ownerId: row.owner_id,
+      session: normalizeGameSession({
+        id: row.game_id,
+        createdAt: savedAt,
+        updatedAt: savedAt,
+        state: row.state_payload,
+        world: row.world_payload,
+      }),
+    };
+  }
+
+  async getManualSaveInfo(gameId: string) {
+    return buildManualSaveInfo(gameId, await this.loadManualGame(gameId));
+  }
+
+  async getManualSaveInfoForUser(ownerId: string) {
+    const record = await this.loadManualGameForUser(ownerId);
+    return buildManualSaveInfo(record?.session.id ?? "", record);
+  }
+
+  async upsertAuthUser(user: AuthUserInput): Promise<AuthUser> {
+    const result = await this.pool.query(
+      `insert into auth_users (id, provider, provider_user_id, nickname, email, created_at, updated_at)
+       values ($1, $2, $3, $4, $5, now(), now())
+       on conflict (provider, provider_user_id) do update
+       set nickname = excluded.nickname,
+           email = excluded.email,
+           updated_at = now()
+       returning id, provider, provider_user_id, nickname, email, created_at, updated_at`,
+      [user.id, user.provider, user.providerUserId, user.nickname, user.email],
+    );
+    return this.authUserFromRow(result.rows[0]);
+  }
+
+  async loadAuthUser(userId: string): Promise<AuthUser | null> {
+    const result = await this.pool.query(
+      `select id, provider, provider_user_id, nickname, email, created_at, updated_at
+       from auth_users
+       where id = $1`,
+      [userId],
+    );
+    return result.rowCount ? this.authUserFromRow(result.rows[0]) : null;
+  }
+
+  private authUserFromRow(row: {
+    id: string;
+    provider: AuthUser["provider"];
+    provider_user_id: string;
+    nickname: string | null;
+    email: string | null;
+    created_at: Date | string;
+    updated_at: Date | string;
+  }): AuthUser {
+    return {
+      id: row.id,
+      provider: row.provider,
+      providerUserId: row.provider_user_id,
+      nickname: row.nickname,
+      email: row.email,
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
+    };
   }
 
   async loadTemplates() {

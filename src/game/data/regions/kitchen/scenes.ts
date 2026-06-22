@@ -77,4 +77,21 @@ export const kitchenSceneDefinitions: SceneDefinition[] = [
       { type: "flag", flag: "intro_seen_kitchen" },
     ],
   },
+  {
+    id: "kitchen_old_cook_canned_food_reward",
+    locationId: "kitchen",
+    title: "노파의 보답",
+    paragraphs: [
+      "노파는 당신이 내민 통조림 세 개를 한동안 말없이 바라본다. 찌그러진 캔 표면을 엄지로 한 번 훑더니, 그중 두 개를 자기 앞의 낡은 상자 안으로 밀어 넣는다.",
+      "\"이 둘은 오늘 줄 끝에 선 사람들한테 갈 거야.\"",
+      "그녀는 남은 하나를 다시 당신 손에 쥐여 준다. 차가운 캔의 무게가 손바닥에 또렷하게 남는다.",
+      "\"그리고 이건 네 몫이다. 부탁을 들어 줬으니, 그냥 빈손으로 보낼 순 없지.\"",
+      "노파는 앞치마 안쪽에서 접어 둔 지폐를 꺼내 함께 건넨다. 오래 버틸 만큼은 아니어도, 다음 선택을 조금은 넓혀 줄 돈이다.",
+    ],
+    choiceIds: [],
+    conditions: [
+      { type: "location", locationId: "kitchen" },
+      { type: "flag", flag: "first_canned_food_delivered" },
+    ],
+  },
 ];

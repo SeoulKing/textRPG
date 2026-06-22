@@ -1,7 +1,7 @@
-﻿const STORAGE_KEY = "ruined-seoul-stage1-game-id-v12";
-const ACTIVE_STORAGE_KEY = "ruined-seoul-stage1-game-id-v12";
+const SAVED_GAME_ID_KEY = "ruined-seoul-stage1-manual-save-game-id-v1";
 const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id",
+  "ruined-seoul-stage1-game-id-v12",
   "ruined-seoul-stage1-game-id-v11",
   "ruined-seoul-stage1-game-id-v10",
   "ruined-seoul-stage1-game-id-v9",
@@ -177,6 +177,13 @@ const STATUS_DETAILS = {
 };
 
 const dom = {
+  homeScreen: document.querySelector("#home-screen"),
+  homeNewGame: document.querySelector("#home-new-game"),
+  homeContinue: document.querySelector("#home-continue"),
+  homeSaveStatus: document.querySelector("#home-save-status"),
+  homeAuthStatus: document.querySelector("#home-auth-status"),
+  homeKakaoLogin: document.querySelector("#home-kakao-login"),
+  homeLogout: document.querySelector("#home-logout"),
   appShell: document.querySelector(".app-shell"),
   statusStrip: document.querySelector(".status-strip"),
   hpStatus: document.querySelector("#hp-status"),
@@ -191,8 +198,10 @@ const dom = {
   sceneArt: document.querySelector("#scene-art"),
   sceneLocationBadge: document.querySelector("#scene-location-badge"),
   sceneRiskBadge: document.querySelector("#scene-risk-badge"),
+  sceneDevSource: document.querySelector("#scene-dev-source"),
   sceneText: document.querySelector("#scene-text"),
   systemNote: document.querySelector("#system-note"),
+  questCompletion: null,
   choices: document.querySelector("#choices"),
   choiceTemplate: document.querySelector("#choice-template"),
   gameOverScreen: null,
@@ -203,10 +212,15 @@ const dom = {
 };
 
 const client = {
+  isHomeVisible: true,
   activePanel: "map",
   isPanelOpen: false,
   snapshot: null,
-  gameId: window.localStorage.getItem(ACTIVE_STORAGE_KEY) || "",
+  gameId: "",
+  saveInfo: null,
+  authInfo: null,
+  hasUnsavedProgress: false,
+  menuStatusMessage: "",
   lastFetchedAt: 0,
   syncTimer: null,
   mapHint: "",
@@ -214,6 +228,8 @@ const client = {
   activeStatusPanelView: "status",
   activeStatusDetailKey: null,
   activeInventoryDetailKey: null,
+  activeCraftingRecipeDetailId: null,
+  isCompletedQuestGroupOpen: false,
   actionInFlight: false,
   sceneRenderToken: 0,
   activeSceneTimer: null,
@@ -223,6 +239,7 @@ const client = {
   renderedSystemNote: "",
   renderedSystemNoteKey: "",
   renderedStorySurfaceId: "",
+  questCelebrationTimer: null,
 };
 
 function currentState() {
@@ -358,6 +375,24 @@ function riskLabel(risk) {
   return labels[risk] || risk;
 }
 
+function formatDurationMinutes(value) {
+  const totalMinutes = Math.max(0, Math.round(Number(value) || 0));
+  if (totalMinutes <= 0) {
+    return "";
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+  if (hours > 0) {
+    parts.push(`${hours}시간`);
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes}분`);
+  }
+  return parts.join(" ");
+}
+
 function pairKey(left, right) {
   return [left, right].sort().join("::");
 }
@@ -391,6 +426,152 @@ function clearLegacyGameIds() {
   LEGACY_STORAGE_KEYS.forEach((key) => window.localStorage.removeItem(key));
 }
 
+function emptySaveInfo(gameId = "") {
+  return {
+    exists: false,
+    gameId,
+    savedAt: null,
+    label: "저장된 게임 없음",
+    day: null,
+    timeLabel: null,
+  };
+}
+
+function savedGameId() {
+  return window.localStorage.getItem(SAVED_GAME_ID_KEY) || "";
+}
+
+function isLoggedIn() {
+  return Boolean(client.authInfo?.user);
+}
+
+function activeHomeSaveInfo() {
+  if (isLoggedIn()) {
+    return client.authInfo?.saveInfo || emptySaveInfo();
+  }
+  return client.saveInfo || emptySaveInfo(savedGameId());
+}
+
+function activeSavedGameId() {
+  const info = activeHomeSaveInfo();
+  return info.exists ? info.gameId : "";
+}
+
+function currentSaveStatusLabel() {
+  if (!client.gameId || client.hasUnsavedProgress) {
+    return "저장 전";
+  }
+  const info = isLoggedIn() ? (client.authInfo?.saveInfo || client.saveInfo) : client.saveInfo;
+  if (info?.exists && info.gameId === client.gameId) {
+    return info.label || "저장됨";
+  }
+  return "저장 전";
+}
+
+function stopBackgroundSync() {
+  if (client.syncTimer) {
+    window.clearInterval(client.syncTimer);
+    client.syncTimer = null;
+  }
+}
+
+function startBackgroundSync() {
+  if (client.syncTimer) {
+    return;
+  }
+  client.syncTimer = window.setInterval(backgroundSync, 10000);
+}
+
+function showGameScreen() {
+  client.isHomeVisible = false;
+  dom.homeScreen.hidden = true;
+  dom.appShell.hidden = false;
+  document.body.classList.remove("home-active");
+  startBackgroundSync();
+}
+
+function renderHomeScreen() {
+  const info = activeHomeSaveInfo();
+  dom.homeSaveStatus.textContent = info.exists ? info.label : "저장된 게임 없음";
+  dom.homeContinue.disabled = !info.exists;
+  dom.homeContinue.setAttribute("aria-disabled", info.exists ? "false" : "true");
+
+  const user = client.authInfo?.user;
+  const kakaoConfigured = Boolean(client.authInfo?.kakaoConfigured);
+  if (user) {
+    dom.homeAuthStatus.textContent = `${user.nickname || "카카오 사용자"} 계정으로 로그인 중`;
+    dom.homeKakaoLogin.hidden = true;
+    dom.homeKakaoLogin.setAttribute("aria-disabled", "true");
+    dom.homeLogout.hidden = false;
+  } else {
+    dom.homeAuthStatus.textContent = kakaoConfigured
+      ? "로그인하면 다른 기기에서도 저장을 이어갈 수 있습니다."
+      : "카카오 로그인을 쓰려면 서버에 KAKAO_REST_API_KEY를 설정해야 합니다.";
+    dom.homeKakaoLogin.hidden = false;
+    dom.homeKakaoLogin.setAttribute("aria-disabled", kakaoConfigured ? "false" : "true");
+    dom.homeLogout.hidden = true;
+  }
+}
+
+async function refreshAuthInfo() {
+  try {
+    client.authInfo = await api("/api/auth/me");
+  } catch (_error) {
+    client.authInfo = {
+      kakaoConfigured: false,
+      user: null,
+      saveInfo: null,
+    };
+  }
+  renderHomeScreen();
+  return client.authInfo;
+}
+
+async function refreshHomeSaveInfo() {
+  if (isLoggedIn()) {
+    client.saveInfo = client.authInfo?.saveInfo || emptySaveInfo();
+    renderHomeScreen();
+    return client.saveInfo;
+  }
+
+  const gameId = savedGameId();
+  if (!gameId) {
+    client.saveInfo = emptySaveInfo();
+    renderHomeScreen();
+    return client.saveInfo;
+  }
+
+  try {
+    const info = await api(`/api/games/${gameId}/save`);
+    if (!info.exists) {
+      window.localStorage.removeItem(SAVED_GAME_ID_KEY);
+      client.saveInfo = emptySaveInfo();
+    } else {
+      client.saveInfo = info;
+    }
+  } catch (_error) {
+    window.localStorage.removeItem(SAVED_GAME_ID_KEY);
+    client.saveInfo = emptySaveInfo();
+  }
+  renderHomeScreen();
+  return client.saveInfo;
+}
+
+async function showHomeScreen() {
+  stopBackgroundSync();
+  clearSceneAnimation();
+  client.isHomeVisible = true;
+  client.gameId = "";
+  client.snapshot = null;
+  client.actionInFlight = false;
+  client.menuStatusMessage = "";
+  dom.appShell.hidden = true;
+  dom.homeScreen.hidden = false;
+  document.body.classList.add("home-active");
+  await refreshAuthInfo();
+  await refreshHomeSaveInfo();
+}
+
 async function createNewGame() {
   const snapshot = await api("/api/games", {
     method: "POST",
@@ -402,12 +583,16 @@ async function createNewGame() {
   client.activePanel = "map";
   client.isPanelOpen = false;
   client.mapHint = "";
+  client.activeCraftingRecipeDetailId = null;
+  client.isCompletedQuestGroupOpen = false;
   client.justCreatedGame = true;
+  client.hasUnsavedProgress = true;
+  client.menuStatusMessage = "저장 전";
   client.renderedStorySurfaceId = "";
   hideSystemNote();
   renderGameOverScreen();
   clearLegacyGameIds();
-  window.localStorage.setItem(ACTIVE_STORAGE_KEY, client.gameId);
+  showGameScreen();
 }
 
 async function restartGameFromOverlay() {
@@ -458,8 +643,119 @@ async function loadGameState() {
   }
 }
 
+async function continueSavedGame() {
+  const gameId = activeSavedGameId();
+  if (!gameId || client.actionInFlight) {
+    return;
+  }
+
+  client.actionInFlight = true;
+  try {
+    const snapshot = await api(isLoggedIn() ? "/api/auth/save/restore" : `/api/games/${gameId}/restore`, {
+      method: "POST",
+      body: {},
+    });
+    client.gameId = snapshot.gameId;
+    client.snapshot = snapshot;
+    client.lastFetchedAt = Date.now();
+    client.activePanel = "map";
+    client.isPanelOpen = false;
+    client.mapHint = "";
+    client.activeCraftingRecipeDetailId = null;
+    client.isCompletedQuestGroupOpen = false;
+    client.justCreatedGame = false;
+    client.hasUnsavedProgress = false;
+    client.menuStatusMessage = "";
+    client.renderedStorySurfaceId = "";
+    if (isLoggedIn()) {
+      await refreshAuthInfo();
+      client.saveInfo = client.authInfo?.saveInfo || emptySaveInfo();
+    } else {
+      client.saveInfo = await api(`/api/games/${client.gameId}/save`);
+    }
+    showGameScreen();
+    render({
+      animateScene: shouldAnimateScene({
+        source: "bootstrap",
+        previousSnapshot: null,
+        nextSnapshot: client.snapshot,
+      }),
+    });
+  } catch (error) {
+    if (!isLoggedIn()) {
+      window.localStorage.removeItem(SAVED_GAME_ID_KEY);
+    }
+    await refreshHomeSaveInfo();
+    window.alert(error instanceof Error ? error.message : "이어하기를 시작하지 못했습니다.");
+  } finally {
+    client.actionInFlight = false;
+  }
+}
+
+async function saveCurrentGameFromMenu() {
+  if (!client.gameId || client.actionInFlight) {
+    return;
+  }
+
+  const previousSavedGameId = activeSavedGameId();
+  if (previousSavedGameId && previousSavedGameId !== client.gameId) {
+    const confirmed = window.confirm("기존 저장을 현재 게임으로 덮어쓸까요?");
+    if (!confirmed) {
+      return;
+    }
+  }
+
+  client.actionInFlight = true;
+  try {
+    const info = await api(`/api/games/${client.gameId}/save`, {
+      method: "POST",
+      body: {},
+    });
+    if (isLoggedIn()) {
+      await refreshAuthInfo();
+      client.saveInfo = client.authInfo?.saveInfo || info;
+    } else {
+      window.localStorage.setItem(SAVED_GAME_ID_KEY, client.gameId);
+      client.saveInfo = info;
+    }
+    client.hasUnsavedProgress = false;
+    client.menuStatusMessage = "저장했습니다.";
+    renderPanel();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : "저장하지 못했습니다.");
+  } finally {
+    client.actionInFlight = false;
+  }
+}
+
 function currentSceneId(snapshot = client.snapshot) {
   return snapshot?.currentScene?.id || "";
+}
+
+function isDeveloperMode() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("dev") === "0") {
+    return false;
+  }
+  if (params.get("dev") === "1") {
+    return true;
+  }
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+}
+
+function renderSceneDevSource(snapshot) {
+  if (!dom.sceneDevSource) {
+    return;
+  }
+  const source = snapshot?.currentScene?.devSource;
+  if (!isDeveloperMode() || !source) {
+    dom.sceneDevSource.hidden = true;
+    dom.sceneDevSource.textContent = "";
+    return;
+  }
+
+  dom.sceneDevSource.hidden = false;
+  dom.sceneDevSource.textContent = `DEV scene: ${source.path} · ${source.id}`;
 }
 
 function systemNoteKey(snapshot, note) {
@@ -605,7 +901,7 @@ function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${JSON.stringify(choice.craftingRecipe || null)}`)
     .join("|");
 }
 
@@ -754,6 +1050,150 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function itemEffectHintHtml(effects = {}) {
+  const effectParts = [
+    { key: "hp", label: "체력", className: "item-hp-hint" },
+    { key: "mind", label: "정신력", className: "item-mind-hint" },
+    { key: "energy", label: "기력", className: "item-energy-hint" },
+  ].flatMap(({ key, label, className }) => {
+    const value = effects[key] ?? 0;
+    if (value === 0) {
+      return [];
+    }
+    const signedValue = value > 0 ? `+${value}` : String(value);
+    return [`<span class="${className}">${signedValue} ${label}</span>`];
+  });
+
+  return effectParts.length
+    ? `<span class="item-effect-list">${effectParts.join(" ")}</span>`
+    : "";
+}
+
+function craftingRecipeMetaHtml(recipe) {
+  if (!recipe) {
+    return "";
+  }
+
+  const prerequisites = recipe.prerequisites || [];
+  const requirements = recipe.requirements || [];
+  const prerequisiteHtml = prerequisites.length
+    ? `
+      <span class="crafting-recipe-row is-prerequisite">
+        <span class="crafting-recipe-label">조건</span>
+        <span class="crafting-recipe-token-list">
+          ${prerequisites.map((entry) => `
+            <span class="crafting-recipe-token ${entry.met ? "is-met" : "is-missing"}">
+              ${escapeHtml(entry.label)} ${entry.met ? "충족" : "필요"}
+            </span>
+          `).join("")}
+        </span>
+      </span>
+    `
+    : "";
+  const requirementsHtml = requirements.length
+    ? `
+      <span class="crafting-recipe-row is-requirements">
+        <span class="crafting-recipe-label">필요 재료</span>
+        <span class="crafting-recipe-token-list">
+          ${requirements.map((entry) => `
+            <span class="crafting-recipe-token ${entry.met ? "is-met" : "is-missing"}">
+              ${escapeHtml(entry.name)} (${entry.ownedAmount}/${entry.requiredAmount})
+            </span>
+          `).join("")}
+        </span>
+      </span>
+    `
+    : "";
+
+  return `
+    <span class="crafting-recipe-detail">
+      <span class="crafting-recipe-row is-effect">
+        <span class="crafting-recipe-label">효과</span>
+        <span class="crafting-recipe-effect">${escapeHtml(recipe.effect)}</span>
+      </span>
+      ${prerequisiteHtml}
+      ${requirementsHtml}
+    </span>
+  `;
+}
+
+function renderCraftingChoices(snapshot) {
+  const recipeChoices = snapshot.availableActions.filter((choice) =>
+    choice.id !== "leave_shelter_crafting" && choice.craftingRecipe
+  );
+  const otherChoices = snapshot.availableActions.filter((choice) =>
+    choice.id === "leave_shelter_crafting" || !choice.craftingRecipe
+  );
+  const selectedChoice = recipeChoices.find((choice) => choice.id === client.activeCraftingRecipeDetailId) || recipeChoices[0] || null;
+  client.activeCraftingRecipeDetailId = selectedChoice?.id || null;
+
+  recipeChoices.forEach((choice) => {
+    const card = document.createElement("article");
+    card.className = [
+      "crafting-choice-card",
+      choice.isAvailable ? "is-recipe-available" : "is-recipe-unavailable",
+      choice.id === client.activeCraftingRecipeDetailId ? "is-active" : "",
+    ].filter(Boolean).join(" ");
+
+    const selectButton = document.createElement("button");
+    selectButton.className = "crafting-choice-select";
+    selectButton.type = "button";
+    selectButton.setAttribute("aria-pressed", choice.id === client.activeCraftingRecipeDetailId ? "true" : "false");
+    selectButton.innerHTML = `<span class="crafting-recipe-name">${escapeHtml(choice.label)}</span>`;
+    selectButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      client.activeCraftingRecipeDetailId = choice.id;
+      renderChoices();
+    });
+
+    const craftButton = document.createElement("button");
+    craftButton.className = "inline-action crafting-choice-submit";
+    craftButton.type = "button";
+    craftButton.textContent = choice.craftingRecipe.actionLabel || "제작";
+    craftButton.disabled = client.actionInFlight;
+    craftButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      submitAction(choice.action);
+    });
+
+    card.append(selectButton, craftButton);
+    dom.choices.appendChild(card);
+  });
+
+  if (selectedChoice?.craftingRecipe) {
+    const detail = document.createElement("section");
+    detail.className = "crafting-recipe-panel";
+    detail.setAttribute("aria-live", "polite");
+    detail.innerHTML = `
+      <div class="crafting-recipe-panel-head">
+        <strong>${escapeHtml(selectedChoice.label)}</strong>
+        <span class="crafting-recipe-state ${selectedChoice.isAvailable ? "is-met" : "is-missing"}">
+          ${selectedChoice.isAvailable ? "제작 가능" : "재료 부족"}
+        </span>
+      </div>
+      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe)}
+    `;
+    dom.choices.appendChild(detail);
+  }
+
+  otherChoices.forEach((choice) => {
+    const fragment = dom.choiceTemplate.content.cloneNode(true);
+    const button = fragment.querySelector("button");
+    const label = fragment.querySelector(".choice-label");
+    const meta = fragment.querySelector(".choice-meta");
+    label.textContent = choice.label;
+    const outcomeHint = choice.outcomeHint || "";
+    const shouldShowOutcomeHint = Boolean(choice.showOutcomeHint && outcomeHint);
+    meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
+    meta.hidden = !shouldShowOutcomeHint;
+    button.disabled = client.actionInFlight;
+    button.addEventListener("click", () => submitAction(choice.action));
+    dom.choices.appendChild(fragment);
+  });
+}
+
 function hideSystemNote() {
   dom.systemNote.hidden = true;
   dom.systemNote.innerHTML = "";
@@ -796,6 +1236,57 @@ function renderSystemNote(note, noteKey = "") {
   }
   client.renderedSystemNote = note;
   client.renderedSystemNoteKey = noteKey;
+}
+
+function completedQuestChanges(previousSnapshot, nextSnapshot) {
+  if (!previousSnapshot || !nextSnapshot) {
+    return [];
+  }
+
+  const previousQuests = new Map((previousSnapshot.quests || []).map((quest) => [quest.id, quest.status]));
+  return (nextSnapshot.quests || []).filter((quest) =>
+    quest.status === "completed" && previousQuests.get(quest.id) !== "completed"
+  );
+}
+
+function questCompletionElement() {
+  if (dom.questCompletion) {
+    return dom.questCompletion;
+  }
+
+  const element = document.createElement("aside");
+  element.className = "quest-completion-burst";
+  element.setAttribute("aria-live", "polite");
+  element.hidden = true;
+  document.body.appendChild(element);
+  dom.questCompletion = element;
+  return element;
+}
+
+function showQuestCompletionBurst(completedQuests) {
+  if (!completedQuests.length) {
+    return;
+  }
+
+  const quest = completedQuests[0];
+  const element = questCompletionElement();
+  window.clearTimeout(client.questCelebrationTimer);
+  element.innerHTML = `
+    <span class="quest-completion-kicker">퀘스트 완료</span>
+    <strong>${escapeHtml(quest.name)}</strong>
+  `;
+  element.hidden = false;
+  element.classList.remove("is-visible");
+  void element.offsetWidth;
+  element.classList.add("is-visible");
+  client.questCelebrationTimer = window.setTimeout(() => {
+    element.classList.remove("is-visible");
+    window.setTimeout(() => {
+      if (!element.classList.contains("is-visible")) {
+        element.hidden = true;
+      }
+    }, 220);
+  }, 2600);
 }
 
 function openStatusPopover(statKey, options = {}) {
@@ -880,7 +1371,7 @@ function renderStatusBar() {
 function renderChoices() {
   const snapshot = client.snapshot;
   dom.choices.innerHTML = "";
-  dom.choices.classList.remove("revealed");
+  dom.choices.classList.remove("revealed", "is-crafting-menu");
   if (!snapshot) {
     syncMobileChoiceZoneHeight();
     return;
@@ -891,13 +1382,21 @@ function renderChoices() {
     return;
   }
 
+  const isCraftingMenu = currentSceneDefinitionId(snapshot) === "shelter_crafting_menu";
+  if (isCraftingMenu) {
+    dom.choices.classList.add("is-crafting-menu");
+    renderCraftingChoices(snapshot);
+    dom.choices.classList.add("revealed");
+    syncMobileChoiceZoneHeight();
+    pinSceneTextToBottomOnMobile();
+    return;
+  }
+
   snapshot.availableActions.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
     const label = fragment.querySelector(".choice-label");
     const meta = fragment.querySelector(".choice-meta");
-    const isCraftingMenu = currentSceneDefinitionId(snapshot) === "shelter_crafting_menu";
-    const isCraftingRecipe = isCraftingMenu && choice.id !== "leave_shelter_crafting";
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
     const outcomeHint = choice.outcomeHint || "";
@@ -905,9 +1404,6 @@ function renderChoices() {
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
-    button.classList.toggle("is-crafting-option", isCraftingRecipe);
-    button.classList.toggle("is-recipe-available", isCraftingRecipe && choice.isAvailable);
-    button.classList.toggle("is-recipe-unavailable", isCraftingRecipe && !choice.isAvailable);
     button.disabled = client.actionInFlight;
     button.addEventListener("click", () => submitAction(choice.action));
     dom.choices.appendChild(fragment);
@@ -941,6 +1437,7 @@ function renderScene(animateText = true) {
     : isEventStoryActive(snapshot)
       ? "이벤트"
       : riskLabel(location.risk);
+  renderSceneDevSource(snapshot);
   const systemNote = snapshot.state.systemNote || "";
   const currentSystemNoteKey = systemNoteKey(snapshot, systemNote);
   const isCarriedNoteAfterSurfaceChange =
@@ -1105,9 +1602,9 @@ function renderMapPanel() {
       if (!location) {
         return "";
       }
-      const routeDistance = Number(entry.routeDistance || 0);
-      const routeTag = entry.isReachable && routeDistance > 1
-        ? `<span class="tag tag-route">${routeDistance}구간</span>`
+      const travelLabel = formatDurationMinutes(entry.travelMinutes);
+      const routeTag = entry.isReachable && travelLabel
+        ? `<span class="tag tag-route">${travelLabel}</span>`
         : "";
       return `
         <article
@@ -1210,7 +1707,7 @@ function renderInventoryPanel() {
   const moneyDetailKey = "money";
   const isMoneyActive = client.activeInventoryDetailKey === moneyDetailKey;
   const inventoryDetails = new Map([
-    [moneyDetailKey, "한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다."],
+    [moneyDetailKey, [{ text: "한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다." }]],
   ]);
   const selectInventoryDetail = (detailKey) => {
     client.activeInventoryDetailKey = detailKey;
@@ -1268,11 +1765,12 @@ function renderInventoryPanel() {
     `;
   };
   const renderInventoryDetailSlot = () => {
-    const detailText = inventoryDetails.get(client.activeInventoryDetailKey) || "";
-    const detailLines = String(detailText).split("\n").filter(Boolean);
+    const detailLines = inventoryDetails.get(client.activeInventoryDetailKey) || [];
     return `
       <div class="inventory-detail-slot" id="inventory-detail-slot" aria-live="polite">
-        ${detailLines.map((line) => `<p>${line}</p>`).join("")}
+        ${detailLines.map((line) => `
+          <p>${line.html ? line.html : escapeHtml(line.text)}</p>
+        `).join("")}
       </div>
     `;
   };
@@ -1290,11 +1788,17 @@ function renderInventoryPanel() {
   const renderedCards = [
     moneyCard,
     ...itemCards.map((item) => {
-        const detailLines = [item.description];
+        const detailLines = [{ text: item.description }];
+        const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
+          ? itemEffectHintHtml(item.effects)
+          : "";
         if (item.useMinutes && item.useMinutes > 0) {
-          detailLines.push(`사용 시간: ${formatMinutesLabel(item.useMinutes)}`);
+          detailLines.push({ text: `사용 시간: ${formatMinutesLabel(item.useMinutes)}` });
         }
-        inventoryDetails.set(item.id, detailLines.join("\n"));
+        if (effectHintHtml) {
+          detailLines.push({ html: effectHintHtml });
+        }
+        inventoryDetails.set(item.id, detailLines);
         const count = snapshot.state.inventory[item.id] || 0;
         const isUsable = item.kind === "food" || item.kind === "drink" || item.kind === "medicine";
         const isActive = client.activeInventoryDetailKey === item.id;
@@ -1432,6 +1936,68 @@ function questStatusLabel(status) {
   return "대기";
 }
 
+function questRequirementsMarkup(quest) {
+  const requirements = quest.requirements || [];
+  if (!requirements.length) {
+    return "";
+  }
+
+  return `
+    <div class="quest-requirements" aria-label="필요한 아이템">
+      ${requirements.map((requirement) => `
+        <div class="quest-requirement ${requirement.met ? "is-met" : ""}">
+          <span class="quest-requirement-check" aria-hidden="true">${requirement.met ? "✓" : ""}</span>
+          <span class="quest-requirement-name">${requirement.name}</span>
+          <span class="quest-requirement-count">${Math.min(requirement.ownedAmount, requirement.amount)} / ${requirement.amount}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function questCardMarkup(quest) {
+  const isCompleted = quest.status === "completed";
+  return `
+    <article class="quest-card ${isCompleted ? "is-completed" : ""}">
+      <div class="quest-card-head">
+        <h3>${quest.name}</h3>
+        <div class="quest-card-actions">
+          <span class="tag">${questStatusLabel(quest.status)}</span>
+        </div>
+      </div>
+      <div class="quest-card-body">
+        <p>${quest.summary}</p>
+        ${questRequirementsMarkup(quest)}
+      </div>
+    </article>
+  `;
+}
+
+function completedQuestGroupMarkup(completedQuests) {
+  if (!completedQuests.length) {
+    return "";
+  }
+
+  const isOpen = client.isCompletedQuestGroupOpen;
+  return `
+    <section class="quest-completed-group">
+      <button
+        class="quest-completed-toggle"
+        data-completed-quests-toggle
+        type="button"
+        aria-expanded="${isOpen ? "true" : "false"}"
+      >
+        <span>완료한 퀘스트</span>
+        <span class="tag">${completedQuests.length}개</span>
+        <span class="quest-completed-toggle-label">${isOpen ? "접기" : "펼치기"}</span>
+      </button>
+      <div class="quest-completed-list" ${isOpen ? "" : "hidden"}>
+        ${completedQuests.map((quest) => questCardMarkup(quest)).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderQuestsPanel() {
   const visibleQuests = (client.snapshot.quests || []).filter((quest) => quest.status !== "inactive");
   if (!visibleQuests.length) {
@@ -1439,17 +2005,17 @@ function renderQuestsPanel() {
     return;
   }
 
+  const completedQuests = visibleQuests.filter((quest) => quest.status === "completed");
+  const activeQuests = visibleQuests.filter((quest) => quest.status !== "completed");
+
   dom.panelContent.innerHTML = `
-    <div class="panel-grid">
-      ${visibleQuests.map((quest) => `
-        <article class="quest-card">
-          <div class="map-meta">
-            <h3>${quest.name}</h3>
-            <span class="tag">${questStatusLabel(quest.status)}</span>
-          </div>
-          <p>${quest.summary}</p>
-        </article>
-      `).join("")}
+    <div class="quest-panel-stack">
+      ${activeQuests.length ? `
+        <div class="panel-grid">
+          ${activeQuests.map((quest) => questCardMarkup(quest)).join("")}
+        </div>
+      ` : ""}
+      ${completedQuestGroupMarkup(completedQuests)}
     </div>
   `;
 }
@@ -1480,8 +2046,23 @@ function renderLogPanel() {
 }
 
 function renderMenuPanel() {
+  const statusLabel = currentSaveStatusLabel();
+  const statusMessage = client.menuStatusMessage
+    ? `<p class="menu-status-message">${escapeHtml(client.menuStatusMessage)}</p>`
+    : "";
   dom.panelContent.innerHTML = `
     <div class="menu-actions">
+      <div class="menu-save-card">
+        <span class="menu-save-label">저장 상태</span>
+        <strong>${escapeHtml(statusLabel)}</strong>
+        ${statusMessage}
+      </div>
+      <button class="menu-action primary" data-menu-action="save" type="button">
+        <span>저장하기</span>
+      </button>
+      <button class="menu-action" data-menu-action="home" type="button">
+        <span>홈으로</span>
+      </button>
       <button class="menu-action" data-menu-action="log" type="button">
         <span>기록</span>
       </button>
@@ -1561,9 +2142,12 @@ async function submitAction(action) {
     const didMove = previousSnapshot?.state?.location &&
       snapshot?.state?.location &&
       previousSnapshot.state.location !== snapshot.state.location;
+    const newlyCompletedQuests = completedQuestChanges(previousSnapshot, snapshot);
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
     client.mapHint = "";
+    client.hasUnsavedProgress = true;
+    client.menuStatusMessage = "";
     if (didMove) {
       client.isPanelOpen = false;
     }
@@ -1575,6 +2159,7 @@ async function submitAction(action) {
         nextSnapshot: snapshot,
       }),
     });
+    showQuestCompletionBurst(newlyCompletedQuests);
     if (didMove) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -1615,6 +2200,7 @@ async function backgroundSync() {
     const noteChanged = previousNote !== effectiveSnapshot.state.systemNote;
     const actionsChanged =
       availableActionsSignature(previousSnapshot) !== availableActionsSignature(effectiveSnapshot);
+    const newlyCompletedQuests = completedQuestChanges(previousSnapshot, effectiveSnapshot);
     if (surfaceChanged || noteChanged || actionsChanged) {
       render({
         animateScene: shouldAnimateScene({
@@ -1623,9 +2209,11 @@ async function backgroundSync() {
           nextSnapshot: effectiveSnapshot,
         }),
       });
+      showQuestCompletionBurst(newlyCompletedQuests);
       return;
     }
     renderStatusBar();
+    showQuestCompletionBurst(newlyCompletedQuests);
   } catch (_error) {
     renderStatusBar();
   }
@@ -1637,15 +2225,7 @@ async function bootstrap() {
   if (!health.ok) {
     throw new Error("서버 상태가 올바르지 않습니다.");
   }
-  await loadGameState();
-  render({
-    animateScene: shouldAnimateScene({
-      source: client.justCreatedGame ? "newGame" : "bootstrap",
-      previousSnapshot: null,
-      nextSnapshot: client.snapshot,
-    }),
-  });
-  client.syncTimer = window.setInterval(backgroundSync, 10000);
+  await showHomeScreen();
   window.setInterval(() => {
     renderStatusBar();
   }, CLOCK_TICK_MS);
@@ -1715,7 +2295,11 @@ dom.sceneFrame.addEventListener("click", (event) => {
 });
 
 async function startNewGameFromMenu() {
-  const confirmed = window.confirm("새 게임을 시작하면 현재 진행 중인 세션 대신 새 세션이 만들어집니다.");
+  const confirmed = window.confirm(
+    client.hasUnsavedProgress
+      ? "저장하지 않은 진행은 이어하기에 반영되지 않습니다. 새 게임을 시작할까요?"
+      : "새 게임을 시작할까요?",
+  );
   if (!confirmed) {
     return;
   }
@@ -1734,6 +2318,64 @@ async function startNewGameFromMenu() {
     window.alert(error instanceof Error ? error.message : "새 게임을 시작하지 못했습니다.");
   }
 }
+
+async function goHomeFromMenu() {
+  if (client.hasUnsavedProgress) {
+    const confirmed = window.confirm("저장하지 않은 진행은 이어하기에 반영되지 않습니다. 홈으로 돌아갈까요?");
+    if (!confirmed) {
+      return;
+    }
+  }
+  await showHomeScreen();
+}
+
+dom.homeNewGame.addEventListener("click", async () => {
+  if (client.actionInFlight) {
+    return;
+  }
+  client.actionInFlight = true;
+  clearSceneAnimation();
+  try {
+    await createNewGame();
+    client.actionInFlight = false;
+    render({
+      animateScene: shouldAnimateScene({
+        source: "newGame",
+        previousSnapshot: null,
+        nextSnapshot: client.snapshot,
+      }),
+    });
+  } catch (error) {
+    console.error(error);
+    window.alert(error instanceof Error ? error.message : "새 게임을 시작하지 못했습니다.");
+  } finally {
+    client.actionInFlight = false;
+  }
+});
+
+dom.homeContinue.addEventListener("click", () => {
+  continueSavedGame();
+});
+
+dom.homeLogout.addEventListener("click", async () => {
+  if (client.actionInFlight) {
+    return;
+  }
+  client.actionInFlight = true;
+  try {
+    await api("/api/auth/logout", {
+      method: "POST",
+      body: {},
+    });
+    client.authInfo = null;
+    await refreshAuthInfo();
+    await refreshHomeSaveInfo();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : "로그아웃하지 못했습니다.");
+  } finally {
+    client.actionInFlight = false;
+  }
+});
 
 dom.panelContent.addEventListener("click", (event) => {
   const statusViewButton = event.target.closest("[data-status-view]");
@@ -1759,12 +2401,29 @@ dom.panelContent.addEventListener("click", (event) => {
     return;
   }
 
+  const completedQuestsToggleButton = event.target.closest("[data-completed-quests-toggle]");
+  if (completedQuestsToggleButton) {
+    client.isCompletedQuestGroupOpen = !client.isCompletedQuestGroupOpen;
+    client.activePanel = "quests";
+    client.isPanelOpen = true;
+    renderPanel();
+    return;
+  }
+
   const actionButton = event.target.closest("[data-menu-action]");
   if (!actionButton) {
     return;
   }
 
   const action = actionButton.dataset.menuAction;
+  if (action === "save") {
+    saveCurrentGameFromMenu();
+    return;
+  }
+  if (action === "home") {
+    goHomeFromMenu();
+    return;
+  }
   if (action === "log") {
     client.activePanel = "log";
     client.isPanelOpen = true;
@@ -1776,8 +2435,29 @@ dom.panelContent.addEventListener("click", (event) => {
   }
 });
 
+window.render_game_to_text = () => JSON.stringify({
+  mode: client.isHomeVisible ? "home" : "game",
+  gameId: client.gameId || null,
+  savedGameId: savedGameId() || null,
+  isLoggedIn: isLoggedIn(),
+  authUser: client.authInfo?.user || null,
+  saveInfo: client.saveInfo,
+  accountSaveInfo: client.authInfo?.saveInfo || null,
+  hasUnsavedProgress: client.hasUnsavedProgress,
+  activePanel: client.activePanel,
+  sceneId: client.snapshot?.currentScene?.id || null,
+  location: client.snapshot?.state?.location || null,
+  day: client.snapshot?.state?.day || null,
+  time: client.snapshot ? gameClockLabel() : null,
+});
+
 bootstrap().catch((error) => {
   console.error(error);
+  dom.homeScreen.hidden = false;
+  dom.appShell.hidden = true;
+  document.body.classList.add("home-active");
+  dom.homeSaveStatus.textContent = "서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  dom.homeContinue.disabled = true;
   dom.sceneText.innerHTML = `<p>서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>`;
   dom.panelContent.innerHTML = `<p class="empty-state">API 서버가 필요합니다.</p>`;
 });

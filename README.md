@@ -80,11 +80,46 @@ GEMINI_API_KEY=your_key_here
 
 Narrative/card generation also falls back to templates on request failures so the project remains playable offline or during API errors.
 
+## Optional Kakao Login Setup
+
+Kakao login is optional. Without Kakao settings, the game still supports local browser-based manual saves.
+
+To enable account login and account-based manual saves:
+
+1. Create an app in Kakao Developers.
+2. Enable Kakao Login for the app.
+3. Add this redirect URI:
+
+```text
+https://textrpg-8ic8.onrender.com/api/auth/kakao/callback
+```
+
+For local testing, add this redirect URI as well:
+
+```text
+http://127.0.0.1:3000/api/auth/kakao/callback
+```
+
+Environment variables:
+
+```text
+PUBLIC_BASE_URL=https://textrpg-8ic8.onrender.com
+AUTH_SECRET=long_random_secret
+KAKAO_REST_API_KEY=your_kakao_rest_api_key
+KAKAO_CLIENT_SECRET=optional_kakao_client_secret
+```
+
+When a user is logged in, `저장하기` writes to that account's single manual save slot. `이어하기` restores that account slot instead of the browser-only save key.
+
 ## Other Environment Variables
 
 - `PORT`
 - `RUNTIME_DIR`
 - `DATABASE_URL`
+- `PUBLIC_BASE_URL`
+- `AUTH_SECRET`
+- `KAKAO_REST_API_KEY`
+- `KAKAO_CLIENT_SECRET`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 

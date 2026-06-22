@@ -27,6 +27,25 @@ import { buildRuntimeRegistry, emptyDynamicWorldRegistry } from "./runtime-regis
 
 export type CardKind = "locationCards" | "personCards" | "itemCards" | "eventCards" | "sceneCards";
 export type StoredCard = LocationCard | PersonCard | ItemCard | EventCard | SceneCard;
+export type AuthProvider = "kakao";
+
+export type AuthUser = {
+  id: string;
+  provider: AuthProvider;
+  providerUserId: string;
+  nickname: string | null;
+  email: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AuthUserInput = {
+  id: string;
+  provider: AuthProvider;
+  providerUserId: string;
+  nickname: string | null;
+  email: string | null;
+};
 
 type ValidContentIds = {
   validLocationIds: Set<string>;
@@ -427,6 +446,13 @@ export interface GameRepository {
   init(): Promise<void>;
   saveGame(session: GameSession): Promise<void>;
   loadGame(gameId: string): Promise<GameSession>;
+  saveManualGame(session: GameSession, savedAt: string, ownerId?: string | null): Promise<ManualSaveInfo>;
+  loadManualGame(gameId: string): Promise<ManualSaveRecord | null>;
+  loadManualGameForUser(ownerId: string): Promise<ManualSaveRecord | null>;
+  getManualSaveInfo(gameId: string): Promise<ManualSaveInfo>;
+  getManualSaveInfoForUser(ownerId: string): Promise<ManualSaveInfo>;
+  upsertAuthUser(user: AuthUserInput): Promise<AuthUser>;
+  loadAuthUser(userId: string): Promise<AuthUser | null>;
   loadTemplates(): Promise<TemplateStore>;
   getTemplate(kind: CardKind, id: string): Promise<StoredCard | undefined>;
   saveTemplate(kind: CardKind, id: string, card: StoredCard): Promise<void>;
@@ -435,9 +461,50 @@ export interface GameRepository {
   appendGenerationLog(entry: Record<string, unknown>): Promise<void>;
 }
 
+export type ManualSaveInfo = {
+  exists: boolean;
+  gameId: string;
+  savedAt: string | null;
+  label: string;
+  day: number | null;
+  timeLabel: string | null;
+};
+
+export type ManualSaveRecord = {
+  savedAt: string;
+  session: GameSession;
+  ownerId?: string | null;
+};
+
+export function buildManualSaveInfo(gameId: string, record: ManualSaveRecord | null): ManualSaveInfo {
+  if (!record) {
+    return {
+      exists: false,
+      gameId,
+      savedAt: null,
+      label: "저장된 게임 없음",
+      day: null,
+      timeLabel: null,
+    };
+  }
+
+  const timeLabel = formatLogTimestamp(record.session.state.day, record.session.state.worldElapsedMs);
+  return {
+    exists: true,
+    gameId,
+    savedAt: record.savedAt,
+    label: `${timeLabel} 저장됨`,
+    day: record.session.state.day,
+    timeLabel,
+  };
+}
+
 export class FileGameRepository implements GameRepository {
   private readonly runtimeDir: string;
   private readonly gamesDir: string;
+  private readonly manualSavesDir: string;
+  private readonly manualUserSavesDir: string;
+  private readonly authUsersPath: string;
   private readonly templatesPath: string;
   private readonly actionLogPath: string;
   private readonly generationLogPath: string;
@@ -447,6 +514,9 @@ export class FileGameRepository implements GameRepository {
       ? path.resolve(rootDir, process.env.RUNTIME_DIR)
       : path.join(rootDir, ".runtime");
     this.gamesDir = path.join(this.runtimeDir, "games");
+    this.manualSavesDir = path.join(this.runtimeDir, "manual-saves");
+    this.manualUserSavesDir = path.join(this.manualSavesDir, "users");
+    this.authUsersPath = path.join(this.runtimeDir, "auth-users.json");
     this.templatesPath = path.join(this.runtimeDir, "templates.json");
     this.actionLogPath = path.join(this.runtimeDir, "action-log.jsonl");
     this.generationLogPath = path.join(this.runtimeDir, "generation-log.jsonl");
@@ -475,6 +545,8 @@ export class FileGameRepository implements GameRepository {
 
   async init() {
     await mkdir(this.gamesDir, { recursive: true });
+    await mkdir(this.manualSavesDir, { recursive: true });
+    await mkdir(this.manualUserSavesDir, { recursive: true });
     try {
       const raw = await readFile(this.templatesPath, "utf8");
       const normalized = normalizeTemplateStore(JSON.parse(raw));
@@ -494,6 +566,14 @@ export class FileGameRepository implements GameRepository {
     return path.join(this.gamesDir, `${gameId}.json`);
   }
 
+  private manualSavePath(gameId: string) {
+    return path.join(this.manualSavesDir, `${gameId}.json`);
+  }
+
+  private manualUserSavePath(ownerId: string) {
+    return path.join(this.manualUserSavesDir, `${encodeURIComponent(ownerId)}.json`);
+  }
+
   private async writeGameAtomically(session: GameSession) {
     const targetPath = this.gamePath(session.id);
     const tmpPath = `${targetPath}.${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`;
@@ -506,6 +586,57 @@ export class FileGameRepository implements GameRepository {
     }
   }
 
+  private async writeManualSaveAtomically(record: ManualSaveRecord) {
+    const targetPath = this.manualSavePath(record.session.id);
+    const tmpPath = `${targetPath}.${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(record, null, 2), "utf8");
+    try {
+      await rename(tmpPath, targetPath);
+    } catch {
+      await copyFile(tmpPath, targetPath);
+      await unlink(tmpPath).catch(() => undefined);
+    }
+  }
+
+  private async writeManualUserSaveAtomically(record: ManualSaveRecord) {
+    if (!record.ownerId) {
+      return;
+    }
+    const targetPath = this.manualUserSavePath(record.ownerId);
+    const tmpPath = `${targetPath}.${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(record, null, 2), "utf8");
+    try {
+      await rename(tmpPath, targetPath);
+    } catch {
+      await copyFile(tmpPath, targetPath);
+      await unlink(tmpPath).catch(() => undefined);
+    }
+  }
+
+  private async readAuthUsers() {
+    try {
+      const raw = await readFile(this.authUsersPath, "utf8");
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed as Record<string, AuthUser> : {};
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        return {};
+      }
+      throw error;
+    }
+  }
+
+  private async writeAuthUsersAtomically(users: Record<string, AuthUser>) {
+    const tmpPath = `${this.authUsersPath}.${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(users, null, 2), "utf8");
+    try {
+      await rename(tmpPath, this.authUsersPath);
+    } catch {
+      await copyFile(tmpPath, this.authUsersPath);
+      await unlink(tmpPath).catch(() => undefined);
+    }
+  }
+
   async saveGame(session: GameSession) {
     await this.writeGameAtomically(session);
   }
@@ -513,6 +644,76 @@ export class FileGameRepository implements GameRepository {
   async loadGame(gameId: string) {
     const raw = await readFile(this.gamePath(gameId), "utf8");
     return normalizeGameSession(JSON.parse(raw));
+  }
+
+  async saveManualGame(session: GameSession, savedAt: string, ownerId: string | null = null) {
+    const record = {
+      savedAt,
+      session: structuredClone(session),
+      ownerId,
+    };
+    await this.writeManualSaveAtomically(record);
+    await this.writeManualUserSaveAtomically(record);
+    return buildManualSaveInfo(session.id, record);
+  }
+
+  async loadManualGame(gameId: string) {
+    try {
+      const raw = await readFile(this.manualSavePath(gameId), "utf8");
+      const parsed = JSON.parse(raw) as { savedAt?: unknown; session?: unknown; ownerId?: unknown };
+      const session = normalizeGameSession(parsed.session);
+      const savedAt = typeof parsed.savedAt === "string" ? parsed.savedAt : session.updatedAt;
+      const ownerId = typeof parsed.ownerId === "string" ? parsed.ownerId : null;
+      return { savedAt, session, ownerId };
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async loadManualGameForUser(ownerId: string) {
+    try {
+      const raw = await readFile(this.manualUserSavePath(ownerId), "utf8");
+      const parsed = JSON.parse(raw) as { savedAt?: unknown; session?: unknown; ownerId?: unknown };
+      const session = normalizeGameSession(parsed.session);
+      const savedAt = typeof parsed.savedAt === "string" ? parsed.savedAt : session.updatedAt;
+      return { savedAt, session, ownerId };
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getManualSaveInfo(gameId: string) {
+    return buildManualSaveInfo(gameId, await this.loadManualGame(gameId));
+  }
+
+  async getManualSaveInfoForUser(ownerId: string) {
+    const record = await this.loadManualGameForUser(ownerId);
+    return buildManualSaveInfo(record?.session.id ?? "", record);
+  }
+
+  async upsertAuthUser(user: AuthUserInput) {
+    const users = await this.readAuthUsers();
+    const previous = users[user.id];
+    const now = new Date().toISOString();
+    const nextUser: AuthUser = {
+      ...user,
+      createdAt: previous?.createdAt ?? now,
+      updatedAt: now,
+    };
+    users[user.id] = nextUser;
+    await this.writeAuthUsersAtomically(users);
+    return nextUser;
+  }
+
+  async loadAuthUser(userId: string) {
+    const users = await this.readAuthUsers();
+    return users[userId] ?? null;
   }
 
   async loadTemplates() {
