@@ -8,7 +8,7 @@ export const questDefinitions: QuestDefinition[] = [
   {
     id: "prepare_rescue_signal",
     title: "구조 신호 준비",
-    description: "10일차 구조대가 지나가기 전까지 무전기 배터리, 안테나, 송신기를 모아 임시 거처에서 구조 신호를 완성한다.",
+    description: "10일차 아침 구조대가 마지막 수색 비행으로 서울 상공을 지나가기 전까지, 무전기 부품과 고정 재료를 모아 임시 거처에서 구조 신호를 완성한다.",
     type: "main",
     objectives: [{ type: "flag", flag: "rescue_signal_ready" }],
     requiredItems: [
@@ -19,7 +19,7 @@ export const questDefinitions: QuestDefinition[] = [
       { itemId: "clothScrap", amount: 1 },
     ],
     rewards: [],
-    prerequisites: [],
+    prerequisites: [{ type: "flag", flag: "rescue_goal_accepted" }],
     relatedNpcIds: [],
     relatedLocationIds: ["shelter", "hospital", "subway", "checkpoint"],
   },

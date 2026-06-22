@@ -1,5 +1,16 @@
 Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보자. 계산대를 추가하고 돈을 파밍할 수 있게 하자
 
+- 2026-06-22 opening rescue-goal rewrite:
+  rewrote the opening into `열흘의 신호`, centered on a radio broadcast that gives the player a clear 10-day survival deadline and a reason to complete the rescue signal.
+  changed the first opening choice to `퀘스트: 구조 신호 준비를 시작한다`, which sets `rescue_goal_accepted` and activates the `prepare_rescue_signal` quest.
+  updated the old cook prologue scene so the first food errand follows naturally from the rescue premise: the player has to survive today in order to send the signal later.
+  added save normalization so old saves that already passed the opening keep the rescue goal accepted and do not lose the main quest.
+  Verification passed:
+  `npm.cmd run content:validate`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  local API smoke confirmed a new game starts with `prepare_rescue_signal` inactive, then the first opening action changes it to active with system note `퀘스트 시작: 구조 신호 준비`.
+
 - Goal: add a second convenience-store stock node for the cash register and let the player collect money from it through the same scene/choice flow.
 - Plan: extend stock-node data to support money, wire new money stock conditions/effects, add convenience register scenes/choices, then verify with runtime probes.
 - Added money-aware stock-node support:

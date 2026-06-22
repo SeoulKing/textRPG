@@ -336,6 +336,14 @@ function pruneState(state: unknown): GameState {
   const legacyLastSleepEnergyKey = "lastSleep" + "Full" + "ness";
   const legacyExhaustionLevelKey = "star" + "vation" + "Level";
   nextFlags[`visited_${nextLocation}`] = true;
+  if (
+    nextFlags.opening_seen ||
+    nextFlags.rescue_signal_ready ||
+    nextQuests.prepare_rescue_signal === "active" ||
+    nextQuests.prepare_rescue_signal === "completed"
+  ) {
+    nextFlags.rescue_goal_accepted = true;
+  }
   return {
     saveVersion: SAVE_VERSION,
     location: nextLocation,

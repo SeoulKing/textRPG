@@ -847,7 +847,7 @@ export class GameService {
     registry: ContentRegistry,
   ): ActionChoice[] {
     const actionCatalog = buildActionCatalogFromStoryChoices(storyChoices);
-    if (sceneDef.id !== "shelter_crafting_menu") {
+    if (!["shelter_crafting_menu", "shelter_crafting_menu_repeat"].includes(sceneDef.id)) {
       return actionCatalog;
     }
 

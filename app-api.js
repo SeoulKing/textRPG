@@ -822,7 +822,7 @@ function buildStoryDisplay(snapshot) {
   }
   return {
     headline: "",
-    paragraphs: snapshot.currentScene.paragraphs || [],
+    paragraphs: (snapshot.currentScene.paragraphs || []).filter((paragraph) => String(paragraph).trim()),
   };
 }
 
@@ -1127,6 +1127,22 @@ function renderCraftingChoices(snapshot) {
   const selectedChoice = recipeChoices.find((choice) => choice.id === client.activeCraftingRecipeDetailId) || recipeChoices[0] || null;
   client.activeCraftingRecipeDetailId = selectedChoice?.id || null;
 
+  if (selectedChoice?.craftingRecipe) {
+    const detail = document.createElement("section");
+    detail.className = "crafting-recipe-panel";
+    detail.setAttribute("aria-live", "polite");
+    detail.innerHTML = `
+      <div class="crafting-recipe-panel-head">
+        <strong>${escapeHtml(selectedChoice.label)}</strong>
+        <span class="crafting-recipe-state ${selectedChoice.isAvailable ? "is-met" : "is-missing"}">
+          ${selectedChoice.isAvailable ? "제작 가능" : "재료 부족"}
+        </span>
+      </div>
+      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe)}
+    `;
+    dom.choices.appendChild(detail);
+  }
+
   recipeChoices.forEach((choice) => {
     const card = document.createElement("article");
     card.className = [
@@ -1161,22 +1177,6 @@ function renderCraftingChoices(snapshot) {
     card.append(selectButton, craftButton);
     dom.choices.appendChild(card);
   });
-
-  if (selectedChoice?.craftingRecipe) {
-    const detail = document.createElement("section");
-    detail.className = "crafting-recipe-panel";
-    detail.setAttribute("aria-live", "polite");
-    detail.innerHTML = `
-      <div class="crafting-recipe-panel-head">
-        <strong>${escapeHtml(selectedChoice.label)}</strong>
-        <span class="crafting-recipe-state ${selectedChoice.isAvailable ? "is-met" : "is-missing"}">
-          ${selectedChoice.isAvailable ? "제작 가능" : "재료 부족"}
-        </span>
-      </div>
-      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe)}
-    `;
-    dom.choices.appendChild(detail);
-  }
 
   otherChoices.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
@@ -1382,7 +1382,7 @@ function renderChoices() {
     return;
   }
 
-  const isCraftingMenu = currentSceneDefinitionId(snapshot) === "shelter_crafting_menu";
+  const isCraftingMenu = ["shelter_crafting_menu", "shelter_crafting_menu_repeat"].includes(currentSceneDefinitionId(snapshot));
   if (isCraftingMenu) {
     dom.choices.classList.add("is-crafting-menu");
     renderCraftingChoices(snapshot);

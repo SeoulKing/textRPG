@@ -5,6 +5,7 @@ export const shelterSceneIdsWithoutLocationInteractions = [
   "prologue_repeat",
   "prologue_old_woman_visit",
   "shelter_crafting_menu",
+  "shelter_crafting_menu_repeat",
 ] as const;
 
 export const shelterSceneDefinitions: SceneDefinition[] = [
@@ -12,10 +13,12 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     id: "prologue_opening",
     eventId: "prologue_event",
     locationId: "shelter",
-    title: "프롤로그",
+    title: "열흘의 신호",
     paragraphs: [
-      "지붕이라 부르기에도 민망한 천막 조각과 젖은 판자 사이로 스며드는 차가운 공기가, 눈을 뜨자마자 오늘이 악몽의 연장이 아니라 현실이라는 사실을 다시 알려 준다.",
-      "주변 사람들은 저마다 몸을 웅크린 채 겨우 숨을 붙들고 있지만, 길게 말을 잇는 사람은 거의 없다. 마음속에 떠오르는 문장은 하나뿐이다. \"오늘은 어떻게든 살아남아야 한다.\"",
+      "처음 들린 것은 빗소리가 아니라 라디오 잡음이었다. 낡은 스피커가 목을 긁듯 지직거리더니, 끊어진 군용 주파수 사이로 짧은 문장이 천막 안을 갈랐다.",
+      "\"10일차 06시. 한강 북쪽 생존 신호 확인 비행. 응답 좌표가 잡히는 지점만 회수한다. 반복한다. 신호 없이는 착륙하지 않는다.\"",
+      "누군가 숨을 삼킨다. 누군가는 이미 고개를 떨군다. 구조대가 온다는 말은 희망처럼 들렸지만, 동시에 기한이 찍힌 선고처럼 천막 바닥에 떨어진다.",
+      "열흘. 그때까지 살아 있어야 한다. 그리고 그때까지 무전기 배터리, 안테나, 송신기를 찾아 신호를 보낼 수 있어야 한다. 실패하면 헬기는 이곳을 폐허로만 보고 지나갈 것이다.",
     ],
     choiceIds: ["opening_commit"],
     conditions: [
@@ -29,9 +32,9 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     id: "prologue_repeat",
     eventId: "prologue_event",
     locationId: "shelter",
-    title: "프롤로그",
+    title: "열흘의 신호",
     paragraphs: [
-      "\"어떻게든 살아남아야 한다.\" 그 문장을 붙잡고 있어야만 몸이 다시 움직일 것 같은 시간이 아직 가슴팍에 달라붙어 있다.",
+      "라디오의 마지막 잡음이 아직 귓속에서 가늘게 떨린다. 10일차 06시. 구조대가 지나가는 시간. 그때까지 살아남고, 그때까지 신호를 보낼 준비를 끝내야 한다.",
     ],
     choiceIds: ["opening_commit"],
     conditions: [
@@ -44,13 +47,13 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     id: "prologue_old_woman_visit",
     eventId: "prologue_event",
     locationId: "shelter",
-    title: "프롤로그",
+    title: "오늘을 넘기는 법",
     paragraphs: [
-      "마음을 다잡을 즈음, 천막 자락이 들리며 급식소 배식을 맡는 노파가 안으로 고개를 내민다.",
-      "\"오늘 굶는 쪽으론 오래 못 버텨. 편의점 폐허에 가 봐. 안쪽 진열대에 통조림이 남았을지도 몰라. 세 개만 찾아서 급식소로 가져와. 내가 배식줄 사람들한테 나눠 줄게. 네 몫도 따로 챙겨 줄 테니.\"",
-      "그녀는 충고를 다 던져 놓고는 다른 생존자들을 살피러 돌아선다.",
-      "\"멍때리지 말고 당장 움직이는 게 좋을 거야. 찾으면 나한테 곧장 와.\"",
-      "짧은 한마디가 천막 안에 오래 남는다.",
+      "구조 신호라는 말이 마음속에 겨우 자리를 잡을 즈음, 천막 자락이 거칠게 들린다. 급식소 배식을 맡는 노파가 안으로 고개를 들이민다.",
+      "\"방송 들었지. 열흘 버티려면 오늘부터 먹어야 해. 편의점 폐허에 가 봐. 안쪽 진열대에 통조림이 남았을지도 몰라. 세 개만 찾아서 급식소로 가져와.\"",
+      "그녀는 젖은 앞치마 끝으로 손을 닦으며 천막 안 사람들을 훑어본다. 구조라는 큰말 앞에서도, 모두의 배는 지금 당장 비어 있다.",
+      "\"내가 배식줄 사람들한테 나눠 줄게. 네 몫도 따로 챙겨 줄 테니 멍때리지 말고 움직여. 신호는 살아 있는 사람이 보내는 거야.\"",
+      "그 말이 이상하게 또렷하다. 열흘 뒤의 헬기와 오늘의 통조림이 같은 줄에 묶인다.",
     ],
     choiceIds: ["accept_first_canned_food_quest"],
     conditions: [
@@ -79,6 +82,27 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     conditions: [
       { type: "location", locationId: "shelter" },
       { type: "flag", flag: "shelter_crafting_open" },
+      { type: "flag_not", flag: "shelter_crafting_intro_seen" },
+    ],
+    introFlag: "shelter_crafting_intro_seen",
+  },
+  {
+    id: "shelter_crafting_menu_repeat",
+    locationId: "shelter",
+    title: "제작 정리",
+    paragraphs: [""],
+    choiceIds: [
+      "craft_shelter_wall_patch",
+      "craft_shelter_brazier",
+      "craft_shelter_rain_bucket",
+      "cook_at_shelter",
+      "assemble_rescue_radio",
+      "leave_shelter_crafting",
+    ],
+    conditions: [
+      { type: "location", locationId: "shelter" },
+      { type: "flag", flag: "shelter_crafting_open" },
+      { type: "flag", flag: "shelter_crafting_intro_seen" },
     ],
   },
   {
@@ -88,7 +112,7 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     title: "임시 거처",
     paragraphs: [
       "임시 거처는 방이라기보다 천막과 낡은 판자를 겨우 이어 붙인 막사에 가깝다. 바람은 틈새로 스며들고, 습기는 천 조각마다 눅눅하게 배어 있다.",
-      "그래도 당장 비를 피하고 숨을 고를 곳은 여기뿐이다. 오늘 밤을 넘기려면 쉬거나, 잠자리를 챙기거나, 주운 재료로 거처를 손볼 방법을 생각해야 한다.",
+      "그래도 당장 비를 피하고 숨을 고를 곳은 여기뿐이다. 오늘 밤을 넘기고, 내일 부품을 찾고, 열흘 뒤 구조 신호를 보내려면 이 허술한 거처부터 버팀목으로 써야 한다.",
     ],
     choiceIds: [],
     conditions: [

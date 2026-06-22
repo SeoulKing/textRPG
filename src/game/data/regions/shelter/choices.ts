@@ -4,11 +4,12 @@ import { sceneChoice } from "../../scene-choice-helpers";
 export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "opening_commit",
-    label: "그래도 살아남아야 한다",
-    outcomeHint: "멍하니 주저앉아 있기보다 오늘 하루를 버틸 방법부터 찾기로 마음먹는다.",
+    label: "퀘스트: 구조 신호 준비를 시작한다",
+    outcomeHint: "10일차 아침 구조대가 지나가기 전까지 부품을 모아 구조 신호를 완성하기로 마음먹는다.",
     effects: [
       { type: "set_flag", flag: "opening_seen" },
-      { type: "log", message: "당신은 오늘 하루를 버티는 쪽을 택한다. 지금 필요한 건 후회가 아니라 선택이다." },
+      { type: "set_flag", flag: "rescue_goal_accepted" },
+      { type: "log", message: "당신은 10일차 아침 구조대가 지나가기 전까지 무전기를 완성해 구조 신호를 보내기로 마음먹는다." },
     ],
     nextSceneId: "prologue_old_woman_visit",
     riskHint: "low",
