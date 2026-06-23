@@ -51,6 +51,7 @@ export const shelterChoices: ActionDefinition[] = [
     outcomeHint: "주워 온 재료를 펼쳐 놓고, 거처를 손보거나 식사를 만들 수 있는 레시피를 살핀다.",
     effects: [
       { type: "set_flag", flag: "shelter_crafting_open" },
+      { type: "clear_flag", flag: "shelter_cooking_open" },
       { type: "log", message: "당신은 모아 둔 자재를 천막 안쪽에 펼쳐 놓고, 지금 만들 수 있는 것들을 하나씩 따져 본다." },
     ],
     nextSceneId: "shelter_crafting_menu",
@@ -67,9 +68,43 @@ export const shelterChoices: ActionDefinition[] = [
     outcomeHint: "재료와 레시피를 바로 확인한다.",
     effects: [
       { type: "set_flag", flag: "shelter_crafting_open" },
+      { type: "clear_flag", flag: "shelter_cooking_open" },
     ],
     nextSceneId: "shelter_crafting_menu_repeat",
     tags: ["craft", "menu"],
+    riskHint: "low",
+  }),
+  interactionFor("shelter", {
+    id: "open_shelter_cooking",
+    label: "요리하기",
+    type: "use",
+    conditions: [
+      { type: "flag_not", flag: "shelter_cooking_intro_seen" },
+    ],
+    outcomeHint: "식재료와 조리 도구를 확인하고, 지금 만들 수 있는 음식을 살핀다.",
+    effects: [
+      { type: "set_flag", flag: "shelter_cooking_open" },
+      { type: "clear_flag", flag: "shelter_crafting_open" },
+      { type: "log", message: "당신은 화로 주변을 정리하고, 가지고 있는 식재료와 조리 도구를 한곳에 모아 둔다." },
+    ],
+    nextSceneId: "shelter_cooking_menu",
+    tags: ["cooking", "menu"],
+    riskHint: "low",
+  }),
+  interactionFor("shelter", {
+    id: "open_shelter_cooking_repeat",
+    label: "요리하기",
+    type: "use",
+    conditions: [
+      { type: "flag", flag: "shelter_cooking_intro_seen" },
+    ],
+    outcomeHint: "요리할 수 있는 음식을 바로 확인한다.",
+    effects: [
+      { type: "set_flag", flag: "shelter_cooking_open" },
+      { type: "clear_flag", flag: "shelter_crafting_open" },
+    ],
+    nextSceneId: "shelter_cooking_menu_repeat",
+    tags: ["cooking", "menu"],
     riskHint: "low",
   }),
   interactionFor("shelter", {

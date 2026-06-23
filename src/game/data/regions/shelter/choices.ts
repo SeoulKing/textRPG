@@ -147,7 +147,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       },
       { type: "advance_time", minutes: 25 },
     ],
-    nextSceneId: "shelter_crafting_menu",
+    nextSceneId: "shelter_cooking_menu",
     riskHint: "low",
   }),
   sceneChoice({
@@ -176,7 +176,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "log", message: "당신은 쌀을 물에 오래 풀어 묽은 죽을 끓인다. 거친 속을 달래기엔 충분하다." },
       { type: "advance_time", minutes: 20 },
     ],
-    nextSceneId: "shelter_crafting_menu",
+    nextSceneId: "shelter_cooking_menu",
     riskHint: "low",
   }),
   sceneChoice({
@@ -205,7 +205,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "log", message: "당신은 산나물을 물에 풀어 짧게 끓인다. 향은 거칠지만 따뜻한 국물이 몸을 깨운다." },
       { type: "advance_time", minutes: 15 },
     ],
-    nextSceneId: "shelter_crafting_menu",
+    nextSceneId: "shelter_cooking_menu",
     riskHint: "low",
   }),
   sceneChoice({
@@ -322,7 +322,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "log", message: "당신은 산나물을 물에 오래 끓여 묽은 숲죽을 만들었다. 냄비 바닥에는 또 하나의 검은 자국이 남았다." },
       { type: "advance_time", minutes: 25 },
     ],
-    nextSceneId: "shelter_crafting_menu",
+    nextSceneId: "shelter_cooking_menu",
     riskHint: "low",
   }),
   sceneChoice({
@@ -363,6 +363,17 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       { type: "clear_flag", flag: "shelter_crafting_open" },
       { type: "log", message: "당신은 펼쳐 둔 자재를 다시 한쪽으로 밀어 두고, 천막 안 메인 공간으로 몸을 돌린다." },
+    ],
+    riskHint: "low",
+  }),
+  sceneChoice({
+    id: "leave_shelter_cooking",
+    label: "거처로 돌아가기",
+    outcomeHint: "식재료와 조리 도구를 정리하고, 임시 거처의 메인 공간으로 돌아간다.",
+    effects: [
+      { type: "clear_flag", flag: "shelter_cooking_open" },
+      { type: "clear_flag", flag: "shelter_crafting_open" },
+      { type: "log", message: "당신은 식재료를 다시 챙기고 화로 주변을 정리한 뒤 천막 안쪽으로 몸을 돌린다." },
     ],
     riskHint: "low",
   }),

@@ -1327,10 +1327,10 @@ function craftingRecipeMetaHtml(recipe) {
 
 function renderCraftingChoices(snapshot) {
   const recipeChoices = snapshot.availableActions.filter((choice) =>
-    choice.id !== "leave_shelter_crafting" && choice.craftingRecipe
+    !["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) && choice.craftingRecipe
   );
   const otherChoices = snapshot.availableActions.filter((choice) =>
-    choice.id === "leave_shelter_crafting" || !choice.craftingRecipe
+    ["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) || !choice.craftingRecipe
   );
   const selectedChoice = recipeChoices.find((choice) => choice.id === client.activeCraftingRecipeDetailId) || recipeChoices[0] || null;
   client.activeCraftingRecipeDetailId = selectedChoice?.id || null;
@@ -1590,7 +1590,12 @@ function renderChoices() {
     return;
   }
 
-  const isCraftingMenu = ["shelter_crafting_menu", "shelter_crafting_menu_repeat"].includes(currentSceneDefinitionId(snapshot));
+  const isCraftingMenu = [
+    "shelter_crafting_menu",
+    "shelter_crafting_menu_repeat",
+    "shelter_cooking_menu",
+    "shelter_cooking_menu_repeat",
+  ].includes(currentSceneDefinitionId(snapshot));
   if (isCraftingMenu) {
     dom.choices.classList.add("is-crafting-menu");
     renderCraftingChoices(snapshot);

@@ -82,6 +82,13 @@ function isHexNeighbor(left?: AxialCoord, right?: AxialCoord) {
 
 const SCENE_CARD_CACHE_VERSION = 5;
 
+const SHELTER_RECIPE_MENU_SCENE_IDS = [
+  "shelter_crafting_menu",
+  "shelter_crafting_menu_repeat",
+  "shelter_cooking_menu",
+  "shelter_cooking_menu_repeat",
+];
+
 const SHELTER_CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   craft_shelter_wall_patch: "잠자기 후 체력과 정신력 회복량 증가",
   craft_shelter_brazier: "거처에서 따뜻한 식사 조리 가능",
@@ -853,7 +860,7 @@ export class GameService {
     }));
 
     return {
-      actionLabel: "제작",
+      actionLabel: choice.id.startsWith("cook_") ? "요리" : "제작",
       effect,
       prerequisites,
       requirements,
@@ -876,7 +883,7 @@ export class GameService {
     registry: ContentRegistry,
   ): ActionChoice[] {
     const actionCatalog = buildActionCatalogFromStoryChoices(storyChoices);
-    if (!["shelter_crafting_menu", "shelter_crafting_menu_repeat"].includes(sceneDef.id)) {
+    if (!SHELTER_RECIPE_MENU_SCENE_IDS.includes(sceneDef.id)) {
       return actionCatalog;
     }
 

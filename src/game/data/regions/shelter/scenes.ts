@@ -6,6 +6,8 @@ export const shelterSceneIdsWithoutLocationInteractions = [
   "prologue_old_woman_visit",
   "shelter_crafting_menu",
   "shelter_crafting_menu_repeat",
+  "shelter_cooking_menu",
+  "shelter_cooking_menu_repeat",
 ] as const;
 
 export const shelterSceneDefinitions: SceneDefinition[] = [
@@ -78,10 +80,6 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
       "craft_crude_axe",
       "craft_utility_knife",
       "craft_dented_pot",
-      "cook_at_shelter",
-      "cook_rice_porridge",
-      "cook_greens_soup",
-      "cook_forest_stew",
       "assemble_rescue_radio",
       "leave_shelter_crafting",
     ],
@@ -104,10 +102,6 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
       "craft_crude_axe",
       "craft_utility_knife",
       "craft_dented_pot",
-      "cook_at_shelter",
-      "cook_rice_porridge",
-      "cook_greens_soup",
-      "cook_forest_stew",
       "assemble_rescue_radio",
       "leave_shelter_crafting",
     ],
@@ -115,6 +109,46 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
       { type: "location", locationId: "shelter" },
       { type: "flag", flag: "shelter_crafting_open" },
       { type: "flag", flag: "shelter_crafting_intro_seen" },
+    ],
+  },
+  {
+    id: "shelter_cooking_menu",
+    locationId: "shelter",
+    title: "요리 자리",
+    paragraphs: [
+      "간이 화로를 둘 자리와 냄비를 얹을 자리를 따로 비워 둔다. 지금 가진 식재료로 무엇을 끓일 수 있는지 천천히 살핀다.",
+      "요리는 배를 채우는 일인 동시에 하루를 더 버티게 만드는 준비다. 재료가 모자라면 무리하지 않고, 만들 수 있는 것부터 정리해 두면 된다.",
+    ],
+    choiceIds: [
+      "cook_at_shelter",
+      "cook_rice_porridge",
+      "cook_greens_soup",
+      "cook_forest_stew",
+      "leave_shelter_cooking",
+    ],
+    conditions: [
+      { type: "location", locationId: "shelter" },
+      { type: "flag", flag: "shelter_cooking_open" },
+      { type: "flag_not", flag: "shelter_cooking_intro_seen" },
+    ],
+    introFlag: "shelter_cooking_intro_seen",
+  },
+  {
+    id: "shelter_cooking_menu_repeat",
+    locationId: "shelter",
+    title: "요리 정리",
+    paragraphs: [""],
+    choiceIds: [
+      "cook_at_shelter",
+      "cook_rice_porridge",
+      "cook_greens_soup",
+      "cook_forest_stew",
+      "leave_shelter_cooking",
+    ],
+    conditions: [
+      { type: "location", locationId: "shelter" },
+      { type: "flag", flag: "shelter_cooking_open" },
+      { type: "flag", flag: "shelter_cooking_intro_seen" },
     ],
   },
   {

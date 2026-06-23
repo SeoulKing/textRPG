@@ -1201,3 +1201,16 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   local API smoke confirmed `forage_forest_food` returns the probability-free `outcomeHint` with `showOutcomeHint: true`.
   Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-06-23 shelter crafting/cooking split:
+  split the shelter recipe flow into separate top-level actions: `open_shelter_crafting` for crafting/upgrades/tools/radio and `open_shelter_cooking` for food recipes.
+  added `shelter_cooking_menu` and `shelter_cooking_menu_repeat`, with cooking recipes returning to the cooking menu after use.
+  updated the shared recipe-card UI and server metadata so cooking menus use the same detail panel, with cooking submit buttons labeled `요리`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed shelter top-level actions show both `제작하기` and `요리하기`, crafting menus hide `cook_*` actions, cooking menus hide `craft_*`/radio actions, and cooking recipes use the `요리` action label.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
