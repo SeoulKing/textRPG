@@ -200,10 +200,24 @@ const PANEL_CONFIG = {
   log: {
     title: "기록",
   },
+  itemCodex: {
+    title: "아이템 도감",
+  },
   menu: {
     title: "메뉴",
   },
 };
+
+const ITEM_KIND_LABELS = {
+  material: "재료",
+  tool: "도구",
+  food: "음식",
+  drink: "음료",
+  medicine: "약품",
+  ticket: "교환권",
+  trade: "거래품",
+};
+const ITEM_KIND_ORDER = ["material", "tool", "food", "drink", "medicine", "ticket", "trade"];
 
 const STATUS_DETAILS = {
   hp: {
@@ -2368,6 +2382,80 @@ function renderLogPanel() {
   `;
 }
 
+function itemCatalogEffectHtml(item) {
+  const effectHtml = itemEffectHintHtml(item.effects || {}, item.useMinutes || 0);
+  if (effectHtml) {
+    return effectHtml;
+  }
+  if (item.kind === "tool" && item.maxDurability) {
+    return `<span class="item-effect-list"><span class="item-durability-hint">내구도 ${item.maxDurability}</span></span>`;
+  }
+  return "";
+}
+
+function renderItemCodexPanel() {
+  const snapshot = client.snapshot;
+  const items = snapshot?.itemCatalog || [];
+  if (!items.length) {
+    dom.panelContent.innerHTML = `<p class="empty-state">등록된 아이템이 없습니다.</p>`;
+    return;
+  }
+
+  const grouped = new Map();
+  items.forEach((item) => {
+    const kind = item.kind || "trade";
+    if (!grouped.has(kind)) {
+      grouped.set(kind, []);
+    }
+    grouped.get(kind).push(item);
+  });
+
+  const orderedKinds = [
+    ...ITEM_KIND_ORDER.filter((kind) => grouped.has(kind)),
+    ...Array.from(grouped.keys()).filter((kind) => !ITEM_KIND_ORDER.includes(kind)).sort(),
+  ];
+
+  dom.panelContent.innerHTML = `
+    <div class="item-codex">
+      ${orderedKinds.map((kind) => {
+        const kindItems = grouped.get(kind).slice().sort((left, right) => left.name.localeCompare(right.name));
+        return `
+          <section class="item-codex-section">
+            <div class="item-codex-heading">
+              <h3>${escapeHtml(ITEM_KIND_LABELS[kind] || kind)}</h3>
+              <span class="tag">${kindItems.length}개</span>
+            </div>
+            <div class="item-codex-list">
+              ${kindItems.map((item) => {
+                const ownedCount = snapshot.state.inventory[item.id] || 0;
+                const effectHtml = itemCatalogEffectHtml(item);
+                return `
+                  <article class="item-codex-card ${ownedCount > 0 ? "is-owned" : ""}">
+                    <div class="item-codex-card-head">
+                      <h4>${escapeHtml(item.name)}</h4>
+                      <div class="item-codex-tags">
+                        <span class="tag">${escapeHtml(ITEM_KIND_LABELS[item.kind] || item.kind)}</span>
+                        ${ownedCount > 0 ? `<span class="tag tag-route">보유 ${ownedCount}</span>` : ""}
+                      </div>
+                    </div>
+                    <p>${escapeHtml(item.description)}</p>
+                    ${effectHtml ? `<div class="item-codex-effects">${effectHtml}</div>` : ""}
+                    ${item.tags?.length ? `
+                      <div class="item-codex-tags">
+                        ${item.tags.map((tag) => `<span class="tag tag-muted">${escapeHtml(tag)}</span>`).join("")}
+                      </div>
+                    ` : ""}
+                  </article>
+                `;
+              }).join("")}
+            </div>
+          </section>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function renderMenuPanel() {
   const statusLabel = currentSaveStatusLabel();
   const statusMessage = client.menuStatusMessage
@@ -2389,6 +2477,9 @@ function renderMenuPanel() {
       <button class="menu-action" data-menu-action="log" type="button">
         <span>기록</span>
       </button>
+      <button class="menu-action" data-menu-action="item-codex" type="button">
+        <span>아이템 도감</span>
+      </button>
       <button class="menu-action danger" data-menu-action="new-game" type="button">
         <span>새 게임</span>
       </button>
@@ -2409,13 +2500,15 @@ function renderPanel() {
     renderQuestsPanel();
   } else if (client.activePanel === "log") {
     renderLogPanel();
+  } else if (client.activePanel === "itemCodex") {
+    renderItemCodexPanel();
   } else {
     renderMenuPanel();
   }
   dom.panelShell.classList.toggle("is-open", client.isPanelOpen);
   dom.panelShell.setAttribute("aria-hidden", client.isPanelOpen ? "false" : "true");
   dom.dockButtons.forEach((button) => {
-    const isMenuContent = client.activePanel === "menu" || client.activePanel === "log";
+    const isMenuContent = client.activePanel === "menu" || client.activePanel === "log" || client.activePanel === "itemCodex";
     const isActive = client.isPanelOpen && (
       button.dataset.panel === client.activePanel ||
       (button.dataset.panel === "menu" && isMenuContent)
@@ -2768,6 +2861,12 @@ dom.panelContent.addEventListener("click", (event) => {
   }
   if (action === "log") {
     client.activePanel = "log";
+    client.isPanelOpen = true;
+    renderPanel();
+    return;
+  }
+  if (action === "item-codex") {
+    client.activePanel = "itemCodex";
     client.isPanelOpen = true;
     renderPanel();
     return;

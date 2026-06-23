@@ -118,6 +118,7 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
       "collect_wood_from_supply_pile",
       "collect_cloth_from_supply_pile",
       "collect_metal_from_supply_pile",
+      "collect_cordage_from_supply_pile",
       "leave_convenience_supply_pile",
     ],
     conditions: [
@@ -136,6 +137,7 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     choiceIds: [
       "collect_cloth_from_supply_pile",
       "collect_metal_from_supply_pile",
+      "collect_cordage_from_supply_pile",
       "leave_convenience_supply_pile",
     ],
     conditions: [
@@ -152,13 +154,30 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     paragraphs: [
       "천 조각까지 거의 추려 내고 나니, 더미 한쪽에 마지막 금속 부품만 외롭게 걸려 있다.",
     ],
-    choiceIds: ["collect_metal_from_supply_pile", "leave_convenience_supply_pile"],
+    choiceIds: ["collect_metal_from_supply_pile", "collect_cordage_from_supply_pile", "leave_convenience_supply_pile"],
     conditions: [
       { type: "location", locationId: "convenience" },
       { type: "active_stock_node", nodeId: "convenience_supply_pile" },
       { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
       { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
       { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
+    ],
+  },
+  {
+    id: "convenience_supply_pile_cordage",
+    locationId: "convenience",
+    title: "창고 자재 더미",
+    paragraphs: [
+      "판자와 금속, 천 조각까지 거의 챙기고 나니 선반 밑에는 엉킨 전선 피복과 포장 끈만 남아 있다. 도구를 묶거나 설비를 고정할 때 쓸 만하다.",
+    ],
+    choiceIds: ["collect_cordage_from_supply_pile", "leave_convenience_supply_pile"],
+    conditions: [
+      { type: "location", locationId: "convenience" },
+      { type: "active_stock_node", nodeId: "convenience_supply_pile" },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
+      { type: "stock_item_gte", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "cordage", amount: 1 },
     ],
   },
   {
@@ -175,6 +194,7 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
       { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "woodPlank", amount: 1 },
       { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "clothScrap", amount: 1 },
       { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "scrapMetal", amount: 1 },
+      { type: "stock_item_lt", locationId: "convenience", nodeId: "convenience_supply_pile", itemId: "cordage", amount: 1 },
     ],
   },
   {
@@ -251,7 +271,7 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     locationId: "convenience",
     title: "편의점 폐허",
     paragraphs: [
-      "무너진 편의점 안쪽에는 아직 완전히 쓸리지 않은 자리들이 남아 있다. 진열대에는 통조림 몇 개가 그대로 놓여 있고, 입구 가까운 계산대 뒤쪽에는 보관함이, 창고 선반 아래에는 판자와 천 조각, 금속 부품이 뒤엉킨 자재 더미가 보인다.",
+      "무너진 편의점 안쪽에는 아직 완전히 쓸리지 않은 자리들이 남아 있다. 진열대에는 통조림 몇 개가 그대로 놓여 있고, 입구 가까운 계산대 뒤쪽에는 보관함이, 창고 선반 아래에는 판자와 천 조각, 금속 부품, 엉킨 끈이 뒤엉킨 자재 더미가 보인다.",
       "뒤편 골목으로는 약품 냄새가 희미하게 흘러온다. 깨진 간판 너머로 작은 병원 쪽 길이 이어지는 듯하다.",
     ],
     choiceIds: [
@@ -275,7 +295,7 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
     title: "편의점 폐허",
     paragraphs: [
       "편의점은 반쯤 주저앉은 채 마지막 형태만 간신히 붙들고 있다. 깨진 자동문은 비스듬히 매달려 있고 바닥에는 유리 조각과 찢긴 포장지, 누군가 급히 훑고 간 흔적이 여기저기 남아 있다.",
-      "진열대 대부분은 이미 비어 있지만, 계산대 뒤쪽 보관함과 창고 쪽에는 아직 손이 덜 닿은 자리도 보인다. 뒤편 골목에서는 희미한 약품 냄새가 흘러오고, 깨진 간판 너머로 작은 병원 쪽 길이 이어지는 듯하다.",
+      "진열대 대부분은 이미 비어 있지만, 계산대 뒤쪽 보관함과 창고 쪽에는 아직 손이 덜 닿은 자리도 보인다. 판자와 천, 금속 부품, 묶을 끈 같은 재료가 필요하다면 먼저 살펴볼 만하다. 뒤편 골목에서는 희미한 약품 냄새가 흘러오고, 깨진 간판 너머로 작은 병원 쪽 길이 이어지는 듯하다.",
     ],
     choiceIds: [
       "go_to_convenience_shelf",

@@ -6,13 +6,14 @@ export const hospitalSceneDefinitions: SceneDefinition[] = [
     locationId: "hospital",
     title: "약품 보관함",
     paragraphs: [
-      "휘어진 철제 보관함 안에는 급히 뒤져 간 손자국이 남아 있다. 그래도 안쪽 칸에는 아직 쓸 만한 약품과 천 조각, 묵직한 배터리가 남아 있다.",
+      "휘어진 철제 보관함 안에는 급히 뒤져 간 손자국이 남아 있다. 그래도 안쪽 칸에는 아직 쓸 만한 약품과 천 조각, 수액줄, 묵직한 배터리가 남아 있다.",
       "복도 바깥에서 누군가 낮게 앓는 소리가 들린다. 오래 머물수록 이곳의 공기는 몸보다 마음을 먼저 눌러 온다.",
     ],
     choiceIds: [
       "collect_radio_battery_from_hospital",
       "collect_pain_relief_from_hospital",
       "collect_cloth_from_hospital",
+      "collect_cordage_from_hospital",
       "leave_hospital_medicine_cabinet",
     ],
     conditions: [

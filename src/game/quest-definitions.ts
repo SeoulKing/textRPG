@@ -17,6 +17,7 @@ export const questDefinitions: QuestDefinition[] = [
       { itemId: "radioTransmitter", amount: 1 },
       { itemId: "scrapMetal", amount: 2 },
       { itemId: "clothScrap", amount: 1 },
+      { itemId: "cordage", amount: 1 },
     ],
     rewards: [],
     prerequisites: [{ type: "flag", flag: "rescue_goal_accepted" }],

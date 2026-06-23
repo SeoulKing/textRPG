@@ -159,6 +159,18 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     riskHint: "low",
   }),
   sceneChoice({
+    id: "collect_cordage_from_supply_pile",
+    label: "끈 묶음을 챙긴다",
+    outcomeHint: "뜯긴 전선 피복과 포장 끈을 모아, 도구를 묶고 설비를 고정할 재료로 챙긴다.",
+    ...collectStockItemChoiceParts({
+      ...supplyPile,
+      itemId: "cordage",
+      logMessage: "당신은 선반 밑에 엉킨 전선 피복과 포장 끈을 풀어 한데 묶는다.",
+      minutes: 5,
+    }),
+    riskHint: "low",
+  }),
+  sceneChoice({
     id: "leave_stock_node",
     label: "가게 안쪽으로 물러선다",
     outcomeHint: "진열대 앞에서 한 걸음 물러나 다시 가게 전체를 둘러볼 수 있는 자리로 돌아간다.",

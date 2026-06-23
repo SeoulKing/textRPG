@@ -1305,6 +1305,71 @@ a:focus:not(:focus-visible),
   border-color: rgba(214, 106, 79, 0.22);
 }
 
+.item-codex {
+  display: grid;
+  gap: 18px;
+}
+
+.item-codex-section {
+  display: grid;
+  gap: 10px;
+}
+
+.item-codex-heading,
+.item-codex-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.item-codex-heading h3,
+.item-codex-card h4 {
+  margin: 0;
+}
+
+.item-codex-heading h3 {
+  font-size: 0.98rem;
+}
+
+.item-codex-list {
+  display: grid;
+  gap: 8px;
+}
+
+.item-codex-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.item-codex-card.is-owned {
+  border-color: rgba(47, 125, 104, 0.28);
+  background: rgba(47, 125, 104, 0.06);
+}
+
+.item-codex-card h4 {
+  font-size: 0.96rem;
+}
+
+.item-codex-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.item-codex-tags,
+.item-codex-effects {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .panel-switch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

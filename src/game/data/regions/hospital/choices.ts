@@ -42,6 +42,18 @@ export const hospitalChoiceDefinitions: ChoiceDefinition[] = [
     riskHint: "low",
   }),
   sceneChoice({
+    id: "collect_cordage_from_hospital",
+    label: "수액줄을 챙긴다",
+    outcomeHint: "멀쩡한 수액줄과 붕대끈을 챙겨, 도구와 장비를 고정할 끈 묶음으로 쓴다.",
+    ...collectStockItemChoiceParts({
+      ...medicineCabinet,
+      itemId: "cordage",
+      logMessage: "당신은 아직 끊어지지 않은 수액줄과 붕대끈을 감아 챙긴다.",
+      minutes: 15,
+    }),
+    riskHint: "low",
+  }),
+  sceneChoice({
     id: "leave_hospital_medicine_cabinet",
     label: "보관함에서 물러선다",
     outcomeHint: "보관함 문을 조심히 닫고 병원 로비 쪽으로 돌아간다.",

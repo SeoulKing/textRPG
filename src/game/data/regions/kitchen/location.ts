@@ -55,6 +55,18 @@ export const kitchenChoices: ActionDefinition[] = [
     riskHint: "low",
   }),
   interactionFor("kitchen", {
+    id: "go_to_kitchen_ingredient_crate",
+    label: "식재료 상자로 간다",
+    type: "search",
+    outcomeHint: "배식대 뒤쪽 식재료 상자에서 남은 쌀, 채소, 물병을 확인한다.",
+    effects: [
+      { type: "focus_stock_node", nodeId: "kitchen_ingredient_crate" },
+      { type: "log", message: "당신은 배식대 뒤쪽의 낡은 식재료 상자 앞으로 몸을 숙인다." },
+    ],
+    tags: ["food", "ingredient", "salvage"],
+    riskHint: "low",
+  }),
+  interactionFor("kitchen", {
     id: "deliver_canned_food_to_old_cook",
     label: "노파에게 통조림 세 개를 건넨다",
     type: "talk",
@@ -88,8 +100,8 @@ export const kitchenLocation = defineLocation({
   imagePath: "assets/scenes/kitchen.png",
   summary: "지친 사람들과 눅눅한 공기가 한데 엉켜, 하루를 버티게 해 주는 밥 한 끼와 작은 소문이 오가는 장소다.",
   tags: ["food", "water"],
-  traits: ["meal purchase", "rumors", "salvage"],
-  obtainableItemIds: ["hotMeal", "waterBottle", "rationTicket", "rawRice", "vegetables", "scrapMetal", "clothScrap"],
+  traits: ["meal purchase", "ingredients", "rumors", "salvage"],
+  obtainableItemIds: ["hotMeal", "waterBottle", "rationTicket", "rawRice", "vegetables", "scrapMetal", "clothScrap", "cordage"],
   residentIds: ["oldCook"],
   neighbors: ["shelter", "subway", "forest"],
   interactionChoices: kitchenChoices,
@@ -110,6 +122,17 @@ export const kitchenLocation = defineLocation({
       items: [
         { itemId: "scrapMetal", initialQuantity: 4 },
         { itemId: "clothScrap", initialQuantity: 4 },
+        { itemId: "cordage", initialQuantity: 3 },
+      ],
+    }),
+    stockNode({
+      id: "kitchen_ingredient_crate",
+      name: "식재료 상자",
+      summary: "배식대 뒤쪽에 남겨진 작은 식재료 상자다. 쌀과 시든 채소, 아직 뜯지 않은 물병이 조금 남아 있다.",
+      items: [
+        { itemId: "rawRice", initialQuantity: 2 },
+        { itemId: "vegetables", initialQuantity: 2 },
+        { itemId: "waterBottle", initialQuantity: 1 },
       ],
     }),
   ],

@@ -6,6 +6,8 @@ export const forestResultSceneTags = {
   searchWood: "forest:result:search:wood",
   searchMetal: "forest:result:search:metal",
   searchCloth: "forest:result:search:cloth",
+  cordageGather: "forest:result:cordage:gather",
+  cordageKnife: "forest:result:cordage:knife",
   forageNothing: "forest:result:forage:nothing",
   forageGreens: "forest:result:forage:greens",
   forageBread: "forest:result:forage:bread",

@@ -9,7 +9,7 @@ export const convenienceLocation = defineLocation({
   summary: "반쯤 무너진 가게 안에, 허기와 급박한 생활의 흔적이 아직 어지럽게 남아 있다.",
   tags: ["supplies", "early scavenging"],
   traits: ["food", "water", "cash", "salvage"],
-  obtainableItemIds: ["emergencySnack", "cannedFood", "rawRice", "vegetables", "waterBottle", "woodPlank", "scrapMetal", "clothScrap", "staleBread"],
+  obtainableItemIds: ["emergencySnack", "cannedFood", "rawRice", "vegetables", "waterBottle", "woodPlank", "scrapMetal", "clothScrap", "cordage", "staleBread"],
   neighbors: ["shelter", "hospital", "forest"],
   links: {
     shelter: { note: "무심한 발걸음처럼 가장한 채 거처 쪽으로 되돌아간다." },
@@ -51,6 +51,7 @@ export const convenienceLocation = defineLocation({
         { itemId: "woodPlank", initialQuantity: 3 },
         { itemId: "clothScrap", initialQuantity: 4 },
         { itemId: "scrapMetal", initialQuantity: 3 },
+        { itemId: "cordage", initialQuantity: 3 },
       ],
     }),
   ],

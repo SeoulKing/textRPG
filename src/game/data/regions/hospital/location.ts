@@ -41,7 +41,7 @@ export const hospitalLocation = defineLocation({
   summary: "깨진 유리와 소독약 냄새, 낮은 신음이 뒤섞인 작은 병원이다. 아직 쓸 만한 약품과 전원 부품이 남아 있다.",
   tags: ["medicine", "signal", "day4"],
   traits: ["first aid", "battery", "stress"],
-  obtainableItemIds: ["painRelief", "clothScrap", "radioBattery"],
+  obtainableItemIds: ["painRelief", "clothScrap", "cordage", "radioBattery"],
   neighbors: ["convenience"],
   interactionChoices: hospitalChoices,
   links: {
@@ -55,6 +55,7 @@ export const hospitalLocation = defineLocation({
       items: [
         { itemId: "painRelief", initialQuantity: 2 },
         { itemId: "clothScrap", initialQuantity: 2 },
+        { itemId: "cordage", initialQuantity: 2 },
         { itemId: "radioBattery", initialQuantity: 1 },
       ],
     }),

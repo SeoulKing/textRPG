@@ -1175,3 +1175,29 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   local API smoke confirmed `prologue_opening -> prologue_old_woman_visit -> shelter_first_intro`.
   checked that the local server is serving the patched `app-api.js`.
+
+- 2026-06-23 material/cooking economy pass:
+  standardized the core crafting material economy around four basic materials: 목재 판자, 고철 조각, 천 조각, 끈 묶음.
+  added `cordage` and wired it into shelter upgrades, tools, the rescue radio requirement, forest gathering, convenience/kitchen salvage, and hospital supply pickups.
+  expanded the core cooking ingredient set around 물병, 쌀, 채소, 산나물 and added `묽은 죽` and `나물국` alongside `따뜻한 식사` and `숲죽`.
+  added a kitchen ingredient crate stock node so rice, vegetables, and water can be found in an appropriate location.
+  added `itemCatalog` to state snapshots and a menu `아이템 도감` panel showing all world items grouped by kind with owned counts, tags, effects, and tool durability.
+  Verification passed so far:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  direct engine smoke confirmed kitchen ingredient pickup, forest cordage gathering, tool/cooking recipes, and item catalog presence.
+
+- 2026-06-23 forest forage hint probability cleanup:
+  removed explicit probability and miss-rate text from forest food forage choice hints.
+  `먹을 것을 뒤진다` now shows only possible finds and time: `산나물 +1 / 눅눅한 빵 +1 / 천 조각 +1 / +30분`.
+  `간이 칼로 덤불을 뒤진다` now shows possible finds, tool durability cost, and time without probabilities.
+  added a region authoring note that choice hints should hide probabilities and miss chances.
+  Verification passed:
+  `npm.cmd run content:validate`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed `forage_forest_food` returns the probability-free `outcomeHint` with `showOutcomeHint: true`.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.

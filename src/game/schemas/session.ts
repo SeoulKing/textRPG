@@ -91,6 +91,7 @@ export const StateSnapshotSchema = z.object({
   visibleLocations: z.array(LocationCardSchema),
   visiblePeople: z.array(PersonCardSchema),
   inventoryCards: z.array(ItemCardSchema),
+  itemCatalog: z.array(ItemCardSchema).default([]),
   protagonist: ProtagonistCardSchema,
   storyMaterials: StoryMaterialsSchema,
   quests: z.array(
