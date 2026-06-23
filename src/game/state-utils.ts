@@ -155,6 +155,66 @@ function getInventoryAmount(state: GameState, itemId: string) {
   );
 }
 
+function toolDisplayName(state: GameState, itemId: string) {
+  const registry = buildRuntimeRegistry(state);
+  return String((registry.items[itemId] as { name?: string } | undefined)?.name ?? itemId);
+}
+
+function toolMaxDurability(state: GameState, itemId: string) {
+  const registry = buildRuntimeRegistry(state);
+  const item = registry.items[itemId] as { maxDurability?: number } | undefined;
+  const maxDurability = item?.maxDurability;
+  return Number.isInteger(maxDurability) && Number(maxDurability) > 0
+    ? Number(maxDurability)
+    : 0;
+}
+
+function ensureToolDurability(state: GameState, itemId: string) {
+  state.toolDurability ??= {};
+  const maxDurability = toolMaxDurability(state, itemId);
+  if (maxDurability <= 0 || (state.inventory[itemId] ?? 0) <= 0) {
+    delete state.toolDurability[itemId];
+    return 0;
+  }
+
+  const current = state.toolDurability[itemId];
+  if (Number.isInteger(current) && current > 0) {
+    return Math.min(current, maxDurability);
+  }
+
+  state.toolDurability[itemId] = maxDurability;
+  return maxDurability;
+}
+
+function setToolDurability(state: GameState, itemId: string, value: number) {
+  state.toolDurability ??= {};
+  const maxDurability = toolMaxDurability(state, itemId);
+  if (maxDurability <= 0 || value <= 0) {
+    delete state.toolDurability[itemId];
+    return;
+  }
+  state.toolDurability[itemId] = Math.min(value, maxDurability);
+}
+
+function damageTool(state: GameState, itemId: string, amount: number) {
+  const count = state.inventory[itemId] ?? 0;
+  if (count <= 0) {
+    appendLogEntry(state, `${toolDisplayName(state, itemId)}이(가) 없어 내구도를 소모하지 못했다.`);
+    return;
+  }
+
+  const current = ensureToolDurability(state, itemId);
+  const next = current - Math.max(1, amount);
+  if (next > 0) {
+    state.toolDurability[itemId] = next;
+    return;
+  }
+
+  delete state.inventory[itemId];
+  delete state.toolDurability[itemId];
+  appendLogEntry(state, `${toolDisplayName(state, itemId)}이(가) 망가졌다.`);
+}
+
 function removeInventoryAmount(state: GameState, itemId: string, amount: number) {
   let remaining = amount;
   for (const candidateId of getEquivalentInventoryItemIds(state, itemId)) {
@@ -167,6 +227,7 @@ function removeInventoryAmount(state: GameState, itemId: string, amount: number)
     const next = current - consumed;
     if (next <= 0) {
       delete state.inventory[candidateId];
+      delete state.toolDurability?.[candidateId];
     } else {
       state.inventory[candidateId] = next;
     }
@@ -229,6 +290,8 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
   switch (condition.type) {
     case "has_item":
       return getInventoryAmount(state, condition.itemId) >= condition.amount;
+    case "not_has_item":
+      return getInventoryAmount(state, condition.itemId) < condition.amount;
     case "skill_gte":
       return state.skills.includes(condition.skillId);
     case "flag":
@@ -308,6 +371,12 @@ export function applyEffect(effect: Effect, state: GameState): void {
       removeInventoryAmount(state, effect.itemId, effect.amount);
       break;
     }
+    case "set_tool_durability":
+      setToolDurability(state, effect.itemId, effect.value);
+      break;
+    case "damage_tool":
+      damageTool(state, effect.itemId, effect.amount);
+      break;
     case "change_money":
       state.money = Math.max(0, state.money + effect.amount);
       break;

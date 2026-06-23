@@ -86,12 +86,19 @@ const SHELTER_CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   craft_shelter_wall_patch: "잠자기 후 체력과 정신력 회복량 증가",
   craft_shelter_brazier: "거처에서 따뜻한 식사 조리 가능",
   craft_shelter_rain_bucket: "하루에 한 번 물 한 병 확보 가능",
+  craft_crude_axe: "숲에서 벌목 효율 증가, 내구도 8",
+  craft_utility_knife: "숲에서 식량 수색 효율 증가, 내구도 10",
+  craft_dented_pot: "숲죽 조리 가능, 내구도 12",
   cook_at_shelter: "+1 정신력 / +4 기력",
+  cook_forest_stew: "+6 기력 / 피로 완화",
   assemble_rescue_radio: "10일차 구조 신호 준비",
 };
 
 const SHELTER_CRAFTING_PREREQUISITES: Record<string, Array<{ flag: string; label: string }>> = {
   cook_at_shelter: [{ flag: "shelter_brazier", label: "간이 화로" }],
+  cook_forest_stew: [
+    { flag: "shelter_brazier", label: "간이 화로" },
+  ],
 };
 
 const STATIC_SCENE_SOURCE_PATH_BY_LOCATION: Record<string, string> = {
@@ -538,10 +545,12 @@ export class GameService {
   }
 
   private withRuntimeItemFields(card: ItemCard, itemId: string, registry: ContentRegistry): ItemCard {
-    const runtimeItem = registry.items[itemId] as { useMinutes?: number } | undefined;
+    const runtimeItem = registry.items[itemId] as { kind?: string; useMinutes?: number; maxDurability?: number } | undefined;
     return ItemCardSchema.parse({
       ...card,
+      kind: runtimeItem?.kind ?? card.kind,
       useMinutes: runtimeItem?.useMinutes ?? card.useMinutes,
+      maxDurability: runtimeItem?.maxDurability ?? card.maxDurability,
     });
   }
 

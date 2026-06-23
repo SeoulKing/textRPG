@@ -242,6 +242,25 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
     parts.push(`${sign} ${Math.abs(moneyDelta)}원`);
   }
 
+  const toolIds = new Set<string>([
+    ...Object.keys(previousState.toolDurability || {}),
+    ...Object.keys(nextState.toolDurability || {}),
+  ]);
+  toolIds.forEach((itemId) => {
+    const previousDurability = previousState.toolDurability?.[itemId];
+    const nextDurability = nextState.toolDurability?.[itemId];
+    if (typeof previousDurability !== "number") {
+      return;
+    }
+    if ((nextState.inventory[itemId] ?? 0) <= 0) {
+      parts.push(`${itemName(nextState, itemId)} 파손`);
+      return;
+    }
+    if (typeof nextDurability === "number" && nextDurability < previousDurability) {
+      parts.push(`${itemName(nextState, itemId)} 내구도 -${previousDurability - nextDurability}`);
+    }
+  });
+
   const itemIds = new Set<string>([
     ...Object.keys(previousState.inventory || {}),
     ...Object.keys(nextState.inventory || {}),
@@ -540,6 +559,7 @@ export function createInitialGameState(): GameState {
       emergencySnack: 1,
       waterBottle: 1,
     },
+    toolDurability: {},
     stockState: {},
     discoveredStockNodeIds: [],
     activeStockNodeId: null,

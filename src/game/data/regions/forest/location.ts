@@ -19,6 +19,23 @@ export const forestChoices: ActionDefinition[] = [
     riskHint: "low",
   }),
   interactionFor("forest", {
+    id: "chop_wood_with_crude_axe",
+    label: "손도끼로 벌목한다",
+    type: "search",
+    outcomeHint: "목재 판자 +5 / 손도끼 내구도 -1 / +30분",
+    showOutcomeHint: true,
+    conditions: [{ type: "has_item", itemId: "crudeAxe", amount: 1 }],
+    effects: [
+      { type: "advance_time", minutes: 30 },
+      { type: "add_item", itemId: "woodPlank", amount: 5 },
+      { type: "damage_tool", itemId: "crudeAxe", amount: 1 },
+      { type: "log", message: "당신은 손도끼로 마른 가지와 무너진 울타리 목재를 빠르게 쳐 냈다." },
+      { type: "set_random_scene", tag: forestResultSceneTags.axeChop },
+    ],
+    tags: ["wood", "tool", "resource", "repeatable"],
+    riskHint: "low",
+  }),
+  interactionFor("forest", {
     id: "search_forest_resources",
     label: "수색하기",
     type: "search",
@@ -74,6 +91,112 @@ export const forestChoices: ActionDefinition[] = [
     tags: ["forage", "resource", "repeatable", "chance"],
     riskHint: "low",
   }),
+  interactionFor("forest", {
+    id: "forage_forest_food",
+    label: "먹을 것을 뒤진다",
+    type: "search",
+    outcomeHint: "55% 허탕 / 25% 산나물 +1 / 10% 눅눅한 빵 +1 / 10% 천 조각 +1 / +30분",
+    showOutcomeHint: true,
+    effects: [
+      { type: "advance_time", minutes: 30 },
+      {
+        type: "random_outcome",
+        outcomes: [
+          {
+            weight: 55,
+            effects: [
+              { type: "log", message: "당신은 먹을 만한 것을 오래 찾았지만 빈손으로 돌아왔다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.forageNothing },
+            ],
+          },
+          {
+            weight: 25,
+            effects: [
+              { type: "add_item", itemId: "wildGreens", amount: 1 },
+              { type: "log", message: "당신은 숲 가장자리에서 먹을 수 있는 산나물 한 줌을 뜯었다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.forageGreens },
+            ],
+          },
+          {
+            weight: 10,
+            effects: [
+              { type: "add_item", itemId: "staleBread", amount: 1 },
+              { type: "log", message: "당신은 젖은 봉지 안에서 눅눅한 빵 하나를 찾아냈다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.forageBread },
+            ],
+          },
+          {
+            weight: 10,
+            effects: [
+              { type: "add_item", itemId: "clothScrap", amount: 1 },
+              { type: "log", message: "당신은 먹을 것은 찾지 못했지만 질긴 천 조각 하나를 챙겼다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.searchCloth },
+            ],
+          },
+        ],
+      },
+    ],
+    tags: ["forage", "food", "repeatable", "chance"],
+    riskHint: "low",
+  }),
+  interactionFor("forest", {
+    id: "search_bushes_with_utility_knife",
+    label: "간이 칼로 덤불을 뒤진다",
+    type: "search",
+    outcomeHint: "35% 허탕 / 35% 산나물 +1 / 15% 눅눅한 빵 +1 / 10% 캔 음식 +1 / 5% 천 조각 +1 / 간이 칼 내구도 -1 / +30분",
+    showOutcomeHint: true,
+    conditions: [{ type: "has_item", itemId: "utilityKnife", amount: 1 }],
+    effects: [
+      { type: "advance_time", minutes: 30 },
+      {
+        type: "random_outcome",
+        outcomes: [
+          {
+            weight: 35,
+            effects: [
+              { type: "log", message: "당신은 칼로 덤불을 헤쳤지만 먹을 만한 것은 찾지 못했다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.forageNothing },
+            ],
+          },
+          {
+            weight: 35,
+            effects: [
+              { type: "add_item", itemId: "wildGreens", amount: 1 },
+              { type: "log", message: "당신은 칼로 질긴 줄기를 잘라 산나물 한 줌을 챙겼다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.forageGreens },
+            ],
+          },
+          {
+            weight: 15,
+            effects: [
+              { type: "add_item", itemId: "staleBread", amount: 1 },
+              { type: "log", message: "덤불 안쪽의 낡은 봉지에서 눅눅한 빵 하나를 찾아냈다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.forageBread },
+            ],
+          },
+          {
+            weight: 10,
+            effects: [
+              { type: "add_item", itemId: "cannedFood", amount: 1 },
+              { type: "log", message: "당신은 덤불 속에 숨은 캔 음식 하나를 찾아냈다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.searchCannedFood },
+            ],
+          },
+          {
+            weight: 5,
+            effects: [
+              { type: "add_item", itemId: "clothScrap", amount: 1 },
+              { type: "log", message: "당신은 덤불에 걸린 질긴 천 조각을 칼로 잘라 냈다." },
+              { type: "set_random_scene", tag: forestResultSceneTags.searchCloth },
+            ],
+          },
+        ],
+      },
+      { type: "damage_tool", itemId: "utilityKnife", amount: 1 },
+    ],
+    tags: ["forage", "food", "tool", "repeatable", "chance"],
+    riskHint: "low",
+  }),
 ];
 
 export const forestLocation = defineLocation({
@@ -85,7 +208,7 @@ export const forestLocation = defineLocation({
   summary: "임시 거처 아래로 이어지는 작은 숲. 무너진 울타리와 젖은 낙엽 사이에 아직 쓸 만한 자재가 남아 있다.",
   tags: ["resource", "forest", "forage"],
   traits: ["woodcutting", "foraging", "repeatable resources"],
-  obtainableItemIds: ["woodPlank", "cannedFood", "scrapMetal", "clothScrap"],
+  obtainableItemIds: ["woodPlank", "cannedFood", "scrapMetal", "clothScrap", "wildGreens", "staleBread"],
   neighbors: ["shelter", "convenience", "kitchen"],
   interactionChoices: forestChoices,
   links: {

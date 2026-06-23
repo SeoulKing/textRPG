@@ -31,6 +31,7 @@ export const GameStateSchema = z.object({
   money: z.number().int().nonnegative(),
   skills: z.array(z.string()),
   inventory: z.record(z.string(), z.number().int().nonnegative()),
+  toolDurability: z.record(z.string(), z.number().int().nonnegative()).default({}),
   stockState: z.record(z.string(), z.number().int().nonnegative()).default({}),
   discoveredStockNodeIds: z.array(z.string()).default([]),
   activeStockNodeId: z.string().nullable().default(null),

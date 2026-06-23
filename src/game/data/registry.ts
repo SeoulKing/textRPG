@@ -111,6 +111,7 @@ function assertKnownStockItem(registry: ContentRegistry, locationId: string, nod
 function validateCondition(registry: ContentRegistry, condition: Condition, source: string) {
   switch (condition.type) {
     case "has_item":
+    case "not_has_item":
       if (!registry.items[condition.itemId]) throw new Error(`${source} references unknown item '${condition.itemId}'.`);
       break;
     case "location":
@@ -143,6 +144,8 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
   switch (effect.type) {
     case "add_item":
     case "remove_item":
+    case "set_tool_durability":
+    case "damage_tool":
       if (!registry.items[effect.itemId]) throw new Error(`${source} references unknown item '${effect.itemId}'.`);
       break;
     case "travel":

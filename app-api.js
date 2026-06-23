@@ -12,7 +12,7 @@ const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const CLIENT_SAVE_VERSION = 12;
+const CLIENT_SAVE_VERSION = 13;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
   shelter: { q: 0, r: 0 },
@@ -31,6 +31,12 @@ const HEX_DIRECTIONS = [
   { q: -1, r: 1 },
   { q: 0, r: 1 },
 ];
+const MAP_ZOOM_MULTIPLIERS = [0.56, 0.68, 0.82, 1, 1.18, 1.42, 1.72, 2.08, 2.5];
+const MAP_ZOOM_FIT_INDEX = 3;
+
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function currentHexDimensions() {
   if (window.matchMedia("(max-width: 620px)").matches) {
@@ -137,6 +143,47 @@ function buildHexBoardLayout(nodes) {
   };
 }
 
+function mapAvailableSize() {
+  const panelWidth = dom.panelContent?.clientWidth || Math.min(window.innerWidth - 32, 520);
+  const isMobile = window.matchMedia("(max-width: 620px)").matches;
+  return {
+    width: Math.max(250, panelWidth - 34),
+    height: isMobile ? 286 : 368,
+  };
+}
+
+function mapFitScale(boardLayout) {
+  const available = mapAvailableSize();
+  const widthScale = available.width / Math.max(1, boardLayout.pixelWidth);
+  const heightScale = available.height / Math.max(1, boardLayout.pixelHeight);
+  return clampNumber(Math.min(widthScale, heightScale), 0.46, 1.24);
+}
+
+function currentMapScale(boardLayout) {
+  const multiplier = MAP_ZOOM_MULTIPLIERS[client.mapZoomIndex] ?? 1;
+  return clampNumber(mapFitScale(boardLayout) * multiplier, 0.32, 2.75);
+}
+
+function alignHexMapViewport(boardLayout, mapScale, currentLocationId) {
+  const board = dom.panelContent?.querySelector(".hex-map-board");
+  const scrollSpace = dom.panelContent?.querySelector(".hex-map-scroll-space");
+  const canvas = dom.panelContent?.querySelector(".hex-map-canvas");
+  if (!board || !scrollSpace || !canvas) {
+    return;
+  }
+
+  const currentPosition = boardLayout.positions.get(currentLocationId);
+  const focusCurrent = client.mapZoomIndex > MAP_ZOOM_FIT_INDEX && currentPosition;
+  const canvasLeft = scrollSpace.offsetLeft + canvas.offsetLeft;
+  const canvasTop = scrollSpace.offsetTop + canvas.offsetTop;
+  const targetX = canvasLeft + (focusCurrent ? currentPosition.x * mapScale : canvas.offsetWidth / 2);
+  const targetY = canvasTop + (focusCurrent ? currentPosition.y * mapScale : canvas.offsetHeight / 2);
+  const nextLeft = targetX - board.clientWidth / 2;
+  const nextTop = targetY - board.clientHeight / 2;
+  board.scrollLeft = clampNumber(nextLeft, 0, Math.max(0, board.scrollWidth - board.clientWidth));
+  board.scrollTop = clampNumber(nextTop, 0, Math.max(0, board.scrollHeight - board.clientHeight));
+}
+
 const PANEL_CONFIG = {
   map: {
     title: "이동",
@@ -224,6 +271,8 @@ const client = {
   lastFetchedAt: 0,
   syncTimer: null,
   mapHint: "",
+  mapZoomIndex: MAP_ZOOM_FIT_INDEX,
+  activeMapDetailKey: null,
   activeStatusPopoverKey: null,
   activeStatusPanelView: "status",
   activeStatusDetailKey: null,
@@ -234,6 +283,7 @@ const client = {
   sceneRenderToken: 0,
   activeSceneTimer: null,
   activeAnimatedStory: null,
+  activeAnimatedSystemNote: null,
   isSceneTyping: false,
   justCreatedGame: false,
   renderedSystemNote: "",
@@ -241,6 +291,124 @@ const client = {
   renderedStorySurfaceId: "",
   questCelebrationTimer: null,
 };
+
+const TRANSIENT_SCROLLBAR_HIDE_MS = 700;
+const transientScrollbars = new WeakMap();
+
+function attachTransientScrollbarPart(element, state, axis) {
+  const key = axis === "horizontal" ? "horizontal" : "vertical";
+  if (state[key]?.isConnected) {
+    return;
+  }
+
+  const scrollbar = document.createElement("span");
+  scrollbar.className = `transient-scrollbar is-${key}`;
+  scrollbar.setAttribute("aria-hidden", "true");
+  element.append(scrollbar);
+  state[key] = scrollbar;
+}
+
+function updateTransientScrollbar(element, shouldShow = false) {
+  const state = transientScrollbars.get(element);
+  if (!state) {
+    return;
+  }
+
+  attachTransientScrollbarPart(element, state, "vertical");
+  if (state.hasHorizontal) {
+    attachTransientScrollbarPart(element, state, "horizontal");
+  }
+
+  const inset = 4;
+  const hasVertical = element.scrollHeight > element.clientHeight + 1;
+  const hasHorizontal = state.hasHorizontal && element.scrollWidth > element.clientWidth + 1;
+
+  if (state.vertical) {
+    state.vertical.hidden = !hasVertical;
+    if (hasVertical) {
+      const trackHeight = Math.max(1, element.clientHeight - inset * 2);
+      const maxScrollTop = Math.max(1, element.scrollHeight - element.clientHeight);
+      const thumbHeight = clampNumber(
+        Math.round((element.clientHeight / element.scrollHeight) * trackHeight),
+        32,
+        trackHeight,
+      );
+      const thumbTop = inset + Math.round((element.scrollTop / maxScrollTop) * Math.max(0, trackHeight - thumbHeight));
+      state.vertical.style.height = `${thumbHeight}px`;
+      state.vertical.style.top = `${element.scrollTop + thumbTop}px`;
+    }
+  }
+
+  if (state.horizontal) {
+    state.horizontal.hidden = !hasHorizontal;
+    if (hasHorizontal) {
+      const trackWidth = Math.max(1, element.clientWidth - inset * 2);
+      const maxScrollLeft = Math.max(1, element.scrollWidth - element.clientWidth);
+      const thumbWidth = clampNumber(
+        Math.round((element.clientWidth / element.scrollWidth) * trackWidth),
+        32,
+        trackWidth,
+      );
+      const thumbLeft = inset + Math.round((element.scrollLeft / maxScrollLeft) * Math.max(0, trackWidth - thumbWidth));
+      state.horizontal.style.width = `${thumbWidth}px`;
+      state.horizontal.style.left = `${element.scrollLeft + thumbLeft}px`;
+    }
+  }
+
+  if (!shouldShow || (!hasVertical && !hasHorizontal)) {
+    return;
+  }
+
+  element.classList.add("is-scrolling");
+  window.clearTimeout(state.hideTimer);
+  state.hideTimer = window.setTimeout(() => {
+    element.classList.remove("is-scrolling");
+  }, TRANSIENT_SCROLLBAR_HIDE_MS);
+}
+
+function setupTransientScrollbar(element, options = {}) {
+  if (!element) {
+    return;
+  }
+
+  element.classList.add("transient-scroll-host");
+
+  let state = transientScrollbars.get(element);
+  if (!state) {
+    state = {
+      hasHorizontal: Boolean(options.horizontal),
+      hideTimer: 0,
+      horizontal: null,
+      vertical: null,
+    };
+    transientScrollbars.set(element, state);
+    element.addEventListener("scroll", () => updateTransientScrollbar(element, true), { passive: true });
+  } else {
+    state.hasHorizontal = state.hasHorizontal || Boolean(options.horizontal);
+  }
+
+  window.requestAnimationFrame(() => updateTransientScrollbar(element));
+}
+
+function hideScrollbarChrome(element) {
+  if (!element) {
+    return;
+  }
+
+  element.classList.add("transient-scroll-host");
+  element.classList.remove("is-scrolling");
+  element.querySelectorAll(".transient-scrollbar").forEach((scrollbar) => {
+    scrollbar.remove();
+  });
+}
+
+function refreshTransientScrollbars() {
+  setupTransientScrollbar(dom.appShell);
+  setupTransientScrollbar(dom.panelContent);
+  document.querySelectorAll(".hex-map-board").forEach((board) => {
+    hideScrollbarChrome(board);
+  });
+}
 
 function currentState() {
   return client.snapshot?.state || null;
@@ -402,7 +570,7 @@ function hexLabelMarkup(name) {
   const lines = words.length > 1 ? words : [String(name)];
   const startDy = lines.length > 1 ? -4 : 5;
   return lines.map((line, index) =>
-    `<tspan x="0" dy="${index === 0 ? startDy : 15}">${escapeHtml(line)}</tspan>`
+    `<tspan x="0" dy="${index === 0 ? startDy : 17}">${escapeHtml(line)}</tspan>`
   ).join("");
 }
 
@@ -932,6 +1100,7 @@ function clearSceneAnimation() {
     client.activeSceneTimer = null;
   }
   client.activeAnimatedStory = null;
+  client.activeAnimatedSystemNote = null;
   client.isSceneTyping = false;
 }
 
@@ -976,8 +1145,9 @@ async function typeParagraph(paragraphElement, text, token) {
   return token === client.sceneRenderToken;
 }
 
-async function animateStoryText(story, token) {
+async function animateStoryText(story, token, systemNotePayload = null) {
   client.activeAnimatedStory = story;
+  client.activeAnimatedSystemNote = systemNotePayload;
   client.isSceneTyping = true;
   dom.sceneText.innerHTML = "";
   dom.choices.innerHTML = "";
@@ -987,6 +1157,7 @@ async function animateStoryText(story, token) {
     if (token !== client.sceneRenderToken) {
       client.isSceneTyping = false;
       client.activeAnimatedStory = null;
+      client.activeAnimatedSystemNote = null;
       return;
     }
     const headlineElement = document.createElement("p");
@@ -996,6 +1167,7 @@ async function animateStoryText(story, token) {
     if (!headlineDone) {
       client.isSceneTyping = false;
       client.activeAnimatedStory = null;
+      client.activeAnimatedSystemNote = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1005,6 +1177,7 @@ async function animateStoryText(story, token) {
     if (token !== client.sceneRenderToken) {
       client.isSceneTyping = false;
       client.activeAnimatedStory = null;
+      client.activeAnimatedSystemNote = null;
       return;
     }
     const paragraphElement = document.createElement("p");
@@ -1013,6 +1186,7 @@ async function animateStoryText(story, token) {
     if (!completed) {
       client.isSceneTyping = false;
       client.activeAnimatedStory = null;
+      client.activeAnimatedSystemNote = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1021,12 +1195,17 @@ async function animateStoryText(story, token) {
   if (token === client.sceneRenderToken) {
     client.isSceneTyping = false;
     client.activeAnimatedStory = null;
+    client.activeAnimatedSystemNote = null;
+    if (systemNotePayload?.note) {
+      renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+    }
     renderChoices();
   }
 }
 
 function skipSceneTyping() {
   const story = client.activeAnimatedStory;
+  const systemNotePayload = client.activeAnimatedSystemNote;
   if (!client.isSceneTyping || !story) {
     return false;
   }
@@ -1036,6 +1215,9 @@ function skipSceneTyping() {
     : "";
   dom.sceneText.innerHTML =
     headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
+  if (systemNotePayload?.note) {
+    renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+  }
   renderChoices();
   pinSceneTextToBottomOnMobile();
   return true;
@@ -1050,7 +1232,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function itemEffectHintHtml(effects = {}) {
+function itemEffectHintHtml(effects = {}, useMinutes = 0) {
   const effectParts = [
     { key: "hp", label: "체력", className: "item-hp-hint" },
     { key: "mind", label: "정신력", className: "item-mind-hint" },
@@ -1063,10 +1245,22 @@ function itemEffectHintHtml(effects = {}) {
     const signedValue = value > 0 ? `+${value}` : String(value);
     return [`<span class="${className}">${signedValue} ${label}</span>`];
   });
+  if (useMinutes && useMinutes > 0) {
+    effectParts.push(`<span class="item-time-hint">+ ${formatMinutesLabel(useMinutes)}</span>`);
+  }
 
   return effectParts.length
     ? `<span class="item-effect-list">${effectParts.join(" ")}</span>`
     : "";
+}
+
+function itemDurabilityHintHtml(item, state) {
+  if (item.kind !== "tool" || !item.maxDurability) {
+    return "";
+  }
+
+  const current = state.toolDurability?.[item.id] ?? item.maxDurability;
+  return `<span class="item-effect-list"><span class="item-durability-hint">내구도 ${current}/${item.maxDurability}</span></span>`;
 }
 
 function craftingRecipeMetaHtml(recipe) {
@@ -1442,10 +1636,23 @@ function renderScene(animateText = true) {
   const currentSystemNoteKey = systemNoteKey(snapshot, systemNote);
   const isCarriedNoteAfterSurfaceChange =
     surfaceChanged && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
-  if (systemNote && !isCarriedNoteAfterSurfaceChange) {
-    renderSystemNote(systemNote, currentSystemNoteKey);
-  }
+  const systemNotePayload = systemNote && !isCarriedNoteAfterSurfaceChange
+    ? { key: currentSystemNoteKey, note: systemNote }
+    : null;
+  const isSameRenderedSurface =
+    client.renderedStorySurfaceId === surfaceId && dom.sceneText.childElementCount > 0;
   client.renderedStorySurfaceId = surfaceId;
+
+  if (isSameRenderedSurface) {
+    if (!client.isSceneTyping) {
+      if (systemNotePayload?.note) {
+        renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+      }
+      renderChoices();
+      pinSceneTextToBottomOnMobile();
+    }
+    return;
+  }
 
   clearSceneAnimation();
   if (!animateText) {
@@ -1454,13 +1661,16 @@ function renderScene(animateText = true) {
       : "";
     dom.sceneText.innerHTML =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
+    if (systemNotePayload?.note) {
+      renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+    }
     renderChoices();
     pinSceneTextToBottomOnMobile();
     return;
   }
 
   const token = client.sceneRenderToken;
-  animateStoryText(story, token);
+  animateStoryText(story, token, systemNotePayload);
 }
 
 function locationMap() {
@@ -1479,6 +1689,18 @@ function renderMapPanel() {
   const { visible, states } = locationMap();
   const boardNodes = buildBoardNodes(visible);
   const boardLayout = buildHexBoardLayout(boardNodes);
+  const mapScale = currentMapScale(boardLayout);
+  const scaledMapWidth = Math.round(boardLayout.pixelWidth * mapScale);
+  const scaledMapHeight = Math.round(boardLayout.pixelHeight * mapScale);
+  const mapFocusGutter = client.mapZoomIndex > MAP_ZOOM_FIT_INDEX
+    ? clampNumber(Math.round(84 * mapScale), 108, 180)
+    : 0;
+  const scrollSpaceWidth = scaledMapWidth + (mapFocusGutter * 2);
+  const scrollSpaceHeight = scaledMapHeight + (mapFocusGutter * 2);
+  const mapBoardHeight = clampNumber(scaledMapHeight + 24, 214, 390);
+  const mapZoomPercent = Math.round(mapScale * 100);
+  const canZoomOut = client.mapZoomIndex > 0;
+  const canZoomIn = client.mapZoomIndex < MAP_ZOOM_MULTIPLIERS.length - 1;
   const edgeKeys = new Set();
   const edgeMarkup = Array.from(visible.values()).flatMap((location) => {
     const fromPosition = boardLayout.positions.get(location.id);
@@ -1589,7 +1811,7 @@ function renderMapPanel() {
     </defs>
   `;
 
-  const travelCards = snapshot.mapEntries
+  const travelEntries = snapshot.mapEntries
     .filter((entry) => visible.has(entry.locationId))
     .filter((entry) => !entry.isCurrent && (entry.isReachable || entry.isAdjacent))
     .sort((left, right) => {
@@ -1597,32 +1819,75 @@ function renderMapPanel() {
       const rightDistance = right.routeDistance || 99;
       return leftDistance - rightDistance;
     })
-    .map((entry) => {
-      const location = visible.get(entry.locationId);
-      if (!location) {
-        return "";
-      }
+    .map((entry) => ({
+      entry,
+      location: visible.get(entry.locationId),
+    }))
+    .filter(({ location }) => Boolean(location));
+  const activeTravelEntry = travelEntries.some(({ entry }) => entry.locationId === client.activeMapDetailKey)
+    ? client.activeMapDetailKey
+    : travelEntries[0]?.entry.locationId ?? null;
+  client.activeMapDetailKey = activeTravelEntry;
+  const selectedTravel = travelEntries.find(({ entry }) => entry.locationId === client.activeMapDetailKey);
+
+  const travelCards = travelEntries
+    .map(({ entry, location }) => {
       const travelLabel = formatDurationMinutes(entry.travelMinutes);
       const routeTag = entry.isReachable && travelLabel
         ? `<span class="tag tag-route">${travelLabel}</span>`
         : "";
+      const isSelected = entry.locationId === client.activeMapDetailKey;
       return `
         <article
-          class="map-card map-card-compact ${entry.isReachable ? "is-reachable" : "is-locked"} ${entry.isAdjacent ? "is-adjacent" : "is-distant"}"
-          ${entry.isReachable ? `data-travel-card="${entry.locationId}"` : ""}
+          class="map-card map-card-compact map-destination-card ${entry.isReachable ? "is-reachable" : "is-locked"} ${entry.isAdjacent ? "is-adjacent" : "is-distant"} ${isSelected ? "is-selected" : ""}"
+          data-map-detail="${entry.locationId}"
+          role="button"
+          tabindex="0"
+          aria-pressed="${isSelected ? "true" : "false"}"
         >
           <div class="map-meta">
             <h3>${location.name}</h3>
             <div class="map-card-tags">
               <span class="tag">${riskLabel(location.risk)}</span>
               ${routeTag}
+              ${entry.isReachable ? "" : `<span class="tag tag-muted">이동 불가</span>`}
             </div>
           </div>
-          <p>${location.summary}</p>
-          ${entry.isReachable ? "" : `<small class="tiny">${entry.reason || "이동 불가"}</small>`}
         </article>
       `;
     }).join("");
+  const selectedTravelLabel = selectedTravel?.entry.isReachable
+    ? formatDurationMinutes(selectedTravel.entry.travelMinutes)
+    : "";
+  const selectedTravelRouteTag = selectedTravelLabel
+    ? `<span class="tag tag-route">${selectedTravelLabel}</span>`
+    : "";
+  const mapDetailSlot = selectedTravel
+    ? `
+      <section class="map-detail-slot" aria-live="polite">
+        <div class="map-detail-head">
+          <div>
+            <p class="meta-label">선택한 목적지</p>
+            <h3>${selectedTravel.location.name}</h3>
+          </div>
+          <div class="map-card-tags">
+            <span class="tag">${riskLabel(selectedTravel.location.risk)}</span>
+            ${selectedTravelRouteTag}
+          </div>
+        </div>
+        <p>${selectedTravel.location.summary}</p>
+        ${selectedTravel.entry.isReachable ? "" : `<small class="tiny">${selectedTravel.entry.reason || "아직 이동할 수 없는 경로다."}</small>`}
+        <button
+          class="map-travel-action ${selectedTravel.entry.isReachable ? "" : "is-disabled"}"
+          data-map-travel="${selectedTravel.entry.locationId}"
+          type="button"
+          ${selectedTravel.entry.isReachable ? "" : "disabled"}
+        >
+          ${selectedTravel.entry.isReachable ? "이동" : "이동 불가"}
+        </button>
+      </section>
+    `
+    : `<p class="empty-state">지금 이동할 수 있는 장소가 없다.</p>`;
 
   dom.panelContent.innerHTML = `
     <section class="hex-map-shell">
@@ -1634,25 +1899,59 @@ function renderMapPanel() {
         <p>${currentLocation.summary}</p>
       </article>
 
-      <div class="hex-map-board">
-        <svg
-          class="hex-map-stage"
-          viewBox="0 0 ${boardLayout.pixelWidth} ${boardLayout.pixelHeight}"
-          style="width:${boardLayout.pixelWidth}px; height:${boardLayout.pixelHeight}px; --hex-size:${boardLayout.dimensions.size}px;"
-          role="img"
-          aria-label="지역 지도"
-        >
-          ${hexMapDefs}
-          ${edgeMarkup}
-          ${tileMarkup}
-        </svg>
+      <div class="hex-map-toolbar" aria-label="지도 확대 축소">
+        <button class="map-zoom-button" data-map-zoom="out" type="button" aria-label="지도 축소" ${canZoomOut ? "" : "disabled"}>−</button>
+        <span class="map-zoom-value">${mapZoomPercent}%</span>
+        <button class="map-zoom-button" data-map-zoom="in" type="button" aria-label="지도 확대" ${canZoomIn ? "" : "disabled"}>+</button>
+        <button class="map-zoom-button map-zoom-fit" data-map-zoom="fit" type="button" aria-label="지도 맞춤">맞춤</button>
+      </div>
+
+      <div class="hex-map-board" style="height:${mapBoardHeight}px;">
+        <div class="hex-map-scroll-space" style="width:${scrollSpaceWidth}px; height:${scrollSpaceHeight}px;">
+          <div class="hex-map-canvas" style="width:${scaledMapWidth}px; height:${scaledMapHeight}px; left:${mapFocusGutter}px; top:${mapFocusGutter}px;">
+            <svg
+              class="hex-map-stage"
+              viewBox="0 0 ${boardLayout.pixelWidth} ${boardLayout.pixelHeight}"
+              style="--hex-size:${boardLayout.dimensions.size}px;"
+              role="img"
+              aria-label="지역 지도"
+            >
+              ${hexMapDefs}
+              ${edgeMarkup}
+              ${tileMarkup}
+            </svg>
+          </div>
+        </div>
       </div>
 
       <div class="map-list">
         ${travelCards}
       </div>
+
+      ${mapDetailSlot}
     </section>
   `;
+
+  alignHexMapViewport(boardLayout, mapScale, currentLocation.id);
+  refreshTransientScrollbars();
+
+  dom.panelContent.querySelectorAll("[data-map-zoom]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const direction = button.dataset.mapZoom;
+      if (direction === "out") {
+        client.mapZoomIndex = Math.max(0, client.mapZoomIndex - 1);
+      } else if (direction === "in") {
+        client.mapZoomIndex = Math.min(MAP_ZOOM_MULTIPLIERS.length - 1, client.mapZoomIndex + 1);
+      } else {
+        client.mapZoomIndex = MAP_ZOOM_FIT_INDEX;
+      }
+      if (typeof button.blur === "function") {
+        button.blur();
+      }
+      renderMapPanel();
+    });
+  });
 
   dom.panelContent.querySelectorAll("[data-hex-location]").forEach((tile) => {
     const activateTile = () => {
@@ -1684,6 +1983,11 @@ function renderMapPanel() {
     };
 
     tile.addEventListener("click", activateTile);
+    tile.addEventListener("pointerup", () => {
+      if (typeof tile.blur === "function") {
+        tile.blur();
+      }
+    });
     tile.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") {
         return;
@@ -1693,10 +1997,28 @@ function renderMapPanel() {
     });
   });
 
-  dom.panelContent.querySelectorAll("[data-travel-card]").forEach((card) => {
+  dom.panelContent.querySelectorAll("[data-map-detail]").forEach((card) => {
     card.addEventListener("click", () => {
+      client.activeMapDetailKey = card.dataset.mapDetail;
       client.mapHint = "";
-      submitAction({ type: "travel", targetId: card.dataset.travelCard });
+      renderMapPanel();
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      client.activeMapDetailKey = card.dataset.mapDetail;
+      client.mapHint = "";
+      renderMapPanel();
+    });
+  });
+
+  dom.panelContent.querySelectorAll("[data-map-travel]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      client.mapHint = "";
+      submitAction({ type: "travel", targetId: button.dataset.mapTravel });
     });
   });
 }
@@ -1790,13 +2112,14 @@ function renderInventoryPanel() {
     ...itemCards.map((item) => {
         const detailLines = [{ text: item.description }];
         const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
-          ? itemEffectHintHtml(item.effects)
+          ? itemEffectHintHtml(item.effects, item.useMinutes)
           : "";
-        if (item.useMinutes && item.useMinutes > 0) {
-          detailLines.push({ text: `사용 시간: ${formatMinutesLabel(item.useMinutes)}` });
-        }
         if (effectHintHtml) {
           detailLines.push({ html: effectHintHtml });
+        }
+        const durabilityHintHtml = itemDurabilityHintHtml(item, snapshot.state);
+        if (durabilityHintHtml) {
+          detailLines.push({ html: durabilityHintHtml });
         }
         inventoryDetails.set(item.id, detailLines);
         const count = snapshot.state.inventory[item.id] || 0;
@@ -2100,6 +2423,7 @@ function renderPanel() {
     button.classList.toggle("active", isActive);
     button.setAttribute("aria-expanded", isActive ? "true" : "false");
   });
+  refreshTransientScrollbars();
 }
 
 function render(options = {}) {
@@ -2226,6 +2550,7 @@ async function bootstrap() {
     throw new Error("서버 상태가 올바르지 않습니다.");
   }
   await showHomeScreen();
+  refreshTransientScrollbars();
   window.setInterval(() => {
     renderStatusBar();
   }, CLOCK_TICK_MS);
@@ -2251,6 +2576,15 @@ dom.dockButtons.forEach((button) => {
     openStatusPopover(statKey);
   });
 });
+
+document.addEventListener("pointerup", (event) => {
+  const target = event.target instanceof Element
+    ? event.target.closest("button, a, [role='button'], [data-map-detail], [data-map-travel], [data-inventory-detail], [data-status-detail]")
+    : null;
+  if (target && typeof target.blur === "function") {
+    target.blur();
+  }
+}, { passive: true });
 
 document.addEventListener("click", (event) => {
   const clickedElement = event.target instanceof Element ? event.target : null;
@@ -2282,9 +2616,17 @@ document.addEventListener("click", (event) => {
 
 window.addEventListener("resize", () => {
   syncMobileChoiceZoneHeight();
+  refreshTransientScrollbars();
+  if (client.isPanelOpen && client.activePanel === "map") {
+    renderMapPanel();
+  }
 });
 window.addEventListener("orientationchange", () => {
   syncMobileChoiceZoneHeight();
+  refreshTransientScrollbars();
+  if (client.isPanelOpen && client.activePanel === "map") {
+    renderMapPanel();
+  }
 });
 
 dom.sceneFrame.addEventListener("click", (event) => {

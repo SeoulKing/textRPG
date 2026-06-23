@@ -290,6 +290,36 @@ function normalizeInventory(rawInventory: unknown, validItemIds: Set<string>) {
   ) as Record<string, number>;
 }
 
+function maxToolDurability(itemId: string) {
+  const item = worldRegistry.items[itemId] as { maxDurability?: number } | undefined;
+  const maxDurability = item?.maxDurability;
+  return Number.isInteger(maxDurability) && Number(maxDurability) > 0
+    ? Number(maxDurability)
+    : 0;
+}
+
+function normalizeToolDurability(rawDurability: unknown, inventory: Record<string, number>, validItemIds: Set<string>) {
+  const raw = rawDurability && typeof rawDurability === "object"
+    ? rawDurability as Record<string, unknown>
+    : {};
+  const next: Record<string, number> = {};
+
+  Object.entries(inventory).forEach(([itemId, count]) => {
+    if (!validItemIds.has(itemId) || count <= 0) {
+      return;
+    }
+
+    const maxDurability = maxToolDurability(itemId);
+    if (maxDurability <= 0) {
+      return;
+    }
+
+    next[itemId] = normalizeInt(raw[itemId], maxDurability, 1, maxDurability);
+  });
+
+  return next;
+}
+
 function normalizeStats(rawStats: unknown) {
   const stats = (rawStats && typeof rawStats === "object" ? rawStats : {}) as Record<string, unknown>;
   const legacyEnergyKey = "full" + "ness";
@@ -335,6 +365,7 @@ function pruneState(state: unknown): GameState {
   const legacyExhaustionElapsedKey = "star" + "vation" + "ElapsedMs";
   const legacyLastSleepEnergyKey = "lastSleep" + "Full" + "ness";
   const legacyExhaustionLevelKey = "star" + "vation" + "Level";
+  const nextInventory = normalizeInventory(rawState.inventory, validItemIds);
   nextFlags[`visited_${nextLocation}`] = true;
   if (
     nextFlags.opening_seen ||
@@ -365,7 +396,8 @@ function pruneState(state: unknown): GameState {
     stats: normalizeStats(rawState.stats),
     money: normalizeInt(rawState.money, 0, 0),
     skills: normalizeStringArray(rawState.skills),
-    inventory: normalizeInventory(rawState.inventory, validItemIds),
+    inventory: nextInventory,
+    toolDurability: normalizeToolDurability(rawState.toolDurability, nextInventory, validItemIds),
     dynamicContent,
     worldPlan,
     frontierState,

@@ -1031,3 +1031,147 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `npm.cmd run content:validate`
   `npm.cmd run build`
   local API smoke confirmed shelter -> convenience travel now returns `이동: 편의점 폐허 / 신규 지역: 작은 병원 / + 15분`.
+
+- 2026-06-22 crafting menu detail placement:
+  moved the selected crafting recipe detail panel above the recipe choices.
+  added a repeat crafting menu scene so the explanatory crafting intro appears only on the first crafting visit; subsequent crafting opens directly to the recipe list.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  local API smoke confirmed first crafting opens `shelter_crafting_menu` with 2 paragraphs, then later crafting opens `shelter_crafting_menu_repeat` with no nonblank paragraphs and recipe metadata intact.
+
+- 2026-06-23 mobile dock/map tap polish:
+  swapped the bottom dock positions of `메뉴` and `이동`, so the dock order now starts with menu and ends with movement.
+  disabled mobile tap/text selection highlighting on SVG hex map tiles and blur the tile after pointer activation to prevent the blue selection flash that did not match choice buttons.
+
+- 2026-06-23 map zoom and global tap highlight polish:
+  extended mobile tap-highlight prevention to all clickable button/link/card-style controls, including home/menu/status/inventory/map controls.
+  added automatic fit scaling for the movement hex map so the full visible map defaults to fitting inside the panel.
+  added map zoom controls (`−`, `맞춤`, `+`) that adjust the rendered SVG size while keeping zoomed-in maps scrollable.
+
+- 2026-06-23 map zoom refinement:
+  widened the map zoom range and moved the `맞춤` control to the right of `+`, so the toolbar now reads `− / percent / + / 맞춤`.
+  changed `맞춤` to allow safe upscaling above 100%, reducing unused map-board whitespace while keeping tiles unclipped.
+  changed zoomed-in map rendering to center the current location tile by adding zoom-only scroll gutter and aligning the map board from the top-left.
+  increased hex tile label text to 15px on mobile while preserving the existing word-based line breaks.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  in-app browser mobile check confirmed fit mode renders at 111% without horizontal scroll, `+` zoom centers the current tile at `(157, 143)` against board center `(156, 143)`, and the toolbar order is `− / 130% / + / 맞춤` after zoom.
+
+- 2026-06-23 movement list detail slot:
+  simplified the movement destination list so each card shows only the destination name and compact tags.
+  added a selected-destination detail slot below the list with the location description and a separate `이동` button.
+  kept map hex tiles as direct travel controls, while list cards only change the selected detail.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  in-app browser mobile check confirmed selecting the `급식소` list card updates the detail while staying at `임시 거처`, and clicking the `급식소` map tile immediately travels to `급식소`.
+
+- 2026-06-23 transient scrollbar polish:
+  hid native scrollbars on the scrollable app shell, bottom-sheet content, and hex map board so they no longer reserve layout space.
+  added transient overlay scroll indicators that appear while scrolling and fade shortly after scrolling stops, including horizontal support for zoomed map boards.
+
+- 2026-06-23 map zoom scroll-space fix:
+  replaced the zoomed map canvas margin gutter with an explicit `.hex-map-scroll-space` wrapper so enlarged maps no longer rely on flex item margins for scrollable area.
+  updated viewport alignment to account for the wrapper offset before centering the current location tile.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  in-app browser mobile check confirmed the canvas margin is now `0px`, fit/zoom states remain centered within about 1px, and 200% zoom keeps the current tile near the board center.
+
+- 2026-06-23 hidden map scrollbars:
+  kept the hex map board scrollable but stopped attaching transient scrollbar indicators inside the tile map.
+  added explicit native scrollbar hiding rules for `.hex-map-board` so zoomed maps do not show scroll chrome.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  in-app browser check confirmed zoomed map scroll dimensions remain larger than the viewport while `.hex-map-board` has no transient scrollbar nodes and uses `scrollbar-width: none`.
+
+- 2026-06-23 menu panel clarity:
+  removed backdrop blur from `.panel-shell` and made the bottom panel background fully opaque white so the menu no longer reads like a blurred translucent sheet.
+  removed backdrop blur from the bottom dock as well to keep the dock visually crisp on mobile.
+  Verification passed:
+  `npm.cmd run build`
+  Playwright web-game smoke could not run because the local skill script could not resolve the `playwright` package in this environment.
+
+- 2026-06-23 system note placement:
+  moved `#system-note` below `#scene-text` so system notes render after the narrative body and before choices.
+  adjusted the system note margin for the new below-body placement.
+
+- 2026-06-23 delayed system note timing:
+  deferred system note rendering until after narrative typing completes, including the tap-to-skip path.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+- 2026-06-23 persistent system note until scene change:
+  stopped clearing `#system-note` just because a same-scene render has no new note payload.
+  System notes now stay with the current narrative body until the story surface changes; scene changes still clear the note before the next body starts typing.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  in-app browser check confirmed the first quest note stays visible after waiting on the same scene, then hides when the next scene begins typing.
+  Playwright web-game smoke still cannot run because the local skill script cannot resolve the `playwright` package in this environment.
+
+- 2026-06-23 item detail time token:
+  removed the separate `사용 시간: ...` line from inventory item details.
+  item use time now appears as a compact effect token after the resource effect, for example `+5 기력 + 10분`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-06-23 shelter recovery choice hints:
+  enabled visible outcome hints for the shelter `휴식하기` and `취침하기` actions.
+  `휴식하기` now shows `+1 체력 / +1 정신력 / +15분`.
+  `취침하기` now shows `오후 6시 이후 / +1 체력 / +1 정신력 / 다음 날 06:00`.
+  Verification passed:
+  `npm.cmd run content:validate`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed both shelter actions return the new `outcomeHint` values with `showOutcomeHint: true`.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+  in-app browser check confirmed the first quest action keeps `#system-note` hidden while `.scene-text .typing` exists, then shows `퀘스트 시작: 구조 신호 준비` after skipping the finished body text, with no console errors.
+
+- 2026-06-23 tool durability farming expansion:
+  added tool item support with `maxDurability`, `toolDurability` state normalization, `not_has_item`, `set_tool_durability`, and `damage_tool` effects.
+  added 손도끼, 간이 칼, 찌그러진 냄비, 산나물, 눅눅한 빵, 숲죽, plus shelter crafting/cooking recipes.
+  expanded forest farming with tool-based high-efficiency actions and tagged random result scenes, while leaving the existing 숲 `수색하기` probabilities untouched.
+  added a convenience store food crate stock node with bread, water, and rice scenes.
+  inventory item details now show tool durability as `내구도 current/max`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  direct engine smoke confirmed axe crafting, axe chopping, axe breakage at 0 durability, forest stew cooking, and pot durability loss.
+
+- 2026-06-23 prologue rerender loop fix:
+  fixed `renderScene` so it no longer clears and restarts the narrative typewriter when the already-rendered story surface is unchanged.
+  This prevents the prologue/current scene from appearing to restart endlessly during same-scene refreshes or sync updates.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed `prologue_opening -> prologue_old_woman_visit -> shelter_first_intro`.
+  checked that the local server is serving the patched `app-api.js`.

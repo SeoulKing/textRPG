@@ -6,7 +6,8 @@ export const shelterChoices: ActionDefinition[] = [
     id: "rest_light_at_shelter",
     label: "휴식하기",
     type: "rest",
-    outcomeHint: "긴장을 조금 내려놓고 체력과 정신력을 추스른다. 밤을 넘기진 않지만 숨을 고를 수 있다.",
+    outcomeHint: "+1 체력 / +1 정신력 / +15분",
+    showOutcomeHint: true,
     effects: [
       { type: "change_stat", stat: "hp", value: 1 },
       { type: "change_stat", stat: "mind", value: 1 },
@@ -21,7 +22,8 @@ export const shelterChoices: ActionDefinition[] = [
     label: "취침하기",
     type: "use",
     presentationMode: "always",
-    outcomeHint: "오후 6시 전에는 아직 잘 수 없다는 안내만 본다. 이후에는 다음 날 아침 6시에 깨어나며 체력과 정신력이 조금 회복된다.",
+    outcomeHint: "오후 6시 이후 / +1 체력 / +1 정신력 / 다음 날 06:00",
+    showOutcomeHint: true,
     conditions: [{ type: "shelter_sleep_window" }],
     failureNote: "오후 6시 이후부터 잠자기를 이용할 수 있다.",
     failureEffects: [
@@ -43,12 +45,30 @@ export const shelterChoices: ActionDefinition[] = [
     id: "open_shelter_crafting",
     label: "제작하기",
     type: "use",
+    conditions: [
+      { type: "flag_not", flag: "shelter_crafting_intro_seen" },
+    ],
     outcomeHint: "주워 온 재료를 펼쳐 놓고, 거처를 손보거나 식사를 만들 수 있는 레시피를 살핀다.",
     effects: [
       { type: "set_flag", flag: "shelter_crafting_open" },
       { type: "log", message: "당신은 모아 둔 자재를 천막 안쪽에 펼쳐 놓고, 지금 만들 수 있는 것들을 하나씩 따져 본다." },
     ],
     nextSceneId: "shelter_crafting_menu",
+    tags: ["craft", "menu"],
+    riskHint: "low",
+  }),
+  interactionFor("shelter", {
+    id: "open_shelter_crafting_repeat",
+    label: "제작하기",
+    type: "use",
+    conditions: [
+      { type: "flag", flag: "shelter_crafting_intro_seen" },
+    ],
+    outcomeHint: "재료와 레시피를 바로 확인한다.",
+    effects: [
+      { type: "set_flag", flag: "shelter_crafting_open" },
+    ],
+    nextSceneId: "shelter_crafting_menu_repeat",
     tags: ["craft", "menu"],
     riskHint: "low",
   }),

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const ConditionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("has_item"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
+  z.object({ type: z.literal("not_has_item"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
   z.object({ type: z.literal("skill_gte"), skillId: z.string(), value: z.number().int() }),
   z.object({ type: z.literal("flag"), flag: z.string() }),
   z.object({ type: z.literal("flag_not"), flag: z.string() }),
@@ -49,6 +50,8 @@ const InstantEffectSchemas = [
   z.object({ type: z.literal("clear_flag"), flag: z.string() }),
   z.object({ type: z.literal("add_item"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
   z.object({ type: z.literal("remove_item"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
+  z.object({ type: z.literal("set_tool_durability"), itemId: z.string(), value: z.number().int().min(0) }),
+  z.object({ type: z.literal("damage_tool"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
   z.object({ type: z.literal("change_money"), amount: z.number().int() }),
   z.object({ type: z.literal("travel"), locationId: z.string() }),
   z.object({ type: z.literal("start_quest"), questId: z.string() }),

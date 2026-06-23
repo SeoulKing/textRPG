@@ -8,6 +8,7 @@ import {
 
 const shelf = { locationId: "convenience", nodeId: "convenience_shelf" } as const;
 const supplyPile = { locationId: "convenience", nodeId: "convenience_supply_pile" } as const;
+const foodCrate = { locationId: "convenience", nodeId: "convenience_food_crate" } as const;
 
 export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
@@ -33,6 +34,17 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     riskHint: "low",
   }),
   sceneChoice({
+    id: "go_to_convenience_food_crate",
+    label: "보관함으로 간다",
+    outcomeHint: "계산대 뒤쪽 아래에 밀려 들어간 보관함을 열어, 아직 먹을 수 있는 것이 남았는지 확인한다.",
+    conditions: [inactiveStockNodeCondition(foodCrate.nodeId)],
+    effects: [
+      { type: "focus_stock_node", nodeId: "convenience_food_crate" },
+      { type: "log", message: "당신은 계산대 뒤쪽 아래로 몸을 숙여 플라스틱 보관함을 끌어낸다." },
+    ],
+    riskHint: "low",
+  }),
+  sceneChoice({
     id: "go_to_convenience_supply_pile",
     label: "창고 자재 더미로 간다",
     outcomeHint: "무너진 선반 아래로 몸을 들이밀어, 쓸 만한 판자와 천 조각, 금속 부품을 직접 살핀다.",
@@ -41,6 +53,42 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
       { type: "focus_stock_node", nodeId: "convenience_supply_pile" },
       { type: "log", message: "당신은 반쯤 주저앉은 창고 선반 아래로 몸을 들이밀어 자재 더미 앞에 선다." },
     ],
+    riskHint: "low",
+  }),
+  sceneChoice({
+    id: "collect_stale_bread_from_food_crate",
+    label: "눅눅한 빵을 챙긴다",
+    outcomeHint: "보관함 안쪽의 눅눅한 빵을 모두 챙긴다. +5분",
+    ...collectStockItemChoiceParts({
+      ...foodCrate,
+      itemId: "staleBread",
+      logMessage: "당신은 습기를 먹은 빵 봉지를 조심스럽게 챙긴다.",
+      minutes: 5,
+    }),
+    riskHint: "low",
+  }),
+  sceneChoice({
+    id: "collect_water_from_food_crate",
+    label: "물병을 챙긴다",
+    outcomeHint: "보관함 구석에 남은 물병을 챙긴다. +5분",
+    ...collectStockItemChoiceParts({
+      ...foodCrate,
+      itemId: "waterBottle",
+      logMessage: "당신은 보관함 구석에 굴러 있던 물병을 꺼내 배낭에 넣는다.",
+      minutes: 5,
+    }),
+    riskHint: "low",
+  }),
+  sceneChoice({
+    id: "collect_rice_from_food_crate",
+    label: "쌀을 챙긴다",
+    outcomeHint: "젖지 않은 쌀 봉지를 챙긴다. +5분",
+    ...collectStockItemChoiceParts({
+      ...foodCrate,
+      itemId: "rawRice",
+      logMessage: "당신은 아직 젖지 않은 작은 쌀 봉지를 찾아 챙긴다.",
+      minutes: 5,
+    }),
     riskHint: "low",
   }),
   sceneChoice({
@@ -129,6 +177,13 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     label: "계산대에서 물러선다",
     outcomeHint: "서랍 앞에서 몸을 일으켜 다시 가게 전체를 둘러볼 수 있는 자리로 돌아간다.",
     ...leaveStockNodeChoiceParts("convenience_register", "당신은 계산대 서랍을 덮어 둔 채 다시 가게 안쪽을 살필 자리로 물러선다."),
+    riskHint: "low",
+  }),
+  sceneChoice({
+    id: "leave_convenience_food_crate",
+    label: "보관함에서 물러난다",
+    outcomeHint: "보관함 뚜껑을 닫고, 다시 편의점 안쪽으로 물러난다.",
+    ...leaveStockNodeChoiceParts(foodCrate.nodeId, "당신은 보관함 안쪽을 더듬던 손을 거두고 다시 편의점 안쪽으로 물러난다."),
     riskHint: "low",
   }),
 ];
