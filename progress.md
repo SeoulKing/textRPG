@@ -1138,6 +1138,16 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
 
+- 2026-07-09 movement destination vertical centering:
+  fixed movement destination cards by making each card a flex container and centering its metadata row vertically.
+  kept the compact card height while preserving the destination name, risk tag, and travel-time tag layout.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
 - 2026-06-23 shelter recovery choice hints:
   enabled visible outcome hints for the shelter `휴식하기` and `취침하기` actions.
   `휴식하기` now shows `+1 체력 / +1 정신력 / +15분`.

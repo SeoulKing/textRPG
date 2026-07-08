@@ -1878,6 +1878,8 @@ a:focus:not(:focus-visible),
 }
 
 .map-card.map-destination-card {
+  display: flex;
+  align-items: center;
   min-height: 44px;
   padding: 6px 10px;
   cursor: pointer;
@@ -1889,12 +1891,15 @@ a:focus:not(:focus-visible),
 }
 
 .map-card.map-destination-card .map-meta {
+  width: 100%;
   margin-bottom: 0;
+  align-items: center;
   gap: 8px;
 }
 
 .map-card.map-destination-card h3 {
   font-size: 0.86rem;
+  line-height: 1.2;
 }
 
 .map-card.map-destination-card .map-card-tags {
@@ -1904,6 +1909,7 @@ a:focus:not(:focus-visible),
 .map-card.map-destination-card .tag {
   padding: 3px 7px;
   font-size: 0.66rem;
+  line-height: 1;
 }
 
 .map-destination-card.is-selected {
