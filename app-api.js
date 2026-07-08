@@ -1123,7 +1123,21 @@ function pinSceneTextToBottomOnMobile() {
     return;
   }
   window.requestAnimationFrame(() => {
-    dom.appShell.scrollTop = dom.appShell.scrollHeight;
+    const maxScrollTop = Math.max(0, dom.appShell.scrollHeight - dom.appShell.clientHeight);
+    const distanceFromBottom = maxScrollTop - dom.appShell.scrollTop;
+    if (distanceFromBottom > 96) {
+      return;
+    }
+    dom.appShell.scrollTop = maxScrollTop;
+  });
+}
+
+function resetSceneScrollOnMobile() {
+  if (!window.matchMedia("(max-width: 620px)").matches) {
+    return;
+  }
+  window.requestAnimationFrame(() => {
+    dom.appShell.scrollTop = 0;
   });
 }
 
@@ -1146,7 +1160,6 @@ async function typeParagraph(paragraphElement, text, token) {
       return false;
     }
     paragraphElement.textContent = text.slice(0, index);
-    pinSceneTextToBottomOnMobile();
     const currentChar = text[index - 1];
     const delay = /[.!?]/.test(currentChar)
       ? TYPEWRITER_CHAR_DELAY + 40
@@ -1590,13 +1603,8 @@ function renderChoices() {
     return;
   }
 
-  const isCraftingMenu = [
-    "shelter_crafting_menu",
-    "shelter_crafting_menu_repeat",
-    "shelter_cooking_menu",
-    "shelter_cooking_menu_repeat",
-  ].includes(currentSceneDefinitionId(snapshot));
-  if (isCraftingMenu) {
+  const isRecipeMenu = snapshot.availableActions.some((choice) => choice.craftingRecipe);
+  if (isRecipeMenu) {
     dom.choices.classList.add("is-crafting-menu");
     renderCraftingChoices(snapshot);
     dom.choices.classList.add("revealed");
@@ -1641,6 +1649,7 @@ function renderScene(animateText = true) {
   const surfaceChanged = Boolean(client.renderedStorySurfaceId && client.renderedStorySurfaceId !== surfaceId);
   if (surfaceChanged) {
     hideSystemNote();
+    resetSceneScrollOnMobile();
   }
 
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
@@ -1910,21 +1919,6 @@ function renderMapPanel() {
 
   dom.panelContent.innerHTML = `
     <section class="hex-map-shell">
-      <article class="map-card map-current-card">
-        <div class="map-meta">
-          <h3>${currentLocation.name}</h3>
-          <span class="tag">${riskLabel(currentLocation.risk)}</span>
-        </div>
-        <p>${currentLocation.summary}</p>
-      </article>
-
-      <div class="hex-map-toolbar" aria-label="지도 확대 축소">
-        <button class="map-zoom-button" data-map-zoom="out" type="button" aria-label="지도 축소" ${canZoomOut ? "" : "disabled"}>−</button>
-        <span class="map-zoom-value">${mapZoomPercent}%</span>
-        <button class="map-zoom-button" data-map-zoom="in" type="button" aria-label="지도 확대" ${canZoomIn ? "" : "disabled"}>+</button>
-        <button class="map-zoom-button map-zoom-fit" data-map-zoom="fit" type="button" aria-label="지도 맞춤">맞춤</button>
-      </div>
-
       <div class="hex-map-board" style="height:${mapBoardHeight}px;">
         <div class="hex-map-scroll-space" style="width:${scrollSpaceWidth}px; height:${scrollSpaceHeight}px;">
           <div class="hex-map-canvas" style="width:${scaledMapWidth}px; height:${scaledMapHeight}px; left:${mapFocusGutter}px; top:${mapFocusGutter}px;">
@@ -1941,6 +1935,13 @@ function renderMapPanel() {
             </svg>
           </div>
         </div>
+      </div>
+
+      <div class="hex-map-toolbar" aria-label="지도 확대 축소">
+        <button class="map-zoom-button" data-map-zoom="out" type="button" aria-label="지도 축소" ${canZoomOut ? "" : "disabled"}>−</button>
+        <span class="map-zoom-value">${mapZoomPercent}%</span>
+        <button class="map-zoom-button" data-map-zoom="in" type="button" aria-label="지도 확대" ${canZoomIn ? "" : "disabled"}>+</button>
+        <button class="map-zoom-button map-zoom-fit" data-map-zoom="fit" type="button" aria-label="지도 맞춤">맞춤</button>
       </div>
 
       <div class="map-list">

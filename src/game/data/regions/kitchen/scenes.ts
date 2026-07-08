@@ -166,6 +166,21 @@ export const kitchenSceneDefinitions: SceneDefinition[] = [
     ],
   },
   {
+    id: "kitchen_ration_ticket_exchange",
+    locationId: "kitchen",
+    title: "배식권",
+    paragraphs: [
+      "당신이 구겨진 배식권을 내밀자 배식대 뒤의 손길이 잠시 멈춘다. 종이 끝은 젖어 있었지만, 검문소 도장이 아직 희미하게 남아 있다.",
+      "\"아직 받는 곳이 있을 줄은 몰랐네.\"",
+      "국자는 말없이 한 번 더 그릇을 훑고 지나간다. 돈 대신 종이 한 장을 내고 받은 따뜻한 식사는, 오늘 하루를 버틸 여지를 조금 넓혀 준다.",
+    ],
+    choiceIds: [],
+    conditions: [
+      { type: "location", locationId: "kitchen" },
+      { type: "flag", flag: "ration_ticket_exchanged" },
+    ],
+  },
+  {
     id: "kitchen_old_cook_canned_food_reward",
     locationId: "kitchen",
     title: "노파의 보답",

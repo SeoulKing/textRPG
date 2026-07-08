@@ -1214,3 +1214,52 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   local API smoke confirmed shelter top-level actions show both `제작하기` and `요리하기`, crafting menus hide `cook_*` actions, cooking menus hide `craft_*`/radio actions, and cooking recipes use the `요리` action label.
   Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-06-23 generic recipe-card rendering:
+  changed the frontend recipe-card switch from a hardcoded shelter scene-id list to the presence of `craftingRecipe` metadata on available actions.
+  This makes `요리하기` use the same recipe detail panel and compact recipe-card layout as `제작하기`, and keeps the UI reusable for future recipe menus.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed `shelter_cooking_menu` returns four recipe actions with `craftingRecipe` metadata and the `요리` action label.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-08 prologue-to-shelter mobile scroll stabilization:
+  reduced mobile scroll jumping during scene transitions by resetting the app shell scroll position when the rendered story surface changes.
+  changed the automatic bottom pinning so it only applies when the user is already near the bottom, and removed per-character scroll pinning during typewriter text.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed `prologue_old_woman_visit -> shelter_first_intro` still transitions correctly.
+  Browser visual verification could not run because the in-app browser endpoint was unavailable in this session, and Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package.
+
+- 2026-07-08 movement sheet map-first compact list:
+  removed the current-location summary card from the movement sheet so the hex map is the first visible section.
+  moved the zoom toolbar below the map board to keep the map itself at the top.
+  reduced movement destination cards with tighter padding, smaller title text, and smaller tags so the list uses roughly half the previous vertical space.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-02 kitchen ration-ticket exchange:
+  added a `배식권을 식사로 바꾼다` 급식소 action that appears when the player has `rationTicket`.
+  The exchange consumes 1 `rationTicket`, grants 1 `hotMeal`, marks the day's meal as secured, advances 10 minutes, and routes to a short `kitchen_ration_ticket_exchange` result scene.
+  Updated `CONTENT_LEDGER.md` so `rationTicket`, cooking ingredients, and stock-node quantities match the current authored content.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is available with a ration ticket, then produces `kitchen_ration_ticket_exchange`, consumes the ticket, adds a hot meal, and disappears after use.
+  local server smoke confirmed `/api/health` and `/` both return 200 on `http://127.0.0.1:3000`.
+  Playwright web-game smoke still cannot run because the local skill script cannot resolve the `playwright` package in this environment.

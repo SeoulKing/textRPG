@@ -1877,13 +1877,33 @@ a:focus:not(:focus-visible),
   margin-top: 6px;
 }
 
-.map-destination-card {
+.map-card.map-destination-card {
+  min-height: 44px;
+  padding: 6px 10px;
   cursor: pointer;
   transition:
     transform 140ms ease,
     background 140ms ease,
     border-color 140ms ease,
     box-shadow 140ms ease;
+}
+
+.map-card.map-destination-card .map-meta {
+  margin-bottom: 0;
+  gap: 8px;
+}
+
+.map-card.map-destination-card h3 {
+  font-size: 0.86rem;
+}
+
+.map-card.map-destination-card .map-card-tags {
+  gap: 4px;
+}
+
+.map-card.map-destination-card .tag {
+  padding: 3px 7px;
+  font-size: 0.66rem;
 }
 
 .map-destination-card.is-selected {
