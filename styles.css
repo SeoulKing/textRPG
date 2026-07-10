@@ -2338,7 +2338,6 @@ a:focus:not(:focus-visible),
   :root {
     --mobile-status-height: 44px;
     --mobile-dock-height: 58px;
-    --mobile-choice-zone-height: 0px;
   }
 
   html,
@@ -2379,7 +2378,7 @@ a:focus:not(:focus-visible),
     position: fixed;
     top: calc(var(--mobile-status-height) + env(safe-area-inset-top));
     right: 0;
-    bottom: calc(var(--mobile-dock-height) + var(--mobile-choice-zone-height) + env(safe-area-inset-bottom));
+    bottom: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom));
     left: 0;
     width: 100%;
     height: auto;
@@ -2467,7 +2466,8 @@ a:focus:not(:focus-visible),
   }
 
   .scene-frame {
-    display: block;
+    display: flex;
+    flex-direction: column;
     min-height: 100%;
   }
 
@@ -2503,6 +2503,8 @@ a:focus:not(:focus-visible),
   }
 
   .scene-copy {
+    flex: 1 1 auto;
+    min-height: 0;
     padding: 12px 0 0;
     background: #fff;
   }
@@ -2529,16 +2531,11 @@ a:focus:not(:focus-visible),
   }
 
   .choice-list {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: calc(var(--mobile-dock-height) + env(safe-area-inset-bottom));
-    z-index: 18;
     box-sizing: border-box;
     gap: 6px;
-    margin-top: 0;
+    margin-top: 10px;
     min-height: 0;
-    padding: 6px 12px;
+    padding: 6px 12px 14px;
     overflow: visible;
     border-top: 0;
     background: #fff;

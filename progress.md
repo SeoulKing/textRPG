@@ -1331,3 +1331,16 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   direct engine smoke confirmed the one-time hospital rumor sets the knowledge flags, advances exactly 20 game minutes, disappears after use, and the repeatable line rumor advances exactly 15 game minutes and routes to a `kitchen_rumor_*` result scene.
   Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 mobile story/choice scroll flow:
+  changed the mobile scene layout so choices are no longer fixed above the bottom dock or measured as a separate reserved zone.
+  Choices now render in the same `.scene-copy` document flow underneath the narrative, so scrolling moves the narrative and choices together.
+  While typewriter narration is still running, the choice list stays empty and the story area can use the full app viewport above the dock.
+  When narration finishes or is skipped, the app scrolls the shared story flow to the bottom once so the revealed choices push the completed narrative upward.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed after installing local `playwright` and Chromium for validation.
+  Additional 390px mobile Playwright probe confirmed typing state had 0 choices, revealed choices used `position: static` under `.scene-copy`, max scroll moved to the bottom, and a manual app-shell scroll moved story text and choices as one shared scroll flow.
+  TODO: if future scenes add much taller choice menus, re-check crafting menus on small screens to tune choice button density without reintroducing fixed positioning.

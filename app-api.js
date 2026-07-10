@@ -1116,17 +1116,21 @@ function clearSceneAnimation() {
   client.activeAnimatedStory = null;
   client.activeAnimatedSystemNote = null;
   client.isSceneTyping = false;
+  dom.sceneFrame.classList.remove("is-story-typing");
 }
 
-function pinSceneTextToBottomOnMobile() {
+function scrollStoryFlowToBottomOnMobile(options = {}) {
   if (!window.matchMedia("(max-width: 620px)").matches) {
     return;
   }
+  const { force = false } = options;
   window.requestAnimationFrame(() => {
     const maxScrollTop = Math.max(0, dom.appShell.scrollHeight - dom.appShell.clientHeight);
-    const distanceFromBottom = maxScrollTop - dom.appShell.scrollTop;
-    if (distanceFromBottom > 96) {
-      return;
+    if (!force) {
+      const distanceFromBottom = maxScrollTop - dom.appShell.scrollTop;
+      if (distanceFromBottom > 96) {
+        return;
+      }
     }
     dom.appShell.scrollTop = maxScrollTop;
   });
@@ -1142,15 +1146,7 @@ function resetSceneScrollOnMobile() {
 }
 
 function syncMobileChoiceZoneHeight() {
-  if (!window.matchMedia("(max-width: 620px)").matches) {
-    document.documentElement.style.removeProperty("--mobile-choice-zone-height");
-    return;
-  }
-
-  window.requestAnimationFrame(() => {
-    const height = dom.choices.childElementCount > 0 ? Math.ceil(dom.choices.getBoundingClientRect().height) : 0;
-    document.documentElement.style.setProperty("--mobile-choice-zone-height", `${height}px`);
-  });
+  document.documentElement.style.removeProperty("--mobile-choice-zone-height");
 }
 
 async function typeParagraph(paragraphElement, text, token) {
@@ -1166,6 +1162,7 @@ async function typeParagraph(paragraphElement, text, token) {
       : /[,;:]/.test(currentChar)
         ? TYPEWRITER_CHAR_DELAY + 20
         : TYPEWRITER_CHAR_DELAY;
+    scrollStoryFlowToBottomOnMobile();
     await scheduleSceneStep(() => {}, delay);
   }
   paragraphElement.classList.remove("typing");
@@ -1176,6 +1173,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
   client.activeAnimatedStory = story;
   client.activeAnimatedSystemNote = systemNotePayload;
   client.isSceneTyping = true;
+  dom.sceneFrame.classList.add("is-story-typing");
   dom.sceneText.innerHTML = "";
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed");
@@ -1183,6 +1181,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
   if (story.headline) {
     if (token !== client.sceneRenderToken) {
       client.isSceneTyping = false;
+      dom.sceneFrame.classList.remove("is-story-typing");
       client.activeAnimatedStory = null;
       client.activeAnimatedSystemNote = null;
       return;
@@ -1193,6 +1192,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
     const headlineDone = await typeParagraph(headlineElement, story.headline, token);
     if (!headlineDone) {
       client.isSceneTyping = false;
+      dom.sceneFrame.classList.remove("is-story-typing");
       client.activeAnimatedStory = null;
       client.activeAnimatedSystemNote = null;
       return;
@@ -1203,6 +1203,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
   for (const paragraph of story.paragraphs) {
     if (token !== client.sceneRenderToken) {
       client.isSceneTyping = false;
+      dom.sceneFrame.classList.remove("is-story-typing");
       client.activeAnimatedStory = null;
       client.activeAnimatedSystemNote = null;
       return;
@@ -1212,6 +1213,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
     const completed = await typeParagraph(paragraphElement, paragraph, token);
     if (!completed) {
       client.isSceneTyping = false;
+      dom.sceneFrame.classList.remove("is-story-typing");
       client.activeAnimatedStory = null;
       client.activeAnimatedSystemNote = null;
       return;
@@ -1221,6 +1223,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
 
   if (token === client.sceneRenderToken) {
     client.isSceneTyping = false;
+    dom.sceneFrame.classList.remove("is-story-typing");
     client.activeAnimatedStory = null;
     client.activeAnimatedSystemNote = null;
     if (systemNotePayload?.note) {
@@ -1246,7 +1249,7 @@ function skipSceneTyping() {
     renderSystemNote(systemNotePayload.note, systemNotePayload.key);
   }
   renderChoices();
-  pinSceneTextToBottomOnMobile();
+  scrollStoryFlowToBottomOnMobile({ force: true });
   return true;
 }
 
@@ -1591,6 +1594,8 @@ function renderStatusBar() {
 
 function renderChoices() {
   const snapshot = client.snapshot;
+  const shouldAutoScrollChoices =
+    !dom.choices.classList.contains("revealed") || dom.choices.childElementCount === 0;
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed", "is-crafting-menu");
   if (!snapshot) {
@@ -1609,7 +1614,7 @@ function renderChoices() {
     renderCraftingChoices(snapshot);
     dom.choices.classList.add("revealed");
     syncMobileChoiceZoneHeight();
-    pinSceneTextToBottomOnMobile();
+    scrollStoryFlowToBottomOnMobile({ force: shouldAutoScrollChoices });
     return;
   }
 
@@ -1632,7 +1637,7 @@ function renderChoices() {
 
   dom.choices.classList.add("revealed");
   syncMobileChoiceZoneHeight();
-  pinSceneTextToBottomOnMobile();
+  scrollStoryFlowToBottomOnMobile({ force: shouldAutoScrollChoices });
 }
 
 function renderScene(animateText = true) {
@@ -1677,7 +1682,6 @@ function renderScene(animateText = true) {
         renderSystemNote(systemNotePayload.note, systemNotePayload.key);
       }
       renderChoices();
-      pinSceneTextToBottomOnMobile();
     }
     return;
   }
@@ -1693,7 +1697,6 @@ function renderScene(animateText = true) {
       renderSystemNote(systemNotePayload.note, systemNotePayload.key);
     }
     renderChoices();
-    pinSceneTextToBottomOnMobile();
     return;
   }
 
