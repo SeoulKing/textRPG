@@ -308,6 +308,8 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
       return state.day < condition.value;
     case "money_gte":
       return state.money >= condition.amount;
+    case "stat_gte":
+      return state.stats[condition.stat] >= condition.value;
     case "quest_state":
       return state.quests[condition.questId] === condition.status;
     case "stock_item_gte":

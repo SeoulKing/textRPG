@@ -30,6 +30,57 @@ export const hospitalChoices: ActionDefinition[] = [
     tags: ["medicine", "recovery"],
     riskHint: "low",
   }),
+  interactionFor("hospital", {
+    id: "help_hospital_triage",
+    label: "임시 처치대를 돕는다",
+    type: "use",
+    outcomeHint: "기력 -1 / 보상: 진통제·천 조각·끈 묶음·간단한 처치 중 하나 / +35분",
+    showOutcomeHint: true,
+    conditions: [{ type: "stat_gte", stat: "energy", value: 1 }],
+    effects: [
+      { type: "change_stat", stat: "energy", value: -1 },
+      { type: "advance_time", minutes: 35 },
+      {
+        type: "random_outcome",
+        outcomes: [
+          {
+            weight: 30,
+            effects: [
+              { type: "add_item", itemId: "painRelief", amount: 1 },
+              { type: "log", message: "당신은 임시 처치대를 돕고 진통제 한 알을 받았다." },
+              { type: "set_scene", sceneId: "hospital_triage_pain_relief" },
+            ],
+          },
+          {
+            weight: 30,
+            effects: [
+              { type: "add_item", itemId: "clothScrap", amount: 1 },
+              { type: "log", message: "당신은 더러운 붕대 더미를 정리하다가 쓸 만한 천 조각 하나를 챙겼다." },
+              { type: "set_scene", sceneId: "hospital_triage_cloth" },
+            ],
+          },
+          {
+            weight: 20,
+            effects: [
+              { type: "add_item", itemId: "cordage", amount: 1 },
+              { type: "log", message: "당신은 수액줄을 걷어 내고 묶는 데 쓸 만한 끈 묶음 하나를 얻었다." },
+              { type: "set_scene", sceneId: "hospital_triage_cordage" },
+            ],
+          },
+          {
+            weight: 20,
+            effects: [
+              { type: "change_stat", stat: "hp", value: 1 },
+              { type: "log", message: "당신은 처치대를 도운 대가로 짧은 소독과 붕대 교체를 받았다." },
+              { type: "set_scene", sceneId: "hospital_triage_treatment" },
+            ],
+          },
+        ],
+      },
+    ],
+    tags: ["medicine", "work", "repeatable", "resource"],
+    riskHint: "medium",
+  }),
 ];
 
 export const hospitalLocation = defineLocation({
@@ -40,7 +91,7 @@ export const hospitalLocation = defineLocation({
   imagePath: "assets/scenes/hospital.svg",
   summary: "깨진 유리와 소독약 냄새, 낮은 신음이 뒤섞인 작은 병원이다. 아직 쓸 만한 약품과 전원 부품이 남아 있다.",
   tags: ["medicine", "signal", "day4"],
-  traits: ["first aid", "battery", "stress"],
+  traits: ["first aid", "battery", "stress", "triage work"],
   obtainableItemIds: ["painRelief", "clothScrap", "cordage", "radioBattery"],
   neighbors: ["convenience"],
   interactionChoices: hospitalChoices,

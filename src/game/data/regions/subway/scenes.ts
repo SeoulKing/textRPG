@@ -50,4 +50,48 @@ export const subwaySceneDefinitions: SceneDefinition[] = [
       { type: "flag", flag: "intro_seen_subway" },
     ],
   },
+  {
+    id: "subway_platform_scrap",
+    locationId: "subway",
+    title: "승강장 자재",
+    paragraphs: [
+      "당신은 선로 가장자리로 몸을 낮추고, 떨어진 안내판 받침과 휘어진 좌석 프레임을 조심스럽게 잡아당긴다. 금속은 오래된 먼지와 기름때로 미끄럽지만, 아직 힘을 주면 뜯겨 나온다.",
+      "승강장 끝에서 작은 소리가 한 번 튄다. 사람인지, 떨어진 돌인지 알 수 없어 잠시 숨을 죽인다. 아무도 나타나지 않자 당신은 챙긴 고철을 품에 끌어안고 다시 위로 올라온다.",
+    ],
+    choiceIds: [],
+    conditions: [{ type: "location", locationId: "subway" }],
+  },
+  {
+    id: "subway_platform_cordage",
+    locationId: "subway",
+    title: "승강장 자재",
+    paragraphs: [
+      "손잡이 줄은 대부분 끊겨 있었지만, 일부는 아직 천장 고리에 매달린 채 흔들리고 있다. 당신은 발끝으로 균형을 잡고 남은 줄과 케이블을 끌어내린다.",
+      "하나씩 묶어 보니 쓸 만한 길이가 나온다. 어둠 속에서 손바닥을 스치는 섬유와 피복의 감촉만이, 지금 손에 넣은 것이 실제 물건이라는 감각을 준다.",
+    ],
+    choiceIds: [],
+    conditions: [{ type: "location", locationId: "subway" }],
+  },
+  {
+    id: "subway_platform_water",
+    locationId: "subway",
+    title: "승강장 자재",
+    paragraphs: [
+      "당신은 뒤집힌 의자 사이를 더듬다가 플라스틱 병이 굴러가는 둔한 소리를 듣는다. 손전등 없이 손끝만으로 좁은 틈을 더듬자, 먼지를 뒤집어쓴 물병 하나가 잡힌다.",
+      "봉인은 뜯기지 않았다. 이곳의 공기와 달리 병 안의 물은 아직 조용하다. 당신은 그것을 가방 깊숙이 밀어 넣는다.",
+    ],
+    choiceIds: [],
+    conditions: [{ type: "location", locationId: "subway" }],
+  },
+  {
+    id: "subway_platform_cut",
+    locationId: "subway",
+    title: "승강장 자재",
+    paragraphs: [
+      "낡은 광고판 아래쪽을 뜯어내는 순간, 숨겨져 있던 날카로운 금속 가장자리가 손등을 긁고 지나간다. 짧은 통증이 팔을 타고 올라오고, 피가 천천히 맺힌다.",
+      "그래도 빈손은 아니다. 당신은 숨을 고르고 고철 조각 하나를 챙긴다. 이곳에서는 작은 실수도 대가를 요구한다는 사실만 더 분명해졌다.",
+    ],
+    choiceIds: [],
+    conditions: [{ type: "location", locationId: "subway" }],
+  },
 ];

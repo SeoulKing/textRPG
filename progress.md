@@ -1273,3 +1273,61 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   direct engine smoke confirmed the action is available with a ration ticket, then produces `kitchen_ration_ticket_exchange`, consumes the ticket, adds a hot meal, and disappears after use.
   local server smoke confirmed `/api/health` and `/` both return 200 on `http://127.0.0.1:3000`.
   Playwright web-game smoke still cannot run because the local skill script cannot resolve the `playwright` package in this environment.
+
+- 2026-07-09 kitchen repeat work activity:
+  added a reusable `stat_gte` condition so content can require minimum hp/mind/energy before showing an action.
+  added the `배식소 일을 돕는다` kitchen action as a repeatable low-risk work loop: it requires at least 1 energy, spends 1 energy and 40 minutes, then randomly rewards either 1,200원, a ration ticket, a hot meal, or a water bottle.
+  added four short result scenes for the possible kitchen work outcomes so the reward appears as narrative body text instead of only as a system/log change.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the kitchen with energy, spends exactly 40 game minutes, reduces energy by 1, changes reward state, routes to a `kitchen_work_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 hospital triage work activity:
+  added the `임시 처치대를 돕는다` hospital action as a repeatable medium-risk support loop.
+  The action requires at least 1 energy, spends 1 energy and 35 minutes, then randomly rewards pain relief, cloth scrap, cordage, or a small hp treatment.
+  Added four `hospital_triage_*` result scenes so the outcome is shown through narrative body text.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the hospital with energy, spends exactly 35 game minutes, reduces energy by 1, changes reward state, routes to a `hospital_triage_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 subway platform salvage activity:
+  added the `승강장 자재를 회수한다` subway action as a repeatable high-risk salvage loop.
+  The action requires at least 1 energy, spends 1 energy and 40 minutes, then rewards scrap metal, cordage, or a water bottle, with a small injury outcome that still yields scrap.
+  Added four `subway_platform_*` result scenes to make the subway feel more alive through platform sounds, darkness, physical handling, and injury risk instead of only item log output.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the subway with energy, spends exactly 40 game minutes, reduces energy by 1, changes reward/risk state, routes to a `subway_platform_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 checkpoint perimeter patrol activity:
+  added the `초소 주변을 정찰한다` checkpoint action as a repeatable high-risk patrol loop.
+  The action requires at least 1 energy, spends 1 energy and 35 minutes, then rewards scrap metal, cordage, or a ration ticket, with a small injury outcome.
+  Added four `checkpoint_perimeter_*` result scenes so the checkpoint patrol resolves through location prose instead of dangling scene references.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+
+- 2026-07-10 kitchen rumor activities:
+  added `작은 병원 소문을 묻는다` as a one-time kitchen talk action that spends 20 minutes, sets `hospital_lead_checked` and `known_hospital`, and routes to `kitchen_rumor_hospital`.
+  added `배식줄 소문을 듣는다` as a repeatable 15-minute low-risk world flavor action with random results about food prices, subway sounds, checkpoint radio rumors, and night weather.
+  Added five `kitchen_rumor_*` scenes so world information appears as scene prose and not just system notes.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the one-time hospital rumor sets the knowledge flags, advances exactly 20 game minutes, disappears after use, and the repeatable line rumor advances exactly 15 game minutes and routes to a `kitchen_rumor_*` result scene.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.

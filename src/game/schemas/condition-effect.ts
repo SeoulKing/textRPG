@@ -11,6 +11,7 @@ export const ConditionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("day_gte"), value: z.number().int().positive() }),
   z.object({ type: z.literal("day_lt"), value: z.number().int().positive() }),
   z.object({ type: z.literal("money_gte"), amount: z.number().int().nonnegative() }),
+  z.object({ type: z.literal("stat_gte"), stat: z.enum(["hp", "mind", "energy"]), value: z.number().int().nonnegative() }),
   z.object({ type: z.literal("quest_state"), questId: z.string(), status: z.enum(["inactive", "active", "completed"]) }),
   z.object({
     type: z.literal("stock_item_gte"),
