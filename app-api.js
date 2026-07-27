@@ -697,6 +697,7 @@ function actionTransitionMessage(action) {
 function pendingActionControls() {
   return Array.from(document.querySelectorAll([
     ".choice-button",
+    ".crafting-choice-select",
     ".crafting-choice-submit",
     "[data-map-travel]",
     "[data-use-item]",
@@ -720,11 +721,18 @@ function beginActionTransition(action, triggerElement, durationMs) {
         ".crafting-choice-card, .inventory-card, .map-destination-detail, .choice-button",
       ) || control
     : null;
+  const craftingNameTarget = control instanceof HTMLElement
+    && control.matches(".crafting-choice-submit")
+    && anchor instanceof HTMLElement
+    ? anchor.querySelector(".crafting-choice-select")
+    : null;
   const visualTarget = action?.type === "use_item"
     && anchor instanceof HTMLElement
     && anchor.matches(".inventory-card")
     ? anchor
-    : control;
+    : craftingNameTarget instanceof HTMLElement
+      ? craftingNameTarget
+      : control;
   const message = actionTransitionMessage(action);
   const status = message ? document.createElement("p") : null;
   if (status) {

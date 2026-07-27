@@ -1444,3 +1444,15 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
   a focused browser probe confirmed no status copy, one card progress bar, no button progress bar, card-only pending emphasis, a 500ms duration, uninterrupted feedback after a second card click, cleanup after completion, and the water bottle count changing from one to zero; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 crafting transition placement:
+  moved crafting progress and pending emphasis from the small `제작` button to the matching `.crafting-choice-select` item-name area.
+  the item-name controls are disabled with the crafting buttons while an action is pending, preventing selection rerenders from interrupting feedback.
+  the existing absolutely positioned progress track remains clipped inside the name area and does not participate in layout.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  focused desktop and 390px browser probes confirmed one progress bar in the item-name area, zero progress bars in the `제작` button, a 500ms transition, and exact zero-pixel changes to the name area, recipe card, submit button, choices container, and scroll height while the progress bar was visible.
