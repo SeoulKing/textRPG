@@ -1422,3 +1422,25 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   the required web-game Playwright client rendered a fresh prologue successfully.
   a focused browser regression rewrote the first action response to `saveVersion: 999`; the same game id advanced from `prologue_opening` to `prologue_old_woman_visit`, activated the rescue quest, and exposed the canned-food quest without console errors.
   a direct engine probe confirmed the first `opening_commit` activates the rescue quest and an immediate replay is rejected without mutating the story state.
+
+- 2026-07-28 choice transition copy removal:
+  removed the `결정하는 중…` status line from `content_choice` transitions while retaining the 500ms in-button progress bar and response preloading.
+  choices also stay text-free on slow responses instead of changing to a secondary loading sentence.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `git diff --check`
+  the required web-game Playwright client passed.
+  a focused browser probe at 129ms confirmed zero `.action-transition-status` elements, one progress bar, an empty transition message, and successful advancement to `prologue_old_woman_visit`; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 item-use transition placement:
+  removed the `물건을 사용하는 중…` status line while retaining the 500ms minimum transition and response preloading.
+  item-use progress and pending emphasis now cover the complete inventory card instead of the small `사용` button.
+  inventory card selection is ignored while an item action is pending so rerendering cannot interrupt the card-level progress feedback.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a focused browser probe confirmed no status copy, one card progress bar, no button progress bar, card-only pending emphasis, a 500ms duration, uninterrupted feedback after a second card click, cleanup after completion, and the water bottle count changing from one to zero; the only console error was the pre-existing missing `/favicon.ico` request.

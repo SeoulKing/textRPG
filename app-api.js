@@ -657,10 +657,10 @@ function actionTransitionMessage(action) {
     return "걸어가는 중…";
   }
   if (action.type === "use_item") {
-    return "물건을 사용하는 중…";
+    return "";
   }
   if (action.type === "content_choice") {
-    return "결정하는 중…";
+    return "";
   }
   if (action.type === "subway_expedition") {
     const messages = {
@@ -715,17 +715,29 @@ function beginActionTransition(action, triggerElement, durationMs) {
   const control = triggerElement instanceof Element
     ? triggerElement.closest("button, [role='button']")
     : null;
+  const anchor = control instanceof HTMLElement
+    ? control.closest(
+        ".crafting-choice-card, .inventory-card, .map-destination-detail, .choice-button",
+      ) || control
+    : null;
+  const visualTarget = action?.type === "use_item"
+    && anchor instanceof HTMLElement
+    && anchor.matches(".inventory-card")
+    ? anchor
+    : control;
   const message = actionTransitionMessage(action);
-  const status = document.createElement("p");
-  status.className = "action-transition-status";
-  status.setAttribute("aria-live", "polite");
-  status.textContent = message;
+  const status = message ? document.createElement("p") : null;
+  if (status) {
+    status.className = "action-transition-status";
+    status.setAttribute("aria-live", "polite");
+    status.textContent = message;
+  }
 
-  client.pendingActionElement = control;
+  client.pendingActionElement = visualTarget;
   client.pendingActionStatusElement = status;
   client.actionTransitionStartedAt = Date.now();
   client.actionTransitionDurationMs = durationMs;
-  updateActionTransitionStatus(message);
+  client.actionTransitionMessage = message;
 
   client.pendingActionDisabledControls = pendingActionControls().map((element) => ({
     element,
@@ -739,11 +751,10 @@ function beginActionTransition(action, triggerElement, durationMs) {
     element.setAttribute("aria-disabled", "true");
   });
 
-  if (control instanceof HTMLElement) {
-    const anchor = control.closest(
-      ".crafting-choice-card, .inventory-card, .map-destination-detail, .choice-button",
-    ) || control;
-    anchor.parentElement?.insertBefore(status, anchor);
+  if (visualTarget instanceof HTMLElement) {
+    if (status) {
+      anchor.parentElement?.insertBefore(status, anchor);
+    }
 
     const progressTrack = document.createElement("span");
     progressTrack.className = "action-transition-progress";
@@ -752,17 +763,19 @@ function beginActionTransition(action, triggerElement, durationMs) {
     progressFill.className = "action-transition-progress-fill";
     progressFill.style.animationDuration = `${durationMs}ms`;
     progressTrack.appendChild(progressFill);
-    control.appendChild(progressTrack);
-    control.classList.add("is-action-pending");
+    visualTarget.appendChild(progressTrack);
+    visualTarget.classList.add("is-action-pending");
     client.pendingActionProgressElement = progressTrack;
-  } else {
+  } else if (status) {
     const host = client.isPanelOpen ? dom.panelContent : dom.choices;
     host.prepend(status);
   }
 
-  client.pendingActionSlowTimer = window.setTimeout(() => {
-    updateActionTransitionStatus("장면을 준비하는 중…");
-  }, ACTION_TRANSITION_SLOW_MESSAGE_MS);
+  client.pendingActionSlowTimer = status
+    ? window.setTimeout(() => {
+        updateActionTransitionStatus("장면을 준비하는 중…");
+      }, ACTION_TRANSITION_SLOW_MESSAGE_MS)
+    : null;
 }
 
 function finishActionTransition() {
@@ -2329,10 +2342,16 @@ function renderInventoryPanel() {
   const bindInventoryPanelInteractions = () => {
     dom.panelContent.querySelectorAll("[data-inventory-detail]").forEach((card) => {
       card.addEventListener("click", () => {
+        if (client.actionInFlight) {
+          return;
+        }
         selectInventoryDetail(card.dataset.inventoryDetail);
       });
       card.addEventListener("keydown", (event) => {
         if (event.target.closest("[data-use-item]")) {
+          return;
+        }
+        if (client.actionInFlight) {
           return;
         }
         if (event.key !== "Enter" && event.key !== " ") {
