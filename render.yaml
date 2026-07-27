@@ -22,7 +22,7 @@ services:
         sync: false
       - key: KAKAO_CLIENT_SECRET
         sync: false
-      - key: DATABASE_URL
+      - key: NEON_DATABASE_URL
         sync: false
 
 databases:

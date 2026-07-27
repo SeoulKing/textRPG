@@ -17,8 +17,9 @@ const app = Fastify({
 });
 
 const webRoot = path.resolve(__dirname, "..");
-const repository: GameRepository = process.env.DATABASE_URL
-  ? new PostgresGameRepository(process.env.DATABASE_URL, webRoot)
+const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+const repository: GameRepository = databaseUrl
+  ? new PostgresGameRepository(databaseUrl, webRoot)
   : new FileGameRepository(webRoot);
 const gameService = new GameService(repository);
 const authController = new AuthController(repository, gameService);

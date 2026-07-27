@@ -45,7 +45,7 @@ GitHub Pages can host the static files, but it cannot run the game API.
 The root `render.yaml` defines a Render Blueprint for:
 
 - a Node web service that runs `node .server-dist/server.js`
-- a Render Postgres database connected through `DATABASE_URL`
+- a PostgreSQL database connected through `NEON_DATABASE_URL` or `DATABASE_URL`
 - `/api/health` as the deployment health check
 
 Render setup:
@@ -116,6 +116,7 @@ When a user is logged in, `저장하기` writes to that account's single manual 
 - `PORT`
 - `RUNTIME_DIR`
 - `DATABASE_URL`
+- `NEON_DATABASE_URL` (takes precedence over `DATABASE_URL`)
 - `PUBLIC_BASE_URL`
 - `AUTH_SECRET`
 - `KAKAO_REST_API_KEY`
@@ -123,7 +124,7 @@ When a user is logged in, `저장하기` writes to that account's single manual 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-If `DATABASE_URL` is empty, the game uses the local file repository under `.runtime` or `RUNTIME_DIR` when set.
+If both `NEON_DATABASE_URL` and `DATABASE_URL` are empty, the game uses the local file repository under `.runtime` or `RUNTIME_DIR` when set.
 
 ## Docs
 
