@@ -12,7 +12,8 @@ const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const ACTION_TRANSITION_MS = 1000;
+const ACTION_TRANSITION_MOVEMENT_MS = 1000;
+const ACTION_TRANSITION_ACTION_MS = 500;
 const ACTION_TRANSITION_SLOW_MESSAGE_MS = 1200;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
 const CLIENT_SAVE_VERSION = 15;
@@ -305,6 +306,7 @@ const client = {
   pendingActionSlowTimer: null,
   actionTransitionMessage: "",
   actionTransitionStartedAt: 0,
+  actionTransitionDurationMs: 0,
   sceneRenderToken: 0,
   activeSceneTimer: null,
   activeAnimatedStory: null,
@@ -621,6 +623,31 @@ function waitForMilliseconds(durationMs) {
   });
 }
 
+function isMovementAction(action) {
+  if (!action) {
+    return false;
+  }
+  if (action.type === "travel") {
+    return true;
+  }
+  if (action.type === "subway_expedition") {
+    return ["start", "descend", "return"].includes(action.command);
+  }
+
+  const actionId = action.actionId || "";
+  if (/^leave_shelter_(crafting|cooking)$/.test(actionId)) {
+    return false;
+  }
+  return actionId === "start_subway_expedition" ||
+    /^(go_to_|leave_|push_beyond_)/.test(actionId);
+}
+
+function actionTransitionDurationMs(action) {
+  return isMovementAction(action)
+    ? ACTION_TRANSITION_MOVEMENT_MS
+    : ACTION_TRANSITION_ACTION_MS;
+}
+
 function actionTransitionMessage(action) {
   if (!action) {
     return "행동하는 중…";
@@ -683,7 +710,7 @@ function updateActionTransitionStatus(message) {
   }
 }
 
-function beginActionTransition(action, triggerElement) {
+function beginActionTransition(action, triggerElement, durationMs) {
   const control = triggerElement instanceof Element
     ? triggerElement.closest("button, [role='button']")
     : null;
@@ -696,6 +723,7 @@ function beginActionTransition(action, triggerElement) {
   client.pendingActionElement = control;
   client.pendingActionStatusElement = status;
   client.actionTransitionStartedAt = Date.now();
+  client.actionTransitionDurationMs = durationMs;
   updateActionTransitionStatus(message);
 
   client.pendingActionDisabledControls = pendingActionControls().map((element) => ({
@@ -721,6 +749,7 @@ function beginActionTransition(action, triggerElement) {
     progressTrack.setAttribute("aria-hidden", "true");
     const progressFill = document.createElement("span");
     progressFill.className = "action-transition-progress-fill";
+    progressFill.style.animationDuration = `${durationMs}ms`;
     progressTrack.appendChild(progressFill);
     control.appendChild(progressTrack);
     control.classList.add("is-action-pending");
@@ -764,6 +793,7 @@ function finishActionTransition() {
   client.pendingActionDisabledControls = [];
   client.actionTransitionMessage = "";
   client.actionTransitionStartedAt = 0;
+  client.actionTransitionDurationMs = 0;
 }
 
 function snapshotLocationCard(snapshot) {
@@ -2783,7 +2813,8 @@ async function submitAction(action, triggerElement = null) {
   }
   client.actionInFlight = true;
   client.pendingAction = action;
-  beginActionTransition(action, triggerElement);
+  const transitionDurationMs = actionTransitionDurationMs(action);
+  beginActionTransition(action, triggerElement, transitionDurationMs);
   const previousSnapshot = client.snapshot;
   try {
     const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {
@@ -2797,7 +2828,7 @@ async function submitAction(action, triggerElement = null) {
       .catch((error) => ({ snapshot: null, error }));
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
-      waitForMilliseconds(ACTION_TRANSITION_MS),
+      waitForMilliseconds(transitionDurationMs),
     ]);
     if (error) {
       throw error;
@@ -3161,6 +3192,7 @@ window.render_game_to_text = () => JSON.stringify({
     ? {
         message: client.actionTransitionMessage,
         elapsedMs: Math.max(0, Date.now() - client.actionTransitionStartedAt),
+        durationMs: client.actionTransitionDurationMs,
         action: client.pendingAction,
       }
     : null,
