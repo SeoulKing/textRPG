@@ -14,6 +14,8 @@ services:
         value: production
       - key: ENABLE_LLM_WORLD_PLANNER
         value: "false"
+      - key: ENABLE_LLM_SUBWAY_EXPEDITION
+        value: "true"
       - key: PUBLIC_BASE_URL
         value: https://textrpg-8ic8.onrender.com
       - key: AUTH_SECRET
@@ -21,6 +23,8 @@ services:
       - key: KAKAO_REST_API_KEY
         sync: false
       - key: KAKAO_CLIENT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
         sync: false
       - key: NEON_DATABASE_URL
         sync: false

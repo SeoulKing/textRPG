@@ -1344,3 +1344,65 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   Playwright web-game client smoke passed after installing local `playwright` and Chromium for validation.
   Additional 390px mobile Playwright probe confirmed typing state had 0 choices, revealed choices used `position: static` under `.scene-copy`, max scroll moved to the bottom, and a manual app-shell scroll moved story text and choices as one shared scroll flow.
   TODO: if future scenes add much taller choice menus, re-check crafting menus on small screens to tune choice button density without reintroducing fixed positioning.
+
+- 2026-07-10 inventory card size consistency:
+  fixed the mobile inventory panel so one-line item cards use a uniform fixed card height regardless of whether the card has a money tag, use button, or no trailing control.
+  Inventory card titles now stay on one line with ellipsis to prevent wrapped text from changing card height.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed.
+  390px mobile Playwright inventory probe rendered 10 sample cards and confirmed all card heights were 64px and all widths were 166px with no console errors.
+
+- 2026-07-27 action transition prefetch:
+  added a minimum 1-second transition for every gameplay action while the browser sends the action request in parallel.
+  the selected control now shows a left-to-right progress bar, with contextual copy above it such as `걸어가는 중…`, `주변을 살피는 중…`, or `다음 층으로 내려가는 중…`.
+  the returned next-scene snapshot stays in memory and its scene image is preloaded before the new scene is rendered.
+  slow requests keep the completed bar visible and change the status to `장면을 준비하는 중…`.
+  subway descent continues to use the server's one-floor-ahead generation cache underneath this browser transition.
+  Initial verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed using the installed desktop Chrome because the bundled Chromium executable was unavailable.
+  a focused 390px mobile probe exercised the complete flow through `폐자재 더미로 간다`:
+  at 364ms the status was `걸어가는 중…` and the bar measured about 30%;
+  with an artificial 1700ms API delay, the bar reached 100% and the status changed to `장면을 준비하는 중…`;
+  the completed response switched directly to `kitchen_scrap_heap_full` with its image already visible.
+  the normal fast action still held the transition for 1195ms, and the browser reported no console errors.
+
+- 2026-07-27 action transition timing split:
+  changed ordinary gameplay actions to a 500ms minimum transition while keeping physical movement at 1000ms.
+  movement includes map travel, `go_to_` / physical `leave_` / `push_beyond_` actions, and subway start, descend, and return commands; leaving shelter crafting/cooking menus stays a 500ms UI action.
+  the progress bar now receives the same per-action duration as the transition wait, and `render_game_to_text` exposes `durationMs` for verification.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npx.cmd tsc --outDir .tmp-action-transition-build --rootDir src`
+  `git diff --check`
+  the required web-game client smoke passed through installed Chrome.
+  a focused 390px Playwright probe confirmed `opening_commit` reports 500ms with a 0.5s progress animation and map travel to the convenience store reports 1000ms with a 1s progress animation.
+  both actions completed into their expected scenes; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-27 structured LLM subway expedition:
+  limited LLM direction to one subway expedition run at a time while leaving the authored concourse and 10-day survival game unchanged.
+  added a run plan, compact story memory, one major event per floor, two pre-generated outcome variants per choice, three fixed-manifest loot spots, dedicated event/loot result scenes, and explicit result acknowledgement phases.
+  the engine now rolls depth-table loot and supplies an exact mechanics envelope; invalid model output receives at most two repair prompts, then falls back to a visibly labeled template without clamping model values.
+  event choices are only enabled when both their clean and costly variants can be paid exactly; resolution rechecks that guard and applies the declared values without the global depleted-stat fallback.
+  replaced the process-only next-floor cache with a persisted template-first wrapper carrying run/source/depth/hash metadata. Start and descent consume it immediately, while a background task conditionally upgrades the same manifest and envelope with LLM prose.
+  added per-game mutation serialization for service saves, branch-neutral next-floor generation with selected-result bridge injection, unique-loot reservation, and client redaction of future floors, unresolved outcomes, and unsearched contents.
+  enabled the subway generator in `render.yaml` while keeping the world planner disabled; `GEMINI_API_KEY` remains a deployment secret.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  isolated TypeScript build
+  `node --check app-api.js`
+  `git diff --check`
+  live Gemini probes passed with `gemini-3.1-flash-lite-preview`: the run plan returned an LLM source with three motifs/escalation notes, and a depth-1 floor returned an LLM source with two event choices, both outcome branches, and three loot spots.
+  service/repository integration probe passed persisted restart consumption, event/result/loot phases, exact one-time effects, next-depth preparation, bridge insertion, return settlement, and next-run reset.
+  the required web-game Playwright client passed against the current build using desktop Chrome.
+  a focused browser flow confirmed the `템플릿 층` badge, 1000ms start transition, 500ms event transition, event result scene, loot result scene, and correct 06:30 → 07:25 clock display; the only console error was the pre-existing missing `/favicon.ico` request.

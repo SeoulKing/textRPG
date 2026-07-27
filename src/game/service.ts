@@ -24,6 +24,7 @@ import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition
 import { applyEffect } from "./state-utils";
 import { buildActionCatalogFromStoryChoices, resolveStoryFrame } from "./story-flow";
 import {
+  acknowledgeSubwayResult,
   buildSubwayExpeditionActions,
   buildSubwayExpeditionScene,
   descendSubwayFloor,
@@ -32,7 +33,22 @@ import {
   searchSubwayLootSpot,
   startSubwayExpedition,
 } from "./subway-expedition";
-import { generateSubwayFloor } from "./subway-expedition-generator";
+import {
+  SUBWAY_EXPEDITION_PROMPT_VERSION,
+  buildSubwayMechanicsEnvelope,
+  buildTemplateSubwayFloorBundle,
+  buildTemplateSubwayRunPlan,
+  createSubwayFloorGenerationSpec,
+  generateSubwayFloorBundle,
+  generateSubwayRunPlan,
+  hashSubwayMechanicsEnvelope,
+  type SubwayFloorBundleGenerationInput,
+} from "./subway-expedition-generator";
+import {
+  SUBWAY_LOOT_TABLES,
+  type SubwayLootItemId,
+  type SubwayLootManifestSpot,
+} from "./subway-loot";
 import type {
   ActionChoice,
   ActionDefinition,
@@ -55,7 +71,7 @@ import type {
   StateSnapshot,
   StoryChoice,
   StoryMaterials,
-  SubwayExpeditionFloor,
+  SubwayRunPlan,
 } from "./schemas";
 import { EventCardSchema, ItemCardSchema, SceneCardSchema, StateSnapshotSchema } from "./schemas";
 import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from "./world-planner";
@@ -134,6 +150,11 @@ const STATIC_SCENE_SOURCE_PATH_BY_LOCATION: Record<string, string> = {
 };
 
 const TRAVEL_MINUTES_PER_ROUTE = Math.round(TRAVEL_DURATION_MS / GAME_MINUTE_MS);
+const UNIQUE_SUBWAY_LOOT_ITEM_IDS = new Set(
+  SUBWAY_LOOT_TABLES.flatMap((table) =>
+    table.entries.filter((entry) => entry.unique).map((entry) => entry.itemId)
+  ),
+);
 
 function sceneDevSource(sceneDef: SceneDefinition) {
   return {
@@ -145,17 +166,33 @@ function sceneDevSource(sceneDef: SceneDefinition) {
 }
 
 export class GameService {
-  private readonly subwayNextFloorCache = new Map<
-    string,
-    { currentFloorId: string; targetDepth: number; floor: SubwayExpeditionFloor }
-  >();
   private readonly subwayFloorGenerationTasks = new Map<string, Promise<void>>();
+  private readonly gameMutationTails = new Map<string, Promise<void>>();
 
   constructor(
     private readonly repository: GameRepository,
     private readonly templateGenerator: ContentGenerator = createTemplateContentGenerator(),
     private readonly planner: WorldPlanner = createWorldPlanner(),
   ) {}
+
+  private async withGameMutation<T>(gameId: string, operation: () => Promise<T>) {
+    const previous = this.gameMutationTails.get(gameId) ?? Promise.resolve();
+    let releaseCurrent!: () => void;
+    const current = new Promise<void>((resolve) => {
+      releaseCurrent = resolve;
+    });
+    const queued = previous.catch(() => undefined).then(() => current);
+    this.gameMutationTails.set(gameId, queued);
+    await previous.catch(() => undefined);
+    try {
+      return await operation();
+    } finally {
+      releaseCurrent();
+      if (this.gameMutationTails.get(gameId) === queued) {
+        this.gameMutationTails.delete(gameId);
+      }
+    }
+  }
 
   private subwayPreparationContext(state: GameSession["state"]) {
     if (state.location !== "subway" || state.isGameOver || state.stageClear) {
@@ -164,9 +201,10 @@ export class GameService {
     const expedition = state.subwayExpedition;
     if (!expedition.active) {
       return {
-        currentFloorId: "subway-concourse",
+        runNumber: expedition.runNumber + 1,
+        sourceFloorId: "subway-concourse",
         targetDepth: 1,
-        previousOutcome: "지하철역 대합실에 도착해 장비를 정비하며 지하 1층 진입을 준비하고 있다.",
+        previousOutcome: "지하철역 대합실에서 장비를 정비한 뒤 지하 1층 진입을 준비하고 있다.",
       };
     }
     const currentFloor = expedition.currentFloor;
@@ -174,60 +212,167 @@ export class GameService {
       return null;
     }
     return {
-      currentFloorId: currentFloor.id,
+      runNumber: expedition.runNumber,
+      sourceFloorId: currentFloor.id,
       targetDepth: currentFloor.depth + 1,
       previousOutcome:
-        `${currentFloor.title}의 큰 사건과 파밍을 진행 중이다. 다음 층은 현재 층 정산 후 이어질 독립된 구간이다.`,
+        `${currentFloor.title}을 탐색 중이다. 다음 층은 현재 사건의 어떤 결과와도 모순되지 않는 인접 구간이다.`,
     };
   }
 
-  private subwayPreparationTaskKey(gameId: string, context: { currentFloorId: string; targetDepth: number }) {
-    return `${gameId}:${context.currentFloorId}:${context.targetDepth}`;
+  private subwayPreparationTaskKey(gameId: string, contextHash: string) {
+    return `${gameId}:${contextHash}`;
+  }
+
+  private isMatchingPreparedSubwayFloor(
+    session: GameSession,
+    context = this.subwayPreparationContext(session.state),
+  ) {
+    const prepared = session.state.subwayExpedition.preparedNextFloor;
+    if (!context || !prepared) {
+      return false;
+    }
+    const mechanicsEnvelopeHash = hashSubwayMechanicsEnvelope(
+      buildSubwayMechanicsEnvelope(context.targetDepth),
+    );
+    const conflictsWithOwnedUniqueLoot = prepared.floor.lootSpots.some((spot) =>
+      spot.contents.some((entry) =>
+        UNIQUE_SUBWAY_LOOT_ITEM_IDS.has(entry.itemId as SubwayLootItemId) &&
+        (
+          (session.state.inventory[entry.itemId] ?? 0) > 0 ||
+          (session.state.subwayExpedition.carriedLoot[entry.itemId] ?? 0) > 0
+        )
+      )
+    );
+    return (
+      session.state.subwayExpedition.runPlan?.runNumber === context.runNumber &&
+      prepared.runNumber === context.runNumber &&
+      prepared.sourceFloorId === context.sourceFloorId &&
+      prepared.targetDepth === context.targetDepth &&
+      prepared.floor.depth === context.targetDepth &&
+      prepared.floor.promptVersion === SUBWAY_EXPEDITION_PROMPT_VERSION &&
+      prepared.floor.mechanicsEnvelopeHash === mechanicsEnvelopeHash &&
+      !conflictsWithOwnedUniqueLoot &&
+      Boolean(prepared.floor.contextHash) &&
+      prepared.floor.contextHash === prepared.contextHash
+    );
+  }
+
+  private storyMemoryForPreparedRunPlan(runPlan: SubwayRunPlan) {
+    return {
+      facts: [...runPlan.facts],
+      unresolvedThreads: [...runPlan.unresolvedThreads],
+      resolvedThreads: [],
+      recentSummaries: [],
+      lastBridge: "",
+    };
+  }
+
+  private ensurePreparedSubwayTemplate(session: GameSession) {
+    const context = this.subwayPreparationContext(session.state);
+    const expedition = session.state.subwayExpedition;
+    if (!context) {
+      const changed = expedition.preparedNextFloor !== null;
+      expedition.preparedNextFloor = null;
+      if (!expedition.active) {
+        expedition.runPlan = null;
+      }
+      return changed;
+    }
+    if (this.isMatchingPreparedSubwayFloor(session, context)) {
+      return false;
+    }
+
+    const runPlan = expedition.runPlan?.runNumber === context.runNumber
+      ? expedition.runPlan
+      : buildTemplateSubwayRunPlan(context.runNumber);
+    const runMemory = expedition.active
+      ? expedition.storyMemory
+      : this.storyMemoryForPreparedRunPlan(runPlan);
+    const spec = createSubwayFloorGenerationSpec({
+      gameId: session.id,
+      state: structuredClone(session.state),
+      depth: context.targetDepth,
+      previousOutcome: context.previousOutcome,
+      runPlan,
+      runMemory,
+    });
+    const floor = buildTemplateSubwayFloorBundle(spec);
+    expedition.runPlan = structuredClone(runPlan);
+    expedition.preparedNextFloor = {
+      contextHash: floor.contextHash as string,
+      floor,
+      createdAt: nowIso(),
+      runNumber: context.runNumber,
+      sourceFloorId: context.sourceFloorId,
+      targetDepth: context.targetDepth,
+      llmAttempted: false,
+    };
+    return true;
   }
 
   private takePreparedSubwayFloor(session: GameSession) {
-    const cached = this.subwayNextFloorCache.get(session.id);
-    this.subwayNextFloorCache.delete(session.id);
     const context = this.subwayPreparationContext(session.state);
-    if (
-      !cached ||
-      !context ||
-      cached.currentFloorId !== context.currentFloorId ||
-      cached.targetDepth !== context.targetDepth
-    ) {
+    if (!this.isMatchingPreparedSubwayFloor(session, context)) {
       return null;
     }
-    return cached.floor;
-  }
-
-  private pendingSubwayFloorGeneration(session: GameSession) {
-    const context = this.subwayPreparationContext(session.state);
-    if (!context) {
+    const expedition = session.state.subwayExpedition;
+    const prepared = expedition.preparedNextFloor;
+    if (!prepared || !context) {
       return null;
     }
-    return this.subwayFloorGenerationTasks.get(
-      this.subwayPreparationTaskKey(session.id, context),
-    ) ?? null;
-  }
-
-  private clearPreparedSubwayFloor(gameId: string) {
-    this.subwayNextFloorCache.delete(gameId);
+    const runPlan = !expedition.active &&
+      expedition.runPlan?.runNumber === context.runNumber
+      ? structuredClone(expedition.runPlan)
+      : null;
+    expedition.preparedNextFloor = null;
+    return {
+      floor: structuredClone(prepared.floor),
+      runPlan,
+    };
   }
 
   private scheduleSubwayNextFloor(session: GameSession) {
     const context = this.subwayPreparationContext(session.state);
     if (!context) {
-      this.clearPreparedSubwayFloor(session.id);
       return;
     }
-    const existing = this.subwayNextFloorCache.get(session.id);
+    const prepared = session.state.subwayExpedition.preparedNextFloor;
     if (
-      existing?.currentFloorId === context.currentFloorId &&
-      existing.targetDepth === context.targetDepth
+      !prepared ||
+      !this.isMatchingPreparedSubwayFloor(session, context) ||
+      prepared.llmAttempted
     ) {
       return;
     }
-    const taskKey = this.subwayPreparationTaskKey(session.id, context);
+    const runPlan = session.state.subwayExpedition.runPlan;
+    if (!runPlan || runPlan.runNumber !== context.runNumber) {
+      return;
+    }
+    const runMemory = session.state.subwayExpedition.active
+      ? session.state.subwayExpedition.storyMemory
+      : this.storyMemoryForPreparedRunPlan(runPlan);
+    const lootManifest: SubwayLootManifestSpot[] = prepared.floor.lootSpots.map((spot) => ({
+      slotId: spot.id,
+      contents: spot.contents.map((entry) => ({
+        itemId: entry.itemId as SubwayLootItemId,
+        amount: entry.amount,
+      })),
+    }));
+    const spec = createSubwayFloorGenerationSpec({
+      gameId: session.id,
+      state: structuredClone(session.state),
+      depth: context.targetDepth,
+      previousOutcome: context.previousOutcome,
+      runPlan,
+      runMemory,
+      lootManifest,
+      mechanicsEnvelope: buildSubwayMechanicsEnvelope(context.targetDepth),
+    });
+    if (spec.contextHash !== prepared.contextHash) {
+      return;
+    }
+    const taskKey = this.subwayPreparationTaskKey(session.id, prepared.contextHash);
     if (this.subwayFloorGenerationTasks.has(taskKey)) {
       return;
     }
@@ -235,6 +380,8 @@ export class GameService {
       session.id,
       context,
       structuredClone(session.state),
+      spec,
+      prepared.contextHash,
     )
       .catch(() => undefined)
       .finally(() => {
@@ -247,38 +394,92 @@ export class GameService {
 
   private async preGenerateSubwayNextFloor(
     gameId: string,
-    context: { currentFloorId: string; targetDepth: number; previousOutcome: string },
+    context: {
+      runNumber: number;
+      sourceFloorId: string;
+      targetDepth: number;
+      previousOutcome: string;
+    },
     state: GameSession["state"],
+    templateSpec: SubwayFloorBundleGenerationInput,
+    templateContextHash: string,
   ) {
-    const floor = await generateSubwayFloor({
+    const isRunStart = context.sourceFloorId === "subway-concourse";
+    const runPlan = isRunStart
+      ? await generateSubwayRunPlan({
+          gameId,
+          state,
+          runNumber: context.runNumber,
+        })
+      : templateSpec.runPlan;
+    const runMemory = isRunStart
+      ? this.storyMemoryForPreparedRunPlan(runPlan)
+      : templateSpec.runMemory;
+    const generationSpec = createSubwayFloorGenerationSpec({
       gameId,
       state,
       depth: context.targetDepth,
       previousOutcome: context.previousOutcome,
+      runPlan,
+      runMemory,
+      lootManifest: templateSpec.lootManifest,
+      mechanicsEnvelope: templateSpec.mechanicsEnvelope,
     });
-    const latest = await this.repository.loadGame(gameId);
-    const latestContext = this.subwayPreparationContext(latest.state);
-    if (
-      !latestContext ||
-      latestContext.currentFloorId !== context.currentFloorId ||
-      latestContext.targetDepth !== context.targetDepth
-    ) {
-      return;
-    }
+    const floor = await generateSubwayFloorBundle(generationSpec);
 
-    this.subwayNextFloorCache.set(gameId, {
-      currentFloorId: context.currentFloorId,
-      targetDepth: context.targetDepth,
-      floor,
-    });
-    await this.repository.appendGenerationLog({
-      gameId,
-      kind: "subwayFloorPregenerated",
-      id: floor.id,
-      sourceFloorId: context.currentFloorId,
-      depth: context.targetDepth,
-      source: floor.source,
-      at: nowIso(),
+    await this.withGameMutation(gameId, async () => {
+      const latest = await this.repository.loadGame(gameId);
+      const latestContext = this.subwayPreparationContext(latest.state);
+      const prepared = latest.state.subwayExpedition.preparedNextFloor;
+      // The next floor is intentionally branch-neutral. Do not recompute its hash
+      // from post-choice stats or story memory; descent injects the selected bridge.
+      if (
+        !latestContext ||
+        latestContext.runNumber !== context.runNumber ||
+        latestContext.sourceFloorId !== context.sourceFloorId ||
+        latestContext.targetDepth !== context.targetDepth ||
+        !prepared ||
+        !this.isMatchingPreparedSubwayFloor(latest, latestContext) ||
+        prepared.contextHash !== templateContextHash ||
+        prepared.floor.contextHash !== templateContextHash ||
+        prepared.floor.source !== "template" ||
+        prepared.llmAttempted ||
+        latest.state.subwayExpedition.runPlan?.runNumber !== context.runNumber
+      ) {
+        return;
+      }
+      if (
+        floor.depth !== context.targetDepth ||
+        floor.contextHash !== generationSpec.contextHash ||
+        floor.mechanicsEnvelopeHash !== generationSpec.mechanicsEnvelopeHash
+      ) {
+        return;
+      }
+
+      latest.state.subwayExpedition.preparedNextFloor = {
+        contextHash: generationSpec.contextHash,
+        floor,
+        createdAt: nowIso(),
+        runNumber: context.runNumber,
+        sourceFloorId: context.sourceFloorId,
+        targetDepth: context.targetDepth,
+        llmAttempted: true,
+      };
+      if (isRunStart) {
+        latest.state.subwayExpedition.runPlan = structuredClone(runPlan);
+      }
+      latest.updatedAt = nowIso();
+      await this.repository.saveGame(latest);
+      await this.repository.appendGenerationLog({
+        gameId,
+        kind: "subwayFloorPregenerated",
+        id: floor.id,
+        sourceFloorId: context.sourceFloorId,
+        depth: context.targetDepth,
+        source: floor.source,
+        runPlanSource: runPlan.source,
+        at: latest.updatedAt,
+      });
     });
   }
 
@@ -306,6 +507,10 @@ export class GameService {
   }
 
   async getState(gameId: string) {
+    return this.withGameMutation(gameId, () => this.getStateUnlocked(gameId));
+  }
+
+  private async getStateUnlocked(gameId: string) {
     const session = await this.repository.loadGame(gameId);
     const previousState = structuredClone(session.state);
     syncClock(session.state);
@@ -315,6 +520,7 @@ export class GameService {
     await this.replanTomorrowIfNeeded(session, previousState.day);
     session.updatedAt = nowIso();
     await this.ensureCards(session);
+    this.ensurePreparedSubwayTemplate(session);
     const snapshot = this.buildSnapshot(session, null);
     await this.repository.saveGame(session);
     this.scheduleSubwayNextFloor(session);
@@ -322,6 +528,10 @@ export class GameService {
   }
 
   async performAction(gameId: string, action: GameAction) {
+    return this.withGameMutation(gameId, () => this.performActionUnlocked(gameId, action));
+  }
+
+  private async performActionUnlocked(gameId: string, action: GameAction) {
     const session = await this.repository.loadGame(gameId);
     const previousDay = session.state.day;
     const registry = this.runtimeRegistry(session);
@@ -342,45 +552,49 @@ export class GameService {
         ? action
         : { type: "subway_expedition" as const, command: "start" as const };
       if (subwayAction.command === "start") {
-        const pendingFloor = this.pendingSubwayFloorGeneration(session);
-        if (pendingFloor) {
-          await pendingFloor;
+        this.ensurePreparedSubwayTemplate(session);
+        const prepared = this.takePreparedSubwayFloor(session);
+        if (!prepared) {
+          throw new Error("준비된 지하 1층을 불러오지 못했습니다.");
         }
-        const preparedFloor = this.takePreparedSubwayFloor(session);
-        if (preparedFloor) {
-          await this.repository.appendGenerationLog({
-            gameId,
-            kind: "subwayFloorPregeneratedCacheHit",
-            id: preparedFloor.id,
-            depth: preparedFloor.depth,
-            source: preparedFloor.source,
-            at: nowIso(),
-          });
-        }
-        await startSubwayExpedition(session.state, gameId, preparedFloor);
+        await startSubwayExpedition(
+          session.state,
+          gameId,
+          prepared.floor,
+          prepared.runPlan,
+        );
+        await this.repository.appendGenerationLog({
+          gameId,
+          kind: "subwayFloorPregeneratedCacheHit",
+          id: prepared.floor.id,
+          depth: prepared.floor.depth,
+          source: prepared.floor.source,
+          storage: "persistent",
+          at: nowIso(),
+        });
       } else if (subwayAction.command === "choose" || subwayAction.command === "resolve_event") {
         resolveSubwayFloorEvent(session.state, subwayAction.optionId);
+      } else if (subwayAction.command === "acknowledge_result") {
+        acknowledgeSubwayResult(session.state);
       } else if (subwayAction.command === "search_loot") {
         searchSubwayLootSpot(session.state, subwayAction.lootSpotId);
       } else if (subwayAction.command === "descend") {
-        const pendingFloor = this.pendingSubwayFloorGeneration(session);
-        if (pendingFloor) {
-          await pendingFloor;
+        this.ensurePreparedSubwayTemplate(session);
+        const prepared = this.takePreparedSubwayFloor(session);
+        if (!prepared) {
+          throw new Error("준비된 다음 지하층을 불러오지 못했습니다.");
         }
-        const preparedFloor = this.takePreparedSubwayFloor(session);
-        if (preparedFloor) {
-          await this.repository.appendGenerationLog({
-            gameId,
-            kind: "subwayFloorPregeneratedCacheHit",
-            id: preparedFloor.id,
-            depth: preparedFloor.depth,
-            source: preparedFloor.source,
-            at: nowIso(),
-          });
-        }
-        await descendSubwayFloor(session.state, gameId, preparedFloor);
-      } else {
-        this.clearPreparedSubwayFloor(gameId);
+        await descendSubwayFloor(session.state, gameId, prepared.floor);
+        await this.repository.appendGenerationLog({
+          gameId,
+          kind: "subwayFloorPregeneratedCacheHit",
+          id: prepared.floor.id,
+          depth: prepared.floor.depth,
+          source: prepared.floor.source,
+          storage: "persistent",
+          at: nowIso(),
+        });
+      } else if (subwayAction.command === "return") {
         returnFromSubwayExpedition(session.state);
       }
       session.updatedAt = nowIso();
@@ -395,6 +609,7 @@ export class GameService {
         location: session.state.location,
         day: session.state.day,
       });
+      this.ensurePreparedSubwayTemplate(session);
       const snapshot = this.buildSnapshot(session, null);
       await this.repository.saveGame(session);
       this.scheduleSubwayNextFloor(session);
@@ -438,6 +653,7 @@ export class GameService {
       location: session.state.location,
       day: session.state.day,
     });
+    this.ensurePreparedSubwayTemplate(session);
     const snapshot = this.buildSnapshot(session, latestEvent);
     await this.repository.saveGame(session);
     void this.preGenerateNarrativeBeats(gameId).catch(() => undefined);
@@ -446,6 +662,10 @@ export class GameService {
   }
 
   async getMap(gameId: string) {
+    return this.withGameMutation(gameId, () => this.getMapUnlocked(gameId));
+  }
+
+  private async getMapUnlocked(gameId: string) {
     const session = await this.repository.loadGame(gameId);
     const previousDay = session.state.day;
     syncClock(session.state);
@@ -453,15 +673,22 @@ export class GameService {
     syncScene(session.state);
     await this.replanTomorrowIfNeeded(session, previousDay);
     await this.ensureCards(session);
+    this.ensurePreparedSubwayTemplate(session);
     await this.repository.saveGame(session);
-    return {
+    const result = {
       gameId,
       location: session.state.location,
       visibleLocations: this.visibleLocationIds(session).map((locationId) => session.world.locationCards[locationId]),
     };
+    this.scheduleSubwayNextFloor(session);
+    return result;
   }
 
   async getInventory(gameId: string) {
+    return this.withGameMutation(gameId, () => this.getInventoryUnlocked(gameId));
+  }
+
+  private async getInventoryUnlocked(gameId: string) {
     const session = await this.repository.loadGame(gameId);
     const previousDay = session.state.day;
     syncClock(session.state);
@@ -469,12 +696,15 @@ export class GameService {
     syncScene(session.state);
     await this.replanTomorrowIfNeeded(session, previousDay);
     await this.ensureCards(session);
+    this.ensurePreparedSubwayTemplate(session);
     await this.repository.saveGame(session);
-    return {
+    const result = {
       gameId,
       inventoryCards: Object.keys(session.state.inventory).map((itemId) => session.world.itemCards[itemId]),
       money: session.state.money,
     };
+    this.scheduleSubwayNextFloor(session);
+    return result;
   }
 
   async getManualSave(gameId: string) {
@@ -486,6 +716,10 @@ export class GameService {
   }
 
   async saveManualGame(gameId: string, ownerId: string | null = null) {
+    return this.withGameMutation(gameId, () => this.saveManualGameUnlocked(gameId, ownerId));
+  }
+
+  private async saveManualGameUnlocked(gameId: string, ownerId: string | null = null) {
     const session = await this.repository.loadGame(gameId);
     const previousDay = session.state.day;
     syncClock(session.state);
@@ -494,11 +728,18 @@ export class GameService {
     await this.replanTomorrowIfNeeded(session, previousDay);
     session.updatedAt = nowIso();
     await this.ensureCards(session);
+    this.ensurePreparedSubwayTemplate(session);
     await this.repository.saveGame(session);
-    return this.repository.saveManualGame(session, session.updatedAt, ownerId);
+    const result = await this.repository.saveManualGame(session, session.updatedAt, ownerId);
+    this.scheduleSubwayNextFloor(session);
+    return result;
   }
 
   async restoreManualGame(gameId: string) {
+    return this.withGameMutation(gameId, () => this.restoreManualGameUnlocked(gameId));
+  }
+
+  private async restoreManualGameUnlocked(gameId: string) {
     const record = await this.repository.loadManualGame(gameId);
     if (!record) {
       throw new Error("저장된 게임을 찾을 수 없습니다.");
@@ -512,6 +753,7 @@ export class GameService {
     await this.replanTomorrowIfNeeded(session, previousDay);
     session.updatedAt = nowIso();
     await this.ensureCards(session);
+    this.ensurePreparedSubwayTemplate(session);
     const snapshot = this.buildSnapshot(session, null);
     await this.repository.saveGame(session);
     this.scheduleSubwayNextFloor(session);
@@ -524,18 +766,21 @@ export class GameService {
       throw new Error("저장된 게임을 찾을 수 없습니다.");
     }
 
-    const session = record.session;
-    const previousDay = session.state.day;
-    syncClock(session.state);
-    syncQuestState(session.state);
-    syncScene(session.state);
-    await this.replanTomorrowIfNeeded(session, previousDay);
-    session.updatedAt = nowIso();
-    await this.ensureCards(session);
-    const snapshot = this.buildSnapshot(session, null);
-    await this.repository.saveGame(session);
-    this.scheduleSubwayNextFloor(session);
-    return snapshot;
+    return this.withGameMutation(record.session.id, async () => {
+      const session = record.session;
+      const previousDay = session.state.day;
+      syncClock(session.state);
+      syncQuestState(session.state);
+      syncScene(session.state);
+      await this.replanTomorrowIfNeeded(session, previousDay);
+      session.updatedAt = nowIso();
+      await this.ensureCards(session);
+      this.ensurePreparedSubwayTemplate(session);
+      const snapshot = this.buildSnapshot(session, null);
+      await this.repository.saveGame(session);
+      this.scheduleSubwayNextFloor(session);
+      return snapshot;
+    });
   }
 
   private runtimeRegistry(session: Pick<GameSession, "state"> | Pick<{ state: GameSession["state"] }, "state">) {
@@ -1129,9 +1374,28 @@ export class GameService {
       : latestEvent && latestEvent.choices.length > 0
         ? latestEvent.choices
         : locationChoices;
+    const clientState = structuredClone(session.state);
+    clientState.subwayExpedition.preparedNextFloor = null;
+    clientState.subwayExpedition.runPlan = null;
+    clientState.subwayExpedition.storyMemory = {
+      facts: [],
+      unresolvedThreads: [],
+      resolvedThreads: [],
+      recentSummaries: [],
+      lastBridge: "",
+    };
+    clientState.subwayExpedition.currentFloor?.majorEvent.options.forEach((option) => {
+      delete option.outcomes;
+    });
+    clientState.subwayExpedition.currentFloor?.lootSpots.forEach((spot) => {
+      if (!clientState.subwayExpedition.currentFloorProgress.searchedLootSpotIds.includes(spot.id)) {
+        spot.contents = [];
+        delete spot.resultParagraphs;
+      }
+    });
     const snapshot = {
       gameId: session.id,
-      state: structuredClone(session.state),
+      state: clientState,
       currentScene,
       visibleLocations: this.visibleLocationIds(session).map(
         (locationId) => session.world.locationCards[locationId] as LocationCard,
@@ -1459,69 +1723,81 @@ export class GameService {
   }
 
   private async preGenerateNarrativeBeats(gameId: string) {
-    const session = await this.repository.loadGame(gameId);
-    const registry = this.runtimeRegistry(session);
-    const candidates = this.narrativeContinuationChoices(session, registry).slice(0, 1);
-    if (candidates.length === 0) {
+    const preparation = await this.withGameMutation(gameId, async () => {
+      const session = await this.repository.loadGame(gameId);
+      const registry = this.runtimeRegistry(session);
+      const candidates = this.narrativeContinuationChoices(session, registry).slice(0, 1);
+      if (candidates.length === 0) {
+        return null;
+      }
+
+      const pending = candidates
+        .map((choice) => {
+          const action = choice.serverActionHint;
+          if (!this.isNarrativeContinuation(action, registry)) {
+            return null;
+          }
+          const sequence = this.reserveNarrativeSequence(session);
+          const built = this.buildNarrativeRequest(session, action, registry, sequence);
+          if (session.state.narrativeState.pregenerated[built.key]) {
+            return null;
+          }
+          return built;
+        })
+        .filter(Boolean) as Array<{ key: string; stateHash: string; request: NarrativeContinuationRequest }>;
+
+      if (pending.length === 0) {
+        return null;
+      }
+
+      session.updatedAt = nowIso();
+      await this.repository.saveGame(session);
+      return {
+        pending,
+        state: structuredClone(session.state),
+        registry,
+      };
+    });
+    if (!preparation) {
       return;
     }
 
-    const pending = candidates
-      .map((choice) => {
-        const action = choice.serverActionHint;
-        if (!this.isNarrativeContinuation(action, registry)) {
-          return null;
-        }
-        const sequence = this.reserveNarrativeSequence(session);
-        const built = this.buildNarrativeRequest(session, action, registry, sequence);
-        if (session.state.narrativeState.pregenerated[built.key]) {
-          return null;
-        }
-        return built;
-      })
-      .filter(Boolean) as Array<{ key: string; stateHash: string; request: NarrativeContinuationRequest }>;
-
-    if (pending.length === 0) {
-      return;
-    }
-
-    session.updatedAt = nowIso();
-    await this.repository.saveGame(session);
-
-    for (const entry of pending) {
+    for (const entry of preparation.pending) {
       try {
         const plannerRequest = {
           ...entry.request,
-          state: session.state,
-          registry,
+          state: preparation.state,
+          registry: preparation.registry,
         };
         const beat = compileSceneDraftForRuntime(
           gameId,
           plannerRequest,
           await this.planner.generateSceneDraft(plannerRequest),
         );
-        const latest = await this.repository.loadGame(gameId);
-        latest.state.narrativeState.pregenerated[entry.key] = {
-          key: entry.key,
-          locationId: entry.request.locationId,
-          sourceSceneId: entry.request.sourceSceneId,
-          triggerId: entry.request.trigger.id,
-          stateHash: entry.stateHash,
-          createdAt: nowIso(),
-          beat,
-        };
-        this.prunePregeneratedNarrativeBeats(latest);
-        latest.updatedAt = nowIso();
-        await this.repository.appendGenerationLog({
-          gameId,
-          kind: "generatedStoryBeatPregenerated",
-          id: beat.id,
-          at: latest.updatedAt,
-          locationId: beat.locationId,
-          sourceSceneId: beat.sourceSceneId,
-          triggerId: beat.sourceTriggerId,
+        await this.withGameMutation(gameId, async () => {
+          const latest = await this.repository.loadGame(gameId);
+          latest.state.narrativeState.pregenerated[entry.key] = {
+            key: entry.key,
+            locationId: entry.request.locationId,
+            sourceSceneId: entry.request.sourceSceneId,
+            triggerId: entry.request.trigger.id,
+            stateHash: entry.stateHash,
+            createdAt: nowIso(),
+            beat,
+          };
+          this.prunePregeneratedNarrativeBeats(latest);
+          latest.updatedAt = nowIso();
+          await this.repository.appendGenerationLog({
+            gameId,
+            kind: "generatedStoryBeatPregenerated",
+            id: beat.id,
+            at: latest.updatedAt,
+            locationId: beat.locationId,
+            sourceSceneId: beat.sourceSceneId,
+            triggerId: beat.sourceTriggerId,
+          });
+          await this.repository.saveGame(latest);
         });
-        await this.repository.saveGame(latest);
       } catch {
         continue;
       }

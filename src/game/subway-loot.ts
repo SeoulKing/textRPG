@@ -90,7 +90,12 @@ export function subwayLootTableForDepth(depth: number) {
 function ownsUniqueItem(state: GameState, itemId: SubwayLootItemId) {
   return (
     (state.inventory[itemId] ?? 0) > 0 ||
-    (state.subwayExpedition.carriedLoot[itemId] ?? 0) > 0
+    (state.subwayExpedition.carriedLoot[itemId] ?? 0) > 0 ||
+    Boolean(
+      state.subwayExpedition.currentFloor?.lootSpots.some((spot) =>
+        spot.contents.some((entry) => entry.itemId === itemId)
+      ),
+    )
   );
 }
 

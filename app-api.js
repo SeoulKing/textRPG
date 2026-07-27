@@ -9,6 +9,7 @@ const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id-v7",
 ];
 const REAL_DAY_MS = 15 * 60 * 1000;
+const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
@@ -16,7 +17,7 @@ const ACTION_TRANSITION_MOVEMENT_MS = 1000;
 const ACTION_TRANSITION_ACTION_MS = 500;
 const ACTION_TRANSITION_SLOW_MESSAGE_MS = 1200;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
-const CLIENT_SAVE_VERSION = 15;
+const CLIENT_SAVE_VERSION = 16;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
   shelter: { q: 0, r: 0 },
@@ -456,7 +457,7 @@ function projectedWorldElapsedMs() {
 
 function clockLabelFromElapsed(worldElapsedMs) {
   const elapsedInDay = ((worldElapsedMs % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
-  const totalMinutes = Math.floor((elapsedInDay / REAL_DAY_MS) * 24 * 60);
+  const totalMinutes = Math.floor((elapsedInDay / GAME_MINUTE_MS) + 1e-7);
   const shiftedMinutes = (totalMinutes + 6 * 60) % (24 * 60);
   const hours = String(Math.floor(shiftedMinutes / 60)).padStart(2, "0");
   const minutes = String(shiftedMinutes % 60).padStart(2, "0");
@@ -469,7 +470,7 @@ function gameClockLabel() {
 
 function survivalTimeSummary(snapshot) {
   const elapsedMs = Math.max(0, snapshot?.state?.worldElapsedMs || 0);
-  const totalMinutes = Math.floor((elapsedMs / REAL_DAY_MS) * 24 * 60);
+  const totalMinutes = Math.floor((elapsedMs / GAME_MINUTE_MS) + 1e-7);
   const days = Math.floor(totalMinutes / (24 * 60));
   const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
   const minutes = totalMinutes % 60;
@@ -667,6 +668,7 @@ function actionTransitionMessage(action) {
       start: "지하 1층으로 내려가는 중…",
       choose: "상황에 대응하는 중…",
       resolve_event: "상황에 대응하는 중…",
+      acknowledge_result: "결과를 정리하는 중…",
       search_loot: "파밍 지점을 살피는 중…",
       descend: "다음 층으로 내려가는 중…",
       return: "대합실로 돌아가는 중…",
@@ -1840,7 +1842,7 @@ function renderChoices() {
   if (isGeneratingSubwayFloor) {
     const loading = document.createElement("p");
     loading.className = "empty-state";
-    loading.textContent = "다음 지하 구간을 구성하고 있습니다…";
+    loading.textContent = "준비된 지하 구간으로 이동하고 있습니다…";
     loading.setAttribute("aria-live", "polite");
     dom.choices.appendChild(loading);
   }
