@@ -495,6 +495,7 @@ export function normalizeGameSession(raw: unknown): GameSession {
 
 export interface GameRepository {
   init(): Promise<void>;
+  withGameLock<T>(gameId: string, operation: () => Promise<T>): Promise<T>;
   saveGame(session: GameSession): Promise<void>;
   loadGame(gameId: string): Promise<GameSession>;
   saveManualGame(session: GameSession, savedAt: string, ownerId?: string | null): Promise<ManualSaveInfo>;
@@ -611,6 +612,10 @@ export class FileGameRepository implements GameRepository {
       const raw = await readFile(this.templatesPath, "utf8").catch(() => "");
       await this.recoverTemplatesFile(raw, error);
     }
+  }
+
+  async withGameLock<T>(_gameId: string, operation: () => Promise<T>) {
+    return operation();
   }
 
   private gamePath(gameId: string) {

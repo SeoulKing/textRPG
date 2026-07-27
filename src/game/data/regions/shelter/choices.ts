@@ -6,6 +6,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     id: "opening_commit",
     label: "퀘스트: 구조 신호 준비를 시작한다",
     outcomeHint: "10일차 아침 구조대가 지나가기 전까지 부품을 모아 구조 신호를 완성하기로 마음먹는다.",
+    conditions: [{ type: "flag_not", flag: "opening_seen" }],
     effects: [
       { type: "set_flag", flag: "opening_seen" },
       { type: "set_flag", flag: "rescue_goal_accepted" },

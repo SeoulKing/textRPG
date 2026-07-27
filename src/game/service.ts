@@ -185,7 +185,7 @@ export class GameService {
     this.gameMutationTails.set(gameId, queued);
     await previous.catch(() => undefined);
     try {
-      return await operation();
+      return await this.repository.withGameLock(gameId, operation);
     } finally {
       releaseCurrent();
       if (this.gameMutationTails.get(gameId) === queued) {

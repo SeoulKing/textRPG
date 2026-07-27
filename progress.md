@@ -1406,3 +1406,19 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   service/repository integration probe passed persisted restart consumption, event/result/loot phases, exact one-time effects, next-depth preparation, bridge insertion, return settlement, and next-run reset.
   the required web-game Playwright client passed against the current build using desktop Chrome.
   a focused browser flow confirmed the `템플릿 층` badge, 1000ms start transition, 500ms event transition, event result scene, loot result scene, and correct 06:30 → 07:25 clock display; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 opening quest deployment-loop fix:
+  found that `saveVersion` is a server persistence schema version, but the browser treated any mismatch as an incompatible client response and immediately created another new game.
+  during a rolling deployment, an open v15 client receiving a normal v16 `opening_commit` response discarded the activated rescue quest and returned to a fresh `prologue_opening`, producing the reported infinite loop.
+  changed the client freshness check to validate snapshot shape only and added a versioned `app-api.js` URL so a refresh cannot reuse the pre-fix script.
+  wrapped every per-game service mutation in the repository lock contract; Postgres now uses a game-id advisory lock across the complete load/modify/save operation so old and new Render instances cannot overwrite each other's quest state during a rolling deployment.
+  added an `opening_seen` guard to the first quest choice so a stale/retried `opening_commit` request cannot consume later shelter scenes repeatedly.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh prologue successfully.
+  a focused browser regression rewrote the first action response to `saveVersion: 999`; the same game id advanced from `prologue_opening` to `prologue_old_woman_visit`, activated the rescue quest, and exposed the canned-food quest without console errors.
+  a direct engine probe confirmed the first `opening_commit` activates the rescue quest and an immediate replay is rejected without mutating the story state.

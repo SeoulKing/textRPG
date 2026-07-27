@@ -17,7 +17,6 @@ const ACTION_TRANSITION_MOVEMENT_MS = 1000;
 const ACTION_TRANSITION_ACTION_MS = 500;
 const ACTION_TRANSITION_SLOW_MESSAGE_MS = 1200;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
-const CLIENT_SAVE_VERSION = 16;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
   shelter: { q: 0, r: 0 },
@@ -1032,7 +1031,10 @@ async function restartGameFromOverlay() {
 }
 
 function needsFreshGame(snapshot) {
-  return !snapshot || !snapshot.state || snapshot.state.saveVersion !== CLIENT_SAVE_VERSION;
+  // saveVersion은 서버 저장 데이터의 스키마 버전입니다. 서버가 이전 저장을
+  // 정규화하므로 브라우저가 버전 차이만으로 새 게임을 만들면 안 됩니다.
+  // 특히 순차 배포 중 구 클라이언트와 새 서버가 잠시 섞일 때 무한 재시작이 됩니다.
+  return !snapshot || !snapshot.state;
 }
 
 async function loadGameState() {
