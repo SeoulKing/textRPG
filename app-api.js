@@ -12,7 +12,7 @@ const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const CLIENT_SAVE_VERSION = 13;
+const CLIENT_SAVE_VERSION = 15;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
   shelter: { q: 0, r: 0 },
@@ -294,6 +294,7 @@ const client = {
   activeCraftingRecipeDetailId: null,
   isCompletedQuestGroupOpen: false,
   actionInFlight: false,
+  pendingAction: null,
   sceneRenderToken: 0,
   activeSceneTimer: null,
   activeAnimatedStory: null,
@@ -1602,6 +1603,20 @@ function renderChoices() {
     syncMobileChoiceZoneHeight();
     return;
   }
+  const pendingAction = client.pendingAction;
+  const isGeneratingSubwayFloor = client.actionInFlight && (
+    pendingAction?.type === "subway_expedition" &&
+      (pendingAction.command === "start" || pendingAction.command === "descend") ||
+    pendingAction?.type === "content_action" &&
+      pendingAction.actionId === "start_subway_expedition"
+  );
+  if (isGeneratingSubwayFloor) {
+    const loading = document.createElement("p");
+    loading.className = "empty-state";
+    loading.textContent = "다음 지하 구간을 구성하고 있습니다…";
+    loading.setAttribute("aria-live", "polite");
+    dom.choices.appendChild(loading);
+  }
   if (snapshot.state.isGameOver) {
     dom.choices.classList.add("revealed");
     syncMobileChoiceZoneHeight();
@@ -1657,10 +1672,16 @@ function renderScene(animateText = true) {
     resetSceneScrollOnMobile();
   }
 
+  const expedition = snapshot.state.subwayExpedition;
+  const isSubwayExpedition = Boolean(expedition?.active && expedition.currentFloor);
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
-  dom.sceneLocationBadge.textContent = location.name;
+  dom.sceneLocationBadge.textContent = isSubwayExpedition
+    ? `${location.name} · ${expedition.depth}층`
+    : location.name;
   dom.sceneRiskBadge.textContent = snapshot.state.isGameOver
     ? "게임오버"
+    : isSubwayExpedition
+      ? `${scene.source === "template" ? "템플릿 층" : "LLM 생성 층"} · 최고 ${expedition.deepestDepth}층`
     : isEventStoryActive(snapshot)
       ? "이벤트"
       : riskLabel(location.risk);
@@ -1713,6 +1734,22 @@ function locationMap() {
 function renderMapPanel() {
   const snapshot = client.snapshot;
   if (!snapshot) {
+    return;
+  }
+  if (snapshot.state.subwayExpedition?.active) {
+    const expedition = snapshot.state.subwayExpedition;
+    dom.panelContent.innerHTML = `
+      <section class="map-detail-slot">
+        <div class="map-detail-head">
+          <div>
+            <p class="meta-label">지하철 심층 탐험 중</p>
+            <h3>현재 ${expedition.depth}층</h3>
+          </div>
+          <span class="tag tag-route">최고 ${expedition.deepestDepth}층</span>
+        </div>
+        <p>지상 지도로 이동하려면 현재 장면에서 귀환을 선택해야 합니다. 귀환하기 전의 물자는 임시 전리품입니다.</p>
+      </section>
+    `;
     return;
   }
 
@@ -2548,6 +2585,8 @@ async function submitAction(action) {
     return;
   }
   client.actionInFlight = true;
+  client.pendingAction = action;
+  renderChoices();
   const previousSnapshot = client.snapshot;
   try {
     const snapshot = await api(`/api/games/${client.gameId}/actions`, {
@@ -2578,6 +2617,7 @@ async function submitAction(action) {
       client.isPanelOpen = false;
     }
     client.actionInFlight = false;
+    client.pendingAction = null;
     render({
       animateScene: shouldAnimateScene({
         source: "action",
@@ -2591,8 +2631,12 @@ async function submitAction(action) {
     }
   } catch (error) {
     window.alert(error instanceof Error ? error.message : "액션 처리에 실패했습니다.");
+    client.actionInFlight = false;
+    client.pendingAction = null;
+    renderChoices();
   } finally {
     client.actionInFlight = false;
+    client.pendingAction = null;
   }
 }
 
@@ -2899,6 +2943,7 @@ window.render_game_to_text = () => JSON.stringify({
   location: client.snapshot?.state?.location || null,
   day: client.snapshot?.state?.day || null,
   time: client.snapshot ? gameClockLabel() : null,
+  subwayExpedition: client.snapshot?.state?.subwayExpedition || null,
 });
 
 bootstrap().catch((error) => {

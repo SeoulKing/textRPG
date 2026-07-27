@@ -3,6 +3,7 @@ import { PlayerSchema } from "./player";
 import { WorldStateSchema } from "./world-state";
 import { QuestStateSchema } from "./quest";
 import { DynamicWorldRegistrySchema, FrontierStateSchema, NarrativeStateSchema, WorldPlanSchema } from "./dynamic-world";
+import { SubwayExpeditionStateSchema } from "./subway-expedition";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -52,6 +53,7 @@ export const GameStateSchema = z.object({
   }),
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
+  subwayExpedition: SubwayExpeditionStateSchema,
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),
   lastSleepEnergy: z.number().int().min(0).max(15),

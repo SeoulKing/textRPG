@@ -7,6 +7,12 @@ export const GameActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("use_item"), itemId: z.string() }),
   z.object({ type: z.literal("content_action"), actionId: z.string() }),
   z.object({ type: z.literal("content_choice"), choiceId: z.string() }),
+  z.object({
+    type: z.literal("subway_expedition"),
+    command: z.enum(["start", "choose", "resolve_event", "search_loot", "descend", "return"]),
+    optionId: z.string().optional(),
+    lootSpotId: z.string().optional(),
+  }),
 ]);
 
 export const ActionTypeSchema = z.enum(["travel", "search", "rest", "use", "talk", "explore"]);

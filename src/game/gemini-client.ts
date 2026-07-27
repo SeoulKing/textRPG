@@ -4,9 +4,10 @@ import { appendDevLlmTraceForGame, toTraceRequest } from "./dev-llm-trace";
 type GeminiJsonOptions = {
   model?: string;
   temperature?: number;
+  timeoutMs?: number;
   trace?: {
     gameId: string;
-    scope: "planner" | "card";
+    scope: "planner" | "card" | "subway";
     target: string;
   };
 };
@@ -76,6 +77,7 @@ export async function generateGeminiJson<T>(
   try {
     const response = await fetch(`${apiUrl}/models/${model}:generateContent`, {
       method: "POST",
+      signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": apiKey,

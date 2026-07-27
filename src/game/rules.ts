@@ -509,7 +509,7 @@ function advanceGameTime(state: GameState, elapsed: number) {
   evaluateSurvivalOutcome(state);
 }
 
-function advanceByMinutes(state: GameState, minutes: number) {
+export function advanceGameMinutes(state: GameState, minutes: number) {
   if (state.phaseIndex >= PHASES.length - 1) {
     adjustStat(state, "hp", -1);
     if (state.stats.mind > 0) {
@@ -587,6 +587,24 @@ export function createInitialGameState(): GameState {
       history: [],
       pregenerated: {},
       anchors: {},
+    },
+    subwayExpedition: {
+      active: false,
+      runNumber: 0,
+      depth: 0,
+      deepestDepth: 0,
+      entryElapsedMs: 0,
+      carriedLoot: {},
+      currentFloor: null,
+      currentFloorProgress: {
+        eventResolved: false,
+        eventChoiceLabel: "",
+        eventOutcome: "",
+        searchedLootSpotIds: [],
+        floorLoot: {},
+      },
+      history: [],
+      lastOutcome: "",
     },
     flags: {
       visited_shelter: true,
@@ -726,7 +744,7 @@ function useItem(state: GameState, itemId: string) {
   }
 
   if (item.useMinutes && item.useMinutes > 0) {
-    advanceByMinutes(state, item.useMinutes);
+    advanceGameMinutes(state, item.useMinutes);
   }
 
   if (itemId === "emergencySnack" || itemId === "cannedFood" || itemId === "hotMeal") {
@@ -768,7 +786,7 @@ function applyDefinitionEffects(state: GameState, effects: ActionDefinition["eff
       if (effect.type === "advance_to_daybreak") {
         jumpToNextDaybreak(state);
       } else {
-        advanceByMinutes(state, effect.minutes);
+        advanceGameMinutes(state, effect.minutes);
       }
       return;
     }
@@ -941,6 +959,8 @@ export function performAction(state: GameState, action: GameAction) {
       ({ preferredSceneId, fallbackNote } = executeSceneChoiceDefinition(state, definition));
       break;
     }
+    case "subway_expedition":
+      throw new Error("지하철 심층 탐험 행동은 게임 서비스에서 처리해야 합니다.");
     default: {
       const exhaustiveCheck: never = action;
       return exhaustiveCheck;

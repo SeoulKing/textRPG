@@ -3,6 +3,17 @@ import { defineLocation, interactionFor, stockNode } from "../../location-helper
 
 export const subwayChoices: ActionDefinition[] = [
   interactionFor("subway", {
+    id: "start_subway_expedition",
+    label: "준비를 마치고 지하 1층으로 내려간다",
+    type: "explore",
+    outcomeHint: "기력 -1 / +30분 / 귀환하기 전까지 발견한 물자는 임시 전리품으로 보관됩니다.",
+    showOutcomeHint: true,
+    conditions: [{ type: "stat_gte", stat: "energy", value: 1 }],
+    effects: [],
+    tags: ["subway-expedition-start", "repeatable", "risk"],
+    riskHint: "high",
+  }),
+  interactionFor("subway", {
     id: "go_to_subway_signal_box",
     label: "역무실 신호함으로 간다",
     type: "search",
@@ -15,56 +26,18 @@ export const subwayChoices: ActionDefinition[] = [
     riskHint: "medium",
   }),
   interactionFor("subway", {
-    id: "salvage_subway_platform",
-    label: "승강장 자재를 회수한다",
-    type: "search",
-    outcomeHint: "기력 -1 / 보상: 고철 조각·끈 묶음·물병 중 하나 / 위험: 체력 -1 / +40분",
+    id: "prepare_subway_concourse",
+    label: "대합실에서 숨을 고르고 장비를 정돈한다",
+    type: "rest",
+    outcomeHint: "기력 +1 / +45분",
     showOutcomeHint: true,
-    conditions: [{ type: "stat_gte", stat: "energy", value: 1 }],
     effects: [
-      { type: "change_stat", stat: "energy", value: -1 },
-      { type: "advance_time", minutes: 40 },
-      {
-        type: "random_outcome",
-        outcomes: [
-          {
-            weight: 45,
-            effects: [
-              { type: "add_item", itemId: "scrapMetal", amount: 2 },
-              { type: "log", message: "당신은 승강장 아래에서 쓸 만한 고철 조각 두 개를 뜯어냈다." },
-              { type: "set_scene", sceneId: "subway_platform_scrap" },
-            ],
-          },
-          {
-            weight: 25,
-            effects: [
-              { type: "add_item", itemId: "cordage", amount: 1 },
-              { type: "log", message: "당신은 끊어진 손잡이 줄과 케이블을 묶어 끈 묶음 하나를 챙겼다." },
-              { type: "set_scene", sceneId: "subway_platform_cordage" },
-            ],
-          },
-          {
-            weight: 20,
-            effects: [
-              { type: "add_item", itemId: "waterBottle", amount: 1 },
-              { type: "log", message: "당신은 의자 아래 굴러 들어간 물병 하나를 찾아냈다." },
-              { type: "set_scene", sceneId: "subway_platform_water" },
-            ],
-          },
-          {
-            weight: 10,
-            effects: [
-              { type: "change_stat", stat: "hp", value: -1 },
-              { type: "add_item", itemId: "scrapMetal", amount: 1 },
-              { type: "log", message: "당신은 날카로운 금속에 손을 긁혔지만 고철 조각 하나는 건졌다." },
-              { type: "set_scene", sceneId: "subway_platform_cut" },
-            ],
-          },
-        ],
-      },
+      { type: "change_stat", stat: "energy", value: 1 },
+      { type: "advance_time", minutes: 45 },
+      { type: "log", message: "당신은 대합실 벽에 기대어 숨을 고르고 가방과 장비를 다시 정돈했다." },
     ],
-    tags: ["salvage", "resource", "repeatable", "risk"],
-    riskHint: "high",
+    tags: ["concourse", "preparation", "repeatable"],
+    riskHint: "low",
   }),
 ];
 
@@ -74,9 +47,9 @@ export const subwayLocation = defineLocation({
   risk: "high",
   mapPosition: { q: 2, r: 0 },
   imagePath: "assets/scenes/subway.svg",
-  summary: "전기가 끊긴 승강장과 어두운 역무실이 남은 지하철역이다. 신호 장비를 뜯어 쓸 수 있지만, 오래 머물수록 정신이 닳는다.",
+  summary: "지상과 연결된 대합실과 어두운 역무실이 남은 지하철역이다. 이곳에서 장비를 정비한 뒤 지하 1층부터 심층 탐험을 시작할 수 있다.",
   tags: ["signal", "underground", "day6"],
-  traits: ["antenna", "metal", "stress", "platform salvage"],
+  traits: ["antenna", "concourse", "expedition staging"],
   obtainableItemIds: ["radioAntenna", "scrapMetal", "cordage", "waterBottle"],
   neighbors: ["kitchen", "checkpoint"],
   interactionChoices: subwayChoices,

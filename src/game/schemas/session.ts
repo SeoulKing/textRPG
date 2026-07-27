@@ -12,7 +12,7 @@ import { ActionChoiceSchema } from "./choice";
 export const DevLlmTraceEntrySchema = z.object({
   id: z.string(),
   at: z.string(),
-  scope: z.enum(["planner", "card"]),
+  scope: z.enum(["planner", "card", "subway"]),
   target: z.string(),
   stage: z.enum(["request", "raw_draft", "draft_validation", "compiler_summary", "compiled_result", "fallback", "error"]).optional(),
   model: z.string(),

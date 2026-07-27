@@ -23,6 +23,16 @@ import {
 import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition, mergeDynamicWorldRegistry } from "./runtime-registry";
 import { applyEffect } from "./state-utils";
 import { buildActionCatalogFromStoryChoices, resolveStoryFrame } from "./story-flow";
+import {
+  buildSubwayExpeditionActions,
+  buildSubwayExpeditionScene,
+  descendSubwayFloor,
+  resolveSubwayFloorEvent,
+  returnFromSubwayExpedition,
+  searchSubwayLootSpot,
+  startSubwayExpedition,
+} from "./subway-expedition";
+import { generateSubwayFloor } from "./subway-expedition-generator";
 import type {
   ActionChoice,
   ActionDefinition,
@@ -45,6 +55,7 @@ import type {
   StateSnapshot,
   StoryChoice,
   StoryMaterials,
+  SubwayExpeditionFloor,
 } from "./schemas";
 import { EventCardSchema, ItemCardSchema, SceneCardSchema, StateSnapshotSchema } from "./schemas";
 import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from "./world-planner";
@@ -134,11 +145,142 @@ function sceneDevSource(sceneDef: SceneDefinition) {
 }
 
 export class GameService {
+  private readonly subwayNextFloorCache = new Map<
+    string,
+    { currentFloorId: string; targetDepth: number; floor: SubwayExpeditionFloor }
+  >();
+  private readonly subwayFloorGenerationTasks = new Map<string, Promise<void>>();
+
   constructor(
     private readonly repository: GameRepository,
     private readonly templateGenerator: ContentGenerator = createTemplateContentGenerator(),
     private readonly planner: WorldPlanner = createWorldPlanner(),
   ) {}
+
+  private subwayPreparationContext(state: GameSession["state"]) {
+    if (state.location !== "subway" || state.isGameOver || state.stageClear) {
+      return null;
+    }
+    const expedition = state.subwayExpedition;
+    if (!expedition.active) {
+      return {
+        currentFloorId: "subway-concourse",
+        targetDepth: 1,
+        previousOutcome: "지하철역 대합실에 도착해 장비를 정비하며 지하 1층 진입을 준비하고 있다.",
+      };
+    }
+    const currentFloor = expedition.currentFloor;
+    if (!currentFloor) {
+      return null;
+    }
+    return {
+      currentFloorId: currentFloor.id,
+      targetDepth: currentFloor.depth + 1,
+      previousOutcome:
+        `${currentFloor.title}의 큰 사건과 파밍을 진행 중이다. 다음 층은 현재 층 정산 후 이어질 독립된 구간이다.`,
+    };
+  }
+
+  private subwayPreparationTaskKey(gameId: string, context: { currentFloorId: string; targetDepth: number }) {
+    return `${gameId}:${context.currentFloorId}:${context.targetDepth}`;
+  }
+
+  private takePreparedSubwayFloor(session: GameSession) {
+    const cached = this.subwayNextFloorCache.get(session.id);
+    this.subwayNextFloorCache.delete(session.id);
+    const context = this.subwayPreparationContext(session.state);
+    if (
+      !cached ||
+      !context ||
+      cached.currentFloorId !== context.currentFloorId ||
+      cached.targetDepth !== context.targetDepth
+    ) {
+      return null;
+    }
+    return cached.floor;
+  }
+
+  private pendingSubwayFloorGeneration(session: GameSession) {
+    const context = this.subwayPreparationContext(session.state);
+    if (!context) {
+      return null;
+    }
+    return this.subwayFloorGenerationTasks.get(
+      this.subwayPreparationTaskKey(session.id, context),
+    ) ?? null;
+  }
+
+  private clearPreparedSubwayFloor(gameId: string) {
+    this.subwayNextFloorCache.delete(gameId);
+  }
+
+  private scheduleSubwayNextFloor(session: GameSession) {
+    const context = this.subwayPreparationContext(session.state);
+    if (!context) {
+      this.clearPreparedSubwayFloor(session.id);
+      return;
+    }
+    const existing = this.subwayNextFloorCache.get(session.id);
+    if (
+      existing?.currentFloorId === context.currentFloorId &&
+      existing.targetDepth === context.targetDepth
+    ) {
+      return;
+    }
+    const taskKey = this.subwayPreparationTaskKey(session.id, context);
+    if (this.subwayFloorGenerationTasks.has(taskKey)) {
+      return;
+    }
+    const task = this.preGenerateSubwayNextFloor(
+      session.id,
+      context,
+      structuredClone(session.state),
+    )
+      .catch(() => undefined)
+      .finally(() => {
+        if (this.subwayFloorGenerationTasks.get(taskKey) === task) {
+          this.subwayFloorGenerationTasks.delete(taskKey);
+        }
+      });
+    this.subwayFloorGenerationTasks.set(taskKey, task);
+  }
+
+  private async preGenerateSubwayNextFloor(
+    gameId: string,
+    context: { currentFloorId: string; targetDepth: number; previousOutcome: string },
+    state: GameSession["state"],
+  ) {
+    const floor = await generateSubwayFloor({
+      gameId,
+      state,
+      depth: context.targetDepth,
+      previousOutcome: context.previousOutcome,
+    });
+    const latest = await this.repository.loadGame(gameId);
+    const latestContext = this.subwayPreparationContext(latest.state);
+    if (
+      !latestContext ||
+      latestContext.currentFloorId !== context.currentFloorId ||
+      latestContext.targetDepth !== context.targetDepth
+    ) {
+      return;
+    }
+
+    this.subwayNextFloorCache.set(gameId, {
+      currentFloorId: context.currentFloorId,
+      targetDepth: context.targetDepth,
+      floor,
+    });
+    await this.repository.appendGenerationLog({
+      gameId,
+      kind: "subwayFloorPregenerated",
+      id: floor.id,
+      sourceFloorId: context.currentFloorId,
+      depth: context.targetDepth,
+      source: floor.source,
+      at: nowIso(),
+    });
+  }
 
   async createGame() {
     const session: GameSession = {
@@ -175,6 +317,7 @@ export class GameService {
     await this.ensureCards(session);
     const snapshot = this.buildSnapshot(session, null);
     await this.repository.saveGame(session);
+    this.scheduleSubwayNextFloor(session);
     return snapshot;
   }
 
@@ -182,6 +325,81 @@ export class GameService {
     const session = await this.repository.loadGame(gameId);
     const previousDay = session.state.day;
     const registry = this.runtimeRegistry(session);
+
+    if (
+      session.state.subwayExpedition.active &&
+      action.type !== "subway_expedition" &&
+      action.type !== "use_item"
+    ) {
+      throw new Error("심층 탐험 중에는 현재 경로를 선택하거나 지상으로 귀환해야 합니다.");
+    }
+
+    if (
+      action.type === "subway_expedition" ||
+      (action.type === "content_action" && action.actionId === "start_subway_expedition")
+    ) {
+      const subwayAction = action.type === "subway_expedition"
+        ? action
+        : { type: "subway_expedition" as const, command: "start" as const };
+      if (subwayAction.command === "start") {
+        const pendingFloor = this.pendingSubwayFloorGeneration(session);
+        if (pendingFloor) {
+          await pendingFloor;
+        }
+        const preparedFloor = this.takePreparedSubwayFloor(session);
+        if (preparedFloor) {
+          await this.repository.appendGenerationLog({
+            gameId,
+            kind: "subwayFloorPregeneratedCacheHit",
+            id: preparedFloor.id,
+            depth: preparedFloor.depth,
+            source: preparedFloor.source,
+            at: nowIso(),
+          });
+        }
+        await startSubwayExpedition(session.state, gameId, preparedFloor);
+      } else if (subwayAction.command === "choose" || subwayAction.command === "resolve_event") {
+        resolveSubwayFloorEvent(session.state, subwayAction.optionId);
+      } else if (subwayAction.command === "search_loot") {
+        searchSubwayLootSpot(session.state, subwayAction.lootSpotId);
+      } else if (subwayAction.command === "descend") {
+        const pendingFloor = this.pendingSubwayFloorGeneration(session);
+        if (pendingFloor) {
+          await pendingFloor;
+        }
+        const preparedFloor = this.takePreparedSubwayFloor(session);
+        if (preparedFloor) {
+          await this.repository.appendGenerationLog({
+            gameId,
+            kind: "subwayFloorPregeneratedCacheHit",
+            id: preparedFloor.id,
+            depth: preparedFloor.depth,
+            source: preparedFloor.source,
+            at: nowIso(),
+          });
+        }
+        await descendSubwayFloor(session.state, gameId, preparedFloor);
+      } else {
+        this.clearPreparedSubwayFloor(gameId);
+        returnFromSubwayExpedition(session.state);
+      }
+      session.updatedAt = nowIso();
+      session.world.sceneCards = {};
+      syncQuestState(session.state);
+      await this.replanTomorrowIfNeeded(session, previousDay);
+      await this.ensureCards(session);
+      await this.repository.appendActionLog({
+        gameId,
+        action: subwayAction,
+        at: session.updatedAt,
+        location: session.state.location,
+        day: session.state.day,
+      });
+      const snapshot = this.buildSnapshot(session, null);
+      await this.repository.saveGame(session);
+      this.scheduleSubwayNextFloor(session);
+      return snapshot;
+    }
 
     if (this.isFrontierAction(action, registry)) {
       const snapshot = await this.expandFrontier(session, action, registry);
@@ -223,6 +441,7 @@ export class GameService {
     const snapshot = this.buildSnapshot(session, latestEvent);
     await this.repository.saveGame(session);
     void this.preGenerateNarrativeBeats(gameId).catch(() => undefined);
+    this.scheduleSubwayNextFloor(session);
     return snapshot;
   }
 
@@ -295,6 +514,7 @@ export class GameService {
     await this.ensureCards(session);
     const snapshot = this.buildSnapshot(session, null);
     await this.repository.saveGame(session);
+    this.scheduleSubwayNextFloor(session);
     return snapshot;
   }
 
@@ -314,6 +534,7 @@ export class GameService {
     await this.ensureCards(session);
     const snapshot = this.buildSnapshot(session, null);
     await this.repository.saveGame(session);
+    this.scheduleSubwayNextFloor(session);
     return snapshot;
   }
 
@@ -899,7 +1120,8 @@ export class GameService {
 
   private buildSnapshot(session: GameSession, latestEvent: EventCard | null, registry = this.runtimeRegistry(session)): StateSnapshot {
     const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true }, registry);
-    const currentScene = this.buildAuthoringSceneCard(session, storyMaterials, registry);
+    const expeditionScene = buildSubwayExpeditionScene(session.state);
+    const currentScene = expeditionScene ?? this.buildAuthoringSceneCard(session, storyMaterials, registry);
     const sceneDef = this.presentedSceneDefinition(session, registry);
     const locationChoices = this.presentedChoices(session, sceneDef, registry);
     const storyChoices = session.state.isGameOver
@@ -931,7 +1153,9 @@ export class GameService {
         requirements: this.buildQuestRequirements(session, quest, registry),
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
-      availableActions: this.buildAvailableActions(session, sceneDef, storyChoices, registry),
+      availableActions: expeditionScene
+        ? buildSubwayExpeditionActions(session.state)
+        : this.buildAvailableActions(session, sceneDef, storyChoices, registry),
       mapEntries: this.buildMapEntries(session, registry),
       latestEvent,
       devLlmTrace: getDevLlmTrace(session.id),

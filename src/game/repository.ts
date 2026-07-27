@@ -5,6 +5,7 @@ import {
   FrontierStateSchema,
   GameSessionSchema,
   NarrativeStateSchema,
+  SubwayExpeditionStateSchema,
   TemplateStoreSchema,
   WorldPlanSchema,
   WorldInstanceSchema,
@@ -82,6 +83,14 @@ function normalizeWorldPlan(raw: unknown, currentDay: number) {
     today: { day: currentDay, regions: [], notes: [] },
     tomorrow: { day: currentDay + 1, evolutions: [], notes: [] },
   });
+}
+
+function normalizeSubwayExpedition(raw: unknown) {
+  const parsed = SubwayExpeditionStateSchema.safeParse(raw);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  return SubwayExpeditionStateSchema.parse(undefined);
 }
 
 function normalizeFrontierState(raw: unknown) {
@@ -360,6 +369,7 @@ function pruneState(state: unknown): GameState {
     : null;
   const frontierState = normalizeFrontierState(rawState.frontierState);
   const narrativeState = normalizeNarrativeState(rawState.narrativeState);
+  const subwayExpedition = normalizeSubwayExpedition(rawState.subwayExpedition);
   const worldPlan = normalizeWorldPlan(rawState.worldPlan, nextDay);
   const legacyAutoEnergyElapsedKey = "auto" + "Full" + "ness" + "ElapsedMs";
   const legacyExhaustionElapsedKey = "star" + "vation" + "ElapsedMs";
@@ -402,6 +412,7 @@ function pruneState(state: unknown): GameState {
     worldPlan,
     frontierState,
     narrativeState,
+    subwayExpedition,
     flags: nextFlags,
     quests: nextQuests,
     lastSleepEnergy: normalizeInt(rawState.lastSleepEnergy ?? rawState[legacyLastSleepEnergyKey], 8, 0, 15),
