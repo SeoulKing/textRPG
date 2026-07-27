@@ -771,6 +771,8 @@ a:focus:not(:focus-visible),
 .choice-button {
   -webkit-touch-callout: none;
   user-select: none;
+  position: relative;
+  overflow: hidden;
   width: 100%;
   min-height: 68px;
   text-align: left;
@@ -811,6 +813,66 @@ a:focus:not(:focus-visible),
   cursor: not-allowed;
   transform: none;
   opacity: 0.56;
+}
+
+.action-transition-status {
+  width: 100%;
+  margin: 0 0 7px;
+  color: var(--accent-strong);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  animation: action-transition-status-enter 160ms ease-out;
+}
+
+.is-action-pending {
+  position: relative;
+  overflow: hidden;
+  cursor: wait !important;
+  opacity: 1 !important;
+  border-color: rgba(47, 125, 104, 0.42) !important;
+  background: rgba(47, 125, 104, 0.08) !important;
+}
+
+.action-transition-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  height: 4px;
+  overflow: hidden;
+  background: rgba(47, 125, 104, 0.14);
+  pointer-events: none;
+}
+
+.action-transition-progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #2f7d68, #69b894);
+  box-shadow: 0 0 10px rgba(47, 125, 104, 0.32);
+  animation: action-transition-progress-fill 1000ms linear forwards;
+}
+
+@keyframes action-transition-progress-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes action-transition-status-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .choice-label {

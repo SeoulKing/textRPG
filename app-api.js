@@ -12,6 +12,9 @@ const REAL_DAY_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
+const ACTION_TRANSITION_MS = 1000;
+const ACTION_TRANSITION_SLOW_MESSAGE_MS = 1200;
+const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
 const CLIENT_SAVE_VERSION = 15;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
@@ -295,6 +298,13 @@ const client = {
   isCompletedQuestGroupOpen: false,
   actionInFlight: false,
   pendingAction: null,
+  pendingActionElement: null,
+  pendingActionStatusElement: null,
+  pendingActionProgressElement: null,
+  pendingActionDisabledControls: [],
+  pendingActionSlowTimer: null,
+  actionTransitionMessage: "",
+  actionTransitionStartedAt: 0,
   sceneRenderToken: 0,
   activeSceneTimer: null,
   activeAnimatedStory: null,
@@ -603,6 +613,193 @@ async function api(path, options = {}) {
     throw new Error(payload.message || payload.error || `HTTP ${response.status}`);
   }
   return response.json();
+}
+
+function waitForMilliseconds(durationMs) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, Math.max(0, durationMs));
+  });
+}
+
+function actionTransitionMessage(action) {
+  if (!action) {
+    return "행동하는 중…";
+  }
+
+  if (action.type === "travel") {
+    return "걸어가는 중…";
+  }
+  if (action.type === "use_item") {
+    return "물건을 사용하는 중…";
+  }
+  if (action.type === "content_choice") {
+    return "결정하는 중…";
+  }
+  if (action.type === "subway_expedition") {
+    const messages = {
+      start: "지하 1층으로 내려가는 중…",
+      choose: "상황에 대응하는 중…",
+      resolve_event: "상황에 대응하는 중…",
+      search_loot: "파밍 지점을 살피는 중…",
+      descend: "다음 층으로 내려가는 중…",
+      return: "대합실로 돌아가는 중…",
+    };
+    return messages[action.command] || "지하철역을 탐색하는 중…";
+  }
+
+  const actionId = action.actionId || "";
+  if (/^(go_to_|leave_|push_beyond_)/.test(actionId)) {
+    return "걸어가는 중…";
+  }
+  if (/^(collect_|buy_|exchange_|deliver_)/.test(actionId)) {
+    return "물건을 챙기는 중…";
+  }
+  if (/^(search_|survey_|inspect_|listen_|ask_|explore_)/.test(actionId)) {
+    return "주변을 살피는 중…";
+  }
+  if (/^(craft_|assemble_|cook_)/.test(actionId)) {
+    return "손을 움직이는 중…";
+  }
+  if (/^(rest_|sleep_)/.test(actionId)) {
+    return "숨을 고르는 중…";
+  }
+  return "행동하는 중…";
+}
+
+function pendingActionControls() {
+  return Array.from(document.querySelectorAll([
+    ".choice-button",
+    ".crafting-choice-submit",
+    "[data-map-travel]",
+    "[data-use-item]",
+    "[data-hex-location]",
+  ].join(",")));
+}
+
+function updateActionTransitionStatus(message) {
+  client.actionTransitionMessage = message;
+  if (client.pendingActionStatusElement?.isConnected) {
+    client.pendingActionStatusElement.textContent = message;
+  }
+}
+
+function beginActionTransition(action, triggerElement) {
+  const control = triggerElement instanceof Element
+    ? triggerElement.closest("button, [role='button']")
+    : null;
+  const message = actionTransitionMessage(action);
+  const status = document.createElement("p");
+  status.className = "action-transition-status";
+  status.setAttribute("aria-live", "polite");
+  status.textContent = message;
+
+  client.pendingActionElement = control;
+  client.pendingActionStatusElement = status;
+  client.actionTransitionStartedAt = Date.now();
+  updateActionTransitionStatus(message);
+
+  client.pendingActionDisabledControls = pendingActionControls().map((element) => ({
+    element,
+    disabled: "disabled" in element ? Boolean(element.disabled) : null,
+    ariaDisabled: element.getAttribute("aria-disabled"),
+  }));
+  client.pendingActionDisabledControls.forEach(({ element }) => {
+    if ("disabled" in element) {
+      element.disabled = true;
+    }
+    element.setAttribute("aria-disabled", "true");
+  });
+
+  if (control instanceof HTMLElement) {
+    const anchor = control.closest(
+      ".crafting-choice-card, .inventory-card, .map-destination-detail, .choice-button",
+    ) || control;
+    anchor.parentElement?.insertBefore(status, anchor);
+
+    const progressTrack = document.createElement("span");
+    progressTrack.className = "action-transition-progress";
+    progressTrack.setAttribute("aria-hidden", "true");
+    const progressFill = document.createElement("span");
+    progressFill.className = "action-transition-progress-fill";
+    progressTrack.appendChild(progressFill);
+    control.appendChild(progressTrack);
+    control.classList.add("is-action-pending");
+    client.pendingActionProgressElement = progressTrack;
+  } else {
+    const host = client.isPanelOpen ? dom.panelContent : dom.choices;
+    host.prepend(status);
+  }
+
+  client.pendingActionSlowTimer = window.setTimeout(() => {
+    updateActionTransitionStatus("장면을 준비하는 중…");
+  }, ACTION_TRANSITION_SLOW_MESSAGE_MS);
+}
+
+function finishActionTransition() {
+  if (client.pendingActionSlowTimer !== null) {
+    window.clearTimeout(client.pendingActionSlowTimer);
+    client.pendingActionSlowTimer = null;
+  }
+
+  client.pendingActionStatusElement?.remove();
+  client.pendingActionProgressElement?.remove();
+  client.pendingActionElement?.classList.remove("is-action-pending");
+  client.pendingActionDisabledControls.forEach(({ element, disabled, ariaDisabled }) => {
+    if (!element.isConnected) {
+      return;
+    }
+    if (disabled !== null && "disabled" in element) {
+      element.disabled = disabled;
+    }
+    if (ariaDisabled === null) {
+      element.removeAttribute("aria-disabled");
+    } else {
+      element.setAttribute("aria-disabled", ariaDisabled);
+    }
+  });
+
+  client.pendingActionElement = null;
+  client.pendingActionStatusElement = null;
+  client.pendingActionProgressElement = null;
+  client.pendingActionDisabledControls = [];
+  client.actionTransitionMessage = "";
+  client.actionTransitionStartedAt = 0;
+}
+
+function snapshotLocationCard(snapshot) {
+  const locationId = snapshot?.state?.location;
+  return snapshot?.visibleLocations?.find((entry) => entry.id === locationId) || null;
+}
+
+function preloadImage(source) {
+  if (!source) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.addEventListener("load", resolve, { once: true });
+    image.addEventListener("error", resolve, { once: true });
+    image.src = source;
+    if (image.complete) {
+      resolve();
+    }
+  });
+}
+
+async function preloadNextSceneAssets(snapshot) {
+  const location = snapshotLocationCard(snapshot);
+  const imageSources = new Set([
+    location?.imagePath,
+    snapshot?.currentScene?.imagePath,
+  ].filter(Boolean));
+  if (imageSources.size === 0) {
+    return;
+  }
+
+  await Promise.race([
+    Promise.all(Array.from(imageSources, preloadImage)),
+    waitForMilliseconds(ACTION_ASSET_PRELOAD_TIMEOUT_MS),
+  ]);
 }
 
 function clearLegacyGameIds() {
@@ -1396,7 +1593,7 @@ function renderCraftingChoices(snapshot) {
     craftButton.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      submitAction(choice.action);
+      submitAction(choice.action, craftButton);
     });
 
     card.append(selectButton, craftButton);
@@ -1414,7 +1611,7 @@ function renderCraftingChoices(snapshot) {
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
     button.disabled = client.actionInFlight;
-    button.addEventListener("click", () => submitAction(choice.action));
+    button.addEventListener("click", () => submitAction(choice.action, button));
     dom.choices.appendChild(fragment);
   });
 }
@@ -1646,7 +1843,7 @@ function renderChoices() {
     meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
     button.disabled = client.actionInFlight;
-    button.addEventListener("click", () => submitAction(choice.action));
+    button.addEventListener("click", () => submitAction(choice.action, button));
     dom.choices.appendChild(fragment);
   });
 
@@ -2028,7 +2225,7 @@ function renderMapPanel() {
       }
       if (entry.isReachable) {
         client.mapHint = "";
-        submitAction({ type: "travel", targetId: locationId });
+        submitAction({ type: "travel", targetId: locationId }, tile);
         return;
       }
       if (entry.isControlled) {
@@ -2078,7 +2275,7 @@ function renderMapPanel() {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       client.mapHint = "";
-      submitAction({ type: "travel", targetId: button.dataset.mapTravel });
+      submitAction({ type: "travel", targetId: button.dataset.mapTravel }, button);
     });
   });
 }
@@ -2115,7 +2312,7 @@ function renderInventoryPanel() {
     dom.panelContent.querySelectorAll("[data-use-item]").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.stopPropagation();
-        submitAction({ type: "use_item", itemId: button.dataset.useItem });
+        submitAction({ type: "use_item", itemId: button.dataset.useItem }, button);
       });
     });
   };
@@ -2576,7 +2773,7 @@ function render(options = {}) {
   client.justCreatedGame = false;
 }
 
-async function submitAction(action) {
+async function submitAction(action, triggerElement = null) {
   if (!client.gameId || client.actionInFlight) {
     return;
   }
@@ -2586,14 +2783,27 @@ async function submitAction(action) {
   }
   client.actionInFlight = true;
   client.pendingAction = action;
-  renderChoices();
+  beginActionTransition(action, triggerElement);
   const previousSnapshot = client.snapshot;
   try {
-    const snapshot = await api(`/api/games/${client.gameId}/actions`, {
+    const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
       body: action,
-    });
+    })
+      .then(async (snapshot) => {
+        await preloadNextSceneAssets(snapshot);
+        return { snapshot, error: null };
+      })
+      .catch((error) => ({ snapshot: null, error }));
+    const [{ snapshot, error }] = await Promise.all([
+      requestResultPromise,
+      waitForMilliseconds(ACTION_TRANSITION_MS),
+    ]);
+    if (error) {
+      throw error;
+    }
     if (needsFreshGame(snapshot)) {
+      finishActionTransition();
       await createNewGame();
       render({
         animateScene: shouldAnimateScene({
@@ -2616,6 +2826,7 @@ async function submitAction(action) {
     if (didMove) {
       client.isPanelOpen = false;
     }
+    finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
     render({
@@ -2631,10 +2842,12 @@ async function submitAction(action) {
     }
   } catch (error) {
     window.alert(error instanceof Error ? error.message : "액션 처리에 실패했습니다.");
+    finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
-    renderChoices();
+    render({ animateScene: false });
   } finally {
+    finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
   }
@@ -2944,6 +3157,13 @@ window.render_game_to_text = () => JSON.stringify({
   day: client.snapshot?.state?.day || null,
   time: client.snapshot ? gameClockLabel() : null,
   subwayExpedition: client.snapshot?.state?.subwayExpedition || null,
+  actionTransition: client.actionInFlight
+    ? {
+        message: client.actionTransitionMessage,
+        elapsedMs: Math.max(0, Date.now() - client.actionTransitionStartedAt),
+        action: client.pendingAction,
+      }
+    : null,
 });
 
 bootstrap().catch((error) => {
