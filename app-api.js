@@ -657,9 +657,17 @@ function isMovementAction(action, loading = null) {
     loading?.transitionType === "region_travel";
 }
 
+function usesRegionTravelOverlay(action, loading = null) {
+  return action?.type === "travel" ||
+    loading?.transitionType === "region_travel";
+}
+
 function actionTransitionDurationMs(action, loading = null) {
   if (isMovementAction(action, loading)) {
     return ACTION_TRANSITION_MOVEMENT_MS;
+  }
+  if (action?.type === "subway_expedition" && action.command === "search_loot") {
+    return ACTION_TRANSITION_ACTION_MS;
   }
   if (!loading) {
     return 0;
@@ -760,8 +768,11 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     : craftingNameTarget instanceof HTMLElement
       ? craftingNameTarget
       : control;
-  const message = actionTransitionMessage(action, loading);
   const isMovement = isMovementAction(action, loading);
+  const usesOverlay = usesRegionTravelOverlay(action, loading);
+  const message = usesOverlay ? actionTransitionMessage(action, loading) : "";
+  const isChoiceSurface = visualTarget instanceof HTMLElement
+    && visualTarget.matches(".choice-button");
   const status = message ? document.createElement("p") : null;
   if (status) {
     status.className = "action-transition-status";
@@ -822,6 +833,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
   } else if (visualTarget instanceof HTMLElement) {
     const progressTrack = document.createElement("span");
     progressTrack.className = "action-transition-progress";
+    progressTrack.classList.toggle("is-choice-surface-fill", isChoiceSurface);
     progressTrack.setAttribute("aria-hidden", "true");
     const progressFill = document.createElement("span");
     progressFill.className = "action-transition-progress-fill";
@@ -829,6 +841,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     progressTrack.appendChild(progressFill);
     visualTarget.appendChild(progressTrack);
     visualTarget.classList.add("is-action-pending");
+    visualTarget.classList.toggle("is-choice-surface-pending", isChoiceSurface);
     client.pendingActionProgressElement = progressTrack;
   }
 
@@ -849,6 +862,7 @@ function finishActionTransition() {
   client.pendingActionProgressElement?.remove();
   client.pendingActionSceneElement?.remove();
   client.pendingActionElement?.classList.remove("is-action-pending");
+  client.pendingActionElement?.classList.remove("is-choice-surface-pending");
   dom.sceneFrame.classList.remove("is-action-in-progress");
   dom.sceneFrame.removeAttribute("aria-busy");
   client.pendingActionDisabledControls.forEach(({ element, disabled, ariaDisabled }) => {

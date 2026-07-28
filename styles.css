@@ -910,6 +910,16 @@ a:focus:not(:focus-visible),
   opacity: 0.56;
 }
 
+.choice-button > :not(.action-transition-progress) {
+  position: relative;
+  z-index: 4;
+}
+
+.choice-button.is-action-pending.is-choice-surface-pending {
+  border-color: rgba(31, 41, 55, 0.2) !important;
+  background: rgba(31, 41, 55, 0.04) !important;
+}
+
 .action-transition-status {
   width: 100%;
   margin: 0 0 7px;
@@ -948,6 +958,18 @@ a:focus:not(:focus-visible),
   background: linear-gradient(90deg, #2f7d68, #69b894);
   box-shadow: 0 0 10px rgba(47, 125, 104, 0.32);
   animation: action-transition-progress-fill 1000ms linear forwards;
+}
+
+.action-transition-progress.is-choice-surface-fill {
+  inset: 0;
+  height: auto;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.action-transition-progress.is-choice-surface-fill .action-transition-progress-fill {
+  background: rgba(31, 41, 55, 0.12);
+  box-shadow: none;
 }
 
 @keyframes action-transition-progress-fill {

@@ -1514,3 +1514,13 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   direct regressions passed for particle conversion, plural wording, renamed-item rendering, malformed references, built-in scene normalization, and Content Studio document normalization.
   the required web-game Playwright client rendered a fresh game successfully with installed desktop Chrome.
   focused browser verification created a new story, scene, and choice, confirmed six item-reference pickers and the automatic-conversion guidance, and the isolated Content Studio API save returned normalized ID references.
+
+- 2026-07-28 inline choice activity transition:
+  limited the scene-wide popup overlay to actual region travel transitions; ordinary timed activities and subway-internal movement no longer create a popup or status message.
+  choice-triggered activities now fill the selected choice from left to right across its full height with a neutral gray that is darker than the resting choice background.
+  subway loot searches receive the same 500ms inline choice fill even though their generated actions do not carry authored loading metadata.
+  preserved the existing inline progress placement for inventory use and crafting controls, and kept the regional travel overlay unchanged.
+  bumped the client script version so deployed browsers fetch the updated transition behavior.
+  the required web-game Playwright client rendered a fresh game successfully with installed desktop Chrome.
+  focused 390px browser verification confirmed the stale-bread choice had no overlay, filled roughly 51% after 260ms with `rgba(31, 41, 55, 0.12)`, retained exact width and height, completed with two stale breads in inventory, and regional travel still used the popup overlay.
+  a generated subway-floor probe confirmed `search_loot` receives a 500ms full-choice gray fill with no popup while the loot action completes normally.
