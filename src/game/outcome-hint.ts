@@ -1,6 +1,7 @@
 import { itemTextReference } from "./item-text";
-import type { Effect, GameState } from "./schemas";
+import type { Effect, GameState, SkillUse } from "./schemas";
 import { getStockMoney, getStockQuantity } from "./state-utils";
+import { resolveSkillAdjustedMinutes } from "./skill-progression";
 
 const STAT_LABELS = {
   hp: "체력",
@@ -38,6 +39,7 @@ function collectDeterministicEffect(
   totals: HintTotals,
   effect: Exclude<Effect, { type: "random_outcome" }>,
   state: GameState,
+  skillUse?: SkillUse,
 ) {
   switch (effect.type) {
     case "change_money":
@@ -87,7 +89,11 @@ function collectDeterministicEffect(
       totals.money += getStockMoney(state, effect.locationId, effect.nodeId);
       break;
     case "advance_time":
-      totals.minutes += effect.minutes;
+      totals.minutes += resolveSkillAdjustedMinutes(
+        effect.minutes,
+        skillUse,
+        state.skillProgress,
+      );
       break;
     case "advance_to_daybreak":
       totals.advancesToDaybreak = true;
@@ -100,9 +106,10 @@ function collectDeterministicEffect(
 function collectDeterministicEffects(
   effects: Array<Exclude<Effect, { type: "random_outcome" }>>,
   state: GameState,
+  skillUse?: SkillUse,
 ) {
   const totals = emptyHintTotals();
-  effects.forEach((effect) => collectDeterministicEffect(totals, effect, state));
+  effects.forEach((effect) => collectDeterministicEffect(totals, effect, state, skillUse));
   return totals;
 }
 
@@ -155,11 +162,12 @@ function hintTokens(totals: HintTotals, includeTime = true) {
 function randomOutcomeToken(
   outcomes: Extract<Effect, { type: "random_outcome" }>["outcomes"],
   state: GameState,
+  skillUse?: SkillUse,
 ) {
   const possibleTokens = Array.from(new Set(
     outcomes
       .map((outcome) =>
-        hintTokens(collectDeterministicEffects(outcome.effects, state), false)
+        hintTokens(collectDeterministicEffects(outcome.effects, state, skillUse), false)
           .join("·"),
       )
       .filter(Boolean),
@@ -170,18 +178,22 @@ function randomOutcomeToken(
   return `${possibleTokens.join(" 또는 ")}${possibleTokens.length > 1 ? " 중 하나" : ""}`;
 }
 
-export function formatOutcomeHint(effects: Effect[], state: GameState) {
+export function formatOutcomeHint(
+  effects: Effect[],
+  state: GameState,
+  skillUse?: SkillUse,
+) {
   const deterministicEffects = effects.filter(
     (effect): effect is Exclude<Effect, { type: "random_outcome" }> =>
       effect.type !== "random_outcome",
   );
-  const totals = collectDeterministicEffects(deterministicEffects, state);
+  const totals = collectDeterministicEffects(deterministicEffects, state, skillUse);
   const tokens = hintTokens(totals, false);
   effects.forEach((effect) => {
     if (effect.type !== "random_outcome") {
       return;
     }
-    const randomToken = randomOutcomeToken(effect.outcomes, state);
+    const randomToken = randomOutcomeToken(effect.outcomes, state, skillUse);
     if (randomToken) {
       tokens.push(randomToken);
     }

@@ -3,6 +3,7 @@ import { ConditionSchema } from "./condition-effect";
 import { EffectSchema } from "./condition-effect";
 import { ChoiceLoadingSchema, GameActionSchema } from "./action";
 import { ActionPresentationModeSchema } from "./action";
+import { SkillUseSchema } from "./skill-progression";
 
 export const RiskHintSchema = z.enum(["low", "medium", "high"]);
 
@@ -75,6 +76,7 @@ export const ChoiceDefinitionSchema = z.object({
   hidden: z.boolean().default(false),
   nextEventId: z.string().optional(),
   nextSceneId: z.string().optional(),
+  skillUse: SkillUseSchema.optional(),
 });
 
 export type StoryChoice = z.infer<typeof StoryChoiceSchema>;

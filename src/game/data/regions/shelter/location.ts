@@ -109,6 +109,7 @@ export const shelterChoices: ActionDefinition[] = [
   }),
   interactionFor("shelter", {
     id: "collect_rainwater_at_shelter",
+    skillUse: { skillId: "collection" },
     label: "물 확보하기",
     type: "use",
     outcomeHint: "오늘 고인 빗물을 병에 나눠 담아 물 한 병을 확보한다.",

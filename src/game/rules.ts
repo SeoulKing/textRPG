@@ -22,7 +22,24 @@ import {
   getStockStateKey,
   isTimeEffect,
 } from "./state-utils";
-import type { ActionDefinition, ChoiceDefinition, DayEvolutionUpdate, GameAction, GameState } from "./schemas";
+import type {
+  ActionDefinition,
+  ChoiceDefinition,
+  DayEvolutionUpdate,
+  Effect,
+  GameAction,
+  GameState,
+  SkillId,
+  SkillUse,
+} from "./schemas";
+import {
+  PROGRESSION_SKILLS,
+  addSkillXp,
+  createEmptySkillProgress,
+  getProgressionSkillLevel,
+  getSkillXpForMinutes,
+  resolveSkillAdjustedMinutes,
+} from "./skill-progression";
 
 const STAT_LABELS = {
   hp: "체력",
@@ -293,6 +310,10 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
     }
   });
 
+  getSkillLevelUps(previousState, nextState).forEach(({ skillId, nextLevel }) => {
+    parts.push(`${PROGRESSION_SKILLS[skillId].name} 숙련도 Lv.${nextLevel} 달성`);
+  });
+
   if (elapsedTimeNote) {
     parts.push(elapsedTimeNote);
   }
@@ -307,8 +328,33 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
   return parts.length > 0 ? parts.join(" / ") : fallback;
 }
 
+function getSkillLevelUps(previousState: GameState, nextState: GameState) {
+  return (Object.keys(PROGRESSION_SKILLS) as SkillId[])
+    .map((skillId) => ({
+      skillId,
+      previousLevel: getProgressionSkillLevel(previousState.skillProgress, skillId),
+      nextLevel: getProgressionSkillLevel(nextState.skillProgress, skillId),
+    }))
+    .filter(({ previousLevel, nextLevel }) => nextLevel > previousLevel);
+}
+
 export function applySystemNote(previousState: GameState, nextState: GameState, fallback = "") {
+  const skillLevelUps = getSkillLevelUps(previousState, nextState);
+  skillLevelUps.forEach(({ skillId, nextLevel }) => {
+    appendLogEntry(
+      nextState,
+      `${PROGRESSION_SKILLS[skillId].name} 숙련도가 Lv.${nextLevel}로 올랐습니다.`,
+    );
+  });
+
   if ((nextState.isGameOver || nextState.stageClear) && nextState.systemNote) {
+    const levelUpTokens = skillLevelUps.map(
+      ({ skillId, nextLevel }) =>
+        `${PROGRESSION_SKILLS[skillId].name} 숙련도 Lv.${nextLevel} 달성`,
+    );
+    if (levelUpTokens.length > 0) {
+      nextState.systemNote = [nextState.systemNote, ...levelUpTokens].join(" / ");
+    }
     return;
   }
 
@@ -562,6 +608,7 @@ export function createInitialGameState(): GameState {
     },
     money: 6500,
     skills: [],
+    skillProgress: createEmptySkillProgress(),
     inventory: {
       emergencySnack: 1,
       waterBottle: 1,
@@ -800,18 +847,76 @@ type ExecutionResult = {
   preferredSceneId?: string;
 };
 
-function applyDefinitionEffects(state: GameState, effects: ActionDefinition["effects"] | ChoiceDefinition["effects"]) {
+export type PerformActionOptions = {
+  rng?: () => number;
+};
+
+function applyDefinitionEffects(
+  state: GameState,
+  effects: ActionDefinition["effects"] | ChoiceDefinition["effects"],
+  skillUse: SkillUse | undefined,
+  options: PerformActionOptions,
+) {
   effects.forEach((effect) => {
     if (isTimeEffect(effect)) {
       if (effect.type === "advance_to_daybreak") {
         jumpToNextDaybreak(state);
       } else {
-        advanceGameMinutes(state, effect.minutes);
+        advanceGameMinutes(
+          state,
+          resolveSkillAdjustedMinutes(effect.minutes, skillUse, state.skillProgress),
+        );
       }
       return;
     }
-    applyEffect(effect, state);
+    applyEffect(effect, state, { skillUse, rng: options.rng });
   });
+}
+
+function authoredAdvanceTimeMinutes(effects: Effect[]) {
+  return effects.find(
+    (effect): effect is Extract<Effect, { type: "advance_time" }> =>
+      effect.type === "advance_time",
+  )?.minutes;
+}
+
+function inventoryOrMoneyIncreased(previousState: GameState, nextState: GameState) {
+  if (nextState.money > previousState.money) {
+    return true;
+  }
+  const itemIds = new Set([
+    ...Object.keys(previousState.inventory),
+    ...Object.keys(nextState.inventory),
+  ]);
+  return Array.from(itemIds).some(
+    (itemId) => (nextState.inventory[itemId] ?? 0) > (previousState.inventory[itemId] ?? 0),
+  );
+}
+
+function awardDefinitionSkillXp(
+  previousState: GameState,
+  nextState: GameState,
+  skillUse: SkillUse | undefined,
+  effects: Effect[],
+) {
+  if (!skillUse) {
+    return;
+  }
+  const baseMinutes = authoredAdvanceTimeMinutes(effects);
+  if (baseMinutes === undefined) {
+    return;
+  }
+  if (
+    skillUse.skillId === "collection" &&
+    !inventoryOrMoneyIncreased(previousState, nextState)
+  ) {
+    return;
+  }
+  addSkillXp(
+    nextState.skillProgress,
+    skillUse.skillId,
+    getSkillXpForMinutes(baseMinutes),
+  );
 }
 
 function applyShelterSleepBonus(state: GameState) {
@@ -824,21 +929,25 @@ function applyShelterSleepBonus(state: GameState) {
   addLog(state, "보강해 둔 천막이 바람을 조금 막아 주어, 한숨 자고 난 뒤 몸과 마음이 한결 가벼워졌다.");
 }
 
-function executeShelterCookingAction(state: GameState, action: ActionDefinition): ExecutionResult {
+function executeShelterCookingAction(
+  state: GameState,
+  action: ActionDefinition,
+  options: PerformActionOptions,
+): ExecutionResult {
   const hasIngredients =
     hasItemAmount(state, "rawRice", 1) &&
     hasItemAmount(state, "vegetables", 1) &&
     hasItemAmount(state, "woodPlank", 1);
 
   if (!hasIngredients) {
-    applyDefinitionEffects(state, action.failureEffects);
+    applyDefinitionEffects(state, action.failureEffects, undefined, options);
     return {
       preferredSceneId: action.nextSceneId,
       fallbackNote: action.failureNote ?? action.label,
     };
   }
 
-  applyDefinitionEffects(state, action.effects);
+  applyDefinitionEffects(state, action.effects, undefined, options);
   return {
     preferredSceneId: action.nextSceneId,
     fallbackNote: action.systemNote === null ? "" : (action.systemNote ?? action.label),
@@ -872,13 +981,17 @@ function dynamicDeliverFailureNote(state: GameState, action: ActionDefinition) {
   return action.failureNote ?? action.label;
 }
 
-function executeActionDefinition(state: GameState, action: ActionDefinition): ExecutionResult {
+function executeActionDefinition(
+  state: GameState,
+  action: ActionDefinition,
+  options: PerformActionOptions,
+): ExecutionResult {
   if (!actionConditionsMet(action, state)) {
     if (action.presentationMode !== "always") {
       throw new Error("지금은 그 행동을 할 수 없다.");
     }
 
-    applyDefinitionEffects(state, action.failureEffects);
+    applyDefinitionEffects(state, action.failureEffects, undefined, options);
     return {
       preferredSceneId: action.nextSceneId,
       fallbackNote: dynamicDeliverFailureNote(state, action),
@@ -887,9 +1000,11 @@ function executeActionDefinition(state: GameState, action: ActionDefinition): Ex
 
   consumeCurrentSceneIntro(state);
   if (action.id === "cook_at_shelter") {
-    return executeShelterCookingAction(state, action);
+    return executeShelterCookingAction(state, action, options);
   }
-  applyDefinitionEffects(state, action.effects);
+  const previousState = structuredClone(state);
+  applyDefinitionEffects(state, action.effects, action.skillUse, options);
+  awardDefinitionSkillXp(previousState, state, action.skillUse, action.effects);
   if (action.id === "sleep_at_shelter") {
     applyShelterSleepBonus(state);
   }
@@ -899,13 +1014,17 @@ function executeActionDefinition(state: GameState, action: ActionDefinition): Ex
   };
 }
 
-function executeSceneChoiceDefinition(state: GameState, choice: ChoiceDefinition): ExecutionResult {
+function executeSceneChoiceDefinition(
+  state: GameState,
+  choice: ChoiceDefinition,
+  options: PerformActionOptions,
+): ExecutionResult {
   if (!choiceConditionsMet(choice, state)) {
     if (choice.presentationMode !== "always") {
       throw new Error("지금은 그 선택지를 고를 수 없다.");
     }
 
-    applyDefinitionEffects(state, choice.failureEffects);
+    applyDefinitionEffects(state, choice.failureEffects, undefined, options);
     return {
       preferredSceneId: choice.nextSceneId,
       fallbackNote: choice.failureNote ?? choice.label,
@@ -913,14 +1032,20 @@ function executeSceneChoiceDefinition(state: GameState, choice: ChoiceDefinition
   }
 
   consumeCurrentSceneIntro(state);
-  applyDefinitionEffects(state, choice.effects);
+  const previousState = structuredClone(state);
+  applyDefinitionEffects(state, choice.effects, choice.skillUse, options);
+  awardDefinitionSkillXp(previousState, state, choice.skillUse, choice.effects);
   return {
     preferredSceneId: choice.nextSceneId,
     fallbackNote: choice.systemNote === null ? "" : (choice.systemNote ?? choice.label),
   };
 }
 
-export function performAction(state: GameState, action: GameAction) {
+export function performAction(
+  state: GameState,
+  action: GameAction,
+  options: PerformActionOptions = {},
+) {
   const previousState = structuredClone(state);
   syncClock(state);
   if (state.isGameOver) {
@@ -968,7 +1093,7 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 행동 '${action.actionId}'이다.`);
       }
-      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
+      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition, options));
       break;
     }
     case "content_choice": {
@@ -976,7 +1101,7 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 선택지 '${action.choiceId}'이다.`);
       }
-      ({ preferredSceneId, fallbackNote } = executeSceneChoiceDefinition(state, definition));
+      ({ preferredSceneId, fallbackNote } = executeSceneChoiceDefinition(state, definition, options));
       break;
     }
     case "subway_expedition":
@@ -1004,6 +1129,7 @@ export function summarizeState(state: GameState) {
     energy: state.stats.energy,
     money: state.money,
     skills: [...state.skills],
+    skillProgress: structuredClone(state.skillProgress),
     inventory: { ...state.inventory },
     flags: { ...state.flags },
   };

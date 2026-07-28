@@ -31,6 +31,7 @@ export const checkpointChoices: ActionDefinition[] = [
   }),
   interactionFor("checkpoint", {
     id: "patrol_checkpoint_perimeter",
+    skillUse: { skillId: "exploration" },
     label: "초소 주변을 정찰한다",
     type: "search",
     outcomeHint: "기력 -1 / 보상: {{item:scrapMetal}}·{{item:cordage}}·{{item:rationTicket}} 중 하나 / 위험: 체력 -1 / +35분",
@@ -44,6 +45,7 @@ export const checkpointChoices: ActionDefinition[] = [
         outcomes: [
           {
             weight: 35,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "scrapMetal", amount: 2 },
               { type: "log", message: "검문소 차단봉 아래에서 쓸 만한 {{item:scrapMetal}} 두 개를 뜯어냈다." },
@@ -52,6 +54,7 @@ export const checkpointChoices: ActionDefinition[] = [
           },
           {
             weight: 25,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "cordage", amount: 1 },
               { type: "log", message: "초소 주변의 끊어진 케이블과 포장 끈을 묶어 {{item:cordage}} 하나를 챙겼다." },
@@ -60,6 +63,7 @@ export const checkpointChoices: ActionDefinition[] = [
           },
           {
             weight: 20,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "rationTicket", amount: 1 },
               { type: "log", message: "비어 있는 초소 서랍에서 구겨진 {{item:rationTicket}} 한 장을 찾아냈다." },
@@ -68,6 +72,7 @@ export const checkpointChoices: ActionDefinition[] = [
           },
           {
             weight: 20,
+            result: "failure",
             effects: [
               { type: "change_stat", stat: "hp", value: -1 },
               { type: "log", message: "무너진 차단봉을 넘다 다리를 긁혔다. 검문소의 잔해는 아직 날카롭다." },

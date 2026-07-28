@@ -118,6 +118,21 @@ export const StateSnapshotSchema = z.object({
       description: z.string(),
     })
   ),
+  skillProgress: z.array(
+    z.object({
+      id: z.enum(["collection", "exploration"]),
+      name: z.string(),
+      description: z.string(),
+      level: z.number().int().min(1).max(5),
+      maxLevel: z.literal(5),
+      totalXp: z.number().int().min(0).max(320),
+      xpIntoLevel: z.number().int().nonnegative(),
+      xpForNextLevel: z.number().int().positive().nullable(),
+      progressPercent: z.number().min(0).max(100),
+      effectPercent: z.number().int().min(0).max(40),
+      isMaxLevel: z.boolean(),
+    })
+  ),
   availableActions: z.array(ActionChoiceSchema),
   mapEntries: z.array(MapEntrySchema),
   latestEvent: EventCardSchema.nullable(),

@@ -5,7 +5,21 @@
 import { PHASES, REAL_DAY_MS } from "./base-data";
 import { resolveItemText } from "./item-text";
 import { buildRuntimeRegistry } from "./runtime-registry";
-import type { Condition, Effect, GameState, GameStateV2, Objective, Player, QuestReward, WorldState } from "./schemas";
+import {
+  getProgressionSkillLevel,
+  selectRandomOutcome,
+} from "./skill-progression";
+import type {
+  Condition,
+  Effect,
+  GameState,
+  GameStateV2,
+  Objective,
+  Player,
+  QuestReward,
+  SkillUse,
+  WorldState,
+} from "./schemas";
 
 function activeDayKey(state: GameState, flag: string) {
   return `day${state.day}_${flag}`;
@@ -294,7 +308,10 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
     case "not_has_item":
       return getInventoryAmount(state, condition.itemId) < condition.amount;
     case "skill_gte":
-      return state.skills.includes(condition.skillId);
+      if (condition.skillId === "collection" || condition.skillId === "exploration") {
+        return getProgressionSkillLevel(state.skillProgress, condition.skillId) >= condition.value;
+      }
+      return state.skills.includes(condition.skillId) && condition.value <= 1;
     case "flag":
       return Boolean(state.flags[condition.flag]);
     case "flag_not":
@@ -338,20 +355,27 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
   }
 }
 
-export function applyEffect(effect: Effect, state: GameState): void {
+export type ApplyEffectOptions = {
+  skillUse?: SkillUse;
+  rng?: () => number;
+};
+
+export function applyEffect(
+  effect: Effect,
+  state: GameState,
+  options: ApplyEffectOptions = {},
+): void {
   switch (effect.type) {
     case "random_outcome": {
-      const totalWeight = effect.outcomes.reduce((total, outcome) => total + outcome.weight, 0);
-      if (totalWeight <= 0) {
+      const selected = selectRandomOutcome(effect.outcomes, {
+        skillUse: options.skillUse,
+        progress: state.skillProgress,
+        rng: options.rng,
+      });
+      if (!selected) {
         break;
       }
-      const roll = Math.random() * totalWeight;
-      let cursor = 0;
-      const selected = effect.outcomes.find((outcome) => {
-        cursor += outcome.weight;
-        return roll < cursor;
-      }) ?? effect.outcomes[effect.outcomes.length - 1];
-      selected.effects.forEach((outcomeEffect) => applyEffect(outcomeEffect, state));
+      selected.effects.forEach((outcomeEffect) => applyEffect(outcomeEffect, state, options));
       break;
     }
     case "change_stat":
@@ -407,7 +431,11 @@ export function applyEffect(effect: Effect, state: GameState): void {
         .filter((scene) => (scene.tags ?? []).includes(effect.tag))
         .filter((scene) => scene.conditions.every((condition) => evaluateCondition(condition, state)));
       if (candidates.length > 0) {
-        const index = Math.floor(Math.random() * candidates.length);
+        const roll = options.rng ? options.rng() : Math.random();
+        const normalizedRoll = Number.isFinite(roll)
+          ? Math.max(0, Math.min(1 - Number.EPSILON, roll))
+          : 0;
+        const index = Math.floor(normalizedRoll * candidates.length);
         state.sceneId = candidates[Math.min(index, candidates.length - 1)].id;
       }
       break;

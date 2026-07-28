@@ -1726,6 +1726,142 @@ a:focus:not(:focus-visible),
   line-height: 1.65;
 }
 
+.skills-panel,
+.skill-section {
+  display: grid;
+}
+
+.skills-panel {
+  gap: 22px;
+}
+
+.skill-section {
+  gap: 10px;
+}
+
+.skill-section-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.skill-progress-grid {
+  gap: 12px;
+}
+
+.skill-progress-card {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  border-color: rgba(47, 125, 104, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(47, 125, 104, 0.08), transparent 38%),
+    var(--panel);
+}
+
+.skill-progress-card.is-exploration {
+  border-color: rgba(63, 96, 160, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(63, 96, 160, 0.08), transparent 38%),
+    var(--panel);
+}
+
+.skill-progress-card-head,
+.skill-xp-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.skill-progress-card h3 {
+  min-width: 0;
+  margin: 0;
+}
+
+.skill-level-badge {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(47, 125, 104, 0.11);
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.skill-progress-card.is-exploration .skill-level-badge {
+  background: rgba(63, 96, 160, 0.11);
+  color: #315587;
+}
+
+.skill-progress-card .skill-level-badge.is-max {
+  background: rgba(184, 97, 41, 0.12);
+  color: #9f4f1d;
+}
+
+.skill-progress-card .skill-progress-description {
+  min-height: 3.3em;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.skill-progress-card .skill-progress-effect {
+  justify-self: start;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: rgba(47, 125, 104, 0.08);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.skill-progress-card.is-exploration .skill-progress-effect {
+  background: rgba(63, 96, 160, 0.08);
+}
+
+.skill-xp-summary {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.skill-xp-summary strong {
+  color: var(--text);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.skill-xp-meter {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(31, 41, 55, 0.08);
+}
+
+.skill-xp-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7aa891, #2f7d68);
+}
+
+.skill-progress-card.is-exploration .skill-xp-meter span {
+  background: linear-gradient(90deg, #7998ce, #3f60a0);
+}
+
+.legacy-skills-section {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.legacy-skill-card {
+  background: rgba(255, 255, 255, 0.76);
+}
+
 .quest-card-head {
   display: flex;
   align-items: center;
@@ -2860,6 +2996,22 @@ a:focus:not(:focus-visible),
   .inventory-grid .inline-action {
     padding: 6px 8px;
     font-size: 0.78rem;
+  }
+
+  .skills-panel {
+    gap: 18px;
+  }
+
+  .skill-progress-card {
+    padding: 14px;
+  }
+
+  .skill-progress-card .skill-progress-description {
+    min-height: 0;
+  }
+
+  .legacy-skills-section {
+    padding-top: 14px;
   }
 }
 

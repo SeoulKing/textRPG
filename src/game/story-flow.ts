@@ -37,7 +37,7 @@ function buildStoryChoiceFromActionDefinition(
   resolveNextSceneId?: NextScenePreviewResolver,
 ): StoryChoice {
   const serverActionHint: GameAction = { type: "content_action", actionId: action.id };
-  const standardizedHint = formatOutcomeHint(action.effects, state);
+  const standardizedHint = formatOutcomeHint(action.effects, state, action.skillUse);
   return {
     id: action.id,
     label: action.label,

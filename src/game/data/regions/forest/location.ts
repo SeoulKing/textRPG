@@ -5,6 +5,7 @@ import { forestResultSceneTags } from "./result-scene-tags";
 export const forestChoices: ActionDefinition[] = [
   interactionFor("forest", {
     id: "chop_wood_at_forest",
+    skillUse: { skillId: "collection" },
     label: "벌목하기",
     type: "search",
     outcomeHint: "30분을 들여 {{item:woodPlank}} 3개를 얻는다.",
@@ -20,6 +21,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "chop_wood_with_crude_axe",
+    skillUse: { skillId: "collection" },
     label: "{{item:crudeAxe|으로로}} 벌목한다",
     type: "search",
     outcomeHint: "{{item:woodPlank}} +5 / {{item:crudeAxe}} 내구도 -1 / +30분",
@@ -37,6 +39,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "search_forest_resources",
+    skillUse: { skillId: "exploration" },
     label: "수색하기",
     type: "search",
     outcomeHint: "30분을 들여 숲을 뒤진다.",
@@ -48,6 +51,7 @@ export const forestChoices: ActionDefinition[] = [
         outcomes: [
           {
             weight: 50,
+            result: "failure",
             effects: [
               { type: "log", message: "당신은 숲을 뒤졌지만 쓸 만한 물건을 찾지 못했다." },
               { type: "set_random_scene", tag: forestResultSceneTags.searchNothing },
@@ -55,6 +59,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 10,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "cannedFood", amount: 1 },
               { type: "log", message: "당신은 숲에서 {{item:cannedFood}} 하나를 찾아냈다." },
@@ -63,6 +68,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 20,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "woodPlank", amount: 1 },
               { type: "log", message: "당신은 숲에서 {{item:woodPlank}} 하나를 챙겼다." },
@@ -71,6 +77,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 10,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "scrapMetal", amount: 1 },
               { type: "log", message: "당신은 숲에서 {{item:scrapMetal}} 하나를 주웠다." },
@@ -79,6 +86,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 10,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "clothScrap", amount: 1 },
               { type: "log", message: "당신은 숲에서 {{item:clothScrap}} 하나를 건졌다." },
@@ -93,6 +101,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "gather_cordage_at_forest",
+    skillUse: { skillId: "collection" },
     label: "덩굴을 꼬아 끈을 만든다",
     type: "search",
     outcomeHint: "{{item:cordage}} +2 / +30분",
@@ -108,6 +117,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "cut_vines_with_utility_knife",
+    skillUse: { skillId: "collection" },
     label: "{{item:utilityKnife|으로로}} 덩굴을 잘라낸다",
     type: "search",
     outcomeHint: "{{item:cordage}} +4 / {{item:utilityKnife}} 내구도 -1 / +30분",
@@ -125,6 +135,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "forage_forest_food",
+    skillUse: { skillId: "exploration" },
     label: "먹을 것을 뒤진다",
     type: "search",
     outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:clothScrap}} +1 / +30분",
@@ -136,6 +147,7 @@ export const forestChoices: ActionDefinition[] = [
         outcomes: [
           {
             weight: 55,
+            result: "failure",
             effects: [
               { type: "log", message: "당신은 먹을 만한 것을 오래 찾았지만 빈손으로 돌아왔다." },
               { type: "set_random_scene", tag: forestResultSceneTags.forageNothing },
@@ -143,6 +155,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 25,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "wildGreens", amount: 1 },
               { type: "log", message: "당신은 숲 가장자리에서 먹을 수 있는 {{item:wildGreens}} 한 줌을 뜯었다." },
@@ -151,6 +164,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 10,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "staleBread", amount: 1 },
               { type: "log", message: "당신은 젖은 봉지 안에서 {{item:staleBread}} 하나를 찾아냈다." },
@@ -159,6 +173,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 10,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "clothScrap", amount: 1 },
               { type: "log", message: "당신은 먹을 것은 찾지 못했지만 질긴 {{item:clothScrap}} 하나를 챙겼다." },
@@ -173,6 +188,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "search_bushes_with_utility_knife",
+    skillUse: { skillId: "exploration" },
     label: "{{item:utilityKnife|으로로}} 덤불을 뒤진다",
     type: "search",
     outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:cannedFood}} +1 / {{item:clothScrap}} +1 / {{item:utilityKnife}} 내구도 -1 / +30분",
@@ -185,6 +201,7 @@ export const forestChoices: ActionDefinition[] = [
         outcomes: [
           {
             weight: 35,
+            result: "failure",
             effects: [
               { type: "log", message: "당신은 칼로 덤불을 헤쳤지만 먹을 만한 것은 찾지 못했다." },
               { type: "set_random_scene", tag: forestResultSceneTags.forageNothing },
@@ -192,6 +209,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 35,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "wildGreens", amount: 1 },
               { type: "log", message: "당신은 칼로 질긴 줄기를 잘라 {{item:wildGreens}} 한 줌을 챙겼다." },
@@ -200,6 +218,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 15,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "staleBread", amount: 1 },
               { type: "log", message: "덤불 안쪽의 낡은 봉지에서 {{item:staleBread}} 하나를 찾아냈다." },
@@ -208,6 +227,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 10,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "cannedFood", amount: 1 },
               { type: "log", message: "당신은 덤불 속에 숨은 {{item:cannedFood}} 하나를 찾아냈다." },
@@ -216,6 +236,7 @@ export const forestChoices: ActionDefinition[] = [
           },
           {
             weight: 5,
+            result: "success",
             effects: [
               { type: "add_item", itemId: "clothScrap", amount: 1 },
               { type: "log", message: "당신은 덤불에 걸린 질긴 {{item:clothScrap|을를}} 칼로 잘라 냈다." },

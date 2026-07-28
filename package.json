@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "npm run build && node .server-dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test:skills": "tsx --test tests/skill-progression.test.ts",
     "db:init": "tsx src/db/init.ts",
     "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\""
   },

@@ -51,7 +51,7 @@ export function buildStoryChoiceFromChoice(
   choice: ChoiceDefinition,
   state: GameState,
 ): StoryChoice {
-  const standardizedHint = formatOutcomeHint(choice.effects, state);
+  const standardizedHint = formatOutcomeHint(choice.effects, state, choice.skillUse);
   return {
     id: choice.id,
     label: choice.label,

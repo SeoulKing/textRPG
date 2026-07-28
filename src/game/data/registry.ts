@@ -558,6 +558,69 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
   }
 }
 
+type SkillUseDefinition = {
+  effects: Effect[];
+  skillUse?: { skillId: "collection" | "exploration" };
+};
+
+function validateSkillUseDefinition(definition: SkillUseDefinition, source: string) {
+  const skillUse = definition.skillUse;
+  if (!skillUse) return;
+
+  const advanceTimeEffects = definition.effects.filter(
+    (effect) => effect.type === "advance_time",
+  );
+  const usesDaybreak = definition.effects.some(
+    (effect) => effect.type === "advance_to_daybreak",
+  );
+  if (advanceTimeEffects.length !== 1 || usesDaybreak) {
+    throw new Error(
+      `${source} skillUse requires exactly one direct advance_time effect and cannot use advance_to_daybreak.`,
+    );
+  }
+
+  if (skillUse.skillId === "collection") {
+    const hasDirectCollection = definition.effects.some((effect) =>
+      effect.type === "add_item" ||
+      effect.type === "collect_stock_item" ||
+      effect.type === "collect_stock_item_all" ||
+      effect.type === "collect_stock_money" ||
+      effect.type === "collect_stock_money_all"
+    );
+    if (!hasDirectCollection) {
+      throw new Error(
+        `${source} collection skillUse requires a direct item or stock collection effect.`,
+      );
+    }
+    return;
+  }
+
+  const randomOutcomeEffects = definition.effects.filter(
+    (effect): effect is Extract<Effect, { type: "random_outcome" }> =>
+      effect.type === "random_outcome",
+  );
+  if (randomOutcomeEffects.length !== 1) {
+    throw new Error(
+      `${source} exploration skillUse requires exactly one direct random_outcome effect.`,
+    );
+  }
+
+  const outcomes = randomOutcomeEffects[0].outcomes as Array<{
+    result?: "success" | "failure";
+  }>;
+  if (outcomes.some((outcome) => outcome.result !== "success" && outcome.result !== "failure")) {
+    throw new Error(
+      `${source} exploration skillUse requires every random outcome to declare result.`,
+    );
+  }
+  const results = new Set(outcomes.map((outcome) => outcome.result));
+  if (!results.has("success") || !results.has("failure")) {
+    throw new Error(
+      `${source} exploration skillUse requires at least one success and one failure outcome.`,
+    );
+  }
+}
+
 function validateAction(registry: ContentRegistry, action: ActionDefinition) {
   validateItemTextReferences(action.label, registry, `action:${action.id}:label`);
   validateItemTextReferences(action.outcomeHint, registry, `action:${action.id}:outcomeHint`);
@@ -571,6 +634,7 @@ function validateAction(registry: ContentRegistry, action: ActionDefinition) {
   action.conditions.forEach((condition) => validateCondition(registry, condition, `action:${action.id}`));
   action.effects.forEach((effect) => validateEffect(registry, effect, `action:${action.id}`));
   action.failureEffects.forEach((effect) => validateEffect(registry, effect, `action:${action.id}:failure`));
+  validateSkillUseDefinition(action, `action:${action.id}`);
 }
 
 function validateChoice(registry: ContentRegistry, choice: ChoiceDefinition) {
@@ -583,6 +647,7 @@ function validateChoice(registry: ContentRegistry, choice: ChoiceDefinition) {
   choice.conditions.forEach((condition) => validateCondition(registry, condition, `choice:${choice.id}`));
   choice.effects.forEach((effect) => validateEffect(registry, effect, `choice:${choice.id}`));
   (choice.failureEffects ?? []).forEach((effect) => validateEffect(registry, effect, `choice:${choice.id}:failure`));
+  validateSkillUseDefinition(choice, `choice:${choice.id}`);
 }
 
 export function validateRegistry(registry: ContentRegistry) {

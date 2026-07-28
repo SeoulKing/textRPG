@@ -25,6 +25,7 @@ import { worldRegistry } from "./data/registry";
 import { normalizeDynamicLocationNames } from "./dynamic-location-naming";
 import { formatLogTimestamp } from "./state-utils";
 import { buildRuntimeRegistry, emptyDynamicWorldRegistry } from "./runtime-registry";
+import { normalizeSkillProgress } from "./skill-progression";
 
 export type CardKind = "locationCards" | "personCards" | "itemCards" | "eventCards" | "sceneCards";
 export type StoredCard = LocationCard | PersonCard | ItemCard | EventCard | SceneCard;
@@ -406,6 +407,7 @@ function pruneState(state: unknown): GameState {
     stats: normalizeStats(rawState.stats),
     money: normalizeInt(rawState.money, 0, 0),
     skills: normalizeStringArray(rawState.skills),
+    skillProgress: normalizeSkillProgress(rawState.skillProgress),
     inventory: nextInventory,
     toolDurability: normalizeToolDurability(rawState.toolDurability, nextInventory, validItemIds),
     dynamicContent,

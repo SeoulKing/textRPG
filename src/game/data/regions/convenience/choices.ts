@@ -141,6 +141,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "collect_cash_from_register",
+    skillUse: { skillId: "collection" },
     label: "남은 현금을 챙긴다",
     outcomeHint: "서랍 구석에 남은 지폐와 동전을 빠짐없이 긁어모아 한 번에 챙긴다.",
     conditions: [

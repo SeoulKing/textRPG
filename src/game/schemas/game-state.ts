@@ -4,6 +4,7 @@ import { WorldStateSchema } from "./world-state";
 import { QuestStateSchema } from "./quest";
 import { DynamicWorldRegistrySchema, FrontierStateSchema, NarrativeStateSchema, WorldPlanSchema } from "./dynamic-world";
 import { SubwayExpeditionStateSchema } from "./subway-expedition";
+import { SkillProgressStateSchema } from "./skill-progression";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -31,6 +32,7 @@ export const GameStateSchema = z.object({
   }),
   money: z.number().int().nonnegative(),
   skills: z.array(z.string()),
+  skillProgress: SkillProgressStateSchema,
   inventory: z.record(z.string(), z.number().int().nonnegative()),
   toolDurability: z.record(z.string(), z.number().int().nonnegative()).default({}),
   stockState: z.record(z.string(), z.number().int().nonnegative()).default({}),

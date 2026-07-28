@@ -23,6 +23,7 @@ import {
 } from "./rules";
 import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition, mergeDynamicWorldRegistry } from "./runtime-registry";
 import { applyEffect } from "./state-utils";
+import { buildSkillProgressCards } from "./skill-progression";
 import { buildActionCatalogFromStoryChoices, resolveStoryFrame } from "./story-flow";
 import {
   acknowledgeSubwayResult,
@@ -1534,6 +1535,7 @@ export class GameService {
         requirements: this.buildQuestRequirements(session, quest, registry),
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
+      skillProgress: buildSkillProgressCards(session.state.skillProgress),
       availableActions: (expeditionScene
         ? buildSubwayExpeditionActions(session.state)
         : this.buildAvailableActions(session, sceneDef, storyChoices, registry))

@@ -38,6 +38,7 @@ export function collectStockItemEffect({ itemId, locationId, nodeId }: StockItem
 }
 
 export function collectStockItemChoiceParts(input: StockItemChoicePartsInput): {
+  skillUse: { skillId: "collection" };
   conditions: Condition[];
   effects: Effect[];
 } {
@@ -49,6 +50,7 @@ export function collectStockItemChoiceParts(input: StockItemChoicePartsInput): {
     effects.push({ type: "advance_time", minutes: input.minutes });
   }
   return {
+    skillUse: { skillId: "collection" },
     conditions: stockItemAvailableConditions(input),
     effects,
   };

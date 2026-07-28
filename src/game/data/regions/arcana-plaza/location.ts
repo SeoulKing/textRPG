@@ -4,6 +4,7 @@ import { defineLocation, interactionFor } from "../../location-helpers";
 export const arcanaPlazaChoices: ActionDefinition[] = [
   interactionFor("arcana_plaza", {
     id: "gather_moon_herb_at_arcana_plaza",
+    skillUse: { skillId: "collection" },
     label: "{{item:moonHerb|을를}} 채집한다",
     type: "search",
     outcomeHint: "{{item:moonHerb}} +1 / +20분",
@@ -19,6 +20,7 @@ export const arcanaPlazaChoices: ActionDefinition[] = [
   }),
   interactionFor("arcana_plaza", {
     id: "trace_floating_rune_at_arcana_plaza",
+    skillUse: { skillId: "collection" },
     label: "부유 룬을 해독한다",
     type: "explore",
     outcomeHint: "MP -1 / {{item:arcaneDust}} +1 / +15분",

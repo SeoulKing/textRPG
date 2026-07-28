@@ -106,6 +106,7 @@ export const EffectSchema = z.discriminatedUnion("type", [
     type: z.literal("random_outcome"),
     outcomes: z.array(z.object({
       weight: z.number().positive(),
+      result: z.enum(["success", "failure"]).optional(),
       effects: z.array(RandomOutcomeEffectSchema).default([]),
     })).min(1),
   }),

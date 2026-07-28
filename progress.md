@@ -1543,3 +1543,13 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   updated all authoring-guide examples to use quantity-first item tokens.
   a 67-definition audit confirmed every generated slash-delimited token starts with a signed quantity or the explicit `다음 날` time marker.
   the required web-game Playwright client and 390×844 screenshot confirmed `-4,500원 / +1 따뜻한 식사 / +15분` and `+6,000원 / +60분` render correctly with no console errors.
+
+- 2026-07-29 collection/exploration skill progression:
+  fixed the v1 rules at five levels with total-XP thresholds `0 / 50 / 120 / 210 / 320`, one XP per started five authored minutes, and a 10% per-level collection-time / exploration-failure reduction.
+  tagged regular stock pickups, cash collection, direct gathering, three forest chance searches, and checkpoint patrol with explicit `skillUse` metadata; exploration outcomes now declare success or failure.
+  added content validation and authoring guidance for skill time costs, collection effects, and fully marked exploration outcomes.
+  added the first skill-panel presentation with collection/exploration cards, level and XP meters, current effect text, MAX handling, legacy trait separation, and skill progression in `render_game_to_text`.
+  added save-v17 normalization, legacy-trait compatibility, authored-time XP rewards, effective collection timing, proportional exploration outcome reweighting, and level-up-only notes/logs.
+  focused regressions cover thresholds, exact outcome ratios, legacy saves, stock item/cash collection, invalid actions, Lv2 authored-XP versus effective-time behavior, exploration success/failure, level-up notices, and snapshot cards.
+  final verification passed: `test:skills` 12/12, `typecheck`, `content:validate`, `build`, `node --check app-api.js`, and `git diff --check`.
+  the required web-game Playwright client completed with installed Chrome; focused desktop and 390px checks confirmed Lv1, Lv2, MAX, save/restore, effective `+27분`, original-time `+6 XP`, accessible meters, mobile scrolling, no horizontal overflow, and no console/page/resource errors.

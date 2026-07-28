@@ -2591,18 +2591,80 @@ function renderInventoryPanel() {
 
 function skillsPanelMarkup() {
   const skills = client.snapshot.skills || [];
-  if (!skills.length) {
+  const skillProgress = client.snapshot.skillProgress || [];
+
+  if (!skillProgress.length && !skills.length) {
     return `<p class="empty-state">아직 얻은 생존 방식이 없다.</p>`;
   }
 
   return `
-    <div class="panel-grid">
-      ${skills.map((skill) => `
-        <article class="info-card">
-          <h3>${skill.name}</h3>
-          <p>${skill.description}</p>
-        </article>
-      `).join("")}
+    <div class="skills-panel">
+      ${skillProgress.length ? `
+        <section class="skill-section" aria-label="숙련도">
+          <h3 class="skill-section-title">숙련도</h3>
+          <div class="panel-grid skill-progress-grid">
+            ${skillProgress.map((skill) => {
+              const isMaxLevel = Boolean(skill.isMaxLevel);
+              const progressPercent = Math.max(0, Math.min(100, Number(skill.progressPercent) || 0));
+              const xpIntoLevel = Math.max(0, Number(skill.xpIntoLevel) || 0);
+              const xpForNextLevel = Math.max(0, Number(skill.xpForNextLevel) || 0);
+              const effectPercent = Math.max(0, Number(skill.effectPercent) || 0);
+              const skillName = skill.name
+                || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id);
+              const effectLabel = skill.id === "collection"
+                ? `수집 소요시간 ${effectPercent}% 감소`
+                : skill.id === "exploration"
+                  ? `탐색 실패 확률 ${effectPercent}% 감소`
+                  : `현재 효과 ${effectPercent}%`;
+              const xpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel} / ${xpForNextLevel} XP`;
+              const meterValue = isMaxLevel ? 100 : progressPercent;
+              const meterMax = isMaxLevel ? 100 : Math.max(1, xpForNextLevel);
+              const meterNow = isMaxLevel ? 100 : Math.min(xpIntoLevel, meterMax);
+
+              return `
+                <article class="info-card skill-progress-card is-${escapeHtml(skill.id)}">
+                  <div class="skill-progress-card-head">
+                    <h3>${escapeHtml(skillName)}</h3>
+                    <span class="skill-level-badge ${isMaxLevel ? "is-max" : ""}">
+                      ${isMaxLevel ? "MAX" : `Lv.${skill.level}`}
+                    </span>
+                  </div>
+                  <p class="skill-progress-description">${escapeHtml(skill.description || "")}</p>
+                  <p class="skill-progress-effect">${escapeHtml(effectLabel)}</p>
+                  <div class="skill-xp-summary">
+                    <span>경험치</span>
+                    <strong>${xpLabel}</strong>
+                  </div>
+                  <div
+                    class="skill-xp-meter"
+                    role="progressbar"
+                    aria-label="${escapeHtml(`${skillName} 경험치`)}"
+                    aria-valuemin="0"
+                    aria-valuemax="${meterMax}"
+                    aria-valuenow="${meterNow}"
+                    aria-valuetext="${escapeHtml(xpLabel)}"
+                  >
+                    <span style="width:${meterValue}%"></span>
+                  </div>
+                </article>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      ` : ""}
+      ${skills.length ? `
+        <section class="skill-section legacy-skills-section" aria-label="보유 특성">
+          <h3 class="skill-section-title">보유 특성</h3>
+          <div class="panel-grid">
+            ${skills.map((skill) => `
+              <article class="info-card legacy-skill-card">
+                <h3>${escapeHtml(skill.name)}</h3>
+                <p>${escapeHtml(skill.description)}</p>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      ` : ""}
     </div>
   `;
 }
@@ -3364,6 +3426,15 @@ window.render_game_to_text = () => JSON.stringify({
   location: client.snapshot?.state?.location || null,
   day: client.snapshot?.state?.day || null,
   time: client.snapshot ? gameClockLabel() : null,
+  skillProgress: (client.snapshot?.skillProgress || []).map((skill) => ({
+    id: skill.id,
+    level: skill.level,
+    totalXp: skill.totalXp,
+    nextTarget: skill.isMaxLevel
+      ? "MAX"
+      : Number(skill.totalXp) - Number(skill.xpIntoLevel) + Number(skill.xpForNextLevel),
+    effectPercent: skill.effectPercent,
+  })),
   subwayExpedition: client.snapshot?.state?.subwayExpedition || null,
   actionTransition: client.actionInFlight
     ? {
