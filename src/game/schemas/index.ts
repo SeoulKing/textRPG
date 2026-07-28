@@ -19,3 +19,4 @@ export * from "./scene";
 export * from "./session";
 export * from "./dynamic-world";
 export * from "./subway-expedition";
+export * from "./monster";

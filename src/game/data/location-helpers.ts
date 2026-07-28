@@ -2,10 +2,10 @@ import type { ActionDefinition, LocationDefinition, StockNodeDefinition } from "
 
 type LocationInput = Omit<
   LocationDefinition,
-  "imagePath" | "residentIds" | "interactionChoices" | "eventIds" | "stockNodes"
+  "imagePath" | "residentIds" | "interactionChoices" | "eventIds" | "stockNodes" | "monsters"
 > &
   Partial<
-    Pick<LocationDefinition, "imagePath" | "residentIds" | "interactionChoices" | "eventIds" | "stockNodes">
+    Pick<LocationDefinition, "imagePath" | "residentIds" | "interactionChoices" | "eventIds" | "stockNodes" | "monsters">
   >;
 
 type StockNodeInput = Omit<StockNodeDefinition, "money" | "items"> &
@@ -24,6 +24,7 @@ export function defineLocation(input: LocationInput): LocationDefinition {
     interactionChoices: [],
     eventIds: [],
     stockNodes: [],
+    monsters: [],
     ...input,
   };
 }

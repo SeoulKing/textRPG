@@ -2,6 +2,28 @@ import type { SceneDefinition } from "../../../schemas";
 
 export const convenienceSceneDefinitions: SceneDefinition[] = [
   {
+    id: "convenience_portal_discovery",
+    locationId: "convenience",
+    title: "옥상 위의 푸른 틈",
+    paragraphs: [
+      "창고 천장 틈으로 푸른 빛이 규칙적으로 번진다. 가게 뒤편 비상계단을 올려다보자, 녹슨 난간 위로 별가루 같은 불빛이 흘러내리고 있다.",
+      "옥상 문 너머에서는 이 폐허에서 들을 수 없는 맑은 종소리가 울린다. 지도에 새로운 길, 마법도시 입구가 표시된다.",
+    ],
+    choiceIds: [
+      "go_to_magic_city_entrance_after_discovery",
+      "leave_magic_city_portal_for_now",
+    ],
+    conditions: [
+      { type: "location", locationId: "convenience" },
+      { type: "flag", flag: "magic_city_entrance_discovered" },
+      { type: "flag_not", flag: "magic_city_portal_discovery_seen" },
+      { type: "active_stock_node_not", nodeId: "convenience_shelf" },
+      { type: "active_stock_node_not", nodeId: "convenience_register" },
+      { type: "active_stock_node_not", nodeId: "convenience_food_crate" },
+      { type: "active_stock_node_not", nodeId: "convenience_supply_pile" },
+    ],
+  },
+  {
     id: "convenience_shelf_three",
     locationId: "convenience",
     title: "진열대",

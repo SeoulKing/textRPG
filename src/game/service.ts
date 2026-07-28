@@ -61,6 +61,7 @@ import type {
   GeneratedStoryBeat,
   ItemCard,
   LocationCard,
+  LocationDefinition,
   MapEntry,
   NarrativeContinuationRequest,
   PersonCard,
@@ -109,14 +110,16 @@ function isHexNeighbor(left?: AxialCoord, right?: AxialCoord) {
 
 const SCENE_CARD_CACHE_VERSION = 5;
 
-const SHELTER_RECIPE_MENU_SCENE_IDS = [
+const RECIPE_MENU_SCENE_IDS = [
   "shelter_crafting_menu",
   "shelter_crafting_menu_repeat",
   "shelter_cooking_menu",
   "shelter_cooking_menu_repeat",
+  "arcana_workbench_menu",
+  "arcana_workbench_menu_repeat",
 ];
 
-const SHELTER_CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
+const CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   craft_shelter_wall_patch: "잠자기 후 체력과 정신력 회복량 증가",
   craft_shelter_brazier: "거처에서 따뜻한 식사 조리 가능",
   craft_shelter_rain_bucket: "하루에 한 번 물 한 병 확보 가능",
@@ -128,9 +131,11 @@ const SHELTER_CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   cook_greens_soup: "+1 정신력 / +3 기력",
   cook_forest_stew: "+6 기력 / 피로 완화",
   assemble_rescue_radio: "10일차 구조 신호 준비",
+  brew_mana_potion: "MP +4",
+  craft_rune_compass: "마법도시의 숨은 길 탐색",
 };
 
-const SHELTER_CRAFTING_PREREQUISITES: Record<string, Array<{ flag: string; label: string }>> = {
+const CRAFTING_RECIPE_PREREQUISITES: Record<string, Array<{ flag: string; label: string }>> = {
   cook_at_shelter: [{ flag: "shelter_brazier", label: "간이 화로" }],
   cook_rice_porridge: [{ flag: "shelter_brazier", label: "간이 화로" }],
   cook_greens_soup: [{ flag: "shelter_brazier", label: "간이 화로" }],
@@ -139,12 +144,23 @@ const SHELTER_CRAFTING_PREREQUISITES: Record<string, Array<{ flag: string; label
   ],
 };
 
+function isMagicRealmLocation(location: LocationDefinition) {
+  return location.tags.includes("realm:magic");
+}
+
+function isLocationInActiveRealm(state: GameSession["state"], location: LocationDefinition) {
+  return Boolean(state.flags.in_magic_world) === isMagicRealmLocation(location);
+}
+
 const STATIC_SCENE_SOURCE_PATH_BY_LOCATION: Record<string, string> = {
+  arcana_hunting_ground: "src/game/data/regions/arcana-hunting-ground/scenes.ts",
+  arcana_plaza: "src/game/data/regions/arcana-plaza/scenes.ts",
   checkpoint: "src/game/data/regions/checkpoint/scenes.ts",
   convenience: "src/game/data/regions/convenience/scenes.ts",
   forest: "src/game/data/regions/forest/scenes.ts",
   hospital: "src/game/data/regions/hospital/scenes.ts",
   kitchen: "src/game/data/regions/kitchen/scenes.ts",
+  magic_city_entrance: "src/game/data/regions/magic-city-entrance/scenes.ts",
   shelter: "src/game/data/regions/shelter/scenes.ts",
   subway: "src/game/data/regions/subway/scenes.ts",
 };
@@ -792,7 +808,11 @@ export class GameService {
     const registry = this.runtimeRegistry(session);
     const ids = new Set<string>([session.state.location]);
     Object.keys(registry.locations).forEach((locationId) => {
-      if (session.state.flags[`visited_${locationId}`] || session.state.flags[`known_${locationId}`]) {
+      const location = getRuntimeLocationDefinition(session.state, registry, locationId);
+      if (
+        isLocationInActiveRealm(session.state, location) &&
+        (session.state.flags[`visited_${locationId}`] || session.state.flags[`known_${locationId}`])
+      ) {
         ids.add(locationId);
       }
     });
@@ -1194,7 +1214,12 @@ export class GameService {
       const targetLocation = getRuntimeLocationDefinition(session.state, registry, locationId);
       const link = currentLinks[locationId];
       const isCurrent = locationId === session.state.location;
-      const isKnown = Boolean(session.state.flags[`known_${locationId}`]) || Boolean(session.state.flags[`visited_${locationId}`]) || isCurrent;
+      const isInActiveRealm = isLocationInActiveRealm(session.state, targetLocation);
+      const isKnown = isInActiveRealm && (
+        Boolean(session.state.flags[`known_${locationId}`]) ||
+        Boolean(session.state.flags[`visited_${locationId}`]) ||
+        isCurrent
+      );
       const routePath = isCurrent ? [locationId] : (resolveTravelPath(session.state, locationId, registry) ?? []);
       const routeDistance = routePath.length > 1 ? routePath.length - 1 : 0;
       const travelMinutes = routeDistance * TRAVEL_MINUTES_PER_ROUTE;
@@ -1295,12 +1320,12 @@ export class GameService {
     return String((registry.items[itemId] as { name?: string } | undefined)?.name ?? itemId);
   }
 
-  private buildShelterCraftingRecipe(
+  private buildCraftingRecipe(
     session: GameSession,
     choice: StoryChoice,
     registry: ContentRegistry,
   ): CraftingRecipe | undefined {
-    const effect = SHELTER_CRAFTING_RECIPE_EFFECTS[choice.id];
+    const effect = CRAFTING_RECIPE_EFFECTS[choice.id];
     if (!effect) {
       return undefined;
     }
@@ -1320,13 +1345,17 @@ export class GameService {
       }];
     });
 
-    const prerequisites = (SHELTER_CRAFTING_PREREQUISITES[choice.id] ?? []).map((prerequisite) => ({
+    const prerequisites = (CRAFTING_RECIPE_PREREQUISITES[choice.id] ?? []).map((prerequisite) => ({
       label: prerequisite.label,
       met: Boolean(session.state.flags[prerequisite.flag]),
     }));
 
     return {
-      actionLabel: choice.id.startsWith("cook_") ? "요리" : "제작",
+      actionLabel: choice.id.startsWith("cook_")
+        ? "요리"
+        : choice.id.startsWith("brew_")
+          ? "연금"
+          : "제작",
       effect,
       prerequisites,
       requirements,
@@ -1349,7 +1378,7 @@ export class GameService {
     registry: ContentRegistry,
   ): ActionChoice[] {
     const actionCatalog = buildActionCatalogFromStoryChoices(storyChoices);
-    if (!SHELTER_RECIPE_MENU_SCENE_IDS.includes(sceneDef.id)) {
+    if (!RECIPE_MENU_SCENE_IDS.includes(sceneDef.id)) {
       return actionCatalog;
     }
 
@@ -1357,7 +1386,7 @@ export class GameService {
     return actionCatalog.filter((action) => this.shouldShowShelterCraftingAction(session, action)).map((action) => {
       const storyChoice = storyChoiceById.get(action.id);
       const craftingRecipe = storyChoice
-        ? this.buildShelterCraftingRecipe(session, storyChoice, registry)
+        ? this.buildCraftingRecipe(session, storyChoice, registry)
         : undefined;
       return craftingRecipe ? { ...action, craftingRecipe } : action;
     });

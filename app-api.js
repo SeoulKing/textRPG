@@ -13,7 +13,6 @@ const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const ACTION_TRANSITION_MOVEMENT_MS = 1000;
 const ACTION_TRANSITION_ACTION_MS = 500;
 const ACTION_TRANSITION_SLOW_MESSAGE_MS = 1200;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
@@ -241,6 +240,21 @@ const STATUS_DETAILS = {
   },
 };
 
+function isMagicWorldState(state = currentState()) {
+  return Boolean(state?.flags?.in_magic_world);
+}
+
+function statusDetailFor(statKey, state = currentState()) {
+  if (statKey === "mind" && isMagicWorldState(state)) {
+    return {
+      title: "MP",
+      max: 10,
+      note: "마법과 룬을 다룰 때 소모되는 마력",
+    };
+  }
+  return STATUS_DETAILS[statKey];
+}
+
 const dom = {
   homeScreen: document.querySelector("#home-screen"),
   homeNewGame: document.querySelector("#home-new-game"),
@@ -300,6 +314,7 @@ const client = {
   actionInFlight: false,
   pendingAction: null,
   pendingActionElement: null,
+  pendingActionSceneElement: null,
   pendingActionStatusElement: null,
   pendingActionProgressElement: null,
   pendingActionDisabledControls: [],
@@ -634,7 +649,7 @@ function isMovementAction(action) {
     return ["start", "descend", "return"].includes(action.command);
   }
 
-  const actionId = action.actionId || "";
+  const actionId = action.actionId || action.choiceId || "";
   if (/^leave_shelter_(crafting|cooking)$/.test(actionId)) {
     return false;
   }
@@ -642,9 +657,12 @@ function isMovementAction(action) {
     /^(go_to_|leave_|push_beyond_)/.test(actionId);
 }
 
-function actionTransitionDurationMs(action) {
-  return isMovementAction(action)
-    ? ACTION_TRANSITION_MOVEMENT_MS
+function actionTransitionDurationMs(loading = null) {
+  if (!loading) {
+    return 0;
+  }
+  return Number.isFinite(loading.durationMs)
+    ? Math.max(0, loading.durationMs)
     : ACTION_TRANSITION_ACTION_MS;
 }
 
@@ -654,13 +672,15 @@ function actionTransitionMessage(action) {
   }
 
   if (action.type === "travel") {
-    return "걸어가는 중…";
+    const destination = client.snapshot?.visibleLocations?.find(
+      (location) => location.id === action.targetId,
+    );
+    return destination
+      ? `${destination.name} 쪽으로 이동하는 중…`
+      : "이동하는 중…";
   }
   if (action.type === "use_item") {
-    return "";
-  }
-  if (action.type === "content_choice") {
-    return "";
+    return "아이템을 사용하는 중…";
   }
   if (action.type === "subway_expedition") {
     const messages = {
@@ -675,9 +695,9 @@ function actionTransitionMessage(action) {
     return messages[action.command] || "지하철역을 탐색하는 중…";
   }
 
-  const actionId = action.actionId || "";
+  const actionId = action.actionId || action.choiceId || "";
   if (/^(go_to_|leave_|push_beyond_)/.test(actionId)) {
-    return "걸어가는 중…";
+    return "이동하는 중…";
   }
   if (/^(collect_|buy_|exchange_|deliver_)/.test(actionId)) {
     return "물건을 챙기는 중…";
@@ -691,6 +711,9 @@ function actionTransitionMessage(action) {
   if (/^(rest_|sleep_)/.test(actionId)) {
     return "숨을 고르는 중…";
   }
+  if (action.type === "content_choice") {
+    return "선택의 결과가 이어지는 중…";
+  }
   return "행동하는 중…";
 }
 
@@ -702,6 +725,7 @@ function pendingActionControls() {
     "[data-map-travel]",
     "[data-use-item]",
     "[data-hex-location]",
+    ".dock-button",
   ].join(",")));
 }
 
@@ -759,11 +783,39 @@ function beginActionTransition(action, triggerElement, durationMs) {
     element.setAttribute("aria-disabled", "true");
   });
 
-  if (visualTarget instanceof HTMLElement) {
-    if (status) {
-      anchor.parentElement?.insertBefore(status, anchor);
-    }
+  if (message) {
+    const sceneTransition = document.createElement("div");
+    sceneTransition.className = "scene-action-transition";
+    sceneTransition.classList.toggle("is-movement", isMovementAction(action));
+    sceneTransition.setAttribute("role", "status");
+    sceneTransition.setAttribute("aria-live", "polite");
 
+    const card = document.createElement("div");
+    card.className = "scene-action-transition-card";
+
+    const kicker = document.createElement("span");
+    kicker.className = "scene-action-transition-kicker";
+    kicker.textContent = isMovementAction(action) ? "이동" : "행동";
+    card.appendChild(kicker);
+    card.appendChild(status);
+
+    const progressTrack = document.createElement("span");
+    progressTrack.className = "action-transition-progress";
+    progressTrack.setAttribute("aria-hidden", "true");
+    const progressFill = document.createElement("span");
+    progressFill.className = "action-transition-progress-fill";
+    progressFill.style.animationDuration = `${durationMs}ms`;
+    progressTrack.appendChild(progressFill);
+    card.appendChild(progressTrack);
+    sceneTransition.appendChild(card);
+    dom.sceneFrame.appendChild(sceneTransition);
+
+    dom.sceneFrame.classList.add("is-action-in-progress");
+    dom.sceneFrame.setAttribute("aria-busy", "true");
+    client.pendingActionSceneElement = sceneTransition;
+    client.pendingActionStatusElement = status;
+    client.pendingActionProgressElement = progressTrack;
+  } else if (visualTarget instanceof HTMLElement) {
     const progressTrack = document.createElement("span");
     progressTrack.className = "action-transition-progress";
     progressTrack.setAttribute("aria-hidden", "true");
@@ -774,9 +826,6 @@ function beginActionTransition(action, triggerElement, durationMs) {
     visualTarget.appendChild(progressTrack);
     visualTarget.classList.add("is-action-pending");
     client.pendingActionProgressElement = progressTrack;
-  } else if (status) {
-    const host = client.isPanelOpen ? dom.panelContent : dom.choices;
-    host.prepend(status);
   }
 
   client.pendingActionSlowTimer = status
@@ -794,7 +843,10 @@ function finishActionTransition() {
 
   client.pendingActionStatusElement?.remove();
   client.pendingActionProgressElement?.remove();
+  client.pendingActionSceneElement?.remove();
   client.pendingActionElement?.classList.remove("is-action-pending");
+  dom.sceneFrame.classList.remove("is-action-in-progress");
+  dom.sceneFrame.removeAttribute("aria-busy");
   client.pendingActionDisabledControls.forEach(({ element, disabled, ariaDisabled }) => {
     if (!element.isConnected) {
       return;
@@ -810,6 +862,7 @@ function finishActionTransition() {
   });
 
   client.pendingActionElement = null;
+  client.pendingActionSceneElement = null;
   client.pendingActionStatusElement = null;
   client.pendingActionProgressElement = null;
   client.pendingActionDisabledControls = [];
@@ -1336,7 +1389,7 @@ function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${JSON.stringify(choice.craftingRecipe || null)}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}`)
     .join("|");
 }
 
@@ -1516,9 +1569,10 @@ function escapeHtml(value) {
 }
 
 function itemEffectHintHtml(effects = {}, useMinutes = 0) {
+  const mindLabel = isMagicWorldState() ? "MP" : "정신력";
   const effectParts = [
     { key: "hp", label: "체력", className: "item-hp-hint" },
-    { key: "mind", label: "정신력", className: "item-mind-hint" },
+    { key: "mind", label: mindLabel, className: "item-mind-hint" },
     { key: "energy", label: "기력", className: "item-energy-hint" },
   ].flatMap(({ key, label, className }) => {
     const value = effects[key] ?? 0;
@@ -1648,7 +1702,7 @@ function renderCraftingChoices(snapshot) {
     craftButton.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      submitAction(choice.action, craftButton);
+      submitAction(choice.action, craftButton, choice.loading);
     });
 
     card.append(selectButton, craftButton);
@@ -1666,7 +1720,7 @@ function renderCraftingChoices(snapshot) {
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
     button.disabled = client.actionInFlight;
-    button.addEventListener("click", () => submitAction(choice.action, button));
+    button.addEventListener("click", () => submitAction(choice.action, button, choice.loading));
     dom.choices.appendChild(fragment);
   });
 }
@@ -1827,13 +1881,23 @@ function renderStatusBar() {
   }
 
   const hpMax = STATUS_DETAILS.hp.max;
-  const mindMax = STATUS_DETAILS.mind.max;
+  const mindDetail = statusDetailFor("mind", snapshot);
+  const mindMax = mindDetail.max;
   const energyMax = STATUS_DETAILS.energy.max;
   dom.hpFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.hp / hpMax) * 100))}%`;
   dom.mindFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.mind / mindMax) * 100))}%`;
   dom.energyFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.energy / energyMax) * 100))}%`;
   dom.hpStatus.setAttribute("aria-label", `체력 ${snapshot.stats.hp} / ${hpMax}`);
-  dom.mindStatus.setAttribute("aria-label", `정신력 ${snapshot.stats.mind} / ${mindMax}`);
+  dom.mindStatus.setAttribute("aria-label", `${mindDetail.title} ${snapshot.stats.mind} / ${mindMax}`);
+  dom.mindStatus.classList.toggle("is-magic-stat", isMagicWorldState(snapshot));
+  const mindIcon = dom.mindStatus.querySelector(".status-icon");
+  const mindHiddenLabel = dom.mindStatus.querySelector(".visually-hidden");
+  if (mindIcon) {
+    mindIcon.textContent = isMagicWorldState(snapshot) ? "✦" : "🧠";
+  }
+  if (mindHiddenLabel) {
+    mindHiddenLabel.textContent = mindDetail.title;
+  }
   dom.energyStatus.setAttribute("aria-label", `기력 ${snapshot.stats.energy} / ${energyMax}`);
   applyStatusSeverity(dom.hpStatus, snapshot.stats.hp);
   applyStatusSeverity(dom.mindStatus, snapshot.stats.mind);
@@ -1898,7 +1962,7 @@ function renderChoices() {
     meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
     button.disabled = client.actionInFlight;
-    button.addEventListener("click", () => submitAction(choice.action, button));
+    button.addEventListener("click", () => submitAction(choice.action, button, choice.loading));
     dom.choices.appendChild(fragment);
   });
 
@@ -2517,7 +2581,7 @@ function statusDetailMarkup() {
   return `
     <div class="status-detail-stack">
       ${stats.map((stat) => {
-        const detail = STATUS_DETAILS[stat.key];
+        const detail = statusDetailFor(stat.key, state);
         const isActive = client.activeStatusDetailKey === stat.key;
         const fillPercent = Math.max(0, Math.min(100, (stat.value / detail.max) * 100));
         return `
@@ -2834,7 +2898,7 @@ function render(options = {}) {
   client.justCreatedGame = false;
 }
 
-async function submitAction(action, triggerElement = null) {
+async function submitAction(action, triggerElement = null, loading = null) {
   if (!client.gameId || client.actionInFlight) {
     return;
   }
@@ -2844,8 +2908,16 @@ async function submitAction(action, triggerElement = null) {
   }
   client.actionInFlight = true;
   client.pendingAction = action;
-  const transitionDurationMs = actionTransitionDurationMs(action);
-  beginActionTransition(action, triggerElement, transitionDurationMs);
+  const transitionDurationMs = actionTransitionDurationMs(loading);
+  const shouldShowTransition = transitionDurationMs > 0;
+  if (isMovementAction(action)) {
+    client.isPanelOpen = false;
+    renderPanel();
+    resetSceneScrollOnMobile();
+  }
+  if (shouldShowTransition) {
+    beginActionTransition(action, triggerElement, transitionDurationMs);
+  }
   const previousSnapshot = client.snapshot;
   try {
     const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {

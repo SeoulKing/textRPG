@@ -1,0 +1,1432 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "emergencySnack",
+      "name": "????",
+      "description": "?? ?? ??? ?? ?? ?? ????.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 1500,
+      "tags": [
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 5,
+        "exhaustionRelief": 1
+      }
+    },
+    {
+      "id": "cannedFood",
+      "name": "? ??",
+      "description": "???? ??? ? ?? ??? ? ??.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 2500,
+      "tags": [
+        "??",
+        "???"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 5,
+        "exhaustionRelief": 2
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "hotMeal",
+      "name": "??? ??",
+      "description": "?? ???? ??? ?? ???? ???.",
+      "kind": "food",
+      "rarity": "uncommon",
+      "price": 4500,
+      "tags": [
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 1,
+        "energy": 4,
+        "exhaustionRelief": 3
+      }
+    },
+    {
+      "id": "waterBottle",
+      "name": "??",
+      "description": "?? ??? ??? ?? ??? ? ??.",
+      "kind": "drink",
+      "rarity": "common",
+      "price": 1200,
+      "tags": [
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 1,
+        "energy": 1,
+        "exhaustionRelief": 1
+      }
+    },
+    {
+      "id": "painRelief",
+      "name": "???",
+      "description": "??? ????? ?? ????.",
+      "kind": "medicine",
+      "rarity": "uncommon",
+      "price": 3800,
+      "tags": [
+        "??"
+      ],
+      "effects": {
+        "hp": 2,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "scrapBundle",
+      "name": "??? ??",
+      "description": "??? ???? ?? ??? ?? ????.",
+      "kind": "trade",
+      "rarity": "common",
+      "price": 1800,
+      "tags": [
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "rationTicket",
+      "name": "???",
+      "description": "????? ?? ? ?? ?? ? ?? ???.",
+      "kind": "ticket",
+      "rarity": "common",
+      "price": 0,
+      "tags": [
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "woodPlank",
+      "name": "?? ??",
+      "description": "??? ???? ???? ?? ? ???. ?? ??? ????? ? ? ??.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 700,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "scrapMetal",
+      "name": "?? ??",
+      "description": "??? ??? ?? ??? ?? ?? ???. ?? ??? ??? ?? ???.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 900,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "clothScrap",
+      "name": "? ??",
+      "description": "?? ???? ?? ???? ?? ? ?? ???. ?? ??? ?? ? ????.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 500,
+      "tags": [
+        "??",
+        "?",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "cordage",
+      "name": "?",
+      "description": "?? ??, ? ?, ??? ?? ?? ????. ?? ???? ????? ??? ?? ?? ? ? ????.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 600,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "crudeAxe",
+      "name": "???",
+      "description": "?? ?? ?? ?? ???? ??? ??? ?? ?? ??? ???. ?? ?? ???? ???? ??? ??.",
+      "kind": "tool",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "maxDurability": 8
+    },
+    {
+      "id": "utilityKnife",
+      "name": "?? ?",
+      "description": "?? ?? ??? ?? ?? ?? ???. ??? ?? ??? ?? ????? ?? ?? ????.",
+      "kind": "tool",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "maxDurability": 10
+    },
+    {
+      "id": "dentedPot",
+      "name": "???? ??",
+      "description": "??? ??? ??? ?? ?? ???. ?? ??? ?? ? ??? ??? ?? ?? ???? ???.",
+      "kind": "tool",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "maxDurability": 12
+    },
+    {
+      "id": "rawRice",
+      "name": "?",
+      "description": "?? ??. ???? ???? ??? ?? ??.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 800,
+      "tags": [
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "vegetables",
+      "name": "??",
+      "description": "?? ??. ???? ??? ? ?? ???.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 600,
+      "tags": [
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "wildGreens",
+      "name": "???",
+      "description": "? ?????? ?? ? ?? ? ?? ????. ??? ??? ???? ??? ?? ?? ??.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 400,
+      "tags": [
+        "??",
+        "??",
+        "?"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 1,
+        "exhaustionRelief": 0
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "staleBread",
+      "name": "??? ?",
+      "description": "??? ?? ??? ?? ???. ?? ??? ??? ?? ???? ????.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 900,
+      "tags": [
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 2,
+        "exhaustionRelief": 1
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "ricePorridge",
+      "name": "?? ?",
+      "description": "?? ?? ?? ?? ?? ?? ???. ?? ?? ??? ??? ???? ?? ??.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 0,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 1,
+        "energy": 4,
+        "exhaustionRelief": 2
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "greensSoup",
+      "name": "???",
+      "description": "???? ?? ?? ?? ???. ???? ??? ??? ?? ?? ???? ??.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 0,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 1,
+        "energy": 3,
+        "exhaustionRelief": 2
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "forestStew",
+      "name": "??",
+      "description": "???? ??? ?? ?? ?? ??? ???. ?? ??? ???? ?? ?? ???? ???.",
+      "kind": "food",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "??",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 6,
+        "exhaustionRelief": 2
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "manaShard",
+      "name": "?? ?? ??",
+      "description": "??? ????? ?? ???? ??? ?? ?? ????. ?? ???? ?? ??? ???.",
+      "kind": "material",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "????",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "moonHerb",
+      "name": "?? ??",
+      "description": "???? ??? ??? ??? ??? ?? ???. ?? ??? ?? ???.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 0,
+      "tags": [
+        "????",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "arcaneDust",
+      "name": "?? ??",
+      "description": "?? ?? ??? ??? ?? ???. ??? ???? ?? ??? ??? ? ???.",
+      "kind": "material",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "????",
+        "??",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "manaPotion",
+      "name": "?? ??",
+      "description": "?? ??? ?? ??? ?? ?? ?? ????. ?????? ??? MP? ????.",
+      "kind": "drink",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "????",
+        "??",
+        "MP ??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 4,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "useMinutes": 5
+    },
+    {
+      "id": "runeCompass",
+      "name": "? ???",
+      "description": "?? ??? ?? ??? ?? ????. ?? ??? ?? ????? ?? ?? ??? ????.",
+      "kind": "tool",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "????",
+        "???",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "maxDurability": 12
+    },
+    {
+      "id": "radioBattery",
+      "name": "??? ???",
+      "description": "??? ?? ???? ??? ?? ? ?? ??? ????.",
+      "kind": "material",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "??",
+        "???",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "radioAntenna",
+      "name": "??? ???",
+      "description": "?? ???? ? ?? ?? ?? ? ?? ??? ????.",
+      "kind": "material",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "??",
+        "???",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "radioTransmitter",
+      "name": "??? ???",
+      "description": "??? ???? ??? ?? ??? ?? ?? ?? ?? ????.",
+      "kind": "material",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "??",
+        "???",
+        "??"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    }
+  ],
+  "recipes": [
+    {
+      "id": "craft_shelter_wall_patch",
+      "label": "?? ??",
+      "outcomeHint": "??: ??? ? ??? ??? ??? ??. ?? ??: ?? ?? 1 / ? ?? 2 / ? ?? 1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag_not",
+          "flag": "shelter_wall_patch"
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "set_flag",
+          "flag": "shelter_wall_patch"
+        },
+        {
+          "type": "log",
+          "message": "??? ??? ? ??? ??? ?? ?? ?? ????. ?? ???? ???? ??? ?? ?? ???."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "? ?? ???? ?? ?? ? ?? ? ?? ? ?, ??? ?? ? ?? ????. ?? ?? ???? ? ??? ?? ??."
+        }
+      ],
+      "failureNote": "?? ??? ???? ??? ????. ??: ??? ? ??? ??? ??? ??. ?? ??: ?? ?? 1 / ? ?? 2 / ? ?? 1.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_shelter_brazier",
+      "label": "?? ??",
+      "outcomeHint": "??: ???? ??? ?? ?? ??. ?? ??: ?? 2 / ?? ?? 1 / ? ?? 1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag_not",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "set_flag",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "log",
+          "message": "??? ?? ??? ??? ??? ??? ?? ??? ???. ?? ?? ???? ??? ?? ?? ? ??."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "?? ??? ???? ?? ? ??, ???? ? ?? ? ?, ?? ??? ?? ????. ?? ??? ????? ? ?? ??? ??."
+        }
+      ],
+      "failureNote": "?? ??? ??? ??? ????. ??: ???? ??? ?? ?? ??. ?? ??: ?? 2 / ?? ?? 1 / ? ?? 1.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_shelter_rain_bucket",
+      "label": "???",
+      "outcomeHint": "??: ??? ? ? ? ? ? ?? ??. ?? ??: ?? 1 / ? ?? 1 / ? ?? 1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag_not",
+          "flag": "shelter_rain_bucket"
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "set_flag",
+          "flag": "shelter_rain_bucket"
+        },
+        {
+          "type": "log",
+          "message": "??? ?? ????? ?? ???? ???? ???. ?? ??? ??? ?? ?? ??? ?? ? ?? ???."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "???? ???? ?? ? ??, ?? ?? ? ??, ?? ?? ?? ? ?? ????. ?? ??? ? ???? ? ?? ??? ??."
+        }
+      ],
+      "failureNote": "?? ???? ??? ???? ??? ????. ??: ??? ? ? ? ? ? ?? ??. ?? ??: ?? 1 / ? ?? 1 / ? ?? 1.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "cook_at_shelter",
+      "label": "??? ??",
+      "outcomeHint": "??: +1 ??? / +4 ??. ??: ?? ??, ???? ??. ?? ??: ? 1 / ?? 1 / ?? 1 / ?? ?? 1. ?? ??? -1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "has_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "rawRice",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "vegetables",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "rawRice",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "vegetables",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "hotMeal",
+          "amount": 1
+        },
+        {
+          "type": "damage_tool",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "log",
+          "message": "??? ??? ?? ?, ??? ?? ??? ???. ??? ????, ? ?? ?? ?? ??? ??? ????."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 25
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "??? ??? ???? ??? ??, ?? ??, ?, ??? ? ?? ?? ? ?? ????."
+        }
+      ],
+      "failureNote": "?? ??? ???? ??? ??? ??, ? 1 / ?? 1 / ?? 1 / ?? ?? 1? ????. ??: +1 ??? / +4 ??.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_cooking_menu",
+      "menu": "cooking",
+      "enabled": true
+    },
+    {
+      "id": "cook_rice_porridge",
+      "label": "?? ?",
+      "outcomeHint": "??: +1 ??? / +4 ??. ??: ?? ??, ???? ??. ?? ??: ? 1 / ?? 1 / ?? ?? 1. ?? ??? -1. ?? ?? 20?.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "has_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "rawRice",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "rawRice",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "ricePorridge",
+          "amount": 1
+        },
+        {
+          "type": "damage_tool",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "log",
+          "message": "??? ?? ?? ?? ?? ?? ?? ???. ?? ?? ???? ????."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 20
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "?? ?? ???? ??, ?, ?, ??? ? ??? ????."
+        }
+      ],
+      "failureNote": "?? ?? ?? ??? ???? ??? ??? ??, ? 1 / ?? 1 / ?? ?? 1? ????.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_cooking_menu",
+      "menu": "cooking",
+      "enabled": true
+    },
+    {
+      "id": "cook_greens_soup",
+      "label": "???",
+      "outcomeHint": "??: +1 ??? / +3 ??. ??: ?? ??, ???? ??. ?? ??: ??? 1 / ?? 1 / ?? ?? 1. ?? ??? -1. ?? ?? 15?.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "has_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "wildGreens",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "wildGreens",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "greensSoup",
+          "amount": 1
+        },
+        {
+          "type": "damage_tool",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "log",
+          "message": "??? ???? ?? ?? ?? ???. ?? ???? ??? ??? ?? ???."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "???? ???? ??, ???, ?, ??? ? ??? ????."
+        }
+      ],
+      "failureNote": "???? ?? ??? ???? ??? ??? ??, ??? 1 / ?? 1 / ?? ?? 1? ????.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_cooking_menu",
+      "menu": "cooking",
+      "enabled": true
+    },
+    {
+      "id": "craft_crude_axe",
+      "label": "???",
+      "outcomeHint": "?? ?? 2 / ?? ?? 1 / ? ?? 1 / ? ?? 1? ?? ???? ???. ?? ?? 30?. ??? 8.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "not_has_item",
+          "itemId": "crudeAxe",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "crudeAxe",
+          "amount": 1
+        },
+        {
+          "type": "set_tool_durability",
+          "itemId": "crudeAxe",
+          "value": 8
+        },
+        {
+          "type": "log",
+          "message": "??? ??? ??? ?? ?? ?? ??? ?? ???? ????. ????? ??? ? ???."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 30
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "???? ???? ?? ? ?? ? ??, ???? ? ??, ?? ??? ? ??, ?? ?? ?? ????."
+        }
+      ],
+      "failureNote": "???? ?? ?? 2 / ?? ?? 1 / ? ?? 1 / ? ?? 1? ????. ?? ??? ??? ?? ?? ??? ??.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_utility_knife",
+      "label": "?? ?",
+      "outcomeHint": "?? ?? 1 / ? ?? 1 / ? ?? 1? ?? ?? ?? ???. ?? ?? 20?. ??? 10.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "not_has_item",
+          "itemId": "utilityKnife",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "utilityKnife",
+          "amount": 1
+        },
+        {
+          "type": "set_tool_durability",
+          "itemId": "utilityKnife",
+          "value": 10
+        },
+        {
+          "type": "log",
+          "message": "??? ?? ?? ?? ?? ??? ?? ?? ?? ?? ????. ??? ???? ????."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 20
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "?? ?? ???? ?? ?? ?? ? ??, ???? ?? ? ??, ? ?? ?? ?? ????."
+        }
+      ],
+      "failureNote": "?? ?? ?? ?? 1 / ? ?? 1 / ? ?? 1? ????. ?? ??? ??? ?? ?? ??? ??.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_dented_pot",
+      "label": "???? ??",
+      "outcomeHint": "?? ?? 2 / ? ?? 1 / ? ?? 1? ?? ???? ??? ???. ?? ?? 20?. ??? 12.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "not_has_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "set_tool_durability",
+          "itemId": "dentedPot",
+          "value": 12
+        },
+        {
+          "type": "log",
+          "message": "??? ??? ??? ?? ?? ??? ???. ??? ????? ?? ?? ?? ??."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 20
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "?? ??? ??? ?? ? ? ?? ?? ? ??? ???? ?? ?, ??? ?? ????."
+        }
+      ],
+      "failureNote": "???? ??? ?? ?? 2 / ? ?? 1 / ? ?? 1? ????. ?? ??? ??? ?? ?? ??? ??.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "cook_forest_stew",
+      "label": "??",
+      "outcomeHint": "??? 2 / ?? 1 / ?? 1 / ?? ?? 1? ?? ?? 1?? ???. ??: ?? ??, ???? ??. ?? ?? 25?. ?? ??? -1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "has_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "wildGreens",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "vegetables",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "wildGreens",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "vegetables",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "forestStew",
+          "amount": 1
+        },
+        {
+          "type": "damage_tool",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "log",
+          "message": "??? ???? ?? ?? ?? ?? ??? ????. ?? ???? ? ??? ?? ??? ???."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 25
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "??? ???? ??? ??, ??? ? ?, ??, ?, ????? ? ??? ????."
+        }
+      ],
+      "failureNote": "??? ?? ??? ???? ??? ??? ??, ??? 2 / ?? 1 / ?? 1 / ?? ?? 1? ????.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_cooking_menu",
+      "menu": "cooking",
+      "enabled": true
+    },
+    {
+      "id": "assemble_rescue_radio",
+      "label": "???",
+      "outcomeHint": "??: 10?? ?? ?? ??. ?? ??: ??? ??? / ??? ??? / ??? ??? / ?? 2 / ? ?? 1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "quest_state",
+          "questId": "prepare_rescue_signal",
+          "status": "active"
+        },
+        {
+          "type": "flag_not",
+          "flag": "rescue_signal_ready"
+        },
+        {
+          "type": "has_item",
+          "itemId": "radioBattery",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "radioAntenna",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "radioTransmitter",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "set_flag",
+          "flag": "rescue_signal_ready"
+        },
+        {
+          "type": "log",
+          "message": "??? ???? ???, ???? ?? ???? ????. ????? ?? ?? ?? ???? ???? ???."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "???? ????? ?? ?? ??? ?? ??? ? ????. ???? ? ??? ??? ?? ??? ??? ??."
+        }
+      ],
+      "failureNote": "??? ???, ???, ???? ?? 2 / ? ?? 1 / ? ?? 1? ?? ????. ?? ?? ??? ????? ? ?? ??? ??.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    }
+  ],
+  "stories": []
+}

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ConditionSchema } from "./condition-effect";
 import { EffectSchema } from "./condition-effect";
-import { GameActionSchema } from "./action";
+import { ChoiceLoadingSchema, GameActionSchema } from "./action";
 import { ActionPresentationModeSchema } from "./action";
 
 export const RiskHintSchema = z.enum(["low", "medium", "high"]);
@@ -31,6 +31,7 @@ export const StoryChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  loading: ChoiceLoadingSchema.optional(),
   craftingRecipe: CraftingRecipeSchema.optional(),
   serverActionHint: GameActionSchema,
   isAvailable: z.boolean().default(true),
@@ -49,6 +50,7 @@ export const ActionChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  loading: ChoiceLoadingSchema.optional(),
   craftingRecipe: CraftingRecipeSchema.optional(),
   action: GameActionSchema,
   isAvailable: z.boolean().default(true),
@@ -60,6 +62,7 @@ export const ChoiceDefinitionSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  loading: ChoiceLoadingSchema.optional(),
   descriptionTag: z.string().optional(),
   tags: z.array(z.string()).optional(),
   presentationMode: ActionPresentationModeSchema.default("when_conditions_met"),

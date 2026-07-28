@@ -16,6 +16,10 @@ services:
         value: "false"
       - key: ENABLE_LLM_SUBWAY_EXPEDITION
         value: "true"
+      - key: ENABLE_CONTENT_STUDIO
+        value: "true"
+      - key: CONTENT_STUDIO_ADMIN_TOKEN
+        sync: false
       - key: PUBLIC_BASE_URL
         value: https://textrpg-8ic8.onrender.com
       - key: AUTH_SECRET
@@ -26,6 +30,10 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: textrpg-db
+          property: connectionString
       - key: NEON_DATABASE_URL
         sync: false
 

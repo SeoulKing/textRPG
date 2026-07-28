@@ -2,6 +2,8 @@ encoding_test.txt
 node_modules/
 .runtime/
 .server-dist/
+.pnpm-store/
+.tmp-validate/
 .env
 .env.local
 .dev-server.*.log

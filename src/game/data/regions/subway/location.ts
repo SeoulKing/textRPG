@@ -45,15 +45,16 @@ export const subwayLocation = defineLocation({
   id: "subway",
   name: "지하철역",
   risk: "high",
-  mapPosition: { q: 2, r: 0 },
+  mapPosition: { q: 1, r: -1 },
   imagePath: "assets/scenes/subway.svg",
   summary: "지상과 연결된 대합실과 어두운 역무실이 남은 지하철역이다. 이곳에서 장비를 정비한 뒤 지하 1층부터 심층 탐험을 시작할 수 있다.",
   tags: ["signal", "underground", "day6"],
   traits: ["antenna", "concourse", "expedition staging"],
   obtainableItemIds: ["radioAntenna", "scrapMetal", "cordage", "waterBottle"],
-  neighbors: ["kitchen", "checkpoint"],
+  neighbors: ["shelter", "kitchen", "checkpoint"],
   interactionChoices: subwayChoices,
   links: {
+    shelter: { note: "지상으로 올라가 왼쪽 아래의 임시 거처로 돌아간다." },
     kitchen: { note: "급식소 뒤편 계단으로 되돌아간다." },
     checkpoint: {
       note: "반대편 출구를 지나 구조대 무전 소문이 도는 검문소 쪽으로 간다.",

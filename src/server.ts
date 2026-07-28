@@ -1,11 +1,24 @@
 import "./load-env";
+import crypto from "node:crypto";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
-import Fastify from "fastify";
+import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import staticPlugin from "@fastify/static";
 import { z } from "zod";
-import { validateContent } from "./game/data/registry";
+import {
+  applyPreparedContentStudioRegistry,
+  getEffectiveContentStudioDocument,
+  prepareContentStudioDocument,
+  validateContent,
+  worldRegistry,
+} from "./game/data/registry";
+import {
+  BUILT_IN_RECIPE_MENUS,
+  loadStoredContentStudioDocument,
+} from "./game/content-studio";
+import { createContentStudioStore } from "./game/content-studio-store";
+import { baseItems } from "./game/data/items";
 import { GameActionSchema } from "./game/schemas";
 import { FileGameRepository, type GameRepository } from "./game/repository";
 import { PostgresGameRepository } from "./game/postgres-repository";
@@ -21,8 +34,13 @@ const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 const repository: GameRepository = databaseUrl
   ? new PostgresGameRepository(databaseUrl, webRoot)
   : new FileGameRepository(webRoot);
+const contentStudioStore = createContentStudioStore(databaseUrl, webRoot);
 const gameService = new GameService(repository);
 const authController = new AuthController(repository, gameService);
+const contentStudioEnabled =
+  process.env.NODE_ENV !== "production" ||
+  process.env.ENABLE_CONTENT_STUDIO === "true";
+const contentStudioAdminToken = process.env.CONTENT_STUDIO_ADMIN_TOKEN?.trim() || "";
 const ActionRequestSchema = z.union([
   GameActionSchema,
   z.object({
@@ -30,9 +48,60 @@ const ActionRequestSchema = z.union([
   }).transform((value) => value.action),
 ]);
 
+function tokensMatch(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function requireContentStudioAdmin(request: FastifyRequest, reply: FastifyReply) {
+  if (!databaseUrl && process.env.NODE_ENV === "production") {
+    reply.code(503).send({
+      error: "content_studio_database_required",
+      message: "온라인 콘텐츠를 영구 저장하려면 데이터베이스 연결이 필요합니다.",
+    });
+    return false;
+  }
+  if (!contentStudioAdminToken && process.env.NODE_ENV !== "production") {
+    return true;
+  }
+  if (!contentStudioAdminToken) {
+    reply.code(503).send({
+      error: "content_studio_not_configured",
+      message: "온라인 콘텐츠 스튜디오 관리자 비밀번호가 설정되지 않았습니다.",
+    });
+    return false;
+  }
+
+  const authorization = request.headers.authorization || "";
+  const suppliedToken = authorization.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length).trim()
+    : "";
+  if (!suppliedToken || !tokensMatch(suppliedToken, contentStudioAdminToken)) {
+    reply.code(401).send({
+      error: "content_studio_unauthorized",
+      message: "관리자 비밀번호를 확인해 주세요.",
+    });
+    return false;
+  }
+  return true;
+}
+
 async function bootstrap() {
-  validateContent();
   await repository.init();
+  await contentStudioStore.init();
+
+  const storedPublished = await contentStudioStore.load("published");
+  if (storedPublished) {
+    applyPreparedContentStudioRegistry(
+      prepareContentStudioDocument(storedPublished.document).registry,
+    );
+  } else {
+    const seed = prepareContentStudioDocument(loadStoredContentStudioDocument());
+    await contentStudioStore.publish(seed.document);
+    applyPreparedContentStudioRegistry(seed.registry);
+  }
+  validateContent();
 
   app.addHook("onSend", async (_request, reply, payload) => {
     reply.header("Cache-Control", "no-store");
@@ -68,6 +137,126 @@ async function bootstrap() {
     reply.type("text/css; charset=utf-8");
     return readFile(path.join(webRoot, "styles.css"), "utf8");
   });
+
+  if (contentStudioEnabled) {
+    app.get("/content-editor", async (_request, reply) => {
+      reply.type("text/html; charset=utf-8");
+      return readFile(path.join(webRoot, "content-editor.html"), "utf8");
+    });
+    app.get("/content-editor.js", async (_request, reply) => {
+      reply.type("application/javascript; charset=utf-8");
+      return readFile(path.join(webRoot, "content-editor.js"), "utf8");
+    });
+    app.get("/content-editor.css", async (_request, reply) => {
+      reply.type("text/css; charset=utf-8");
+      return readFile(path.join(webRoot, "content-editor.css"), "utf8");
+    });
+
+    app.get("/api/content-studio", async (request, reply) => {
+      if (!requireContentStudioAdmin(request, reply)) {
+        return;
+      }
+      const [draft, published] = await Promise.all([
+        contentStudioStore.load("draft"),
+        contentStudioStore.load("published"),
+      ]);
+      const sourceDocument =
+        draft?.document ??
+        published?.document ??
+        loadStoredContentStudioDocument();
+      return {
+        document: getEffectiveContentStudioDocument(sourceDocument),
+        status: {
+          draftUpdatedAt: draft?.updatedAt ?? null,
+          publishedAt: published?.publishedAt ?? null,
+          hasUnpublishedChanges: Boolean(
+            draft &&
+            (!published || JSON.stringify(draft.document) !== JSON.stringify(published.document)),
+          ),
+        },
+        catalogs: {
+          locations: Object.values(worldRegistry.locations).map((location) => ({
+            id: location.id,
+            name: location.name,
+          })),
+          quests: Object.values(worldRegistry.quests).map((quest) => {
+            const entry = quest as { id: string; title?: string };
+            return {
+              id: entry.id,
+              name: String(entry.title ?? entry.id),
+            };
+          }),
+          builtInItemIds: Object.keys(baseItems),
+          builtInRecipeIds: Object.keys(BUILT_IN_RECIPE_MENUS),
+        },
+      };
+    });
+
+    app.put<{ Body: unknown }>("/api/content-studio", async (request, reply) => {
+      if (!requireContentStudioAdmin(request, reply)) {
+        return;
+      }
+      try {
+        const prepared = prepareContentStudioDocument(request.body);
+        const stored = await contentStudioStore.saveDraft(prepared.document);
+        return {
+          ok: true,
+          document: getEffectiveContentStudioDocument(prepared.document),
+          status: {
+            draftUpdatedAt: stored.updatedAt,
+            publishedAt: (await contentStudioStore.load("published"))?.publishedAt ?? null,
+            hasUnpublishedChanges: true,
+          },
+        };
+      } catch (error) {
+        reply.code(400);
+        if (error instanceof z.ZodError) {
+          return {
+            error: "invalid_content",
+            message: "입력한 콘텐츠 형식을 확인해 주세요.",
+            details: z.treeifyError(error),
+          };
+        }
+        return {
+          error: "invalid_content",
+          message: error instanceof Error ? error.message : "콘텐츠를 저장하지 못했습니다.",
+        };
+      }
+    });
+
+    app.post<{ Body: unknown }>("/api/content-studio/publish", async (request, reply) => {
+      if (!requireContentStudioAdmin(request, reply)) {
+        return;
+      }
+      try {
+        const prepared = prepareContentStudioDocument(request.body);
+        const stored = await contentStudioStore.publish(prepared.document);
+        applyPreparedContentStudioRegistry(prepared.registry);
+        return {
+          ok: true,
+          document: getEffectiveContentStudioDocument(prepared.document),
+          status: {
+            draftUpdatedAt: stored.updatedAt,
+            publishedAt: stored.publishedAt,
+            hasUnpublishedChanges: false,
+          },
+        };
+      } catch (error) {
+        reply.code(400);
+        if (error instanceof z.ZodError) {
+          return {
+            error: "invalid_content",
+            message: "입력한 콘텐츠 형식을 확인해 주세요.",
+            details: z.treeifyError(error),
+          };
+        }
+        return {
+          error: "invalid_content",
+          message: error instanceof Error ? error.message : "콘텐츠를 공개하지 못했습니다.",
+        };
+      }
+    });
+  }
 
   app.get("/api/health", async () => ({
     ok: true,

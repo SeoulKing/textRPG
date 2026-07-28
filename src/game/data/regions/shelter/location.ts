@@ -157,14 +157,20 @@ export const shelterLocation = defineLocation({
     "radioAntenna",
     "radioTransmitter",
   ],
-  neighbors: ["convenience", "kitchen", "forest"],
+  neighbors: ["magic_city_entrance", "convenience", "kitchen", "subway", "forest"],
   interactionChoices: shelterChoices,
   links: {
+    magic_city_entrance: {
+      note: "거처 왼쪽 위의 골목을 따라 푸른 포탈이 열린 마법도시 입구로 간다.",
+    },
     convenience: {
       note: "무너진 보도와 깨진 유리 조각을 밟으며 편의점 폐허 쪽으로 간다.",
     },
     kitchen: {
       note: "국물 냄새와 줄 선 사람들의 소리가 새어 나오는 급식소 쪽으로 향한다.",
+    },
+    subway: {
+      note: "거처 오른쪽 위의 도로를 따라 지하철역 대합실로 향한다.",
     },
     forest: {
       note: "천막 아래쪽의 젖은 흙길을 따라 작은 숲으로 내려간다.",

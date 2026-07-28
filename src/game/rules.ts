@@ -102,14 +102,17 @@ function markLocationKnown(state: GameState, locationId: string) {
 
 const DISCOVERY_UNLOCK_FLAGS: Record<string, string[]> = {
   hospital: ["hospital_lead_checked", "visited_convenience", "visited_hospital"],
-  subway: ["subway_lead_checked", "visited_kitchen", "visited_subway"],
   checkpoint: ["checkpoint_lead_checked", "visited_subway", "visited_checkpoint"],
+  arcana_plaza: ["magic_world_entered_once", "visited_arcana_plaza"],
+  arcana_hunting_ground: ["visited_arcana_plaza", "visited_arcana_hunting_ground"],
 };
 
 function normalizeExplorationKnowledge(state: GameState) {
   state.flags.known_convenience = true;
   state.flags.known_kitchen = true;
   state.flags.known_forest = true;
+  state.flags.known_subway = true;
+  state.flags.known_magic_city_entrance = true;
 
   Object.entries(DISCOVERY_UNLOCK_FLAGS).forEach(([locationId, unlockFlags]) => {
     if (unlockFlags.some((flag) => state.flags[flag])) {
@@ -232,7 +235,10 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
   (Object.keys(STAT_LABELS) as Array<keyof typeof STAT_LABELS>).forEach((statKey) => {
     const delta = nextState.stats[statKey] - previousState.stats[statKey];
     if (delta !== 0) {
-      parts.push(formatSignedDelta(delta, STAT_LABELS[statKey]));
+      const label = statKey === "mind" && nextState.flags.in_magic_world
+        ? "MP"
+        : STAT_LABELS[statKey];
+      parts.push(formatSignedDelta(delta, label));
     }
   });
 
@@ -622,6 +628,8 @@ export function createInitialGameState(): GameState {
       known_convenience: true,
       known_kitchen: true,
       known_forest: true,
+      known_subway: true,
+      known_magic_city_entrance: true,
     },
     quests: Object.fromEntries(getQuestDefinitions(registry).map((quest) => [quest.id, "inactive" as const])),
     lastSleepEnergy: 8,

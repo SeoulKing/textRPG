@@ -4,11 +4,12 @@ Server-driven survival text RPG set in a collapsing Seoul.
 
 The current playable direction is a compact 10-day survival game: gather supplies, reinforce the shelter, collect three radio parts, assemble a rescue signal, and survive until the rescue check on day 10.
 
-The seed world is hand-authored around six fixed regions:
+The seed world is hand-authored around seven fixed regions:
 
 - shelter
 - convenience store
 - soup kitchen
+- forest
 - hospital
 - subway station
 - checkpoint
@@ -38,6 +39,36 @@ npm run start
 ```
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
+
+## Content Studio
+
+The local home screen includes a `콘텐츠 스튜디오` button. The studio runs on its own page at
+[http://127.0.0.1:3000/content-editor](http://127.0.0.1:3000/content-editor).
+
+Use it to:
+
+- create or edit items and their stat effects
+- create or edit crafting and cooking recipes
+- build regional stories from scenes and choices
+- configure choice conditions and effects without editing TypeScript
+
+The editor separates safe editing from live content:
+
+- `초안 저장` validates IDs and references and keeps the work out of the live game.
+- `게임에 공개` stores the same validated document as the published version and refreshes the
+  running game registry immediately.
+
+Local development stores the published document in `content/content-studio.json` and the draft under
+`.runtime`. Online deployment stores both versions in PostgreSQL so they survive restarts and
+redeployments. Production access requires all of:
+
+```text
+ENABLE_CONTENT_STUDIO=true
+CONTENT_STUDIO_ADMIN_TOKEN=a-long-random-password
+NEON_DATABASE_URL=postgresql-connection-string
+```
+
+The browser keeps the administrator token only for the current tab session.
 
 ## Deploy
 

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-label="별빛 아래 떠 있는 마법도시 아르카나 광장">
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#100d2e"/>
+      <stop offset="1" stop-color="#423f78"/>
+    </linearGradient>
+    <radialGradient id="fountain" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#effcff"/>
+      <stop offset="1" stop-color="#47b8e8" stop-opacity=".15"/>
+    </radialGradient>
+  </defs>
+  <rect width="960" height="360" fill="url(#night)"/>
+  <circle cx="150" cy="73" r="28" fill="#f7e8b4"/>
+  <circle cx="805" cy="88" r="18" fill="#cfc7ff"/>
+  <circle cx="695" cy="46" r="9" fill="#8de7ff"/>
+  <g fill="#f7f2ff">
+    <circle cx="80" cy="120" r="2"/><circle cx="238" cy="45" r="2"/><circle cx="338" cy="91" r="3"/>
+    <circle cx="548" cy="55" r="2"/><circle cx="620" cy="122" r="2"/><circle cx="892" cy="52" r="3"/>
+  </g>
+  <path d="M0 266 L90 215 L144 242 L214 159 L281 243 L367 189 L430 257 L527 171 L603 249 L682 148 L755 244 L844 179 L960 249 L960 360 L0 360 Z" fill="#242452"/>
+  <g fill="#d8c8ff" opacity=".85">
+    <rect x="198" y="165" width="22" height="92"/><path d="M187 165 L209 118 L231 165 Z"/>
+    <rect x="516" y="176" width="24" height="84"/><path d="M504 176 L528 122 L552 176 Z"/>
+    <rect x="833" y="184" width="22" height="76"/><path d="M822 184 L844 134 L866 184 Z"/>
+  </g>
+  <ellipse cx="480" cy="303" rx="330" ry="72" fill="#8275b7"/>
+  <ellipse cx="480" cy="294" rx="260" ry="50" fill="#a99fd0"/>
+  <ellipse cx="480" cy="273" rx="78" ry="29" fill="url(#fountain)" stroke="#b6edff" stroke-width="6"/>
+  <path d="M480 270 C450 236 457 209 480 187 C503 209 510 236 480 270 Z" fill="#79d8ff" opacity=".8"/>
+  <g fill="#c8f7d1">
+    <path d="M260 294 q18-38 36 0 q-18-14-36 0"/><path d="M673 306 q18-42 38 0 q-19-15-38 0"/>
+  </g>
+  <g fill="none" stroke="#f4c8ff" stroke-width="3" opacity=".8">
+    <path d="M340 119 l14-11 l14 11 l-14 11 z"/><path d="M612 151 l14-11 l14 11 l-14 11 z"/>
+  </g>
+</svg>

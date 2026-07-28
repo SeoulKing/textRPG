@@ -176,6 +176,22 @@ body::before {
   border-color: #f8fafc;
 }
 
+.home-action.studio {
+  display: inline-flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: rgba(248, 250, 252, 0.82);
+  text-decoration: none;
+}
+
+.home-action.studio::before {
+  content: "✦";
+  margin-right: 0.45rem;
+  color: #d7f06a;
+}
+
 .home-action:disabled {
   cursor: not-allowed;
   opacity: 0.48;
@@ -559,10 +575,73 @@ a:focus:not(:focus-visible),
 }
 
 .scene-frame {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr;
   gap: 0;
   background: transparent;
+}
+
+.scene-action-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: clamp(20px, 5vw, 48px);
+  background:
+    linear-gradient(180deg, rgba(20, 29, 31, 0.34), rgba(20, 29, 31, 0.58)),
+    rgba(247, 249, 248, 0.28);
+  backdrop-filter: blur(3px);
+  animation: scene-action-transition-enter 180ms ease-out;
+  cursor: wait;
+}
+
+.scene-action-transition-card {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  width: min(420px, 100%);
+  overflow: hidden;
+  padding: 22px 24px 25px;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: var(--radius-md);
+  background: rgba(252, 253, 252, 0.94);
+  box-shadow: 0 22px 60px rgba(10, 20, 22, 0.28);
+  text-align: center;
+}
+
+.scene-action-transition-kicker {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.scene-action-transition .action-transition-status {
+  margin: 0;
+  color: var(--text);
+  font-family: "NarrativeBatang", "KoPubWorld Batang", "KoPub Batang", "HCR Batang", "Malgun Gothic", "Apple SD Gothic Neo", Batang, serif;
+  font-size: clamp(1rem, 2.6vw, 1.18rem);
+  line-height: 1.55;
+}
+
+.scene-action-transition .action-transition-progress {
+  height: 3px;
+}
+
+.scene-frame.is-action-in-progress > :not(.scene-action-transition) {
+  pointer-events: none;
+}
+
+@keyframes scene-action-transition-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .scene-art-wrap {

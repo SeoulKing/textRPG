@@ -1,4 +1,32 @@
-import { defineLocation, stockNode } from "../../location-helpers";
+import type { ActionDefinition } from "../../../schemas";
+import { defineLocation, interactionFor, stockNode } from "../../location-helpers";
+
+export const conveniencePortalChoices: ActionDefinition[] = [
+  interactionFor("convenience", {
+    id: "discover_magic_city_entrance",
+    label: "옥상 위 푸른 빛을 확인한다",
+    type: "explore",
+    outcomeHint: "가게 뒤편의 비상계단을 올라가 정체불명의 푸른 빛을 조사한다.",
+    conditions: [
+      { type: "flag_not", flag: "magic_city_entrance_discovered" },
+      { type: "active_stock_node_not", nodeId: "convenience_shelf" },
+      { type: "active_stock_node_not", nodeId: "convenience_register" },
+      { type: "active_stock_node_not", nodeId: "convenience_food_crate" },
+      { type: "active_stock_node_not", nodeId: "convenience_supply_pile" },
+    ],
+    effects: [
+      { type: "set_flag", flag: "magic_city_entrance_discovered" },
+      {
+        type: "log",
+        message: "편의점 옥상에서 현실의 하늘을 찢고 열린 푸른 포탈을 발견했다. 지도에 마법도시 입구가 표시된다.",
+      },
+      { type: "advance_time", minutes: 10 },
+    ],
+    nextSceneId: "convenience_portal_discovery",
+    tags: ["discovery", "portal", "expansion"],
+    riskHint: "medium",
+  }),
+];
 
 export const convenienceLocation = defineLocation({
   id: "convenience",
@@ -10,7 +38,8 @@ export const convenienceLocation = defineLocation({
   tags: ["supplies", "early scavenging"],
   traits: ["food", "water", "cash", "salvage"],
   obtainableItemIds: ["emergencySnack", "cannedFood", "rawRice", "vegetables", "waterBottle", "woodPlank", "scrapMetal", "clothScrap", "cordage", "staleBread"],
-  neighbors: ["shelter", "hospital", "forest"],
+  neighbors: ["shelter", "hospital", "forest", "magic_city_entrance"],
+  interactionChoices: conveniencePortalChoices,
   links: {
     shelter: { note: "무심한 발걸음처럼 가장한 채 거처 쪽으로 되돌아간다." },
     hospital: {
@@ -18,6 +47,9 @@ export const convenienceLocation = defineLocation({
     },
     forest: {
       note: "편의점 뒤편의 낮은 비탈을 타고 숲 가장자리로 올라간다.",
+    },
+    magic_city_entrance: {
+      note: "가게 뒤편의 녹슨 비상계단을 올라 푸른 빛이 새어 나오는 옥상으로 향한다.",
     },
   },
   stockNodes: [

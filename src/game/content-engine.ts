@@ -17,6 +17,7 @@ export function buildStoryChoiceFromChoice(choice: ChoiceDefinition): StoryChoic
     label: choice.label,
     outcomeHint: choice.outcomeHint,
     showOutcomeHint: choice.showOutcomeHint,
+    loading: choice.loading,
     isAvailable: true,
     descriptionTag: choice.descriptionTag,
     tags: choice.tags,

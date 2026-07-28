@@ -12,6 +12,38 @@ const foodCrate = { locationId: "convenience", nodeId: "convenience_food_crate" 
 
 export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
+    id: "go_to_magic_city_entrance_after_discovery",
+    label: "옥상으로 올라가 마법도시 입구로 간다",
+    outcomeHint: "푸른 빛을 따라 비상계단을 올라 포탈이 열린 옥상으로 향한다. +5분",
+    conditions: [
+      { type: "flag", flag: "magic_city_entrance_discovered" },
+      { type: "flag_not", flag: "magic_city_portal_discovery_seen" },
+    ],
+    effects: [
+      { type: "set_flag", flag: "magic_city_portal_discovery_seen" },
+      { type: "travel", locationId: "magic_city_entrance" },
+      { type: "log", message: "당신은 푸른 빛을 따라 녹슨 비상계단을 올라 포탈이 열린 옥상으로 향한다." },
+      { type: "advance_time", minutes: 5 },
+    ],
+    nextSceneId: "magic_city_entrance_first_intro",
+    riskHint: "medium",
+  }),
+  sceneChoice({
+    id: "leave_magic_city_portal_for_now",
+    label: "일단 가게 안으로 돌아간다",
+    outcomeHint: "포탈의 위치를 기억해 두고 편의점 안쪽으로 돌아간다.",
+    conditions: [
+      { type: "flag", flag: "magic_city_entrance_discovered" },
+      { type: "flag_not", flag: "magic_city_portal_discovery_seen" },
+    ],
+    effects: [
+      { type: "set_flag", flag: "magic_city_portal_discovery_seen" },
+      { type: "log", message: "당신은 포탈의 위치를 기억해 둔 채 다시 편의점 안쪽으로 내려간다." },
+    ],
+    nextSceneId: "convenience_scene_discovered",
+    riskHint: "low",
+  }),
+  sceneChoice({
     id: "go_to_convenience_shelf",
     label: "진열대로 간다",
     outcomeHint: "기울어진 선반 안쪽으로 다가가, 남아 있는 통조림이 얼마나 되는지 직접 확인한다.",

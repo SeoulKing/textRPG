@@ -4,6 +4,7 @@ import { ActionDefinitionSchema } from "./action";
 import { ChoiceDefinitionSchema } from "./choice";
 import { EventDefinitionSchema } from "./event";
 import { SceneDefinitionSchema } from "./scene";
+import { MonsterDefinitionSchema } from "./monster";
 
 export const LinkDefinitionSchema = z.object({
   note: z.string(),
@@ -46,6 +47,7 @@ export const LocationDefinitionSchema = z.object({
   eventIds: z.array(z.string()).default([]),
   links: z.record(z.string(), LinkDefinitionSchema),
   stockNodes: z.array(StockNodeDefinitionSchema).default([]),
+  monsters: z.array(MonsterDefinitionSchema).default([]),
 });
 
 export const ContentRegistrySchema = z.object({

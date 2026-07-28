@@ -26,6 +26,9 @@ export const GameActionSchema = z.discriminatedUnion("type", [
 export const ActionTypeSchema = z.enum(["travel", "search", "rest", "use", "talk", "explore"]);
 export const ActionVisibilitySchema = z.enum(["scene", "event"]);
 export const ActionPresentationModeSchema = z.enum(["when_conditions_met", "always"]);
+export const ChoiceLoadingSchema = z.object({
+  durationMs: z.number().int().nonnegative().optional(),
+});
 
 export const ActionDefinitionSchema = z.object({
   id: z.string(),
@@ -33,6 +36,7 @@ export const ActionDefinitionSchema = z.object({
   type: ActionTypeSchema,
   outcomeHint: z.string().default("Push the situation forward."),
   showOutcomeHint: z.boolean().optional(),
+  loading: ChoiceLoadingSchema.optional(),
   visibility: ActionVisibilitySchema.default("scene"),
   presentationMode: ActionPresentationModeSchema.default("when_conditions_met"),
   locationIds: z.array(z.string()).default([]),
@@ -47,4 +51,5 @@ export const ActionDefinitionSchema = z.object({
 });
 
 export type GameAction = z.infer<typeof GameActionSchema>;
+export type ChoiceLoading = z.infer<typeof ChoiceLoadingSchema>;
 export type ActionDefinition = z.infer<typeof ActionDefinitionSchema>;

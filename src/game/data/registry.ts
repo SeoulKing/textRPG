@@ -19,13 +19,33 @@ import { eventDefinitions } from "./events";
 import { sceneDefinitions } from "./scenes";
 import { questDefinitions } from "../quest-definitions";
 import { baseSkills } from "../base-data";
-import type { ActionDefinition, ChoiceDefinition, Condition, ContentRegistry, Effect, Objective, QuestDefinition, QuestReward } from "../schemas";
+import {
+  CRAFTING_MENU_SCENE_IDS,
+  COOKING_MENU_SCENE_IDS,
+  effectiveContentStudioDocument,
+  loadStoredContentStudioDocument,
+  parseContentStudioDocument,
+  type ContentStudioDocument,
+  type StudioRecipe,
+} from "../content-studio";
+import type {
+  ActionDefinition,
+  ChoiceDefinition,
+  Condition,
+  ContentRegistry,
+  Effect,
+  LocationDefinition,
+  Objective,
+  QuestDefinition,
+  QuestReward,
+  SceneDefinition,
+} from "../schemas";
 
 function asRecord<T extends { id: string }>(entries: T[]) {
   return Object.fromEntries(entries.map((entry) => [entry.id, entry])) as Record<string, T>;
 }
 
-export const worldRegistry: ContentRegistry = {
+const builtInWorldRegistry: ContentRegistry = {
   items: baseItems,
   people: basePeople,
   locations: baseLocations,
@@ -36,6 +56,138 @@ export const worldRegistry: ContentRegistry = {
   events: asRecord(eventDefinitions),
   scenes: asRecord(sceneDefinitions),
 };
+
+function mergeMenuChoiceIds(
+  existingIds: string[],
+  recipes: StudioRecipe[],
+  menu: StudioRecipe["menu"],
+) {
+  const allRecipeIds = new Set(recipes.map((recipe) => recipe.id));
+  const enabledRecipeIds = recipes
+    .filter((recipe) => recipe.enabled && recipe.menu === menu)
+    .map((recipe) => recipe.id);
+  const filtered = existingIds.filter((id) => !allRecipeIds.has(id));
+  const leaveIndex = filtered.findIndex((id) => id.startsWith("leave_shelter_"));
+  if (leaveIndex < 0) {
+    return [...filtered, ...enabledRecipeIds];
+  }
+  return [
+    ...filtered.slice(0, leaveIndex),
+    ...enabledRecipeIds,
+    ...filtered.slice(leaveIndex),
+  ];
+}
+
+function compileStudioStories(
+  document: ContentStudioDocument,
+  locations: Record<string, LocationDefinition>,
+  actions: Record<string, ActionDefinition>,
+  choices: Record<string, ChoiceDefinition>,
+  scenes: Record<string, SceneDefinition>,
+) {
+  document.stories.filter((story) => story.enabled).forEach((story) => {
+    const location = locations[story.locationId];
+    if (!location) {
+      throw new Error(`story:${story.id} references unknown location '${story.locationId}'.`);
+    }
+    const firstScene = story.scenes[0];
+    const entryAction: ActionDefinition = {
+      id: `studio_story_${story.id}`,
+      label: story.entryLabel,
+      type: "talk",
+      outcomeHint: story.entryHint,
+      visibility: "scene",
+      presentationMode: "when_conditions_met",
+      locationIds: [story.locationId],
+      conditions: story.conditions,
+      effects: [],
+      failureEffects: [],
+      nextSceneId: firstScene.id,
+      tags: ["content-studio", "story", ...story.tags],
+      riskHint: "low",
+    };
+
+    actions[entryAction.id] = entryAction;
+    locations[story.locationId] = {
+      ...location,
+      interactionChoices: [
+        ...location.interactionChoices.filter((action) => action.id !== entryAction.id),
+        entryAction,
+      ],
+    };
+
+    story.scenes.forEach((scene) => {
+      scene.choices.forEach((choice) => {
+        choices[choice.id] = choice;
+      });
+      scenes[scene.id] = {
+        id: scene.id,
+        eventId: scene.eventId,
+        locationId: story.locationId,
+        title: scene.title,
+        paragraphs: scene.paragraphs,
+        tags: scene.tags,
+        choiceIds: scene.choices.map((choice) => choice.id),
+        conditions: scene.conditions,
+        introFlag: scene.introFlag,
+        suppressLocationInteractions: scene.suppressLocationInteractions,
+      };
+    });
+  });
+}
+
+export function getEffectiveContentStudioDocument(
+  stored = loadStoredContentStudioDocument(),
+) {
+  return effectiveContentStudioDocument(stored, baseItems, choiceDefinitions);
+}
+
+export function buildWorldRegistryFromStudio(
+  stored: ContentStudioDocument,
+): ContentRegistry {
+  const document = getEffectiveContentStudioDocument(stored);
+  const locations = structuredClone(builtInWorldRegistry.locations);
+  const actions = structuredClone(builtInWorldRegistry.actions);
+  const choices = structuredClone(builtInWorldRegistry.choices);
+  const scenes = structuredClone(builtInWorldRegistry.scenes);
+
+  document.recipes.forEach((recipe) => {
+    if (recipe.enabled) {
+      const { menu: _menu, enabled: _enabled, ...choice } = recipe;
+      choices[recipe.id] = choice;
+    } else {
+      delete choices[recipe.id];
+    }
+  });
+
+  CRAFTING_MENU_SCENE_IDS.forEach((sceneId) => {
+    const scene = scenes[sceneId];
+    if (scene) {
+      scene.choiceIds = mergeMenuChoiceIds(scene.choiceIds, document.recipes, "crafting");
+    }
+  });
+  COOKING_MENU_SCENE_IDS.forEach((sceneId) => {
+    const scene = scenes[sceneId];
+    if (scene) {
+      scene.choiceIds = mergeMenuChoiceIds(scene.choiceIds, document.recipes, "cooking");
+    }
+  });
+
+  compileStudioStories(document, locations, actions, choices, scenes);
+
+  return {
+    ...builtInWorldRegistry,
+    items: asRecord(document.items),
+    locations,
+    actions,
+    choices,
+    scenes,
+  };
+}
+
+export const worldRegistry: ContentRegistry = buildWorldRegistryFromStudio(
+  loadStoredContentStudioDocument(),
+);
 
 export type ItemId = keyof typeof baseItems;
 export type PersonId = keyof typeof basePeople;
@@ -328,4 +480,16 @@ export function validateRegistry(registry: ContentRegistry) {
 
 export function validateContent() {
   return validateRegistry(worldRegistry);
+}
+
+export function prepareContentStudioDocument(input: unknown) {
+  const document = parseContentStudioDocument(input);
+  const registry = buildWorldRegistryFromStudio(document);
+  validateRegistry(registry);
+  return { document, registry };
+}
+
+export function applyPreparedContentStudioRegistry(registry: ContentRegistry) {
+  Object.assign(worldRegistry, registry);
+  return worldRegistry;
 }
