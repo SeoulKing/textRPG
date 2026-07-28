@@ -840,7 +840,7 @@ function executeShelterCookingAction(state: GameState, action: ActionDefinition)
   applyDefinitionEffects(state, action.effects);
   return {
     preferredSceneId: action.nextSceneId,
-    fallbackNote: action.label,
+    fallbackNote: action.systemNote === null ? "" : (action.systemNote ?? action.label),
   };
 }
 
@@ -915,7 +915,7 @@ function executeSceneChoiceDefinition(state: GameState, choice: ChoiceDefinition
   applyDefinitionEffects(state, choice.effects);
   return {
     preferredSceneId: choice.nextSceneId,
-    fallbackNote: choice.label,
+    fallbackNote: choice.systemNote === null ? "" : (choice.systemNote ?? choice.label),
   };
 }
 

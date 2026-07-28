@@ -44,6 +44,7 @@ export const ActionDefinitionSchema = z.object({
   effects: z.array(EffectSchema).default([]),
   failureEffects: z.array(EffectSchema).default([]),
   failureNote: z.string().optional(),
+  systemNote: z.string().nullable().optional(),
   nextEventId: z.string().optional(),
   nextSceneId: z.string().optional(),
   tags: z.array(z.string()).default([]),

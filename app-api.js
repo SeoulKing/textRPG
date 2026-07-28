@@ -259,6 +259,7 @@ const dom = {
   homeScreen: document.querySelector("#home-screen"),
   homeNewGame: document.querySelector("#home-new-game"),
   homeContinue: document.querySelector("#home-continue"),
+  homeFullscreenPlay: document.querySelector("#home-fullscreen-play"),
   homeSaveStatus: document.querySelector("#home-save-status"),
   homeAuthStatus: document.querySelector("#home-auth-status"),
   homeKakaoLogin: document.querySelector("#home-kakao-login"),
@@ -312,6 +313,7 @@ const client = {
   activeCraftingRecipeDetailId: null,
   isCompletedQuestGroupOpen: false,
   actionInFlight: false,
+  fullscreenLaunchInFlight: false,
   pendingAction: null,
   pendingActionElement: null,
   pendingActionSceneElement: null,
@@ -975,11 +977,44 @@ function showGameScreen() {
   startBackgroundSync();
 }
 
+async function requestGameFullscreen() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    return true;
+  }
+
+  const root = document.documentElement;
+  try {
+    if (typeof root.requestFullscreen === "function") {
+      try {
+        await root.requestFullscreen({ navigationUI: "hide" });
+      } catch (error) {
+        if (!(error instanceof TypeError)) {
+          throw error;
+        }
+        await root.requestFullscreen();
+      }
+      return true;
+    }
+
+    if (typeof root.webkitRequestFullscreen === "function") {
+      await root.webkitRequestFullscreen();
+      return true;
+    }
+  } catch (error) {
+    console.info("전체화면을 열 수 없어 일반 화면으로 게임을 시작합니다.", error);
+  }
+  return false;
+}
+
 function renderHomeScreen() {
   const info = activeHomeSaveInfo();
   dom.homeSaveStatus.textContent = info.exists ? info.label : "저장된 게임 없음";
   dom.homeContinue.disabled = !info.exists;
   dom.homeContinue.setAttribute("aria-disabled", info.exists ? "false" : "true");
+  dom.homeFullscreenPlay.setAttribute(
+    "aria-label",
+    info.exists ? "저장 게임을 전체화면으로 이어하기" : "새 게임을 전체화면으로 시작하기",
+  );
 
   const user = client.authInfo?.user;
   const kakaoConfigured = Boolean(client.authInfo?.kakaoConfigured);
@@ -3164,7 +3199,7 @@ async function goHomeFromMenu() {
   await showHomeScreen();
 }
 
-dom.homeNewGame.addEventListener("click", async () => {
+async function startNewGameFromHome() {
   if (client.actionInFlight) {
     return;
   }
@@ -3186,10 +3221,33 @@ dom.homeNewGame.addEventListener("click", async () => {
   } finally {
     client.actionInFlight = false;
   }
-});
+}
+
+dom.homeNewGame.addEventListener("click", startNewGameFromHome);
 
 dom.homeContinue.addEventListener("click", () => {
   continueSavedGame();
+});
+
+dom.homeFullscreenPlay.addEventListener("click", async () => {
+  if (client.actionInFlight || client.fullscreenLaunchInFlight) {
+    return;
+  }
+
+  client.fullscreenLaunchInFlight = true;
+  dom.homeFullscreenPlay.disabled = true;
+  try {
+    const shouldContinue = activeHomeSaveInfo().exists;
+    await requestGameFullscreen();
+    if (shouldContinue) {
+      await continueSavedGame();
+    } else {
+      await startNewGameFromHome();
+    }
+  } finally {
+    client.fullscreenLaunchInFlight = false;
+    dom.homeFullscreenPlay.disabled = false;
+  }
 });
 
 dom.homeLogout.addEventListener("click", async () => {

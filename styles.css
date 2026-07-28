@@ -176,6 +176,22 @@ body::before {
   border-color: #f8fafc;
 }
 
+.home-action.fullscreen {
+  display: inline-flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: center;
+  border-color: rgba(215, 240, 106, 0.72);
+  background: rgba(215, 240, 106, 0.14);
+}
+
+.home-action.fullscreen::before {
+  content: "⛶";
+  margin-right: 0.5rem;
+  color: #d7f06a;
+  font-size: 1.15rem;
+}
+
 .home-action.studio {
   display: inline-flex;
   grid-column: 1 / -1;

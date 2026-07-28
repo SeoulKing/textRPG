@@ -70,6 +70,7 @@ export const ChoiceDefinitionSchema = z.object({
   effects: z.array(EffectSchema).default([]),
   failureEffects: z.array(EffectSchema).default([]),
   failureNote: z.string().optional(),
+  systemNote: z.string().nullable().optional(),
   riskHint: RiskHintSchema.optional(),
   hidden: z.boolean().default(false),
   nextEventId: z.string().optional(),
