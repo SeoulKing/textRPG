@@ -18,6 +18,7 @@ import type {
   SceneDefinition,
   StoryChoice,
 } from "./schemas";
+import { formatOutcomeHint } from "./outcome-hint";
 
 export type NextScenePreviewResolver = (action: GameAction) => string | undefined;
 
@@ -36,11 +37,12 @@ function buildStoryChoiceFromActionDefinition(
   resolveNextSceneId?: NextScenePreviewResolver,
 ): StoryChoice {
   const serverActionHint: GameAction = { type: "content_action", actionId: action.id };
+  const standardizedHint = formatOutcomeHint(action.effects, state);
   return {
     id: action.id,
     label: action.label,
-    outcomeHint: action.outcomeHint,
-    showOutcomeHint: action.showOutcomeHint,
+    outcomeHint: standardizedHint || action.outcomeHint,
+    showOutcomeHint: standardizedHint ? true : action.showOutcomeHint,
     loading: resolveInteractionLoading(action),
     isAvailable: actionConditionsMet(action, state),
     tags: action.tags,
@@ -65,7 +67,7 @@ export function resolveStoryFrame(
   const locationId = options.locationId ?? state.location;
   const scene = options.scene ?? resolveSceneDefinition(state, registry, locationId);
   const sceneChoices = resolveSceneChoices(state, scene, registry).map((choice) => {
-    const built = buildStoryChoiceFromChoice(choice);
+    const built = buildStoryChoiceFromChoice(choice, state);
     return {
       ...built,
       isAvailable: choiceConditionsMet(choice, state),

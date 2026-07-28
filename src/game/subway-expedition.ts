@@ -1,4 +1,5 @@
 import { baseItems } from "./data/items";
+import { itemTextReference } from "./item-text";
 import { advanceGameMinutes, syncClock } from "./rules";
 import { appendLogEntry, changeSurvivalStat } from "./state-utils";
 import {
@@ -349,6 +350,15 @@ function lootRecordSummary(loot: Record<string, number>) {
   const entries = Object.entries(loot).filter(([, amount]) => amount > 0);
   return entries.length > 0
     ? entries.map(([itemId, amount]) => `${itemName(itemId)} ${amount}개`).join(", ")
+    : "획득 물자 없음";
+}
+
+function lootRecordHint(loot: Record<string, number>) {
+  const entries = Object.entries(loot).filter(([, amount]) => amount > 0);
+  return entries.length > 0
+    ? entries
+      .map(([itemId, amount]) => `+${amount} ${itemTextReference(itemId)}`)
+      .join("·")
     : "획득 물자 없음";
 }
 
@@ -705,7 +715,7 @@ function returnAction(state: GameState): ActionChoice {
   return {
     id: "return-from-subway-expedition",
     label: "탐험을 끝내고 대합실로 돌아간다",
-    outcomeHint: `전리품 확정: ${carriedLootSummary(state)} · 귀환 비용 기력 ${cost.energy} · 약 ${cost.minutes}분`,
+    outcomeHint: `-${cost.energy} 기력 / ${lootRecordHint(state.subwayExpedition.carriedLoot)} / +${cost.minutes}분`,
     showOutcomeHint: true,
     action: {
       type: "subway_expedition",
@@ -732,7 +742,7 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
         ? "결과를 확인하고 주변을 수색한다"
         : "수색 결과를 확인하고 계속한다",
       outcomeHint: "추가 비용 없이 탐험 화면으로 돌아갑니다.",
-      showOutcomeHint: true,
+      showOutcomeHint: false,
       action: {
         type: "subway_expedition",
         command: "acknowledge_result",
@@ -749,12 +759,12 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
           id: option.id,
           label: option.label,
           outcomeHint: isAvailable
-            ? `${option.outcomeHint} · 위험 ${{
+            ? `${option.outcomeHint} / 위험 ${{
                 low: "낮음",
                 medium: "보통",
                 high: "높음",
               }[option.riskHint]}`
-            : `${option.outcomeHint} · 현재 상태로는 가능한 결과의 비용을 감당할 수 없습니다.`,
+            : `${option.outcomeHint} / 현재 상태로는 가능한 결과의 비용을 감당할 수 없습니다.`,
           showOutcomeHint: true,
           action: {
             type: "subway_expedition" as const,
@@ -790,7 +800,7 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
   lootActions.push({
     id: "descend-subway-floor",
     label: `지하 ${floor.depth}층을 정산하고 다음 층으로 내려간다`,
-    outcomeHint: `${settlement.loot} · 미수색 ${settlement.unsearched}곳 · 기력 -1 · +20분`,
+    outcomeHint: `-1 기력 / ${lootRecordHint(progress.floorLoot)} / 미수색 ${settlement.unsearched}곳 / +20분`,
     showOutcomeHint: true,
     action: {
       type: "subway_expedition",

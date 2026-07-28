@@ -1524,3 +1524,22 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   the required web-game Playwright client rendered a fresh game successfully with installed desktop Chrome.
   focused 390px browser verification confirmed the stale-bread choice had no overlay, filled roughly 51% after 260ms with `rgba(31, 41, 55, 0.12)`, retained exact width and height, completed with two stale breads in inventory, and regional travel still used the popup overlay.
   a generated subway-floor probe confirmed `search_loot` receives a 500ms full-choice gray fill with no popup while the loot action completes normally.
+
+- 2026-07-28 standardized choice outcome hints:
+  added a shared formatter that derives money, stat, item, tool-durability, random-result, and time hints directly from authored effects instead of relying on duplicated manual descriptions.
+  connected the formatter to location actions, scene choices, and event choices; generated mechanical hints are shown automatically and time is always placed last.
+  stock collection hints use the remaining runtime quantity, so the stale-bread choice changes from `눅눅한 빵 +2 / +5분` to `눅눅한 빵 +1 / +5분` after one unit remains.
+  changed the kitchen work reward and log to 6,000 won, producing the exact visible hint `+6,000원 / +60분`.
+  standardized generated subway-expedition hint separators and hid the non-mechanical result acknowledgement note.
+  updated the region authoring guide and Content Studio guidance so future content treats `outcomeHint` as a fallback for non-mechanical descriptions.
+  verification passed: `node --check content-editor.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, and `git diff --check`.
+  a 67-definition audit found no generated `보상:` / `효과:` prose or time token before the final position; focused checks passed for kitchen work, first aid, axe logging, random triage rewards, and runtime stock counts.
+  the required web-game Playwright client rendered the saved kitchen scene at 390×844 with no console errors; focused DOM verification confirmed `배식소 일을 돕는다` displays exactly `+6,000원 / +60분`.
+
+- 2026-07-28 outcome-hint quantity-first correction:
+  corrected the universal mechanical token order to `sign + quantity + target`.
+  item, durability, energy, random-reward, and generated subway hints now render as `+5 목재 판자`, `-1 손도끼 내구도`, `-1 기력`, and `+1 진통제`.
+  tool creation shows the actual durability delta from the current state, such as `+8 손도끼 내구도`.
+  updated all authoring-guide examples to use quantity-first item tokens.
+  a 67-definition audit confirmed every generated slash-delimited token starts with a signed quantity or the explicit `다음 날` time marker.
+  the required web-game Playwright client and 390×844 screenshot confirmed `-4,500원 / +1 따뜻한 식사 / +15분` and `+6,000원 / +60분` render correctly with no console errors.

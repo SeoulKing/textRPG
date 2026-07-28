@@ -1223,7 +1223,8 @@ export class GameService {
       return session.world.eventCards[eventKey];
     }
 
-    const storyChoices = resolveEventChoices(session.state, eventDef, registry).map(buildStoryChoiceFromChoice);
+    const storyChoices = resolveEventChoices(session.state, eventDef, registry)
+      .map((choice) => buildStoryChoiceFromChoice(choice, session.state));
     const card = await this.templateGenerator.generateEventCard(eventDef, storyChoices, {
       ...this.generatorInput(session, true, registry),
     });

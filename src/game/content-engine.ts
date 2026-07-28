@@ -12,6 +12,7 @@ import type {
 } from "./schemas";
 import { evaluateCondition } from "./state-utils";
 import { worldRegistry } from "./data/registry";
+import { formatOutcomeHint } from "./outcome-hint";
 
 const ACTIVITY_LOADING_MS = 500;
 const REGION_TRAVEL_LOADING_MS = 1000;
@@ -46,12 +47,16 @@ export function resolveInteractionLoading(definition: {
   return definition.loading;
 }
 
-export function buildStoryChoiceFromChoice(choice: ChoiceDefinition): StoryChoice {
+export function buildStoryChoiceFromChoice(
+  choice: ChoiceDefinition,
+  state: GameState,
+): StoryChoice {
+  const standardizedHint = formatOutcomeHint(choice.effects, state);
   return {
     id: choice.id,
     label: choice.label,
-    outcomeHint: choice.outcomeHint,
-    showOutcomeHint: choice.showOutcomeHint,
+    outcomeHint: standardizedHint || choice.outcomeHint,
+    showOutcomeHint: standardizedHint ? true : choice.showOutcomeHint,
     loading: resolveInteractionLoading(choice),
     isAvailable: true,
     descriptionTag: choice.descriptionTag,

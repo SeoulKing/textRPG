@@ -708,7 +708,7 @@ function renderRecipe(recipe) {
           ${selectField("표시 방식", "presentationMode", options([
             ["when_conditions_met", "조건 충족 시만"], ["always", "항상 표시"],
           ], recipe.presentationMode))}
-          ${itemReferenceTextareaField("플레이어 안내", "outcomeHint", recipe.outcomeHint, "full")}
+          ${itemReferenceTextareaField("보조 안내 · 수치 효과 없을 때", "outcomeHint", recipe.outcomeHint, "full")}
           ${textField("완료 후 이동할 씬 ID", "nextSceneId", recipe.nextSceneId ?? "")}
           ${textField("태그 · 쉼표로 구분", "tags", tagsText(recipe.tags))}
           <div class="field">
@@ -803,7 +803,7 @@ function renderStory(story) {
       ${scene ? `
         <section class="form-section">
           <div class="section-title">
-            <div><h3>선택지</h3><p>버튼 문구와 결과 안내의 아이템 이름도 같은 ID 참조 구조를 사용합니다.</p></div>
+            <div><h3>선택지</h3><p>금액·능력치·아이템·내구도·시간은 효과에서 자동으로 요약됩니다. 보조 안내에는 이동·조사처럼 수치 효과가 없는 선택의 설명만 적습니다.</p></div>
             <button class="button ghost small" id="addChoice" type="button">＋ 선택지 추가</button>
           </div>
           <div class="choice-tabs">
@@ -816,7 +816,7 @@ function renderStory(story) {
               <div class="field-grid">
                 ${textField("선택지 ID", "choice-id", choice.id)}
                 ${itemReferenceTextField("버튼 문구", "choice-label", choice.label)}
-                ${itemReferenceTextareaField("결과 안내", "choice-outcomeHint", choice.outcomeHint, "full")}
+                ${itemReferenceTextareaField("보조 안내 · 수치 효과 없을 때", "choice-outcomeHint", choice.outcomeHint, "full")}
                 ${textField("다음 씬 ID · 비워도 됨", "choice-nextSceneId", choice.nextSceneId ?? "")}
                 ${textField("태그 · 쉼표로 구분", "choice-tags", tagsText(choice.tags), "full")}
                 <div class="field full">${checkboxField("결과 안내 표시", "choice-showOutcomeHint", choice.showOutcomeHint ?? false)}</div>

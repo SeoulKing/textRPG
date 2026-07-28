@@ -166,7 +166,7 @@ const scene = {
 const choice = sceneChoice({
   id: "take_water",
   label: "{{item:waterBottle|을를}} 챙긴다",
-  outcomeHint: "{{item:waterBottle}} +1 / +5분",
+  outcomeHint: "+1 {{item:waterBottle}} / +5분",
   effects: [
     { type: "add_item", itemId: "waterBottle", amount: 1 },
     { type: "log", message: "{{item:waterBottle|을를}} 가방에 넣었다." },
@@ -187,13 +187,13 @@ const label = `${water} 챙긴다`;
 
 ## 선택지 힌트 포맷
 
-선택지 아래에 실제 효과를 보여줘야 할 때만 `showOutcomeHint: true`를 켭니다. 이때 `outcomeHint`는 자동 생성하지 않고, 콘텐츠 작성자가 직접 아래 순서로 씁니다.
+선택지의 금액, 능력치, 아이템, 도구 내구도, 시간 변화는 `effects`에서 자동으로 계산해 `outcomeHint`보다 우선 표시합니다. 따라서 같은 수치를 `outcomeHint`에 다시 적지 않습니다. 남은 물자를 전부 챙기는 선택지는 현재 재고 수량까지 실행 시점에 계산합니다.
 
-아이템의 표시 이름은 직접 쓰지 않고 `{{item:itemId}}`로 참조합니다. 그러면 콘텐츠 스튜디오에서 아이템 이름을 바꿔도 선택지, 힌트, 실패 안내, 로그가 현재 이름을 사용합니다.
+`outcomeHint`는 수치로 요약할 효과가 없는 이동·조사·서사 선택지의 보조 설명에만 사용합니다. 이 경우에만 `showOutcomeHint: true`를 직접 켭니다. 아이템의 표시 이름은 직접 쓰지 않고 `{{item:itemId}}`로 참조합니다. 그러면 콘텐츠 스튜디오에서 아이템 이름을 바꿔도 선택지, 힌트, 실패 안내, 로그가 현재 이름을 사용합니다.
 
 ```ts
 label: "{{item:waterBottle|을를}} 챙긴다",
-outcomeHint: "{{item:waterBottle}} +1 / +5분",
+outcomeHint: "+1 {{item:waterBottle}} / +5분",
 failureNote: "{{item:waterBottle|이가}} 필요하다.",
 ```
 
@@ -207,11 +207,11 @@ failureNote: "{{item:waterBottle|이가}} 필요하다.",
 
 ```ts
 outcomeHint: "-1,800원 / +2 체력 / +15분",
-outcomeHint: "-4,500원 / {{item:hotMeal}} +1 / +15분",
-outcomeHint: "{{item:woodPlank}} +3 / +30분",
+outcomeHint: "-4,500원 / +1 {{item:hotMeal}} / +15분",
+outcomeHint: "+3 {{item:woodPlank}} / +30분",
 ```
 
-돈, 아이템, 체력, 정신력, 기력처럼 플레이어가 바로 판단해야 하는 값만 짧게 적습니다. 시간은 항상 맨 마지막에 둡니다. 확률과 허탕 가능성은 선택지 힌트에 표시하지 않고, 찾을 수 있는 것만 적습니다. 서사 설명이나 분위기 문장은 선택지 힌트가 아니라 씬 본문과 로그에 둡니다.
+자동 힌트에는 돈, 아이템, 체력, 정신력, 기력처럼 플레이어가 바로 판단해야 하는 값만 들어갑니다. 시간은 항상 맨 마지막에 표시됩니다. 무작위 효과는 가능한 결과를 `또는`으로 묶습니다. 서사 설명이나 분위기 문장은 선택지 힌트가 아니라 씬 본문과 로그에 둡니다.
 
 ## 선택지 로딩 설정
 
