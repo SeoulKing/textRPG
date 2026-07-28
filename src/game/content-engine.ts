@@ -1,7 +1,9 @@
 import type {
   ActionDefinition,
+  ChoiceLoading,
   ChoiceDefinition,
   ContentRegistry,
+  Effect,
   EventDefinition,
   GameState,
   LocationDefinition,
@@ -11,13 +13,46 @@ import type {
 import { evaluateCondition } from "./state-utils";
 import { worldRegistry } from "./data/registry";
 
+const ACTIVITY_LOADING_MS = 500;
+const REGION_TRAVEL_LOADING_MS = 1000;
+const INVESTIGATION_ACTION_ID_PATTERN = /^(search_|survey_|inspect_|listen_|ask_|explore_|track_)/;
+
+function effectContainsTravel(effect: Effect): boolean {
+  if (effect.type === "travel") {
+    return true;
+  }
+  return effect.type === "random_outcome" &&
+    effect.outcomes.some((outcome) => outcome.effects.some((nestedEffect) => nestedEffect.type === "travel"));
+}
+
+export function resolveInteractionLoading(definition: {
+  id: string;
+  type?: ActionDefinition["type"];
+  loading?: ChoiceLoading;
+  effects: Effect[];
+}): ChoiceLoading | undefined {
+  if (definition.effects.some(effectContainsTravel)) {
+    return { durationMs: REGION_TRAVEL_LOADING_MS, transitionType: "region_travel" };
+  }
+  const isInvestigation = definition.type === "search" ||
+    definition.type === "explore" ||
+    INVESTIGATION_ACTION_ID_PATTERN.test(definition.id);
+  const advancesTime = definition.effects.some(
+    (effect) => effect.type === "advance_time" || effect.type === "advance_to_daybreak",
+  );
+  if (isInvestigation || advancesTime) {
+    return { durationMs: ACTIVITY_LOADING_MS, transitionType: "activity" };
+  }
+  return definition.loading;
+}
+
 export function buildStoryChoiceFromChoice(choice: ChoiceDefinition): StoryChoice {
   return {
     id: choice.id,
     label: choice.label,
     outcomeHint: choice.outcomeHint,
     showOutcomeHint: choice.showOutcomeHint,
-    loading: choice.loading,
+    loading: resolveInteractionLoading(choice),
     isAvailable: true,
     descriptionTag: choice.descriptionTag,
     tags: choice.tags,

@@ -14,6 +14,7 @@ const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
 const ACTION_TRANSITION_ACTION_MS = 500;
+const ACTION_TRANSITION_MOVEMENT_MS = 1000;
 const ACTION_TRANSITION_SLOW_MESSAGE_MS = 1200;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
 const SQRT_3 = Math.sqrt(3);
@@ -640,7 +641,7 @@ function waitForMilliseconds(durationMs) {
   });
 }
 
-function isMovementAction(action) {
+function isMovementAction(action, loading = null) {
   if (!action) {
     return false;
   }
@@ -652,14 +653,14 @@ function isMovementAction(action) {
   }
 
   const actionId = action.actionId || action.choiceId || "";
-  if (/^leave_shelter_(crafting|cooking)$/.test(actionId)) {
-    return false;
-  }
   return actionId === "start_subway_expedition" ||
-    /^(go_to_|leave_|push_beyond_)/.test(actionId);
+    loading?.transitionType === "region_travel";
 }
 
-function actionTransitionDurationMs(loading = null) {
+function actionTransitionDurationMs(action, loading = null) {
+  if (isMovementAction(action, loading)) {
+    return ACTION_TRANSITION_MOVEMENT_MS;
+  }
   if (!loading) {
     return 0;
   }
@@ -668,7 +669,7 @@ function actionTransitionDurationMs(loading = null) {
     : ACTION_TRANSITION_ACTION_MS;
 }
 
-function actionTransitionMessage(action) {
+function actionTransitionMessage(action, loading = null) {
   if (!action) {
     return "행동하는 중…";
   }
@@ -696,11 +697,11 @@ function actionTransitionMessage(action) {
     };
     return messages[action.command] || "지하철역을 탐색하는 중…";
   }
-
-  const actionId = action.actionId || action.choiceId || "";
-  if (/^(go_to_|leave_|push_beyond_)/.test(actionId)) {
+  if (loading?.transitionType === "region_travel") {
     return "이동하는 중…";
   }
+
+  const actionId = action.actionId || action.choiceId || "";
   if (/^(collect_|buy_|exchange_|deliver_)/.test(actionId)) {
     return "물건을 챙기는 중…";
   }
@@ -738,7 +739,7 @@ function updateActionTransitionStatus(message) {
   }
 }
 
-function beginActionTransition(action, triggerElement, durationMs) {
+function beginActionTransition(action, triggerElement, durationMs, loading = null) {
   const control = triggerElement instanceof Element
     ? triggerElement.closest("button, [role='button']")
     : null;
@@ -759,7 +760,8 @@ function beginActionTransition(action, triggerElement, durationMs) {
     : craftingNameTarget instanceof HTMLElement
       ? craftingNameTarget
       : control;
-  const message = actionTransitionMessage(action);
+  const message = actionTransitionMessage(action, loading);
+  const isMovement = isMovementAction(action, loading);
   const status = message ? document.createElement("p") : null;
   if (status) {
     status.className = "action-transition-status";
@@ -788,7 +790,7 @@ function beginActionTransition(action, triggerElement, durationMs) {
   if (message) {
     const sceneTransition = document.createElement("div");
     sceneTransition.className = "scene-action-transition";
-    sceneTransition.classList.toggle("is-movement", isMovementAction(action));
+    sceneTransition.classList.toggle("is-movement", isMovement);
     sceneTransition.setAttribute("role", "status");
     sceneTransition.setAttribute("aria-live", "polite");
 
@@ -797,7 +799,7 @@ function beginActionTransition(action, triggerElement, durationMs) {
 
     const kicker = document.createElement("span");
     kicker.className = "scene-action-transition-kicker";
-    kicker.textContent = isMovementAction(action) ? "이동" : "행동";
+    kicker.textContent = isMovement ? "이동" : "행동";
     card.appendChild(kicker);
     card.appendChild(status);
 
@@ -2943,15 +2945,15 @@ async function submitAction(action, triggerElement = null, loading = null) {
   }
   client.actionInFlight = true;
   client.pendingAction = action;
-  const transitionDurationMs = actionTransitionDurationMs(loading);
+  const transitionDurationMs = actionTransitionDurationMs(action, loading);
   const shouldShowTransition = transitionDurationMs > 0;
-  if (isMovementAction(action)) {
+  if (isMovementAction(action, loading)) {
     client.isPanelOpen = false;
     renderPanel();
     resetSceneScrollOnMobile();
   }
   if (shouldShowTransition) {
-    beginActionTransition(action, triggerElement, transitionDurationMs);
+    beginActionTransition(action, triggerElement, transitionDurationMs, loading);
   }
   const previousSnapshot = client.snapshot;
   try {

@@ -10,6 +10,7 @@ import {
   TRAVEL_DURATION_MS,
 } from "./base-data";
 import { actionConditionsMet, choiceConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
+import { resolveItemText } from "./item-text";
 import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition } from "./runtime-registry";
 import {
   appendLogEntry,
@@ -989,7 +990,7 @@ export function performAction(state: GameState, action: GameAction) {
   syncQuestState(state, previousState.quests);
   evaluateSurvivalOutcome(state);
   syncScene(state, preferredSceneId);
-  applySystemNote(previousState, state, fallbackNote);
+  applySystemNote(previousState, state, resolveItemText(fallbackNote, registry));
 }
 
 export function summarizeState(state: GameState) {

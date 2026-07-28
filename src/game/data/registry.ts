@@ -19,6 +19,7 @@ import { eventDefinitions } from "./events";
 import { sceneDefinitions } from "./scenes";
 import { questDefinitions } from "../quest-definitions";
 import { baseSkills } from "../base-data";
+import { validateItemTextReferences } from "../item-text";
 import {
   CRAFTING_MENU_SCENE_IDS,
   COOKING_MENU_SCENE_IDS,
@@ -401,6 +402,9 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
         outcome.effects.forEach((nestedEffect) => validateEffect(registry, nestedEffect, `${source}:outcome:${index + 1}`));
       });
       break;
+    case "log":
+      validateItemTextReferences(effect.message, registry, `${source}:log`);
+      break;
     case "discover_stock_node":
     case "focus_stock_node":
       assertKnownStockNode(registry, effect.nodeId, source);
@@ -420,6 +424,10 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
 }
 
 function validateAction(registry: ContentRegistry, action: ActionDefinition) {
+  validateItemTextReferences(action.label, registry, `action:${action.id}:label`);
+  validateItemTextReferences(action.outcomeHint, registry, `action:${action.id}:outcomeHint`);
+  validateItemTextReferences(action.failureNote, registry, `action:${action.id}:failureNote`);
+  validateItemTextReferences(action.systemNote, registry, `action:${action.id}:systemNote`);
   for (const locationId of action.locationIds) {
     assertKnownLocation(registry, locationId, `action:${action.id}`);
   }
@@ -431,6 +439,10 @@ function validateAction(registry: ContentRegistry, action: ActionDefinition) {
 }
 
 function validateChoice(registry: ContentRegistry, choice: ChoiceDefinition) {
+  validateItemTextReferences(choice.label, registry, `choice:${choice.id}:label`);
+  validateItemTextReferences(choice.outcomeHint, registry, `choice:${choice.id}:outcomeHint`);
+  validateItemTextReferences(choice.failureNote, registry, `choice:${choice.id}:failureNote`);
+  validateItemTextReferences(choice.systemNote, registry, `choice:${choice.id}:systemNote`);
   if (choice.nextEventId) assertKnownEvent(registry, choice.nextEventId, `choice:${choice.id}`);
   if (choice.nextSceneId) assertKnownScene(registry, choice.nextSceneId, `choice:${choice.id}`);
   choice.conditions.forEach((condition) => validateCondition(registry, condition, `choice:${choice.id}`));
@@ -527,6 +539,8 @@ export function validateRegistry(registry: ContentRegistry) {
   });
 
   Object.values(registry.events).forEach((event) => {
+    validateItemTextReferences(event.title, registry, `event:${event.id}:title`);
+    validateItemTextReferences(event.summary, registry, `event:${event.id}:summary`);
     assertKnownLocation(registry, event.locationId, `event:${event.id}`);
     assertKnownScene(registry, event.startSceneId, `event:${event.id}`);
     event.sceneIds.forEach((sceneId) => assertKnownScene(registry, sceneId, `event:${event.id}`));
@@ -535,6 +549,10 @@ export function validateRegistry(registry: ContentRegistry) {
   });
 
   Object.values(registry.scenes).forEach((scene) => {
+    validateItemTextReferences(scene.title, registry, `scene:${scene.id}:title`);
+    scene.paragraphs.forEach((paragraph, index) => {
+      validateItemTextReferences(paragraph, registry, `scene:${scene.id}:paragraph:${index + 1}`);
+    });
     assertKnownLocation(registry, scene.locationId, `scene:${scene.id}`);
     if (scene.eventId) {
       assertKnownEvent(registry, scene.eventId, `scene:${scene.id}`);

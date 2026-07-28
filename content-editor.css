@@ -486,6 +486,44 @@ a {
   grid-column: 1 / -1;
 }
 
+.item-reference-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.item-reference-field.full {
+  grid-column: 1 / -1;
+}
+
+.item-reference-picker {
+  display: grid;
+  grid-template-columns: auto minmax(150px, 1fr) minmax(100px, 0.5fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 8px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: rgb(247 246 240 / 76%);
+}
+
+.item-reference-picker > span {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.item-reference-picker select {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 11px;
+}
+
 .field > span,
 .field-label {
   color: var(--muted);
@@ -862,6 +900,14 @@ a {
   .field-grid.cols-3,
   .effect-grid {
     grid-template-columns: 1fr;
+  }
+
+  .item-reference-picker {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .item-reference-picker > span {
+    grid-column: 1 / -1;
   }
 
   .inline-editor {

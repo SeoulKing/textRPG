@@ -3,6 +3,7 @@
  */
 
 import { PHASES, REAL_DAY_MS } from "./base-data";
+import { resolveItemText } from "./item-text";
 import { buildRuntimeRegistry } from "./runtime-registry";
 import type { Condition, Effect, GameState, GameStateV2, Objective, Player, QuestReward, WorldState } from "./schemas";
 
@@ -394,7 +395,7 @@ export function applyEffect(effect: Effect, state: GameState): void {
       state.quests[effect.questId] = "completed";
       break;
     case "log":
-      appendLogEntry(state, effect.message);
+      appendLogEntry(state, resolveItemText(effect.message, buildRuntimeRegistry(state)));
       break;
     case "set_scene":
       state.sceneId = effect.sceneId;

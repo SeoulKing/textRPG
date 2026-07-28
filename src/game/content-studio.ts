@@ -53,6 +53,100 @@ export type StudioScene = z.infer<typeof StudioSceneSchema>;
 export type StudioStory = z.infer<typeof StudioStorySchema>;
 export type ContentStudioDocument = z.infer<typeof ContentStudioDocumentSchema>;
 
+const ITEM_TEXT_FIELDS = new Set([
+  "label",
+  "outcomeHint",
+  "failureNote",
+  "systemNote",
+  "descriptionTag",
+  "message",
+  "title",
+  "entryLabel",
+  "entryHint",
+  "paragraphs",
+]);
+
+const KOREAN_PARTICLE_REFERENCES = [
+  ["이에요", "이에요예요"],
+  ["예요", "이에요예요"],
+  ["으로", "으로로"],
+  ["이랑", "이랑랑"],
+  ["은", "은는"],
+  ["는", "은는"],
+  ["이", "이가"],
+  ["가", "이가"],
+  ["을", "을를"],
+  ["를", "을를"],
+  ["과", "과와"],
+  ["와", "과와"],
+  ["로", "으로로"],
+  ["랑", "이랑랑"],
+  ["아", "아야"],
+  ["야", "아야"],
+] as const;
+
+function replaceItemNameWithReference(text: string, itemId: string, previousName: string) {
+  let migrated = text;
+  const escapedName = previousName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  KOREAN_PARTICLE_REFERENCES.forEach(([surface, particle]) => {
+    migrated = migrated.replace(
+      new RegExp(`(?<![가-힣A-Za-z0-9])${escapedName}${surface}(?![가-힣A-Za-z0-9])`, "g"),
+      `{{item:${itemId}|${particle}}}`,
+    );
+  });
+  return migrated.replace(
+    new RegExp(`(?<![가-힣A-Za-z0-9])${escapedName}(?![가-힣A-Za-z0-9])`, "g"),
+    `{{item:${itemId}}}`,
+  );
+}
+
+function migrateItemTextValue(
+  value: unknown,
+  field: string,
+  itemId: string,
+  previousName: string,
+): unknown {
+  if (typeof value === "string") {
+    return ITEM_TEXT_FIELDS.has(field)
+      ? replaceItemNameWithReference(value, itemId, previousName)
+      : value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => migrateItemTextValue(entry, field, itemId, previousName));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      migrateItemTextValue(entry, key, itemId, previousName),
+    ]),
+  );
+}
+
+export function migrateRenamedItemTextReferences(
+  input: unknown,
+  previous: ContentStudioDocument,
+) {
+  let document = parseContentStudioDocument(input);
+  const previousItems = asUniqueRecord(previous.items, "item");
+
+  document.items.forEach((item) => {
+    const previousName = previousItems[item.id]?.name;
+    if (!previousName || previousName === item.name) {
+      return;
+    }
+    document = parseContentStudioDocument({
+      ...document,
+      recipes: migrateItemTextValue(document.recipes, "recipes", item.id, previousName),
+      stories: migrateItemTextValue(document.stories, "stories", item.id, previousName),
+    });
+  });
+
+  return document;
+}
+
 export const BUILT_IN_RECIPE_MENUS = {
   craft_shelter_wall_patch: "crafting",
   craft_shelter_brazier: "crafting",

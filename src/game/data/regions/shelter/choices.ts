@@ -17,12 +17,12 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "accept_first_canned_food_quest",
-    label: "퀘스트: 편의점에서 통조림 세 개를 찾아 노파에게 가져다준다",
-    outcomeHint: "노파의 부탁을 받아 편의점 폐허의 진열대에서 통조림 세 개를 찾고, 급식소의 노파에게 직접 가져다주기로 한다.",
+    label: "퀘스트: 편의점에서 {{item:cannedFood}} 세 개를 찾아 노파에게 가져다준다",
+    outcomeHint: "노파의 부탁을 받아 편의점 폐허의 진열대에서 {{item:cannedFood}} 세 개를 찾고, 급식소의 노파에게 직접 가져다주기로 한다.",
     conditions: [{ type: "flag_not", flag: "first_canned_food_started" }],
     effects: [
       { type: "set_flag", flag: "first_canned_food_started" },
-      { type: "log", message: "당신은 노파의 부탁을 받아, 편의점 폐허에서 통조림 세 개를 찾아 급식소의 노파에게 가져다주기로 정한다." },
+      { type: "log", message: "당신은 노파의 부탁을 받아, 편의점 폐허에서 {{item:cannedFood}} 세 개를 찾아 급식소의 노파에게 가져다주기로 정한다." },
     ],
     nextSceneId: "shelter_first_intro",
     riskHint: "low",
@@ -31,7 +31,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     id: "craft_shelter_wall_patch",
     showOutcomeHint: true,
     label: "거처 보강",
-    outcomeHint: "효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: 목재 판자 1 / 천 조각 2 / 끈 묶음 1.",
+    outcomeHint: "효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: {{item:woodPlank}} 1 / {{item:clothScrap}} 2 / {{item:cordage}} 1.",
     presentationMode: "always",
     conditions: [
       { type: "flag_not", flag: "shelter_wall_patch" },
@@ -39,9 +39,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "clothScrap", amount: 2 },
       { type: "has_item", itemId: "cordage", amount: 1 },
     ],
-    failureNote: "이미 보강을 끝냈거나 재료가 부족하다. 효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: 목재 판자 1 / 천 조각 2 / 끈 묶음 1.",
+    failureNote: "이미 보강을 끝냈거나 재료가 부족하다. 효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: {{item:woodPlank}} 1 / {{item:clothScrap}} 2 / {{item:cordage}} 1.",
     failureEffects: [
-      { type: "log", message: "벽 틈을 막으려면 목재 판자 한 장과 천 조각 두 장, 천막을 묶어 둘 끈이 필요하다. 이미 손본 자리라면 더 건드릴 곳도 없다." },
+      { type: "log", message: "벽 틈을 막으려면 {{item:woodPlank}} 한 장과 {{item:clothScrap}} 두 장, 천막을 묶어 둘 {{item:cordage|이가}} 필요하다. 이미 손본 자리라면 더 건드릴 곳도 없다." },
     ],
     effects: [
       { type: "remove_item", itemId: "woodPlank", amount: 1 },
@@ -50,7 +50,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "set_flag", flag: "shelter_wall_patch" },
       {
         type: "log",
-        message: "당신은 판자와 천 조각을 끈으로 묶어 천막 틈을 덧막는다. 이제 밤바람이 스며드는 정도가 한결 덜할 것이다.",
+        message: "당신은 판자와 {{item:clothScrap|을를}} {{item:cordage|으로로}} 묶어 천막 틈을 덧막는다. 이제 밤바람이 스며드는 정도가 한결 덜할 것이다.",
       },
       { type: "advance_time", minutes: 15 },
     ],
@@ -61,7 +61,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     id: "craft_shelter_brazier",
     showOutcomeHint: true,
     label: "간이 화로",
-    outcomeHint: "효과: 거처에서 따뜻한 식사 조리 가능. 필요 재료: 고철 2 / 목재 판자 1 / 끈 묶음 1.",
+    outcomeHint: "효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: {{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
     presentationMode: "always",
     conditions: [
       { type: "flag_not", flag: "shelter_brazier" },
@@ -69,9 +69,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "woodPlank", amount: 1 },
       { type: "has_item", itemId: "cordage", amount: 1 },
     ],
-    failureNote: "이미 화로가 있거나 재료가 부족하다. 효과: 거처에서 따뜻한 식사 조리 가능. 필요 재료: 고철 2 / 목재 판자 1 / 끈 묶음 1.",
+    failureNote: "이미 화로가 있거나 재료가 부족하다. 효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: {{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
     failureEffects: [
-      { type: "log", message: "간이 화로를 만들려면 고철 두 조각, 받침으로 쓸 판자 한 장, 틀을 고정할 끈이 필요하다. 이미 화로를 만들었다면 더 손댈 이유는 없다." },
+      { type: "log", message: "간이 화로를 만들려면 {{item:scrapMetal}} 두 조각, 받침으로 쓸 {{item:woodPlank}} 한 장, 틀을 고정할 {{item:cordage|이가}} 필요하다. 이미 화로를 만들었다면 더 손댈 이유는 없다." },
     ],
     effects: [
       { type: "remove_item", itemId: "scrapMetal", amount: 2 },
@@ -80,7 +80,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "set_flag", flag: "shelter_brazier" },
       {
         type: "log",
-        message: "당신은 모은 고철과 판자를 끈으로 고정해 작은 화로를 만든다. 이제 거처 안에서도 제대로 불을 피울 수 있다.",
+        message: "당신은 모은 {{item:scrapMetal|과와}} {{item:woodPlank|을를}} {{item:cordage|으로로}} 고정해 작은 화로를 만든다. 이제 거처 안에서도 제대로 불을 피울 수 있다.",
       },
       { type: "advance_time", minutes: 15 },
     ],
@@ -91,7 +91,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     id: "craft_shelter_rain_bucket",
     showOutcomeHint: true,
     label: "빗물통",
-    outcomeHint: "효과: 하루에 한 번 물 한 병 확보 가능. 필요 재료: 고철 1 / 천 조각 1 / 끈 묶음 1.",
+    outcomeHint: "효과: 하루에 한 번 {{item:waterBottle}} 한 병 확보 가능. 필요 재료: {{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
     presentationMode: "always",
     conditions: [
       { type: "flag_not", flag: "shelter_rain_bucket" },
@@ -99,9 +99,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "clothScrap", amount: 1 },
       { type: "has_item", itemId: "cordage", amount: 1 },
     ],
-    failureNote: "이미 물받이를 만들어 두었거나 재료가 부족하다. 효과: 하루에 한 번 물 한 병 확보 가능. 필요 재료: 고철 1 / 천 조각 1 / 끈 묶음 1.",
+    failureNote: "이미 물받이를 만들어 두었거나 재료가 부족하다. 효과: 하루에 한 번 {{item:waterBottle}} 한 병 확보 가능. 필요 재료: {{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
     failureEffects: [
-      { type: "log", message: "빗물통을 손보려면 고철 한 조각, 물을 거를 천 조각, 천막 끝에 묶어 둘 끈이 필요하다. 이미 완성해 둔 설비라면 더 만들 필요도 없다." },
+      { type: "log", message: "빗물통을 손보려면 {{item:scrapMetal}} 한 조각, 물을 거를 {{item:clothScrap}}, 천막 끝에 묶어 둘 {{item:cordage|이가}} 필요하다. 이미 완성해 둔 설비라면 더 만들 필요도 없다." },
     ],
     effects: [
       { type: "remove_item", itemId: "scrapMetal", amount: 1 },
@@ -120,8 +120,8 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "cook_at_shelter",
     showOutcomeHint: true,
-    label: "따뜻한 식사",
-    outcomeHint: "효과: +1 정신력 / +4 기력. 전제: 간이 화로, 찌그러진 냄비. 필요 재료: 쌀 1 / 채소 1 / 물병 1 / 목재 판자 1. 냄비 내구도 -1.",
+    label: "{{item:hotMeal}}",
+    outcomeHint: "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. {{item:dentedPot}} 내구도 -1.",
     presentationMode: "always",
     conditions: [
       { type: "flag", flag: "shelter_brazier" },
@@ -131,9 +131,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "waterBottle", amount: 1 },
       { type: "has_item", itemId: "woodPlank", amount: 1 },
     ],
-    failureNote: "간이 화로와 찌그러진 냄비가 있어야 하고, 쌀 1 / 채소 1 / 물병 1 / 목재 판자 1이 필요하다. 효과: +1 정신력 / +4 기력.",
+    failureNote: "간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다. 효과: +1 정신력 / +4 기력.",
     failureEffects: [
-      { type: "log", message: "따뜻한 식사를 만들려면 화로와 냄비, 쌀과 채소, 물, 불씨로 쓸 목재 판자 한 장이 필요하다." },
+      { type: "log", message: "{{item:hotMeal|을를}} 만들려면 화로와 {{item:dentedPot}}, {{item:rawRice|과와}} {{item:vegetables}}, {{item:waterBottle}}, 불씨로 쓸 {{item:woodPlank}} 한 장이 필요하다." },
     ],
     effects: [
       { type: "remove_item", itemId: "rawRice", amount: 1 },
@@ -144,7 +144,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "damage_tool", itemId: "dentedPot", amount: 1 },
       {
         type: "log",
-        message: "당신은 냄비에 물과 쌀, 채소를 넣고 천천히 끓인다. 초라한 재료지만, 한 끼를 버틸 만한 따뜻한 식사가 완성된다.",
+        message: "당신은 {{item:dentedPot}}에 물과 {{item:rawRice}}, {{item:vegetables|을를}} 넣고 천천히 끓인다. 초라한 재료지만, 한 끼를 버틸 만한 {{item:hotMeal|이가}} 완성된다.",
       },
       { type: "advance_time", minutes: 25 },
     ],
@@ -154,8 +154,8 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "cook_rice_porridge",
     showOutcomeHint: true,
-    label: "묽은 죽",
-    outcomeHint: "효과: +1 정신력 / +4 기력. 전제: 간이 화로, 찌그러진 냄비. 필요 재료: 쌀 1 / 물병 1 / 목재 판자 1. 냄비 내구도 -1. 조리 시간 20분.",
+    label: "{{item:ricePorridge}}",
+    outcomeHint: "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. {{item:dentedPot}} 내구도 -1. 조리 시간 20분.",
     presentationMode: "always",
     conditions: [
       { type: "flag", flag: "shelter_brazier" },
@@ -164,9 +164,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "waterBottle", amount: 1 },
       { type: "has_item", itemId: "woodPlank", amount: 1 },
     ],
-    failureNote: "묽은 죽은 간이 화로와 찌그러진 냄비가 있어야 하고, 쌀 1 / 물병 1 / 목재 판자 1이 필요하다.",
+    failureNote: "{{item:ricePorridge|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
     failureEffects: [
-      { type: "log", message: "묽은 죽을 끓이려면 냄비, 쌀, 물, 불씨로 쓸 목재가 필요하다." },
+      { type: "log", message: "{{item:ricePorridge|을를}} 끓이려면 {{item:dentedPot}}, {{item:rawRice}}, {{item:waterBottle}}, 불씨로 쓸 {{item:woodPlank|이가}} 필요하다." },
     ],
     effects: [
       { type: "remove_item", itemId: "rawRice", amount: 1 },
@@ -174,7 +174,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "remove_item", itemId: "woodPlank", amount: 1 },
       { type: "add_item", itemId: "ricePorridge", amount: 1 },
       { type: "damage_tool", itemId: "dentedPot", amount: 1 },
-      { type: "log", message: "당신은 쌀을 물에 오래 풀어 묽은 죽을 끓인다. 거친 속을 달래기엔 충분하다." },
+      { type: "log", message: "당신은 {{item:rawRice|을를}} 물에 오래 풀어 {{item:ricePorridge|을를}} 끓인다. 거친 속을 달래기엔 충분하다." },
       { type: "advance_time", minutes: 20 },
     ],
     nextSceneId: "shelter_cooking_menu",
@@ -183,8 +183,8 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "cook_greens_soup",
     showOutcomeHint: true,
-    label: "나물국",
-    outcomeHint: "효과: +1 정신력 / +3 기력. 전제: 간이 화로, 찌그러진 냄비. 필요 재료: 산나물 1 / 물병 1 / 목재 판자 1. 냄비 내구도 -1. 조리 시간 15분.",
+    label: "{{item:greensSoup}}",
+    outcomeHint: "효과: +1 정신력 / +3 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:wildGreens}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. {{item:dentedPot}} 내구도 -1. 조리 시간 15분.",
     presentationMode: "always",
     conditions: [
       { type: "flag", flag: "shelter_brazier" },
@@ -193,9 +193,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "waterBottle", amount: 1 },
       { type: "has_item", itemId: "woodPlank", amount: 1 },
     ],
-    failureNote: "나물국은 간이 화로와 찌그러진 냄비가 있어야 하고, 산나물 1 / 물병 1 / 목재 판자 1이 필요하다.",
+    failureNote: "{{item:greensSoup|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:wildGreens}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
     failureEffects: [
-      { type: "log", message: "나물국을 끓이려면 냄비, 산나물, 물, 불씨로 쓸 목재가 필요하다." },
+      { type: "log", message: "{{item:greensSoup|을를}} 끓이려면 {{item:dentedPot}}, {{item:wildGreens}}, {{item:waterBottle}}, 불씨로 쓸 {{item:woodPlank|이가}} 필요하다." },
     ],
     effects: [
       { type: "remove_item", itemId: "wildGreens", amount: 1 },
@@ -203,7 +203,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "remove_item", itemId: "woodPlank", amount: 1 },
       { type: "add_item", itemId: "greensSoup", amount: 1 },
       { type: "damage_tool", itemId: "dentedPot", amount: 1 },
-      { type: "log", message: "당신은 산나물을 물에 풀어 짧게 끓인다. 향은 거칠지만 따뜻한 국물이 몸을 깨운다." },
+      { type: "log", message: "당신은 {{item:wildGreens|을를}} 물에 풀어 짧게 끓인다. 향은 거칠지만 따뜻한 국물이 몸을 깨운다." },
       { type: "advance_time", minutes: 15 },
     ],
     nextSceneId: "shelter_cooking_menu",
@@ -212,8 +212,8 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "craft_crude_axe",
     showOutcomeHint: true,
-    label: "손도끼",
-    outcomeHint: "고철 조각 2 / 목재 판자 1 / 천 조각 1 / 끈 묶음 1을 써서 손도끼를 만든다. 제작 시간 30분. 내구도 8.",
+    label: "{{item:crudeAxe}}",
+    outcomeHint: "{{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:crudeAxe|을를}} 만든다. 제작 시간 30분. 내구도 8.",
     presentationMode: "always",
     conditions: [
       { type: "not_has_item", itemId: "crudeAxe", amount: 1 },
@@ -222,9 +222,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "clothScrap", amount: 1 },
       { type: "has_item", itemId: "cordage", amount: 1 },
     ],
-    failureNote: "손도끼는 고철 조각 2 / 목재 판자 1 / 천 조각 1 / 끈 묶음 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
+    failureNote: "{{item:crudeAxe|은는}} {{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
     failureEffects: [
-      { type: "log", message: "손도끼를 만들려면 날이 될 고철 두 조각, 손잡이로 쓸 판자, 손을 보호할 천 조각, 날을 묶을 끈이 필요하다." },
+      { type: "log", message: "{{item:crudeAxe|을를}} 만들려면 날이 될 {{item:scrapMetal}} 두 조각, 손잡이로 쓸 {{item:woodPlank}}, 손을 보호할 {{item:clothScrap}}, 날을 묶을 {{item:cordage|이가}} 필요하다." },
     ],
     effects: [
       { type: "remove_item", itemId: "scrapMetal", amount: 2 },
@@ -233,7 +233,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "remove_item", itemId: "cordage", amount: 1 },
       { type: "add_item", itemId: "crudeAxe", amount: 1 },
       { type: "set_tool_durability", itemId: "crudeAxe", value: 8 },
-      { type: "log", message: "당신은 휘어진 고철을 판자 끝에 묶고 천으로 감아 손도끼를 만들었다. 조잡하지만 숲에서 쓸 만하다." },
+      { type: "log", message: "당신은 휘어진 {{item:scrapMetal|을를}} 판자 끝에 묶고 천으로 감아 {{item:crudeAxe|을를}} 만들었다. 조잡하지만 숲에서 쓸 만하다." },
       { type: "advance_time", minutes: 30 },
     ],
     nextSceneId: "shelter_crafting_menu",
@@ -242,8 +242,8 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "craft_utility_knife",
     showOutcomeHint: true,
-    label: "간이 칼",
-    outcomeHint: "고철 조각 1 / 천 조각 1 / 끈 묶음 1을 써서 간이 칼을 만든다. 제작 시간 20분. 내구도 10.",
+    label: "{{item:utilityKnife}}",
+    outcomeHint: "{{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:utilityKnife|을를}} 만든다. 제작 시간 20분. 내구도 10.",
     presentationMode: "always",
     conditions: [
       { type: "not_has_item", itemId: "utilityKnife", amount: 1 },
@@ -251,9 +251,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "clothScrap", amount: 1 },
       { type: "has_item", itemId: "cordage", amount: 1 },
     ],
-    failureNote: "간이 칼은 고철 조각 1 / 천 조각 1 / 끈 묶음 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
+    failureNote: "{{item:utilityKnife|은는}} {{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
     failureEffects: [
-      { type: "log", message: "간이 칼을 만들려면 날을 세울 고철 한 조각, 손잡이를 감을 천 조각, 그 위를 묶을 끈이 필요하다." },
+      { type: "log", message: "{{item:utilityKnife|을를}} 만들려면 날을 세울 {{item:scrapMetal}} 한 조각, 손잡이를 감을 {{item:clothScrap}}, 그 위를 묶을 {{item:cordage|이가}} 필요하다." },
     ],
     effects: [
       { type: "remove_item", itemId: "scrapMetal", amount: 1 },
@@ -261,7 +261,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "remove_item", itemId: "cordage", amount: 1 },
       { type: "add_item", itemId: "utilityKnife", amount: 1 },
       { type: "set_tool_durability", itemId: "utilityKnife", value: 10 },
-      { type: "log", message: "당신은 고철 끝을 갈아 날을 세우고 천을 감아 간이 칼을 만들었다. 덤불을 헤치기엔 충분하다." },
+      { type: "log", message: "당신은 {{item:scrapMetal}} 끝을 갈아 날을 세우고 천을 감아 {{item:utilityKnife|을를}} 만들었다. 덤불을 헤치기엔 충분하다." },
       { type: "advance_time", minutes: 20 },
     ],
     nextSceneId: "shelter_crafting_menu",
@@ -270,8 +270,8 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "craft_dented_pot",
     showOutcomeHint: true,
-    label: "찌그러진 냄비",
-    outcomeHint: "고철 조각 2 / 천 조각 1 / 끈 묶음 1을 써서 찌그러진 냄비를 만든다. 제작 시간 20분. 내구도 12.",
+    label: "{{item:dentedPot}}",
+    outcomeHint: "{{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:dentedPot|을를}} 만든다. 제작 시간 20분. 내구도 12.",
     presentationMode: "always",
     conditions: [
       { type: "not_has_item", itemId: "dentedPot", amount: 1 },
@@ -279,9 +279,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "clothScrap", amount: 1 },
       { type: "has_item", itemId: "cordage", amount: 1 },
     ],
-    failureNote: "찌그러진 냄비는 고철 조각 2 / 천 조각 1 / 끈 묶음 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
+    failureNote: "{{item:dentedPot|은는}} {{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
     failureEffects: [
-      { type: "log", message: "냄비 모양을 내려면 얇게 펼 수 있는 고철 두 조각과 손잡이에 감을 천, 고정할 끈이 필요하다." },
+      { type: "log", message: "냄비 모양을 내려면 얇게 펼 수 있는 {{item:scrapMetal}} 두 조각과 손잡이에 감을 {{item:clothScrap}}, 고정할 {{item:cordage|이가}} 필요하다." },
     ],
     effects: [
       { type: "remove_item", itemId: "scrapMetal", amount: 2 },
@@ -289,7 +289,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "remove_item", itemId: "cordage", amount: 1 },
       { type: "add_item", itemId: "dentedPot", amount: 1 },
       { type: "set_tool_durability", itemId: "dentedPot", value: 12 },
-      { type: "log", message: "당신은 고철을 두드려 겨우 냄비 모양을 잡았다. 모양은 볼품없지만 물을 끓일 수는 있다." },
+      { type: "log", message: "당신은 {{item:scrapMetal|을를}} 두드려 겨우 냄비 모양을 잡았다. 모양은 볼품없지만 물을 끓일 수는 있다." },
       { type: "advance_time", minutes: 20 },
     ],
     nextSceneId: "shelter_crafting_menu",
@@ -298,8 +298,8 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "cook_forest_stew",
     showOutcomeHint: true,
-    label: "숲죽",
-    outcomeHint: "산나물 2 / 채소 1 / 물병 1 / 목재 판자 1을 써서 숲죽 1개를 끓인다. 전제: 간이 화로, 찌그러진 냄비. 제작 시간 25분. 냄비 내구도 -1.",
+    label: "{{item:forestStew}}",
+    outcomeHint: "{{item:wildGreens}} 2 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1개를 써서 {{item:forestStew}} 1개를 끓인다. 전제: 간이 화로, {{item:dentedPot}}. 제작 시간 25분. {{item:dentedPot}} 내구도 -1.",
     presentationMode: "always",
     conditions: [
       { type: "flag", flag: "shelter_brazier" },
@@ -309,9 +309,9 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "waterBottle", amount: 1 },
       { type: "has_item", itemId: "woodPlank", amount: 1 },
     ],
-    failureNote: "숲죽은 간이 화로와 찌그러진 냄비가 있어야 하고, 산나물 2 / 채소 1 / 물병 1 / 목재 판자 1이 필요하다.",
+    failureNote: "{{item:forestStew|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:wildGreens}} 2 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
     failureEffects: [
-      { type: "log", message: "숲죽을 끓이려면 화로와 냄비, 산나물 두 줌, 채소, 물, 불쏘시개로 쓸 목재가 필요하다." },
+      { type: "log", message: "{{item:forestStew|을를}} 끓이려면 화로와 {{item:dentedPot}}, {{item:wildGreens}} 두 줌, {{item:vegetables}}, {{item:waterBottle}}, 불쏘시개로 쓸 {{item:woodPlank|이가}} 필요하다." },
     ],
     effects: [
       { type: "remove_item", itemId: "wildGreens", amount: 2 },
@@ -320,7 +320,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "remove_item", itemId: "woodPlank", amount: 1 },
       { type: "add_item", itemId: "forestStew", amount: 1 },
       { type: "damage_tool", itemId: "dentedPot", amount: 1 },
-      { type: "log", message: "당신은 산나물을 물에 오래 끓여 묽은 숲죽을 만들었다. 냄비 바닥에는 또 하나의 검은 자국이 남았다." },
+      { type: "log", message: "당신은 {{item:wildGreens|을를}} 물에 오래 끓여 묽은 {{item:forestStew|을를}} 만들었다. {{item:dentedPot}} 바닥에는 또 하나의 검은 자국이 남았다." },
       { type: "advance_time", minutes: 25 },
     ],
     nextSceneId: "shelter_cooking_menu",
@@ -330,7 +330,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     id: "assemble_rescue_radio",
     showOutcomeHint: true,
     label: "무전기",
-    outcomeHint: "효과: 10일차 구조 신호 준비. 필요 부품: 무전기 배터리 / 무전기 안테나 / 무전기 송신기 / 고철 2 / 천 조각 1.",
+    outcomeHint: "효과: 10일차 구조 신호 준비. 필요 부품: {{item:radioBattery}} / {{item:radioAntenna}} / {{item:radioTransmitter}} / {{item:scrapMetal}} 2 / {{item:clothScrap}} 1.",
     presentationMode: "always",
     conditions: [
       { type: "quest_state", questId: "prepare_rescue_signal", status: "active" },
@@ -342,7 +342,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "clothScrap", amount: 1 },
       { type: "has_item", itemId: "cordage", amount: 1 },
     ],
-    failureNote: "무전기 배터리, 안테나, 송신기와 고철 2 / 천 조각 1 / 끈 묶음 1이 모두 필요하다. 이미 신호 장비를 완성했다면 더 손댈 필요는 없다.",
+    failureNote: "{{item:radioBattery}}, {{item:radioAntenna}}, {{item:radioTransmitter|과와}} {{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 모두 필요하다. 이미 신호 장비를 완성했다면 더 손댈 필요는 없다.",
     failureEffects: [
       { type: "log", message: "무전기를 조립하려면 아직 핵심 부품과 고정 재료가 더 필요하다. 구조대가 올 때까지 신호를 보낼 준비를 마쳐야 한다." },
     ],
@@ -351,7 +351,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "remove_item", itemId: "clothScrap", amount: 1 },
       { type: "remove_item", itemId: "cordage", amount: 1 },
       { type: "set_flag", flag: "rescue_signal_ready" },
-      { type: "log", message: "당신은 배터리와 송신기, 안테나를 고철 프레임에 고정한다. 지직거리는 잡음 끝에 구조 주파수가 희미하게 열린다." },
+      { type: "log", message: "당신은 {{item:radioBattery|과와}} {{item:radioTransmitter}}, {{item:radioAntenna|을를}} {{item:scrapMetal}} 프레임에 고정한다. 지직거리는 잡음 끝에 구조 주파수가 희미하게 열린다." },
       { type: "advance_time", minutes: 15 },
     ],
     nextSceneId: "shelter_crafting_menu",

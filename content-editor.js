@@ -104,6 +104,99 @@ function itemOptions(selected, includeEmpty = false) {
   return options(entries, selected, includeEmpty);
 }
 
+function previewFinalConsonantIndex(value) {
+  const lastCharacter = Array.from(String(value ?? "").trim())
+    .reverse()
+    .find((character) => /[가-힣A-Za-z0-9]/.test(character));
+  if (!lastCharacter) return 0;
+  const codePoint = lastCharacter.codePointAt(0) ?? 0;
+  if (codePoint >= 0xac00 && codePoint <= 0xd7a3) {
+    return (codePoint - 0xac00) % 28;
+  }
+  if (/\d/.test(lastCharacter)) {
+    return ["0", "1", "3", "6", "7", "8"].includes(lastCharacter) ? 1 : 0;
+  }
+  return 0;
+}
+
+function previewParticle(name, rawParticle = "") {
+  const particle = rawParticle.replaceAll("/", "").trim();
+  const finalIndex = previewFinalConsonantIndex(name);
+  if (particle === "으로로") {
+    return finalIndex === 0 || finalIndex === 8 ? "로" : "으로";
+  }
+  const pairs = {
+    은는: ["은", "는"],
+    이가: ["이", "가"],
+    을를: ["을", "를"],
+    과와: ["과", "와"],
+    이랑랑: ["이랑", "랑"],
+    아야: ["아", "야"],
+    이에요예요: ["이에요", "예요"],
+  };
+  const pair = pairs[particle];
+  return pair ? pair[finalIndex === 0 ? 1 : 0] : "";
+}
+
+function resolveItemTextPreview(value) {
+  return String(value ?? "").replace(
+    /\{\{item:([A-Za-z0-9_-]+)(?:\|([^{}]+))?\}\}/g,
+    (_reference, itemId, particle) => {
+      const item = state.document?.items?.find((entry) => entry.id === itemId);
+      const name = item?.name ?? itemId;
+      return `${name}${previewParticle(name, particle)}`;
+    },
+  );
+}
+
+function itemReferencePicker(targetField) {
+  return `
+    <div class="item-reference-picker" data-item-reference-picker data-target-field="${escapeHtml(targetField)}">
+      <span>아이템 이름 연결</span>
+      <select data-item-reference-id aria-label="연결할 아이템">${itemOptions(state.document.items[0]?.id ?? "")}</select>
+      <select data-item-reference-particle aria-label="붙일 조사">
+        ${options([
+          ["", "조사 없음"],
+          ["을를", "을/를"],
+          ["은는", "은/는"],
+          ["이가", "이/가"],
+          ["과와", "과/와"],
+          ["으로로", "으로/로"],
+        ], "")}
+      </select>
+      <button class="button ghost small" data-insert-item-reference type="button">현재 위치에 삽입</button>
+    </div>
+  `;
+}
+
+function itemReferenceTextField(label, field, value, extra = "") {
+  return `<div class="item-reference-field ${extra}">${textField(label, field, value)}${itemReferencePicker(field)}</div>`;
+}
+
+function itemReferenceTextareaField(label, field, value, extra = "") {
+  return `<div class="item-reference-field ${extra}">${textareaField(label, field, value)}${itemReferencePicker(field)}</div>`;
+}
+
+function bindItemReferencePickers(container) {
+  container.querySelectorAll("[data-item-reference-picker]").forEach((picker) => {
+    const target = container.querySelector(`[data-field="${picker.dataset.targetField}"]`);
+    const itemSelect = picker.querySelector("[data-item-reference-id]");
+    const particleSelect = picker.querySelector("[data-item-reference-particle]");
+    const insertButton = picker.querySelector("[data-insert-item-reference]");
+    if (!target || !itemSelect || !particleSelect || !insertButton) return;
+
+    insertButton.addEventListener("click", () => {
+      const particle = particleSelect.value ? `|${particleSelect.value}` : "";
+      const token = `{{item:${itemSelect.value}${particle}}}`;
+      const start = target.selectionStart ?? target.value.length;
+      const end = target.selectionEnd ?? start;
+      target.setRangeText(token, start, end, "end");
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+      target.focus();
+    });
+  });
+}
+
 function locationOptions(selected) {
   return options(
     state.catalogs.locations.map((location) => [location.id, `${location.name} · ${location.id}`]),
@@ -187,7 +280,7 @@ function showToast(message, error = false) {
 
 function entityName(entity) {
   if (state.tab === "items") return entity.name;
-  if (state.tab === "recipes") return entity.label;
+  if (state.tab === "recipes") return resolveItemTextPreview(entity.label);
   return entity.title;
 }
 
@@ -604,18 +697,18 @@ function bindArrayEditors(container, owner) {
 
 function renderRecipe(recipe) {
   ui.editorPanel.innerHTML = `
-    ${editorHeader("RECIPE", recipe.label, recipe.id, recipe.menu === "crafting" ? "제작 메뉴에 노출되는 레시피" : "요리 메뉴에 노출되는 레시피")}
+    ${editorHeader("RECIPE", resolveItemTextPreview(recipe.label), recipe.id, recipe.menu === "crafting" ? "제작 메뉴에 노출되는 레시피" : "요리 메뉴에 노출되는 레시피")}
     <div class="form-stack">
       <section class="form-section">
         <div class="section-title"><div><h3>레시피 정보</h3><p>필요 조건과 결과 효과는 아래에서 순서대로 구성합니다.</p></div></div>
         <div class="field-grid">
           ${textField("레시피 ID", "id", recipe.id)}
-          ${textField("이름", "label", recipe.label)}
+          ${itemReferenceTextField("이름", "label", recipe.label)}
           ${selectField("메뉴", "menu", options([["crafting", "제작"], ["cooking", "요리"]], recipe.menu))}
           ${selectField("표시 방식", "presentationMode", options([
             ["when_conditions_met", "조건 충족 시만"], ["always", "항상 표시"],
           ], recipe.presentationMode))}
-          ${textareaField("플레이어 안내", "outcomeHint", recipe.outcomeHint, "full")}
+          ${itemReferenceTextareaField("플레이어 안내", "outcomeHint", recipe.outcomeHint, "full")}
           ${textField("완료 후 이동할 씬 ID", "nextSceneId", recipe.nextSceneId ?? "")}
           ${textField("태그 · 쉼표로 구분", "tags", tagsText(recipe.tags))}
           <div class="field">
@@ -633,6 +726,7 @@ function renderRecipe(recipe) {
 
   ui.editorPanel.querySelector('[data-field="nextSceneId"]').dataset.mode = "optional";
   ui.editorPanel.querySelector('[data-field="tags"]').dataset.mode = "tags";
+  bindItemReferencePickers(ui.editorPanel);
   bindFields(ui.editorPanel, recipe, (field) => {
     if (field === "id" || field === "label") {
       state.selectedId = recipe.id;
@@ -675,8 +769,8 @@ function renderStory(story) {
           ${textField("이야기 ID", "id", story.id)}
           ${textField("관리용 제목", "title", story.title)}
           ${selectField("시작 지역", "locationId", locationOptions(story.locationId))}
-          ${textField("게임에 표시할 진입 버튼", "entryLabel", story.entryLabel)}
-          ${textareaField("진입 안내", "entryHint", story.entryHint, "full")}
+          ${itemReferenceTextField("게임에 표시할 진입 버튼", "entryLabel", story.entryLabel)}
+          ${itemReferenceTextareaField("진입 안내", "entryHint", story.entryHint, "full")}
           ${textField("태그 · 쉼표로 구분", "tags", tagsText(story.tags))}
           <div class="field full">${checkboxField("게임에 이야기 표시", "enabled", story.enabled)}</div>
         </div>
@@ -697,7 +791,7 @@ function renderStory(story) {
             <div class="field-grid">
               ${textField("씬 ID", "scene-id", scene.id)}
               ${textField("씬 제목", "scene-title", scene.title)}
-              ${textareaField("본문 · 문단마다 줄바꿈", "scene-paragraphs", scene.paragraphs.join("\n"), "full")}
+              ${itemReferenceTextareaField("본문 · 문단마다 줄바꿈", "scene-paragraphs", scene.paragraphs.join("\n"), "full")}
               ${textField("씬 태그 · 쉼표로 구분", "scene-tags", tagsText(scene.tags), "full")}
             </div>
             <div class="editor-actions">
@@ -714,15 +808,15 @@ function renderStory(story) {
           </div>
           <div class="choice-tabs">
             ${scene.choices.map((entry) => `
-              <button class="pill-button ${entry.id === choice?.id ? "active" : ""}" data-choice-id="${escapeHtml(entry.id)}" type="button">${escapeHtml(entry.label)}</button>
+              <button class="pill-button ${entry.id === choice?.id ? "active" : ""}" data-choice-id="${escapeHtml(entry.id)}" type="button">${escapeHtml(resolveItemTextPreview(entry.label))}</button>
             `).join("") || '<span class="empty-array">선택지가 없습니다. 지역 행동은 계속 표시됩니다.</span>'}
           </div>
           ${choice ? `
             <div class="subeditor">
               <div class="field-grid">
                 ${textField("선택지 ID", "choice-id", choice.id)}
-                ${textField("버튼 문구", "choice-label", choice.label)}
-                ${textareaField("결과 안내", "choice-outcomeHint", choice.outcomeHint, "full")}
+                ${itemReferenceTextField("버튼 문구", "choice-label", choice.label)}
+                ${itemReferenceTextareaField("결과 안내", "choice-outcomeHint", choice.outcomeHint, "full")}
                 ${textField("다음 씬 ID · 비워도 됨", "choice-nextSceneId", choice.nextSceneId ?? "")}
                 ${textField("태그 · 쉼표로 구분", "choice-tags", tagsText(choice.tags), "full")}
                 <div class="field full">${checkboxField("결과 안내 표시", "choice-showOutcomeHint", choice.showOutcomeHint ?? false)}</div>
@@ -738,6 +832,7 @@ function renderStory(story) {
     </div>
   `;
 
+  bindItemReferencePickers(ui.editorPanel);
   ui.editorPanel.querySelector('[data-field="tags"]').dataset.mode = "tags";
   const storyInfoSection = ui.editorPanel.querySelector(".form-stack > .form-section");
   bindFields(storyInfoSection, story, (field) => {

@@ -28,6 +28,7 @@ export const ActionVisibilitySchema = z.enum(["scene", "event"]);
 export const ActionPresentationModeSchema = z.enum(["when_conditions_met", "always"]);
 export const ChoiceLoadingSchema = z.object({
   durationMs: z.number().int().nonnegative().optional(),
+  transitionType: z.enum(["activity", "region_travel"]).optional(),
 });
 
 export const ActionDefinitionSchema = z.object({

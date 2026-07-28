@@ -1456,3 +1456,52 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
   focused desktop and 390px browser probes confirmed one progress bar in the item-name area, zero progress bars in the `제작` button, a 500ms transition, and exact zero-pixel changes to the name area, recipe card, submit button, choices container, and scroll height while the progress bar was visible.
+
+- 2026-07-28 item-name reference migration (in progress):
+  added `src/game/item-text.ts` with runtime `{{item:itemId}}` references and Korean particle forms such as `{{item:waterBottle|을를}}`.
+  wired item reference resolution into snapshot choices, recipe presentation, scene/event cards, authored logs, and fallback system notes so the current runtime registry is the display-name source.
+  added content validation for unknown item references and unsupported particle forms across actions, choices, logs, scenes, and events.
+  Initial `npm.cmd run typecheck` and `npm.cmd run content:validate` passed before migrating authored strings.
+  migrated built-in region actions/choices and persisted content-studio recipes away from duplicated item display names.
+  content studio recipe/story fields now include an item-reference picker, while recipe headers and lists preview the resolved display name instead of raw token text.
+  saving or publishing after an item rename automatically converts occurrences of the previous item name in recipe/story presentation fields into stable item references.
+  post-migration checks passed: `node --check content-editor.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, and `git diff --check` (line-ending warnings only).
+
+- 2026-07-28 movement transition restoration:
+  movement actions now receive a client-enforced 1000ms transition even when their authored choice or map button has no `loading` metadata.
+  ordinary choices without `loading` metadata remain immediate, while explicitly authored non-movement loading durations still work.
+  bumped the `app-api.js` query version so deployed browsers fetch the restored behavior.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a focused browser probe confirmed the opening quest choice showed no loading UI while its response was deliberately delayed, map travel kept the movement overlay through 913ms and completed at 1054ms, and the internal `진열대로 간다` choice kept it through 912ms and completed at 1052ms.
+  the movement overlay was visually inspected and correctly showed the destination, movement label, blurred scene, and progress bar; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 activity transition rules:
+  clarified the transition categories so 1000ms is reserved for actual region travel, including map travel and authored choices with a `travel` effect.
+  investigation actions and choices with `advance_time` / `advance_to_daybreak` now receive 500ms loading metadata automatically.
+  action-catalog construction reapplies the rule from preserved choice effects, so previously cached event choices also receive the correct activity loading.
+  same-region detail choices such as `go_to_convenience_shelf` are no longer classified as 1000ms movement merely from their ID.
+  added a `transitionType` marker to loading metadata so the client can distinguish regional travel from ordinary activity without guessing from labels.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a definition-level probe confirmed `buy_meal_at_kitchen` and `discover_magic_city_entrance` resolve to 500ms activity loading, `go_to_convenience_shelf` has no loading, and the portal choice with a real `travel` effect resolves to 1000ms regional loading.
+  focused browser checks confirmed map travel still reports 1000ms, the convenience investigation reports 500ms and advances the clock from 06:15 to 06:25, and same-region return/detail choices show no loading UI.
+  the 500ms activity overlay was visually inspected; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 item-name reference migration completed:
+  API rename regression changed `cannedFood` from `캔 음식` to `응급 식량` in an isolated test document and confirmed the next quest choice and outcome hint used the renamed value with zero unresolved item tokens in the snapshot.
+  resolved authored log effects inside presented scene/event choice data so raw references do not leak through nested snapshot metadata.
+  the required web-game Playwright client completed successfully with installed desktop Chrome.
+  focused browser verification confirmed `응급 식량` appeared in the rendered quest choice, no raw `{{item:...}}` reference appeared in the page or HTML, and there were no console or failed-resource errors.
+  content-studio browser verification confirmed the item-reference controls render for recipe presentation fields and insert `{{item:cannedFood}}` at the current cursor position.
+  added inline empty favicons to the game and content studio to eliminate the previously unrelated `/favicon.ico` 404 during browser checks.
+  final verification passed: `node --check content-editor.js`, `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, and `git diff --check`.

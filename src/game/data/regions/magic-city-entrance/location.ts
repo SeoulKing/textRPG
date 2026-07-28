@@ -6,7 +6,7 @@ export const magicCityEntranceChoices: ActionDefinition[] = [
     id: "enter_magic_city_portal_first",
     label: "포탈을 통과한다",
     type: "explore",
-    outcomeHint: "현실 세계를 뒤로하고 포탈 너머의 마법도시로 넘어간다. 최초 통과 시 마력 결정 파편을 얻는다.",
+    outcomeHint: "현실 세계를 뒤로하고 포탈 너머의 마법도시로 넘어간다. 최초 통과 시 {{item:manaShard|을를}} 얻는다.",
     conditions: [{ type: "flag_not", flag: "magic_world_entered_once" }],
     effects: [
       { type: "set_flag", flag: "magic_world_entered_once" },
@@ -15,7 +15,7 @@ export const magicCityEntranceChoices: ActionDefinition[] = [
       { type: "travel", locationId: "arcana_plaza" },
       {
         type: "log",
-        message: "당신은 푸른 포탈을 통과했다. 폐허의 소음이 끊기고, 손안에는 차가운 마력 결정 파편이 남았다.",
+        message: "당신은 푸른 포탈을 통과했다. 폐허의 소음이 끊기고, 손안에는 차가운 {{item:manaShard|이가}} 남았다.",
       },
       { type: "advance_time", minutes: 5 },
     ],

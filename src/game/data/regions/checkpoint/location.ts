@@ -33,7 +33,7 @@ export const checkpointChoices: ActionDefinition[] = [
     id: "patrol_checkpoint_perimeter",
     label: "초소 주변을 정찰한다",
     type: "search",
-    outcomeHint: "기력 -1 / 보상: 고철 조각·끈 묶음·배식권 중 하나 / 위험: 체력 -1 / +35분",
+    outcomeHint: "기력 -1 / 보상: {{item:scrapMetal}}·{{item:cordage}}·{{item:rationTicket}} 중 하나 / 위험: 체력 -1 / +35분",
     showOutcomeHint: true,
     conditions: [{ type: "stat_gte", stat: "energy", value: 1 }],
     effects: [
@@ -46,7 +46,7 @@ export const checkpointChoices: ActionDefinition[] = [
             weight: 35,
             effects: [
               { type: "add_item", itemId: "scrapMetal", amount: 2 },
-              { type: "log", message: "검문소 차단봉 아래에서 쓸 만한 고철 조각 두 개를 뜯어냈다." },
+              { type: "log", message: "검문소 차단봉 아래에서 쓸 만한 {{item:scrapMetal}} 두 개를 뜯어냈다." },
               { type: "set_scene", sceneId: "checkpoint_perimeter_scrap" },
             ],
           },
@@ -54,7 +54,7 @@ export const checkpointChoices: ActionDefinition[] = [
             weight: 25,
             effects: [
               { type: "add_item", itemId: "cordage", amount: 1 },
-              { type: "log", message: "초소 주변의 끊어진 케이블과 포장 끈을 묶어 끈 묶음 하나를 챙겼다." },
+              { type: "log", message: "초소 주변의 끊어진 케이블과 포장 끈을 묶어 {{item:cordage}} 하나를 챙겼다." },
               { type: "set_scene", sceneId: "checkpoint_perimeter_cordage" },
             ],
           },
@@ -62,7 +62,7 @@ export const checkpointChoices: ActionDefinition[] = [
             weight: 20,
             effects: [
               { type: "add_item", itemId: "rationTicket", amount: 1 },
-              { type: "log", message: "비어 있는 초소 서랍에서 구겨진 배식권 한 장을 찾아냈다." },
+              { type: "log", message: "비어 있는 초소 서랍에서 구겨진 {{item:rationTicket}} 한 장을 찾아냈다." },
               { type: "set_scene", sceneId: "checkpoint_perimeter_ticket" },
             ],
           },

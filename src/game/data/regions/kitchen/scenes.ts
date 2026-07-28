@@ -244,7 +244,7 @@ export const kitchenSceneDefinitions: SceneDefinition[] = [
     title: "배식소 일손",
     paragraphs: [
       "당신은 빈 그릇을 거두고, 줄 끝에서 밀려드는 사람들을 천천히 갈라 세운다. 별일 아닌 움직임처럼 보여도, 굶주린 사람들 사이에서는 작은 순서 하나가 금방 다툼이 된다.",
-      "일이 끝나자 배식대 뒤의 사람이 접힌 지폐 몇 장을 밀어 준다. 많지는 않지만, 다음 끼니를 계산할 때 손에 잡히는 무게가 된다.",
+      "한 시간이 지나 일이 끝나자 배식대 뒤의 사람이 품삯 5,000원을 밀어 준다. 다음 끼니를 계산할 때 손에 잡히는 무게가 된다.",
     ],
     choiceIds: [],
     conditions: [{ type: "location", locationId: "kitchen" }],

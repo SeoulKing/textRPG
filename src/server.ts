@@ -17,6 +17,7 @@ import {
 import {
   BUILT_IN_RECIPE_MENUS,
   loadStoredContentStudioDocument,
+  migrateRenamedItemTextReferences,
 } from "./game/content-studio";
 import { createContentStudioStore } from "./game/content-studio-store";
 import { baseItems } from "./game/data/items";
@@ -86,6 +87,14 @@ function requireContentStudioAdmin(request: FastifyRequest, reply: FastifyReply)
     return false;
   }
   return true;
+}
+
+async function loadCurrentContentStudioDocument() {
+  const [draft, published] = await Promise.all([
+    contentStudioStore.load("draft"),
+    contentStudioStore.load("published"),
+  ]);
+  return draft?.document ?? published?.document ?? loadStoredContentStudioDocument();
 }
 
 async function bootstrap() {
@@ -221,7 +230,11 @@ async function bootstrap() {
         return;
       }
       try {
-        const prepared = prepareContentStudioDocument(request.body);
+        const migrated = migrateRenamedItemTextReferences(
+          request.body,
+          await loadCurrentContentStudioDocument(),
+        );
+        const prepared = prepareContentStudioDocument(migrated);
         const stored = await contentStudioStore.saveDraft(prepared.document);
         return {
           ok: true,
@@ -253,7 +266,11 @@ async function bootstrap() {
         return;
       }
       try {
-        const prepared = prepareContentStudioDocument(request.body);
+        const migrated = migrateRenamedItemTextReferences(
+          request.body,
+          await loadCurrentContentStudioDocument(),
+        );
+        const prepared = prepareContentStudioDocument(migrated);
         const stored = await contentStudioStore.publish(prepared.document);
         applyPreparedContentStudioRegistry(prepared.registry);
         return {

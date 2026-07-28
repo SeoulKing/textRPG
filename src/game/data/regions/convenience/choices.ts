@@ -46,7 +46,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "go_to_convenience_shelf",
     label: "진열대로 간다",
-    outcomeHint: "기울어진 선반 안쪽으로 다가가, 남아 있는 통조림이 얼마나 되는지 직접 확인한다.",
+    outcomeHint: "기울어진 선반 안쪽으로 다가가, 남아 있는 {{item:cannedFood|이가}} 얼마나 되는지 직접 확인한다.",
     conditions: [inactiveStockNodeCondition(shelf.nodeId)],
     effects: [
       { type: "focus_stock_node", nodeId: "convenience_shelf" },
@@ -79,7 +79,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "go_to_convenience_supply_pile",
     label: "창고 자재 더미로 간다",
-    outcomeHint: "무너진 선반 아래로 몸을 들이밀어, 쓸 만한 판자와 천 조각, 금속 부품을 직접 살핀다.",
+    outcomeHint: "무너진 선반 아래로 몸을 들이밀어, 쓸 만한 {{item:woodPlank|과와}} {{item:clothScrap}}, 금속 부품을 직접 살핀다.",
     conditions: [inactiveStockNodeCondition(supplyPile.nodeId)],
     effects: [
       { type: "focus_stock_node", nodeId: "convenience_supply_pile" },
@@ -89,8 +89,8 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "collect_stale_bread_from_food_crate",
-    label: "눅눅한 빵을 챙긴다",
-    outcomeHint: "보관함 안쪽의 눅눅한 빵을 모두 챙긴다. +5분",
+    label: "{{item:staleBread|을를}} 챙긴다",
+    outcomeHint: "보관함 안쪽의 {{item:staleBread|을를}} 모두 챙긴다. +5분",
     ...collectStockItemChoiceParts({
       ...foodCrate,
       itemId: "staleBread",
@@ -101,32 +101,32 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "collect_water_from_food_crate",
-    label: "물병을 챙긴다",
-    outcomeHint: "보관함 구석에 남은 물병을 챙긴다. +5분",
+    label: "{{item:waterBottle|을를}} 챙긴다",
+    outcomeHint: "보관함 구석에 남은 {{item:waterBottle|을를}} 챙긴다. +5분",
     ...collectStockItemChoiceParts({
       ...foodCrate,
       itemId: "waterBottle",
-      logMessage: "당신은 보관함 구석에 굴러 있던 물병을 꺼내 배낭에 넣는다.",
+      logMessage: "당신은 보관함 구석에 굴러 있던 {{item:waterBottle|을를}} 꺼내 배낭에 넣는다.",
       minutes: 5,
     }),
     riskHint: "low",
   }),
   sceneChoice({
     id: "collect_rice_from_food_crate",
-    label: "쌀을 챙긴다",
-    outcomeHint: "젖지 않은 쌀 봉지를 챙긴다. +5분",
+    label: "{{item:rawRice|을를}} 챙긴다",
+    outcomeHint: "젖지 않은 {{item:rawRice}} 봉지를 챙긴다. +5분",
     ...collectStockItemChoiceParts({
       ...foodCrate,
       itemId: "rawRice",
-      logMessage: "당신은 아직 젖지 않은 작은 쌀 봉지를 찾아 챙긴다.",
+      logMessage: "당신은 아직 젖지 않은 작은 {{item:rawRice}} 봉지를 찾아 챙긴다.",
       minutes: 5,
     }),
     riskHint: "low",
   }),
   sceneChoice({
     id: "collect_canned_food_from_shelf",
-    label: "남은 통조림을 전부 챙긴다",
-    outcomeHint: "눈앞에 남아 있는 통조림을 모조리 쓸어 담아, 오늘을 버틸 식량을 한 번에 확보한다.",
+    label: "남은 {{item:cannedFood|을를}} 전부 챙긴다",
+    outcomeHint: "눈앞에 남아 있는 {{item:cannedFood|을를}} 모조리 쓸어 담아, 오늘을 버틸 식량을 한 번에 확보한다.",
     ...collectStockItemChoiceParts({
       ...shelf,
       itemId: "cannedFood",
@@ -134,7 +134,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
         { type: "set_flag", flag: "first_canned_food_started" },
         { type: "set_flag", flag: "first_canned_food_collected" },
       ],
-      logMessage: "당신은 진열대에 남아 있던 통조림을 전부 쓸어 담아 조심스럽게 품에 안는다.",
+      logMessage: "당신은 진열대에 남아 있던 {{item:cannedFood|을를}} 전부 쓸어 담아 조심스럽게 품에 안는다.",
       minutes: 5,
     }),
     riskHint: "low",
@@ -168,12 +168,12 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "collect_cloth_from_supply_pile",
-    label: "질긴 천 조각을 챙긴다",
-    outcomeHint: "해지지 않은 천 조각들을 추려, 거처 틈을 막거나 묶는 데 쓸 재료로 챙긴다.",
+    label: "질긴 {{item:clothScrap|을를}} 챙긴다",
+    outcomeHint: "해지지 않은 {{item:clothScrap}}들을 추려, 거처 틈을 막거나 묶는 데 쓸 재료로 챙긴다.",
     ...collectStockItemChoiceParts({
       ...supplyPile,
       itemId: "clothScrap",
-      logMessage: "당신은 먼지를 털어 낸 천 조각들을 한데 접어 품속에 넣는다.",
+      logMessage: "당신은 먼지를 털어 낸 {{item:clothScrap}}들을 한데 접어 품속에 넣는다.",
       minutes: 5,
     }),
     riskHint: "low",
@@ -181,7 +181,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "collect_metal_from_supply_pile",
     label: "금속 부품을 챙긴다",
-    outcomeHint: "휘어진 금속 부품과 철판 조각을 그러모아, 간이 제작에 쓸 고철로 챙긴다.",
+    outcomeHint: "휘어진 금속 부품과 철판 조각을 그러모아, 간이 제작에 쓸 {{item:scrapMetal|으로로}} 챙긴다.",
     ...collectStockItemChoiceParts({
       ...supplyPile,
       itemId: "scrapMetal",
@@ -192,7 +192,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "collect_cordage_from_supply_pile",
-    label: "끈 묶음을 챙긴다",
+    label: "{{item:cordage|을를}} 챙긴다",
     outcomeHint: "뜯긴 전선 피복과 포장 끈을 모아, 도구를 묶고 설비를 고정할 재료로 챙긴다.",
     ...collectStockItemChoiceParts({
       ...supplyPile,

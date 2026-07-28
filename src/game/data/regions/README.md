@@ -117,7 +117,7 @@ import { sceneChoice } from "../../scene-choice-helpers";
 export const hospitalChoiceDefinitions = [
   sceneChoice({
     id: "collect_pain_relief_from_hospital",
-    label: "진통제를 챙긴다",
+    label: "{{item:painRelief|을를}} 챙긴다",
     effects: [
       { type: "advance_time", minutes: 15 },
       { type: "add_item", itemId: "painRelief", amount: 1 },
@@ -135,11 +135,11 @@ const medicineCabinet = { locationId: "hospital", nodeId: "hospital_medicine_cab
 
 sceneChoice({
   id: "collect_pain_relief_from_hospital",
-  label: "진통제를 챙긴다",
+  label: "{{item:painRelief|을를}} 챙긴다",
   ...collectStockItemChoiceParts({
     ...medicineCabinet,
     itemId: "painRelief",
-    logMessage: "당신은 상자에 남은 진통제를 조심스럽게 챙긴다.",
+    logMessage: "당신은 상자에 남은 {{item:painRelief|을를}} 조심스럽게 챙긴다.",
     minutes: 15,
   }),
 });
@@ -155,6 +155,16 @@ sceneChoice({
 
 선택지 아래에 실제 효과를 보여줘야 할 때만 `showOutcomeHint: true`를 켭니다. 이때 `outcomeHint`는 자동 생성하지 않고, 콘텐츠 작성자가 직접 아래 순서로 씁니다.
 
+아이템의 표시 이름은 직접 쓰지 않고 `{{item:itemId}}`로 참조합니다. 그러면 콘텐츠 스튜디오에서 아이템 이름을 바꿔도 선택지, 힌트, 실패 안내, 로그가 현재 이름을 사용합니다.
+
+```ts
+label: "{{item:waterBottle|을를}} 챙긴다",
+outcomeHint: "{{item:waterBottle}} +1 / +5분",
+failureNote: "{{item:waterBottle|이가}} 필요하다.",
+```
+
+한국어 조사는 `을를`, `은는`, `이가`, `과와`, `으로로`를 지원합니다. 예를 들어 `{{item:waterBottle|을를}}`는 이름이 `물병`이면 `물병을`, `생수`이면 `생수를`로 표시됩니다. 콘텐츠 스튜디오에서는 텍스트 입력란 아래의 `아이템 이름 연결` 도구로 이 참조를 삽입할 수 있습니다.
+
 ```text
 소모하거나 내는 것 / 얻거나 회복하는 것 / 걸리는 시간
 ```
@@ -163,8 +173,8 @@ sceneChoice({
 
 ```ts
 outcomeHint: "-1,800원 / +2 체력 / +15분",
-outcomeHint: "-4,500원 / +1 따뜻한 식사 / +15분",
-outcomeHint: "+3 목재 판자 / +30분",
+outcomeHint: "-4,500원 / {{item:hotMeal}} +1 / +15분",
+outcomeHint: "{{item:woodPlank}} +3 / +30분",
 ```
 
 돈, 아이템, 체력, 정신력, 기력처럼 플레이어가 바로 판단해야 하는 값만 짧게 적습니다. 시간은 항상 맨 마지막에 둡니다. 확률과 허탕 가능성은 선택지 힌트에 표시하지 않고, 찾을 수 있는 것만 적습니다. 서사 설명이나 분위기 문장은 선택지 힌트가 아니라 씬 본문과 로그에 둡니다.

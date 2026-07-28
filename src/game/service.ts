@@ -8,6 +8,7 @@ import {
 } from "./content-engine";
 import { createTemplateContentGenerator, type ContentGenerator } from "./content-generator";
 import { clearDevLlmTrace, getDevLlmTrace } from "./dev-llm-trace";
+import { resolveItemText } from "./item-text";
 import { compileAnchorDraftForRuntime, compileSceneDraftForRuntime } from "./narrative-expansion-service";
 import type { GameRepository } from "./repository";
 import {
@@ -56,6 +57,7 @@ import type {
   CraftingRecipe,
   EventCard,
   EventDefinition,
+  Effect,
   GameAction,
   GameSession,
   GeneratedStoryBeat,
@@ -79,6 +81,86 @@ import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function resolveCraftingRecipeText(recipe: CraftingRecipe | undefined, registry: ContentRegistry) {
+  if (!recipe) {
+    return undefined;
+  }
+  return {
+    ...recipe,
+    actionLabel: resolveItemText(recipe.actionLabel, registry),
+    effect: resolveItemText(recipe.effect, registry),
+    prerequisites: recipe.prerequisites.map((entry) => ({
+      ...entry,
+      label: resolveItemText(entry.label, registry),
+    })),
+  };
+}
+
+function resolveStoryChoiceText(choice: StoryChoice, registry: ContentRegistry): StoryChoice {
+  return {
+    ...choice,
+    label: resolveItemText(choice.label, registry),
+    outcomeHint: resolveItemText(choice.outcomeHint, registry),
+    descriptionTag: choice.descriptionTag
+      ? resolveItemText(choice.descriptionTag, registry)
+      : choice.descriptionTag,
+    craftingRecipe: resolveCraftingRecipeText(choice.craftingRecipe, registry),
+    effects: choice.effects?.map((effect) => resolveEffectText(effect, registry)),
+  };
+}
+
+function resolveEffectText<T extends Effect>(effect: T, registry: ContentRegistry): T {
+  if (effect.type === "log") {
+    return {
+      ...effect,
+      message: resolveItemText(effect.message, registry),
+    } as T;
+  }
+
+  if (effect.type === "random_outcome") {
+    return {
+      ...effect,
+      outcomes: effect.outcomes.map((outcome) => ({
+        ...outcome,
+        effects: outcome.effects.map((outcomeEffect) =>
+          resolveEffectText(outcomeEffect, registry),
+        ),
+      })),
+    } as T;
+  }
+
+  return effect;
+}
+
+function resolveActionChoiceText(choice: ActionChoice, registry: ContentRegistry): ActionChoice {
+  return {
+    ...choice,
+    label: resolveItemText(choice.label, registry),
+    outcomeHint: resolveItemText(choice.outcomeHint, registry),
+    craftingRecipe: resolveCraftingRecipeText(choice.craftingRecipe, registry),
+  };
+}
+
+function resolveSceneCardText(scene: SceneCard, registry: ContentRegistry): SceneCard {
+  return {
+    ...scene,
+    title: resolveItemText(scene.title, registry),
+    paragraphs: scene.paragraphs.map((paragraph) => resolveItemText(paragraph, registry)),
+    choices: scene.choices.map((choice) => resolveStoryChoiceText(choice, registry)),
+  };
+}
+
+function resolveEventCardText(event: EventCard, registry: ContentRegistry): EventCard {
+  return {
+    ...event,
+    title: resolveItemText(event.title, registry),
+    summary: resolveItemText(event.summary, registry),
+    trigger: resolveItemText(event.trigger, registry),
+    choices: event.choices.map((choice) => resolveStoryChoiceText(choice, registry)),
+    rewards: event.rewards.map((reward) => resolveItemText(reward, registry)),
+  };
 }
 
 type AxialCoord = { q: number; r: number };
@@ -121,7 +203,7 @@ const RECIPE_MENU_SCENE_IDS = [
 
 const CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   craft_shelter_wall_patch: "잠자기 후 체력과 정신력 회복량 증가",
-  craft_shelter_brazier: "거처에서 따뜻한 식사 조리 가능",
+  craft_shelter_brazier: "거처에서 {{item:hotMeal}} 조리 가능",
   craft_shelter_rain_bucket: "하루에 한 번 물 한 병 확보 가능",
   craft_crude_axe: "숲에서 벌목 효율 증가, 내구도 8",
   craft_utility_knife: "숲에서 식량 수색 효율 증가, 내구도 10",
@@ -1395,7 +1477,12 @@ export class GameService {
   private buildSnapshot(session: GameSession, latestEvent: EventCard | null, registry = this.runtimeRegistry(session)): StateSnapshot {
     const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true }, registry);
     const expeditionScene = buildSubwayExpeditionScene(session.state);
-    const currentScene = expeditionScene ?? this.buildAuthoringSceneCard(session, storyMaterials, registry);
+    const currentScene = expeditionScene
+      ? resolveSceneCardText(expeditionScene, registry)
+      : resolveSceneCardText(this.buildAuthoringSceneCard(session, storyMaterials, registry), registry);
+    const presentedLatestEvent = latestEvent
+      ? resolveEventCardText(latestEvent, registry)
+      : null;
     const sceneDef = this.presentedSceneDefinition(session, registry);
     const locationChoices = this.presentedChoices(session, sceneDef, registry);
     const storyChoices = session.state.isGameOver
@@ -1446,11 +1533,12 @@ export class GameService {
         requirements: this.buildQuestRequirements(session, quest, registry),
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
-      availableActions: expeditionScene
+      availableActions: (expeditionScene
         ? buildSubwayExpeditionActions(session.state)
-        : this.buildAvailableActions(session, sceneDef, storyChoices, registry),
+        : this.buildAvailableActions(session, sceneDef, storyChoices, registry))
+        .map((choice) => resolveActionChoiceText(choice, registry)),
       mapEntries: this.buildMapEntries(session, registry),
-      latestEvent,
+      latestEvent: presentedLatestEvent,
       devLlmTrace: getDevLlmTrace(session.id),
       survivalGoal: this.buildSurvivalGoal(session, registry),
     };
