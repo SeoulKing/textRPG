@@ -18,6 +18,10 @@ import {
   type NarrativeDraftChoice,
   type NarrativeSceneDraft,
 } from "./schemas";
+import {
+  canonicalizeItemText,
+  itemTextReference,
+} from "./item-text";
 
 type PlannerLikeInput = {
   state: GameState;
@@ -166,11 +170,6 @@ function selectItemIdsFromDraft(
     itemIdsFromDraftChoice(choice, registry).forEach((itemId) => selected.push(itemId));
   });
   return uniqueStrings(selected).slice(0, max);
-}
-
-function catalogItemName(registry: ContentRegistry, itemId: string) {
-  const item = registry.items[itemId] as { name?: string } | undefined;
-  return item?.name ?? itemId;
 }
 
 function ensureFrontierDraftChoice(
@@ -442,10 +441,18 @@ export function compileNarrativeAnchorDraft({
       return [choiceId, defineChoice({
         id: choiceId,
         label: normalizeChoiceLabel(
-          choice,
-          choice.intent === "frontier_exit" ? "더 안쪽으로 나아간다" : "상황을 더 밀어본다",
+          {
+            ...choice,
+            label: canonicalizeItemText(choice.label, plannerInput.registry),
+          },
+          choice.intent === "frontier_exit"
+            ? "더 안쪽으로 나아간다"
+            : "상황을 더 밀어본다",
         ),
-        outcomeHint: fallbackOutcomeHint(choice),
+        outcomeHint: canonicalizeItemText(
+          fallbackOutcomeHint(choice),
+          plannerInput.registry,
+        ),
         tags,
         riskHint: choice.risk,
         nextSceneId,
@@ -517,8 +524,16 @@ export function compileNarrativeAnchorDraft({
           [introSceneId]: {
             id: introSceneId,
             locationId,
-            title: draft.introTitle,
-            paragraphs: paragraphsFromDirectorText(draft.prose, draft.introParagraphs),
+            title: canonicalizeItemText(
+              draft.introTitle,
+              plannerInput.registry,
+            ),
+            paragraphs: paragraphsFromDirectorText(
+              draft.prose,
+              draft.introParagraphs,
+            ).map((paragraph) =>
+              canonicalizeItemText(paragraph, plannerInput.registry),
+            ),
             choiceIds: Object.keys(choiceDefs),
             conditions: [],
             suppressLocationInteractions: true,
@@ -586,7 +601,10 @@ function sceneImmediateEffects(
 
   if ((intent === "scavenge" || intent === "take_known_item") && triggerItemId) {
     effects.push({ type: "add_item", itemId: triggerItemId, amount: 1 });
-    effects.push({ type: "log", message: `${request.anchorLocationName}에서 ${catalogItemName(registry, triggerItemId)}을(를) 챙겼다.` });
+    effects.push({
+      type: "log",
+      message: `${request.anchorLocationName}에서 ${itemTextReference(triggerItemId, "을를")} 챙겼다.`,
+    });
     notes.push(`선택 의도에 맞춰 ${triggerItemId} 1개를 즉시 지급했다.`);
   }
 
@@ -654,10 +672,18 @@ export function compileNarrativeSceneDraft({
       return [choiceId, defineChoice({
         id: choiceId,
         label: normalizeChoiceLabel(
-          choice,
-          choice.intent === "frontier_exit" ? "새 길로 발을 들인다" : "다음 상황을 이어간다",
+          {
+            ...choice,
+            label: canonicalizeItemText(choice.label, registry),
+          },
+          choice.intent === "frontier_exit"
+            ? "새 길로 발을 들인다"
+            : "다음 상황을 이어간다",
         ),
-        outcomeHint: fallbackOutcomeHint(choice),
+        outcomeHint: canonicalizeItemText(
+          fallbackOutcomeHint(choice),
+          registry,
+        ),
         tags,
         riskHint: choice.risk,
         nextSceneId: choice.intent === "retreat" ? request.sourceSceneId : undefined,
@@ -693,8 +719,13 @@ export function compileNarrativeSceneDraft({
           [sceneId]: {
             id: sceneId,
             locationId: request.locationId,
-            title: draft.title,
-            paragraphs: paragraphsFromDirectorText(draft.prose, draft.paragraphs),
+            title: canonicalizeItemText(draft.title, registry),
+            paragraphs: paragraphsFromDirectorText(
+              draft.prose,
+              draft.paragraphs,
+            ).map((paragraph) =>
+              canonicalizeItemText(paragraph, registry),
+            ),
             choiceIds: Object.keys(choiceDefs),
             conditions: [],
             suppressLocationInteractions: true,

@@ -1505,3 +1505,12 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   content-studio browser verification confirmed the item-reference controls render for recipe presentation fields and insert `{{item:cannedFood}}` at the current cursor position.
   added inline empty favicons to the game and content studio to eliminate the previously unrelated `/favicon.ico` 404 during browser checks.
   final verification passed: `node --check content-editor.js`, `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, and `git diff --check`.
+
+- 2026-07-28 future scene and choice item-reference authoring:
+  added shared item-name canonicalization so plain display names in new scene titles, paragraphs, choice labels, outcome hints, failure notes, and log effects become stable `{{item:itemId}}` references with Korean particle forms.
+  built-in region content is canonicalized when its registry is assembled, Content Studio normalizes new stories/scenes/choices on save or publish, and generated narrative drafts are normalized while compiling.
+  the Content Studio story editor now exposes item-reference controls for scene titles as well as entry, paragraph, and choice presentation fields, with inline guidance explaining the automatic conversion.
+  Gemini planner prompts now receive the current item catalog and explicitly request ID references; the region authoring guide documents the same default structure and helper API.
+  direct regressions passed for particle conversion, plural wording, renamed-item rendering, malformed references, built-in scene normalization, and Content Studio document normalization.
+  the required web-game Playwright client rendered a fresh game successfully with installed desktop Chrome.
+  focused browser verification created a new story, scene, and choice, confirmed six item-reference pickers and the automatic-conversion guidance, and the isolated Content Studio API save returned normalized ID references.

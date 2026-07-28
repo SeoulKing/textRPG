@@ -151,6 +151,40 @@ sceneChoice({
 });
 ```
 
+## 아이템 이름이 들어가는 선택지와 씬
+
+선택지의 `label`, `outcomeHint`, 실패 안내와 로그뿐 아니라 씬의 `title`, `paragraphs`에서도 아이템 표시 이름 대신 `{{item:itemId}}`를 사용합니다.
+
+```ts
+const scene = {
+  title: "{{item:waterBottle}} 발견",
+  paragraphs: [
+    "선반 아래에 {{item:waterBottle|이가}} 한 병 남아 있다.",
+  ],
+};
+
+const choice = sceneChoice({
+  id: "take_water",
+  label: "{{item:waterBottle|을를}} 챙긴다",
+  outcomeHint: "{{item:waterBottle}} +1 / +5분",
+  effects: [
+    { type: "add_item", itemId: "waterBottle", amount: 1 },
+    { type: "log", message: "{{item:waterBottle|을를}} 가방에 넣었다." },
+  ],
+});
+```
+
+문자열을 조립해야 한다면 `itemTextReference()`를 사용할 수 있습니다.
+
+```ts
+import { itemTextReference } from "../../../item-text";
+
+const water = itemTextReference("waterBottle", "을를");
+const label = `${water} 챙긴다`;
+```
+
+정적 지역 콘텐츠는 registry에 등록될 때, 콘텐츠 스튜디오의 새 이야기·씬·선택지는 저장하거나 공개할 때 현재 아이템 이름을 ID 참조로 자동 정규화합니다. LLM이 만든 씬과 선택지도 컴파일 단계에서 같은 정규화를 거칩니다. 자동 정규화는 안전장치이므로, 소스에는 처음부터 ID 참조를 쓰는 것을 기본 규칙으로 합니다.
+
 ## 선택지 힌트 포맷
 
 선택지 아래에 실제 효과를 보여줘야 할 때만 `showOutcomeHint: true`를 켭니다. 이때 `outcomeHint`는 자동 생성하지 않고, 콘텐츠 작성자가 직접 아래 순서로 씁니다.

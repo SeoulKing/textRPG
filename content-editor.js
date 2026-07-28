@@ -764,7 +764,7 @@ function renderStory(story) {
     ${editorHeader("STORY", story.title, story.id, "지역에서 시작해 씬과 선택지로 이어지는 이야기")}
     <div class="form-stack">
       <section class="form-section">
-        <div class="section-title"><div><h3>이야기 진입</h3><p>선택한 지역의 행동 목록에 이 이야기를 시작하는 버튼이 자동으로 추가됩니다.</p></div></div>
+        <div class="section-title"><div><h3>이야기 진입</h3><p>아이템 이름은 연결 도구로 삽입하거나 직접 입력할 수 있으며, 저장할 때 ID 참조로 자동 변환됩니다.</p></div></div>
         <div class="field-grid">
           ${textField("이야기 ID", "id", story.id)}
           ${textField("관리용 제목", "title", story.title)}
@@ -778,7 +778,7 @@ function renderStory(story) {
       ${arrayEditorHtml(story, "conditions", "condition", "이야기 시작 조건", "일차, 플래그, 보유 아이템에 따라 진입 버튼 노출을 조절합니다.")}
       <section class="form-section">
         <div class="section-title">
-          <div><h3>씬 구성</h3><p>이야기를 장면 단위로 나누고 각 장면에 선택지를 연결합니다.</p></div>
+          <div><h3>씬 구성</h3><p>씬 제목과 본문에 등장하는 아이템도 저장 시 현재 아이템 ID에 연결됩니다.</p></div>
           <button class="button ghost small" id="addScene" type="button">＋ 씬 추가</button>
         </div>
         <div class="scene-tabs">
@@ -790,7 +790,7 @@ function renderStory(story) {
           <div class="subeditor">
             <div class="field-grid">
               ${textField("씬 ID", "scene-id", scene.id)}
-              ${textField("씬 제목", "scene-title", scene.title)}
+              ${itemReferenceTextField("씬 제목", "scene-title", scene.title)}
               ${itemReferenceTextareaField("본문 · 문단마다 줄바꿈", "scene-paragraphs", scene.paragraphs.join("\n"), "full")}
               ${textField("씬 태그 · 쉼표로 구분", "scene-tags", tagsText(scene.tags), "full")}
             </div>
@@ -803,7 +803,7 @@ function renderStory(story) {
       ${scene ? `
         <section class="form-section">
           <div class="section-title">
-            <div><h3>선택지</h3><p>현재 씬에서 플레이어가 고를 행동과 결과를 설정합니다.</p></div>
+            <div><h3>선택지</h3><p>버튼 문구와 결과 안내의 아이템 이름도 같은 ID 참조 구조를 사용합니다.</p></div>
             <button class="button ghost small" id="addChoice" type="button">＋ 선택지 추가</button>
           </div>
           <div class="choice-tabs">

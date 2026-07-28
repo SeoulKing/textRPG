@@ -19,7 +19,10 @@ import { eventDefinitions } from "./events";
 import { sceneDefinitions } from "./scenes";
 import { questDefinitions } from "../quest-definitions";
 import { baseSkills } from "../base-data";
-import { validateItemTextReferences } from "../item-text";
+import {
+  canonicalizeItemText,
+  validateItemTextReferences,
+} from "../item-text";
 import {
   CRAFTING_MENU_SCENE_IDS,
   COOKING_MENU_SCENE_IDS,
@@ -46,7 +49,7 @@ function asRecord<T extends { id: string }>(entries: T[]) {
   return Object.fromEntries(entries.map((entry) => [entry.id, entry])) as Record<string, T>;
 }
 
-const builtInWorldRegistry: ContentRegistry = {
+const authoredWorldRegistry: ContentRegistry = {
   items: baseItems,
   people: basePeople,
   locations: baseLocations,
@@ -57,6 +60,138 @@ const builtInWorldRegistry: ContentRegistry = {
   events: asRecord(eventDefinitions),
   scenes: asRecord(sceneDefinitions),
 };
+
+function canonicalizeEffectItemText<T extends Effect>(
+  effect: T,
+  registry: ContentRegistry,
+): T {
+  if (effect.type === "log") {
+    return {
+      ...effect,
+      message: canonicalizeItemText(effect.message, registry),
+    } as T;
+  }
+
+  if (effect.type === "random_outcome") {
+    return {
+      ...effect,
+      outcomes: effect.outcomes.map((outcome) => ({
+        ...outcome,
+        effects: outcome.effects.map((outcomeEffect) =>
+          canonicalizeEffectItemText(outcomeEffect, registry),
+        ),
+      })),
+    } as T;
+  }
+
+  return effect;
+}
+
+function canonicalizeActionItemText(
+  action: ActionDefinition,
+  registry: ContentRegistry,
+): ActionDefinition {
+  return {
+    ...action,
+    label: canonicalizeItemText(action.label, registry),
+    outcomeHint: canonicalizeItemText(action.outcomeHint, registry),
+    failureNote: action.failureNote
+      ? canonicalizeItemText(action.failureNote, registry)
+      : action.failureNote,
+    systemNote: action.systemNote
+      ? canonicalizeItemText(action.systemNote, registry)
+      : action.systemNote,
+    effects: action.effects.map((effect) =>
+      canonicalizeEffectItemText(effect, registry),
+    ),
+    failureEffects: action.failureEffects.map((effect) =>
+      canonicalizeEffectItemText(effect, registry),
+    ),
+  };
+}
+
+function canonicalizeChoiceItemText(
+  choice: ChoiceDefinition,
+  registry: ContentRegistry,
+): ChoiceDefinition {
+  return {
+    ...choice,
+    label: canonicalizeItemText(choice.label, registry),
+    outcomeHint: canonicalizeItemText(choice.outcomeHint, registry),
+    descriptionTag: choice.descriptionTag
+      ? canonicalizeItemText(choice.descriptionTag, registry)
+      : choice.descriptionTag,
+    failureNote: choice.failureNote
+      ? canonicalizeItemText(choice.failureNote, registry)
+      : choice.failureNote,
+    systemNote: choice.systemNote
+      ? canonicalizeItemText(choice.systemNote, registry)
+      : choice.systemNote,
+    effects: choice.effects.map((effect) =>
+      canonicalizeEffectItemText(effect, registry),
+    ),
+    failureEffects: choice.failureEffects.map((effect) =>
+      canonicalizeEffectItemText(effect, registry),
+    ),
+  };
+}
+
+function canonicalizeAuthoredWorldRegistry(
+  registry: ContentRegistry,
+): ContentRegistry {
+  return {
+    ...registry,
+    locations: Object.fromEntries(
+      Object.entries(registry.locations).map(([locationId, location]) => [
+        locationId,
+        {
+          ...location,
+          interactionChoices: location.interactionChoices.map((action) =>
+            canonicalizeActionItemText(action, registry),
+          ),
+        },
+      ]),
+    ),
+    actions: Object.fromEntries(
+      Object.entries(registry.actions).map(([actionId, action]) => [
+        actionId,
+        canonicalizeActionItemText(action, registry),
+      ]),
+    ),
+    choices: Object.fromEntries(
+      Object.entries(registry.choices).map(([choiceId, choice]) => [
+        choiceId,
+        canonicalizeChoiceItemText(choice, registry),
+      ]),
+    ),
+    events: Object.fromEntries(
+      Object.entries(registry.events).map(([eventId, event]) => [
+        eventId,
+        {
+          ...event,
+          title: canonicalizeItemText(event.title, registry),
+          summary: canonicalizeItemText(event.summary, registry),
+        },
+      ]),
+    ),
+    scenes: Object.fromEntries(
+      Object.entries(registry.scenes).map(([sceneId, scene]) => [
+        sceneId,
+        {
+          ...scene,
+          title: canonicalizeItemText(scene.title, registry),
+          paragraphs: scene.paragraphs.map((paragraph) =>
+            canonicalizeItemText(paragraph, registry),
+          ),
+        },
+      ]),
+    ),
+  };
+}
+
+const builtInWorldRegistry = canonicalizeAuthoredWorldRegistry(
+  authoredWorldRegistry,
+);
 
 function mergeMenuChoiceIds(
   existingIds: string[],

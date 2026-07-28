@@ -9,6 +9,10 @@ import {
   SceneDefinitionSchema,
   type ChoiceDefinition,
 } from "./schemas";
+import {
+  canonicalizeItemText,
+  type ItemTextRegistry,
+} from "./item-text";
 
 export const CONTENT_STUDIO_PATH = path.resolve(process.cwd(), "content", "content-studio.json");
 
@@ -66,53 +70,28 @@ const ITEM_TEXT_FIELDS = new Set([
   "paragraphs",
 ]);
 
-const KOREAN_PARTICLE_REFERENCES = [
-  ["이에요", "이에요예요"],
-  ["예요", "이에요예요"],
-  ["으로", "으로로"],
-  ["이랑", "이랑랑"],
-  ["은", "은는"],
-  ["는", "은는"],
-  ["이", "이가"],
-  ["가", "이가"],
-  ["을", "을를"],
-  ["를", "을를"],
-  ["과", "과와"],
-  ["와", "과와"],
-  ["로", "으로로"],
-  ["랑", "이랑랑"],
-  ["아", "아야"],
-  ["야", "아야"],
-] as const;
-
-function replaceItemNameWithReference(text: string, itemId: string, previousName: string) {
-  let migrated = text;
-  const escapedName = previousName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  KOREAN_PARTICLE_REFERENCES.forEach(([surface, particle]) => {
-    migrated = migrated.replace(
-      new RegExp(`(?<![가-힣A-Za-z0-9])${escapedName}${surface}(?![가-힣A-Za-z0-9])`, "g"),
-      `{{item:${itemId}|${particle}}}`,
-    );
-  });
-  return migrated.replace(
-    new RegExp(`(?<![가-힣A-Za-z0-9])${escapedName}(?![가-힣A-Za-z0-9])`, "g"),
-    `{{item:${itemId}}}`,
-  );
+function itemTextRegistry(
+  items: Array<{ id: string; name: string }>,
+): ItemTextRegistry {
+  return {
+    items: Object.fromEntries(
+      items.map((item) => [item.id, { name: item.name }]),
+    ),
+  } as ItemTextRegistry;
 }
 
 function migrateItemTextValue(
   value: unknown,
   field: string,
-  itemId: string,
-  previousName: string,
+  registry: ItemTextRegistry,
 ): unknown {
   if (typeof value === "string") {
     return ITEM_TEXT_FIELDS.has(field)
-      ? replaceItemNameWithReference(value, itemId, previousName)
+      ? canonicalizeItemText(value, registry)
       : value;
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => migrateItemTextValue(entry, field, itemId, previousName));
+    return value.map((entry) => migrateItemTextValue(entry, field, registry));
   }
   if (!value || typeof value !== "object") {
     return value;
@@ -120,9 +99,19 @@ function migrateItemTextValue(
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) => [
       key,
-      migrateItemTextValue(entry, key, itemId, previousName),
+      migrateItemTextValue(entry, key, registry),
     ]),
   );
+}
+
+export function normalizeContentStudioItemTextReferences(input: unknown) {
+  const document = parseContentStudioDocument(input);
+  const registry = itemTextRegistry(document.items);
+  return parseContentStudioDocument({
+    ...document,
+    recipes: migrateItemTextValue(document.recipes, "recipes", registry),
+    stories: migrateItemTextValue(document.stories, "stories", registry),
+  });
 }
 
 export function migrateRenamedItemTextReferences(
@@ -137,14 +126,17 @@ export function migrateRenamedItemTextReferences(
     if (!previousName || previousName === item.name) {
       return;
     }
+    const previousRegistry = itemTextRegistry([
+      { id: item.id, name: previousName },
+    ]);
     document = parseContentStudioDocument({
       ...document,
-      recipes: migrateItemTextValue(document.recipes, "recipes", item.id, previousName),
-      stories: migrateItemTextValue(document.stories, "stories", item.id, previousName),
+      recipes: migrateItemTextValue(document.recipes, "recipes", previousRegistry),
+      stories: migrateItemTextValue(document.stories, "stories", previousRegistry),
     });
   });
 
-  return document;
+  return normalizeContentStudioItemTextReferences(document);
 }
 
 export const BUILT_IN_RECIPE_MENUS = {
@@ -249,7 +241,7 @@ export function effectiveContentStudioDocument(
     ...storedRecipes,
   });
 
-  return parseContentStudioDocument({
+  return normalizeContentStudioItemTextReferences({
     version: 1,
     items,
     recipes,

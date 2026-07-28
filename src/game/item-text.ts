@@ -2,6 +2,25 @@ import type { ContentRegistry } from "./schemas";
 
 const ITEM_REFERENCE_SOURCE = String.raw`\{\{item:([A-Za-z0-9_-]+)(?:\|([^{}]+))?\}\}`;
 
+const KOREAN_PARTICLE_REFERENCES = [
+  ["이에요", "이에요예요"],
+  ["예요", "이에요예요"],
+  ["으로", "으로로"],
+  ["이랑", "이랑랑"],
+  ["은", "은는"],
+  ["는", "은는"],
+  ["이", "이가"],
+  ["가", "이가"],
+  ["을", "을를"],
+  ["를", "을를"],
+  ["과", "과와"],
+  ["와", "과와"],
+  ["로", "으로로"],
+  ["랑", "이랑랑"],
+  ["아", "아야"],
+  ["야", "아야"],
+] as const;
+
 const PARTICLE_PAIRS = {
   은는: ["은", "는"],
   이가: ["이", "가"],
@@ -12,7 +31,7 @@ const PARTICLE_PAIRS = {
   이에요예요: ["이에요", "예요"],
 } as const;
 
-type ItemTextRegistry = Pick<ContentRegistry, "items">;
+export type ItemTextRegistry = Pick<ContentRegistry, "items">;
 type ParticleKey = keyof typeof PARTICLE_PAIRS | "으로로";
 
 export type ItemTextReference = {
@@ -22,6 +41,55 @@ export type ItemTextReference = {
 
 function normalizedParticle(value: string | undefined) {
   return value?.replaceAll("/", "").trim();
+}
+
+function itemReferenceRegex() {
+  return new RegExp(ITEM_REFERENCE_SOURCE, "g");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function replaceItemDisplayName(
+  text: string,
+  itemId: string,
+  displayName: string,
+) {
+  const name = displayName.trim();
+  if (!name) {
+    return text;
+  }
+
+  let canonical = text;
+  const escapedName = escapeRegExp(name);
+  const plainReference = itemTextReference(itemId);
+
+  KOREAN_PARTICLE_REFERENCES.forEach(([surface, particle]) => {
+    canonical = canonical.replace(
+      new RegExp(
+        `(?<![가-힣A-Za-z0-9])${escapedName}${surface}(?![가-힣A-Za-z0-9])`,
+        "g",
+      ),
+      itemTextReference(itemId, particle),
+    );
+    canonical = canonical.replace(
+      new RegExp(
+        `(?<![가-힣A-Za-z0-9])${escapedName}들${surface}(?![가-힣A-Za-z0-9])`,
+        "g",
+      ),
+      `${plainReference}들${surface}`,
+    );
+  });
+
+  canonical = canonical.replace(
+    new RegExp(`(?<![가-힣A-Za-z0-9])${escapedName}들`, "g"),
+    `${plainReference}들`,
+  );
+  return canonical.replace(
+    new RegExp(`(?<![가-힣A-Za-z0-9])${escapedName}`, "g"),
+    plainReference,
+  );
 }
 
 function finalConsonantIndex(value: string) {
@@ -67,15 +135,33 @@ export function itemTextReference(itemId: string, particle?: ParticleKey) {
 }
 
 export function extractItemTextReferences(text: string): ItemTextReference[] {
-  return Array.from(text.matchAll(new RegExp(ITEM_REFERENCE_SOURCE, "g")), (match) => ({
+  return Array.from(text.matchAll(itemReferenceRegex()), (match) => ({
     itemId: match[1],
     particle: match[2],
   }));
 }
 
+export function canonicalizeItemText(
+  text: string,
+  registry: ItemTextRegistry,
+) {
+  return Object.entries(registry.items)
+    .map(([itemId, item]) => ({
+      itemId,
+      name: String((item as { name?: string }).name ?? "").trim(),
+    }))
+    .filter((entry) => entry.name)
+    .sort((left, right) => right.name.length - left.name.length)
+    .reduce(
+      (canonical, entry) =>
+        replaceItemDisplayName(canonical, entry.itemId, entry.name),
+      text,
+    );
+}
+
 export function resolveItemText(text: string, registry: ItemTextRegistry) {
   return text.replace(
-    new RegExp(ITEM_REFERENCE_SOURCE, "g"),
+    itemReferenceRegex(),
     (_reference, itemId: string, particle: string | undefined) => {
       const item = registry.items[itemId] as { name?: string } | undefined;
       const name = String(item?.name ?? itemId);
@@ -91,6 +177,11 @@ export function validateItemTextReferences(
 ) {
   if (!text) {
     return;
+  }
+
+  const withoutValidReferences = text.replace(itemReferenceRegex(), "");
+  if (withoutValidReferences.includes("{{item:")) {
+    throw new Error(`${source} contains a malformed item text reference.`);
   }
 
   extractItemTextReferences(text).forEach(({ itemId, particle }) => {
