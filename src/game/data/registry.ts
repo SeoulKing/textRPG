@@ -142,6 +142,85 @@ export function getEffectiveContentStudioDocument(
   return effectiveContentStudioDocument(stored, baseItems, choiceDefinitions);
 }
 
+function repairQuestionMarkText(
+  stored: unknown,
+  baseline: unknown,
+): { value: unknown; repairedFields: number } {
+  if (typeof stored === "string" && typeof baseline === "string") {
+    const baselineHasKorean = /[가-힣]/.test(baseline);
+    const storedLostKorean = stored.includes("?") && !/[가-힣]/.test(stored);
+    return baselineHasKorean && storedLostKorean
+      ? { value: baseline, repairedFields: 1 }
+      : { value: stored, repairedFields: 0 };
+  }
+
+  if (Array.isArray(stored) && Array.isArray(baseline)) {
+    let repairedFields = 0;
+    const value = stored.map((entry, index) => {
+      const repaired = repairQuestionMarkText(entry, baseline[index]);
+      repairedFields += repaired.repairedFields;
+      return repaired.value;
+    });
+    return { value, repairedFields };
+  }
+
+  if (
+    stored &&
+    baseline &&
+    typeof stored === "object" &&
+    typeof baseline === "object" &&
+    !Array.isArray(stored) &&
+    !Array.isArray(baseline)
+  ) {
+    let repairedFields = 0;
+    const baselineRecord = baseline as Record<string, unknown>;
+    const value = Object.fromEntries(
+      Object.entries(stored as Record<string, unknown>).map(([key, entry]) => {
+        const repaired = repairQuestionMarkText(entry, baselineRecord[key]);
+        repairedFields += repaired.repairedFields;
+        return [key, repaired.value];
+      }),
+    );
+    return { value, repairedFields };
+  }
+
+  return { value: stored, repairedFields: 0 };
+}
+
+export function repairContentStudioQuestionMarkCorruption(input: unknown) {
+  const document = parseContentStudioDocument(input);
+  const baseline = getEffectiveContentStudioDocument(
+    parseContentStudioDocument({ version: 1 }),
+  );
+  const baselineItems = asRecord(baseline.items);
+  const baselineRecipes = asRecord(baseline.recipes);
+  let repairedFields = 0;
+
+  const items = document.items.map((item) => {
+    const baselineItem = baselineItems[item.id];
+    if (!baselineItem) return item;
+    const repaired = repairQuestionMarkText(item, baselineItem);
+    repairedFields += repaired.repairedFields;
+    return repaired.value;
+  });
+  const recipes = document.recipes.map((recipe) => {
+    const baselineRecipe = baselineRecipes[recipe.id];
+    if (!baselineRecipe) return recipe;
+    const repaired = repairQuestionMarkText(recipe, baselineRecipe);
+    repairedFields += repaired.repairedFields;
+    return repaired.value;
+  });
+
+  return {
+    document: parseContentStudioDocument({
+      ...document,
+      items,
+      recipes,
+    }),
+    repairedFields,
+  };
+}
+
 export function buildWorldRegistryFromStudio(
   stored: ContentStudioDocument,
 ): ContentRegistry {

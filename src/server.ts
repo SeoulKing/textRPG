@@ -10,6 +10,7 @@ import {
   applyPreparedContentStudioRegistry,
   getEffectiveContentStudioDocument,
   prepareContentStudioDocument,
+  repairContentStudioQuestionMarkCorruption,
   validateContent,
   worldRegistry,
 } from "./game/data/registry";
@@ -91,10 +92,33 @@ async function bootstrap() {
   await repository.init();
   await contentStudioStore.init();
 
-  const storedPublished = await contentStudioStore.load("published");
+  const [storedPublished, storedDraft] = await Promise.all([
+    contentStudioStore.load("published"),
+    contentStudioStore.load("draft"),
+  ]);
   if (storedPublished) {
+    const repairedPublished = repairContentStudioQuestionMarkCorruption(
+      storedPublished.document,
+    );
+    const repairedDraft = storedDraft
+      ? repairContentStudioQuestionMarkCorruption(storedDraft.document)
+      : null;
+    if (repairedPublished.repairedFields > 0) {
+      await contentStudioStore.publish(repairedPublished.document);
+      app.log.warn(
+        { repairedFields: repairedPublished.repairedFields },
+        "Repaired question-mark corruption in published content studio data.",
+      );
+    }
+    if (repairedDraft && repairedDraft.repairedFields > 0) {
+      await contentStudioStore.saveDraft(repairedDraft.document);
+      app.log.warn(
+        { repairedFields: repairedDraft.repairedFields },
+        "Repaired question-mark corruption in draft content studio data.",
+      );
+    }
     applyPreparedContentStudioRegistry(
-      prepareContentStudioDocument(storedPublished.document).registry,
+      prepareContentStudioDocument(repairedPublished.document).registry,
     );
   } else {
     const seed = prepareContentStudioDocument(loadStoredContentStudioDocument());
