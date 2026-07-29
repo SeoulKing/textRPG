@@ -1581,3 +1581,13 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   focused 390px Chrome verification confirmed the disabled no-save Continue appearance, the earlier enabled Continue surface, the blue Content Studio surface, and readable text contrast.
   a delayed-response travel probe kept `편의점 폐허 쪽으로 이동하는 중…` visible after 1.35 seconds, never showed the removed scene-preparation copy, completed at the convenience store, and produced no console or page errors.
   follow-up changed enabled Continue from lime to the same white as New Game; verification was intentionally skipped at the user's request.
+
+- 2026-07-29 compact inventory with fixed detail dock:
+  reduced inventory cards to thin two-column rows while preserving their existing item-name font size.
+  moved item descriptions, effect hints, and the contextual Use button into a non-scrolling detail dock below the independently scrolling item list.
+  the first owned item is selected automatically, selection and scroll position persist while browsing, and consuming the last copy falls forward to the next available item.
+  item-use progress now fills the fixed detail dock instead of a list card.
+  `node --check app-api.js` and `git diff --check` passed.
+  focused 390px Chrome verification measured 36px cards with the unchanged 15.2px item-name font, confirmed zero per-card Use buttons, and placed the contextual Use button 11px from the detail dock's right edge.
+  an expanded-list scroll probe produced 469px of list scrolling while the panel content stayed at 0 and the detail dock moved 0px.
+  selecting and consuming the water bottle filled about half of the detail dock at 250ms, removed the consumed card, selected emergency food next, preserved zero horizontal overflow, and produced no console or page errors.

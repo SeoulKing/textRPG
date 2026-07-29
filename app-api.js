@@ -312,6 +312,7 @@ const client = {
   activeStatusPanelView: "status",
   activeStatusDetailKey: null,
   activeInventoryDetailKey: null,
+  inventoryScrollTop: 0,
   activeCraftingRecipeDetailId: null,
   isCompletedQuestGroupOpen: false,
   actionInFlight: false,
@@ -452,6 +453,9 @@ function hideScrollbarChrome(element) {
 function refreshTransientScrollbars() {
   setupTransientScrollbar(dom.appShell);
   setupTransientScrollbar(dom.panelContent);
+  document.querySelectorAll(".inventory-list-scroll").forEach((list) => {
+    setupTransientScrollbar(list);
+  });
   document.querySelectorAll(".hex-map-board").forEach((board) => {
     hideScrollbarChrome(board);
   });
@@ -751,7 +755,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     : null;
   const anchor = control instanceof HTMLElement
     ? control.closest(
-        ".crafting-choice-card, .inventory-card, .map-destination-detail, .choice-button",
+        ".crafting-choice-card, .inventory-detail-slot, .inventory-card, .map-destination-detail, .choice-button",
       ) || control
     : null;
   const craftingNameTarget = control instanceof HTMLElement
@@ -761,7 +765,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     : null;
   const visualTarget = action?.type === "use_item"
     && anchor instanceof HTMLElement
-    && anchor.matches(".inventory-card")
+    && anchor.matches(".inventory-detail-slot, .inventory-card")
     ? anchor
     : craftingNameTarget instanceof HTMLElement
       ? craftingNameTarget
@@ -770,7 +774,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
   const usesOverlay = usesRegionTravelOverlay(action, loading);
   const message = usesOverlay ? actionTransitionMessage(action, loading) : "";
   const usesInlineSurfaceFill = visualTarget instanceof HTMLElement
-    && visualTarget.matches(".choice-button, .inventory-card");
+    && visualTarget.matches(".choice-button, .inventory-card, .inventory-detail-slot");
   const status = message ? document.createElement("p") : null;
   if (status) {
     status.className = "action-transition-status";
@@ -1108,6 +1112,8 @@ async function createNewGame() {
   client.activePanel = "map";
   client.isPanelOpen = false;
   client.mapHint = "";
+  client.activeInventoryDetailKey = null;
+  client.inventoryScrollTop = 0;
   client.activeCraftingRecipeDetailId = null;
   client.isCompletedQuestGroupOpen = false;
   client.justCreatedGame = true;
@@ -1190,6 +1196,8 @@ async function continueSavedGame() {
     client.activePanel = "map";
     client.isPanelOpen = false;
     client.mapHint = "";
+    client.activeInventoryDetailKey = null;
+    client.inventoryScrollTop = 0;
     client.activeCraftingRecipeDetailId = null;
     client.isCompletedQuestGroupOpen = false;
     client.justCreatedGame = false;
@@ -2476,15 +2484,54 @@ function renderInventoryPanel() {
   const snapshot = client.snapshot;
   const itemCards = snapshot.inventoryCards || [];
   const moneyDetailKey = "money";
-  const isMoneyActive = client.activeInventoryDetailKey === moneyDetailKey;
   const inventoryDetails = new Map([
-    [moneyDetailKey, [{ text: "한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다." }]],
+    [moneyDetailKey, {
+      name: "돈",
+      lines: [{ text: "한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다." }],
+      itemId: null,
+      isUsable: false,
+    }],
   ]);
+
+  itemCards.forEach((item) => {
+    const detailLines = [{ text: item.description }];
+    const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
+      ? itemEffectHintHtml(item.effects, item.useMinutes)
+      : "";
+    if (effectHintHtml) {
+      detailLines.push({ html: effectHintHtml });
+    }
+    const durabilityHintHtml = itemDurabilityHintHtml(item, snapshot.state);
+    if (durabilityHintHtml) {
+      detailLines.push({ html: durabilityHintHtml });
+    }
+    inventoryDetails.set(item.id, {
+      name: item.name,
+      lines: detailLines,
+      itemId: item.id,
+      isUsable: ["food", "drink", "medicine"].includes(item.kind),
+    });
+  });
+
+  if (!inventoryDetails.has(client.activeInventoryDetailKey)) {
+    client.activeInventoryDetailKey = itemCards[0]?.id || moneyDetailKey;
+  }
+
+  const isMoneyActive = client.activeInventoryDetailKey === moneyDetailKey;
   const selectInventoryDetail = (detailKey) => {
     client.activeInventoryDetailKey = detailKey;
     renderInventoryPanel();
   };
   const bindInventoryPanelInteractions = () => {
+    const scrollArea = dom.panelContent.querySelector(".inventory-list-scroll");
+    if (scrollArea) {
+      scrollArea.scrollTop = client.inventoryScrollTop;
+      scrollArea.addEventListener("scroll", () => {
+        client.inventoryScrollTop = scrollArea.scrollTop;
+      }, { passive: true });
+      setupTransientScrollbar(scrollArea);
+    }
+
     dom.panelContent.querySelectorAll("[data-inventory-detail]").forEach((card) => {
       card.addEventListener("click", () => {
         if (client.actionInFlight) {
@@ -2493,9 +2540,6 @@ function renderInventoryPanel() {
         selectInventoryDetail(card.dataset.inventoryDetail);
       });
       card.addEventListener("keydown", (event) => {
-        if (event.target.closest("[data-use-item]")) {
-          return;
-        }
         if (client.actionInFlight) {
           return;
         }
@@ -2528,6 +2572,26 @@ function renderInventoryPanel() {
       </div>
     </article>
   `;
+
+  const renderedItemCards = itemCards.map((item) => {
+    const count = snapshot.state.inventory[item.id] || 0;
+    const isActive = client.activeInventoryDetailKey === item.id;
+    return `
+      <article
+        class="info-card inventory-card ${isActive ? "is-active" : ""}"
+        data-inventory-detail="${item.id}"
+        role="button"
+        tabindex="0"
+        aria-controls="inventory-detail-slot"
+        aria-pressed="${isActive ? "true" : "false"}"
+      >
+        <div class="inventory-card-head">
+          <h3>${escapeHtml(item.name)} ${count > 1 ? `x${count}` : ""}</h3>
+        </div>
+      </article>
+    `;
+  });
+
   const renderInventoryGrid = (cards) => {
     const columns = [[], []];
     cards.forEach((card, index) => {
@@ -2542,70 +2606,42 @@ function renderInventoryPanel() {
     `;
   };
   const renderInventoryDetailSlot = () => {
-    const detailLines = inventoryDetails.get(client.activeInventoryDetailKey) || [];
+    const detail = inventoryDetails.get(client.activeInventoryDetailKey);
     return `
-      <div class="inventory-detail-slot" id="inventory-detail-slot" aria-live="polite">
-        ${detailLines.map((line) => `
-          <p>${line.html ? line.html : escapeHtml(line.text)}</p>
-        `).join("")}
-      </div>
+      <section
+        class="inventory-detail-slot"
+        id="inventory-detail-slot"
+        aria-label="선택한 아이템 상세"
+        aria-live="polite"
+      >
+        <div class="inventory-detail-copy">
+          <strong class="inventory-detail-name">${escapeHtml(detail?.name || "아이템")}</strong>
+          <div class="inventory-detail-lines">
+            ${(detail?.lines || [{ text: "아이템을 선택하면 설명이 표시된다." }]).map((line) => `
+              <p>${line.html ? line.html : escapeHtml(line.text)}</p>
+            `).join("")}
+          </div>
+        </div>
+        ${detail?.isUsable ? `
+          <button
+            class="inline-action inventory-use-action"
+            data-use-item="${detail.itemId}"
+            type="button"
+            aria-label="${escapeHtml(detail.name)} 사용"
+          >사용</button>
+        ` : ""}
+      </section>
     `;
   };
 
-  if (itemCards.length === 0) {
-    dom.panelContent.innerHTML = `
-      ${renderInventoryGrid([moneyCard])}
-      ${renderInventoryDetailSlot()}
-      <p class="empty-state">지금 가진 물건이 없다.</p>
-    `;
-    bindInventoryPanelInteractions();
-    return;
-  }
-
-  const renderedCards = [
-    moneyCard,
-    ...itemCards.map((item) => {
-        const detailLines = [{ text: item.description }];
-        const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
-          ? itemEffectHintHtml(item.effects, item.useMinutes)
-          : "";
-        if (effectHintHtml) {
-          detailLines.push({ html: effectHintHtml });
-        }
-        const durabilityHintHtml = itemDurabilityHintHtml(item, snapshot.state);
-        if (durabilityHintHtml) {
-          detailLines.push({ html: durabilityHintHtml });
-        }
-        inventoryDetails.set(item.id, detailLines);
-        const count = snapshot.state.inventory[item.id] || 0;
-        const isUsable = item.kind === "food" || item.kind === "drink" || item.kind === "medicine";
-        const isActive = client.activeInventoryDetailKey === item.id;
-        return `
-          <article
-            class="info-card inventory-card ${isActive ? "is-active" : ""}"
-            data-inventory-detail="${item.id}"
-            role="button"
-            tabindex="0"
-            aria-pressed="${isActive ? "true" : "false"}"
-          >
-            <div class="inventory-card-head">
-              <h3>${item.name} ${count > 1 ? `x${count}` : ""}</h3>
-              <div class="item-actions">
-                ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">사용</button>` : ""}
-              </div>
-            </div>
-          </article>
-        `;
-      }),
-  ];
-
-  if (client.activeInventoryDetailKey && !inventoryDetails.has(client.activeInventoryDetailKey)) {
-    client.activeInventoryDetailKey = null;
-  }
-
   dom.panelContent.innerHTML = `
-    ${renderInventoryGrid(renderedCards)}
-    ${renderInventoryDetailSlot()}
+    <div class="inventory-panel-layout">
+      <div class="inventory-list-scroll" aria-label="보유 아이템 목록">
+        ${renderInventoryGrid([moneyCard, ...renderedItemCards])}
+        ${itemCards.length === 0 ? `<p class="empty-state">지금 가진 물건이 없다.</p>` : ""}
+      </div>
+      ${renderInventoryDetailSlot()}
+    </div>
   `;
 
   bindInventoryPanelInteractions();
@@ -2993,6 +3029,10 @@ function renderMenuPanel() {
 function renderPanel() {
   const config = PANEL_CONFIG[client.activePanel];
   dom.panelTitle.textContent = config.title;
+  dom.panelContent.classList.toggle(
+    "inventory-panel-content",
+    client.activePanel === "inventory",
+  );
   if (client.activePanel === "map") {
     renderMapPanel();
   } else if (client.activePanel === "inventory") {
