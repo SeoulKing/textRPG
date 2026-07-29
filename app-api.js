@@ -1474,23 +1474,6 @@ function clearSceneAnimation() {
   dom.sceneFrame.classList.remove("is-story-typing");
 }
 
-function scrollStoryFlowToBottomOnMobile(options = {}) {
-  if (!window.matchMedia("(max-width: 620px)").matches) {
-    return;
-  }
-  const { force = false } = options;
-  window.requestAnimationFrame(() => {
-    const maxScrollTop = Math.max(0, dom.appShell.scrollHeight - dom.appShell.clientHeight);
-    if (!force) {
-      const distanceFromBottom = maxScrollTop - dom.appShell.scrollTop;
-      if (distanceFromBottom > 96) {
-        return;
-      }
-    }
-    dom.appShell.scrollTop = maxScrollTop;
-  });
-}
-
 function resetSceneScrollOnMobile() {
   if (!window.matchMedia("(max-width: 620px)").matches) {
     return;
@@ -1528,7 +1511,6 @@ async function typeParagraph(paragraphElement, text, token) {
       : /[,;:]/.test(currentChar)
         ? TYPEWRITER_CHAR_DELAY + 20
         : TYPEWRITER_CHAR_DELAY;
-    scrollStoryFlowToBottomOnMobile();
     await scheduleSceneStep(() => {}, delay);
   }
   paragraphElement.classList.remove("typing");
@@ -1615,7 +1597,6 @@ function skipSceneTyping() {
     renderSystemNote(systemNotePayload.note, systemNotePayload.key);
   }
   renderChoices();
-  scrollStoryFlowToBottomOnMobile({ force: true });
   return true;
 }
 
@@ -2010,8 +1991,6 @@ function renderStatusBar() {
 
 function renderChoices() {
   const snapshot = client.snapshot;
-  const shouldAutoScrollChoices =
-    !dom.choices.classList.contains("revealed") || dom.choices.childElementCount === 0;
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed", "is-crafting-menu");
   if (!snapshot) {
@@ -2044,7 +2023,6 @@ function renderChoices() {
     renderCraftingChoices(snapshot);
     dom.choices.classList.add("revealed");
     syncMobileChoiceZoneHeight();
-    scrollStoryFlowToBottomOnMobile({ force: shouldAutoScrollChoices });
     return;
   }
 
@@ -2074,7 +2052,6 @@ function renderChoices() {
 
   dom.choices.classList.add("revealed");
   syncMobileChoiceZoneHeight();
-  scrollStoryFlowToBottomOnMobile({ force: shouldAutoScrollChoices });
 }
 
 function renderScene(animateText = true) {
