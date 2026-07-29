@@ -34,7 +34,7 @@ export const baseItems = {
     rarity: "uncommon",
     price: 4500,
     tags: ["식량", "회복"],
-    effects: { mind: 1, energy: 4, exhaustionRelief: 3 },
+    effects: { mind: 1, energy: 6, exhaustionRelief: 3 },
   }),
   waterBottle: defineItem({
     id: "waterBottle",

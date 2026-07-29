@@ -22,7 +22,7 @@ export const shelterChoices: ActionDefinition[] = [
     label: "취침하기",
     type: "use",
     presentationMode: "always",
-    outcomeHint: "오후 6시 이후 / +1 체력 / +1 정신력 / 다음 날 06:00",
+    outcomeHint: "오후 6시 이후 / +1 체력 / +1 정신력 / 취침 중 기력 소모 50% / 다음 날 06:00",
     showOutcomeHint: true,
     conditions: [{ type: "shelter_sleep_window" }],
     failureNote: "오후 6시 이후부터 잠자기를 이용할 수 있다.",

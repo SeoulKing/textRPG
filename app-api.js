@@ -25,7 +25,7 @@ const DEFAULT_HEX_COORDS = {
   forest: { q: 0, r: 1 },
   subway: { q: 2, r: 0 },
   hospital: { q: -2, r: 2 },
-  checkpoint: { q: 3, r: 0 },
+  checkpoint: { q: 2, r: -2 },
 };
 const HEX_DIRECTIONS = [
   { q: 1, r: 0 },

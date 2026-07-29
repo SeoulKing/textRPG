@@ -121,7 +121,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     id: "cook_at_shelter",
     showOutcomeHint: true,
     label: "{{item:hotMeal}}",
-    outcomeHint: "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. {{item:dentedPot}} 내구도 -1.",
+    outcomeHint: "효과: +1 정신력 / +6 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. {{item:dentedPot}} 내구도 -1.",
     presentationMode: "always",
     conditions: [
       { type: "flag", flag: "shelter_brazier" },
@@ -131,7 +131,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
       { type: "has_item", itemId: "waterBottle", amount: 1 },
       { type: "has_item", itemId: "woodPlank", amount: 1 },
     ],
-    failureNote: "간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다. 효과: +1 정신력 / +4 기력.",
+    failureNote: "간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다. 효과: +1 정신력 / +6 기력.",
     failureEffects: [
       { type: "log", message: "{{item:hotMeal|을를}} 만들려면 화로와 {{item:dentedPot}}, {{item:rawRice|과와}} {{item:vegetables}}, {{item:waterBottle}}, 불씨로 쓸 {{item:woodPlank}} 한 장이 필요하다." },
     ],

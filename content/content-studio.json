@@ -52,7 +52,7 @@
       "effects": {
         "hp": 0,
         "mind": 1,
-        "energy": 4,
+        "energy": 6,
         "exhaustionRelief": 3
       }
     },
@@ -602,7 +602,7 @@
         },
         {
           "type": "log",
-          "message": "당신은 판자와 {{item:clothScrap|을를}} {{item:cordage|으로로}} 묶어 천막 틈을 덧막는다. 이제 밤바람이 스며드는 정도가 한결 덜할 것이다."
+          "message": "당신은 판자와 {{item:clothScrap|을를}} 끈으로 묶어 천막 틈을 덧막는다. 이제 밤바람이 스며드는 정도가 한결 덜할 것이다."
         },
         {
           "type": "advance_time",
@@ -612,7 +612,7 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "벽 틈을 막으려면 {{item:woodPlank}} 한 장과 {{item:clothScrap}} 두 장, 천막을 묶어 둘 {{item:cordage|이가}} 필요하다. 이미 손본 자리라면 더 건드릴 곳도 없다."
+          "message": "벽 틈을 막으려면 {{item:woodPlank}} 한 장과 {{item:clothScrap}} 두 장, 천막을 묶어 둘 끈이 필요하다. 이미 손본 자리라면 더 건드릴 곳도 없다."
         }
       ],
       "failureNote": "이미 보강을 끝냈거나 재료가 부족하다. 효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: {{item:woodPlank}} 1 / {{item:clothScrap}} 2 / {{item:cordage}} 1.",
@@ -625,7 +625,7 @@
     {
       "id": "craft_shelter_brazier",
       "label": "간이 화로",
-      "outcomeHint": "효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: {{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
+      "outcomeHint": "효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: 고철 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -671,7 +671,7 @@
         },
         {
           "type": "log",
-          "message": "당신은 모은 {{item:scrapMetal|과와}} {{item:woodPlank|을를}} {{item:cordage|으로로}} 고정해 작은 화로를 만든다. 이제 거처 안에서도 제대로 불을 피울 수 있다."
+          "message": "당신은 모은 고철과 판자를 끈으로 고정해 작은 화로를 만든다. 이제 거처 안에서도 제대로 불을 피울 수 있다."
         },
         {
           "type": "advance_time",
@@ -681,10 +681,10 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "간이 화로를 만들려면 {{item:scrapMetal}} 두 조각, 받침으로 쓸 {{item:woodPlank}} 한 장, 틀을 고정할 {{item:cordage|이가}} 필요하다. 이미 화로를 만들었다면 더 손댈 이유는 없다."
+          "message": "간이 화로를 만들려면 고철 두 조각, 받침으로 쓸 판자 한 장, 틀을 고정할 끈이 필요하다. 이미 화로를 만들었다면 더 손댈 이유는 없다."
         }
       ],
-      "failureNote": "이미 화로가 있거나 재료가 부족하다. 효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: {{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
+      "failureNote": "이미 화로가 있거나 재료가 부족하다. 효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: 고철 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
       "riskHint": "low",
       "hidden": false,
       "nextSceneId": "shelter_crafting_menu",
@@ -694,7 +694,7 @@
     {
       "id": "craft_shelter_rain_bucket",
       "label": "빗물통",
-      "outcomeHint": "효과: 하루에 한 번 {{item:waterBottle}} 한 병 확보 가능. 필요 재료: {{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
+      "outcomeHint": "효과: 하루에 한 번 물 한 병 확보 가능. 필요 재료: 고철 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -750,10 +750,10 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "빗물통을 손보려면 {{item:scrapMetal}} 한 조각, 물을 거를 {{item:clothScrap}}, 천막 끝에 묶어 둘 {{item:cordage|이가}} 필요하다. 이미 완성해 둔 설비라면 더 만들 필요도 없다."
+          "message": "빗물통을 손보려면 고철 한 조각, 물을 거를 {{item:clothScrap}}, 천막 끝에 묶어 둘 끈이 필요하다. 이미 완성해 둔 설비라면 더 만들 필요도 없다."
         }
       ],
-      "failureNote": "이미 물받이를 만들어 두었거나 재료가 부족하다. 효과: 하루에 한 번 {{item:waterBottle}} 한 병 확보 가능. 필요 재료: {{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
+      "failureNote": "이미 물받이를 만들어 두었거나 재료가 부족하다. 효과: 하루에 한 번 물 한 병 확보 가능. 필요 재료: 고철 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
       "riskHint": "low",
       "hidden": false,
       "nextSceneId": "shelter_crafting_menu",
@@ -763,7 +763,7 @@
     {
       "id": "cook_at_shelter",
       "label": "{{item:hotMeal}}",
-      "outcomeHint": "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. {{item:dentedPot}} 내구도 -1.",
+      "outcomeHint": "효과: +1 정신력 / +6 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. 냄비 내구도 -1.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -830,7 +830,7 @@
         },
         {
           "type": "log",
-          "message": "당신은 {{item:dentedPot}}에 물과 {{item:rawRice}}, {{item:vegetables|을를}} 넣고 천천히 끓인다. 초라한 재료지만, 한 끼를 버틸 만한 {{item:hotMeal|이가}} 완성된다."
+          "message": "당신은 냄비에 물과 {{item:rawRice}}, {{item:vegetables|을를}} 넣고 천천히 끓인다. 초라한 재료지만, 한 끼를 버틸 만한 {{item:hotMeal|이가}} 완성된다."
         },
         {
           "type": "advance_time",
@@ -840,10 +840,10 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "{{item:hotMeal|을를}} 만들려면 화로와 {{item:dentedPot}}, {{item:rawRice|과와}} {{item:vegetables}}, {{item:waterBottle}}, 불씨로 쓸 {{item:woodPlank}} 한 장이 필요하다."
+          "message": "{{item:hotMeal|을를}} 만들려면 화로와 냄비, {{item:rawRice|과와}} {{item:vegetables}}, 물, 불씨로 쓸 {{item:woodPlank}} 한 장이 필요하다."
         }
       ],
-      "failureNote": "간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다. 효과: +1 정신력 / +4 기력.",
+      "failureNote": "간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다. 효과: +1 정신력 / +6 기력.",
       "riskHint": "low",
       "hidden": false,
       "nextSceneId": "shelter_cooking_menu",
@@ -853,7 +853,7 @@
     {
       "id": "cook_rice_porridge",
       "label": "{{item:ricePorridge}}",
-      "outcomeHint": "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. {{item:dentedPot}} 내구도 -1. 조리 시간 20분.",
+      "outcomeHint": "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. 냄비 내구도 -1. 조리 시간 20분.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -920,7 +920,7 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "{{item:ricePorridge|을를}} 끓이려면 {{item:dentedPot}}, {{item:rawRice}}, {{item:waterBottle}}, 불씨로 쓸 {{item:woodPlank|이가}} 필요하다."
+          "message": "{{item:ricePorridge|을를}} 끓이려면 냄비, {{item:rawRice}}, 물, 불씨로 쓸 목재가 필요하다."
         }
       ],
       "failureNote": "{{item:ricePorridge|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
@@ -933,7 +933,7 @@
     {
       "id": "cook_greens_soup",
       "label": "{{item:greensSoup}}",
-      "outcomeHint": "효과: +1 정신력 / +3 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:wildGreens}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. {{item:dentedPot}} 내구도 -1. 조리 시간 15분.",
+      "outcomeHint": "효과: +1 정신력 / +3 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:wildGreens}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. 냄비 내구도 -1. 조리 시간 15분.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -1000,7 +1000,7 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "{{item:greensSoup|을를}} 끓이려면 {{item:dentedPot}}, {{item:wildGreens}}, {{item:waterBottle}}, 불씨로 쓸 {{item:woodPlank|이가}} 필요하다."
+          "message": "{{item:greensSoup|을를}} 끓이려면 냄비, {{item:wildGreens}}, 물, 불씨로 쓸 목재가 필요하다."
         }
       ],
       "failureNote": "{{item:greensSoup|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:wildGreens}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
@@ -1013,7 +1013,7 @@
     {
       "id": "craft_crude_axe",
       "label": "{{item:crudeAxe}}",
-      "outcomeHint": "{{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:crudeAxe|을를}} 만든다. 제작 시간 30분. 내구도 8.",
+      "outcomeHint": "{{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1을 써서 {{item:crudeAxe|을를}} 만든다. 제작 시간 30분. 내구도 8.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -1076,7 +1076,7 @@
         },
         {
           "type": "log",
-          "message": "당신은 휘어진 {{item:scrapMetal|을를}} 판자 끝에 묶고 천으로 감아 {{item:crudeAxe|을를}} 만들었다. 조잡하지만 숲에서 쓸 만하다."
+          "message": "당신은 휘어진 고철을 판자 끝에 묶고 천으로 감아 {{item:crudeAxe|을를}} 만들었다. 조잡하지만 숲에서 쓸 만하다."
         },
         {
           "type": "advance_time",
@@ -1086,7 +1086,7 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "{{item:crudeAxe|을를}} 만들려면 날이 될 {{item:scrapMetal}} 두 조각, 손잡이로 쓸 {{item:woodPlank}}, 손을 보호할 {{item:clothScrap}}, 날을 묶을 {{item:cordage|이가}} 필요하다."
+          "message": "{{item:crudeAxe|을를}} 만들려면 날이 될 고철 두 조각, 손잡이로 쓸 판자, 손을 보호할 {{item:clothScrap}}, 날을 묶을 끈이 필요하다."
         }
       ],
       "failureNote": "{{item:crudeAxe|은는}} {{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
@@ -1099,7 +1099,7 @@
     {
       "id": "craft_utility_knife",
       "label": "{{item:utilityKnife}}",
-      "outcomeHint": "{{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:utilityKnife|을를}} 만든다. 제작 시간 20분. 내구도 10.",
+      "outcomeHint": "{{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1을 써서 {{item:utilityKnife|을를}} 만든다. 제작 시간 20분. 내구도 10.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -1152,7 +1152,7 @@
         },
         {
           "type": "log",
-          "message": "당신은 {{item:scrapMetal}} 끝을 갈아 날을 세우고 천을 감아 {{item:utilityKnife|을를}} 만들었다. 덤불을 헤치기엔 충분하다."
+          "message": "당신은 고철 끝을 갈아 날을 세우고 천을 감아 {{item:utilityKnife|을를}} 만들었다. 덤불을 헤치기엔 충분하다."
         },
         {
           "type": "advance_time",
@@ -1162,7 +1162,7 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "{{item:utilityKnife|을를}} 만들려면 날을 세울 {{item:scrapMetal}} 한 조각, 손잡이를 감을 {{item:clothScrap}}, 그 위를 묶을 {{item:cordage|이가}} 필요하다."
+          "message": "{{item:utilityKnife|을를}} 만들려면 날을 세울 고철 한 조각, 손잡이를 감을 {{item:clothScrap}}, 그 위를 묶을 끈이 필요하다."
         }
       ],
       "failureNote": "{{item:utilityKnife|은는}} {{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
@@ -1175,7 +1175,7 @@
     {
       "id": "craft_dented_pot",
       "label": "{{item:dentedPot}}",
-      "outcomeHint": "{{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:dentedPot|을를}} 만든다. 제작 시간 20분. 내구도 12.",
+      "outcomeHint": "{{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1을 써서 {{item:dentedPot|을를}} 만든다. 제작 시간 20분. 내구도 12.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -1228,7 +1228,7 @@
         },
         {
           "type": "log",
-          "message": "당신은 {{item:scrapMetal|을를}} 두드려 겨우 냄비 모양을 잡았다. 모양은 볼품없지만 물을 끓일 수는 있다."
+          "message": "당신은 고철을 두드려 겨우 냄비 모양을 잡았다. 모양은 볼품없지만 물을 끓일 수는 있다."
         },
         {
           "type": "advance_time",
@@ -1238,7 +1238,7 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "냄비 모양을 내려면 얇게 펼 수 있는 {{item:scrapMetal}} 두 조각과 손잡이에 감을 {{item:clothScrap}}, 고정할 {{item:cordage|이가}} 필요하다."
+          "message": "냄비 모양을 내려면 얇게 펼 수 있는 고철 두 조각과 손잡이에 감을 천, 고정할 끈이 필요하다."
         }
       ],
       "failureNote": "{{item:dentedPot|은는}} {{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
@@ -1251,7 +1251,7 @@
     {
       "id": "cook_forest_stew",
       "label": "{{item:forestStew}}",
-      "outcomeHint": "{{item:wildGreens}} 2 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1개를 써서 {{item:forestStew}} 1개를 끓인다. 전제: 간이 화로, {{item:dentedPot}}. 제작 시간 25분. {{item:dentedPot}} 내구도 -1.",
+      "outcomeHint": "{{item:wildGreens}} 2 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1을 써서 {{item:forestStew}} 1개를 끓인다. 전제: 간이 화로, {{item:dentedPot}}. 제작 시간 25분. 냄비 내구도 -1.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -1318,7 +1318,7 @@
         },
         {
           "type": "log",
-          "message": "당신은 {{item:wildGreens|을를}} 물에 오래 끓여 묽은 {{item:forestStew|을를}} 만들었다. {{item:dentedPot}} 바닥에는 또 하나의 검은 자국이 남았다."
+          "message": "당신은 {{item:wildGreens|을를}} 물에 오래 끓여 묽은 {{item:forestStew|을를}} 만들었다. 냄비 바닥에는 또 하나의 검은 자국이 남았다."
         },
         {
           "type": "advance_time",
@@ -1328,7 +1328,7 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "{{item:forestStew|을를}} 끓이려면 화로와 {{item:dentedPot}}, {{item:wildGreens}} 두 줌, {{item:vegetables}}, {{item:waterBottle}}, 불쏘시개로 쓸 {{item:woodPlank|이가}} 필요하다."
+          "message": "{{item:forestStew|을를}} 끓이려면 화로와 냄비, {{item:wildGreens}} 두 줌, {{item:vegetables}}, 물, 불쏘시개로 쓸 목재가 필요하다."
         }
       ],
       "failureNote": "{{item:forestStew|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:wildGreens}} 2 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
@@ -1341,7 +1341,7 @@
     {
       "id": "assemble_rescue_radio",
       "label": "무전기",
-      "outcomeHint": "효과: 10일차 구조 신호 준비. 필요 부품: {{item:radioBattery}} / {{item:radioAntenna}} / {{item:radioTransmitter}} / {{item:scrapMetal}} 2 / {{item:clothScrap}} 1.",
+      "outcomeHint": "효과: 10일차 구조 신호 준비. 필요 부품: {{item:radioBattery}} / {{item:radioAntenna}} / {{item:radioTransmitter}} / 고철 2 / {{item:clothScrap}} 1.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -1407,7 +1407,7 @@
         },
         {
           "type": "log",
-          "message": "당신은 {{item:radioBattery|과와}} {{item:radioTransmitter}}, {{item:radioAntenna|을를}} {{item:scrapMetal}} 프레임에 고정한다. 지직거리는 잡음 끝에 구조 주파수가 희미하게 열린다."
+          "message": "당신은 배터리와 송신기, 안테나를 고철 프레임에 고정한다. 지직거리는 잡음 끝에 구조 주파수가 희미하게 열린다."
         },
         {
           "type": "advance_time",
@@ -1420,7 +1420,7 @@
           "message": "무전기를 조립하려면 아직 핵심 부품과 고정 재료가 더 필요하다. 구조대가 올 때까지 신호를 보낼 준비를 마쳐야 한다."
         }
       ],
-      "failureNote": "{{item:radioBattery}}, {{item:radioAntenna}}, {{item:radioTransmitter|과와}} {{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 모두 필요하다. 이미 신호 장비를 완성했다면 더 손댈 필요는 없다.",
+      "failureNote": "{{item:radioBattery}}, 안테나, 송신기와 고철 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 모두 필요하다. 이미 신호 장비를 완성했다면 더 손댈 필요는 없다.",
       "riskHint": "low",
       "hidden": false,
       "nextSceneId": "shelter_crafting_menu",

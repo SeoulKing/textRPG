@@ -527,8 +527,12 @@ function applyDayTransition(state: GameState, previousDay: number) {
   addLog(state, `${state.day}일차가 시작되었다.`);
 }
 
-function applySurvivalPressureForElapsed(state: GameState, elapsed: number) {
-  state.autoEnergyElapsedMs += elapsed;
+function applySurvivalPressureForElapsed(
+  state: GameState,
+  elapsed: number,
+  energyDrainMultiplier = 1,
+) {
+  state.autoEnergyElapsedMs += elapsed * Math.max(0, energyDrainMultiplier);
   while (state.autoEnergyElapsedMs >= AUTO_ENERGY_TICK_MS) {
     state.autoEnergyElapsedMs -= AUTO_ENERGY_TICK_MS;
     adjustStat(state, "energy", -1);
@@ -545,7 +549,11 @@ function applySurvivalPressureForElapsed(state: GameState, elapsed: number) {
   }
 }
 
-function advanceGameTime(state: GameState, elapsed: number) {
+function advanceGameTime(
+  state: GameState,
+  elapsed: number,
+  options: { energyDrainMultiplier?: number } = {},
+) {
   if (state.isGameOver || state.stageClear) {
     return;
   }
@@ -557,7 +565,11 @@ function advanceGameTime(state: GameState, elapsed: number) {
 
   const previousDay = state.day;
   state.worldElapsedMs += safeElapsed;
-  applySurvivalPressureForElapsed(state, safeElapsed);
+  applySurvivalPressureForElapsed(
+    state,
+    safeElapsed,
+    options.energyDrainMultiplier,
+  );
 
   setClockFromElapsed(state);
   applyDayTransition(state, previousDay);
@@ -842,7 +854,11 @@ function consumeCurrentSceneIntro(state: GameState) {
 
 function jumpToNextDaybreak(state: GameState) {
   const nextDaybreakMs = Math.floor(state.worldElapsedMs / REAL_DAY_MS) * REAL_DAY_MS + REAL_DAY_MS;
-  advanceGameTime(state, Math.max(0, nextDaybreakMs - state.worldElapsedMs));
+  advanceGameTime(
+    state,
+    Math.max(0, nextDaybreakMs - state.worldElapsedMs),
+    { energyDrainMultiplier: 0.5 },
+  );
 }
 
 type ExecutionResult = {

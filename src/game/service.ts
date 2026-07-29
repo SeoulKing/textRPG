@@ -227,7 +227,7 @@ const CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   craft_crude_axe: "숲에서 벌목 효율 증가, 내구도 8",
   craft_utility_knife: "숲에서 식량 수색 효율 증가, 내구도 10",
   craft_dented_pot: "거처 요리 가능, 내구도 12",
-  cook_at_shelter: "+1 정신력 / +4 기력",
+  cook_at_shelter: "+1 정신력 / +6 기력",
   cook_rice_porridge: "+1 정신력 / +4 기력",
   cook_greens_soup: "+1 정신력 / +3 기력",
   cook_forest_stew: "+6 기력 / 피로 완화",

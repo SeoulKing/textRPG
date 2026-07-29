@@ -91,7 +91,7 @@ export const checkpointLocation = defineLocation({
   id: "checkpoint",
   name: "검문소",
   risk: "high",
-  mapPosition: { q: 3, r: 0 },
+  mapPosition: { q: 2, r: -2 },
   imagePath: "assets/scenes/checkpoint.svg",
   summary: "뒤집힌 차단봉과 버려진 통신 차량이 남은 검문소다. 구조대의 무전 흔적과 송신기 부품을 찾을 수 있다.",
   tags: ["signal", "rescue", "tension"],
