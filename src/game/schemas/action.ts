@@ -32,6 +32,11 @@ export const ChoiceLoadingSchema = z.object({
   transitionType: z.enum(["activity", "region_travel"]).optional(),
 });
 
+export const DailyLimitSchema = z.object({
+  key: z.string().min(1),
+  max: z.number().int().positive(),
+});
+
 export const ActionDefinitionSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -49,6 +54,7 @@ export const ActionDefinitionSchema = z.object({
   systemNote: z.string().nullable().optional(),
   nextEventId: z.string().optional(),
   nextSceneId: z.string().optional(),
+  dailyLimit: DailyLimitSchema.optional(),
   tags: z.array(z.string()).default([]),
   riskHint: z.enum(["low", "medium", "high"]).optional(),
   skillUse: SkillUseSchema.optional(),
@@ -56,4 +62,5 @@ export const ActionDefinitionSchema = z.object({
 
 export type GameAction = z.infer<typeof GameActionSchema>;
 export type ChoiceLoading = z.infer<typeof ChoiceLoadingSchema>;
+export type DailyLimit = z.infer<typeof DailyLimitSchema>;
 export type ActionDefinition = z.infer<typeof ActionDefinitionSchema>;

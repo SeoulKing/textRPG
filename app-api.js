@@ -825,7 +825,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     progressTrack.appendChild(progressFill);
     card.appendChild(progressTrack);
     sceneTransition.appendChild(card);
-    dom.sceneFrame.appendChild(sceneTransition);
+    document.body.appendChild(sceneTransition);
 
     dom.sceneFrame.classList.add("is-action-in-progress");
     dom.sceneFrame.setAttribute("aria-busy", "true");
@@ -1438,7 +1438,7 @@ function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}`)
     .join("|");
 }
 
@@ -1501,7 +1501,18 @@ function resetSceneScrollOnMobile() {
 }
 
 function syncMobileChoiceZoneHeight() {
-  document.documentElement.style.removeProperty("--mobile-choice-zone-height");
+  if (!window.matchMedia("(max-width: 620px)").matches || !dom.choices.childElementCount) {
+    document.documentElement.style.removeProperty("--mobile-choice-zone-height");
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    const choiceZoneHeight = Math.ceil(dom.choices.getBoundingClientRect().height);
+    document.documentElement.style.setProperty(
+      "--mobile-choice-zone-height",
+      `${choiceZoneHeight}px`,
+    );
+  });
 }
 
 async function typeParagraph(paragraphElement, text, token) {
@@ -1762,13 +1773,20 @@ function renderCraftingChoices(snapshot) {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
     const label = fragment.querySelector(".choice-label");
+    const status = fragment.querySelector(".choice-status");
+    const remaining = fragment.querySelector(".choice-remaining");
     const meta = fragment.querySelector(".choice-meta");
     label.textContent = choice.label;
+    status.textContent = choice.statusLabel || "";
+    status.hidden = !choice.statusLabel;
+    const hasRemainingUses = Number.isInteger(choice.remainingUses);
+    remaining.textContent = hasRemainingUses ? `남은 횟수: ${choice.remainingUses}회` : "";
+    remaining.hidden = !hasRemainingUses;
     const outcomeHint = choice.outcomeHint || "";
     const shouldShowOutcomeHint = Boolean(choice.showOutcomeHint && outcomeHint);
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
-    button.disabled = client.actionInFlight;
+    button.disabled = client.actionInFlight || choice.isAvailable === false;
     button.addEventListener("click", () => submitAction(choice.action, button, choice.loading));
     dom.choices.appendChild(fragment);
   });
@@ -2034,15 +2052,22 @@ function renderChoices() {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
     const label = fragment.querySelector(".choice-label");
+    const status = fragment.querySelector(".choice-status");
+    const remaining = fragment.querySelector(".choice-remaining");
     const meta = fragment.querySelector(".choice-meta");
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
+    status.textContent = choice.statusLabel || "";
+    status.hidden = !choice.statusLabel;
+    const hasRemainingUses = Number.isInteger(choice.remainingUses);
+    remaining.textContent = hasRemainingUses ? `남은 횟수: ${choice.remainingUses}회` : "";
+    remaining.hidden = !hasRemainingUses;
     const outcomeHint = choice.outcomeHint || "";
     const shouldShowOutcomeHint = Boolean(choice.showOutcomeHint && outcomeHint);
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
-    button.disabled = client.actionInFlight;
+    button.disabled = client.actionInFlight || choice.isAvailable === false;
     button.addEventListener("click", () => submitAction(choice.action, button, choice.loading));
     dom.choices.appendChild(fragment);
   });
@@ -2670,39 +2695,36 @@ function skillsPanelMarkup() {
               const skillName = skill.name
                 || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id);
               const effectLabel = skill.id === "collection"
-                ? `수집 소요시간 ${effectPercent}% 감소`
+                ? `시간 -${effectPercent}%`
                 : skill.id === "exploration"
-                  ? `탐색 실패 확률 ${effectPercent}% 감소`
-                  : `현재 효과 ${effectPercent}%`;
+                  ? `성공률 +${effectPercent}%`
+                  : `효과 ${effectPercent}%`;
               const xpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel} / ${xpForNextLevel} XP`;
+              const compactXpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel}/${xpForNextLevel}`;
               const meterValue = isMaxLevel ? 100 : progressPercent;
               const meterMax = isMaxLevel ? 100 : Math.max(1, xpForNextLevel);
               const meterNow = isMaxLevel ? 100 : Math.min(xpIntoLevel, meterMax);
 
               return `
                 <article class="info-card skill-progress-card is-${escapeHtml(skill.id)}">
-                  <div class="skill-progress-card-head">
+                  <div class="skill-progress-compact-row">
                     <h3>${escapeHtml(skillName)}</h3>
+                    <span class="skill-progress-effect">${escapeHtml(effectLabel)}</span>
                     <span class="skill-level-badge ${isMaxLevel ? "is-max" : ""}">
                       ${isMaxLevel ? "MAX" : `Lv.${skill.level}`}
                     </span>
-                  </div>
-                  <p class="skill-progress-description">${escapeHtml(skill.description || "")}</p>
-                  <p class="skill-progress-effect">${escapeHtml(effectLabel)}</p>
-                  <div class="skill-xp-summary">
-                    <span>경험치</span>
-                    <strong>${xpLabel}</strong>
-                  </div>
-                  <div
-                    class="skill-xp-meter"
-                    role="progressbar"
-                    aria-label="${escapeHtml(`${skillName} 경험치`)}"
-                    aria-valuemin="0"
-                    aria-valuemax="${meterMax}"
-                    aria-valuenow="${meterNow}"
-                    aria-valuetext="${escapeHtml(xpLabel)}"
-                  >
-                    <span style="width:${meterValue}%"></span>
+                    <div
+                      class="skill-xp-meter"
+                      role="progressbar"
+                      aria-label="${escapeHtml(`${skillName} 경험치`)}"
+                      aria-valuemin="0"
+                      aria-valuemax="${meterMax}"
+                      aria-valuenow="${meterNow}"
+                      aria-valuetext="${escapeHtml(xpLabel)}"
+                    >
+                      <span style="width:${meterValue}%"></span>
+                    </div>
+                    <strong class="skill-xp-value">${compactXpLabel}</strong>
                   </div>
                 </article>
               `;

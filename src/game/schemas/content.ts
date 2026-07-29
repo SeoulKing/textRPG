@@ -26,6 +26,7 @@ export const StockNodeDefinitionSchema = z.object({
   id: z.string(),
   name: z.string(),
   summary: z.string(),
+  depletionBehavior: z.enum(["remain", "disappear"]).default("remain"),
   money: z.number().int().nonnegative().default(0),
   items: z.array(StockNodeItemDefinitionSchema).default([]),
 });

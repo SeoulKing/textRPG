@@ -21,7 +21,7 @@ export const PROGRESSION_SKILLS: Record<
   exploration: {
     id: "exploration",
     name: "탐색",
-    description: "숙련도가 오를수록 탐색에 실패할 확률이 줄어듭니다.",
+    description: "숙련도가 오를수록 탐색 성공률이 높아집니다.",
   },
 };
 
@@ -152,10 +152,10 @@ export function getExplorationOutcomeProbabilities<T extends WeightedOutcome>(
     return baseOutcomeProbabilities(outcomes);
   }
 
-  const baseFailureProbability = failureWeight / (failureWeight + successWeight);
-  const failureMultiplier = 1 - getSkillEffectPercent(level) / 100;
-  const adjustedFailureProbability = baseFailureProbability * failureMultiplier;
-  const adjustedSuccessProbability = 1 - adjustedFailureProbability;
+  const baseSuccessProbability = successWeight / (failureWeight + successWeight);
+  const successBonus = getSkillEffectPercent(level) / 100;
+  const adjustedSuccessProbability = Math.min(1, baseSuccessProbability + successBonus);
+  const adjustedFailureProbability = 1 - adjustedSuccessProbability;
   return outcomes.map((outcome) =>
     outcome.result === "failure"
       ? adjustedFailureProbability * (outcome.weight / failureWeight)

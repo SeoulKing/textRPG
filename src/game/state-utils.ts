@@ -11,6 +11,7 @@ import {
 } from "./skill-progression";
 import type {
   Condition,
+  DailyLimit,
   Effect,
   GameState,
   GameStateV2,
@@ -23,6 +24,25 @@ import type {
 
 function activeDayKey(state: GameState, flag: string) {
   return `day${state.day}_${flag}`;
+}
+
+export function getDailyUsage(state: GameState, limit: DailyLimit): number {
+  const value = state.flags[activeDayKey(state, limit.key)];
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : 0;
+}
+
+export function getRemainingDailyUses(state: GameState, limit: DailyLimit): number {
+  return Math.max(0, limit.max - getDailyUsage(state, limit));
+}
+
+export function consumeDailyUse(state: GameState, limit: DailyLimit): void {
+  const remaining = getRemainingDailyUses(state, limit);
+  if (remaining <= 0) {
+    throw new Error("오늘 가능한 횟수를 모두 사용했다.");
+  }
+  state.flags[activeDayKey(state, limit.key)] = getDailyUsage(state, limit) + 1;
 }
 
 type SurvivalStatKey = "hp" | "mind" | "energy";
@@ -139,6 +159,28 @@ export function getStockMoney(state: GameState, locationId: string, nodeId: stri
 
   const node = getStockNode(state, locationId, nodeId);
   return node?.money ?? 0;
+}
+
+export function isStockNodeDepleted(state: GameState, locationId: string, nodeId: string) {
+  const node = getStockNode(state, locationId, nodeId);
+  if (!node || (node.money <= 0 && node.items.length === 0)) {
+    return false;
+  }
+
+  return getStockMoney(state, locationId, nodeId) <= 0 &&
+    node.items.every((item) =>
+      getStockQuantity(state, locationId, nodeId, item.itemId) <= 0
+    );
+}
+
+export function isStockNodeGone(state: GameState, nodeId: string) {
+  const locationId = getStockNodeLocationId(state, nodeId);
+  if (!locationId) {
+    return false;
+  }
+  const node = getStockNode(state, locationId, nodeId);
+  return node?.depletionBehavior === "disappear" &&
+    isStockNodeDepleted(state, locationId, nodeId);
 }
 
 function getEquivalentInventoryItemIds(state: GameState, itemId: string) {

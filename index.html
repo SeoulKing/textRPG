@@ -103,11 +103,17 @@
 
   <template id="choice-template">
     <button class="choice-button" type="button">
-      <span class="choice-label"></span>
+      <span class="choice-label-row">
+        <span class="choice-label"></span>
+        <span class="choice-side">
+          <span class="choice-status" hidden></span>
+          <span class="choice-remaining" hidden></span>
+        </span>
+      </span>
       <span class="choice-meta"></span>
     </button>
   </template>
 
-  <script type="module" src="app-api.js?v=20260729-inventory-dock"></script>
+  <script type="module" src="app-api.js?v=20260729-travel-overlay-layer"></script>
 </body>
 </html>

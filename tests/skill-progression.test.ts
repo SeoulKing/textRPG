@@ -126,7 +126,7 @@ test("level thresholds, XP gains, and collection time reductions follow the tabl
   );
 });
 
-test("exploration failure probability shrinks while outcome ratios stay intact", () => {
+test("exploration success probability grows while outcome ratios stay intact", () => {
   const outcomes = [
     { weight: 50, result: "failure" as const, id: "failure" },
     { weight: 10, result: "success" as const, id: "success-a" },
@@ -136,10 +136,10 @@ test("exploration failure probability shrinks while outcome ratios stay intact",
   const levelOne = getExplorationOutcomeProbabilities(outcomes, 1);
   const levelFive = getExplorationOutcomeProbabilities(outcomes, 5);
   assert.deepEqual(levelOne, [0.5, 0.1, 0.2, 0.2]);
-  assert.ok(Math.abs(levelFive[0] - 0.3) < 1e-12);
-  assert.ok(Math.abs(levelFive[1] - 0.14) < 1e-12);
-  assert.ok(Math.abs(levelFive[2] - 0.28) < 1e-12);
-  assert.ok(Math.abs(levelFive[3] - 0.28) < 1e-12);
+  assert.ok(Math.abs(levelFive[0] - 0.1) < 1e-12);
+  assert.ok(Math.abs(levelFive[1] - 0.18) < 1e-12);
+  assert.ok(Math.abs(levelFive[2] - 0.36) < 1e-12);
+  assert.ok(Math.abs(levelFive[3] - 0.36) < 1e-12);
   assert.ok(Math.abs((levelFive[2] / levelFive[1]) - 2) < 1e-12);
 
   const progress = progressAt("exploration", 320);
@@ -147,7 +147,7 @@ test("exploration failure probability shrinks while outcome ratios stay intact",
     selectRandomOutcome(outcomes, {
       skillUse: { skillId: "exploration" },
       progress,
-      rng: () => 0.299999,
+      rng: () => 0.099999,
     })?.id,
     "failure",
   );
@@ -155,7 +155,7 @@ test("exploration failure probability shrinks while outcome ratios stay intact",
     selectRandomOutcome(outcomes, {
       skillUse: { skillId: "exploration" },
       progress,
-      rng: () => 0.3,
+      rng: () => 0.1,
     })?.id,
     "success-a",
   );
@@ -341,7 +341,7 @@ test("actual exploration failure still awards XP, and level 5 changes the result
   performAction(
     succeeded,
     { type: "content_action", actionId: "search_forest_resources" },
-    { rng: () => 0.31 },
+    { rng: () => 0.11 },
   );
   assert.equal(succeeded.inventory.cannedFood, 1);
   assert.equal(succeeded.skillProgress.exploration.totalXp, 320);

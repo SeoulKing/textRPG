@@ -8,8 +8,8 @@ type LocationInput = Omit<
     Pick<LocationDefinition, "imagePath" | "residentIds" | "interactionChoices" | "eventIds" | "stockNodes" | "monsters">
   >;
 
-type StockNodeInput = Omit<StockNodeDefinition, "money" | "items"> &
-  Partial<Pick<StockNodeDefinition, "money" | "items">>;
+type StockNodeInput = Omit<StockNodeDefinition, "depletionBehavior" | "money" | "items"> &
+  Partial<Pick<StockNodeDefinition, "depletionBehavior" | "money" | "items">>;
 
 type InteractionInput = Omit<
   ActionDefinition,
@@ -31,6 +31,7 @@ export function defineLocation(input: LocationInput): LocationDefinition {
 
 export function stockNode(input: StockNodeInput): StockNodeDefinition {
   return {
+    depletionBehavior: "remain",
     money: 0,
     items: [],
     ...input,

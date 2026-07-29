@@ -19,6 +19,11 @@ import type {
   StoryChoice,
 } from "./schemas";
 import { formatOutcomeHint } from "./outcome-hint";
+import {
+  getRemainingDailyUses,
+  getStockNodeLocationId,
+  isStockNodeDepleted,
+} from "./state-utils";
 
 export type NextScenePreviewResolver = (action: GameAction) => string | undefined;
 
@@ -38,13 +43,17 @@ function buildStoryChoiceFromActionDefinition(
 ): StoryChoice {
   const serverActionHint: GameAction = { type: "content_action", actionId: action.id };
   const standardizedHint = formatOutcomeHint(action.effects, state, action.skillUse);
+  const remainingUses = action.dailyLimit
+    ? getRemainingDailyUses(state, action.dailyLimit)
+    : undefined;
   return {
     id: action.id,
     label: action.label,
     outcomeHint: standardizedHint || action.outcomeHint,
     showOutcomeHint: standardizedHint ? true : action.showOutcomeHint,
+    remainingUses,
     loading: resolveInteractionLoading(action),
-    isAvailable: actionConditionsMet(action, state),
+    isAvailable: actionConditionsMet(action, state) && remainingUses !== 0,
     tags: action.tags,
     conditions: action.conditions,
     effects: action.effects,
@@ -95,12 +104,32 @@ export function resolveStoryFrame(
   };
 }
 
-export function buildActionCatalogFromStoryChoices(storyChoices: StoryChoice[]): ActionChoice[] {
+function choiceStatusLabel(choice: StoryChoice, state?: GameState) {
+  if (!state) {
+    return undefined;
+  }
+
+  const focusEffect = choice.effects?.find((effect) => effect.type === "focus_stock_node");
+  if (!focusEffect || focusEffect.type !== "focus_stock_node") {
+    return undefined;
+  }
+
+  const locationId = getStockNodeLocationId(state, focusEffect.nodeId);
+  return locationId && isStockNodeDepleted(state, locationId, focusEffect.nodeId)
+    ? "탐색 완료"
+    : undefined;
+}
+
+export function buildActionCatalogFromStoryChoices(
+  storyChoices: StoryChoice[],
+  state?: GameState,
+): ActionChoice[] {
   return storyChoices.map((choice) => ({
     id: choice.id,
     label: choice.label,
     outcomeHint: choice.outcomeHint,
     showOutcomeHint: choice.showOutcomeHint,
+    remainingUses: choice.remainingUses,
     loading: resolveInteractionLoading({
       id: choice.id,
       loading: choice.loading,
@@ -109,6 +138,7 @@ export function buildActionCatalogFromStoryChoices(storyChoices: StoryChoice[]):
     craftingRecipe: choice.craftingRecipe,
     action: choice.serverActionHint,
     isAvailable: choice.isAvailable,
+    statusLabel: choiceStatusLabel(choice, state),
     nextSceneId: choice.nextSceneId,
   }));
 }

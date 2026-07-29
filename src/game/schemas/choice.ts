@@ -32,6 +32,7 @@ export const StoryChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  remainingUses: z.number().int().nonnegative().optional(),
   loading: ChoiceLoadingSchema.optional(),
   craftingRecipe: CraftingRecipeSchema.optional(),
   serverActionHint: GameActionSchema,
@@ -51,10 +52,12 @@ export const ActionChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  remainingUses: z.number().int().nonnegative().optional(),
   loading: ChoiceLoadingSchema.optional(),
   craftingRecipe: CraftingRecipeSchema.optional(),
   action: GameActionSchema,
   isAvailable: z.boolean().default(true),
+  statusLabel: z.string().optional(),
   nextSceneId: z.string().optional(),
 });
 

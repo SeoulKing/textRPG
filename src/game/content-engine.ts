@@ -10,7 +10,7 @@ import type {
   SceneDefinition,
   StoryChoice,
 } from "./schemas";
-import { evaluateCondition } from "./state-utils";
+import { evaluateCondition, isStockNodeGone } from "./state-utils";
 import { worldRegistry } from "./data/registry";
 import { formatOutcomeHint } from "./outcome-hint";
 
@@ -148,6 +148,10 @@ export function resolveAvailableActions(
 ): ActionDefinition[] {
   return (location.interactionChoices ?? [])
     .filter((action) => action.locationIds.length === 0 || action.locationIds.includes(location.id))
+    .filter((action) => {
+      const focusEffect = action.effects.find((effect) => effect.type === "focus_stock_node");
+      return !focusEffect || focusEffect.type !== "focus_stock_node" || !isStockNodeGone(state, focusEffect.nodeId);
+    })
     .filter((action) => canPresentAction(action, state));
 }
 

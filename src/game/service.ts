@@ -1022,7 +1022,10 @@ export class GameService {
   }
 
   private buildActionCatalog(session: GameSession, registry = this.runtimeRegistry(session)): ActionChoice[] {
-    return buildActionCatalogFromStoryChoices(this.presentedChoices(session, this.presentedSceneDefinition(session, registry), registry));
+    return buildActionCatalogFromStoryChoices(
+      this.presentedChoices(session, this.presentedSceneDefinition(session, registry), registry),
+      session.state,
+    );
   }
 
   private async ensureLocationCard(session: GameSession, locationId: string, registry: ContentRegistry) {
@@ -1469,7 +1472,7 @@ export class GameService {
     storyChoices: StoryChoice[],
     registry: ContentRegistry,
   ): ActionChoice[] {
-    const actionCatalog = buildActionCatalogFromStoryChoices(storyChoices);
+    const actionCatalog = buildActionCatalogFromStoryChoices(storyChoices, session.state);
     if (!RECIPE_MENU_SCENE_IDS.includes(sceneDef.id)) {
       return actionCatalog;
     }

@@ -16,10 +16,13 @@ import {
   appendLogEntry,
   applyEffect,
   changeSurvivalStat,
+  consumeDailyUse,
   evaluateCondition,
+  getRemainingDailyUses,
   evaluateObjective,
   getStockMoneyKey,
   getStockStateKey,
+  isStockNodeGone,
   isTimeEffect,
 } from "./state-utils";
 import type {
@@ -986,6 +989,13 @@ function executeActionDefinition(
   action: ActionDefinition,
   options: PerformActionOptions,
 ): ExecutionResult {
+  const focusEffect = action.effects.find((effect) => effect.type === "focus_stock_node");
+  if (focusEffect?.type === "focus_stock_node" && isStockNodeGone(state, focusEffect.nodeId)) {
+    throw new Error("이미 모두 수집해 사라진 더미다.");
+  }
+  if (action.dailyLimit && getRemainingDailyUses(state, action.dailyLimit) <= 0) {
+    throw new Error("오늘 가능한 횟수를 모두 사용했다.");
+  }
   if (!actionConditionsMet(action, state)) {
     if (action.presentationMode !== "always") {
       throw new Error("지금은 그 행동을 할 수 없다.");
@@ -1003,6 +1013,9 @@ function executeActionDefinition(
     return executeShelterCookingAction(state, action, options);
   }
   const previousState = structuredClone(state);
+  if (action.dailyLimit) {
+    consumeDailyUse(state, action.dailyLimit);
+  }
   applyDefinitionEffects(state, action.effects, action.skillUse, options);
   awardDefinitionSkillXp(previousState, state, action.skillUse, action.effects);
   if (action.id === "sleep_at_shelter") {

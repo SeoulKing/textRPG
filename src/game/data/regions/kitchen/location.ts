@@ -62,28 +62,12 @@ export const kitchenChoices: ActionDefinition[] = [
     riskHint: "low",
   }),
   interactionFor("kitchen", {
-    id: "ask_kitchen_hospital_rumor",
-    label: "작은 병원 소문을 묻는다",
-    type: "talk",
-    outcomeHint: "20분을 들여 병원으로 이어지는 골목 정보를 듣는다.",
-    showOutcomeHint: true,
-    conditions: [{ type: "flag_not", flag: "hospital_lead_checked" }],
-    effects: [
-      { type: "set_flag", flag: "hospital_lead_checked" },
-      { type: "set_flag", flag: "known_hospital" },
-      { type: "log", message: "배식줄에서 편의점 뒤편 골목을 지나면 작은 병원이 나온다는 말을 들었다." },
-      { type: "advance_time", minutes: 20 },
-    ],
-    nextSceneId: "kitchen_rumor_hospital",
-    tags: ["rumor", "location", "hospital"],
-    riskHint: "low",
-  }),
-  interactionFor("kitchen", {
     id: "help_kitchen_queue",
     label: "배식소 일을 돕는다",
     type: "use",
     outcomeHint: "+6,000원 / +60분",
     showOutcomeHint: true,
+    dailyLimit: { key: "help_kitchen_queue", max: 3 },
     effects: [
       { type: "advance_time", minutes: 60 },
       { type: "change_money", amount: 6000 },
@@ -170,6 +154,7 @@ export const kitchenLocation = defineLocation({
       id: "kitchen_scrap_heap",
       name: "폐자재 더미",
       summary: "배식줄 옆 구석에 찢긴 앞치마와 굽은 금속 부품, 낡은 조리 도구가 한데 얽혀 있다.",
+      depletionBehavior: "disappear",
       items: [
         { itemId: "scrapMetal", initialQuantity: 4 },
         { itemId: "clothScrap", initialQuantity: 4 },
