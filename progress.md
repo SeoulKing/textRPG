@@ -1571,3 +1571,13 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   the required web-game Playwright client completed successfully with installed Chrome.
   focused verification measured exact clock/status alignment at 30px with 4px vertical padding on desktop and 26px with 3px vertical padding at 390px.
   two consecutive rest actions confirmed `06:00 → 06:15 → 06:30`, restarted the 820ms red emphasis each time, restored the original colors, matched `render_game_to_text`, introduced no horizontal overflow, and produced no console/page/resource errors.
+
+- 2026-07-29 home action visibility and travel copy:
+  gave the enabled Continue button the same white surface as New Game and Content Studio a blue surface so both actions stand out against the cover.
+  kept the no-save Continue state on the existing subdued disabled styling by applying the new color only to `:not(:disabled)`.
+  removed the delayed `장면을 준비하는 중…` replacement from region travel; the destination-aware movement message now remains unchanged until travel completes.
+  `node --check app-api.js` and `git diff --check` passed.
+  the bundled web-game Playwright client could not start because `playwright` is not installed; the in-app browser runtime also failed to initialize with `Cannot redefine property: process`, so no dependency was added solely for verification.
+  focused 390px Chrome verification confirmed the disabled no-save Continue appearance, the earlier enabled Continue surface, the blue Content Studio surface, and readable text contrast.
+  a delayed-response travel probe kept `편의점 폐허 쪽으로 이동하는 중…` visible after 1.35 seconds, never showed the removed scene-preparation copy, completed at the convenience store, and produced no console or page errors.
+  follow-up changed enabled Continue from lime to the same white as New Game; verification was intentionally skipped at the user's request.

@@ -15,7 +15,6 @@ const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
 const ACTION_TRANSITION_ACTION_MS = 500;
 const ACTION_TRANSITION_MOVEMENT_MS = 1000;
-const ACTION_TRANSITION_SLOW_MESSAGE_MS = 1200;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
 const TIME_ADVANCE_EMPHASIS_MS = 820;
 const SQRT_3 = Math.sqrt(3);
@@ -323,7 +322,6 @@ const client = {
   pendingActionStatusElement: null,
   pendingActionProgressElement: null,
   pendingActionDisabledControls: [],
-  pendingActionSlowTimer: null,
   actionTransitionMessage: "",
   actionTransitionStartedAt: 0,
   actionTransitionDurationMs: 0,
@@ -747,13 +745,6 @@ function pendingActionControls() {
   ].join(",")));
 }
 
-function updateActionTransitionStatus(message) {
-  client.actionTransitionMessage = message;
-  if (client.pendingActionStatusElement?.isConnected) {
-    client.pendingActionStatusElement.textContent = message;
-  }
-}
-
 function beginActionTransition(action, triggerElement, durationMs, loading = null) {
   const control = triggerElement instanceof Element
     ? triggerElement.closest("button, [role='button']")
@@ -851,20 +842,9 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     visualTarget.classList.toggle("is-choice-surface-pending", usesInlineSurfaceFill);
     client.pendingActionProgressElement = progressTrack;
   }
-
-  client.pendingActionSlowTimer = status
-    ? window.setTimeout(() => {
-        updateActionTransitionStatus("장면을 준비하는 중…");
-      }, ACTION_TRANSITION_SLOW_MESSAGE_MS)
-    : null;
 }
 
 function finishActionTransition() {
-  if (client.pendingActionSlowTimer !== null) {
-    window.clearTimeout(client.pendingActionSlowTimer);
-    client.pendingActionSlowTimer = null;
-  }
-
   client.pendingActionStatusElement?.remove();
   client.pendingActionProgressElement?.remove();
   client.pendingActionSceneElement?.remove();

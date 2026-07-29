@@ -170,7 +170,8 @@ body::before {
   cursor: pointer;
 }
 
-.home-action.primary {
+.home-action.primary,
+#home-continue:not(:disabled) {
   background: #f8fafc;
   color: #16211d;
   border-color: #f8fafc;
@@ -197,15 +198,17 @@ body::before {
   grid-column: 1 / -1;
   align-items: center;
   justify-content: center;
-  border-style: dashed;
-  color: rgba(248, 250, 252, 0.82);
+  border: 1px solid #7dd3fc;
+  background: #7dd3fc;
+  color: #10212a;
+  box-shadow: 0 8px 24px rgba(125, 211, 252, 0.18);
   text-decoration: none;
 }
 
 .home-action.studio::before {
   content: "✦";
   margin-right: 0.45rem;
-  color: #d7f06a;
+  color: #10212a;
 }
 
 .home-action:disabled {
