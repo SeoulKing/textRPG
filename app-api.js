@@ -1597,6 +1597,9 @@ function skipSceneTyping() {
     renderSystemNote(systemNotePayload.note, systemNotePayload.key);
   }
   renderChoices();
+  dom.choices.classList.remove("revealed");
+  void dom.choices.offsetWidth;
+  dom.choices.classList.add("revealed");
   return true;
 }
 

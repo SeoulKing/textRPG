@@ -1603,3 +1603,10 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   bumped the client script query version so browsers fetch the corrected behavior.
   `node --check app-api.js` and `git diff --check` passed.
   focused in-app browser verification at 390px confirmed a same-region shelter scene started at `scrollTop=0` and stayed at `0` after the completed content overflowed the viewport (`scrollHeight=642`, `clientHeight=398`) and four choices appeared; no console errors were reported.
+
+- 2026-07-29 skipped-story choice reveal:
+  skipping an active typewriter now completes only the narrative text immediately and explicitly restarts the existing choice-list `fade-up` animation.
+  the choice reveal keeps the same 220ms timing and motion as an unskipped story completion.
+  bumped the client script query version so browsers fetch the corrected behavior.
+  `node --check app-api.js` and `git diff --check` passed.
+  focused 390px in-app browser verification skipped `prologue_old_woman_visit` mid-sentence and confirmed the completed narrative, one revealed choice, the shared `fade-up` animation at `0.22s`, and no console errors.
