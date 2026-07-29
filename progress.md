@@ -1553,3 +1553,21 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   focused regressions cover thresholds, exact outcome ratios, legacy saves, stock item/cash collection, invalid actions, Lv2 authored-XP versus effective-time behavior, exploration success/failure, level-up notices, and snapshot cards.
   final verification passed: `test:skills` 12/12, `typecheck`, `content:validate`, `build`, `node --check app-api.js`, and `git diff --check`.
   the required web-game Playwright client completed with installed Chrome; focused desktop and 390px checks confirmed Lv1, Lv2, MAX, save/restore, effective `+27분`, original-time `+6 XP`, accessible meters, mobile scrolling, no horizontal overflow, and no console/page/resource errors.
+
+- 2026-07-29 item-use full-card transition restoration:
+  restored the client-enforced 500ms transition for `use_item` actions.
+  item use now reuses the choice-style neutral gray surface fill across the complete inventory card while keeping the card contents above the fill.
+  bumped the client script query version so browsers fetch the restored behavior.
+  `node --check app-api.js` and `git diff --check` passed.
+  the required web-game Playwright client completed successfully with installed Chrome.
+  focused desktop and 390px verification confirmed a single full-card fill, no button-level bar or scene overlay, a 500ms duration, preserved card dimensions, the exact choice gray `rgba(31, 41, 55, 0.12)`, content above the fill, item consumption after completion, no horizontal overflow, and no console/page/resource errors.
+
+- 2026-07-29 clock chip alignment and time-advance emphasis:
+  fixed the clock text line-height so its shared vertical padding resolves to the same desktop and mobile chip heights as the three status controls.
+  added a short red border/background/text emphasis that runs only when `worldElapsedMs` increases, then restores the normal clock appearance.
+  reset the comparison state when returning home, starting a new game, or restoring a save so initial rendering does not flash.
+  bumped the client script query version.
+  `node --check app-api.js` and `git diff --check` passed.
+  the required web-game Playwright client completed successfully with installed Chrome.
+  focused verification measured exact clock/status alignment at 30px with 4px vertical padding on desktop and 26px with 3px vertical padding at 390px.
+  two consecutive rest actions confirmed `06:00 → 06:15 → 06:30`, restarted the 820ms red emphasis each time, restored the original colors, matched `render_game_to_text`, introduced no horizontal overflow, and produced no console/page/resource errors.

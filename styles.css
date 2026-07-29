@@ -466,11 +466,17 @@ a:focus:not(:focus-visible),
 .status-chip strong {
   word-break: keep-all;
   font-size: 0.95rem;
+  line-height: 1;
 }
 
 .status-time {
   justify-content: center;
   white-space: nowrap;
+  color: var(--text);
+}
+
+.status-time.is-time-advanced {
+  animation: status-time-advance-emphasis 820ms ease-out both;
 }
 
 .meter {
@@ -910,12 +916,14 @@ a:focus:not(:focus-visible),
   opacity: 0.56;
 }
 
-.choice-button > :not(.action-transition-progress) {
+.choice-button > :not(.action-transition-progress),
+.inventory-card > :not(.action-transition-progress) {
   position: relative;
   z-index: 4;
 }
 
-.choice-button.is-action-pending.is-choice-surface-pending {
+.choice-button.is-action-pending.is-choice-surface-pending,
+.inventory-card.is-action-pending.is-choice-surface-pending {
   border-color: rgba(31, 41, 55, 0.2) !important;
   background: rgba(31, 41, 55, 0.04) !important;
 }
@@ -989,6 +997,30 @@ a:focus:not(:focus-visible),
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes status-time-advance-emphasis {
+  0% {
+    border-color: var(--line);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: none;
+  }
+
+  18%,
+  46% {
+    border-color: rgba(220, 38, 38, 0.46);
+    background: rgba(220, 38, 38, 0.15);
+    color: #b91c1c;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+  }
+
+  100% {
+    border-color: var(--line);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: none;
   }
 }
 

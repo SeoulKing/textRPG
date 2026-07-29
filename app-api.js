@@ -17,6 +17,7 @@ const ACTION_TRANSITION_ACTION_MS = 500;
 const ACTION_TRANSITION_MOVEMENT_MS = 1000;
 const ACTION_TRANSITION_SLOW_MESSAGE_MS = 1200;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
+const TIME_ADVANCE_EMPHASIS_MS = 820;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
   shelter: { q: 0, r: 0 },
@@ -273,6 +274,7 @@ const dom = {
   mindFill: document.querySelector("#mind-fill"),
   energyStatus: document.querySelector("#energy-status"),
   energyFill: document.querySelector("#energy-fill"),
+  timeStatus: document.querySelector(".status-time"),
   timeIndicator: document.querySelector("#time-indicator"),
   statusPopover: document.querySelector("#status-popover"),
   sceneFrame: document.querySelector(".scene-frame"),
@@ -335,6 +337,8 @@ const client = {
   renderedSystemNoteKey: "",
   renderedStorySurfaceId: "",
   questCelebrationTimer: null,
+  renderedWorldElapsedMs: null,
+  timeAdvanceTimer: null,
 };
 
 const TRANSIENT_SCROLLBAR_HIDE_MS = 700;
@@ -666,6 +670,9 @@ function actionTransitionDurationMs(action, loading = null) {
   if (isMovementAction(action, loading)) {
     return ACTION_TRANSITION_MOVEMENT_MS;
   }
+  if (action?.type === "use_item") {
+    return ACTION_TRANSITION_ACTION_MS;
+  }
   if (action?.type === "subway_expedition" && action.command === "search_loot") {
     return ACTION_TRANSITION_ACTION_MS;
   }
@@ -771,8 +778,8 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
   const isMovement = isMovementAction(action, loading);
   const usesOverlay = usesRegionTravelOverlay(action, loading);
   const message = usesOverlay ? actionTransitionMessage(action, loading) : "";
-  const isChoiceSurface = visualTarget instanceof HTMLElement
-    && visualTarget.matches(".choice-button");
+  const usesInlineSurfaceFill = visualTarget instanceof HTMLElement
+    && visualTarget.matches(".choice-button, .inventory-card");
   const status = message ? document.createElement("p") : null;
   if (status) {
     status.className = "action-transition-status";
@@ -833,7 +840,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
   } else if (visualTarget instanceof HTMLElement) {
     const progressTrack = document.createElement("span");
     progressTrack.className = "action-transition-progress";
-    progressTrack.classList.toggle("is-choice-surface-fill", isChoiceSurface);
+    progressTrack.classList.toggle("is-choice-surface-fill", usesInlineSurfaceFill);
     progressTrack.setAttribute("aria-hidden", "true");
     const progressFill = document.createElement("span");
     progressFill.className = "action-transition-progress-fill";
@@ -841,7 +848,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     progressTrack.appendChild(progressFill);
     visualTarget.appendChild(progressTrack);
     visualTarget.classList.add("is-action-pending");
-    visualTarget.classList.toggle("is-choice-surface-pending", isChoiceSurface);
+    visualTarget.classList.toggle("is-choice-surface-pending", usesInlineSurfaceFill);
     client.pendingActionProgressElement = progressTrack;
   }
 
@@ -1096,6 +1103,7 @@ async function refreshHomeSaveInfo() {
 async function showHomeScreen() {
   stopBackgroundSync();
   clearSceneAnimation();
+  resetTimeAdvancePresentation();
   client.isHomeVisible = true;
   client.gameId = "";
   client.snapshot = null;
@@ -1113,6 +1121,7 @@ async function createNewGame() {
     method: "POST",
     body: {},
   });
+  resetTimeAdvancePresentation();
   client.gameId = snapshot.gameId;
   client.snapshot = snapshot;
   client.lastFetchedAt = Date.now();
@@ -1194,6 +1203,7 @@ async function continueSavedGame() {
       method: "POST",
       body: {},
     });
+    resetTimeAdvancePresentation();
     client.gameId = snapshot.gameId;
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
@@ -1925,6 +1935,31 @@ function applyStatusSeverity(element, value) {
   }
 }
 
+function resetTimeAdvancePresentation() {
+  if (client.timeAdvanceTimer !== null) {
+    window.clearTimeout(client.timeAdvanceTimer);
+    client.timeAdvanceTimer = null;
+  }
+  dom.timeStatus?.classList.remove("is-time-advanced");
+  client.renderedWorldElapsedMs = null;
+}
+
+function emphasizeAdvancedTime() {
+  if (!dom.timeStatus) {
+    return;
+  }
+  if (client.timeAdvanceTimer !== null) {
+    window.clearTimeout(client.timeAdvanceTimer);
+  }
+  dom.timeStatus.classList.remove("is-time-advanced");
+  void dom.timeStatus.offsetWidth;
+  dom.timeStatus.classList.add("is-time-advanced");
+  client.timeAdvanceTimer = window.setTimeout(() => {
+    dom.timeStatus?.classList.remove("is-time-advanced");
+    client.timeAdvanceTimer = null;
+  }, TIME_ADVANCE_EMPHASIS_MS);
+}
+
 function renderStatusBar() {
   const snapshot = currentState();
   if (!snapshot) {
@@ -1953,7 +1988,14 @@ function renderStatusBar() {
   applyStatusSeverity(dom.hpStatus, snapshot.stats.hp);
   applyStatusSeverity(dom.mindStatus, snapshot.stats.mind);
   applyStatusSeverity(dom.energyStatus, snapshot.stats.energy);
+  const nextWorldElapsedMs = Math.max(0, snapshot.worldElapsedMs || 0);
+  const didTimeAdvance = client.renderedWorldElapsedMs !== null
+    && nextWorldElapsedMs > client.renderedWorldElapsedMs;
   dom.timeIndicator.textContent = `${snapshot.day}일차 ${gameClockLabel()}`;
+  client.renderedWorldElapsedMs = nextWorldElapsedMs;
+  if (didTimeAdvance) {
+    emphasizeAdvancedTime();
+  }
 
   if (client.activeStatusPopoverKey) {
     openStatusPopover(client.activeStatusPopoverKey, { toggle: false });
