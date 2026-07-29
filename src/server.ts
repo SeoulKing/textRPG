@@ -26,6 +26,10 @@ import { FileGameRepository, type GameRepository } from "./game/repository";
 import { PostgresGameRepository } from "./game/postgres-repository";
 import { GameService } from "./game/service";
 import { AuthController } from "./auth";
+import {
+  hasGeminiConfig,
+  testGeminiConnection,
+} from "./game/gemini-client";
 
 const app = Fastify({
   logger: true,
@@ -303,6 +307,36 @@ async function bootstrap() {
     ok: true,
     service: "textrpg",
   }));
+
+  app.post("/api/gemini/test", async (_request, reply) => {
+    if (!hasGeminiConfig()) {
+      reply.code(503);
+      return {
+        error: "gemini_not_configured",
+        message: "GEMINI_API_KEY 환경변수가 필요합니다.",
+      };
+    }
+
+    try {
+      const result = await testGeminiConnection();
+      const modelLabel = result.displayName || result.model;
+      return {
+        ok: true,
+        ...result,
+        message: `${modelLabel} 연결 성공 · ${result.latencyMs}ms`,
+      };
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : "Gemini API 연결을 확인하지 못했습니다.";
+      app.log.warn({ message }, "Gemini connection test failed.");
+      reply.code(502);
+      return {
+        error: "gemini_connection_failed",
+        message,
+      };
+    }
+  });
 
   app.get("/api/auth/me", async (request) => {
     return authController.status(request);

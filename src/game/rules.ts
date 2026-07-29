@@ -34,6 +34,7 @@ import type {
   GameState,
   SkillId,
   SkillUse,
+  SystemNoteEntry,
 } from "./schemas";
 import {
   PROGRESSION_SKILLS,
@@ -43,6 +44,7 @@ import {
   getSkillXpForMinutes,
   resolveSkillAdjustedMinutes,
 } from "./skill-progression";
+import { clearSystemNote, setSystemNote } from "./system-note";
 
 const STAT_LABELS = {
   hp: "체력",
@@ -160,7 +162,7 @@ function triggerGameOver(state: GameState, reason: string) {
   }
   state.isGameOver = true;
   state.gameOverReason = reason;
-  state.systemNote = reason;
+  setSystemNote(state, [{ type: "text", text: reason, tone: "negative" }]);
   addLog(state, `생존 실패: ${reason}`);
 }
 
@@ -169,7 +171,11 @@ function triggerStageClear(state: GameState) {
     return;
   }
   state.stageClear = true;
-  state.systemNote = "구조 신호가 닿았다. 멀리서 헬기 소리가 서울의 먼지 낀 하늘을 갈라 온다.";
+  setSystemNote(state, [{
+    type: "text",
+    text: "구조 신호가 닿았다. 멀리서 헬기 소리가 서울의 먼지 낀 하늘을 갈라 온다.",
+    tone: "positive",
+  }]);
   addLog(state, "10일차 아침, 조립한 무전기가 구조대에 좌표를 보냈다. 당신은 구조 신호가 닿았다는 응답을 듣는다.");
 }
 
@@ -192,27 +198,9 @@ function evaluateSurvivalOutcome(state: GameState) {
   }
 }
 
-function formatSignedDelta(value: number, label: string) {
-  const sign = value > 0 ? "+" : "-";
-  return `${sign} ${Math.abs(value)} ${label}`;
-}
-
-function formatElapsedTimeDelta(elapsedMs: number) {
+function elapsedTimeMinutes(elapsedMs: number) {
   const totalMinutes = Math.round((Math.max(0, elapsedMs) / REAL_DAY_MS) * 24 * 60);
-  if (totalMinutes <= 0) {
-    return "";
-  }
-
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const parts: string[] = [];
-  if (hours > 0) {
-    parts.push(`${hours}\uC2DC\uAC04`);
-  }
-  if (minutes > 0) {
-    parts.push(`${minutes}\uBD84`);
-  }
-  return `+ ${parts.join(" ")}`;
+  return Math.max(0, totalMinutes);
 }
 
 function questTitle(state: GameState, questId: string) {
@@ -231,25 +219,43 @@ function locationName(state: GameState, locationId: string) {
   return String(registry.locations[locationId]?.name ?? locationId);
 }
 
-function summarizeSystemNote(previousState: GameState, nextState: GameState, fallback = "") {
+function summarizeSystemNoteEntries(
+  previousState: GameState,
+  nextState: GameState,
+  fallback = "",
+): SystemNoteEntry[] {
   const nextRegistry = buildRuntimeRegistry(nextState);
-  const parts: string[] = [];
+  const entries: SystemNoteEntry[] = [];
 
   if (!previousState.isGameOver && nextState.isGameOver && nextState.gameOverReason) {
-    return nextState.gameOverReason;
+    return [{
+      type: "text",
+      text: nextState.gameOverReason,
+      tone: "negative",
+    }] satisfies SystemNoteEntry[];
   }
 
   if (previousState.location !== nextState.location) {
-    parts.push(`이동: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`);
+    entries.push({
+      type: "text",
+      text: `이동: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`,
+      tone: "neutral",
+    });
   }
 
-  const elapsedTimeNote = formatElapsedTimeDelta(nextState.worldElapsedMs - previousState.worldElapsedMs);
+  const elapsedMinutes = elapsedTimeMinutes(
+    nextState.worldElapsedMs - previousState.worldElapsedMs,
+  );
 
   Object.keys(nextRegistry.locations).forEach((locationId) => {
     const wasKnown = Boolean(previousState.flags[`known_${locationId}`] || previousState.flags[`visited_${locationId}`]);
     const isKnown = Boolean(nextState.flags[`known_${locationId}`] || nextState.flags[`visited_${locationId}`]);
     if (!wasKnown && isKnown) {
-      parts.push(`신규 지역: ${locationName(nextState, locationId)}`);
+      entries.push({
+        type: "text",
+        text: `신규 지역: ${locationName(nextState, locationId)}`,
+        tone: "positive",
+      });
     }
   });
 
@@ -259,14 +265,23 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
       const label = statKey === "mind" && nextState.flags.in_magic_world
         ? "MP"
         : STAT_LABELS[statKey];
-      parts.push(formatSignedDelta(delta, label));
+      entries.push({
+        type: "delta",
+        subject: "stat",
+        label,
+        amount: delta,
+      });
     }
   });
 
   const moneyDelta = nextState.money - previousState.money;
   if (moneyDelta !== 0) {
-    const sign = moneyDelta > 0 ? "+" : "-";
-    parts.push(`${sign} ${Math.abs(moneyDelta)}원`);
+    entries.push({
+      type: "delta",
+      subject: "money",
+      label: "원",
+      amount: moneyDelta,
+    });
   }
 
   const toolIds = new Set<string>([
@@ -280,11 +295,21 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
       return;
     }
     if ((nextState.inventory[itemId] ?? 0) <= 0) {
-      parts.push(`${itemName(nextState, itemId)} 파손`);
+      entries.push({
+        type: "text",
+        text: `${itemName(nextState, itemId)} 파손`,
+        tone: "negative",
+      });
       return;
     }
     if (typeof nextDurability === "number" && nextDurability < previousDurability) {
-      parts.push(`${itemName(nextState, itemId)} 내구도 -${previousDurability - nextDurability}`);
+      entries.push({
+        type: "delta",
+        subject: "durability",
+        label: itemName(nextState, itemId),
+        itemId,
+        amount: -(previousDurability - nextDurability),
+      });
     }
   });
 
@@ -295,7 +320,13 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
   itemIds.forEach((itemId) => {
     const delta = (nextState.inventory[itemId] ?? 0) - (previousState.inventory[itemId] ?? 0);
     if (delta !== 0) {
-      parts.push(formatSignedDelta(delta, itemName(nextState, itemId)));
+      entries.push({
+        type: "delta",
+        subject: "item",
+        label: itemName(nextState, itemId),
+        itemId,
+        amount: delta,
+      });
     }
   });
 
@@ -307,28 +338,44 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
     const previousStatus = previousState.quests[questId];
     const nextStatus = nextState.quests[questId];
     if (previousStatus !== "completed" && nextStatus === "completed") {
-      parts.push(`퀘스트 완료: ${questTitle(nextState, questId)}`);
+      entries.push({
+        type: "text",
+        text: `퀘스트 완료: ${questTitle(nextState, questId)}`,
+        tone: "positive",
+      });
     } else if ((previousStatus === "inactive" || !previousStatus) && nextStatus === "active") {
-      parts.push(`퀘스트 시작: ${questTitle(nextState, questId)}`);
+      entries.push({
+        type: "text",
+        text: `퀘스트 시작: ${questTitle(nextState, questId)}`,
+        tone: "neutral",
+      });
     }
   });
 
   getSkillLevelUps(previousState, nextState).forEach(({ skillId, nextLevel }) => {
-    parts.push(`${PROGRESSION_SKILLS[skillId].name} 숙련도 Lv.${nextLevel} 달성`);
+    entries.push({
+      type: "text",
+      text: `${PROGRESSION_SKILLS[skillId].name} 숙련도 Lv.${nextLevel} 달성`,
+      tone: "positive",
+    });
   });
 
-  if (elapsedTimeNote) {
-    parts.push(elapsedTimeNote);
+  if (elapsedMinutes > 0) {
+    entries.push({ type: "time", minutes: elapsedMinutes });
   }
 
   const stockFocusChanged = previousState.activeStockNodeId !== nextState.activeStockNodeId;
   const previousDiscovered = new Set(previousState.discoveredStockNodeIds || []);
   const stockDiscoveryChanged = (nextState.discoveredStockNodeIds || []).some((nodeId) => !previousDiscovered.has(nodeId));
-  if (parts.length === 0 && (stockFocusChanged || stockDiscoveryChanged)) {
-    return "";
+  if (entries.length === 0 && (stockFocusChanged || stockDiscoveryChanged)) {
+    return [];
   }
 
-  return parts.length > 0 ? parts.join(" / ") : fallback;
+  return entries.length > 0
+    ? entries
+    : fallback
+      ? [{ type: "text", text: fallback, tone: "neutral" }]
+      : [];
 }
 
 function getSkillLevelUps(previousState: GameState, nextState: GameState) {
@@ -351,23 +398,34 @@ export function applySystemNote(previousState: GameState, nextState: GameState, 
   });
 
   if ((nextState.isGameOver || nextState.stageClear) && nextState.systemNote) {
-    const levelUpTokens = skillLevelUps.map(
+    const levelUpEntries: SystemNoteEntry[] = skillLevelUps.map(
       ({ skillId, nextLevel }) =>
-        `${PROGRESSION_SKILLS[skillId].name} 숙련도 Lv.${nextLevel} 달성`,
+        ({
+          type: "text",
+          text: `${PROGRESSION_SKILLS[skillId].name} 숙련도 Lv.${nextLevel} 달성`,
+          tone: "positive",
+        }),
     );
-    if (levelUpTokens.length > 0) {
-      nextState.systemNote = [nextState.systemNote, ...levelUpTokens].join(" / ");
+    if (levelUpEntries.length > 0) {
+      const existingEntries = nextState.systemNoteEntries.length > 0
+        ? nextState.systemNoteEntries
+        : [{
+            type: "text" as const,
+            text: nextState.systemNote,
+            tone: "neutral" as const,
+          }];
+      setSystemNote(nextState, [...existingEntries, ...levelUpEntries]);
     }
     return;
   }
 
-  const nextNote = summarizeSystemNote(previousState, nextState, fallback);
-  if (nextNote) {
-    nextState.systemNote = nextNote;
+  const nextEntries = summarizeSystemNoteEntries(previousState, nextState, fallback);
+  if (nextEntries.length > 0) {
+    setSystemNote(nextState, nextEntries);
     return;
   }
 
-  nextState.systemNote = "";
+  clearSystemNote(nextState);
 }
 
 export function syncScene(state: GameState, preferredSceneId?: string) {
@@ -667,12 +725,14 @@ export function createInitialGameState(): GameState {
       currentFloor: null,
       currentFloorProgress: {
         phase: "event",
+        encounter: null,
         currentResult: null,
         eventResolved: false,
         eventChoiceLabel: "",
         eventOutcome: "",
         searchedLootSpotIds: [],
         floorLoot: {},
+        generationFailure: "",
       },
       runPlan: null,
       storyMemory: {
@@ -683,6 +743,8 @@ export function createInitialGameState(): GameState {
         lastBridge: "",
       },
       preparedNextFloor: null,
+      nextFloorStatus: "idle",
+      nextFloorError: "",
       history: [],
       lastOutcome: "",
     },
@@ -699,6 +761,7 @@ export function createInitialGameState(): GameState {
     exhaustionLevel: 0,
     log: [{ timestampLabel: "1일차 06:00", message: "눈을 뜬 당신은 오늘 하루를 어떻게든 버텨야 한다는 사실부터 떠올린다." }],
     systemNote: "",
+    systemNoteEntries: [],
   };
   refreshLocationKnowledge(state);
   syncScene(state, state.sceneId);

@@ -5,6 +5,7 @@ import { QuestStateSchema } from "./quest";
 import { DynamicWorldRegistrySchema, FrontierStateSchema, NarrativeStateSchema, WorldPlanSchema } from "./dynamic-world";
 import { SubwayExpeditionStateSchema } from "./subway-expedition";
 import { SkillProgressStateSchema } from "./skill-progression";
+import { SystemNoteEntriesSchema } from "./system-note";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -62,6 +63,7 @@ export const GameStateSchema = z.object({
   exhaustionLevel: z.number().int().nonnegative(),
   log: z.array(LogEntrySchema),
   systemNote: z.string(),
+  systemNoteEntries: SystemNoteEntriesSchema.default([]),
 });
 
 export const GameStateV2Schema = z.object({

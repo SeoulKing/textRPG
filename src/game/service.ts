@@ -25,10 +25,24 @@ import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition
 import { applyEffect } from "./state-utils";
 import { buildSkillProgressCards } from "./skill-progression";
 import { buildActionCatalogFromStoryChoices, resolveStoryFrame } from "./story-flow";
+import { setSystemNote } from "./system-note";
+import {
+  acknowledgeSubwayBanditResult,
+  beginSubwayBanditEncounter,
+  beginSubwaySituation,
+  markSubwaySituationGenerationFailed,
+  resolveSubwayBanditChoice,
+  setSubwayEncounterScene,
+} from "./subway-encounter";
+import {
+  generateSubwayEncounterScene,
+  type SubwayEncounterSceneGenerator,
+} from "./subway-encounter-generator";
 import {
   acknowledgeSubwayResult,
   buildSubwayExpeditionActions,
   buildSubwayExpeditionScene,
+  completeSubwayFloor,
   descendSubwayFloor,
   resolveSubwayFloorEvent,
   returnFromSubwayExpedition,
@@ -77,7 +91,13 @@ import type {
   StoryMaterials,
   SubwayRunPlan,
 } from "./schemas";
-import { EventCardSchema, ItemCardSchema, SceneCardSchema, StateSnapshotSchema } from "./schemas";
+import {
+  EventCardSchema,
+  ItemCardSchema,
+  SceneCardSchema,
+  StateSnapshotSchema,
+  SubwayEncounterActionIdSchema,
+} from "./schemas";
 import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from "./world-planner";
 
 function nowIso() {
@@ -290,6 +310,8 @@ export class GameService {
     private readonly repository: GameRepository,
     private readonly templateGenerator: ContentGenerator = createTemplateContentGenerator(),
     private readonly planner: WorldPlanner = createWorldPlanner(),
+    private readonly encounterSceneGenerator: SubwayEncounterSceneGenerator =
+      generateSubwayEncounterScene,
   ) {}
 
   private async withGameMutation<T>(gameId: string, operation: () => Promise<T>) {
@@ -328,12 +350,21 @@ export class GameService {
     if (!currentFloor) {
       return null;
     }
+    const progress = expedition.currentFloorProgress;
+    if (!progress.eventResolved && !progress.encounter?.resolution) {
+      return null;
+    }
     return {
       runNumber: expedition.runNumber,
       sourceFloorId: currentFloor.id,
       targetDepth: currentFloor.depth + 1,
       previousOutcome:
-        `${currentFloor.title}을 탐색 중이다. 다음 층은 현재 사건의 어떤 결과와도 모순되지 않는 인접 구간이다.`,
+        `${currentFloor.title}의 핵심 상황을 해결했다. 실제 결과는 '${
+          expedition.lastOutcome ||
+          progress.eventOutcome ||
+          progress.encounter?.history.at(-1)?.result.summary ||
+          "상황을 해결했다."
+        }'이다.`,
     };
   }
 
@@ -391,12 +422,20 @@ export class GameService {
     if (!context) {
       const changed = expedition.preparedNextFloor !== null;
       expedition.preparedNextFloor = null;
+      expedition.nextFloorStatus = "idle";
+      expedition.nextFloorError = "";
       if (!expedition.active) {
         expedition.runPlan = null;
       }
       return changed;
     }
     if (this.isMatchingPreparedSubwayFloor(session, context)) {
+      const expectedStatus = expedition.active ? "generating" : "ready";
+      if (expedition.nextFloorStatus === "idle") {
+        expedition.nextFloorStatus = expectedStatus;
+        expedition.nextFloorError = "";
+        return true;
+      }
       return false;
     }
 
@@ -425,6 +464,8 @@ export class GameService {
       targetDepth: context.targetDepth,
       llmAttempted: false,
     };
+    expedition.nextFloorStatus = expedition.active ? "generating" : "ready";
+    expedition.nextFloorError = "";
     return true;
   }
 
@@ -435,7 +476,7 @@ export class GameService {
     }
     const expedition = session.state.subwayExpedition;
     const prepared = expedition.preparedNextFloor;
-    if (!prepared || !context) {
+    if (!prepared || !context || expedition.nextFloorStatus !== "ready") {
       return null;
     }
     const runPlan = !expedition.active &&
@@ -500,13 +541,53 @@ export class GameService {
       spec,
       prepared.contextHash,
     )
-      .catch(() => undefined)
+      .catch((error) => this.markSubwayNextFloorFailed(
+        session.id,
+        context,
+        prepared.contextHash,
+        error,
+      ))
       .finally(() => {
         if (this.subwayFloorGenerationTasks.get(taskKey) === task) {
           this.subwayFloorGenerationTasks.delete(taskKey);
         }
       });
     this.subwayFloorGenerationTasks.set(taskKey, task);
+  }
+
+  private async markSubwayNextFloorFailed(
+    gameId: string,
+    context: {
+      runNumber: number;
+      sourceFloorId: string;
+      targetDepth: number;
+    },
+    contextHash: string,
+    error: unknown,
+  ) {
+    await this.withGameMutation(gameId, async () => {
+      const latest = await this.repository.loadGame(gameId);
+      const latestContext = this.subwayPreparationContext(latest.state);
+      const prepared = latest.state.subwayExpedition.preparedNextFloor;
+      if (
+        !latestContext ||
+        latestContext.runNumber !== context.runNumber ||
+        latestContext.sourceFloorId !== context.sourceFloorId ||
+        latestContext.targetDepth !== context.targetDepth ||
+        !prepared ||
+        prepared.contextHash !== contextHash
+      ) {
+        return;
+      }
+      latest.state.subwayExpedition.nextFloorStatus = "failed";
+      latest.state.subwayExpedition.nextFloorError =
+        error instanceof Error ? error.message : String(error);
+      if (context.sourceFloorId === "subway-concourse") {
+        latest.state.subwayExpedition.nextFloorStatus = "ready";
+      }
+      latest.updatedAt = nowIso();
+      await this.repository.saveGame(latest);
+    });
   }
 
   private async preGenerateSubwayNextFloor(
@@ -582,6 +663,8 @@ export class GameService {
         targetDepth: context.targetDepth,
         llmAttempted: true,
       };
+      latest.state.subwayExpedition.nextFloorStatus = "ready";
+      latest.state.subwayExpedition.nextFloorError = "";
       if (isRunStart) {
         latest.state.subwayExpedition.runPlan = structuredClone(runPlan);
       }
@@ -674,12 +757,30 @@ export class GameService {
         if (!prepared) {
           throw new Error("준비된 지하 1층을 불러오지 못했습니다.");
         }
+        const workingState = structuredClone(session.state);
         await startSubwayExpedition(
-          session.state,
+          workingState,
           gameId,
           prepared.floor,
           prepared.runPlan,
         );
+        if (
+          workingState.subwayExpedition.active &&
+          workingState.subwayExpedition.depth === 1 &&
+          workingState.subwayExpedition.currentFloor
+        ) {
+          beginSubwayBanditEncounter(workingState);
+          try {
+            const encounterScene = await this.encounterSceneGenerator({
+              gameId,
+              state: workingState,
+            });
+            setSubwayEncounterScene(workingState, encounterScene);
+          } catch (error) {
+            markSubwaySituationGenerationFailed(workingState, error);
+          }
+        }
+        session.state = workingState;
         await this.repository.appendGenerationLog({
           gameId,
           kind: "subwayFloorPregeneratedCacheHit",
@@ -689,19 +790,58 @@ export class GameService {
           storage: "persistent",
           at: nowIso(),
         });
+      } else if (subwayAction.command === "encounter_choice") {
+        const actionId = SubwayEncounterActionIdSchema.parse(
+          subwayAction.optionId,
+        );
+        const baseState = structuredClone(session.state);
+        const workingState = structuredClone(session.state);
+        const result = resolveSubwayBanditChoice(
+          workingState,
+          actionId,
+          subwayAction.turnNumber,
+        );
+        try {
+          const encounterScene = await this.encounterSceneGenerator({
+            gameId,
+            state: workingState,
+            latestServerResult: result,
+          });
+          setSubwayEncounterScene(workingState, encounterScene);
+          session.state = workingState;
+        } catch (error) {
+          markSubwaySituationGenerationFailed(baseState, error);
+          session.state = baseState;
+        }
+      } else if (subwayAction.command === "acknowledge_encounter") {
+        acknowledgeSubwayBanditResult(session.state);
       } else if (subwayAction.command === "choose" || subwayAction.command === "resolve_event") {
         resolveSubwayFloorEvent(session.state, subwayAction.optionId);
       } else if (subwayAction.command === "acknowledge_result") {
         acknowledgeSubwayResult(session.state);
       } else if (subwayAction.command === "search_loot") {
         searchSubwayLootSpot(session.state, subwayAction.lootSpotId);
+      } else if (subwayAction.command === "finish_floor") {
+        completeSubwayFloor(session.state);
       } else if (subwayAction.command === "descend") {
         this.ensurePreparedSubwayTemplate(session);
         const prepared = this.takePreparedSubwayFloor(session);
         if (!prepared) {
           throw new Error("준비된 다음 지하층을 불러오지 못했습니다.");
         }
-        await descendSubwayFloor(session.state, gameId, prepared.floor);
+        const workingState = structuredClone(session.state);
+        await descendSubwayFloor(workingState, gameId, prepared.floor);
+        beginSubwaySituation(workingState);
+        try {
+          const encounterScene = await this.encounterSceneGenerator({
+            gameId,
+            state: workingState,
+          });
+          setSubwayEncounterScene(workingState, encounterScene);
+        } catch (error) {
+          markSubwaySituationGenerationFailed(workingState, error);
+        }
+        session.state = workingState;
         await this.repository.appendGenerationLog({
           gameId,
           kind: "subwayFloorPregeneratedCacheHit",
@@ -2099,7 +2239,11 @@ export class GameService {
         status: "blocked",
         note: frontier.outcomeHint,
       };
-      session.state.systemNote = "앞쪽 길은 아직 안전하지 않다.";
+      setSystemNote(session.state, [{
+        type: "text",
+        text: "앞쪽 길은 아직 안전하지 않다.",
+        tone: "negative",
+      }]);
       await this.ensureCards(session);
       return this.buildSnapshot(session, this.buildFrontierFallbackEvent(session, frontier), registry);
     }

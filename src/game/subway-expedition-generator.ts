@@ -138,6 +138,11 @@ const zoneByDepth = (
   return "deep_tunnel";
 };
 
+function situationKindByDepth(depth: number) {
+  if (depth === 1) return "combat" as const;
+  return (["hazard", "social", "combat"] as const)[(depth - 2) % 3];
+}
+
 const zoneBrief: Record<SubwayExpeditionFloor["zone"], string> = {
   concourse: "지상의 역 입구와 연결된 대합실·개찰구·안내소.",
   platform: "운행이 끊긴 승강장·계단·스크린도어와 승강장 부속 공간.",
@@ -686,6 +691,7 @@ function compileFloorBundle(
     id,
     depth: input.depth,
     zone: zoneByDepth(input.depth),
+    situationKind: situationKindByDepth(input.depth),
     title: draft.title,
     paragraphs: draft.paragraphs,
     tensionSummary: draft.tensionSummary,
@@ -971,17 +977,18 @@ const FLOOR_SYSTEM_PROMPT = `당신은 붕괴한 서울을 배경으로 하는 �
 1. 요청받은 깊이의 지하철 구간 한 층만 작성하십시오. 대합실과 10일 구조 목표·엔딩을 변경하지 마십시오.
 2. requiredEnvironment가 이번 층의 물리적 배경입니다. 더 깊은 구역을 앞당겨 등장시키지 마십시오.
 3. 초자연 현상, 마법, 괴물, 무한 열차를 사용하지 마십시오. 위험은 붕괴, 침수, 화재, 어둠, 부상, 약탈자, 겁먹은 생존자, 소음, 부족한 자원에서 나옵니다.
-4. 큰 사건은 정확히 1개, 사건 해결 선택지는 2~3개, 파밍 지점은 정확히 3개입니다.
-5. 각 선택지는 clean과 costly 결과 장면을 모두 미리 작성하십시오. 두 장면의 제목·묘사·요약은 실제로 달라야 합니다.
-6. 각 결과의 mechanics 객체는 mechanicsEnvelope의 같은 분류(clean 또는 costly)에 들어 있는 객체 하나를 키와 값까지 그대로 복사하십시오. 수치를 계산·혼합·보정·추가하지 마십시오.
-7. approach는 careful, scavenge, force, observe 중 중복 없이 사용하십시오. 다음 층 이동, 귀환, 파밍을 사건 선택지로 만들지 마십시오.
-8. lootManifest의 slotId를 각각 정확히 한 번 사용하십시오. slotId를 바꾸거나 누락하거나 추가하지 마십시오.
-9. fixedContents는 엔진이 이미 확정한 유일한 보상입니다. 다른 아이템이나 수량을 만들지 말고, resultParagraphs 마지막에 requiredResultLine을 글자 그대로 포함하십시오.
-10. 빈 fixedContents에는 쓸 만한 물자가 없다고 서술하고 requiredResultLine을 그대로 포함하십시오.
-11. 수색 전 description은 내용물을 확정해 노출하지 말고, resultParagraphs에서만 고정 결과를 밝히십시오.
-12. storyBeat와 memoryDelta에는 선택 전 확정되는 내용만 쓰십시오. 선택에 따라 달라지는 기억은 각 outcome의 facts/threads에 쓰십시오.
-13. 이전 사실을 뒤집지 말고, 최근 층과 같은 사건·용기·문장을 반복하지 마십시오.
-14. 모든 플레이어 노출 문장은 자연스러운 한국어로 쓰고 requiredOutputShape에 없는 키를 만들지 마십시오.
+4. expectedSituationKind가 combat이면 적대적인 인간 한 명, social이면 대화로 풀 갈등, hazard이면 붕괴·침수·화재·설비 같은 환경 위험을 큰 사건으로 작성하십시오.
+5. 큰 사건은 정확히 1개, 사건 해결 선택지는 2~3개, 파밍 지점은 정확히 3개입니다.
+6. 각 선택지는 clean과 costly 결과 장면을 모두 미리 작성하십시오. 두 장면의 제목·묘사·요약은 실제로 달라야 합니다.
+7. 각 결과의 mechanics 객체는 mechanicsEnvelope의 같은 분류(clean 또는 costly)에 들어 있는 객체 하나를 키와 값까지 그대로 복사하십시오. 수치를 계산·혼합·보정·추가하지 마십시오.
+8. approach는 careful, scavenge, force, observe 중 중복 없이 사용하십시오. 다음 층 이동, 귀환, 파밍을 사건 선택지로 만들지 마십시오.
+9. lootManifest의 slotId를 각각 정확히 한 번 사용하십시오. slotId를 바꾸거나 누락하거나 추가하지 마십시오.
+10. fixedContents는 엔진이 이미 확정한 유일한 보상입니다. 다른 아이템이나 수량을 만들지 말고, resultParagraphs 마지막에 requiredResultLine을 글자 그대로 포함하십시오.
+11. 빈 fixedContents에는 쓸 만한 물자가 없다고 서술하고 requiredResultLine을 그대로 포함하십시오.
+12. 수색 전 description은 내용물을 확정해 노출하지 말고, resultParagraphs에서만 고정 결과를 밝히십시오.
+13. storyBeat와 memoryDelta에는 선택 전 확정되는 내용만 쓰십시오. 선택에 따라 달라지는 기억은 각 outcome의 facts/threads에 쓰십시오.
+14. 이전 사실을 뒤집지 말고, 최근 층과 같은 사건·용기·문장을 반복하지 마십시오.
+15. 모든 플레이어 노출 문장은 자연스러운 한국어로 쓰고 requiredOutputShape에 없는 키를 만들지 마십시오.
 JSON만 반환하십시오.`;
 
 async function requestValidatedFloorDraft(
@@ -1015,6 +1022,7 @@ async function requestValidatedFloorDraft(
             maxDepth: lootTable.maxDepth,
           },
           expectedZone: zoneByDepth(input.depth),
+          expectedSituationKind: situationKindByDepth(input.depth),
           requiredEnvironment: zoneBrief[zoneByDepth(input.depth)],
           player: {
             hp: input.state.stats.hp,
@@ -1086,23 +1094,24 @@ export async function generateSubwayFloorBundle(
     const draft = await requestValidatedFloorDraft(input);
     return compileFloorBundle(input, draft, "llm");
   } catch (error) {
-    const fallback = buildTemplateFloorDraft(input);
     appendDevLlmTraceForGame(input.gameId, {
       scope: "subway",
-      target: `floor:${input.depth}:fallback`,
-      stage: "fallback",
+      target: `floor:${input.depth}:failed`,
+      stage: "error",
       model: geminiModel(),
-      status: "fallback",
+      status: "error",
       request: JSON.stringify({
         promptVersion: SUBWAY_EXPEDITION_PROMPT_VERSION,
         contextHash: input.contextHash,
         mechanicsEnvelopeHash: input.mechanicsEnvelopeHash,
       }),
-      response: JSON.stringify(fallback, null, 2),
-      message: "지하철 층 생성 또는 수리 검증에 실패해 표시된 템플릿 층을 사용했습니다.",
+      response: "",
+      message: "지하철 층 생성 또는 수리 검증에 실패했습니다.",
       errorReason: generationErrorReason(error),
     });
-    return compileFloorBundle(input, fallback, "template");
+    throw new Error(
+      `지하철 다음 층 생성에 실패했습니다: ${generationErrorReason(error)}`,
+    );
   }
 }
 

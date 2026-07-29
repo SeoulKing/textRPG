@@ -52,6 +52,7 @@ export const ActionChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  postChoiceNarrative: z.array(z.string().min(1).max(600)).min(1).max(2).optional(),
   remainingUses: z.number().int().nonnegative().optional(),
   loading: ChoiceLoadingSchema.optional(),
   craftingRecipe: CraftingRecipeSchema.optional(),

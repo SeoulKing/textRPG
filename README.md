@@ -14,7 +14,9 @@ The seed world is hand-authored around seven fixed regions:
 - subway station
 - checkpoint
 
-The subway station also contains a repeatable deep-expedition mode. The concourse remains authored content, while Gemini can direct a run-local mystery and package each underground floor as one major event, all prewritten choice outcomes, and three loot spots. The engine rolls loot from fixed depth tables and gives the model an exact mechanics envelope; output outside those rules is regenerated up to two times and then replaced by a visibly labeled template floor. A template for the next floor is persisted immediately and upgraded in the background with the same loot and mechanics, so starting or descending never waits for generation. Loot only enters the main inventory after a successful return, and run-local story memory is cleared on return.
+The subway station also contains a repeatable deep-expedition mode. The concourse remains authored content, while Gemini can direct a run-local mystery and package each underground floor as one major event, all prewritten choice outcomes, and three loot spots. Every new run always starts with the bandit encounter on underground floor 1; the generated major event never replaces or skips it. The server owns hit rolls, damage, time, enemy HP, and the fixed reward; Gemini receives the selected action and the authoritative result, then writes the next scene and selects from server-allowed actions. Invalid or failed encounter responses are retried twice, and the game action is not saved if all attempts fail. Defeating the bandit adds one canned food and one pain relief item to temporary expedition loot.
+
+The engine rolls normal floor loot from fixed depth tables and gives the model an exact mechanics envelope; output outside those rules is regenerated up to two times and then replaced by a visibly labeled template floor. A template for the next floor is persisted immediately and upgraded in the background with the same loot and mechanics. Loot only enters the main inventory after a successful return, and run-local story memory is cleared on return.
 
 LLM-led world expansion is deferred. It remains in the codebase as an optional development feature, but normal play uses authored/template content.
 
@@ -92,16 +94,16 @@ The Blueprint uses free Render instances for the first MVP deployment. Upgrade t
 
 ## Optional Gemini Setup
 
-Gemini is not required for normal play.
+Gemini is not required for the authored surface survival loop. The experimental underground-floor-1 bandit encounter requires Gemini and refuses to apply an encounter action when generation remains unavailable after two retries.
 
 Optional settings:
 
 - `ENABLE_LLM_WORLD_PLANNER=true`
-- `ENABLE_LLM_SUBWAY_EXPEDITION=false` to disable LLM subway floors and use built-in fallback floors
+- `ENABLE_LLM_SUBWAY_EXPEDITION=false` to use built-in fallback floors after the mandatory bandit encounter
 - `GEMINI_MODEL`
 - `GEMINI_API_URL`
 
-Default model: `gemini-3.1-flash-lite-preview`
+Default model: `gemini-3.5-flash-lite`
 
 By default, the world planner uses the safe template planner even when `GEMINI_API_KEY` exists.
 

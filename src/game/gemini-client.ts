@@ -26,8 +26,23 @@ type GeminiGenerateResponse = {
   };
 };
 
+type GeminiModelResponse = {
+  name?: string;
+  version?: string;
+  displayName?: string;
+  supportedGenerationMethods?: string[];
+};
+
+export type GeminiConnectionTestResult = {
+  model: string;
+  displayName: string | null;
+  version: string | null;
+  supportsGenerateContent: boolean;
+  latencyMs: number;
+};
+
 const DEFAULT_GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 
 function stripCodeFence(raw: string) {
   return raw
@@ -59,6 +74,50 @@ export function geminiModel() {
   return process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
 }
 
+export async function testGeminiConnection(timeoutMs = 10_000): Promise<GeminiConnectionTestResult> {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY 환경변수가 필요합니다.");
+  }
+
+  const apiUrl = (process.env.GEMINI_API_URL || DEFAULT_GEMINI_API_URL).replace(/\/$/, "");
+  const model = geminiModel().replace(/^models\//, "");
+  const startedAt = Date.now();
+  const response = await fetch(`${apiUrl}/models/${encodeURIComponent(model)}`, {
+    method: "GET",
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: {
+      "x-goog-api-key": apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    let detail = "";
+    if (body) {
+      try {
+        const payload = JSON.parse(body) as { error?: { message?: string } };
+        detail = payload.error?.message?.trim() || "";
+      } catch {
+        detail = body.trim().slice(0, 240);
+      }
+    }
+    throw new Error(
+      `Gemini API 연결 실패 (${response.status})${detail ? `: ${detail}` : ""}`,
+    );
+  }
+
+  const payload = await response.json() as GeminiModelResponse;
+  return {
+    model: payload.name?.replace(/^models\//, "") || model,
+    displayName: payload.displayName?.trim() || null,
+    version: payload.version?.trim() || null,
+    supportsGenerateContent:
+      payload.supportedGenerationMethods?.includes("generateContent") ?? false,
+    latencyMs: Date.now() - startedAt,
+  };
+}
+
 export async function generateGeminiJson<T>(
   systemPrompt: string,
   userPayload: Record<string, unknown>,
@@ -71,6 +130,9 @@ export async function generateGeminiJson<T>(
 
   const apiUrl = (process.env.GEMINI_API_URL || DEFAULT_GEMINI_API_URL).replace(/\/$/, "");
   const model = options.model || geminiModel();
+  const supportsSamplingParameters = !/^gemini-(?:3\.5-flash-lite|3\.6-flash)(?:$|-)/.test(
+    model.replace(/^models\//, ""),
+  );
   const traceRequest = options.trace ? toTraceRequest(userPayload, systemPrompt) : "";
   let traceLogged = false;
 
@@ -93,7 +155,9 @@ export async function generateGeminiJson<T>(
           },
         ],
         generationConfig: {
-          temperature: options.temperature ?? 0.8,
+          ...(supportsSamplingParameters
+            ? { temperature: options.temperature ?? 0.8 }
+            : {}),
           responseMimeType: "application/json",
         },
       }),

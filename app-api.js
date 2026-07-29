@@ -275,6 +275,10 @@ const dom = {
   energyFill: document.querySelector("#energy-fill"),
   timeStatus: document.querySelector(".status-time"),
   timeIndicator: document.querySelector("#time-indicator"),
+  encounterStatus: document.querySelector("#encounter-status"),
+  encounterStatusName: document.querySelector("#encounter-status-name"),
+  encounterHealth: document.querySelector("#encounter-health"),
+  encounterHealthValue: document.querySelector("#encounter-health-value"),
   statusPopover: document.querySelector("#status-popover"),
   sceneFrame: document.querySelector(".scene-frame"),
   sceneArt: document.querySelector("#scene-art"),
@@ -303,6 +307,8 @@ const client = {
   authInfo: null,
   hasUnsavedProgress: false,
   menuStatusMessage: "",
+  geminiTestInFlight: false,
+  geminiTestStatus: null,
   lastFetchedAt: 0,
   syncTimer: null,
   mapHint: "",
@@ -328,8 +334,10 @@ const client = {
   actionTransitionDurationMs: 0,
   sceneRenderToken: 0,
   activeSceneTimer: null,
+  activeSceneTimerResolve: null,
   activeAnimatedStory: null,
   activeAnimatedSystemNote: null,
+  activeStoryAnimationOptions: null,
   isSceneTyping: false,
   justCreatedGame: false,
   renderedSystemNote: "",
@@ -707,8 +715,9 @@ function actionTransitionMessage(action, loading = null) {
       start: "지하 1층으로 내려가는 중…",
       choose: "상황에 대응하는 중…",
       resolve_event: "상황에 대응하는 중…",
+      encounter_choice: "선택 결과를 판정하고 다음 상황을 구성하는 중…",
+      acknowledge_encounter: "상황 결과를 확인하는 중…",
       acknowledge_result: "결과를 정리하는 중…",
-      search_loot: "파밍 지점을 살피는 중…",
       descend: "다음 층으로 내려가는 중…",
       return: "대합실로 돌아가는 중…",
     };
@@ -772,7 +781,11 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
       : control;
   const isMovement = isMovementAction(action, loading);
   const usesOverlay = usesRegionTravelOverlay(action, loading);
-  const message = usesOverlay ? actionTransitionMessage(action, loading) : "";
+  const usesEncounterOverlay = action?.type === "subway_expedition" &&
+    action.command === "encounter_choice";
+  const message = usesOverlay || usesEncounterOverlay
+    ? actionTransitionMessage(action, loading)
+    : "";
   const usesInlineSurfaceFill = visualTarget instanceof HTMLElement
     && visualTarget.matches(".choice-button, .inventory-card, .inventory-detail-slot");
   const status = message ? document.createElement("p") : null;
@@ -1265,6 +1278,42 @@ async function saveCurrentGameFromMenu() {
   }
 }
 
+async function testGeminiConnectionFromMenu() {
+  if (client.geminiTestInFlight) {
+    return;
+  }
+
+  client.geminiTestInFlight = true;
+  client.geminiTestStatus = {
+    type: "pending",
+    message: "Gemini API 연결을 확인하고 있습니다.",
+  };
+  renderPanel();
+
+  try {
+    const result = await api("/api/gemini/test", {
+      method: "POST",
+      body: {},
+    });
+    client.geminiTestStatus = {
+      type: result.supportsGenerateContent ? "success" : "warning",
+      message: result.supportsGenerateContent
+        ? result.message
+        : `${result.message} · generateContent 미지원`,
+    };
+  } catch (error) {
+    client.geminiTestStatus = {
+      type: "error",
+      message: error instanceof Error
+        ? error.message
+        : "Gemini API 연결을 확인하지 못했습니다.",
+    };
+  } finally {
+    client.geminiTestInFlight = false;
+    renderPanel();
+  }
+}
+
 function currentSceneId(snapshot = client.snapshot) {
   return snapshot?.currentScene?.id || "";
 }
@@ -1333,6 +1382,10 @@ function storyAnimationSurfaceId(snapshot) {
   if (isEventStoryActive(snapshot)) {
     return `event:${snapshot.latestEvent.id}`;
   }
+  const expedition = snapshot.state?.subwayExpedition;
+  if (expedition?.active && expedition.currentFloor) {
+    return `subway:${currentSceneId(snapshot)}`;
+  }
   return `scene:${currentSceneDefinitionId(snapshot)}`;
 }
 
@@ -1361,6 +1414,27 @@ function buildStoryDisplay(snapshot) {
     headline: "",
     paragraphs: (snapshot.currentScene.paragraphs || []).filter((paragraph) => String(paragraph).trim()),
   };
+}
+
+function normalizePostChoiceNarrative(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((paragraph) => String(paragraph).trim())
+    .filter(Boolean)
+    .slice(0, 2);
+}
+
+function beginPostChoiceNarrative(paragraphs) {
+  clearSceneAnimation();
+  hideSystemNote();
+  const story = { headline: "", paragraphs };
+  const token = client.sceneRenderToken;
+  return animateStoryText(story, token, null, {
+    append: false,
+    revealChoices: false,
+  });
 }
 
 function currentSceneDefinitionId(snapshot = client.snapshot) {
@@ -1438,7 +1512,7 @@ function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}:${JSON.stringify(choice.postChoiceNarrative || null)}`)
     .join("|");
 }
 
@@ -1454,8 +1528,10 @@ function preserveDisplayedSceneSnapshot(previousSnapshot, nextSnapshot) {
 
 function scheduleSceneStep(callback, delay) {
   return new Promise((resolve) => {
+    client.activeSceneTimerResolve = resolve;
     client.activeSceneTimer = window.setTimeout(() => {
       client.activeSceneTimer = null;
+      client.activeSceneTimerResolve = null;
       callback();
       resolve();
     }, delay);
@@ -1468,8 +1544,14 @@ function clearSceneAnimation() {
     window.clearTimeout(client.activeSceneTimer);
     client.activeSceneTimer = null;
   }
+  if (client.activeSceneTimerResolve) {
+    const resolveActiveStep = client.activeSceneTimerResolve;
+    client.activeSceneTimerResolve = null;
+    resolveActiveStep();
+  }
   client.activeAnimatedStory = null;
   client.activeAnimatedSystemNote = null;
+  client.activeStoryAnimationOptions = null;
   client.isSceneTyping = false;
   dom.sceneFrame.classList.remove("is-story-typing");
 }
@@ -1517,12 +1599,22 @@ async function typeParagraph(paragraphElement, text, token) {
   return token === client.sceneRenderToken;
 }
 
-async function animateStoryText(story, token, systemNotePayload = null) {
+async function animateStoryText(
+  story,
+  token,
+  systemNotePayload = null,
+  options = {},
+) {
+  const append = options.append === true;
+  const revealChoices = options.revealChoices !== false;
   client.activeAnimatedStory = story;
   client.activeAnimatedSystemNote = systemNotePayload;
+  client.activeStoryAnimationOptions = { append, revealChoices };
   client.isSceneTyping = true;
   dom.sceneFrame.classList.add("is-story-typing");
-  dom.sceneText.innerHTML = "";
+  if (!append) {
+    dom.sceneText.innerHTML = "";
+  }
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed");
 
@@ -1532,6 +1624,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
       dom.sceneFrame.classList.remove("is-story-typing");
       client.activeAnimatedStory = null;
       client.activeAnimatedSystemNote = null;
+      client.activeStoryAnimationOptions = null;
       return;
     }
     const headlineElement = document.createElement("p");
@@ -1543,6 +1636,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
       dom.sceneFrame.classList.remove("is-story-typing");
       client.activeAnimatedStory = null;
       client.activeAnimatedSystemNote = null;
+      client.activeStoryAnimationOptions = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1554,6 +1648,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
       dom.sceneFrame.classList.remove("is-story-typing");
       client.activeAnimatedStory = null;
       client.activeAnimatedSystemNote = null;
+      client.activeStoryAnimationOptions = null;
       return;
     }
     const paragraphElement = document.createElement("p");
@@ -1564,6 +1659,7 @@ async function animateStoryText(story, token, systemNotePayload = null) {
       dom.sceneFrame.classList.remove("is-story-typing");
       client.activeAnimatedStory = null;
       client.activeAnimatedSystemNote = null;
+      client.activeStoryAnimationOptions = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1574,16 +1670,24 @@ async function animateStoryText(story, token, systemNotePayload = null) {
     dom.sceneFrame.classList.remove("is-story-typing");
     client.activeAnimatedStory = null;
     client.activeAnimatedSystemNote = null;
+    client.activeStoryAnimationOptions = null;
     if (systemNotePayload?.note) {
-      renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+      renderSystemNote(
+        systemNotePayload.note,
+        systemNotePayload.key,
+        systemNotePayload.entries,
+      );
     }
-    renderChoices();
+    if (revealChoices) {
+      renderChoices();
+    }
   }
 }
 
 function skipSceneTyping() {
   const story = client.activeAnimatedStory;
   const systemNotePayload = client.activeAnimatedSystemNote;
+  const animationOptions = client.activeStoryAnimationOptions || {};
   if (!client.isSceneTyping || !story) {
     return false;
   }
@@ -1591,15 +1695,26 @@ function skipSceneTyping() {
   const headlineBlock = story.headline
     ? `<p class="scene-headline">${escapeHtml(story.headline)}</p>`
     : "";
-  dom.sceneText.innerHTML =
+  const storyHtml =
     headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
-  if (systemNotePayload?.note) {
-    renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+  if (animationOptions.append) {
+    dom.sceneText.insertAdjacentHTML("beforeend", storyHtml);
+  } else {
+    dom.sceneText.innerHTML = storyHtml;
   }
-  renderChoices();
-  dom.choices.classList.remove("revealed");
-  void dom.choices.offsetWidth;
-  dom.choices.classList.add("revealed");
+  if (systemNotePayload?.note) {
+    renderSystemNote(
+      systemNotePayload.note,
+      systemNotePayload.key,
+      systemNotePayload.entries,
+    );
+  }
+  if (animationOptions.revealChoices !== false) {
+    renderChoices();
+    dom.choices.classList.remove("revealed");
+    void dom.choices.offsetWidth;
+    dom.choices.classList.add("revealed");
+  }
   return true;
 }
 
@@ -1746,7 +1861,12 @@ function renderCraftingChoices(snapshot) {
     craftButton.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      submitAction(choice.action, craftButton, choice.loading);
+      submitAction(
+        choice.action,
+        craftButton,
+        choice.loading,
+        choice.postChoiceNarrative,
+      );
     });
 
     card.append(selectButton, craftButton);
@@ -1771,7 +1891,12 @@ function renderCraftingChoices(snapshot) {
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
     button.disabled = client.actionInFlight || choice.isAvailable === false;
-    button.addEventListener("click", () => submitAction(choice.action, button, choice.loading));
+    button.addEventListener("click", () => submitAction(
+      choice.action,
+      button,
+      choice.loading,
+      choice.postChoiceNarrative,
+    ));
     dom.choices.appendChild(fragment);
   });
 }
@@ -1788,26 +1913,101 @@ function isElapsedTimeSystemNoteToken(value) {
   return /^\+\s*(?:(?:\d+시간)(?:\s+\d+분)?|\d+분)$/.test(value);
 }
 
-function renderSystemNote(note, noteKey = "") {
+function structuredSystemNoteToken(entry) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+  if (entry.type === "text" && typeof entry.text === "string") {
+    const toneClass = entry.tone === "positive"
+      ? " is-positive"
+      : entry.tone === "negative"
+        ? " is-negative"
+        : "";
+    return { text: entry.text, className: toneClass };
+  }
+  if (
+    entry.type === "damage" &&
+    typeof entry.target === "string" &&
+    Number.isFinite(entry.amount)
+  ) {
+    return {
+      text: `${entry.target}: ${entry.amount}피해`,
+      className: " is-damage",
+    };
+  }
+  if (entry.type === "time" && Number.isFinite(entry.minutes)) {
+    const hours = Math.floor(entry.minutes / 60);
+    const minutes = entry.minutes % 60;
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}시간`);
+    if (minutes > 0) parts.push(`${minutes}분`);
+    return { text: `+${parts.join(" ")}`, className: "" };
+  }
+  if (
+    entry.type === "delta" &&
+    typeof entry.label === "string" &&
+    Number.isFinite(entry.amount)
+  ) {
+    const sign = entry.amount > 0 ? "+" : "-";
+    const amount = Math.abs(entry.amount);
+    const text = entry.subject === "money"
+      ? `${sign}${amount.toLocaleString("ko-KR")}${entry.label}`
+      : entry.subject === "durability"
+        ? `${entry.label} 내구도 ${sign}${amount}`
+        : `${sign}${amount} ${entry.label}`;
+    return {
+      text,
+      className: entry.amount > 0 ? " is-positive" : " is-negative",
+    };
+  }
+  return null;
+}
+
+function renderSystemNote(note, noteKey = "", entries = []) {
   if (!note) {
     hideSystemNote();
     return;
   }
 
   const changed = note !== client.renderedSystemNote;
-  const parts = note.split(" / ").map((part) => {
-    const trimmed = part.trim();
-    if (isElapsedTimeSystemNoteToken(trimmed)) {
-      return `<span class="system-note-token">${escapeHtml(trimmed)}</span>`;
-    }
-    if (trimmed.startsWith("+")) {
-      return `<span class="system-note-token is-positive">${escapeHtml(trimmed)}</span>`;
-    }
-    if (trimmed.startsWith("-")) {
-      return `<span class="system-note-token is-negative">${escapeHtml(trimmed)}</span>`;
-    }
-    return `<span class="system-note-token">${escapeHtml(trimmed)}</span>`;
-  });
+  const structuredParts = Array.isArray(entries)
+    ? entries.map(structuredSystemNoteToken).filter(Boolean)
+    : [];
+  const parts = structuredParts.length > 0
+    ? structuredParts.map((part) =>
+        `<span class="system-note-token${part.className}">${escapeHtml(part.text)}</span>`
+      )
+    : note.split(" / ").flatMap((part) => {
+        const trimmed = part.trim();
+        const legacyItemParts = trimmed.split(",").map((itemPart) => itemPart.trim());
+        const legacyItems = legacyItemParts.map((itemPart) => {
+          const matched = itemPart.match(/^(.+?)\s+(\d+)개$/);
+          return matched
+            ? { name: matched[1].trim(), amount: Number(matched[2]) }
+            : null;
+        });
+        if (
+          legacyItems.length > 0 &&
+          legacyItems.every((item) => item && item.name && item.amount > 0)
+        ) {
+          return legacyItems.map((item) =>
+            `<span class="system-note-token is-positive">${escapeHtml(`+${item.amount} ${item.name}`)}</span>`
+          );
+        }
+        if (isElapsedTimeSystemNoteToken(trimmed)) {
+          return [`<span class="system-note-token">${escapeHtml(trimmed)}</span>`];
+        }
+        if (/^(?:강도|나):\s*\d+\s*피해$/.test(trimmed)) {
+          return [`<span class="system-note-token is-damage">${escapeHtml(trimmed)}</span>`];
+        }
+        if (trimmed.startsWith("+")) {
+          return [`<span class="system-note-token is-positive">${escapeHtml(trimmed)}</span>`];
+        }
+        if (trimmed.startsWith("-")) {
+          return [`<span class="system-note-token is-negative">${escapeHtml(trimmed)}</span>`];
+        }
+        return [`<span class="system-note-token">${escapeHtml(trimmed)}</span>`];
+      });
 
   dom.systemNote.hidden = false;
   dom.systemNote.innerHTML = parts.join("");
@@ -1950,12 +2150,52 @@ function emphasizeAdvancedTime() {
   }, TIME_ADVANCE_EMPHASIS_MS);
 }
 
+function renderEncounterStatus(state) {
+  const progress = state?.subwayExpedition?.currentFloorProgress;
+  const encounter = progress?.encounter;
+  const isVisible = Boolean(
+    state?.subwayExpedition?.active &&
+    encounter &&
+    ["encounter", "encounter_result"].includes(progress.phase),
+  );
+
+  document.body.classList.toggle("has-active-encounter", isVisible);
+  dom.encounterStatus.hidden = !isVisible;
+  if (!isVisible) {
+    return;
+  }
+
+  const isCombat = Boolean(encounter.enemy);
+  const value = isCombat
+    ? Math.max(0, encounter.enemy.hp)
+    : Math.max(0, encounter.progress || 0);
+  const maxValue = isCombat
+    ? Math.max(1, encounter.enemy.maxHp)
+    : Math.max(1, encounter.targetProgress || 1);
+  const name = isCombat
+    ? encounter.enemy.name
+    : encounter.kind === "social"
+      ? "대화 진행"
+      : "위험 돌파";
+  dom.encounterStatusName.textContent = name;
+  dom.encounterHealth.max = maxValue;
+  dom.encounterHealth.value = Math.min(value, maxValue);
+  dom.encounterHealth.setAttribute(
+    "aria-label",
+    isCombat
+      ? `${name} 체력 ${value} / ${maxValue}`
+      : `${name} ${value} / ${maxValue}`,
+  );
+  dom.encounterHealthValue.textContent = `${value}/${maxValue}`;
+}
+
 function renderStatusBar() {
   const snapshot = currentState();
   if (!snapshot) {
     return;
   }
 
+  renderEncounterStatus(snapshot);
   const hpMax = STATUS_DETAILS.hp.max;
   const mindDetail = statusDetailFor("mind", snapshot);
   const mindMax = mindDetail.max;
@@ -2049,7 +2289,12 @@ function renderChoices() {
     meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
     button.disabled = client.actionInFlight || choice.isAvailable === false;
-    button.addEventListener("click", () => submitAction(choice.action, button, choice.loading));
+    button.addEventListener("click", () => submitAction(
+      choice.action,
+      button,
+      choice.loading,
+      choice.postChoiceNarrative,
+    ));
     dom.choices.appendChild(fragment);
   });
 
@@ -2057,7 +2302,7 @@ function renderChoices() {
   syncMobileChoiceZoneHeight();
 }
 
-function renderScene(animateText = true) {
+function renderScene(animateText = true, appendStory = false) {
   const snapshot = client.snapshot;
   const scene = snapshot?.currentScene;
   const location = currentLocationCard();
@@ -2069,7 +2314,7 @@ function renderScene(animateText = true) {
   const surfaceId = storySurfaceId(snapshot);
   const previousRenderedNoteKey = client.renderedSystemNoteKey;
   const surfaceChanged = Boolean(client.renderedStorySurfaceId && client.renderedStorySurfaceId !== surfaceId);
-  if (surfaceChanged) {
+  if (surfaceChanged && !appendStory) {
     hideSystemNote();
     resetSceneScrollOnMobile();
   }
@@ -2093,16 +2338,24 @@ function renderScene(animateText = true) {
   const isCarriedNoteAfterSurfaceChange =
     surfaceChanged && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
   const systemNotePayload = systemNote && !isCarriedNoteAfterSurfaceChange
-    ? { key: currentSystemNoteKey, note: systemNote }
+    ? {
+        key: currentSystemNoteKey,
+        note: systemNote,
+        entries: snapshot.state.systemNoteEntries || [],
+      }
     : null;
   const isSameRenderedSurface =
     client.renderedStorySurfaceId === surfaceId && dom.sceneText.childElementCount > 0;
   client.renderedStorySurfaceId = surfaceId;
 
-  if (isSameRenderedSurface) {
+  if (isSameRenderedSurface && !appendStory) {
     if (!client.isSceneTyping) {
       if (systemNotePayload?.note) {
-        renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+        renderSystemNote(
+          systemNotePayload.note,
+          systemNotePayload.key,
+          systemNotePayload.entries,
+        );
       }
       renderChoices();
     }
@@ -2114,17 +2367,29 @@ function renderScene(animateText = true) {
     const headlineBlock = story.headline
       ? `<p class="scene-headline">${escapeHtml(story.headline)}</p>`
       : "";
-    dom.sceneText.innerHTML =
+    const storyHtml =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
+    if (appendStory) {
+      dom.sceneText.insertAdjacentHTML("beforeend", storyHtml);
+    } else {
+      dom.sceneText.innerHTML = storyHtml;
+    }
     if (systemNotePayload?.note) {
-      renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+      renderSystemNote(
+        systemNotePayload.note,
+        systemNotePayload.key,
+        systemNotePayload.entries,
+      );
     }
     renderChoices();
     return;
   }
 
   const token = client.sceneRenderToken;
-  animateStoryText(story, token, systemNotePayload);
+  animateStoryText(story, token, systemNotePayload, {
+    append: appendStory,
+    revealChoices: true,
+  });
 }
 
 function locationMap() {
@@ -3002,6 +3267,14 @@ function renderMenuPanel() {
   const statusMessage = client.menuStatusMessage
     ? `<p class="menu-status-message">${escapeHtml(client.menuStatusMessage)}</p>`
     : "";
+  const geminiStatus = client.geminiTestStatus
+    ? `
+      <p
+        class="menu-api-status ${escapeHtml(client.geminiTestStatus.type)}"
+        role="status"
+      >${escapeHtml(client.geminiTestStatus.message)}</p>
+    `
+    : "";
   dom.panelContent.innerHTML = `
     <div class="menu-actions">
       <div class="menu-save-card">
@@ -3021,6 +3294,15 @@ function renderMenuPanel() {
       <button class="menu-action" data-menu-action="item-codex" type="button">
         <span>아이템 도감</span>
       </button>
+      <button
+        class="menu-action"
+        data-menu-action="test-gemini"
+        type="button"
+        ${client.geminiTestInFlight ? 'disabled aria-busy="true"' : ""}
+      >
+        <span>${client.geminiTestInFlight ? "Gemini 연결 확인 중…" : "Gemini API 연결 테스트"}</span>
+      </button>
+      ${geminiStatus}
       <button class="menu-action danger" data-menu-action="new-game" type="button">
         <span>새 게임</span>
       </button>
@@ -3069,13 +3351,21 @@ function render(options = {}) {
     return;
   }
   renderStatusBar();
-  renderScene(options.animateScene !== false);
+  renderScene(
+    options.animateScene !== false,
+    options.appendScene === true,
+  );
   renderPanel();
   renderGameOverScreen();
   client.justCreatedGame = false;
 }
 
-async function submitAction(action, triggerElement = null, loading = null) {
+async function submitAction(
+  action,
+  triggerElement = null,
+  loading = null,
+  postChoiceNarrative = null,
+) {
   if (!client.gameId || client.actionInFlight) {
     return;
   }
@@ -3085,7 +3375,11 @@ async function submitAction(action, triggerElement = null, loading = null) {
   }
   client.actionInFlight = true;
   client.pendingAction = action;
-  const transitionDurationMs = actionTransitionDurationMs(action, loading);
+  const immediateNarrative = normalizePostChoiceNarrative(postChoiceNarrative);
+  const hasImmediateNarrative = immediateNarrative.length > 0;
+  const transitionDurationMs = hasImmediateNarrative
+    ? 0
+    : actionTransitionDurationMs(action, loading);
   const shouldShowTransition = transitionDurationMs > 0;
   if (isMovementAction(action, loading)) {
     client.isPanelOpen = false;
@@ -3096,6 +3390,9 @@ async function submitAction(action, triggerElement = null, loading = null) {
     beginActionTransition(action, triggerElement, transitionDurationMs, loading);
   }
   const previousSnapshot = client.snapshot;
+  const immediateNarrativePromise = hasImmediateNarrative
+    ? beginPostChoiceNarrative(immediateNarrative)
+    : Promise.resolve();
   try {
     const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
@@ -3113,6 +3410,7 @@ async function submitAction(action, triggerElement = null, loading = null) {
     if (error) {
       throw error;
     }
+    await immediateNarrativePromise;
     if (needsFreshGame(snapshot)) {
       finishActionTransition();
       await createNewGame();
@@ -3141,11 +3439,14 @@ async function submitAction(action, triggerElement = null, loading = null) {
     client.actionInFlight = false;
     client.pendingAction = null;
     render({
-      animateScene: shouldAnimateScene({
-        source: "action",
-        previousSnapshot,
-        nextSnapshot: snapshot,
-      }),
+      animateScene: hasImmediateNarrative
+        ? true
+        : shouldAnimateScene({
+            source: "action",
+            previousSnapshot,
+            nextSnapshot: snapshot,
+          }),
+      appendScene: hasImmediateNarrative,
     });
     showQuestCompletionBurst(newlyCompletedQuests);
     if (didMove) {
@@ -3153,6 +3454,8 @@ async function submitAction(action, triggerElement = null, loading = null) {
     }
   } catch (error) {
     window.alert(error instanceof Error ? error.message : "액션 처리에 실패했습니다.");
+    clearSceneAnimation();
+    client.renderedStorySurfaceId = "";
     finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
@@ -3469,6 +3772,10 @@ dom.panelContent.addEventListener("click", (event) => {
     client.activePanel = "itemCodex";
     client.isPanelOpen = true;
     renderPanel();
+    return;
+  }
+  if (action === "test-gemini") {
+    testGeminiConnectionFromMenu();
     return;
   }
   if (action === "new-game") {

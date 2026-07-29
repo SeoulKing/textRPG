@@ -2,6 +2,8 @@ import { baseItems } from "./data/items";
 import { itemTextReference } from "./item-text";
 import { advanceGameMinutes, syncClock } from "./rules";
 import { appendLogEntry, changeSurvivalStat } from "./state-utils";
+import { clearSystemNote, setSystemNote } from "./system-note";
+import { subwaySituationActionCatalog } from "./subway-encounter";
 import {
   buildTemplateSubwayFloorBundle,
   buildTemplateSubwayRunPlan,
@@ -38,12 +40,14 @@ function addCarriedLoot(state: GameState, itemId: string, amount: number) {
 function resetFloorProgress(state: GameState) {
   state.subwayExpedition.currentFloorProgress = {
     phase: "event",
+    encounter: null,
     currentResult: null,
     eventResolved: false,
     eventChoiceLabel: "",
     eventOutcome: "",
     searchedLootSpotIds: [],
     floorLoot: {},
+    generationFailure: "",
   };
 }
 
@@ -118,15 +122,18 @@ function mergeFloorMemory(
 
 function currentFloorPhase(progress: SubwayFloorProgress) {
   // Saves made before explicit phases existed default to "event" on parse.
-  // Treat an already-resolved legacy event as the loot phase.
+  // Treat resolved legacy cleanup states as complete now that cleanup is deferred.
   if (progress.phase === "event" && progress.eventResolved && !progress.currentResult) {
-    return "loot" as const;
+    return "complete" as const;
+  }
+  if (progress.phase === "loot") {
+    return "complete" as const;
   }
   if (
     (progress.phase === "event_result" || progress.phase === "loot_result") &&
     !progress.currentResult
   ) {
-    return progress.eventResolved ? "loot" as const : "event" as const;
+    return progress.eventResolved ? "complete" as const : "event" as const;
   }
   return progress.phase;
 }
@@ -343,6 +350,8 @@ function cleanupFailedExpedition(state: GameState) {
   state.subwayExpedition.runPlan = null;
   state.subwayExpedition.storyMemory = emptyStoryMemory();
   state.subwayExpedition.preparedNextFloor = null;
+  state.subwayExpedition.nextFloorStatus = "idle";
+  state.subwayExpedition.nextFloorError = "";
   state.subwayExpedition.lastOutcome = "탐험 도중 쓰러져 전리품을 잃었다.";
 }
 
@@ -381,8 +390,8 @@ function currentFloorSettlement(state: GameState) {
 export function subwayReturnCost(state: GameState) {
   const depth = Math.max(1, state.subwayExpedition.depth);
   return {
-    minutes: Math.min(240, 20 + depth * 12),
-    energy: Math.max(1, Math.ceil(depth / 4)),
+    minutes: depth * 5,
+    energy: 0,
   };
 }
 
@@ -402,10 +411,6 @@ export async function startSubwayExpedition(
   if (state.subwayExpedition.active) {
     throw new Error("이미 지하철 심층부를 탐험하고 있습니다.");
   }
-  if (state.stats.energy < 1) {
-    throw new Error("지하 1층으로 내려갈 기력이 부족합니다.");
-  }
-
   const deepestDepth = state.subwayExpedition.deepestDepth;
   const runNumber = state.subwayExpedition.runNumber + 1;
   const runPlan = structuredClone(
@@ -421,21 +426,24 @@ export async function startSubwayExpedition(
     currentFloor: null,
     currentFloorProgress: {
       phase: "event",
+      encounter: null,
       currentResult: null,
       eventResolved: false,
       eventChoiceLabel: "",
       eventOutcome: "",
       searchedLootSpotIds: [],
       floorLoot: {},
+      generationFailure: "",
     },
     runPlan,
     storyMemory: storyMemoryFromPlan(runPlan),
     preparedNextFloor: null,
+    nextFloorStatus: "idle",
+    nextFloorError: "",
     history: [],
     lastOutcome: "대합실에서 장비를 확인한 뒤 지하 1층으로 내려왔다.",
   };
-  changeSurvivalStat(state, "energy", -1);
-  advanceGameMinutes(state, 30);
+  advanceGameMinutes(state, 10);
   if (state.isGameOver || state.stageClear) {
     cleanupFailedExpedition(state);
     return;
@@ -451,7 +459,10 @@ export async function startSubwayExpedition(
     );
   state.subwayExpedition.currentFloor = firstFloor;
   mergeFloorMemory(state.subwayExpedition.storyMemory, firstFloor);
-  state.systemNote = "지하 1층 진입 / 기력 -1 / +30분";
+  setSystemNote(state, [
+    { type: "text", text: "지하 1층 진입", tone: "neutral" },
+    { type: "time", minutes: 10 },
+  ]);
   addLog(state, "지하철 대합실에서 준비를 마치고 지하 1층으로 내려갔다.");
 }
 
@@ -505,7 +516,11 @@ export function resolveSubwayFloorEvent(
   };
   mergeOutcomeMemory(expedition.storyMemory, outcome);
   expedition.lastOutcome = `${floor.majorEvent.title} 해결: ${option.label} / ${outcome.summary}`;
-  state.systemNote = `큰 사건 해결 / ${outcome.summary} / ${mechanics}`;
+  setSystemNote(state, [
+    { type: "text", text: "큰 사건 해결", tone: "neutral" },
+    { type: "text", text: outcome.summary, tone: "neutral" },
+    { type: "text", text: mechanics, tone: "neutral" },
+  ]);
   addLog(
     state,
     `지하 ${floor.depth}층의 '${floor.majorEvent.title}'을 해결했다. ${outcome.summary} (${mechanics})`,
@@ -522,8 +537,27 @@ export function acknowledgeSubwayResult(state: GameState) {
   if (phase !== "event_result" && phase !== "loot_result") {
     throw new Error("확인할 지하철 탐험 결과가 없습니다.");
   }
-  progress.phase = "loot";
+  progress.eventResolved = true;
+  progress.phase = "complete";
   progress.currentResult = null;
+}
+
+export function completeSubwayFloor(state: GameState) {
+  const expedition = state.subwayExpedition;
+  const progress = expedition.currentFloorProgress;
+  if (!expedition.active || !expedition.currentFloor) {
+    throw new Error("진행 중인 지하철 심층 탐험이 없습니다.");
+  }
+  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete") {
+    throw new Error("핵심 상황을 먼저 해결해야 합니다.");
+  }
+  progress.phase = "complete";
+  progress.currentResult = null;
+  clearSystemNote(state);
+  addLog(
+    state,
+    `지하 ${expedition.currentFloor.depth}층 정리를 마치고 다음 이동 경로를 결정했다.`,
+  );
 }
 
 export function searchSubwayLootSpot(
@@ -537,7 +571,7 @@ export function searchSubwayLootSpot(
   if (!expedition.active || !floor) {
     throw new Error("진행 중인 지하철 심층 탐험이 없습니다.");
   }
-  if (!progress.eventResolved || currentFloorPhase(progress) !== "loot") {
+  if (!progress.eventResolved || progress.phase !== "loot") {
     throw new Error("이 층의 큰 사건을 먼저 해결해야 파밍할 수 있습니다.");
   }
   const spot = floor.lootSpots.find((entry) => entry.id === lootSpotId);
@@ -584,7 +618,20 @@ export function searchSubwayLootSpot(
     source: generatedResultParagraphs?.length ? floor.source : "template",
     lootSpotId: spot.id,
   };
-  state.systemNote = `${spot.name} 수색 / ${found} / +${minutes}분`;
+  setSystemNote(state, [
+    { type: "text", text: `${spot.name} 수색`, tone: "neutral" },
+    ...spot.contents.map((entry) => ({
+      type: "delta" as const,
+      subject: "item" as const,
+      label: itemName(entry.itemId),
+      itemId: entry.itemId,
+      amount: entry.amount,
+    })),
+    ...(spot.contents.length === 0
+      ? [{ type: "text" as const, text: found, tone: "neutral" as const }]
+      : []),
+    { type: "time", minutes },
+  ]);
   addLog(state, `지하 ${floor.depth}층의 ${spot.name}을 수색했다. ${found}`);
 }
 
@@ -600,25 +647,22 @@ export async function descendSubwayFloor(
   if (!expedition.active || !floor) {
     throw new Error("진행 중인 지하철 심층 탐험이 없습니다.");
   }
-  if (!progress.eventResolved || currentFloorPhase(progress) !== "loot") {
-    throw new Error("이 층의 큰 사건을 먼저 해결해야 내려갈 수 있습니다.");
+  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete") {
+    throw new Error("이 층의 핵심 상황이 끝난 뒤 내려갈 수 있습니다.");
   }
 
   const settlement = currentFloorSettlement(state);
-  const settlementText = settlement.unsearched > 0
-    ? `${settlement.loot} / 미수색 ${settlement.unsearched}곳`
-    : settlement.loot;
+  const floorLootEntries = Object.entries(progress.floorLoot)
+    .filter(([, amount]) => amount > 0);
   expedition.history.push({
     depth: floor.depth,
     title: floor.title,
     choiceLabel: progress.eventChoiceLabel,
-    outcome: `${progress.eventOutcome} / 층 보상: ${settlementText}`,
+    outcome: `${progress.eventOutcome} / 이번 층 획득: ${settlement.loot}`,
   });
   expedition.history = expedition.history.slice(-12);
 
-  const resultParts: string[] = [];
-  applyEnergyCost(state, 1, resultParts);
-  advanceGameMinutes(state, 20);
+  advanceGameMinutes(state, 15);
   syncClock(state);
   if (state.isGameOver || state.stageClear || state.stats.hp <= 0) {
     cleanupFailedExpedition(state);
@@ -632,10 +676,12 @@ export async function descendSubwayFloor(
     Number(state.flags.subway_deepest_depth ?? 0),
     nextDepth,
   );
-  expedition.lastOutcome = `지하 ${floor.depth}층 정산: ${settlementText}`;
+  expedition.lastOutcome = `지하 ${floor.depth}층 정산: ${settlement.loot}`;
   resetFloorProgress(state);
   const cachedNextFloor = expedition.preparedNextFloor;
   expedition.preparedNextFloor = null;
+  expedition.nextFloorStatus = "idle";
+  expedition.nextFloorError = "";
   const cachedFloor = cachedNextFloor &&
     (!cachedNextFloor.floor.contextHash ||
       cachedNextFloor.floor.contextHash === cachedNextFloor.contextHash)
@@ -662,8 +708,19 @@ export async function descendSubwayFloor(
   expedition.storyMemory.lastBridge = "";
   expedition.currentFloor = nextFloor;
   mergeFloorMemory(expedition.storyMemory, nextFloor);
-  state.systemNote = `지하 ${floor.depth}층 정산 / ${settlementText} / 기력 -1 / 지하 ${nextDepth}층 진입`;
-  addLog(state, `지하 ${floor.depth}층 탐색을 마쳤다. ${settlementText}`);
+  setSystemNote(state, [
+    { type: "text", text: `지하 ${floor.depth}층 정산`, tone: "neutral" },
+    ...floorLootEntries.map(([itemId, amount]) => ({
+      type: "delta" as const,
+      subject: "item" as const,
+      label: itemName(itemId),
+      itemId,
+      amount,
+    })),
+    { type: "time", minutes: 15 },
+    { type: "text", text: `지하 ${nextDepth}층 진입`, tone: "neutral" },
+  ]);
+  addLog(state, `지하 ${floor.depth}층 탐색을 마쳤다. ${settlement.loot}`);
 }
 
 export function returnFromSubwayExpedition(state: GameState) {
@@ -675,8 +732,6 @@ export function returnFromSubwayExpedition(state: GameState) {
 
   const reachedDepth = expedition.depth;
   const returnCost = subwayReturnCost(state);
-  const resultParts: string[] = [];
-  applyEnergyCost(state, returnCost.energy, resultParts);
   advanceGameMinutes(state, returnCost.minutes);
   syncClock(state);
 
@@ -696,12 +751,27 @@ export function returnFromSubwayExpedition(state: GameState) {
   expedition.runPlan = null;
   expedition.storyMemory = emptyStoryMemory();
   expedition.preparedNextFloor = null;
+  expedition.nextFloorStatus = "idle";
+  expedition.nextFloorError = "";
   expedition.lastOutcome = state.isGameOver
     ? "귀환 도중 쓰러져 전리품을 잃었다."
     : `지하 ${reachedDepth}층에서 귀환했다. ${lootSummary}`;
-  state.systemNote = state.isGameOver
-    ? state.gameOverReason
-    : `탐험 귀환 / ${lootSummary} / 기력 -${returnCost.energy} / +${returnCost.minutes}분`;
+  setSystemNote(
+    state,
+    state.isGameOver
+      ? [{ type: "text", text: state.gameOverReason, tone: "negative" }]
+      : [
+          { type: "text", text: "탐험 귀환", tone: "neutral" },
+          ...lootEntries.map(([itemId, amount]) => ({
+            type: "delta" as const,
+            subject: "item" as const,
+            label: itemName(itemId),
+            itemId,
+            amount,
+          })),
+          { type: "time", minutes: returnCost.minutes },
+        ],
+  );
   addLog(
     state,
     state.isGameOver
@@ -715,7 +785,7 @@ function returnAction(state: GameState): ActionChoice {
   return {
     id: "return-from-subway-expedition",
     label: "탐험을 끝내고 대합실로 돌아간다",
-    outcomeHint: `-${cost.energy} 기력 / ${lootRecordHint(state.subwayExpedition.carriedLoot)} / +${cost.minutes}분`,
+    outcomeHint: `+${cost.minutes}분`,
     showOutcomeHint: true,
     action: {
       type: "subway_expedition",
@@ -734,13 +804,62 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
   }
 
   const phase = currentFloorPhase(progress);
+  if (phase === "encounter") {
+    const encounter = progress.encounter;
+    if (!encounter?.currentScene) {
+      return [];
+    }
+    const hintByToken = new Map(
+      subwaySituationActionCatalog(state, encounter).map((entry) => [
+        entry.actionToken,
+        entry.mechanicalHint,
+      ]),
+    );
+    return encounter.currentScene.choices.map((choice) => ({
+      id: `${encounter.id}:${encounter.turnNumber}:${choice.actionToken}`,
+      label: choice.actionToken === "fight" ? "기습한다" : choice.label,
+      outcomeHint: hintByToken.get(choice.actionToken) ?? "",
+      showOutcomeHint: false,
+      postChoiceNarrative: choice.postChoiceNarrative,
+      action: {
+        type: "subway_expedition" as const,
+        command: "encounter_choice" as const,
+        optionId: choice.actionToken,
+        turnNumber: encounter.turnNumber,
+      },
+      loading: {
+        durationMs: 650,
+      },
+      isAvailable: true,
+    }));
+  }
+
+  if (phase === "encounter_result") {
+    const encounter = progress.encounter;
+    if (!encounter?.resolution || encounter.resolution === "player_defeated") {
+      return [];
+    }
+    return [{
+      id: `acknowledge-${encounter.id}-${encounter.turnNumber}`,
+      label: "상황 결과를 확인한다",
+      outcomeHint: "현재 층의 이동 경로를 결정합니다.",
+      showOutcomeHint: false,
+      action: {
+        type: "subway_expedition",
+        command: "acknowledge_encounter",
+        turnNumber: encounter.turnNumber,
+      },
+      isAvailable: true,
+    }];
+  }
+
   if (phase === "event_result" || phase === "loot_result") {
     const eventResult = progress.currentResult?.kind === "event";
     return [{
       id: `acknowledge-${phase}`,
       label: eventResult
-        ? "결과를 확인하고 주변을 수색한다"
-        : "수색 결과를 확인하고 계속한다",
+        ? "결과를 확인한다"
+        : "수색 결과를 확인한다",
       outcomeHint: "추가 비용 없이 탐험 화면으로 돌아갑니다.",
       showOutcomeHint: false,
       action: {
@@ -778,47 +897,28 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
     ];
   }
 
-  if (phase !== "loot") {
+  if (phase === "generation_failed") {
     return [returnAction(state)];
   }
 
-  const lootActions: ActionChoice[] = floor.lootSpots
-    .filter((spot) => !progress.searchedLootSpotIds.includes(spot.id))
-    .map((spot) => ({
-      id: spot.id,
-      label: `${spot.name}을 수색한다`,
-      outcomeHint: spot.searchHint,
+  if (phase === "complete") {
+    const descendAction: ActionChoice = {
+      id: "descend-subway-floor",
+      label: "다음 층으로 내려간다",
+      outcomeHint: "+15분",
       showOutcomeHint: true,
       action: {
         type: "subway_expedition",
-        command: "search_loot",
-        lootSpotId: spot.id,
+        command: "descend",
       },
-      isAvailable: true,
-    }));
-  const settlement = currentFloorSettlement(state);
-  lootActions.push({
-    id: "descend-subway-floor",
-    label: `지하 ${floor.depth}층을 정산하고 다음 층으로 내려간다`,
-    outcomeHint: `-1 기력 / ${lootRecordHint(progress.floorLoot)} / 미수색 ${settlement.unsearched}곳 / +20분`,
-    showOutcomeHint: true,
-    action: {
-      type: "subway_expedition",
-      command: "descend",
-    },
-    isAvailable: true,
-  });
-  lootActions.push(returnAction(state));
-  return lootActions;
-}
+      isAvailable: expedition.nextFloorStatus === "ready",
+    };
+    return expedition.nextFloorStatus === "failed"
+      ? [returnAction(state)]
+      : [descendAction, returnAction(state)];
+  }
 
-function lootSpotStatusParagraphs(state: GameState, floor: SubwayExpeditionFloor) {
-  const searched = new Set(state.subwayExpedition.currentFloorProgress.searchedLootSpotIds);
-  return floor.lootSpots.map((spot) =>
-    searched.has(spot.id)
-      ? `[수색 완료] ${spot.name}: 더 챙길 만한 것은 남아 있지 않다.`
-      : `[파밍 지점] ${spot.name}: ${spot.description}`
-  );
+  return [returnAction(state)];
 }
 
 export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
@@ -850,6 +950,33 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
     ])),
   };
 
+  const encounter = progress.encounter;
+  const encounterScene = encounter?.currentScene;
+  if (
+    (phase === "encounter" || phase === "encounter_result" || phase === "complete") &&
+    encounter &&
+    encounterScene
+  ) {
+    return {
+      id: `${floor.id}:encounter:${encounter.id}:${encounter.turnNumber}`,
+      locationId: "subway",
+      title: `지하 ${floor.depth}층 · ${encounterScene.title}`,
+      paragraphs: [...encounterScene.paragraphs],
+      choices,
+      materialIds: {
+        ...materialIds,
+        itemIds: encounter.rewardGranted
+          ? Array.from(new Set([
+              ...materialIds.itemIds,
+              ...encounter.rewardItems.map((entry) => entry.itemId),
+            ]))
+          : materialIds.itemIds,
+      },
+      source: "llm",
+      generatedAt: encounterScene.generatedAt,
+    };
+  }
+
   if (
     (phase === "event_result" || phase === "loot_result") &&
     progress.currentResult
@@ -878,12 +1005,23 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
     };
   }
 
-  const phaseParagraphs = phase === "loot"
+  const phaseParagraphs = phase === "complete"
     ? [
-        `[사건 해결] ${floor.majorEvent.title}: ${progress.eventOutcome}`,
-        ...lootSpotStatusParagraphs(state, floor),
+        progress.encounter?.resolution
+          ? `[상황 해결] ${progress.encounter.kind}: ${progress.eventOutcome}`
+          : `[사건 해결] ${floor.majorEvent.title}: ${progress.eventOutcome}`,
         `현재 층 획득: ${lootRecordSummary(progress.floorLoot)}. 전체 임시 전리품: ${carriedLootSummary(state)}.`,
+        expedition.nextFloorStatus === "failed"
+          ? "다음 층 장면을 생성하지 못했다. 확보한 전리품을 가지고 대합실로 귀환할 수 있다."
+          : expedition.nextFloorStatus === "ready"
+            ? "주변의 소란이 가라앉았다. 다음 층으로 내려가거나 대합실로 귀환할 수 있다."
+            : "주변의 소란이 가라앉았다. 다음 층을 구성하는 동안 대합실 귀환 경로도 열어 두었다.",
       ]
+    : phase === "generation_failed"
+      ? [
+          "지하철 상황 장면을 생성하지 못했다.",
+          "현재까지 확보한 임시 전리품을 가지고 대합실로 돌아갈 수 있다.",
+        ]
     : [
         `[큰 사건] ${floor.majorEvent.title}`,
         ...floor.majorEvent.paragraphs,

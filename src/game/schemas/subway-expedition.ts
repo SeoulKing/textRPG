@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SubwayEncounterStateSchema } from "./subway-encounter";
 
 export const SubwayGenerationSourceSchema = z.enum(["template", "llm"]);
 
@@ -118,6 +119,7 @@ export const SubwayExpeditionFloorSchema = z.object({
   title: z.string().min(1),
   paragraphs: z.array(z.string().min(1)).min(2).max(4),
   tensionSummary: z.string().min(1),
+  situationKind: z.enum(["combat", "social", "hazard"]).default("hazard"),
   majorEvent: SubwayExpeditionMajorEventSchema,
   lootSpots: z.array(SubwayExpeditionLootSpotSchema).length(3),
   storyBeat: z.string().min(1).optional(),
@@ -139,10 +141,14 @@ export const SubwayExpeditionHistoryEntrySchema = z.object({
 });
 
 export const SubwayExpeditionPhaseSchema = z.enum([
+  "encounter",
+  "encounter_result",
   "event",
   "event_result",
   "loot",
   "loot_result",
+  "complete",
+  "generation_failed",
 ]);
 
 export const SubwayCurrentResultSchema = z.object({
@@ -159,21 +165,32 @@ export const SubwayCurrentResultSchema = z.object({
 
 export const SubwayFloorProgressSchema = z.object({
   phase: SubwayExpeditionPhaseSchema.default("event"),
+  encounter: SubwayEncounterStateSchema.nullable().default(null),
   currentResult: SubwayCurrentResultSchema.nullable().default(null),
   eventResolved: z.boolean().default(false),
   eventChoiceLabel: z.string().default(""),
   eventOutcome: z.string().default(""),
   searchedLootSpotIds: z.array(z.string()).default([]),
   floorLoot: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  generationFailure: z.string().default(""),
 }).default({
   phase: "event",
+  encounter: null,
   currentResult: null,
   eventResolved: false,
   eventChoiceLabel: "",
   eventOutcome: "",
   searchedLootSpotIds: [],
   floorLoot: {},
+  generationFailure: "",
 });
+
+export const SubwayNextFloorStatusSchema = z.enum([
+  "idle",
+  "generating",
+  "ready",
+  "failed",
+]);
 
 export const SubwayPreparedNextFloorSchema = z.object({
   contextHash: z.string().min(1),
@@ -197,6 +214,8 @@ export const SubwayExpeditionStateSchema = z.object({
   runPlan: SubwayRunPlanSchema.nullable().default(null),
   storyMemory: SubwayStoryMemorySchema,
   preparedNextFloor: SubwayPreparedNextFloorSchema.nullable().default(null),
+  nextFloorStatus: SubwayNextFloorStatusSchema.default("idle"),
+  nextFloorError: z.string().default(""),
   history: z.array(SubwayExpeditionHistoryEntrySchema).default([]),
   lastOutcome: z.string().default(""),
 }).default({
@@ -209,12 +228,14 @@ export const SubwayExpeditionStateSchema = z.object({
   currentFloor: null,
   currentFloorProgress: {
     phase: "event",
+    encounter: null,
     currentResult: null,
     eventResolved: false,
     eventChoiceLabel: "",
     eventOutcome: "",
     searchedLootSpotIds: [],
     floorLoot: {},
+    generationFailure: "",
   },
   runPlan: null,
   storyMemory: {
@@ -225,6 +246,8 @@ export const SubwayExpeditionStateSchema = z.object({
     lastBridge: "",
   },
   preparedNextFloor: null,
+  nextFloorStatus: "idle",
+  nextFloorError: "",
   history: [],
   lastOutcome: "",
 });
@@ -245,4 +268,5 @@ export type SubwayExpeditionPhase = z.infer<typeof SubwayExpeditionPhaseSchema>;
 export type SubwayCurrentResult = z.infer<typeof SubwayCurrentResultSchema>;
 export type SubwayFloorProgress = z.infer<typeof SubwayFloorProgressSchema>;
 export type SubwayPreparedNextFloor = z.infer<typeof SubwayPreparedNextFloorSchema>;
+export type SubwayNextFloorStatus = z.infer<typeof SubwayNextFloorStatusSchema>;
 export type SubwayExpeditionState = z.infer<typeof SubwayExpeditionStateSchema>;

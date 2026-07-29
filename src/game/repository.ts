@@ -5,6 +5,7 @@ import {
   FrontierStateSchema,
   GameSessionSchema,
   NarrativeStateSchema,
+  SystemNoteEntriesSchema,
   SubwayExpeditionStateSchema,
   TemplateStoreSchema,
   WorldPlanSchema,
@@ -421,6 +422,7 @@ function pruneState(state: unknown): GameState {
     exhaustionLevel: normalizeInt(rawState.exhaustionLevel ?? rawState[legacyExhaustionLevelKey], 0, 0),
     log: normalizeLogEntries(rawState.log, nextDay, nextWorldElapsedMs),
     systemNote: typeof rawState.systemNote === "string" ? rawState.systemNote : "",
+    systemNoteEntries: SystemNoteEntriesSchema.catch([]).parse(rawState.systemNoteEntries),
     stockState: nextStockState,
     discoveredStockNodeIds: activeStockNodeId && !discoveredStockNodeIds.includes(activeStockNodeId)
       ? [...discoveredStockNodeIds, activeStockNodeId]
