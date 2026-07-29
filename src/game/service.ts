@@ -84,6 +84,24 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+export function syncItemCardWithRuntimeDefinition(
+  card: ItemCard,
+  itemId: string,
+  registry: ContentRegistry,
+): ItemCard {
+  const runtimeItem = registry.items[itemId] as Omit<ItemCard, "source" | "generatedAt"> | undefined;
+  if (!runtimeItem) {
+    return ItemCardSchema.parse(card);
+  }
+
+  return ItemCardSchema.parse({
+    ...runtimeItem,
+    id: itemId,
+    source: card.source,
+    generatedAt: card.generatedAt,
+  });
+}
+
 function resolveCraftingRecipeText(recipe: CraftingRecipe | undefined, registry: ContentRegistry) {
   if (!recipe) {
     return undefined;
@@ -1092,14 +1110,14 @@ export class GameService {
 
   private async ensureItemCard(session: GameSession, itemId: string, registry: ContentRegistry) {
     if (session.world.itemCards[itemId]) {
-      session.world.itemCards[itemId] = this.withRuntimeItemFields(session.world.itemCards[itemId] as ItemCard, itemId, registry);
+      session.world.itemCards[itemId] = syncItemCardWithRuntimeDefinition(session.world.itemCards[itemId] as ItemCard, itemId, registry);
       return session.world.itemCards[itemId];
     }
 
     if (!itemId.startsWith("dyn_")) {
       const cached = await this.repository.getTemplate("itemCards", itemId);
       if (cached) {
-        const card = this.withRuntimeItemFields(cached as ItemCard, itemId, registry);
+        const card = syncItemCardWithRuntimeDefinition(cached as ItemCard, itemId, registry);
         session.world.itemCards[itemId] = card;
         return card;
       }
@@ -1108,7 +1126,7 @@ export class GameService {
     const cardRaw = await this.templateGenerator.generateItemCard(itemId, {
       ...this.generatorInput(session, false, registry),
     });
-    const card = this.withRuntimeItemFields({ ...cardRaw, id: itemId }, itemId, registry);
+    const card = syncItemCardWithRuntimeDefinition({ ...cardRaw, id: itemId }, itemId, registry);
     session.world.itemCards[itemId] = card;
 
     if (!itemId.startsWith("dyn_")) {
@@ -1122,16 +1140,6 @@ export class GameService {
       source: card.source,
     });
     return card;
-  }
-
-  private withRuntimeItemFields(card: ItemCard, itemId: string, registry: ContentRegistry): ItemCard {
-    const runtimeItem = registry.items[itemId] as { kind?: string; useMinutes?: number; maxDurability?: number } | undefined;
-    return ItemCardSchema.parse({
-      ...card,
-      kind: runtimeItem?.kind ?? card.kind,
-      useMinutes: runtimeItem?.useMinutes ?? card.useMinutes,
-      maxDurability: runtimeItem?.maxDurability ?? card.maxDurability,
-    });
   }
 
   private buildItemCatalog(registry: ContentRegistry): ItemCard[] {
@@ -1522,7 +1530,7 @@ export class GameService {
         (personId) => session.world.personCards[personId] as PersonCard,
       ),
       inventoryCards: Object.keys(session.state.inventory).map(
-        (itemId) => this.withRuntimeItemFields(session.world.itemCards[itemId] as ItemCard, itemId, registry),
+        (itemId) => syncItemCardWithRuntimeDefinition(session.world.itemCards[itemId] as ItemCard, itemId, registry),
       ),
       itemCatalog: this.buildItemCatalog(registry),
       protagonist: session.world.protagonistCard as ProtagonistCard,

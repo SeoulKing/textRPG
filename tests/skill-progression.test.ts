@@ -19,7 +19,8 @@ import {
 } from "../src/game/skill-progression";
 import { evaluateCondition, getStockMoneyKey, getStockStateKey } from "../src/game/state-utils";
 import { resolveStoryFrame } from "../src/game/story-flow";
-import type { GameState, SkillId } from "../src/game/schemas";
+import { syncItemCardWithRuntimeDefinition } from "../src/game/service";
+import type { ContentRegistry, GameState, ItemCard, SkillId } from "../src/game/schemas";
 
 function stateAt(location: string, sceneId: string) {
   const state = createInitialGameState();
@@ -36,6 +37,54 @@ function progressAt(skillId: SkillId, totalXp: number) {
   progress[skillId].totalXp = totalXp;
   return progress;
 }
+
+test("inventory cards follow the latest runtime item definition", () => {
+  const storedCard: ItemCard = {
+    id: "studioMeal",
+    name: "Stored meal",
+    description: "Stored description",
+    kind: "food",
+    rarity: "common",
+    price: 100,
+    tags: ["stored"],
+    effects: { hp: 0, mind: 1, energy: 4, exhaustionRelief: 0 },
+    source: "llm",
+    generatedAt: "2026-01-01T00:00:00.000Z",
+  };
+  const registry: ContentRegistry = {
+    ...worldRegistry,
+    items: {
+      ...worldRegistry.items,
+      studioMeal: {
+        id: "studioMeal",
+        name: "Studio meal",
+        description: "Studio description",
+        kind: "food",
+        rarity: "uncommon",
+        price: 600,
+        tags: ["studio"],
+        effects: { hp: 0, mind: 1, energy: 6, exhaustionRelief: 3 },
+        useMinutes: 15,
+      },
+    },
+  };
+
+  const synced = syncItemCardWithRuntimeDefinition(storedCard, "studioMeal", registry);
+
+  assert.deepEqual(synced, {
+    id: "studioMeal",
+    name: "Studio meal",
+    description: "Studio description",
+    kind: "food",
+    rarity: "uncommon",
+    price: 600,
+    tags: ["studio"],
+    effects: { hp: 0, mind: 1, energy: 6, exhaustionRelief: 3 },
+    useMinutes: 15,
+    source: "llm",
+    generatedAt: "2026-01-01T00:00:00.000Z",
+  });
+});
 
 test("level thresholds, XP gains, and collection time reductions follow the table", () => {
   assert.deepEqual(SKILL_LEVEL_THRESHOLDS, [0, 50, 120, 210, 320]);

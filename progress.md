@@ -1591,3 +1591,8 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   focused 390px Chrome verification measured 36px cards with the unchanged 15.2px item-name font, confirmed zero per-card Use buttons, and placed the contextual Use button 11px from the detail dock's right edge.
   an expanded-list scroll probe produced 469px of list scrolling while the panel content stayed at 0 and the detail dock moved 0px.
   selecting and consuming the water bottle filled about half of the detail dock at 250ms, removed the consumed card, selected emergency food next, preserved zero horizontal overflow, and produced no console or page errors.
+
+- 2026-07-29 runtime item-card synchronization:
+  inventory cards now refresh their complete presentation and effect data from the current runtime Content Studio definition while preserving only generation metadata from stored cards.
+  this prevents old session or template cards from displaying stale effect hints such as warm meal energy `+4` after the Studio value changes to `+6`.
+  focused regression verification passed: `test:skills` 13/13, `npm.cmd run typecheck`, and `git diff --check`.
