@@ -208,7 +208,7 @@ test("대화 성공은 보상 없이 강도 조우를 해결한다", async () =>
   assert.equal(state.subwayExpedition.carriedLoot.painRelief ?? 0, 0);
 });
 
-test("LLM 선택지는 짧은 행동과 선택후 서사만 표시 데이터로 제공한다", async () => {
+test("장면 선택지는 짧은 행동과 선택후 서사만 표시 데이터로 제공한다", async () => {
   const state = await stateWithBanditEncounter();
 
   const actions = buildSubwayExpeditionActions(state);
@@ -235,27 +235,38 @@ test("보유한 허용 도구만 선택지와 서버 판정에 사용할 수 있
   );
   state.inventory.utilityKnife = 1;
   state.toolDurability.utilityKnife = 10;
-  const encounter = state.subwayExpedition.currentFloorProgress.encounter!;
-  setSubwayEncounterScene(state, {
-    scenarioId: encounter.id,
-    turnNumber: encounter.turnNumber,
-    kind: encounter.kind,
-    phase: encounter.stage,
+  state.inventory.waterBottle = 1;
+  const generation = compileSubwayEncounterDraftForTest({
     title: "손에 잡힌 간이 칼",
-    paragraphs: ["가방 옆주머니의 간이 칼이 손에 닿는다."],
-    choices: sceneChoices(["use_item:utilityKnife", "flee"]),
-    source: "llm",
-    generatedAt: "2026-07-29T00:00:00.000Z",
-  });
-
-  const action = buildSubwayExpeditionActions(state).find((entry) =>
-    entry.action.type === "subway_expedition" &&
-    entry.action.optionId === "legacy:use_item:utilityKnife"
+    narrative: [
+      "가방 옆주머니의 간이 칼이 손에 닿는다.",
+      "생수병도 손을 뻗으면 닿을 거리에 남아 있다.",
+    ],
+  }, { gameId: "server-item-choices", state });
+  setSubwayEncounterGeneration(state, generation);
+  assert.ok(
+    generation.scene.choices.some((choice) =>
+      choice.legacyActionToken === "use_item:utilityKnife"
+    ),
   );
+  assert.ok(
+    generation.scene.choices.some((choice) =>
+      choice.legacyActionToken === "use_item:waterBottle"
+    ),
+  );
+
+  const action = buildSubwayExpeditionActions(state).find((entry) => {
+    if (entry.action.type !== "subway_expedition") return false;
+    const optionId = entry.action.optionId;
+    return generation.scene.choices.some((choice) =>
+      choice.id === optionId &&
+      choice.legacyActionToken === "use_item:utilityKnife"
+    );
+  });
   assert.equal(action?.outcomeHint, "");
   const result = resolveSubwayBanditChoice(
     state,
-    "use_item:utilityKnife",
+    action!.id,
     1,
     sequenceRng([0, 0.99]),
   );
@@ -268,55 +279,73 @@ test("보유한 허용 도구만 선택지와 서버 판정에 사용할 수 있
   );
 });
 
-test("환경 위험은 해결 장면과 함께 출구 두 개를 바로 표시한다", async () => {
+test("깊은 층도 전투로 고정하고 서버가 확정한 층 전리품을 승리 시 자동 지급한다", async () => {
   const state = await stateWithBanditEncounter();
   state.subwayExpedition.depth = 2;
   state.subwayExpedition.currentFloor!.depth = 2;
   state.subwayExpedition.currentFloor!.situationKind = "hazard";
+  state.subwayExpedition.currentFloor!.lootSpots[0]!.contents = [
+    { itemId: "scrapMetal", amount: 2 },
+  ];
+  state.subwayExpedition.currentFloor!.lootSpots[1]!.contents = [
+    { itemId: "scrapMetal", amount: 1 },
+    { itemId: "waterBottle", amount: 1 },
+  ];
+  state.subwayExpedition.currentFloor!.lootSpots[2]!.contents = [];
   state.subwayExpedition.currentFloorProgress.encounter = null;
   state.subwayExpedition.currentFloorProgress.phase = "event";
   const situation = beginSubwaySituation(state);
 
-  const setHazardScene = () => setSubwayEncounterScene(state, {
-    scenarioId: situation.id,
-    turnNumber: situation.turnNumber,
-    kind: "hazard",
-    phase: situation.stage,
-    title: "침수된 통로",
-    paragraphs: ["끊어진 전선 아래로 얕은 물이 흐른다."],
-    choices: sceneChoices(["observe", "careful"]),
-    source: "llm",
-    generatedAt: "2026-07-29T00:00:00.000Z",
+  assert.equal(situation.kind, "combat");
+  assert.deepEqual(situation.eventLikelihoods, {
+    combat: 100,
+    social: 0,
+    hazard: 0,
   });
-  setHazardScene();
-  const first = resolveSubwayBanditChoice(state, "observe", 0, () => 0);
-  assert.equal(first.progressAfter, 1);
-  assert.equal(first.resolution, null);
-  setHazardScene();
-  const second = resolveSubwayBanditChoice(state, "careful", 1, () => 0);
-  assert.equal(second.progressAfter, 2);
-  assert.equal(second.resolution, "resolved");
+  assert.deepEqual(situation.rewardItems, [
+    { itemId: "scrapMetal", amount: 3 },
+    { itemId: "waterBottle", amount: 1 },
+  ]);
 
-  setSubwayEncounterScene(state, {
-    scenarioId: situation.id,
-    turnNumber: situation.turnNumber,
-    kind: "hazard",
-    phase: "resolved",
-    title: "확보한 통로",
-    paragraphs: ["전선을 피해 반대편 작업대로 건너갔다."],
-    choices: [],
-    source: "llm",
-    generatedAt: "2026-07-29T00:00:00.000Z",
-  });
-  state.subwayExpedition.nextFloorStatus = "ready";
-  const exits = buildSubwayExpeditionActions(state);
-  assert.equal(state.subwayExpedition.currentFloorProgress.phase, "complete");
-  assert.deepEqual(
-    exits.flatMap((action) =>
-      action.action.type === "subway_expedition" ? [action.action.command] : []
-    ),
-    ["descend", "return"],
+  const opening = compileSubwayEncounterDraftForTest({
+    title: "약탈자가 지키는 승강장",
+    narrative: [
+      "무장한 약탈자가 승강장 진입로를 막아섰다.",
+      "쇠막대 끝이 비상등 아래에서 둔하게 번뜩였다.",
+    ],
+  }, { gameId: "deep-combat", state });
+  setSubwayEncounterGeneration(state, opening);
+  const first = resolveSubwayBanditChoice(
+    state,
+    opening.scene.choices[0]!.id,
+    0,
+    sequenceRng([0, 0.99]),
   );
+  assert.equal(first.resolution, null);
+
+  const active = compileSubwayEncounterDraftForTest({
+    title: "비틀거리는 약탈자",
+    narrative: [
+      "약탈자가 개찰구에 부딪친 뒤 다시 자세를 세웠다.",
+      "거친 숨과 쇠막대가 바닥을 긁는 소리가 가까워졌다.",
+    ],
+  }, { gameId: "deep-combat", state, latestServerResult: first });
+  setSubwayEncounterGeneration(state, active);
+  const second = resolveSubwayBanditChoice(
+    state,
+    active.scene.choices[0]!.id,
+    1,
+    sequenceRng([0]),
+  );
+  assert.equal(second.resolution, "victory");
+  assert.deepEqual(
+    state.subwayExpedition.carriedLoot,
+    { scrapMetal: 3, waterBottle: 1 },
+  );
+  assert.deepEqual(state.subwayExpedition.currentFloorProgress.floorLoot, {
+    scrapMetal: 3,
+    waterBottle: 1,
+  });
 });
 
 test("층 이동은 기력을 소모하지 않고 내려가기 15분, 귀환은 층당 5분이 흐른다", async () => {
@@ -408,7 +437,10 @@ test("역할 응답은 Gemini 구조화 출력과 Zod 계약을 모두 통과해
           parts: [{
             text: JSON.stringify({
               title: "코드 파이프라인 장면",
-              narrative: ["역할 계약을 통과한 장면이다."],
+              narrative: [
+                "역할 계약을 통과한 첫 문단이다.",
+                "두 번째 문단도 구조화 출력에 포함된다.",
+              ],
             }),
           }],
         },
@@ -446,12 +478,8 @@ test("역할 응답은 Gemini 구조화 출력과 Zod 계약을 모두 통과해
           content: {
             parts: [{
               text: JSON.stringify({
-                choices: [{
-                  intentId: "attack",
-                  label: "공격한다",
-                  effectDescription: "상대를 밀어붙인다.",
-                  postChoiceScene: ["나는 앞으로 달려들었다."],
-                }],
+                title: "문단이 부족한 장면",
+                narrative: ["한 문단뿐이다."],
               }),
             }],
           },
@@ -463,11 +491,11 @@ test("역할 응답은 Gemini 구조화 출력과 Zod 계약을 모두 통과해
     await assert.rejects(
       () => generateSubwayRoleJson({
         gameId: "role-schema-test",
-        role: "choices",
-        target: "choices:test",
-        payload: { allowedIntents: [{ id: "attack" }] },
+        role: "opening_scene",
+        target: "opening_scene:invalid",
+        payload: { background: "지하철 1층의 강도" },
       }),
-      /choices/,
+      /narrative/,
     );
   } finally {
     globalThis.fetch = previousFetch;
@@ -484,7 +512,7 @@ test("역할 응답은 Gemini 구조화 출력과 Zod 계약을 모두 통과해
   }
 });
 
-test("지하철 opening은 장면 서사와 선택지 역할을 분리해 순서대로 생성한다", async () => {
+test("지하철 opening은 묘사 역할 한 번만 호출하고 서버 선택지를 붙인다", async () => {
   const state = await stateWithBanditEncounter();
   const roles: SubwayGenerationRole[] = [];
   const roleClient: SubwayRoleClient = async <T>(
@@ -498,39 +526,11 @@ test("지하철 opening은 장면 서사와 선택지 역할을 분리해 순서
           "비상 유도등 아래에서 쇠막대를 든 강도가 통로를 가로막았다.",
           "그의 신발 끝이 깨진 타일을 밀어내며 한 걸음 다가왔다.",
         ],
-        nextSceneHook: "강도가 쇠막대를 어깨 높이로 들어 올린다.",
-        storyHooks: ["강도는 안쪽 승강장을 자기 영역처럼 지키고 있다."],
         eventKind: "hazard",
         actor: { name: "서버에 없는 인물" },
       } as T;
     }
-    assert.equal(request.role, "choices");
-    const allowed = (
-      request.payload.allowedIntents as Array<{ id: string }>
-    ).map((entry) => entry.id);
-    assert.deepEqual(allowed, ["attack", "persuade", "retreat"]);
-    return {
-      choices: [
-        {
-          intentId: "attack",
-          label: "기둥을 끼고 쇠막대 안쪽으로 파고든다",
-          effectDescription: "강도가 무기를 휘두르기 전에 거리를 좁힌다.",
-          postChoiceScene: ["나는 기둥 옆으로 몸을 낮추며 발을 내디뎠다."],
-        },
-        {
-          intentId: "persuade",
-          label: "빈손을 보이며 통로를 지나가게 해 달라고 말한다",
-          effectDescription: "공격 의사가 없음을 보여 경계를 낮춘다.",
-          postChoiceScene: ["나는 손바닥을 보이며 낮은 목소리로 말을 꺼냈다."],
-        },
-        {
-          intentId: "retreat",
-          label: "계단 쪽 비상등을 확인하며 천천히 물러난다",
-          effectDescription: "추격당하지 않도록 거리를 확보한다.",
-          postChoiceScene: ["나는 강도에게서 시선을 떼지 않은 채 발을 뒤로 뺐다."],
-        },
-      ],
-    } as T;
+    throw new Error(`Unexpected role: ${request.role}`);
   };
   const generator = createSubwayEncounterSceneGenerator(
     roleClient,
@@ -539,7 +539,7 @@ test("지하철 opening은 장면 서사와 선택지 역할을 분리해 순서
 
   const generation = await generator({ gameId: "role-opening", state });
 
-  assert.deepEqual(roles, ["opening_scene", "choices"]);
+  assert.deepEqual(roles, ["opening_scene"]);
   assert.equal(generation.eventKind, "combat");
   assert.equal(generation.actor?.name, "강도");
   assert.equal(generation.scene.title, "푸른 유도등 아래");
@@ -548,10 +548,23 @@ test("지하철 opening은 장면 서사와 선택지 역할을 분리해 순서
     generation.scene.choices.map((choice) => choice.intent.primary),
     ["attack", "persuade", "retreat"],
   );
-  assert.equal(generation.scene.source, "llm");
+  assert.deepEqual(
+    generation.scene.choices.map((choice) => choice.label),
+    [
+      "빈틈을 노려 먼저 공격한다",
+      "무기를 내리라고 설득한다",
+      "계단 쪽으로 물러난다",
+    ],
+  );
+  assert.ok(
+    generation.scene.choices.every((choice) =>
+      choice.postChoiceNarrative.length === 2
+    ),
+  );
+  assert.equal(generation.scene.source, "mixed");
 });
 
-test("서버 판정 뒤에는 결과 서사 역할이 사실을 이어 쓰고 선택지 역할을 다시 호출한다", async () => {
+test("서버 판정 뒤에는 결과 서사 역할 한 번만 호출하고 전체 판정값을 전달한다", async () => {
   const state = await stateWithBanditEncounter();
   const serverResult = resolveSubwayBanditChoice(
     state,
@@ -568,41 +581,31 @@ test("서버 판정 뒤에는 결과 서사 역할이 사실을 이어 쓰고 �
       const authoritative = request.payload.authoritativeResult as {
         damageDealt: number;
         damageTaken: number;
+        rolls: { action: number | null; counter: number | null };
+        playerHpBefore: number;
+        playerHpAfter: number;
+        enemyHpBefore: number;
+        enemyHpAfter: number;
+        minutes: number;
         summary: string;
       };
       assert.equal(authoritative.damageDealt, 2);
       assert.equal(authoritative.damageTaken, 0);
+      assert.deepEqual(authoritative.rolls, { action: 1, counter: null });
+      assert.equal(authoritative.playerHpBefore, 8);
+      assert.equal(authoritative.playerHpAfter, 8);
+      assert.equal(authoritative.enemyHpBefore, 4);
+      assert.equal(authoritative.enemyHpAfter, 2);
+      assert.equal(authoritative.minutes, 5);
       return {
         title: "밀려난 강도",
         narrative: [
           authoritative.summary,
           "강도는 개찰구에 어깨를 부딪친 뒤 다시 쇠막대를 고쳐 쥔다.",
         ],
-        nextSceneHook: "강도가 낮게 자세를 잡고 다시 달려들 틈을 노린다.",
       } as T;
     }
-    return {
-      choices: [
-        {
-          intentId: "attack_forceful",
-          label: "개찰구에 몰린 강도를 다시 밀어붙인다",
-          effectDescription: "상대가 자세를 회복하기 전에 공격한다.",
-          postChoiceScene: ["나는 개찰구 쪽으로 한 걸음 더 파고들었다."],
-        },
-        {
-          intentId: "defend",
-          label: "기둥을 등지고 쇠막대의 궤적을 기다린다",
-          effectDescription: "반격을 막고 다음 빈틈을 찾는다.",
-          postChoiceScene: ["나는 팔을 올리고 기둥 쪽으로 중심을 옮겼다."],
-        },
-        {
-          intentId: "retreat",
-          label: "강도가 비틀거리는 사이 계단 쪽으로 빠진다",
-          effectDescription: "다시 붙기 전에 전투에서 벗어난다.",
-          postChoiceScene: ["나는 몸을 돌려 계단 첫 칸을 향해 발을 뻗었다."],
-        },
-      ],
-    } as T;
+    throw new Error(`Unexpected role: ${request.role}`);
   };
   const generator = createSubwayEncounterSceneGenerator(
     roleClient,
@@ -615,12 +618,14 @@ test("서버 판정 뒤에는 결과 서사 역할이 사실을 이어 쓰고 �
     latestServerResult: serverResult,
   });
 
-  assert.deepEqual(roles, ["result_scene", "choices"]);
+  assert.deepEqual(roles, ["result_scene"]);
   assert.equal(generation.scene.title, "밀려난 강도");
-  assert.equal(generation.scene.choices.length, 3);
-  assert.equal(generation.scene.choices[0]?.intent.primary, "attack");
-  assert.equal(generation.scene.choices[1]?.intent.primary, "defend");
-  assert.equal(generation.scene.choices[2]?.intent.primary, "retreat");
+  assert.deepEqual(
+    generation.scene.choices.slice(0, 5).map((choice) =>
+      choice.legacyActionToken
+    ),
+    ["close_attack", "throw_improvised", "guard", "talk", "flee"],
+  );
 });
 
 test("서버가 조우 종료를 확정하면 결과 서사만 만들고 선택지 역할은 중단한다", async () => {
@@ -662,7 +667,7 @@ test("서버가 조우 종료를 확정하면 결과 서사만 만들고 선택�
   assert.deepEqual(generation.scene.choices, []);
 });
 
-test("NF 초안은 유효한 필드를 살리고 잘못된 선택지만 서버 기본값으로 보완한다", async () => {
+test("LLM 초안의 사건·인물·선택지는 무시하고 서버 전투 상태만 사용한다", async () => {
   const state = await stateWithBanditEncounter();
   const generation = compileSubwayEncounterDraftForTest({
     title: "유리의 매복",
@@ -715,26 +720,28 @@ test("NF 초안은 유효한 필드를 살리고 잘못된 선택지만 서버 �
     ],
   }, { gameId: "compiler-test", state });
 
-  assert.equal(generation.actor?.name, "유리");
+  assert.equal(generation.actor?.name, "강도");
   assert.equal(generation.eventKind, "combat");
   assert.equal(generation.scene.choices.length, 3);
-  assert.equal(generation.scene.choices[0]?.label, "맞서 달려든다");
+  assert.equal(
+    generation.scene.choices[0]?.label,
+    "빈틈을 노려 먼저 공격한다",
+  );
   assert.equal(
     generation.scene.choices[0]?.effectDescription,
-    "허를 찔러 먼저 주도권을 잡는다.",
+    "명중 80%: 적 2피해 / 반격 60%: 나 1피해 / +5분",
   );
   assert.equal(
     generation.scene.choices[1]?.label,
-    "쇠막대를 든 팔을 노린다",
+    "무기를 내리라고 설득한다",
   );
-  assert.equal(generation.scene.choices[2]?.intent.primary, "observe");
+  assert.equal(generation.scene.choices[2]?.intent.primary, "retreat");
   assert.equal(generation.scene.choices[2]?.postChoiceNarrative.length, 2);
-  assert.equal(generation.diagnostics.droppedChoiceCount, 1);
-  assert.ok(generation.diagnostics.repairedFieldCount >= 1);
+  assert.equal(generation.diagnostics.droppedChoiceCount, 0);
 
   setSubwayEncounterGeneration(state, generation);
   const encounter = state.subwayExpedition.currentFloorProgress.encounter!;
-  assert.equal(encounter.enemy?.name, "유리");
+  assert.equal(encounter.enemy?.name, "강도");
   assert.equal(encounter.enemy?.maxHp, 4);
   assert.equal(encounter.enemy?.attack, 1);
 });

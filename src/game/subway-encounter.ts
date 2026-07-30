@@ -196,21 +196,8 @@ function rollPercent(rng: () => number) {
   return Math.floor(normalized * 100) + 1;
 }
 
-function situationKindForDepth(depth: number): SubwaySituationKind {
-  if (depth === 1) return "combat";
-  return (["hazard", "social", "combat"] as const)[(depth - 2) % 3];
-}
-
-function eventLikelihoodsForFloor(
-  depth: number,
-  preferred: SubwaySituationKind,
-) {
-  if (depth === 1) return { combat: 100, social: 0, hazard: 0 };
-  return {
-    combat: preferred === "combat" ? 60 : 20,
-    social: preferred === "social" ? 60 : 20,
-    hazard: preferred === "hazard" ? 60 : 20,
-  };
+function eventLikelihoodsForFloor() {
+  return { combat: 100, social: 0, hazard: 0 };
 }
 
 export function subwaySituationActionCatalog(
@@ -284,6 +271,24 @@ function addEncounterReward(state: GameState, encounter: SubwayEncounterState) {
       reward.amount;
   });
   encounter.rewardGranted = true;
+}
+
+function combatRewardsForFloor(state: GameState) {
+  const floor = state.subwayExpedition.currentFloor;
+  if (!floor) return [];
+  if (floor.depth === 1) {
+    return [
+      { itemId: "cannedFood", amount: 1 },
+      { itemId: "painRelief", amount: 1 },
+    ];
+  }
+  const totals = new Map<string, number>();
+  floor.lootSpots.forEach((spot) => {
+    spot.contents.forEach(({ itemId, amount }) => {
+      totals.set(itemId, (totals.get(itemId) ?? 0) + amount);
+    });
+  });
+  return Array.from(totals, ([itemId, amount]) => ({ itemId, amount }));
 }
 
 function damageTool(state: GameState, itemId: string) {
@@ -419,9 +424,7 @@ function createEnemy(depth: number) {
 export function createSubwaySituation(state: GameState) {
   const floor = state.subwayExpedition.currentFloor;
   if (!floor) throw new Error("상황을 만들 지하철 층이 없습니다.");
-  const kind = floor.depth === 1
-    ? "combat"
-    : (floor.situationKind ?? situationKindForDepth(floor.depth));
+  const kind = "combat" as const;
   return SubwayEncounterStateSchema.parse({
     id: floor.depth === 1
       ? `${SUBWAY_BANDIT_ENCOUNTER_ID}:${state.subwayExpedition.runNumber}`
@@ -430,7 +433,7 @@ export function createSubwaySituation(state: GameState) {
     objective: floor.majorEvent.resolutionGoal,
     actor: null,
     enemy: kind === "combat" ? createEnemy(floor.depth) : null,
-    eventLikelihoods: eventLikelihoodsForFloor(floor.depth, kind),
+    eventLikelihoods: eventLikelihoodsForFloor(),
     dangerTier: Math.min(10, Math.max(1, Math.ceil(floor.depth / 3))),
     pendingThreat: null,
     lastGenerationDiagnostics: null,
@@ -442,12 +445,7 @@ export function createSubwaySituation(state: GameState) {
     failureCount: 0,
     currentScene: null,
     history: [],
-    rewardItems: floor.depth === 1
-      ? [
-          { itemId: "cannedFood", amount: 1 },
-          { itemId: "painRelief", amount: 1 },
-        ]
-      : [],
+    rewardItems: combatRewardsForFloor(state),
     rewardGranted: false,
   });
 }
@@ -502,24 +500,13 @@ export function setSubwayEncounterScene(
   const encounter = state.subwayExpedition.currentFloorProgress.encounter;
   if (!encounter) throw new Error("진행 중인 지하철 상황이 없습니다.");
   const parsed = SubwayEncounterSceneSchema.parse(scene);
-  const canAdoptOpeningKind =
-    encounter.stage === "opening" &&
-    encounter.turnNumber === 0 &&
-    encounter.eventLikelihoods[parsed.kind] > 0;
   if (
     parsed.scenarioId !== encounter.id ||
     parsed.turnNumber !== encounter.turnNumber ||
-    (parsed.kind !== encounter.kind && !canAdoptOpeningKind) ||
+    parsed.kind !== encounter.kind ||
     parsed.phase !== encounter.stage
   ) {
     throw new Error("LLM 장면이 현재 지하철 상황의 ID·턴·종류·단계와 일치하지 않습니다.");
-  }
-  if (canAdoptOpeningKind) {
-    encounter.kind = parsed.kind;
-    encounter.enemy = parsed.kind === "combat"
-      ? (encounter.enemy ?? createEnemy(state.subwayExpedition.depth))
-      : null;
-    encounter.targetProgress = parsed.kind === "combat" ? 1 : 2;
   }
   encounter.currentScene = parsed;
   if (
@@ -538,13 +525,8 @@ export function setSubwayEncounterGeneration(
   const encounter = state.subwayExpedition.currentFloorProgress.encounter;
   if (!encounter) throw new Error("진행 중인 지하철 상황이 없습니다.");
 
-  if (
-    encounter.stage === "opening" &&
-    encounter.turnNumber === 0 &&
-    encounter.eventLikelihoods[generation.eventKind] > 0
-  ) {
-    encounter.kind = generation.eventKind;
-    encounter.targetProgress = generation.eventKind === "combat" ? 1 : 2;
+  if (generation.eventKind !== encounter.kind) {
+    throw new Error("생성된 장면의 상황 종류가 서버 전투 상태와 일치하지 않습니다.");
   }
 
   encounter.actor = generation.actor
@@ -655,7 +637,8 @@ export function resolveSubwaySituationChoice(
   ) {
     throw new Error("현재 사용할 수 없는 아이템입니다.");
   }
-  const actionToken = legacyTokenForIntent(intent);
+  const actionToken =
+    choice.legacyActionToken ?? legacyTokenForIntent(intent);
   const incomingThreat = encounter.pendingThreat;
   encounter.pendingThreat = null;
   const statsBefore = { ...state.stats };

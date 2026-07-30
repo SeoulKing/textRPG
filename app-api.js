@@ -3402,22 +3402,11 @@ async function submitAction(
   client.pendingAction = action;
   const immediateNarrative = normalizePostChoiceNarrative(postChoiceNarrative);
   const hasImmediateNarrative = immediateNarrative.length > 0;
-  const transitionDurationMs = hasImmediateNarrative
+  const transitionDurationMs = hasImmediateNarrative && !loading
     ? 0
     : actionTransitionDurationMs(action, loading);
   const shouldShowTransition = transitionDurationMs > 0;
-  if (isMovementAction(action, loading)) {
-    client.isPanelOpen = false;
-    renderPanel();
-    resetSceneScrollOnMobile();
-  }
-  if (shouldShowTransition) {
-    beginActionTransition(action, triggerElement, transitionDurationMs, loading);
-  }
   const previousSnapshot = client.snapshot;
-  const immediateNarrativePromise = hasImmediateNarrative
-    ? beginPostChoiceNarrative(immediateNarrative)
-    : Promise.resolve();
   try {
     const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
@@ -3428,9 +3417,21 @@ async function submitAction(
         return { snapshot, error: null };
       })
       .catch((error) => ({ snapshot: null, error }));
+    if (isMovementAction(action, loading)) {
+      client.isPanelOpen = false;
+      renderPanel();
+      resetSceneScrollOnMobile();
+    }
+    if (shouldShowTransition) {
+      beginActionTransition(action, triggerElement, transitionDurationMs, loading);
+    }
+    const transitionPromise = waitForMilliseconds(transitionDurationMs);
+    const immediateNarrativePromise = hasImmediateNarrative
+      ? transitionPromise.then(() => beginPostChoiceNarrative(immediateNarrative))
+      : Promise.resolve();
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
-      waitForMilliseconds(transitionDurationMs),
+      transitionPromise,
     ]);
     if (error) {
       throw error;

@@ -909,7 +909,7 @@ function useItem(state: GameState, itemId: string) {
   addLog(state, `${item.name}을(를) 사용했다.`);
 }
 
-function consumeCurrentSceneIntro(state: GameState) {
+export function consumeCurrentSceneIntro(state: GameState) {
   const registry = buildRuntimeRegistry(state);
   const scene = resolveSceneDefinition(state, registry, state.location);
   const introFlag = scene.introFlag;

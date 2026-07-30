@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { baseItems } from "./data/items";
 import { appendDevLlmTraceForGame } from "./dev-llm-trace";
 import { geminiModel } from "./gemini-client";
 import {
@@ -16,13 +17,14 @@ import {
   type SubwayPendingThreat,
   type SubwaySituationKind,
 } from "./schemas";
+import { subwaySituationActionCatalog } from "./subway-encounter";
 import {
   generateSubwayRoleJson,
   hasSubwayRoleConfig,
   type SubwayRoleClient,
 } from "./subway-role-pipeline";
 
-export const SUBWAY_ENCOUNTER_PROMPT_VERSION = "subway-role-pipeline-v4";
+export const SUBWAY_ENCOUNTER_PROMPT_VERSION = "subway-server-combat-narrative-v5";
 
 export type SubwayEncounterGenerationInput = {
   gameId: string;
@@ -277,6 +279,171 @@ function defaultPostChoice(label: string) {
   ];
 }
 
+function serverIntentForAction(
+  actionToken: string,
+): SubwayChoiceIntent {
+  if (actionToken.startsWith("use_item:")) {
+    const itemId = actionToken.slice("use_item:".length);
+    const item = (baseItems as Record<string, { kind?: string }>)[itemId];
+    return {
+      primary: "use_item",
+      style: "careful",
+      target: item?.kind === "tool" ? "enemy" : "self",
+      itemId,
+    };
+  }
+  switch (actionToken) {
+    case "fight":
+    case "close_attack":
+      return { primary: "attack", style: "forceful", target: "enemy" };
+    case "throw_improvised":
+      return { primary: "attack", style: "quick", target: "enemy" };
+    case "guard":
+      return { primary: "defend", style: "careful", target: "self" };
+    case "talk":
+      return { primary: "persuade", style: "empathetic", target: "actor" };
+    case "flee":
+      return { primary: "retreat", style: "quick", target: "exit" };
+    case "observe":
+      return { primary: "observe", style: "careful", target: "environment" };
+    case "force":
+      return { primary: "interact", style: "forceful", target: "environment" };
+    default:
+      return { primary: "interact", style: "careful", target: "environment" };
+  }
+}
+
+function serverChoiceLabel(
+  actionToken: string,
+  opening: boolean,
+) {
+  if (actionToken.startsWith("use_item:")) {
+    const itemId = actionToken.slice("use_item:".length);
+    const name =
+      (baseItems as Record<string, { name?: string }>)[itemId]?.name ?? itemId;
+    return `${name}을 사용한다`;
+  }
+  switch (actionToken) {
+    case "fight":
+      return "빈틈을 노려 먼저 공격한다";
+    case "close_attack":
+      return "가까이 붙어 공격한다";
+    case "throw_improvised":
+      return "주변 물건을 던진다";
+    case "guard":
+      return "공격을 막고 빈틈을 기다린다";
+    case "talk":
+      return opening
+        ? "무기를 내리라고 설득한다"
+        : "싸움을 멈추라고 설득한다";
+    case "flee":
+      return opening
+        ? "계단 쪽으로 물러난다"
+        : "거리를 벌리고 후퇴한다";
+    case "observe":
+      return "상대와 주변을 살핀다";
+    case "force":
+      return "힘으로 밀어붙인다";
+    default:
+      return "조심스럽게 움직인다";
+  }
+}
+
+function serverPostChoiceNarrative(
+  actionToken: string,
+  label: string,
+) {
+  if (actionToken.startsWith("use_item:")) {
+    return [
+      `나는 시선을 상대에게 둔 채 ${label.replace(/[.。]$/, "")}.`,
+      "손안의 물건을 고쳐 쥐는 동안 발밑의 진동과 상대의 숨소리가 한층 선명해졌다.",
+    ];
+  }
+  switch (actionToken) {
+    case "fight":
+    case "close_attack":
+      return [
+        "나는 호흡을 짧게 끊고 상대의 빈틈을 향해 몸을 밀어 넣었다.",
+        "신발 밑에서 모래가 밀리며 둘 사이의 거리가 단숨에 사라졌다.",
+      ];
+    case "throw_improvised":
+      return [
+        "나는 발치의 단단한 조각을 움켜쥐고 상대의 움직임을 따라 팔을 휘둘렀다.",
+        "날아간 물체가 어둠을 가르는 동안 상대의 어깨와 시선이 동시에 흔들렸다.",
+      ];
+    case "guard":
+      return [
+        "나는 무게중심을 낮추고 팔과 어깨로 급소를 가렸다.",
+        "퇴로를 등지지 않은 채 상대의 손목과 무기 끝이 움직이는 순간을 기다렸다.",
+      ];
+    case "talk":
+      return [
+        "나는 공격할 듯 굳어 있던 자세를 풀지 않은 채 낮은 목소리로 말을 건넸다.",
+        "쇳소리와 거친 숨 사이로 짧은 문장이 파고들자 상대의 시선이 미세하게 움직였다.",
+      ];
+    case "flee":
+      return [
+        "나는 상대에게 등을 완전히 보이지 않은 채 계단 쪽으로 발을 옮겼다.",
+        "거리를 재며 물러나는 동안 깨진 타일과 난간의 위치를 빠르게 눈에 담았다.",
+      ];
+    default:
+      return defaultPostChoice(label);
+  }
+}
+
+function serverEncounterChoices(
+  input: SubwayEncounterGenerationInput,
+): SubwayEncounterChoice[] {
+  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
+  if (encounter.stage === "resolved") return [];
+  const opening = encounter.stage === "opening";
+  return subwaySituationActionCatalog(input.state, encounter)
+    .slice(0, 20)
+    .map((entry, index) => {
+      const label = serverChoiceLabel(entry.actionToken, opening);
+      return {
+        id:
+          `${encounter.id}:${encounter.turnNumber}:server:${index + 1}:` +
+          entry.actionToken.replace(":", "-"),
+        label,
+        effectDescription: entry.mechanicalHint,
+        postChoiceNarrative: serverPostChoiceNarrative(
+          entry.actionToken,
+          label,
+        ),
+        intent: serverIntentForAction(entry.actionToken),
+        legacyActionToken: entry.actionToken,
+      };
+    });
+}
+
+function serverPendingThreat(
+  kind: SubwaySituationKind,
+  encounterId: string,
+  turnNumber: number,
+  resolved: boolean,
+): SubwayPendingThreat | null {
+  if (resolved) return null;
+  return {
+    id: `${encounterId}:threat:${turnNumber}`,
+    kind:
+      kind === "combat" ? "attack" : kind === "social" ? "pressure" : "hazard",
+    target: kind === "combat" ? "player" : "environment",
+    method:
+      kind === "combat"
+        ? "상대가 무기를 고쳐 쥐고 다음 빈틈을 노린다."
+        : kind === "social"
+          ? "상대의 경계가 높아지며 대화의 주도권을 빼앗으려 한다."
+          : "불안정한 구조물이 흔들리며 다음 움직임을 재촉한다.",
+    profile:
+      kind === "combat"
+        ? "standard_attack"
+        : kind === "social"
+          ? "social_pressure"
+          : "environmental_hazard",
+  };
+}
+
 function inferPrimaryIntent(
   text: string,
   fallback: SubwayChoiceIntent["primary"],
@@ -503,60 +670,9 @@ function compileGeneration(
   const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
   const data = asRecord(raw);
   const sceneData = asRecord(data.scene);
-  const fallbackKind = highestLikelihood(encounter.eventLikelihoods);
-  const rawKind = SubwaySituationKindSchema.safeParse(
-    data.eventKind ?? asRecord(data.event).kind ?? data.kind,
-  );
-  const eventKind =
-    encounter.turnNumber > 0 || encounter.stage !== "opening"
-      ? encounter.kind
-      : rawKind.success && encounter.eventLikelihoods[rawKind.data] > 0
-        ? rawKind.data
-        : fallbackKind;
+  const eventKind = encounter.kind;
   let repaired = requestError ? 1 : 0;
-  if (
-    encounter.stage === "opening" &&
-    (!rawKind.success || encounter.eventLikelihoods[rawKind.data] <= 0)
-  ) {
-    repaired += 1;
-  }
-
-  const actorData = asRecord(data.actor);
-  let actor = eventKind === "hazard"
-    ? null
-    : encounter.actor ?? defaultActor(eventKind, encounter.id);
-  if (eventKind !== "hazard") {
-    const actorName = typeof actorData.name === "string" && actorData.name.trim()
-      ? actorData.name.trim().slice(0, 80)
-      : actor?.name;
-    const actorAppearance =
-      typeof actorData.appearance === "string" && actorData.appearance.trim()
-        ? actorData.appearance.trim().slice(0, 300)
-        : actor?.appearance;
-    const actorPersonality =
-      typeof actorData.personality === "string" && actorData.personality.trim()
-        ? actorData.personality.trim().slice(0, 200)
-        : actor?.personality;
-    const actorMotive =
-      typeof actorData.motive === "string" && actorData.motive.trim()
-        ? actorData.motive.trim().slice(0, 200)
-        : actor?.motive;
-    if (actorName && actorAppearance && actorPersonality && actorMotive) {
-      actor = {
-        id: `${encounter.id}:actor`,
-        name: actorName,
-        appearance: actorAppearance,
-        personality: actorPersonality,
-        motive: actorMotive,
-        relationship: encounter.actor?.relationship ?? 0,
-      };
-      if (Object.keys(actorData).length > 0 && Object.keys(actorData).length < 4) {
-        repaired += 1;
-      }
-    } else {
-      repaired += 1;
-    }
-  }
+  const actor = authoritativeActor(input);
 
   const fallbackTitle = input.latestServerResult
     ? "선택의 결과"
@@ -597,17 +713,14 @@ function compileGeneration(
     repaired += 1;
   }
 
-  const choiceCompilation = compileChoices(data.choices, input, eventKind);
-  repaired += choiceCompilation.repaired;
-  const threatCompilation = compileThreat(
-    data.nextSceneHook ?? data.threat,
+  const choices = serverEncounterChoices(input);
+  const pendingThreat = serverPendingThreat(
     eventKind,
     encounter.id,
     encounter.turnNumber,
     encounter.stage === "resolved",
   );
-  repaired += threatCompilation.repaired;
-  const storyHooks = asStrings(data.storyHooks, 3, 200);
+  const storyHooks: string[] = [];
   const fallback = Boolean(requestError) || Object.keys(data).length === 0;
 
   return {
@@ -618,18 +731,18 @@ function compileGeneration(
       phase: encounter.stage,
       title,
       paragraphs,
-      choices: choiceCompilation.choices,
-      source: fallback ? "template" : repaired > 0 ? "mixed" : "llm",
+      choices,
+      source: fallback ? "template" : "mixed",
       generatedAt: new Date().toISOString(),
     },
     eventKind,
     actor,
-    pendingThreat: threatCompilation.threat,
+    pendingThreat,
     storyHooks,
     diagnostics: {
       latencyMs,
       repairedFieldCount: repaired,
-      droppedChoiceCount: choiceCompilation.dropped,
+      droppedChoiceCount: 0,
       fallback,
       errorReason: requestError,
     },
@@ -709,16 +822,34 @@ function storyBrief(input: SubwayEncounterGenerationInput) {
 function authoritativeResultPayload(input: SubwayEncounterGenerationInput) {
   const result = input.latestServerResult;
   if (!result) return null;
+  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
+  const playerHpChange =
+    result.statChanges.find((change) => change.stat === "hp")?.amount ?? 0;
   return {
+    enemyName: encounter.enemy?.name ?? encounter.actor?.name ?? "상대",
     selectedLabel: result.selectedLabel,
     selectedIntent: result.selectedIntent,
     selectedEffect: result.selectedEffectDescription,
     postChoiceScene: result.postChoiceNarrative,
     success: result.success,
+    rolls: result.rolls,
     damageDealt: result.damageDealt,
     damageTaken: result.damageTaken,
+    playerHpBefore: result.playerHpAfter - playerHpChange,
+    playerHpAfter: result.playerHpAfter,
+    enemyHpBefore: result.enemyHpAfter + result.damageDealt,
+    enemyHpAfter: result.enemyHpAfter,
+    minutes: result.minutes,
+    statChanges: result.statChanges,
+    itemChanges: result.itemChanges,
+    toolDurabilityChanges: result.toolDurabilityChanges,
     relationshipChange: result.relationshipChange,
+    stageAfter: result.stageAfter,
     resolution: result.resolution,
+    rewards:
+      result.resolution === "victory"
+        ? encounter.rewardItems
+        : [],
     summary: result.summary,
   };
 }
@@ -751,6 +882,11 @@ function fallbackNarrativeDraft(input: SubwayEncounterGenerationInput) {
         : encounter.kind === "social"
           ? `${actor?.name ?? "낯선 생존자"}가 거리를 둔 채 이쪽을 살핀다.`
           : "앞쪽 구조물이 불안정하게 흔들리며 안전한 길을 가늠하기 어렵다.",
+      encounter.kind === "combat"
+        ? "금속이 바닥을 스치는 소리가 울리고, 상대의 시선은 이쪽의 손과 발을 번갈아 훑는다."
+        : encounter.kind === "social"
+          ? "짧은 침묵 사이로 서로의 숨소리만 남고, 먼저 거리를 좁히는 쪽을 기다리는 긴장이 이어진다."
+          : "먼지와 작은 파편이 계속 떨어지는 가운데, 어느 발판이 버틸지 빠르게 판단해야 한다.",
     ],
     nextSceneHook: "",
     storyHooks: [],
@@ -809,10 +945,7 @@ export function createSubwayEncounterSceneGenerator(
       : "opening_scene" as const;
     const sceneTarget =
       `${sceneRole}:${encounter.id}:turn:${encounter.turnNumber}`;
-    const choiceTarget =
-      `choices:${encounter.id}:turn:${encounter.turnNumber}`;
     let narrativeRaw: unknown = {};
-    let choicesRaw: unknown = {};
 
     if (!roleConfigAvailable()) {
       roleErrors.push("Subway LLM role pipeline is not configured.");
@@ -839,54 +972,16 @@ export function createSubwayEncounterSceneGenerator(
       } catch (error) {
         roleErrors.push(`${sceneRole}: ${
           error instanceof Error ? error.message : String(error)
-        }`);
-      }
-
-      if (encounter.stage !== "resolved") {
-        const narrative = usableNarrativeDraft(narrativeRaw, input);
-        const allowedIntents = allowedChoiceIntents(input, encounter.kind);
-        try {
-          choicesRaw = await roleClient({
-            gameId: input.gameId,
-            role: "choices",
-            target: choiceTarget,
-            payload: {
-              promptVersion: SUBWAY_ENCOUNTER_PROMPT_VERSION,
-              scene: {
-                title: narrative.title,
-                paragraphs: narrative.narrative,
-                nextSceneHook: narrative.nextSceneHook,
-              },
-              eventKind: encounter.kind,
-              objective: encounter.objective,
-              actor: authoritativeActor(input),
-              allowedIntents: allowedIntents.map((entry) => ({
-                id: entry.id,
-                instruction: entry.instruction,
-              })),
-            },
-            timeoutMs: 15_000,
-          });
-        } catch (error) {
-          roleErrors.push(`choices: ${
-            error instanceof Error ? error.message : String(error)
           }`);
-        }
       }
     }
 
     const narrative = usableNarrativeDraft(narrativeRaw, input);
-    const allowedIntents = allowedChoiceIntents(input, encounter.kind);
     const raw = {
       eventKind: encounter.kind,
       actor: authoritativeActor(input),
       title: narrative.title,
       narrative: narrative.narrative,
-      nextSceneHook: narrative.nextSceneHook,
-      storyHooks: narrative.storyHooks,
-      choices: encounter.stage === "resolved"
-        ? []
-        : adaptChoiceWriterOutput(choicesRaw, allowedIntents),
     };
     const requestError = roleErrors.length > 0 ? roleErrors.join(" | ") : null;
     const result = compileGeneration(
@@ -905,7 +1000,9 @@ export function createSubwayEncounterSceneGenerator(
       request: "",
       response: "",
       message:
-        `${sceneRole} → ${encounter.stage === "resolved" ? "종료" : "choices"}: ` +
+        `${sceneRole} → ${
+          encounter.stage === "resolved" ? "종료" : "server_choices"
+        }: ` +
         `보완 ${result.diagnostics.repairedFieldCount}개, ` +
         `제거 선택지 ${result.diagnostics.droppedChoiceCount}개, ` +
         `fallback ${result.diagnostics.fallback ? "yes" : "no"}, ` +

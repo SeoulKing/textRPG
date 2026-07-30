@@ -24,7 +24,7 @@ import {
   type SubwayStoryMemory,
 } from "./schemas";
 
-export const SUBWAY_EXPEDITION_PROMPT_VERSION = "subway-expedition-v2";
+export const SUBWAY_EXPEDITION_PROMPT_VERSION = "subway-expedition-combat-v3";
 const MAX_REPAIR_ATTEMPTS = 2;
 const TOTAL_GENERATION_ATTEMPTS = 1 + MAX_REPAIR_ATTEMPTS;
 
@@ -139,8 +139,8 @@ const zoneByDepth = (
 };
 
 function situationKindByDepth(depth: number) {
-  if (depth === 1) return "combat" as const;
-  return (["hazard", "social", "combat"] as const)[(depth - 2) % 3];
+  assertPositiveDepth(depth);
+  return "combat" as const;
 }
 
 const zoneBrief: Record<SubwayExpeditionFloor["zone"], string> = {

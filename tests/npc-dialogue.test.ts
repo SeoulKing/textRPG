@@ -50,7 +50,10 @@ function scriptedResult(
     id:
       `npc-dialogue:${input.profile.id}:${input.turnNumber}:choice:${index}`,
     label: `답변 ${input.turnNumber}-${index}`,
-    postChoiceNarrative: [`답변 ${index}을 조심스럽게 꺼냈다.`],
+    postChoiceNarrative: [
+      `답변 ${index}을 조심스럽게 꺼냈다.`,
+      "대합실의 희미한 잡음이 두 사람 사이에 낮게 머물렀다.",
+    ],
   }));
   return {
     scene: {
@@ -155,15 +158,24 @@ test("NPC 응답과 플레이어 선택지 역할은 순서대로 대화 맥락�
       choices: [
         {
           label: "이곳에서 지내는지 묻는다",
-          postChoiceNarrative: ["대합실을 둘러보며 조심스럽게 물었다."],
+          postChoiceNarrative: [
+            "대합실을 둘러보며 조심스럽게 물었다.",
+            "멀리서 물방울 떨어지는 소리가 들려왔다.",
+          ],
         },
         {
           label: "라디오에 대해 묻는다",
-          postChoiceNarrative: ["라디오 쪽으로 시선을 옮겼다."],
+          postChoiceNarrative: [
+            "라디오 쪽으로 시선을 옮겼다.",
+            "낡은 스피커의 잡음이 짧은 침묵을 채웠다.",
+          ],
         },
         {
           label: "경계하지 않아도 된다고 말한다",
-          postChoiceNarrative: ["한 걸음 물러서며 빈손을 보였다."],
+          postChoiceNarrative: [
+            "한 걸음 물러서며 빈손을 보였다.",
+            "둘 사이에 비워 둔 거리가 그대로 남았다.",
+          ],
         },
       ],
     } as T;
@@ -191,6 +203,11 @@ test("NPC 응답과 플레이어 선택지 역할은 순서대로 대화 맥락�
     "처음 보는 분인데, 무슨 일이세요?",
   );
   assert.equal(opening.scene.choices.length, 3);
+  assert.ok(
+    opening.scene.choices.every(
+      (choice) => choice.postChoiceNarrative.length === 2,
+    ),
+  );
 
   const selectedChoice = opening.scene.choices[0]!;
   requests.length = 0;
@@ -264,6 +281,7 @@ test("대화는 무료로 이어지고 종료 뒤 재방문해도 최근 기억�
     (choice) => choice.label === "슈미와 대화하기",
   );
   assert.ok(startAction);
+  assert.deepEqual(startAction.loading, {});
   const elapsedBefore = initial.state.worldElapsedMs;
   const statsBefore = structuredClone(initial.state.stats);
 
@@ -271,6 +289,14 @@ test("대화는 무료로 이어지고 종료 뒤 재방문해도 최근 기억�
   assert.equal(opening.currentScene.title, "슈미와의 대화");
   assert.equal(opening.availableActions.length, 4);
   assert.equal(opening.availableActions.at(-1)?.label, "대화를 마친다");
+  assert.ok(
+    opening.availableActions.slice(0, 3).every(
+      (choice) =>
+        choice.postChoiceNarrative?.length === 2 &&
+        choice.loading !== undefined,
+    ),
+  );
+  assert.equal(opening.availableActions.at(-1)?.loading, undefined);
   assert.equal(opening.state.worldElapsedMs, elapsedBefore);
   assert.deepEqual(opening.state.stats, statsBefore);
   assert.equal(generationInputs[0]?.visitCount, 1);
@@ -308,6 +334,13 @@ test("대화는 무료로 이어지고 종료 뒤 재방문해도 최근 기억�
   const leaveAction = next.availableActions.at(-1)!;
   const returned = await service.performAction(session.id, leaveAction.action);
   assert.equal(returned.state.npcDialogue.active, null);
+  assert.equal(returned.state.flags.intro_seen_subway, true);
+  assert.equal(returned.state.sceneId, "subway_repeat_intro");
+  assert.ok(
+    returned.currentScene.paragraphs.every(
+      (paragraph) => !paragraph.startsWith("지하철역 입구는 낮에도 밤처럼"),
+    ),
+  );
   assert.ok(
     returned.availableActions.some(
       (choice) => choice.label === "슈미와 대화하기",

@@ -36,6 +36,7 @@ import {
 import type { GameRepository } from "./repository";
 import {
   applySystemNote,
+  consumeCurrentSceneIntro,
   createInitialGameState,
   performAction,
   refreshLocationKnowledge,
@@ -519,6 +520,7 @@ export class GameService {
       prepared.sourceFloorId === context.sourceFloorId &&
       prepared.targetDepth === context.targetDepth &&
       prepared.floor.depth === context.targetDepth &&
+      prepared.floor.situationKind === "combat" &&
       prepared.floor.promptVersion === SUBWAY_EXPEDITION_PROMPT_VERSION &&
       prepared.floor.mechanicsEnvelopeHash === mechanicsEnvelopeHash &&
       !conflictsWithOwnedUniqueLoot &&
@@ -770,6 +772,7 @@ export class GameService {
       }
       if (
         floor.depth !== context.targetDepth ||
+        floor.situationKind !== "combat" ||
         floor.contextHash !== generationSpec.contextHash ||
         floor.mechanicsEnvelopeHash !== generationSpec.mechanicsEnvelopeHash
       ) {
@@ -927,6 +930,10 @@ export class GameService {
         });
       } else {
         leaveNpcDialogue(workingState, profile.id);
+      }
+      if (action.command === "start" || action.command === "leave") {
+        consumeCurrentSceneIntro(workingState);
+        syncScene(workingState);
       }
 
       session.state = workingState;

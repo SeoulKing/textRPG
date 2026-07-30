@@ -113,6 +113,7 @@ export function buildNpcDialogueActions(state: GameState): ActionChoice[] {
     label: choice.label,
     outcomeHint: "",
     showOutcomeHint: false,
+    loading: {},
     postChoiceNarrative: choice.postChoiceNarrative,
     action: {
       type: "npc_dialogue" as const,
@@ -151,6 +152,7 @@ export function buildNpcDialogueStartAction(
     label: `${profile.name}와 대화하기`,
     outcomeHint: "",
     showOutcomeHint: false,
+    loading: {},
     postChoiceNarrative: [...profile.openingApproachNarrative],
     action: {
       type: "npc_dialogue",

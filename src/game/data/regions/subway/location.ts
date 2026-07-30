@@ -24,20 +24,6 @@ export const subwayChoices: ActionDefinition[] = [
     tags: ["signal", "search"],
     riskHint: "medium",
   }),
-  interactionFor("subway", {
-    id: "prepare_subway_concourse",
-    label: "대합실에서 숨을 고르고 장비를 정돈한다",
-    type: "rest",
-    outcomeHint: "기력 +1 / +15분",
-    showOutcomeHint: true,
-    effects: [
-      { type: "change_stat", stat: "energy", value: 1 },
-      { type: "advance_time", minutes: 15 },
-      { type: "log", message: "당신은 대합실 벽에 기대어 숨을 고르고 가방과 장비를 다시 정돈했다." },
-    ],
-    tags: ["concourse", "preparation", "repeatable"],
-    riskHint: "low",
-  }),
 ];
 
 export const subwayLocation = defineLocation({

@@ -167,7 +167,7 @@ export const SubwayEncounterSceneSchema = z.preprocess((raw) => {
   phase: z.enum(["opening", "active", "resolved"]),
   title: z.string().min(1).max(80),
   paragraphs: z.array(z.string().min(1).max(600)).min(1).max(4),
-  choices: z.array(SubwayEncounterChoiceSchema).max(4),
+  choices: z.array(SubwayEncounterChoiceSchema).max(20),
   source: z.enum(["llm", "mixed", "template"]),
   generatedAt: z.string(),
 }).strict());
