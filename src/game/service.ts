@@ -7,7 +7,11 @@ import {
   resolveTriggeredEvents,
 } from "./content-engine";
 import { createTemplateContentGenerator, type ContentGenerator } from "./content-generator";
-import { clearDevLlmTrace, getDevLlmTrace } from "./dev-llm-trace";
+import {
+  appendDevLlmTraceForGame,
+  clearDevLlmTrace,
+  getDevLlmTrace,
+} from "./dev-llm-trace";
 import { resolveItemText } from "./item-text";
 import { compileAnchorDraftForRuntime, compileSceneDraftForRuntime } from "./narrative-expansion-service";
 import type { GameRepository } from "./repository";
@@ -30,12 +34,13 @@ import {
   acknowledgeSubwayBanditResult,
   beginSubwayBanditEncounter,
   beginSubwaySituation,
-  markSubwaySituationGenerationFailed,
   resolveSubwayBanditChoice,
-  setSubwayEncounterScene,
+  setSubwayEncounterGeneration,
 } from "./subway-encounter";
 import {
+  fallbackSubwayEncounterGeneration,
   generateSubwayEncounterScene,
+  type SubwayEncounterGenerationResult,
   type SubwayEncounterSceneGenerator,
 } from "./subway-encounter-generator";
 import {
@@ -96,7 +101,6 @@ import {
   ItemCardSchema,
   SceneCardSchema,
   StateSnapshotSchema,
-  SubwayEncounterActionIdSchema,
 } from "./schemas";
 import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from "./world-planner";
 
@@ -314,6 +318,53 @@ export class GameService {
       generateSubwayEncounterScene,
   ) {}
 
+  private async generateAndApplySubwayEncounter(
+    gameId: string,
+    state: GameSession["state"],
+    latestServerResult?: Parameters<SubwayEncounterSceneGenerator>[0]["latestServerResult"],
+  ) {
+    const input = { gameId, state, latestServerResult };
+    let generation: SubwayEncounterGenerationResult;
+    const startedAt = Date.now();
+    try {
+      generation = await this.encounterSceneGenerator(input);
+    } catch (error) {
+      generation = fallbackSubwayEncounterGeneration(
+        input,
+        error,
+        Date.now() - startedAt,
+      );
+      appendDevLlmTraceForGame(gameId, {
+        scope: "subway",
+        target: `nf-director:fallback:${state.subwayExpedition.depth}`,
+        stage: "fallback",
+        model: "server-template",
+        status: "fallback",
+        request: "",
+        response: "",
+        message:
+          `NF 생성 실패 후 서버 fallback 적용 · ${generation.diagnostics.latencyMs}ms`,
+        errorReason: generation.diagnostics.errorReason ?? undefined,
+      });
+    }
+    setSubwayEncounterGeneration(state, generation);
+    const encounter = state.subwayExpedition.currentFloorProgress.encounter;
+    await this.repository.appendGenerationLog({
+      gameId,
+      kind: "subwayEncounterNarrative",
+      encounterId: encounter?.id,
+      turnNumber: encounter?.turnNumber,
+      source: generation.scene.source,
+      latencyMs: generation.diagnostics.latencyMs,
+      repairedFieldCount: generation.diagnostics.repairedFieldCount,
+      droppedChoiceCount: generation.diagnostics.droppedChoiceCount,
+      fallback: generation.diagnostics.fallback,
+      errorReason: generation.diagnostics.errorReason,
+      at: nowIso(),
+    });
+    return generation;
+  }
+
   private async withGameMutation<T>(gameId: string, operation: () => Promise<T>) {
     const previous = this.gameMutationTails.get(gameId) ?? Promise.resolve();
     let releaseCurrent!: () => void;
@@ -409,6 +460,7 @@ export class GameService {
   private storyMemoryForPreparedRunPlan(runPlan: SubwayRunPlan) {
     return {
       facts: [...runPlan.facts],
+      knownActors: [],
       unresolvedThreads: [...runPlan.unresolvedThreads],
       resolvedThreads: [],
       recentSummaries: [],
@@ -770,15 +822,7 @@ export class GameService {
           workingState.subwayExpedition.currentFloor
         ) {
           beginSubwayBanditEncounter(workingState);
-          try {
-            const encounterScene = await this.encounterSceneGenerator({
-              gameId,
-              state: workingState,
-            });
-            setSubwayEncounterScene(workingState, encounterScene);
-          } catch (error) {
-            markSubwaySituationGenerationFailed(workingState, error);
-          }
+          await this.generateAndApplySubwayEncounter(gameId, workingState);
         }
         session.state = workingState;
         await this.repository.appendGenerationLog({
@@ -791,28 +835,17 @@ export class GameService {
           at: nowIso(),
         });
       } else if (subwayAction.command === "encounter_choice") {
-        const actionId = SubwayEncounterActionIdSchema.parse(
-          subwayAction.optionId,
-        );
-        const baseState = structuredClone(session.state);
+        if (!subwayAction.optionId) {
+          throw new Error("선택지 ID가 없습니다.");
+        }
         const workingState = structuredClone(session.state);
         const result = resolveSubwayBanditChoice(
           workingState,
-          actionId,
+          subwayAction.optionId,
           subwayAction.turnNumber,
         );
-        try {
-          const encounterScene = await this.encounterSceneGenerator({
-            gameId,
-            state: workingState,
-            latestServerResult: result,
-          });
-          setSubwayEncounterScene(workingState, encounterScene);
-          session.state = workingState;
-        } catch (error) {
-          markSubwaySituationGenerationFailed(baseState, error);
-          session.state = baseState;
-        }
+        await this.generateAndApplySubwayEncounter(gameId, workingState, result);
+        session.state = workingState;
       } else if (subwayAction.command === "acknowledge_encounter") {
         acknowledgeSubwayBanditResult(session.state);
       } else if (subwayAction.command === "choose" || subwayAction.command === "resolve_event") {
@@ -832,15 +865,7 @@ export class GameService {
         const workingState = structuredClone(session.state);
         await descendSubwayFloor(workingState, gameId, prepared.floor);
         beginSubwaySituation(workingState);
-        try {
-          const encounterScene = await this.encounterSceneGenerator({
-            gameId,
-            state: workingState,
-          });
-          setSubwayEncounterScene(workingState, encounterScene);
-        } catch (error) {
-          markSubwaySituationGenerationFailed(workingState, error);
-        }
+        await this.generateAndApplySubwayEncounter(gameId, workingState);
         session.state = workingState;
         await this.repository.appendGenerationLog({
           gameId,
@@ -1648,11 +1673,15 @@ export class GameService {
     clientState.subwayExpedition.runPlan = null;
     clientState.subwayExpedition.storyMemory = {
       facts: [],
+      knownActors: [],
       unresolvedThreads: [],
       resolvedThreads: [],
       recentSummaries: [],
       lastBridge: "",
     };
+    if (clientState.subwayExpedition.currentFloorProgress.encounter) {
+      clientState.subwayExpedition.currentFloorProgress.encounter.currentScene = null;
+    }
     clientState.subwayExpedition.currentFloor?.majorEvent.options.forEach((option) => {
       delete option.outcomes;
     });

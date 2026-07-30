@@ -323,7 +323,9 @@ async function bootstrap() {
       return {
         ok: true,
         ...result,
-        message: `${modelLabel} 연결 성공 · ${result.latencyMs}ms`,
+        message:
+          `${modelLabel} 실제 생성 성공 · 생성 ${result.generationLatencyMs}ms` +
+          ` · 전체 ${result.latencyMs}ms`,
       };
     } catch (error) {
       const message = error instanceof Error

@@ -737,6 +737,7 @@ export function createInitialGameState(): GameState {
       runPlan: null,
       storyMemory: {
         facts: [],
+        knownActors: [],
         unresolvedThreads: [],
         resolvedThreads: [],
         recentSummaries: [],

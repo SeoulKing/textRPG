@@ -79,14 +79,27 @@ export const SubwayExpeditionLootSpotSchema = z.object({
   resultParagraphs: z.array(z.string().min(1)).min(1).max(3).optional(),
 });
 
+export const SubwayKnownActorSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  appearance: z.string().default(""),
+  personality: z.string().default(""),
+  motive: z.string().default(""),
+  relationship: z.number().int().min(-100).max(100).default(0),
+  status: z.enum(["active", "resolved", "gone"]).default("active"),
+  lastSeenDepth: z.number().int().nonnegative().default(0),
+}).strict();
+
 export const SubwayStoryMemorySchema = z.object({
   facts: z.array(z.string()).default([]),
+  knownActors: z.array(SubwayKnownActorSchema).default([]),
   unresolvedThreads: z.array(z.string()).default([]),
   resolvedThreads: z.array(z.string()).default([]),
   recentSummaries: z.array(z.string()).default([]),
   lastBridge: z.string().default(""),
 }).default({
   facts: [],
+  knownActors: [],
   unresolvedThreads: [],
   resolvedThreads: [],
   recentSummaries: [],
@@ -240,6 +253,7 @@ export const SubwayExpeditionStateSchema = z.object({
   runPlan: null,
   storyMemory: {
     facts: [],
+    knownActors: [],
     unresolvedThreads: [],
     resolvedThreads: [],
     recentSummaries: [],
@@ -260,6 +274,7 @@ export type SubwayOutcomeVariant = z.infer<typeof SubwayOutcomeVariantSchema>;
 export type SubwayExpeditionOption = z.infer<typeof SubwayExpeditionOptionSchema>;
 export type SubwayExpeditionLootSpot = z.infer<typeof SubwayExpeditionLootSpotSchema>;
 export type SubwayStoryMemory = z.infer<typeof SubwayStoryMemorySchema>;
+export type SubwayKnownActor = z.infer<typeof SubwayKnownActorSchema>;
 export type SubwayRunPlan = z.infer<typeof SubwayRunPlanSchema>;
 export type SubwayMechanicsEnvelope = z.infer<typeof SubwayMechanicsEnvelopeSchema>;
 export type SubwayExpeditionFloor = z.infer<typeof SubwayExpeditionFloorSchema>;

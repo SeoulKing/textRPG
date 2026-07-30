@@ -3,7 +3,6 @@ import { itemTextReference } from "./item-text";
 import { advanceGameMinutes, syncClock } from "./rules";
 import { appendLogEntry, changeSurvivalStat } from "./state-utils";
 import { clearSystemNote, setSystemNote } from "./system-note";
-import { subwaySituationActionCatalog } from "./subway-encounter";
 import {
   buildTemplateSubwayFloorBundle,
   buildTemplateSubwayRunPlan,
@@ -54,6 +53,7 @@ function resetFloorProgress(state: GameState) {
 function emptyStoryMemory(): SubwayStoryMemory {
   return {
     facts: [],
+    knownActors: [],
     unresolvedThreads: [],
     resolvedThreads: [],
     recentSummaries: [],
@@ -809,22 +809,16 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
     if (!encounter?.currentScene) {
       return [];
     }
-    const hintByToken = new Map(
-      subwaySituationActionCatalog(state, encounter).map((entry) => [
-        entry.actionToken,
-        entry.mechanicalHint,
-      ]),
-    );
     return encounter.currentScene.choices.map((choice) => ({
-      id: `${encounter.id}:${encounter.turnNumber}:${choice.actionToken}`,
-      label: choice.actionToken === "fight" ? "기습한다" : choice.label,
-      outcomeHint: hintByToken.get(choice.actionToken) ?? "",
+      id: choice.id,
+      label: choice.label,
+      outcomeHint: "",
       showOutcomeHint: false,
       postChoiceNarrative: choice.postChoiceNarrative,
       action: {
         type: "subway_expedition" as const,
         command: "encounter_choice" as const,
-        optionId: choice.actionToken,
+        optionId: choice.id,
         turnNumber: encounter.turnNumber,
       },
       loading: {

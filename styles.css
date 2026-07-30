@@ -1633,6 +1633,40 @@ a:focus:not(:focus-visible),
   background: rgba(214, 106, 79, 0.1);
 }
 
+.menu-llm-diagnostics {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem;
+  border: 1px dashed rgba(47, 125, 104, 0.35);
+  border-radius: 12px;
+  background: rgba(47, 125, 104, 0.05);
+  font-size: 0.78rem;
+}
+
+.menu-llm-diagnostics p {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0;
+}
+
+.menu-llm-diagnostics p > span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.menu-llm-diagnostics p.error {
+  color: #9f341b;
+}
+
+.menu-llm-diagnostics p.fallback {
+  color: #8a5b08;
+}
+
+.menu-llm-diagnostics small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
 .menu-action {
   width: 100%;
   min-height: 48px;

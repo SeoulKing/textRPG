@@ -6,6 +6,7 @@ import {
   SubwayEncounterTurnResultSchema,
   type GameState,
   type SubwayEncounterActionId,
+  type SubwayChoiceIntent,
   type SubwayEncounterChoice,
   type SubwayEncounterScene,
   type SubwayEncounterState,
@@ -13,6 +14,7 @@ import {
   type SubwaySituationKind,
   type SystemNoteEntry,
 } from "./schemas";
+import type { SubwayEncounterGenerationResult } from "./subway-encounter-generator";
 import { appendLogEntry, changeSurvivalStat } from "./state-utils";
 import { setSystemNote } from "./system-note";
 
@@ -199,6 +201,18 @@ function situationKindForDepth(depth: number): SubwaySituationKind {
   return (["hazard", "social", "combat"] as const)[(depth - 2) % 3];
 }
 
+function eventLikelihoodsForFloor(
+  depth: number,
+  preferred: SubwaySituationKind,
+) {
+  if (depth === 1) return { combat: 100, social: 0, hazard: 0 };
+  return {
+    combat: preferred === "combat" ? 60 : 20,
+    social: preferred === "social" ? 60 : 20,
+    hazard: preferred === "hazard" ? 60 : 20,
+  };
+}
+
 export function subwaySituationActionCatalog(
   state: GameState,
   encounter = state.subwayExpedition.currentFloorProgress.encounter,
@@ -237,11 +251,27 @@ export function banditEncounterActionCatalog(
 
 function selectedChoice(
   encounter: SubwayEncounterState,
-  actionToken: SubwayEncounterActionId,
+  choiceId: string,
 ) {
   return encounter.currentScene?.choices.find(
-    (choice) => choice.actionToken === actionToken,
+    (choice) => choice.id === choiceId || choice.legacyActionToken === choiceId,
   );
+}
+
+function legacyTokenForIntent(intent: SubwayChoiceIntent): SubwayEncounterActionId {
+  if (intent.primary === "use_item" && intent.itemId) {
+    return `use_item:${intent.itemId}`;
+  }
+  if (intent.primary === "attack") {
+    return intent.style === "quick" || intent.style === "cunning"
+      ? "throw_improvised"
+      : "close_attack";
+  }
+  if (intent.primary === "defend") return "guard";
+  if (intent.primary === "evade" || intent.primary === "retreat") return "flee";
+  if (intent.primary === "persuade") return "talk";
+  if (intent.primary === "observe") return "observe";
+  return intent.style === "forceful" ? "force" : "careful";
 }
 
 function addEncounterReward(state: GameState, encounter: SubwayEncounterState) {
@@ -398,7 +428,12 @@ export function createSubwaySituation(state: GameState) {
       : `subway_${kind}_${state.subwayExpedition.runNumber}_${floor.depth}`,
     kind,
     objective: floor.majorEvent.resolutionGoal,
+    actor: null,
     enemy: kind === "combat" ? createEnemy(floor.depth) : null,
+    eventLikelihoods: eventLikelihoodsForFloor(floor.depth, kind),
+    dangerTier: Math.min(10, Math.max(1, Math.ceil(floor.depth / 3))),
+    pendingThreat: null,
+    lastGenerationDiagnostics: null,
     stage: "opening",
     resolution: null,
     turnNumber: 0,
@@ -451,6 +486,7 @@ export function beginSubwayBanditEncounter(state: GameState) {
   const runPlan = state.subwayExpedition.runPlan;
   state.subwayExpedition.storyMemory = {
     facts: [...(runPlan?.facts ?? [])],
+    knownActors: [],
     unresolvedThreads: [...(runPlan?.unresolvedThreads ?? [])],
     resolvedThreads: [],
     recentSummaries: [],
@@ -466,13 +502,24 @@ export function setSubwayEncounterScene(
   const encounter = state.subwayExpedition.currentFloorProgress.encounter;
   if (!encounter) throw new Error("진행 중인 지하철 상황이 없습니다.");
   const parsed = SubwayEncounterSceneSchema.parse(scene);
+  const canAdoptOpeningKind =
+    encounter.stage === "opening" &&
+    encounter.turnNumber === 0 &&
+    encounter.eventLikelihoods[parsed.kind] > 0;
   if (
     parsed.scenarioId !== encounter.id ||
     parsed.turnNumber !== encounter.turnNumber ||
-    parsed.kind !== encounter.kind ||
+    (parsed.kind !== encounter.kind && !canAdoptOpeningKind) ||
     parsed.phase !== encounter.stage
   ) {
     throw new Error("LLM 장면이 현재 지하철 상황의 ID·턴·종류·단계와 일치하지 않습니다.");
+  }
+  if (canAdoptOpeningKind) {
+    encounter.kind = parsed.kind;
+    encounter.enemy = parsed.kind === "combat"
+      ? (encounter.enemy ?? createEnemy(state.subwayExpedition.depth))
+      : null;
+    encounter.targetProgress = parsed.kind === "combat" ? 1 : 2;
   }
   encounter.currentScene = parsed;
   if (
@@ -482,6 +529,64 @@ export function setSubwayEncounterScene(
   ) {
     acknowledgeSubwaySituationResult(state);
   }
+}
+
+export function setSubwayEncounterGeneration(
+  state: GameState,
+  generation: SubwayEncounterGenerationResult,
+) {
+  const encounter = state.subwayExpedition.currentFloorProgress.encounter;
+  if (!encounter) throw new Error("진행 중인 지하철 상황이 없습니다.");
+
+  if (
+    encounter.stage === "opening" &&
+    encounter.turnNumber === 0 &&
+    encounter.eventLikelihoods[generation.eventKind] > 0
+  ) {
+    encounter.kind = generation.eventKind;
+    encounter.targetProgress = generation.eventKind === "combat" ? 1 : 2;
+  }
+
+  encounter.actor = generation.actor
+    ? {
+        ...generation.actor,
+        relationship: encounter.actor?.relationship ??
+          generation.actor.relationship,
+      }
+    : null;
+  if (encounter.kind === "combat") {
+    const authoritativeEnemy =
+      encounter.enemy ?? createEnemy(state.subwayExpedition.depth);
+    encounter.enemy = {
+      ...authoritativeEnemy,
+      name: encounter.actor?.name ?? authoritativeEnemy.name,
+      description: encounter.actor?.appearance ?? authoritativeEnemy.description,
+    };
+  } else {
+    encounter.enemy = null;
+  }
+  encounter.pendingThreat = generation.pendingThreat;
+  encounter.lastGenerationDiagnostics = generation.diagnostics;
+  generation.storyHooks.forEach((hook) => {
+    if (!state.subwayExpedition.storyMemory.unresolvedThreads.includes(hook)) {
+      state.subwayExpedition.storyMemory.unresolvedThreads.push(hook);
+    }
+  });
+  state.subwayExpedition.storyMemory.unresolvedThreads =
+    state.subwayExpedition.storyMemory.unresolvedThreads.slice(-12);
+  if (encounter.actor) {
+    const memoryActor = {
+      ...encounter.actor,
+      status: encounter.stage === "resolved" ? "resolved" as const : "active" as const,
+      lastSeenDepth: state.subwayExpedition.depth,
+    };
+    const actors = state.subwayExpedition.storyMemory.knownActors;
+    const existingIndex = actors.findIndex((actor) => actor.id === memoryActor.id);
+    if (existingIndex >= 0) actors[existingIndex] = memoryActor;
+    else actors.push(memoryActor);
+    state.subwayExpedition.storyMemory.knownActors = actors.slice(-12);
+  }
+  setSubwayEncounterScene(state, generation.scene);
 }
 
 function nonCombatChance(
@@ -523,7 +628,7 @@ function resultSummary(
 
 export function resolveSubwaySituationChoice(
   state: GameState,
-  actionToken: SubwayEncounterActionId,
+  choiceId: string,
   expectedTurnNumber: number | undefined,
   rng: () => number = Math.random,
 ) {
@@ -539,13 +644,20 @@ export function resolveSubwaySituationChoice(
   if (expectedTurnNumber !== encounter.turnNumber) {
     throw new Error("이미 지난 상황 선택입니다. 최신 상황에서 다시 선택해 주세요.");
   }
-  const choice = selectedChoice(encounter, actionToken);
-  const allowed = new Set(
-    subwaySituationActionCatalog(state, encounter).map((entry) => entry.actionToken),
-  );
-  if (!choice || !allowed.has(actionToken)) {
+  const choice = selectedChoice(encounter, choiceId);
+  if (!choice) {
     throw new Error("현재 상황에서 선택할 수 없는 행동입니다.");
   }
+  const intent = choice.intent;
+  if (
+    intent.primary === "use_item" &&
+    (!intent.itemId || (state.inventory[intent.itemId] ?? 0) <= 0)
+  ) {
+    throw new Error("현재 사용할 수 없는 아이템입니다.");
+  }
+  const actionToken = legacyTokenForIntent(intent);
+  const incomingThreat = encounter.pendingThreat;
+  encounter.pendingThreat = null;
   const statsBefore = { ...state.stats };
   const inventoryBefore = { ...state.inventory };
 
@@ -558,52 +670,75 @@ export function resolveSubwaySituationChoice(
   let resolution: SubwayEncounterTurnResult["resolution"] = null;
   let stageAfter: SubwayEncounterState["stage"] = encounter.stage;
   let itemToken: string | null = null;
+  let relationshipChange = 0;
 
   if (encounter.kind === "combat") {
     const enemy = encounter.enemy;
     if (!enemy) throw new Error("전투 상대 정보가 없습니다.");
-    if (actionToken === "talk") {
+    if (intent.primary === "persuade") {
       const chance = encounter.stage === "opening" ? 50 : 30;
       actionRoll = rollPercent(rng);
       success = actionRoll <= chance;
       if (success) {
         stageAfter = "resolved";
         resolution = "talked_down";
+        relationshipChange = 10;
       } else {
         stageAfter = "active";
-        const counter = counterDamage(encounter, encounter.stage === "opening" ? 50 : 65, rng);
-        counterRoll = counter.roll;
-        damageTaken = counter.damage;
+        relationshipChange = -5;
+        if (incomingThreat) {
+          const counter = counterDamage(
+            encounter,
+            encounter.stage === "opening" ? 50 : 65,
+            rng,
+          );
+          counterRoll = counter.roll;
+          damageTaken = counter.damage;
+        }
       }
-    } else if (actionToken === "flee") {
+    } else if (intent.primary === "retreat" || intent.primary === "evade") {
       actionRoll = rollPercent(rng);
-      success = actionRoll <= (encounter.stage === "opening" ? 80 : 60);
-      if (success) {
+      const chance = intent.primary === "evade"
+        ? 80
+        : encounter.stage === "opening" ? 80 : 60;
+      success = actionRoll <= chance;
+      if (success && intent.primary === "retreat") {
         stageAfter = "resolved";
         resolution = "escaped";
       } else {
         stageAfter = "active";
-        const counter = counterDamage(encounter, encounter.stage === "opening" ? 50 : 70, rng);
-        counterRoll = counter.roll;
-        damageTaken = counter.damage;
+        if (!success && incomingThreat) {
+          const counter = counterDamage(
+            encounter,
+            intent.primary === "evade"
+              ? 100
+              : encounter.stage === "opening" ? 50 : 70,
+            rng,
+          );
+          counterRoll = counter.roll;
+          damageTaken = counter.damage;
+        }
       }
-    } else if (actionToken === "guard") {
+    } else if (intent.primary === "defend") {
       actionRoll = rollPercent(rng);
       success = actionRoll <= 80;
-      if (!success) {
+      if (!success && incomingThreat) {
         const counter = counterDamage(encounter, 100, rng);
         counterRoll = counter.roll;
         damageTaken = counter.damage;
       }
       stageAfter = "active";
     } else {
-      const isCloseAttack = actionToken === "close_attack" || actionToken === "fight";
-      let hitChance = isCloseAttack ? 80 : 65;
-      let attackDamage = isCloseAttack ? 2 : 1;
-      let counterChance = isCloseAttack ? 60 : 35;
-      if (actionToken.startsWith("use_item:")) {
+      const forcefulAttack =
+        intent.primary === "attack" &&
+        intent.style !== "quick" &&
+        intent.style !== "cunning";
+      let hitChance = forcefulAttack ? 80 : 65;
+      let attackDamage = forcefulAttack ? 2 : 1;
+      let counterChance = forcefulAttack ? 60 : 35;
+      if (intent.primary === "use_item" && intent.itemId) {
         itemToken = actionToken;
-        const itemId = actionToken.slice("use_item:".length);
+        const itemId = intent.itemId;
         const item = itemDefinition(itemId);
         if (item?.kind === "tool") {
           damageTool(state, itemId);
@@ -618,12 +753,18 @@ export function resolveSubwaySituationChoice(
           }
         } else {
           minutes = useRecoveryItem(state, itemId);
-          const counter = counterDamage(encounter, 50, rng);
-          counterRoll = counter.roll;
-          damageTaken = counter.damage;
+          if (incomingThreat) {
+            const counter = counterDamage(encounter, 50, rng);
+            counterRoll = counter.roll;
+            damageTaken = counter.damage;
+          }
           stageAfter = "active";
           hitChance = 0;
         }
+      } else if (intent.primary !== "attack") {
+        hitChance = 50;
+        attackDamage = 0;
+        counterChance = 65;
       }
       if (hitChance > 0) {
         actionRoll = rollPercent(rng);
@@ -634,9 +775,11 @@ export function resolveSubwaySituationChoice(
           stageAfter = "resolved";
           resolution = "victory";
         } else {
-          const counter = counterDamage(encounter, counterChance, rng);
-          counterRoll = counter.roll;
-          damageTaken = counter.damage;
+          if (incomingThreat) {
+            const counter = counterDamage(encounter, counterChance, rng);
+            counterRoll = counter.roll;
+            damageTaken = counter.damage;
+          }
           stageAfter = "active";
         }
       }
@@ -644,15 +787,20 @@ export function resolveSubwaySituationChoice(
   } else {
     actionRoll = rollPercent(rng);
     success = actionRoll <= nonCombatChance(actionToken, encounter.kind);
-    if (actionToken.startsWith("use_item:")) {
+    if (intent.primary === "use_item" && intent.itemId) {
       itemToken = actionToken;
-      damageTool(state, actionToken.slice("use_item:".length));
+      const item = itemDefinition(intent.itemId);
+      if (item?.kind === "tool") damageTool(state, intent.itemId);
+      else minutes = useRecoveryItem(state, intent.itemId);
     }
-    if (actionToken === "flee" && success) {
+    if (intent.primary === "retreat" && success) {
       stageAfter = "resolved";
       resolution = "escaped";
     } else if (success) {
       encounter.progress += 1;
+      if (encounter.kind === "social" && intent.primary === "persuade") {
+        relationshipChange = 10;
+      }
       if (encounter.progress >= encounter.targetProgress) {
         stageAfter = "resolved";
         resolution = "resolved";
@@ -661,10 +809,18 @@ export function resolveSubwaySituationChoice(
       }
     } else {
       encounter.failureCount += 1;
-      if (encounter.kind === "social" && actionToken !== "force") {
-        changeSurvivalStat(state, "mind", -1);
-      } else {
-        damageTaken = 1;
+      if (
+        encounter.kind === "social" &&
+        (intent.primary === "persuade" || intent.style === "forceful")
+      ) {
+        relationshipChange = -5;
+      }
+      if (incomingThreat) {
+        if (encounter.kind === "social" && intent.style !== "forceful") {
+          changeSurvivalStat(state, "mind", -1);
+        } else {
+          damageTaken = 1;
+        }
       }
       stageAfter = "active";
     }
@@ -694,12 +850,21 @@ export function resolveSubwaySituationChoice(
   encounter.stage = stageAfter;
   encounter.resolution = resolution;
   encounter.turnNumber += 1;
+  if (encounter.actor && relationshipChange !== 0) {
+    encounter.actor.relationship = Math.max(
+      -100,
+      Math.min(100, encounter.actor.relationship + relationshipChange),
+    );
+  }
   if (resolution === "victory") addEncounterReward(state, encounter);
   progress.phase = resolution ? "encounter_result" : "encounter";
 
   const result = SubwayEncounterTurnResultSchema.parse({
+    selectedChoiceId: choice.id,
+    selectedIntent: intent,
+    selectedEffectDescription: choice.effectDescription,
     selectedActionToken: actionToken,
-    selectedLabel: actionToken === "fight" ? "기습한다" : choice.label,
+    selectedLabel: choice.label,
     success,
     rolls: { action: actionRoll, counter: counterRoll },
     damageDealt,
@@ -709,6 +874,7 @@ export function resolveSubwaySituationChoice(
     enemyHpAfter: encounter.enemy?.hp ?? 0,
     progressAfter: encounter.progress,
     failureCountAfter: encounter.failureCount,
+    relationshipChange,
     statChanges: (["hp", "mind", "energy"] as const).flatMap((stat) => {
       const amount = state.stats[stat] - statsBefore[stat];
       return amount === 0 ? [] : [{ stat, amount }];

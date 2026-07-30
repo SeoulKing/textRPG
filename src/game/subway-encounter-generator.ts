@@ -1,38 +1,28 @@
 import { z } from "zod";
 import { appendDevLlmTraceForGame } from "./dev-llm-trace";
+import { geminiModel } from "./gemini-client";
 import {
-  generateGeminiJson,
-  geminiModel,
-  hasGeminiConfig,
-} from "./gemini-client";
-import { subwaySituationActionCatalog } from "./subway-encounter";
-import {
-  SubwayEncounterActionIdSchema,
-  SubwayEncounterSceneSchema,
+  SubwayChoiceIntentSchema,
+  SubwayChoicePrimaryIntentSchema,
+  SubwayChoiceStyleSchema,
+  SubwaySituationKindSchema,
   type GameState,
-  type SubwayEncounterActionId,
+  type SubwayChoiceIntent,
+  type SubwayEncounterActor,
+  type SubwayEncounterChoice,
   type SubwayEncounterScene,
   type SubwayEncounterTurnResult,
+  type SubwayGenerationDiagnostics,
+  type SubwayPendingThreat,
+  type SubwaySituationKind,
 } from "./schemas";
+import {
+  generateSubwayRoleJson,
+  hasSubwayRoleConfig,
+  type SubwayRoleClient,
+} from "./subway-role-pipeline";
 
-export const SUBWAY_ENCOUNTER_PROMPT_VERSION = "subway-situation-v4";
-const TOTAL_ATTEMPTS = 3;
-
-const EncounterTurnDraftSchema = z.object({
-  scenarioId: z.string().min(1).max(140),
-  turnNumber: z.number().int().nonnegative(),
-  kind: z.enum(["combat", "social", "hazard"]),
-  phase: z.enum(["opening", "active", "resolved"]),
-  title: z.string().min(1).max(80),
-  paragraphs: z.array(z.string().min(1).max(600)).min(1).max(3),
-  choices: z.array(z.object({
-    actionToken: SubwayEncounterActionIdSchema,
-    label: z.string().min(1).max(24),
-    postChoiceNarrative: z.array(z.string().min(1).max(600)).min(1).max(2),
-  }).strict()).max(4),
-}).strict();
-
-type EncounterTurnDraft = z.infer<typeof EncounterTurnDraftSchema>;
+export const SUBWAY_ENCOUNTER_PROMPT_VERSION = "subway-role-pipeline-v4";
 
 export type SubwayEncounterGenerationInput = {
   gameId: string;
@@ -40,322 +30,898 @@ export type SubwayEncounterGenerationInput = {
   latestServerResult?: SubwayEncounterTurnResult | null;
 };
 
+export type SubwayEncounterGenerationResult = {
+  scene: SubwayEncounterScene;
+  eventKind: SubwaySituationKind;
+  actor: SubwayEncounterActor | null;
+  pendingThreat: SubwayPendingThreat | null;
+  storyHooks: string[];
+  diagnostics: SubwayGenerationDiagnostics;
+};
+
 export type SubwayEncounterSceneGenerator = (
   input: SubwayEncounterGenerationInput,
-) => Promise<SubwayEncounterScene>;
+) => Promise<SubwayEncounterGenerationResult>;
 
-const ENCOUNTER_SYSTEM_PROMPT = `당신은 붕괴한 서울의 현실적인 지하철 생존 텍스트 RPG를 진행하는 장면 작가입니다.
-서버가 확정한 현재 상황과 직전 판정을 이어 받아, 다음 상황 묘사와 허용된 선택지를 구조화된 한국어 JSON으로 작성합니다.
+const RawChoiceEffectSchema = z.object({
+  type: SubwayChoicePrimaryIntentSchema.optional(),
+  action: SubwayChoicePrimaryIntentSchema.optional(),
+  description: z.string().max(300).optional(),
+  approach: SubwayChoiceStyleSchema.optional(),
+  itemId: z.string().min(1).max(80).optional(),
+}).passthrough();
 
-[역할 분리]
-- 당신은 이야기와 선택지의 자연스러운 표현만 담당합니다.
-- 서버만 성공 여부, 확률, 피해, 체력, 정신력, 기력, 시간, 아이템, 내구도, 보상, 진행도와 상황 종료를 결정합니다.
-- 서버가 제공한 scenario와 latestServerResult는 절대적인 사실입니다.
+const RawThreatSchema = z.object({
+  kind: z.enum(["attack", "pressure", "hazard", "escape"]),
+  target: z.enum(["player", "environment", "exit"]),
+  method: z.string().min(1).max(240),
+}).passthrough();
 
-[절대 규칙]
-1. scenarioId, turnNumber, kind, phase는 scenario 값을 글자와 숫자까지 그대로 복사하십시오.
-2. latestServerResult가 있으면 selectedLabel을 플레이어가 실제로 선택했고 summary가 실제로 일어났다는 사실을 다음 장면에 자연스럽게 반영하십시오. latestServerResult.postChoiceNarrative는 이미 화면에 출력된 문장이므로 반복하지 말고 그 직후부터 이어 쓰십시오.
-3. choices의 actionToken은 allowedActions에 있는 값만 사용하고 중복하지 마십시오. actionToken의 intent를 다른 행동으로 바꾸지 마십시오.
-4. opening과 active 단계에서는 2~4개 선택지를 작성하십시오. 단, mandatoryActionTokens가 있으면 모두 정확히 한 번 포함하십시오.
-5. resolved 단계에서는 choices를 빈 배열로 반환하십시오. 서버가 확정한 결말을 반영하고, 플레이어가 소란이 끝난 현재 층을 정돈하며 숨을 고르는 모습까지 자연스럽게 마무리하십시오.
-6. 피해 수치, 체력 수치, 성공 확률, 경과 시간, 보상, 아이템 획득, 선택지 힌트를 title, paragraphs, label, postChoiceNarrative에 쓰지 마십시오. 해당 정보는 서버 UI가 따로 표시합니다.
-7. 플레이어가 보유하지 않은 물건이나 allowedActions에 없는 도구를 만들지 마십시오. use_item 토큰은 해당 itemId의 실제 물건만 사용하십시오.
-8. 다음 층 이동, 대합실 귀환, 파밍, 수색 종료를 선택지로 만들지 마십시오. 이것들은 상황 종료 뒤 서버가 제공합니다.
-9. combat은 서버가 제공한 enemy 한 명만 사용합니다. 지원군, 새 적, 괴물, 마법, 초자연 현상을 추가하지 마십시오.
-10. social과 hazard에서도 서버 objective를 바꾸거나 이미 해결됐다고 앞당겨 쓰지 마십시오.
-11. 최근 기록과 같은 문장·행동 묘사를 반복하지 말고, 현재 층의 환경과 회차 미스터리를 이어 가십시오.
-12. 플레이어가 아직 고르지 않은 선택을 title이나 paragraphs에서 이미 실행한 것처럼 서술하지 마십시오.
-13. 각 label은 "기습한다", "설득한다", "후퇴한다"처럼 행동만 나타내는 짧은 문장으로 쓰십시오. combat opening의 fight label은 정확히 "기습한다"로 쓰십시오.
-14. 각 postChoiceNarrative는 해당 버튼을 누른 직후 즉시 보여 줄 짧은 1~2개 문단입니다. actionToken의 행동을 실제로 시작하는 모습만 쓰고, 성공·실패·피해·상대 반응·판정 결과는 확정하지 마십시오.
-15. requiredOutputShape에 없는 키를 만들지 말고 JSON만 반환하십시오.`;
-
-const RESERVED_SYSTEM_UI_PATTERN =
-  /(?:보상|획득|내구도|힌트|성공\s*\d+\s*%|명중\s*\d+\s*%|반격\s*\d+\s*%|\d+\s*피해|체력\s*\d+\s*\/\s*\d+|\+\s*\d+\s*분|-\s*\d+\s*(?:체력|정신력|기력))/i;
-const EXIT_CHOICE_PATTERN =
-  /(?:다음\s*층|내려간다|대합실|귀환|파밍|수색을?\s*(?:마친|끝))/i;
-
-function zodErrors(error: z.ZodError) {
-  return error.issues.map((issue) => {
-    const path = issue.path.length > 0 ? issue.path.join(".") : "<root>";
-    return `${path}: ${issue.message}`;
-  });
+function asRecord(raw: unknown): Record<string, unknown> {
+  return raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
 }
 
-function validateDraft(
-  raw: unknown,
-  expected: {
-    scenarioId: string;
-    turnNumber: number;
-    kind: "combat" | "social" | "hazard";
-    phase: "opening" | "active" | "resolved";
-  },
-  allowedActionIds: SubwayEncounterActionId[],
-  mandatoryActionTokens: SubwayEncounterActionId[],
-) {
-  const parsed = EncounterTurnDraftSchema.safeParse(raw);
-  if (!parsed.success) return { draft: null, errors: zodErrors(parsed.error) };
+function asStrings(raw: unknown, max: number, maxLength: number) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => value.slice(0, maxLength))
+    .slice(0, max);
+}
 
-  const errors: string[] = [];
-  if (parsed.data.scenarioId !== expected.scenarioId) {
-    errors.push("scenarioId must exactly match the server scenario.");
-  }
-  if (parsed.data.turnNumber !== expected.turnNumber) {
-    errors.push("turnNumber must exactly match the server turn.");
-  }
-  if (parsed.data.kind !== expected.kind) {
-    errors.push("kind must exactly match the server situation kind.");
-  }
-  if (parsed.data.phase !== expected.phase) {
-    errors.push("phase must exactly match the server situation phase.");
-  }
+function highestLikelihood(
+  likelihoods: { combat: number; social: number; hazard: number },
+): SubwaySituationKind {
+  return (Object.entries(likelihoods) as Array<[SubwaySituationKind, number]>)
+    .sort((left, right) => right[1] - left[1])[0]?.[0] ?? "hazard";
+}
 
-  const narrativeText = [
-    parsed.data.title,
-    ...parsed.data.paragraphs,
-    ...parsed.data.choices.map((choice) => choice.label),
-    ...parsed.data.choices.flatMap((choice) => choice.postChoiceNarrative),
-  ].join("\n");
-  if (RESERVED_SYSTEM_UI_PATTERN.test(narrativeText)) {
-    errors.push("narrative and labels must not contain mechanics, hints, time, damage, or rewards.");
-  }
-  if (parsed.data.choices.some((choice) => EXIT_CHOICE_PATTERN.test(choice.label))) {
-    errors.push("LLM choices must not contain descent, return, farming, or floor completion actions.");
-  }
+function defaultActor(
+  kind: SubwaySituationKind,
+  encounterId: string,
+): SubwayEncounterActor | null {
+  if (kind === "hazard") return null;
+  return {
+    id: `${encounterId}:actor`,
+    name: kind === "combat" ? "지하 통로의 약탈자" : "경계하는 생존자",
+    appearance: kind === "combat"
+      ? "낡은 방한복을 걸치고 손에 짧은 쇠막대를 쥐고 있다."
+      : "두꺼운 외투 깃을 세우고 일정한 거리를 유지한다.",
+    personality: "쉽게 속내를 드러내지 않고 주변을 예민하게 살핀다.",
+    motive: kind === "combat"
+      ? "자신이 차지한 통로와 물자를 지키려 한다."
+      : "낯선 사람에게서 자신과 동료를 보호하려 한다.",
+    relationship: 0,
+  };
+}
 
-  const allowed = new Set(allowedActionIds);
-  const seen = new Set<SubwayEncounterActionId>();
-  parsed.data.choices.forEach((choice, index) => {
-    if (!allowed.has(choice.actionToken)) {
-      errors.push(`choices[${index}].actionToken '${choice.actionToken}' is not allowed.`);
-    }
-    if (seen.has(choice.actionToken)) {
-      errors.push(`choices[${index}].actionToken '${choice.actionToken}' is duplicated.`);
-    }
-    seen.add(choice.actionToken);
-    if (
-      expected.kind === "combat" &&
-      expected.phase === "opening" &&
-      choice.actionToken === "fight" &&
-      choice.label !== "기습한다"
-    ) {
-      errors.push("the opening fight label must be exactly '기습한다'.");
-    }
-  });
+function defaultChoiceSpecs(kind: SubwaySituationKind, opening: boolean): Array<{
+  label: string;
+  intent: SubwayChoiceIntent;
+}> {
+  if (kind === "combat") {
+    return opening
+      ? [
+          { label: "기습한다", intent: { primary: "attack", style: "forceful", target: "enemy" } },
+          { label: "말을 건다", intent: { primary: "persuade", style: "empathetic", target: "actor" } },
+          { label: "물러난다", intent: { primary: "retreat", style: "quick", target: "exit" } },
+        ]
+      : [
+          { label: "공격한다", intent: { primary: "attack", style: "forceful", target: "enemy" } },
+          { label: "공격을 막는다", intent: { primary: "defend", style: "careful", target: "self" } },
+          { label: "옆으로 피한다", intent: { primary: "evade", style: "quick", target: "environment" } },
+        ];
+  }
+  if (kind === "social") {
+    return [
+      { label: "차분히 설득한다", intent: { primary: "persuade", style: "empathetic", target: "actor" } },
+      { label: "의도를 살핀다", intent: { primary: "observe", style: "careful", target: "actor" } },
+      { label: "대화에서 물러난다", intent: { primary: "retreat", style: "quick", target: "exit" } },
+    ];
+  }
+  return [
+    { label: "주변을 살핀다", intent: { primary: "observe", style: "careful", target: "environment" } },
+    { label: "조심스럽게 건넌다", intent: { primary: "interact", style: "careful", target: "environment" } },
+    { label: "진입로로 물러난다", intent: { primary: "retreat", style: "quick", target: "exit" } },
+  ];
+}
 
-  if (expected.phase === "resolved") {
-    if (parsed.data.choices.length !== 0) {
-      errors.push("resolved situation choices must be empty.");
-    }
+type AllowedChoiceIntent = {
+  id: string;
+  instruction: string;
+  intent: SubwayChoiceIntent;
+};
+
+function allowedChoiceIntents(
+  input: SubwayEncounterGenerationInput,
+  kind: SubwaySituationKind,
+): AllowedChoiceIntent[] {
+  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
+  let options: AllowedChoiceIntent[];
+  if (kind === "combat" && encounter.stage === "opening") {
+    options = [
+      {
+        id: "attack",
+        instruction: "상대가 대비하기 전에 먼저 공격한다.",
+        intent: { primary: "attack", style: "forceful", target: "enemy" },
+      },
+      {
+        id: "persuade",
+        instruction: "상대에게 침착하게 말을 걸어 물러나게 한다.",
+        intent: { primary: "persuade", style: "empathetic", target: "actor" },
+      },
+      {
+        id: "retreat",
+        instruction: "진입로 쪽으로 물러나 상황에서 벗어난다.",
+        intent: { primary: "retreat", style: "quick", target: "exit" },
+      },
+    ];
+  } else if (kind === "combat") {
+    options = [
+      {
+        id: "attack_forceful",
+        instruction: "가까이 붙어 힘으로 공격한다.",
+        intent: { primary: "attack", style: "forceful", target: "enemy" },
+      },
+      {
+        id: "attack_quick",
+        instruction: "주변 물건이나 빈틈을 이용해 빠르게 공격한다.",
+        intent: { primary: "attack", style: "quick", target: "enemy" },
+      },
+      {
+        id: "defend",
+        instruction: "상대의 다음 공격을 막아 낸다.",
+        intent: { primary: "defend", style: "careful", target: "self" },
+      },
+      {
+        id: "persuade",
+        instruction: "싸움을 멈추도록 상대를 설득한다.",
+        intent: { primary: "persuade", style: "empathetic", target: "actor" },
+      },
+      {
+        id: "retreat",
+        instruction: "거리를 벌리고 진입로 쪽으로 도망친다.",
+        intent: { primary: "retreat", style: "quick", target: "exit" },
+      },
+    ];
+  } else if (kind === "social") {
+    options = [
+      {
+        id: "persuade",
+        instruction: "상대의 말을 듣고 현실적인 합의점을 제시한다.",
+        intent: { primary: "persuade", style: "empathetic", target: "actor" },
+      },
+      {
+        id: "observe",
+        instruction: "상대의 말투와 행동을 관찰해 의도를 알아낸다.",
+        intent: { primary: "observe", style: "careful", target: "actor" },
+      },
+      {
+        id: "pressure",
+        instruction: "강하게 압박해 상대가 물러나게 한다.",
+        intent: { primary: "interact", style: "forceful", target: "actor" },
+      },
+      {
+        id: "retreat",
+        instruction: "대화를 포기하고 안전한 길로 물러난다.",
+        intent: { primary: "retreat", style: "quick", target: "exit" },
+      },
+    ];
   } else {
-    if (parsed.data.choices.length < 2 || parsed.data.choices.length > 4) {
-      errors.push("opening and active choices must contain 2 to 4 actions.");
-    }
-    mandatoryActionTokens.forEach((token) => {
-      if (!seen.has(token)) errors.push(`choices must include mandatory token '${token}'.`);
-    });
+    options = [
+      {
+        id: "observe",
+        instruction: "주변 흔적과 구조를 살펴 위험의 규칙을 찾는다.",
+        intent: { primary: "observe", style: "careful", target: "environment" },
+      },
+      {
+        id: "interact_careful",
+        instruction: "안전한 발판과 손잡이를 확인하며 조심스럽게 통과한다.",
+        intent: { primary: "interact", style: "careful", target: "environment" },
+      },
+      {
+        id: "interact_forceful",
+        instruction: "위험 구간을 힘과 속도로 밀어붙여 돌파한다.",
+        intent: { primary: "interact", style: "forceful", target: "environment" },
+      },
+      {
+        id: "retreat",
+        instruction: "현재 경로를 포기하고 진입 지점으로 물러난다.",
+        intent: { primary: "retreat", style: "quick", target: "exit" },
+      },
+    ];
   }
-  return { draft: errors.length === 0 ? parsed.data : null, errors };
+
+  return options;
 }
 
-function appendValidationTrace(gameId: string, target: string, errors: string[]) {
-  appendDevLlmTraceForGame(gameId, {
-    scope: "subway",
-    target,
-    stage: "draft_validation",
-    model: geminiModel(),
-    status: errors.length > 0 ? "error" : "success",
-    request: "",
-    response: "",
-    message: errors.length > 0
-      ? "지하철 상황 LLM 응답이 서버 규칙을 통과하지 못했습니다."
-      : "지하철 상황 LLM 응답이 서버 규칙을 통과했습니다.",
-    errorReason: errors.join(" | "),
+function adaptChoiceWriterOutput(
+  raw: unknown,
+  allowedIntents: AllowedChoiceIntent[],
+) {
+  const source = asRecord(raw);
+  const choices = Array.isArray(source.choices) ? source.choices : [];
+  const allowed = new Map(allowedIntents.map((entry) => [entry.id, entry]));
+  const usedIntentIds = new Set<string>();
+  return choices.slice(0, 6).flatMap((candidate) => {
+    const choice = asRecord(candidate);
+    const intentId = typeof choice.intentId === "string"
+      ? choice.intentId.trim()
+      : "";
+    const selected = allowed.get(intentId);
+    if (!selected || usedIntentIds.has(intentId)) {
+      return [];
+    }
+    usedIntentIds.add(intentId);
+    return [{
+      label: choice.label,
+      effect: {
+        type: selected.intent.primary,
+        approach: selected.intent.style,
+        itemId: selected.intent.itemId,
+        description: choice.effectDescription,
+      },
+      intent: selected.intent,
+      postChoiceScene: choice.postChoiceScene,
+    }];
+  }).slice(0, 3);
+}
+
+function defaultPostChoice(label: string) {
+  const action = label.replace(/[.。]$/, "");
+  return [
+    `나는 망설임을 접고 ${action} 쪽으로 움직였다.`,
+    "주변의 소리와 시선이 한순간 그 움직임을 따라붙었다.",
+  ];
+}
+
+function inferPrimaryIntent(
+  text: string,
+  fallback: SubwayChoiceIntent["primary"],
+) {
+  const rules: Array<[RegExp, SubwayChoiceIntent["primary"]]> = [
+    [/(?:후퇴|물러|도망|달아|빠져나|떠난)/i, "retreat"],
+    [/(?:설득|대화|말을|타협|달래|진정|호소)/i, "persuade"],
+    [/(?:방어|막아|막는|받아내|버틴|웅크)/i, "defend"],
+    [/(?:회피|피하|옆으로|몸을 날려)/i, "evade"],
+    [/(?:관찰|살핀|주시|듣는다|흔적|확인)/i, "observe"],
+    [/(?:공격|기습|휘두르|찌르|때리|돌진|덮친|맞서)/i, "attack"],
+    [/(?:사용|꺼내|마신|먹는|도구)/i, "use_item"],
+  ];
+  return rules.find(([pattern]) => pattern.test(text))?.[1] ?? fallback;
+}
+
+function inferStyle(
+  text: string,
+  primary: SubwayChoiceIntent["primary"],
+): SubwayChoiceIntent["style"] {
+  if (/(?:속이|유인|함정|기만|주의를 돌|허를 찌)/i.test(text)) return "cunning";
+  if (/(?:재빨리|순식간|빠르게|달려|급히)/i.test(text)) return "quick";
+  if (/(?:달래|공감|사정을|진심|안심)/i.test(text)) return "empathetic";
+  if (/(?:조심|천천히|신중|살피며)/i.test(text)) return "careful";
+  if (primary === "persuade") return "empathetic";
+  if (primary === "retreat" || primary === "evade") return "quick";
+  if (primary === "attack") return "forceful";
+  return "careful";
+}
+
+function targetForPrimary(
+  primary: SubwayChoiceIntent["primary"],
+  kind: SubwaySituationKind,
+): SubwayChoiceIntent["target"] {
+  if (primary === "attack") return "enemy";
+  if (primary === "persuade") return "actor";
+  if (primary === "defend" || primary === "use_item") return "self";
+  if (primary === "retreat") return "exit";
+  if (primary === "observe" && kind === "social") return "actor";
+  return "environment";
+}
+
+function compileChoices(
+  raw: unknown,
+  input: SubwayEncounterGenerationInput,
+  kind: SubwaySituationKind,
+) {
+  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
+  if (encounter.stage === "resolved") {
+    return { choices: [] as SubwayEncounterChoice[], repaired: 0, dropped: 0 };
+  }
+
+  const source = Array.isArray(raw) ? raw.slice(0, 4) : [];
+  const choices: SubwayEncounterChoice[] = [];
+  const seenLabels = new Set<string>();
+  let repaired = Array.isArray(raw) ? 0 : 1;
+  let dropped = 0;
+  const defaults = defaultChoiceSpecs(kind, encounter.stage === "opening");
+
+  source.forEach((candidate, index) => {
+    const choice = asRecord(candidate);
+    if (typeof choice.label !== "string" || !choice.label.trim()) {
+      dropped += 1;
+      return;
+    }
+    const normalizedLabel = choice.label.trim().slice(0, 80);
+    if (seenLabels.has(normalizedLabel)) {
+      dropped += 1;
+      return;
+    }
+    const effect = RawChoiceEffectSchema.safeParse(choice.effect);
+    const legacyIntent = SubwayChoiceIntentSchema.safeParse(choice.intent);
+    const effectDescription = effect.success
+      ? effect.data.description?.trim().slice(0, 300) ?? ""
+      : typeof choice.effect === "string"
+        ? choice.effect.trim().slice(0, 300)
+        : "";
+    const fallbackIntent = defaults[index % defaults.length]!.intent;
+    const intentText = `${normalizedLabel} ${effectDescription}`;
+    const primary = effect.success
+      ? effect.data.type ?? effect.data.action ??
+        (legacyIntent.success
+          ? legacyIntent.data.primary
+          : inferPrimaryIntent(intentText, fallbackIntent.primary))
+      : legacyIntent.success
+        ? legacyIntent.data.primary
+        : inferPrimaryIntent(intentText, fallbackIntent.primary);
+    const itemId = effect.success
+      ? effect.data.itemId
+      : legacyIntent.success
+        ? legacyIntent.data.itemId
+        : undefined;
+    if (
+      primary === "use_item" &&
+      (!itemId || (input.state.inventory[itemId] ?? 0) <= 0)
+    ) {
+      dropped += 1;
+      return;
+    }
+    const style = effect.success
+      ? effect.data.approach ??
+        (legacyIntent.success
+          ? legacyIntent.data.style
+          : inferStyle(intentText, primary))
+      : legacyIntent.success
+        ? legacyIntent.data.style
+        : inferStyle(intentText, primary);
+    const intent: SubwayChoiceIntent = {
+      primary,
+      style,
+      target: legacyIntent.success
+        ? legacyIntent.data.target
+        : targetForPrimary(primary, kind),
+      ...(legacyIntent.success && legacyIntent.data.secondary
+        ? { secondary: legacyIntent.data.secondary }
+        : {}),
+      ...(primary === "use_item" && itemId ? { itemId } : {}),
+    };
+    if (!effect.success || (!effect.data.type && !effect.data.action)) {
+      repaired += 1;
+    }
+    seenLabels.add(normalizedLabel);
+    let narrative = asStrings(
+      choice.postChoiceScene ??
+        choice.postChoiceNarrative ??
+        choice.afterScene,
+      2,
+      600,
+    );
+    if (narrative.length === 0) {
+      narrative = defaultPostChoice(normalizedLabel);
+      repaired += 1;
+    }
+    choices.push({
+      id: `${encounter.id}:${encounter.turnNumber}:choice:${index + 1}`,
+      label: normalizedLabel,
+      effectDescription,
+      postChoiceNarrative: narrative,
+      intent,
+    });
   });
+
+  if (choices.length < 2) {
+    for (const fallback of defaults) {
+      if (choices.length >= 3) break;
+      if (seenLabels.has(fallback.label)) continue;
+      const index = choices.length + 1;
+      choices.push({
+        id: `${encounter.id}:${encounter.turnNumber}:fallback:${index}`,
+        label: fallback.label,
+        effectDescription: "",
+        postChoiceNarrative: defaultPostChoice(fallback.label),
+        intent: fallback.intent,
+      });
+      seenLabels.add(fallback.label);
+      repaired += 1;
+    }
+  }
+
+  return { choices, repaired, dropped };
+}
+
+function compileThreat(
+  raw: unknown,
+  kind: SubwaySituationKind,
+  encounterId: string,
+  turnNumber: number,
+  resolved: boolean,
+) {
+  if (resolved) return { threat: null, repaired: 0 };
+  const freeformMethod = typeof raw === "string"
+    ? raw.trim().slice(0, 240)
+    : "";
+  const parsed = RawThreatSchema.safeParse(raw);
+  const allowedKind = kind === "combat"
+    ? "attack"
+    : kind === "social"
+      ? "pressure"
+      : "hazard";
+  if (freeformMethod || (parsed.success && parsed.data.kind === allowedKind)) {
+    return {
+      threat: {
+        id: `${encounterId}:threat:${turnNumber}`,
+        kind: allowedKind,
+        target: parsed.success
+          ? parsed.data.target
+          : kind === "combat" ? "player" : "environment",
+        method: freeformMethod || (parsed.success ? parsed.data.method : ""),
+        profile: kind === "combat"
+          ? "standard_attack"
+          : kind === "social"
+            ? "social_pressure"
+            : "environmental_hazard",
+      } satisfies SubwayPendingThreat,
+      repaired: 0,
+    };
+  }
+  return {
+    threat: {
+      id: `${encounterId}:threat:${turnNumber}`,
+      kind: allowedKind,
+      target: kind === "combat" ? "player" : "environment",
+      method: kind === "combat"
+        ? "상대가 무기를 고쳐 쥐고 다음 빈틈을 노린다."
+        : kind === "social"
+          ? "상대의 경계가 높아지며 대화의 주도권을 빼앗으려 한다."
+          : "불안정한 구조물이 흔들리며 다음 움직임을 재촉한다.",
+      profile: kind === "combat"
+        ? "standard_attack"
+        : kind === "social"
+          ? "social_pressure"
+          : "environmental_hazard",
+    } satisfies SubwayPendingThreat,
+    repaired: 1,
+  };
+}
+
+function compileGeneration(
+  raw: unknown,
+  input: SubwayEncounterGenerationInput,
+  latencyMs: number,
+  requestError: string | null,
+): SubwayEncounterGenerationResult {
+  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
+  const data = asRecord(raw);
+  const sceneData = asRecord(data.scene);
+  const fallbackKind = highestLikelihood(encounter.eventLikelihoods);
+  const rawKind = SubwaySituationKindSchema.safeParse(
+    data.eventKind ?? asRecord(data.event).kind ?? data.kind,
+  );
+  const eventKind =
+    encounter.turnNumber > 0 || encounter.stage !== "opening"
+      ? encounter.kind
+      : rawKind.success && encounter.eventLikelihoods[rawKind.data] > 0
+        ? rawKind.data
+        : fallbackKind;
+  let repaired = requestError ? 1 : 0;
+  if (
+    encounter.stage === "opening" &&
+    (!rawKind.success || encounter.eventLikelihoods[rawKind.data] <= 0)
+  ) {
+    repaired += 1;
+  }
+
+  const actorData = asRecord(data.actor);
+  let actor = eventKind === "hazard"
+    ? null
+    : encounter.actor ?? defaultActor(eventKind, encounter.id);
+  if (eventKind !== "hazard") {
+    const actorName = typeof actorData.name === "string" && actorData.name.trim()
+      ? actorData.name.trim().slice(0, 80)
+      : actor?.name;
+    const actorAppearance =
+      typeof actorData.appearance === "string" && actorData.appearance.trim()
+        ? actorData.appearance.trim().slice(0, 300)
+        : actor?.appearance;
+    const actorPersonality =
+      typeof actorData.personality === "string" && actorData.personality.trim()
+        ? actorData.personality.trim().slice(0, 200)
+        : actor?.personality;
+    const actorMotive =
+      typeof actorData.motive === "string" && actorData.motive.trim()
+        ? actorData.motive.trim().slice(0, 200)
+        : actor?.motive;
+    if (actorName && actorAppearance && actorPersonality && actorMotive) {
+      actor = {
+        id: `${encounter.id}:actor`,
+        name: actorName,
+        appearance: actorAppearance,
+        personality: actorPersonality,
+        motive: actorMotive,
+        relationship: encounter.actor?.relationship ?? 0,
+      };
+      if (Object.keys(actorData).length > 0 && Object.keys(actorData).length < 4) {
+        repaired += 1;
+      }
+    } else {
+      repaired += 1;
+    }
+  }
+
+  const fallbackTitle = input.latestServerResult
+    ? "선택의 결과"
+    : eventKind === "combat"
+      ? "통로를 막은 그림자"
+      : eventKind === "social"
+        ? "경계하는 생존자"
+        : "불안정한 통로";
+  const rawTitle = data.title ?? sceneData.title;
+  const title = typeof rawTitle === "string" && rawTitle.trim()
+    ? rawTitle.trim().slice(0, 80)
+    : fallbackTitle;
+  if (title === fallbackTitle) repaired += 1;
+
+  let paragraphs = asStrings(
+    data.narrative ??
+      data.paragraphs ??
+      sceneData.narrative ??
+      sceneData.paragraphs,
+    4,
+    600,
+  );
+  if (paragraphs.length === 0) {
+    paragraphs = input.latestServerResult
+      ? [
+          input.latestServerResult.summary,
+          encounter.stage === "resolved"
+            ? "소란이 가라앉고 다음 길을 고를 여유가 생겼다."
+            : "상황은 아직 끝나지 않았고, 다음 움직임이 필요하다.",
+        ]
+      : [
+          eventKind === "combat"
+            ? `${actor?.name ?? "낯선 약탈자"}가 통로 한가운데에서 길을 막는다.`
+            : eventKind === "social"
+              ? `${actor?.name ?? "낯선 생존자"}가 거리를 둔 채 이쪽을 살핀다.`
+              : "앞쪽 구조물이 불안정하게 흔들리며 안전한 길을 가늠하기 어렵다.",
+        ];
+    repaired += 1;
+  }
+
+  const choiceCompilation = compileChoices(data.choices, input, eventKind);
+  repaired += choiceCompilation.repaired;
+  const threatCompilation = compileThreat(
+    data.nextSceneHook ?? data.threat,
+    eventKind,
+    encounter.id,
+    encounter.turnNumber,
+    encounter.stage === "resolved",
+  );
+  repaired += threatCompilation.repaired;
+  const storyHooks = asStrings(data.storyHooks, 3, 200);
+  const fallback = Boolean(requestError) || Object.keys(data).length === 0;
+
+  return {
+    scene: {
+      scenarioId: encounter.id,
+      turnNumber: encounter.turnNumber,
+      kind: eventKind,
+      phase: encounter.stage,
+      title,
+      paragraphs,
+      choices: choiceCompilation.choices,
+      source: fallback ? "template" : repaired > 0 ? "mixed" : "llm",
+      generatedAt: new Date().toISOString(),
+    },
+    eventKind,
+    actor,
+    pendingThreat: threatCompilation.threat,
+    storyHooks,
+    diagnostics: {
+      latencyMs,
+      repairedFieldCount: repaired,
+      droppedChoiceCount: choiceCompilation.dropped,
+      fallback,
+      errorReason: requestError,
+    },
+  };
 }
 
 function compactHistory(state: GameState) {
   const encounter = state.subwayExpedition.currentFloorProgress.encounter;
   return (encounter?.history ?? []).slice(-6).map((entry) => ({
-    turnNumber: entry.turnNumber,
-    selectedActionToken: entry.result.selectedActionToken,
+    selectedIntent: entry.result.selectedIntent,
     selectedLabel: entry.result.selectedLabel,
-    serverSummary: entry.result.summary,
-    playerHpAfter: entry.result.playerHpAfter,
-    enemyHpAfter: entry.result.enemyHpAfter,
-    progressAfter: entry.result.progressAfter,
+    selectedEffect: entry.result.selectedEffectDescription,
+    postChoiceScene: entry.result.postChoiceNarrative,
+    authoritativeSummary: entry.result.summary,
   }));
 }
 
-function requiredOutputShape(
-  encounter: NonNullable<GameState["subwayExpedition"]["currentFloorProgress"]["encounter"]>,
-  allowedActions: ReturnType<typeof subwaySituationActionCatalog>,
-) {
+function conditionLabel(value: number, healthy: number) {
+  if (value <= Math.max(2, Math.floor(healthy * 0.25))) return "위태로움";
+  if (value <= Math.floor(healthy * 0.55)) return "지침";
+  return "버틸 만함";
+}
+
+function authoritativeActor(input: SubwayEncounterGenerationInput) {
+  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
+  if (encounter.kind === "hazard") {
+    return null;
+  }
+  if (encounter.actor) {
+    return encounter.actor;
+  }
+  if (encounter.enemy) {
+    return {
+      id: `${encounter.id}:actor`,
+      name: encounter.enemy.name,
+      appearance: encounter.enemy.description,
+      personality: "경계심이 강하고 자신의 우위를 쉽게 포기하지 않는다.",
+      motive: encounter.objective,
+      relationship: 0,
+    } satisfies SubwayEncounterActor;
+  }
+  return defaultActor(encounter.kind, encounter.id);
+}
+
+function storyBrief(input: SubwayEncounterGenerationInput) {
+  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
+  const floor = input.state.subwayExpedition.currentFloor!;
   return {
-    scenarioId: encounter.id,
-    turnNumber: encounter.turnNumber,
-    kind: encounter.kind,
-    phase: encounter.stage,
-    title: "현재 상황의 짧은 한국어 제목",
-    paragraphs: [
-      encounter.stage === "resolved"
-        ? "직전 선택과 서버 판정을 반영한 상황의 결말"
-        : "직전 선택과 서버 판정을 반영한 현재 상황 묘사",
-      encounter.stage === "resolved"
-        ? "소란이 끝난 현재 층을 정돈하고 숨을 고르는 마무리 묘사"
-        : "필요하면 다음 행동 직전의 거리·소리·표정·구조 묘사",
-    ],
-    choices: encounter.stage === "resolved"
-      ? []
-      : allowedActions.slice(0, 4).map((action) => ({
-          actionToken: action.actionToken,
-          label: action.actionToken === "fight"
-            ? "기습한다"
-            : "intent를 현재 상황에 맞게 표현한 짧은 행동 문구",
-          postChoiceNarrative: [
-            "선택 직후 해당 행동을 시작하는 모습을 보여 주되 판정 결과는 확정하지 않는 문단",
-          ],
-        })),
-  };
-}
-
-export async function generateSubwayEncounterScene(
-  input: SubwayEncounterGenerationInput,
-): Promise<SubwayEncounterScene> {
-  if (!hasGeminiConfig()) {
-    throw new Error("지하철 상황을 진행하려면 GEMINI_API_KEY가 설정되어 있어야 합니다.");
-  }
-  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter;
-  const floor = input.state.subwayExpedition.currentFloor;
-  if (!encounter || !floor) throw new Error("LLM에 전달할 지하철 상황 상태가 없습니다.");
-
-  const allowedActions = subwaySituationActionCatalog(input.state, encounter);
-  const allowedActionIds = allowedActions.map((action) => action.actionToken);
-  const mandatoryActionTokens =
-    floor.depth === 1 && encounter.stage === "opening"
-      ? (["fight", "talk", "flee"] as SubwayEncounterActionId[])
-      : [];
-  const expected = {
-    scenarioId: encounter.id,
-    turnNumber: encounter.turnNumber,
-    kind: encounter.kind,
-    phase: encounter.stage,
-  };
-  let validatorErrors: string[] = [];
-
-  for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt += 1) {
-    const target = `situation:${encounter.id}:turn:${encounter.turnNumber}:attempt:${attempt}`;
-    let raw: unknown;
-    try {
-      raw = await generateGeminiJson<unknown>(
-        ENCOUNTER_SYSTEM_PROMPT,
-        {
-          schemaName: "StructuredSubwaySituationTurn",
-          promptVersion: SUBWAY_ENCOUNTER_PROMPT_VERSION,
-          attempt,
-          repair: attempt === 1
-            ? null
-            : {
-                validatorErrors,
-                instruction: "검증 오류를 모두 고쳐 전체 JSON을 다시 생성하십시오.",
-              },
-          floor: {
-            depth: floor.depth,
-            title: floor.title,
-            zone: floor.zone,
-            environment: floor.paragraphs,
-            tension: floor.tensionSummary,
-          },
-          scenario: {
-            id: encounter.id,
-            kind: encounter.kind,
-            phase: encounter.stage,
-            turnNumber: encounter.turnNumber,
-            objective: encounter.objective,
-            enemy: encounter.enemy,
-            progress: encounter.progress,
-            targetProgress: encounter.targetProgress,
-            failureCount: encounter.failureCount,
-            resolution: encounter.resolution,
-          },
-          player: {
-            hp: input.state.stats.hp,
-            mind: input.state.stats.mind,
-            energy: input.state.stats.energy,
-          },
-          storyMemory: input.state.subwayExpedition.storyMemory,
-          latestServerResult: input.latestServerResult ?? null,
-          recentHistory: compactHistory(input.state),
-          allowedActions: allowedActions.map(({ actionToken, intent }) => ({
-            actionToken,
-            intent,
-          })),
-          mandatoryActionTokens,
-          requiredOutputShape: requiredOutputShape(encounter, allowedActions),
-        },
-        {
-          model: geminiModel(),
-          temperature: 0.75,
-          timeoutMs: 25_000,
-          trace: { gameId: input.gameId, scope: "subway", target },
-        },
-      );
-    } catch (error) {
-      validatorErrors = [error instanceof Error ? error.message : String(error)];
-      appendValidationTrace(input.gameId, target, validatorErrors);
-      if (attempt < TOTAL_ATTEMPTS) continue;
-      throw new Error(
-        `지하철 상황 장면 생성에 ${TOTAL_ATTEMPTS}회 실패했습니다: ${validatorErrors.join(" | ")}`,
-      );
-    }
-
-    const result = validateDraft(
-      raw,
-      expected,
-      allowedActionIds,
-      mandatoryActionTokens,
-    );
-    validatorErrors = result.errors;
-    appendValidationTrace(input.gameId, target, validatorErrors);
-    if (result.draft) {
-      return SubwayEncounterSceneSchema.parse({
-        ...result.draft,
-        source: "llm",
-        generatedAt: new Date().toISOString(),
-      });
-    }
-  }
-  throw new Error(
-    `지하철 상황 장면 생성에 ${TOTAL_ATTEMPTS}회 실패했습니다: ${validatorErrors.join(" | ")}`,
-  );
-}
-
-export function validateSubwayEncounterDraftForTest(
-  raw: unknown,
-  stage: "opening" | "active" | "resolved",
-  options: {
-    kind?: "combat" | "social" | "hazard";
-    scenarioId?: string;
-    turnNumber?: number;
-    allowedActionIds?: SubwayEncounterActionId[];
-    mandatoryActionTokens?: SubwayEncounterActionId[];
-  } = {},
-) {
-  const kind = options.kind ?? "combat";
-  const allowedActionIds = options.allowedActionIds ??
-    (stage === "opening"
-      ? ["fight", "talk", "flee"]
-      : stage === "active"
-        ? ["close_attack", "throw_improvised", "guard", "talk", "flee"]
-        : []);
-  return validateDraft(
-    raw,
-    {
-      scenarioId: options.scenarioId ?? "test-scenario",
-      turnNumber: options.turnNumber ?? 0,
-      kind,
-      phase: stage,
+    place: {
+      depth: floor.depth,
+      zone: floor.zone,
+      title: floor.title,
+      environment: floor.paragraphs.slice(0, 3),
+      mood: floor.tensionSummary,
     },
-    allowedActionIds,
-    options.mandatoryActionTokens ?? [],
+    eventKind: encounter.kind,
+    objective: encounter.objective,
+    actor: authoritativeActor(input),
+    incomingPressure: encounter.pendingThreat?.method ?? "",
+    playerCondition: {
+      body: conditionLabel(input.state.stats.hp, 10),
+      mind: conditionLabel(input.state.stats.mind, 10),
+      energy: conditionLabel(input.state.stats.energy, 15),
+    },
+    memory: {
+      facts: input.state.subwayExpedition.storyMemory.facts.slice(-6),
+      knownActors:
+        input.state.subwayExpedition.storyMemory.knownActors.slice(-4),
+      unresolvedThreads:
+        input.state.subwayExpedition.storyMemory.unresolvedThreads.slice(-4),
+      recentSummaries:
+        input.state.subwayExpedition.storyMemory.recentSummaries.slice(-3),
+    },
+  };
+}
+
+function authoritativeResultPayload(input: SubwayEncounterGenerationInput) {
+  const result = input.latestServerResult;
+  if (!result) return null;
+  return {
+    selectedLabel: result.selectedLabel,
+    selectedIntent: result.selectedIntent,
+    selectedEffect: result.selectedEffectDescription,
+    postChoiceScene: result.postChoiceNarrative,
+    success: result.success,
+    damageDealt: result.damageDealt,
+    damageTaken: result.damageTaken,
+    relationshipChange: result.relationshipChange,
+    resolution: result.resolution,
+    summary: result.summary,
+  };
+}
+
+function fallbackNarrativeDraft(input: SubwayEncounterGenerationInput) {
+  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
+  const actor = authoritativeActor(input);
+  if (input.latestServerResult) {
+    return {
+      title: encounter.stage === "resolved" ? "상황의 결말" : "선택의 결과",
+      narrative: [
+        input.latestServerResult.summary,
+        encounter.stage === "resolved"
+          ? "소란이 가라앉고 다음 길을 고를 여유가 생겼다."
+          : "상황은 아직 끝나지 않았고, 다음 움직임이 필요하다.",
+      ],
+      nextSceneHook: "",
+      storyHooks: [],
+    };
+  }
+  return {
+    title: encounter.kind === "combat"
+      ? "통로를 막은 그림자"
+      : encounter.kind === "social"
+        ? "경계하는 생존자"
+        : "불안정한 통로",
+    narrative: [
+      encounter.kind === "combat"
+        ? `${actor?.name ?? "낯선 약탈자"}가 지하 통로 한가운데에서 길을 막는다.`
+        : encounter.kind === "social"
+          ? `${actor?.name ?? "낯선 생존자"}가 거리를 둔 채 이쪽을 살핀다.`
+          : "앞쪽 구조물이 불안정하게 흔들리며 안전한 길을 가늠하기 어렵다.",
+    ],
+    nextSceneHook: "",
+    storyHooks: [],
+  };
+}
+
+function usableNarrativeDraft(
+  raw: unknown,
+  input: SubwayEncounterGenerationInput,
+) {
+  const data = asRecord(raw);
+  const fallback = fallbackNarrativeDraft(input);
+  const narrative = asStrings(data.narrative ?? data.paragraphs, 4, 600);
+  return {
+    title: typeof data.title === "string" && data.title.trim()
+      ? data.title.trim().slice(0, 80)
+      : fallback.title,
+    narrative: narrative.length > 0 ? narrative : fallback.narrative,
+    nextSceneHook:
+      typeof data.nextSceneHook === "string"
+        ? data.nextSceneHook.trim().slice(0, 240)
+        : fallback.nextSceneHook,
+    storyHooks: asStrings(data.storyHooks, 3, 200),
+  };
+}
+
+export function fallbackSubwayEncounterGeneration(
+  input: SubwayEncounterGenerationInput,
+  error: unknown,
+  latencyMs = 0,
+) {
+  return compileGeneration(
+    {},
+    input,
+    latencyMs,
+    error instanceof Error ? error.message : String(error),
   );
+}
+
+export function createSubwayEncounterSceneGenerator(
+  roleClient: SubwayRoleClient = generateSubwayRoleJson,
+  roleConfigAvailable: () => boolean = hasSubwayRoleConfig,
+): SubwayEncounterSceneGenerator {
+  return async (input) => {
+    const encounter =
+      input.state.subwayExpedition.currentFloorProgress.encounter;
+    const floor = input.state.subwayExpedition.currentFloor;
+    if (!encounter || !floor) {
+      throw new Error("LLM에 전달할 지하철 상황 상태가 없습니다.");
+    }
+
+    const startedAt = Date.now();
+    const roleErrors: string[] = [];
+    const sceneRole = input.latestServerResult
+      ? "result_scene" as const
+      : "opening_scene" as const;
+    const sceneTarget =
+      `${sceneRole}:${encounter.id}:turn:${encounter.turnNumber}`;
+    const choiceTarget =
+      `choices:${encounter.id}:turn:${encounter.turnNumber}`;
+    let narrativeRaw: unknown = {};
+    let choicesRaw: unknown = {};
+
+    if (!roleConfigAvailable()) {
+      roleErrors.push("Subway LLM role pipeline is not configured.");
+    } else {
+      try {
+        narrativeRaw = await roleClient({
+          gameId: input.gameId,
+          role: sceneRole,
+          target: sceneTarget,
+          payload: {
+            promptVersion: SUBWAY_ENCOUNTER_PROMPT_VERSION,
+            storyBrief: storyBrief(input),
+            previousScene: encounter.currentScene
+              ? {
+                  title: encounter.currentScene.title,
+                  paragraphs: encounter.currentScene.paragraphs,
+                }
+              : null,
+            authoritativeResult: authoritativeResultPayload(input),
+            recentAuthoritativeHistory: compactHistory(input.state),
+          },
+          timeoutMs: 20_000,
+        });
+      } catch (error) {
+        roleErrors.push(`${sceneRole}: ${
+          error instanceof Error ? error.message : String(error)
+        }`);
+      }
+
+      if (encounter.stage !== "resolved") {
+        const narrative = usableNarrativeDraft(narrativeRaw, input);
+        const allowedIntents = allowedChoiceIntents(input, encounter.kind);
+        try {
+          choicesRaw = await roleClient({
+            gameId: input.gameId,
+            role: "choices",
+            target: choiceTarget,
+            payload: {
+              promptVersion: SUBWAY_ENCOUNTER_PROMPT_VERSION,
+              scene: {
+                title: narrative.title,
+                paragraphs: narrative.narrative,
+                nextSceneHook: narrative.nextSceneHook,
+              },
+              eventKind: encounter.kind,
+              objective: encounter.objective,
+              actor: authoritativeActor(input),
+              allowedIntents: allowedIntents.map((entry) => ({
+                id: entry.id,
+                instruction: entry.instruction,
+              })),
+            },
+            timeoutMs: 15_000,
+          });
+        } catch (error) {
+          roleErrors.push(`choices: ${
+            error instanceof Error ? error.message : String(error)
+          }`);
+        }
+      }
+    }
+
+    const narrative = usableNarrativeDraft(narrativeRaw, input);
+    const allowedIntents = allowedChoiceIntents(input, encounter.kind);
+    const raw = {
+      eventKind: encounter.kind,
+      actor: authoritativeActor(input),
+      title: narrative.title,
+      narrative: narrative.narrative,
+      nextSceneHook: narrative.nextSceneHook,
+      storyHooks: narrative.storyHooks,
+      choices: encounter.stage === "resolved"
+        ? []
+        : adaptChoiceWriterOutput(choicesRaw, allowedIntents),
+    };
+    const requestError = roleErrors.length > 0 ? roleErrors.join(" | ") : null;
+    const result = compileGeneration(
+      raw,
+      input,
+      Date.now() - startedAt,
+      requestError,
+    );
+    const target = `role-pipeline:${encounter.id}:turn:${encounter.turnNumber}`;
+    appendDevLlmTraceForGame(input.gameId, {
+      scope: "subway",
+      target,
+      stage: "draft_validation",
+      model: geminiModel(),
+      status: result.diagnostics.fallback ? "fallback" : "success",
+      request: "",
+      response: "",
+      message:
+        `${sceneRole} → ${encounter.stage === "resolved" ? "종료" : "choices"}: ` +
+        `보완 ${result.diagnostics.repairedFieldCount}개, ` +
+        `제거 선택지 ${result.diagnostics.droppedChoiceCount}개, ` +
+        `fallback ${result.diagnostics.fallback ? "yes" : "no"}, ` +
+        `${result.diagnostics.latencyMs}ms`,
+      errorReason: result.diagnostics.errorReason ?? undefined,
+    });
+    return result;
+  };
+}
+
+export const generateSubwayEncounterScene =
+  createSubwayEncounterSceneGenerator();
+
+export function compileSubwayEncounterDraftForTest(
+  raw: unknown,
+  input: SubwayEncounterGenerationInput,
+) {
+  return compileGeneration(raw, input, 0, null);
 }

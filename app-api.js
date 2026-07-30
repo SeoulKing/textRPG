@@ -3275,6 +3275,27 @@ function renderMenuPanel() {
       >${escapeHtml(client.geminiTestStatus.message)}</p>
     `
     : "";
+  const llmDiagnostics = isDeveloperMode()
+    ? (client.snapshot?.devLlmTrace || [])
+      .filter((entry) => entry.scope === "subway")
+      .slice(0, 4)
+    : [];
+  const llmDiagnosticsHtml = llmDiagnostics.length
+    ? `
+      <section class="menu-llm-diagnostics" aria-label="LLM 생성 진단">
+        <strong>DEV · 최근 LLM 생성 진단</strong>
+        ${llmDiagnostics.map((entry) => `
+          <p class="${escapeHtml(entry.status)}">
+            <span>${escapeHtml(entry.stage)}</span>
+            ${escapeHtml(entry.message)}
+            ${entry.errorReason
+              ? `<small>${escapeHtml(entry.errorReason)}</small>`
+              : ""}
+          </p>
+        `).join("")}
+      </section>
+    `
+    : "";
   dom.panelContent.innerHTML = `
     <div class="menu-actions">
       <div class="menu-save-card">
@@ -3303,6 +3324,7 @@ function renderMenuPanel() {
         <span>${client.geminiTestInFlight ? "Gemini 연결 확인 중…" : "Gemini API 연결 테스트"}</span>
       </button>
       ${geminiStatus}
+      ${llmDiagnosticsHtml}
       <button class="menu-action danger" data-menu-action="new-game" type="button">
         <span>새 게임</span>
       </button>

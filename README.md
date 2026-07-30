@@ -105,6 +105,23 @@ Optional settings:
 
 Default model: `gemini-3.5-flash-lite`
 
+The live subway encounter uses separate LLM roles:
+
+```text
+opening_scene → choices
+player choice → server resolution → result_scene → choices
+```
+
+The scene roles only write prose. The choices role receives server-owned
+`allowedIntents`, while the server remains authoritative for probability,
+damage, time, inventory, rewards, and encounter completion.
+
+The pipeline runs directly in the TypeScript backend. Each role has its own
+prompt and Zod output contract. Gemini also receives the corresponding JSON
+schema, and the server validates the returned value again before passing it to
+the next role. A failed role is repaired with the existing server-owned
+fallback without handing game-state authority to the model.
+
 By default, the world planner uses the safe template planner even when `GEMINI_API_KEY` exists.
 
 To opt into the experimental LLM world planner, set both:
