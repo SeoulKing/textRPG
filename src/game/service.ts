@@ -14,6 +14,25 @@ import {
 } from "./dev-llm-trace";
 import { resolveItemText } from "./item-text";
 import { compileAnchorDraftForRuntime, compileSceneDraftForRuntime } from "./narrative-expansion-service";
+import {
+  getNpcDialogueProfile,
+} from "./data/npc-dialogue-profiles";
+import {
+  applyNpcDialogueGeneration,
+  buildNpcDialogueActions,
+  buildNpcDialogueScene,
+  buildNpcDialogueStartAction,
+  leaveNpcDialogue,
+  nextNpcDialogueTurn,
+  npcDialogueMemory,
+  selectNpcDialogueChoice,
+} from "./npc-dialogue";
+import {
+  generateNpcDialogue,
+  type NpcDialogueGenerationResult,
+  type NpcDialogueGenerator,
+  type NpcDialogueWorldContext,
+} from "./npc-dialogue-pipeline";
 import type { GameRepository } from "./repository";
 import {
   applySystemNote,
@@ -316,6 +335,8 @@ export class GameService {
     private readonly planner: WorldPlanner = createWorldPlanner(),
     private readonly encounterSceneGenerator: SubwayEncounterSceneGenerator =
       generateSubwayEncounterScene,
+    private readonly npcDialogueGenerator: NpcDialogueGenerator =
+      generateNpcDialogue,
   ) {}
 
   private async generateAndApplySubwayEncounter(
@@ -363,6 +384,55 @@ export class GameService {
       at: nowIso(),
     });
     return generation;
+  }
+
+  private npcDialogueContext(
+    session: GameSession,
+  ): NpcDialogueWorldContext {
+    const location = this.currentLocation(session);
+    const scene = this.presentedSceneDefinition(session);
+    return {
+      location: {
+        id: location.id,
+        name: location.name,
+        summary: location.summary,
+        sceneTitle: scene.title,
+        sceneParagraphs: scene.paragraphs.slice(0, 4),
+      },
+      player: {
+        day: session.state.day,
+        phase: PHASES[session.state.phaseIndex] ?? "unknown",
+        condition: {
+          hp: session.state.stats.hp,
+          mind: session.state.stats.mind,
+          energy: session.state.stats.energy,
+        },
+        recentLog: session.state.log
+          .slice(-6)
+          .map((entry) => entry.message),
+      },
+    };
+  }
+
+  private npcDialogueStartActions(
+    session: GameSession,
+    registry = this.runtimeRegistry(session),
+  ): ActionChoice[] {
+    if (
+      session.state.isGameOver ||
+      session.state.subwayExpedition.active ||
+      session.state.npcDialogue.active
+    ) {
+      return [];
+    }
+    const location = this.currentLocation(session, registry);
+    return location.residentIds.flatMap((npcId) => {
+      const profile = getNpcDialogueProfile(npcId);
+      if (!profile || profile.homeLocationId !== location.id) {
+        return [];
+      }
+      return [buildNpcDialogueStartAction(profile)];
+    });
   }
 
   private async withGameMutation<T>(gameId: string, operation: () => Promise<T>) {
@@ -787,6 +857,106 @@ export class GameService {
     const session = await this.repository.loadGame(gameId);
     const previousDay = session.state.day;
     const registry = this.runtimeRegistry(session);
+
+    if (
+      session.state.npcDialogue.active &&
+      action.type !== "npc_dialogue"
+    ) {
+      throw new Error("현재 대화를 먼저 마쳐야 합니다.");
+    }
+
+    if (action.type === "npc_dialogue") {
+      if (session.state.isGameOver) {
+        throw new Error(
+          session.state.gameOverReason || "이미 게임오버 상태입니다.",
+        );
+      }
+      if (session.state.subwayExpedition.active) {
+        throw new Error("심층 탐험 중에는 NPC와 대화할 수 없습니다.");
+      }
+      const profile = getNpcDialogueProfile(action.npcId);
+      if (!profile) {
+        throw new Error("대화할 수 없는 인물입니다.");
+      }
+      const workingState = structuredClone(session.state);
+      let generation: NpcDialogueGenerationResult | null = null;
+
+      if (action.command === "start") {
+        if (workingState.npcDialogue.active) {
+          throw new Error("이미 다른 대화를 진행 중입니다.");
+        }
+        const location = this.currentLocation(session, registry);
+        if (
+          profile.homeLocationId !== workingState.location ||
+          !location.residentIds.includes(profile.id)
+        ) {
+          throw new Error("현재 위치에서는 이 인물과 대화할 수 없습니다.");
+        }
+        const memory = npcDialogueMemory(workingState, profile.id);
+        generation = await this.npcDialogueGenerator({
+          gameId,
+          profile,
+          context: this.npcDialogueContext(session),
+          memory,
+          visitCount: memory.visitCount + 1,
+          turnNumber: nextNpcDialogueTurn(memory),
+          selectedChoice: null,
+        });
+        applyNpcDialogueGeneration(workingState, generation, {
+          newVisit: true,
+        });
+      } else if (action.command === "choose") {
+        const selectedChoice = selectNpcDialogueChoice(
+          workingState,
+          profile.id,
+          action.choiceId,
+          action.turnNumber,
+        );
+        const memory = npcDialogueMemory(workingState, profile.id);
+        generation = await this.npcDialogueGenerator({
+          gameId,
+          profile,
+          context: this.npcDialogueContext(session),
+          memory,
+          visitCount: memory.visitCount,
+          turnNumber: nextNpcDialogueTurn(memory),
+          selectedChoice,
+        });
+        applyNpcDialogueGeneration(workingState, generation, {
+          newVisit: false,
+        });
+      } else {
+        leaveNpcDialogue(workingState, profile.id);
+      }
+
+      session.state = workingState;
+      session.updatedAt = nowIso();
+      session.world.sceneCards = {};
+      await this.ensureCards(session);
+      if (generation) {
+        await this.repository.appendGenerationLog({
+          gameId,
+          kind: "npcDialogue",
+          npcId: profile.id,
+          turnNumber: generation.scene.turnNumber,
+          source: generation.scene.source,
+          fallback: generation.diagnostics.fallback,
+          errors: generation.diagnostics.errors,
+          latencyMs: generation.diagnostics.latencyMs,
+          at: session.updatedAt,
+        });
+      }
+      await this.repository.appendActionLog({
+        gameId,
+        action,
+        at: session.updatedAt,
+        location: session.state.location,
+        day: session.state.day,
+      });
+      const snapshot = this.buildSnapshot(session, null);
+      await this.repository.saveGame(session);
+      return snapshot;
+    }
 
     if (
       session.state.subwayExpedition.active &&
@@ -1655,10 +1825,21 @@ export class GameService {
   private buildSnapshot(session: GameSession, latestEvent: EventCard | null, registry = this.runtimeRegistry(session)): StateSnapshot {
     const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true }, registry);
     const expeditionScene = buildSubwayExpeditionScene(session.state);
-    const currentScene = expeditionScene
-      ? resolveSceneCardText(expeditionScene, registry)
-      : resolveSceneCardText(this.buildAuthoringSceneCard(session, storyMaterials, registry), registry);
-    const presentedLatestEvent = latestEvent
+    const activeDialogueProfile = getNpcDialogueProfile(
+      session.state.npcDialogue.active?.npcId ?? "",
+    );
+    const dialogueScene = buildNpcDialogueScene(
+      session.state,
+      activeDialogueProfile,
+    );
+    const currentScene = dialogueScene
+      ? resolveSceneCardText(dialogueScene, registry)
+      : expeditionScene
+        ? resolveSceneCardText(expeditionScene, registry)
+        : resolveSceneCardText(this.buildAuthoringSceneCard(session, storyMaterials, registry), registry);
+    const presentedLatestEvent = dialogueScene
+      ? null
+      : latestEvent
       ? resolveEventCardText(latestEvent, registry)
       : null;
     const sceneDef = this.presentedSceneDefinition(session, registry);
@@ -1669,6 +1850,7 @@ export class GameService {
         ? latestEvent.choices
         : locationChoices;
     const clientState = structuredClone(session.state);
+    clientState.npcDialogue.conversations = {};
     clientState.subwayExpedition.preparedNextFloor = null;
     clientState.subwayExpedition.runPlan = null;
     clientState.subwayExpedition.storyMemory = {
@@ -1716,9 +1898,19 @@ export class GameService {
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
       skillProgress: buildSkillProgressCards(session.state.skillProgress),
-      availableActions: (expeditionScene
-        ? buildSubwayExpeditionActions(session.state)
-        : this.buildAvailableActions(session, sceneDef, storyChoices, registry))
+      availableActions: (dialogueScene
+        ? buildNpcDialogueActions(session.state)
+        : expeditionScene
+          ? buildSubwayExpeditionActions(session.state)
+          : [
+              ...this.npcDialogueStartActions(session, registry),
+              ...this.buildAvailableActions(
+                session,
+                sceneDef,
+                storyChoices,
+                registry,
+              ),
+            ])
         .map((choice) => resolveActionChoiceText(choice, registry)),
       mapEntries: this.buildMapEntries(session, registry),
       latestEvent: presentedLatestEvent,

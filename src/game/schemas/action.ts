@@ -26,6 +26,13 @@ export const GameActionSchema = z.discriminatedUnion("type", [
     turnNumber: z.number().int().nonnegative().optional(),
     lootSpotId: z.string().optional(),
   }),
+  z.object({
+    type: z.literal("npc_dialogue"),
+    command: z.enum(["start", "choose", "leave"]),
+    npcId: z.string().min(1).max(80),
+    choiceId: z.string().min(1).max(160).optional(),
+    turnNumber: z.number().int().nonnegative().optional(),
+  }),
 ]);
 
 export const ActionTypeSchema = z.enum(["travel", "search", "rest", "use", "talk", "explore"]);

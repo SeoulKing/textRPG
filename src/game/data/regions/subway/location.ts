@@ -49,6 +49,7 @@ export const subwayLocation = defineLocation({
   summary: "지상과 연결된 대합실과 어두운 역무실이 남은 지하철역이다. 이곳에서 장비를 정비한 뒤 지하 1층부터 심층 탐험을 시작할 수 있다.",
   tags: ["signal", "underground", "day6"],
   traits: ["antenna", "concourse", "expedition staging"],
+  residentIds: ["shumi"],
   obtainableItemIds: ["radioAntenna", "scrapMetal", "cordage", "waterBottle"],
   neighbors: ["shelter", "kitchen", "checkpoint"],
   interactionChoices: subwayChoices,

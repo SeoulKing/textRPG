@@ -23,3 +23,4 @@ export * from "./subway-encounter";
 export * from "./monster";
 export * from "./skill-progression";
 export * from "./system-note";
+export * from "./npc-dialogue";

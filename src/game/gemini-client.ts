@@ -10,7 +10,7 @@ type GeminiJsonOptions<T> = {
   responseJsonSchema?: Record<string, unknown>;
   trace?: {
     gameId: string;
-    scope: "planner" | "card" | "subway";
+    scope: "planner" | "card" | "subway" | "dialogue";
     target: string;
   };
 };

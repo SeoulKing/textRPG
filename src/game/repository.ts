@@ -5,6 +5,7 @@ import {
   FrontierStateSchema,
   GameSessionSchema,
   NarrativeStateSchema,
+  NpcDialogueStateSchema,
   SystemNoteEntriesSchema,
   SubwayExpeditionStateSchema,
   TemplateStoreSchema,
@@ -372,6 +373,10 @@ function pruneState(state: unknown): GameState {
   const frontierState = normalizeFrontierState(rawState.frontierState);
   const narrativeState = normalizeNarrativeState(rawState.narrativeState);
   const subwayExpedition = normalizeSubwayExpedition(rawState.subwayExpedition);
+  const npcDialogue = NpcDialogueStateSchema.catch({
+    active: null,
+    conversations: {},
+  }).parse(rawState.npcDialogue);
   const worldPlan = normalizeWorldPlan(rawState.worldPlan, nextDay);
   const legacyAutoEnergyElapsedKey = "auto" + "Full" + "ness" + "ElapsedMs";
   const legacyExhaustionElapsedKey = "star" + "vation" + "ElapsedMs";
@@ -416,6 +421,7 @@ function pruneState(state: unknown): GameState {
     frontierState,
     narrativeState,
     subwayExpedition,
+    npcDialogue,
     flags: nextFlags,
     quests: nextQuests,
     lastSleepEnergy: normalizeInt(rawState.lastSleepEnergy ?? rawState[legacyLastSleepEnergyKey], 8, 0, 15),

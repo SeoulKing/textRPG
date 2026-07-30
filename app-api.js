@@ -1382,6 +1382,9 @@ function storyAnimationSurfaceId(snapshot) {
   if (isEventStoryActive(snapshot)) {
     return `event:${snapshot.latestEvent.id}`;
   }
+  if (snapshot.state?.npcDialogue?.active) {
+    return `dialogue:${currentSceneId(snapshot)}`;
+  }
   const expedition = snapshot.state?.subwayExpedition;
   if (expedition?.active && expedition.currentFloor) {
     return `subway:${currentSceneId(snapshot)}`;

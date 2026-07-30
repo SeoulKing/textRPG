@@ -749,6 +749,10 @@ export function createInitialGameState(): GameState {
       history: [],
       lastOutcome: "",
     },
+    npcDialogue: {
+      active: null,
+      conversations: {},
+    },
     flags: {
       visited_shelter: true,
       known_convenience: true,
@@ -1199,6 +1203,8 @@ export function performAction(
     }
     case "subway_expedition":
       throw new Error("지하철 심층 탐험 행동은 게임 서비스에서 처리해야 합니다.");
+    case "npc_dialogue":
+      throw new Error("NPC 대화 행동은 게임 서비스에서 처리해야 합니다.");
     default: {
       const exhaustiveCheck: never = action;
       return exhaustiveCheck;
