@@ -16,6 +16,7 @@ export const GameActionSchema = z.discriminatedUnion("type", [
       "resolve_event",
       "encounter_choice",
       "acknowledge_encounter",
+      "choose_upgrade",
       "acknowledge_result",
       "search_loot",
       "finish_floor",

@@ -12,6 +12,7 @@ import {
   type SubwayEncounterActor,
   type SubwayEncounterChoice,
   type SubwayEncounterScene,
+  type SubwayEncounterState,
   type SubwayEncounterTurnResult,
   type SubwayGenerationDiagnostics,
   type SubwayPendingThreat,
@@ -288,7 +289,10 @@ function serverIntentForAction(
     return {
       primary: "use_item",
       style: "careful",
-      target: item?.kind === "tool" ? "enemy" : "self",
+      target:
+        itemId === "makeshiftShield"
+          ? "self"
+          : item?.kind === "tool" ? "enemy" : "self",
       itemId,
     };
   }
@@ -418,20 +422,29 @@ function serverEncounterChoices(
 }
 
 function serverPendingThreat(
-  kind: SubwaySituationKind,
-  encounterId: string,
-  turnNumber: number,
+  encounter: SubwayEncounterState,
   resolved: boolean,
 ): SubwayPendingThreat | null {
   if (resolved) return null;
+  const kind = encounter.kind;
+  const enemyTraits = new Set(encounter.enemy?.traits ?? []);
+  const combatMethod = enemyTraits.has("boss")
+    ? "구역 지배자가 퇴로를 막으며 무거운 결정타를 준비한다."
+    : enemyTraits.has("agile")
+      ? "상대가 기둥 뒤로 몸을 흘리며 사각에서 파고들 틈을 노린다."
+      : enemyTraits.has("armored")
+        ? "상대가 보호구를 앞세워 거리를 좁히며 묵직한 타격을 준비한다."
+        : enemyTraits.has("heavy")
+          ? "상대가 무기를 크게 당겨 다음 한 번에 힘을 집중한다."
+          : "상대가 무기를 고쳐 쥐고 다음 빈틈을 노린다.";
   return {
-    id: `${encounterId}:threat:${turnNumber}`,
+    id: `${encounter.id}:threat:${encounter.turnNumber}`,
     kind:
       kind === "combat" ? "attack" : kind === "social" ? "pressure" : "hazard",
     target: kind === "combat" ? "player" : "environment",
     method:
       kind === "combat"
-        ? "상대가 무기를 고쳐 쥐고 다음 빈틈을 노린다."
+        ? combatMethod
         : kind === "social"
           ? "상대의 경계가 높아지며 대화의 주도권을 빼앗으려 한다."
           : "불안정한 구조물이 흔들리며 다음 움직임을 재촉한다.",
@@ -715,9 +728,7 @@ function compileGeneration(
 
   const choices = serverEncounterChoices(input);
   const pendingThreat = serverPendingThreat(
-    eventKind,
-    encounter.id,
-    encounter.turnNumber,
+    encounter,
     encounter.stage === "resolved",
   );
   const storyHooks: string[] = [];

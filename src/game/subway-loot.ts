@@ -10,7 +10,10 @@ export type SubwayLootItemId =
   | "emergencySnack"
   | "cannedFood"
   | "painRelief"
-  | "radioAntenna";
+  | "radioAntenna"
+  | "subwayBaton"
+  | "makeshiftShield"
+  | "breakerMachete";
 
 export type SubwayLootTableEntry = {
   itemId: SubwayLootItemId;
@@ -46,6 +49,8 @@ export const SUBWAY_LOOT_TABLES: Array<{
       { itemId: "staleBread", floorChance: 0.2, minAmount: 1, maxAmount: 1 },
       { itemId: "emergencySnack", floorChance: 0.1, minAmount: 1, maxAmount: 1 },
       { itemId: "painRelief", floorChance: 0.08, minAmount: 1, maxAmount: 1 },
+      { itemId: "subwayBaton", floorChance: 0.08, minAmount: 1, maxAmount: 1 },
+      { itemId: "makeshiftShield", floorChance: 0.04, minAmount: 1, maxAmount: 1 },
       { itemId: "radioAntenna", floorChance: 0.06, minAmount: 1, maxAmount: 1, unique: true },
     ],
   },
@@ -61,6 +66,9 @@ export const SUBWAY_LOOT_TABLES: Array<{
       { itemId: "emergencySnack", floorChance: 0.3, minAmount: 1, maxAmount: 1 },
       { itemId: "cannedFood", floorChance: 0.22, minAmount: 1, maxAmount: 1 },
       { itemId: "painRelief", floorChance: 0.25, minAmount: 1, maxAmount: 1 },
+      { itemId: "subwayBaton", floorChance: 0.16, minAmount: 1, maxAmount: 1 },
+      { itemId: "makeshiftShield", floorChance: 0.14, minAmount: 1, maxAmount: 1 },
+      { itemId: "breakerMachete", floorChance: 0.06, minAmount: 1, maxAmount: 1 },
       { itemId: "radioAntenna", floorChance: 0.12, minAmount: 1, maxAmount: 1, unique: true },
     ],
   },
@@ -76,6 +84,9 @@ export const SUBWAY_LOOT_TABLES: Array<{
       { itemId: "emergencySnack", floorChance: 0.4, minAmount: 1, maxAmount: 2 },
       { itemId: "cannedFood", floorChance: 0.4, minAmount: 1, maxAmount: 2 },
       { itemId: "painRelief", floorChance: 0.4, minAmount: 1, maxAmount: 2 },
+      { itemId: "subwayBaton", floorChance: 0.24, minAmount: 1, maxAmount: 1 },
+      { itemId: "makeshiftShield", floorChance: 0.22, minAmount: 1, maxAmount: 1 },
+      { itemId: "breakerMachete", floorChance: 0.16, minAmount: 1, maxAmount: 1 },
       { itemId: "radioAntenna", floorChance: 0.18, minAmount: 1, maxAmount: 1, unique: true },
     ],
   },

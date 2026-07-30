@@ -734,6 +734,18 @@ export function createInitialGameState(): GameState {
         floorLoot: {},
         generationFailure: "",
       },
+      runBuild: {
+        victories: 0,
+        skillRanks: {
+          power_strike: 0,
+          improvised_mastery: 0,
+          iron_guard: 0,
+          second_wind: 0,
+          silver_tongue: 0,
+          escape_route: 0,
+        },
+        pendingUpgradeChoices: [],
+      },
       runPlan: null,
       storyMemory: {
         facts: [],

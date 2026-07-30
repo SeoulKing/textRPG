@@ -75,6 +75,9 @@ import {
   startSubwayExpedition,
 } from "./subway-expedition";
 import {
+  applySubwayUpgrade,
+} from "./subway-roguelike";
+import {
   SUBWAY_EXPEDITION_PROMPT_VERSION,
   buildSubwayMechanicsEnvelope,
   buildTemplateSubwayFloorBundle,
@@ -1025,6 +1028,11 @@ export class GameService {
         session.state = workingState;
       } else if (subwayAction.command === "acknowledge_encounter") {
         acknowledgeSubwayBanditResult(session.state);
+      } else if (subwayAction.command === "choose_upgrade") {
+        if (!subwayAction.optionId) {
+          throw new Error("선택할 전투 스킬 ID가 없습니다.");
+        }
+        applySubwayUpgrade(session.state, subwayAction.optionId);
       } else if (subwayAction.command === "choose" || subwayAction.command === "resolve_event") {
         resolveSubwayFloorEvent(session.state, subwayAction.optionId);
       } else if (subwayAction.command === "acknowledge_result") {

@@ -279,6 +279,7 @@ const dom = {
   encounterStatusName: document.querySelector("#encounter-status-name"),
   encounterHealth: document.querySelector("#encounter-health"),
   encounterHealthValue: document.querySelector("#encounter-health-value"),
+  encounterBuildSummary: document.querySelector("#encounter-build-summary"),
   statusPopover: document.querySelector("#status-popover"),
   sceneFrame: document.querySelector(".scene-frame"),
   sceneArt: document.querySelector("#scene-art"),
@@ -2190,6 +2191,24 @@ function renderEncounterStatus(state) {
       : `${name} ${value} / ${maxValue}`,
   );
   dom.encounterHealthValue.textContent = `${value}/${maxValue}`;
+  const skillNames = {
+    power_strike: "강타",
+    improvised_mastery: "임기응변",
+    iron_guard: "철벽",
+    second_wind: "재정비",
+    silver_tongue: "협상가",
+    escape_route: "퇴로 확보",
+  };
+  const runBuild = state.subwayExpedition?.runBuild;
+  const skillSummary = Object.entries(runBuild?.skillRanks || {})
+    .filter(([, rank]) => Number(rank) > 0)
+    .map(([skillId, rank]) => `${skillNames[skillId] || skillId} ${rank}`)
+    .join(" · ");
+  dom.encounterBuildSummary.textContent = [
+    `지하 ${state.subwayExpedition.depth}층`,
+    `승리 ${runBuild?.victories || 0}회`,
+    skillSummary,
+  ].filter(Boolean).join(" · ");
 }
 
 function renderStatusBar() {

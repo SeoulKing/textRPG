@@ -7,6 +7,7 @@ import { GameService } from "../src/game/service";
 import {
   beginSubwayBanditEncounter,
   beginSubwaySituation,
+  createEnemy,
   resolveSubwayBanditChoice,
   setSubwayEncounterGeneration,
   setSubwayEncounterScene,
@@ -28,6 +29,7 @@ import {
   returnFromSubwayExpedition,
   startSubwayExpedition,
 } from "../src/game/subway-expedition";
+import { applySubwayUpgrade } from "../src/game/subway-roguelike";
 import {
   SubwayExpeditionStateSchema,
   type GameSession,
@@ -176,15 +178,26 @@ test("지하 1층 강도는 서버 판정으로 피해를 받고 고정 보상�
   state.subwayExpedition.nextFloorStatus = "ready";
   const rendered = buildSubwayExpeditionScene(state);
   assert.equal(
-    rendered?.paragraphs.join("\n"),
+    rendered?.paragraphs[0],
     "강도는 쇠막대를 놓치고 바닥에 쓰러졌다.",
   );
+  assert.match(rendered?.paragraphs[1] ?? "", /승리 1회/);
   assert.equal(
     state.systemNote,
     "강도: 2피해 / +1 캔 음식 / +1 진통제 / +5분",
   );
-  assert.equal(state.subwayExpedition.currentFloorProgress.phase, "complete");
+  assert.equal(state.subwayExpedition.currentFloorProgress.phase, "upgrade");
   assert.equal(state.subwayExpedition.currentFloorProgress.eventResolved, true);
+  const upgradeActions = buildSubwayExpeditionActions(state);
+  assert.equal(upgradeActions.length, 3);
+  assert.ok(upgradeActions.every((action) =>
+    action.action.type === "subway_expedition" &&
+    action.action.command === "choose_upgrade"
+  ));
+  const selectedSkill = state.subwayExpedition.runBuild.pendingUpgradeChoices[0]!;
+  applySubwayUpgrade(state, selectedSkill);
+  assert.equal(state.subwayExpedition.runBuild.skillRanks[selectedSkill], 1);
+  assert.equal(state.subwayExpedition.currentFloorProgress.phase, "complete");
   assert.deepEqual(
     buildSubwayExpeditionActions(state).flatMap((action) =>
       action.action.type === "subway_expedition" ? [action.action.command] : []
@@ -221,7 +234,7 @@ test("장면 선택지는 짧은 행동과 선택후 서사만 표시 데이터�
     attack?.outcomeHint,
     "",
   );
-  assert.equal(attack?.showOutcomeHint, false);
+  assert.equal(attack?.showOutcomeHint, true);
   assert.deepEqual(attack?.postChoiceNarrative, ["fight 행동을 시작한다."]);
 });
 
@@ -263,7 +276,10 @@ test("보유한 허용 도구만 선택지와 서버 판정에 사용할 수 있
       choice.legacyActionToken === "use_item:utilityKnife"
     );
   });
-  assert.equal(action?.outcomeHint, "");
+  assert.equal(
+    action?.outcomeHint,
+    "간이 칼 내구도 -1 / 명중 90%: 적 3피해 / 반격 50%: 나 1피해 / +5분",
+  );
   const result = resolveSubwayBanditChoice(
     state,
     action!.id,
@@ -277,6 +293,29 @@ test("보유한 허용 도구만 선택지와 서버 판정에 사용할 수 있
     () => resolveSubwayBanditChoice(state, "use_item:crudeAxe", 2, () => 0),
     /선택할 수 없는 행동/,
   );
+
+  state.subwayExpedition.carriedLoot.subwayBaton = 1;
+  const nextGeneration = compileSubwayEncounterDraftForTest({
+    title: "전리품으로 얻은 진압봉",
+    narrative: [
+      "조금 전 챙긴 진압봉의 무게가 손바닥에 단단히 실린다.",
+      "강도는 상처 입은 채 다시 쇠막대를 들어 올렸다.",
+    ],
+  }, { gameId: "server-run-loot-tool", state, latestServerResult: result });
+  setSubwayEncounterGeneration(state, nextGeneration);
+  const batonChoice = nextGeneration.scene.choices.find(
+    (choice) => choice.legacyActionToken === "use_item:subwayBaton",
+  );
+  assert.ok(batonChoice);
+  const batonResult = resolveSubwayBanditChoice(
+    state,
+    batonChoice!.id,
+    2,
+    sequenceRng([0]),
+  );
+  assert.equal(batonResult.resolution, "victory");
+  assert.equal(state.toolDurability.subwayBaton, 13);
+  assert.equal(state.subwayExpedition.carriedLoot.subwayBaton, 1);
 });
 
 test("깊은 층도 전투로 고정하고 서버가 확정한 층 전리품을 승리 시 자동 지급한다", async () => {
@@ -294,6 +333,7 @@ test("깊은 층도 전투로 고정하고 서버가 확정한 층 전리품을 
   state.subwayExpedition.currentFloor!.lootSpots[2]!.contents = [];
   state.subwayExpedition.currentFloorProgress.encounter = null;
   state.subwayExpedition.currentFloorProgress.phase = "event";
+  state.subwayExpedition.runBuild.skillRanks.power_strike = 1;
   const situation = beginSubwaySituation(state);
 
   assert.equal(situation.kind, "combat");
@@ -322,6 +362,7 @@ test("깊은 층도 전투로 고정하고 서버가 확정한 층 전리품을 
     sequenceRng([0, 0.99]),
   );
   assert.equal(first.resolution, null);
+  assert.equal(first.damageDealt, 3);
 
   const active = compileSubwayEncounterDraftForTest({
     title: "비틀거리는 약탈자",
@@ -346,6 +387,24 @@ test("깊은 층도 전투로 고정하고 서버가 확정한 층 전리품을 
     scrapMetal: 3,
     waterBottle: 1,
   });
+});
+
+test("적은 층마다 강해지고 10층마다 보스 원형을 사용한다", () => {
+  const first = createEnemy(1);
+  const sixth = createEnemy(6);
+  const boss = createEnemy(10);
+  const nextSector = createEnemy(11);
+
+  assert.equal(first.name, "강도");
+  assert.equal(first.maxHp, 4);
+  assert.equal(first.attack, 1);
+  assert.ok(sixth.maxHp > first.maxHp);
+  assert.ok(sixth.traits.includes("armored"));
+  assert.ok(boss.traits.includes("boss"));
+  assert.equal(boss.maxHp, 15);
+  assert.equal(boss.attack, 3);
+  assert.ok(nextSector.maxHp > first.maxHp);
+  assert.ok(nextSector.attack > first.attack);
 });
 
 test("층 이동은 기력을 소모하지 않고 내려가기 15분, 귀환은 층당 5분이 흐른다", async () => {
@@ -543,13 +602,13 @@ test("지하철 opening은 묘사 역할 한 번만 호출하고 서버 선택�
   assert.equal(generation.eventKind, "combat");
   assert.equal(generation.actor?.name, "강도");
   assert.equal(generation.scene.title, "푸른 유도등 아래");
-  assert.equal(generation.scene.choices.length, 3);
+  assert.equal(generation.scene.choices.length, 5);
   assert.deepEqual(
-    generation.scene.choices.map((choice) => choice.intent.primary),
+    generation.scene.choices.slice(0, 3).map((choice) => choice.intent.primary),
     ["attack", "persuade", "retreat"],
   );
   assert.deepEqual(
-    generation.scene.choices.map((choice) => choice.label),
+    generation.scene.choices.slice(0, 3).map((choice) => choice.label),
     [
       "빈틈을 노려 먼저 공격한다",
       "무기를 내리라고 설득한다",
@@ -722,7 +781,7 @@ test("LLM 초안의 사건·인물·선택지는 무시하고 서버 전투 상�
 
   assert.equal(generation.actor?.name, "강도");
   assert.equal(generation.eventKind, "combat");
-  assert.equal(generation.scene.choices.length, 3);
+  assert.equal(generation.scene.choices.length, 5);
   assert.equal(
     generation.scene.choices[0]?.label,
     "빈틈을 노려 먼저 공격한다",
@@ -800,9 +859,12 @@ test("기존 지하철 저장 데이터에는 encounter 기본값이 추가된�
     unknown as Record<string, unknown>;
   const progress = legacy.currentFloorProgress as Record<string, unknown>;
   delete progress.encounter;
+  delete legacy.runBuild;
 
   const parsed = SubwayExpeditionStateSchema.parse(legacy);
   assert.equal(parsed.currentFloorProgress.encounter, null);
+  assert.equal(parsed.runBuild.victories, 0);
+  assert.deepEqual(parsed.runBuild.pendingUpgradeChoices, []);
 });
 
 test("LLM 생성 실패 후에도 ST 판정과 시간을 보존하고 fallback 선택지로 계속한다", async () => {

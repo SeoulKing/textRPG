@@ -15,6 +15,11 @@ import {
   type SystemNoteEntry,
 } from "./schemas";
 import type { SubwayEncounterGenerationResult } from "./subway-encounter-generator";
+import {
+  applySubwayVictoryRecovery,
+  prepareSubwayUpgradeChoices,
+  subwaySkillRank,
+} from "./subway-roguelike";
 import { appendLogEntry, changeSurvivalStat } from "./state-utils";
 import { setSystemNote } from "./system-note";
 
@@ -38,6 +43,39 @@ const itemDefinition = (itemId: string) =>
 
 const itemName = (itemId: string) => itemDefinition(itemId)?.name ?? itemId;
 
+function availableItemAmount(state: GameState, itemId: string) {
+  return (
+    (state.inventory[itemId] ?? 0) +
+    (state.subwayExpedition.carriedLoot[itemId] ?? 0)
+  );
+}
+
+function accessibleItemTotals(state: GameState) {
+  const itemIds = new Set([
+    ...Object.keys(state.inventory),
+    ...Object.keys(state.subwayExpedition.carriedLoot),
+  ]);
+  return Object.fromEntries(
+    Array.from(itemIds, (itemId) => [itemId, availableItemAmount(state, itemId)]),
+  );
+}
+
+function consumeAccessibleItem(state: GameState, itemId: string) {
+  const carried = state.subwayExpedition.carriedLoot[itemId] ?? 0;
+  if (carried > 0) {
+    const next = carried - 1;
+    if (next > 0) state.subwayExpedition.carriedLoot[itemId] = next;
+    else delete state.subwayExpedition.carriedLoot[itemId];
+    return;
+  }
+  const inventory = state.inventory[itemId] ?? 0;
+  if (inventory <= 0) {
+    throw new Error("현재 사용할 수 없는 아이템입니다.");
+  }
+  if (inventory > 1) state.inventory[itemId] = inventory - 1;
+  else delete state.inventory[itemId];
+}
+
 function itemEffectHint(itemId: string) {
   const item = itemDefinition(itemId);
   if (!item) return "";
@@ -50,7 +88,7 @@ function itemEffectHint(itemId: string) {
 }
 
 function recoveryItemActions(state: GameState): SubwayEncounterActionCatalogEntry[] {
-  return Object.entries(state.inventory)
+  return Object.entries(accessibleItemTotals(state))
     .filter(([itemId, amount]) => {
       if (amount <= 0) return false;
       const item = itemDefinition(itemId);
@@ -81,9 +119,24 @@ function toolItemActions(
       combatHint: "손도끼 내구도 -1 / 명중 85%: 적 4피해 / 반격 60%: 나 1피해 / +5분",
       otherHint: "손도끼 내구도 -1 / 성공 85% / +10분",
     },
+    {
+      itemId: "subwayBaton",
+      combatHint: "철제 진압봉 내구도 -1 / 명중 88%: 적 3피해 / 반격 45% / +5분",
+      otherHint: "철제 진압봉 내구도 -1 / 성공 88% / +10분",
+    },
+    {
+      itemId: "makeshiftShield",
+      combatHint: "철판 방패 내구도 -1 / 방어 100% / +5분",
+      otherHint: "철판 방패 내구도 -1 / 성공 90% / +10분",
+    },
+    {
+      itemId: "breakerMachete",
+      combatHint: "절연 마체테 내구도 -1 / 명중 85%: 적 5피해 / 반격 45% / +5분",
+      otherHint: "절연 마체테 내구도 -1 / 성공 90% / +10분",
+    },
   ];
   return tools
-    .filter(({ itemId }) => (state.inventory[itemId] ?? 0) > 0)
+    .filter(({ itemId }) => availableItemAmount(state, itemId) > 0)
     .map(({ itemId, combatHint, otherHint }) => ({
       actionToken: `use_item:${itemId}`,
       intent: `${itemName(itemId)}을 상황에 맞게 사용한다. 다른 물건으로 바꾸어 서술하지 않는다.`,
@@ -188,6 +241,133 @@ const HAZARD_ACTIONS: SubwayEncounterActionCatalogEntry[] = [
   },
 ];
 
+type CombatActionProfile =
+  | {
+      kind: "attack";
+      hitChance: number;
+      damage: number;
+      counterChance: number;
+    }
+  | {
+      kind: "guard";
+      successChance: number;
+      damageReduction: number;
+    }
+  | {
+      kind: "talk";
+      successChance: number;
+      counterChance: number;
+    }
+  | {
+      kind: "flee";
+      successChance: number;
+      counterChance: number;
+    };
+
+function hasEnemyTrait(encounter: SubwayEncounterState, trait: string) {
+  return encounter.enemy?.traits.includes(trait) ?? false;
+}
+
+function combatActionProfile(
+  state: GameState,
+  encounter: SubwayEncounterState,
+  actionToken: SubwayEncounterActionId,
+): CombatActionProfile | null {
+  if (actionToken === "talk") {
+    const rank = subwaySkillRank(state, "silver_tongue");
+    return {
+      kind: "talk",
+      successChance: Math.min(90, (encounter.stage === "opening" ? 50 : 30) + rank * 10),
+      counterChance: encounter.stage === "opening" ? 50 : 65,
+    };
+  }
+  if (actionToken === "flee") {
+    const rank = subwaySkillRank(state, "escape_route");
+    return {
+      kind: "flee",
+      successChance: Math.min(95, (encounter.stage === "opening" ? 80 : 60) + rank * 8),
+      counterChance: encounter.stage === "opening" ? 50 : 70,
+    };
+  }
+  if (actionToken === "guard" || actionToken === "use_item:makeshiftShield") {
+    const rank = subwaySkillRank(state, "iron_guard");
+    return {
+      kind: "guard",
+      successChance:
+        actionToken === "use_item:makeshiftShield"
+          ? 100
+          : Math.min(100, 80 + rank * 4),
+      damageReduction: rank,
+    };
+  }
+  if (actionToken === "fight" || actionToken === "close_attack") {
+    const rank = subwaySkillRank(state, "power_strike");
+    return {
+      kind: "attack",
+      hitChance: Math.max(50, 80 - (hasEnemyTrait(encounter, "agile") ? 10 : 0)),
+      damage: Math.max(
+        1,
+        2 + rank - (hasEnemyTrait(encounter, "armored") ? 1 : 0),
+      ),
+      counterChance: 60 + (hasEnemyTrait(encounter, "agile") ? 10 : 0),
+    };
+  }
+  if (actionToken === "throw_improvised") {
+    const rank = subwaySkillRank(state, "improvised_mastery");
+    return {
+      kind: "attack",
+      hitChance: Math.min(95, 65 + rank * 10),
+      damage: Math.max(
+        1,
+        1 + Math.floor(rank / 2) - (hasEnemyTrait(encounter, "armored") ? 1 : 0),
+      ),
+      counterChance: 35,
+    };
+  }
+  const toolProfiles: Record<string, Omit<Extract<CombatActionProfile, { kind: "attack" }>, "kind">> = {
+    utilityKnife: { hitChance: 90, damage: 3, counterChance: 50 },
+    crudeAxe: { hitChance: 85, damage: 4, counterChance: 60 },
+    subwayBaton: { hitChance: 88, damage: 3, counterChance: 45 },
+    breakerMachete: { hitChance: 85, damage: 5, counterChance: 45 },
+  };
+  if (actionToken.startsWith("use_item:")) {
+    const itemId = actionToken.slice("use_item:".length);
+    const profile = toolProfiles[itemId];
+    if (profile) {
+      return { kind: "attack", ...profile };
+    }
+  }
+  return null;
+}
+
+function combatMechanicalHint(
+  state: GameState,
+  encounter: SubwayEncounterState,
+  actionToken: SubwayEncounterActionId,
+) {
+  const profile = combatActionProfile(state, encounter, actionToken);
+  if (!profile) return null;
+  if (profile.kind === "attack") {
+    const toolPrefix = actionToken.startsWith("use_item:")
+      ? `${itemName(actionToken.slice("use_item:".length))} 내구도 -1 / `
+      : "";
+    return `${toolPrefix}명중 ${profile.hitChance}%: 적 ${profile.damage}피해 / 반격 ${profile.counterChance}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
+  }
+  if (profile.kind === "guard") {
+    const toolPrefix = actionToken === "use_item:makeshiftShield"
+      ? "철판 방패 내구도 -1 / "
+      : "";
+    const reduction = profile.damageReduction > 0
+      ? ` / 실패 피해 -${profile.damageReduction}`
+      : "";
+    return `${toolPrefix}방어 성공 ${profile.successChance}%${reduction} / +5분`;
+  }
+  if (profile.kind === "talk") {
+    return `성공 ${profile.successChance}% / 실패 시 반격 ${profile.counterChance}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
+  }
+  return `성공 ${profile.successChance}% / 실패 시 반격 ${profile.counterChance}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
+}
+
 function rollPercent(rng: () => number) {
   const raw = rng();
   const normalized = Number.isFinite(raw)
@@ -208,14 +388,23 @@ export function subwaySituationActionCatalog(
     return [];
   }
   if (encounter.kind === "combat") {
-    if (encounter.stage === "opening") {
-      return structuredClone(OPENING_COMBAT_ACTIONS);
-    }
-    return [
+    const actions = encounter.stage === "opening"
+      ? [
+          ...structuredClone(OPENING_COMBAT_ACTIONS),
+          ...toolItemActions(state, "combat"),
+          ...recoveryItemActions(state),
+        ]
+      : [
       ...structuredClone(ACTIVE_COMBAT_ACTIONS),
       ...toolItemActions(state, "combat"),
       ...recoveryItemActions(state),
     ];
+    return actions.map((action) => ({
+      ...action,
+      mechanicalHint:
+        combatMechanicalHint(state, encounter, action.actionToken) ??
+        action.mechanicalHint,
+    }));
   }
   const common = encounter.kind === "social" ? SOCIAL_ACTIONS : HAZARD_ACTIONS;
   return [
@@ -288,13 +477,24 @@ function combatRewardsForFloor(state: GameState) {
       totals.set(itemId, (totals.get(itemId) ?? 0) + amount);
     });
   });
+  const guaranteedEquipment =
+    floor.depth === 3
+      ? "subwayBaton"
+      : floor.depth === 6
+        ? "makeshiftShield"
+        : floor.depth % 10 === 0
+          ? "breakerMachete"
+          : null;
+  if (guaranteedEquipment) {
+    totals.set(guaranteedEquipment, Math.max(1, totals.get(guaranteedEquipment) ?? 0));
+  }
   return Array.from(totals, ([itemId, amount]) => ({ itemId, amount }));
 }
 
 function damageTool(state: GameState, itemId: string) {
   const item = itemDefinition(itemId);
   const maxDurability = item?.maxDurability ?? 0;
-  if (maxDurability <= 0 || (state.inventory[itemId] ?? 0) <= 0) {
+  if (maxDurability <= 0 || availableItemAmount(state, itemId) <= 0) {
     throw new Error("현재 사용할 수 없는 도구입니다.");
   }
   const current = state.toolDurability[itemId] ?? maxDurability;
@@ -303,26 +503,23 @@ function damageTool(state: GameState, itemId: string) {
     state.toolDurability[itemId] = next;
     return;
   }
-  const remaining = (state.inventory[itemId] ?? 0) - 1;
-  if (remaining > 0) {
-    state.inventory[itemId] = remaining;
+  consumeAccessibleItem(state, itemId);
+  if (availableItemAmount(state, itemId) > 0) {
     state.toolDurability[itemId] = maxDurability;
-  } else {
-    delete state.inventory[itemId];
-    delete state.toolDurability[itemId];
+    return;
   }
+  delete state.toolDurability[itemId];
 }
 
 function useRecoveryItem(state: GameState, itemId: string) {
   const item = itemDefinition(itemId);
-  if (!item || (state.inventory[itemId] ?? 0) <= 0) {
+  if (!item || availableItemAmount(state, itemId) <= 0) {
     throw new Error("현재 사용할 수 없는 아이템입니다.");
   }
   if (!item.effects.hp && !item.effects.mind && !item.effects.energy) {
     throw new Error("이 상황에서 사용할 효과가 없는 아이템입니다.");
   }
-  state.inventory[itemId] -= 1;
-  if (state.inventory[itemId] <= 0) delete state.inventory[itemId];
+  consumeAccessibleItem(state, itemId);
   changeSurvivalStat(state, "hp", item.effects.hp);
   changeSurvivalStat(state, "mind", item.effects.mind);
   changeSurvivalStat(state, "energy", item.effects.energy);
@@ -406,18 +603,103 @@ function encounterSystemNote(
   return entries;
 }
 
-function createEnemy(depth: number) {
-  const maxHp = Math.min(8, 4 + Math.floor(Math.max(0, depth - 2) / 4));
+export function createEnemy(depth: number) {
+  const normalizedDepth = Math.max(1, depth);
+  const cycle = Math.floor((normalizedDepth - 1) / 10);
+  const localDepth = ((normalizedDepth - 1) % 10) + 1;
+  const archetypes = [
+    {
+      id: "bandit",
+      name: "강도",
+      hp: 4,
+      attack: 1,
+      description: "해진 패딩과 천 마스크를 쓴 강도다. 짧은 쇠막대를 쥔 채 통로를 막고 있다.",
+      traits: ["human", "hostile", "subway", "tutorial"],
+    },
+    {
+      id: "track_ambusher",
+      name: "선로 급습자",
+      hp: 5,
+      attack: 1,
+      description: "가벼운 운동화와 짧은 칼로 무장한 약탈자다. 기둥 사이를 빠르게 옮겨 다닌다.",
+      traits: ["human", "hostile", "subway", "agile"],
+    },
+    {
+      id: "track_ambusher_veteran",
+      name: "선로 사냥꾼",
+      hp: 6,
+      attack: 1,
+      description: "빛이 닿지 않는 선로 가장자리에서 빈틈을 기다리는 노련한 습격자다.",
+      traits: ["human", "hostile", "subway", "agile"],
+    },
+    {
+      id: "plate_raider",
+      name: "철판 약탈자",
+      hp: 7,
+      attack: 1,
+      description: "표지판과 철판을 겹쳐 만든 갑옷을 두른 약탈자다. 급소가 쉽게 드러나지 않는다.",
+      traits: ["human", "hostile", "subway", "armored"],
+    },
+    {
+      id: "plate_raider_heavy",
+      name: "개찰구 파괴자",
+      hp: 8,
+      attack: 2,
+      description: "부서진 개찰구 봉을 양손에 든 거구다. 느리지만 한 번의 타격이 무겁다.",
+      traits: ["human", "hostile", "subway", "armored", "heavy"],
+    },
+    {
+      id: "maintenance_enforcer",
+      name: "정비구역 집행자",
+      hp: 9,
+      attack: 2,
+      description: "두꺼운 작업복과 용접면을 걸친 집행자다. 좁은 통로를 방패처럼 활용한다.",
+      traits: ["human", "hostile", "subway", "armored", "heavy"],
+    },
+    {
+      id: "tunnel_brute",
+      name: "터널 난폭자",
+      hp: 10,
+      attack: 2,
+      description: "쇠사슬을 감은 팔로 터널 벽을 긁으며 다가오는 난폭한 생존자다.",
+      traits: ["human", "hostile", "subway", "heavy"],
+    },
+    {
+      id: "night_stalker",
+      name: "암전 추적자",
+      hp: 11,
+      attack: 2,
+      description: "비상등이 꺼지는 순간마다 위치를 바꾸는 사냥꾼이다. 움직임을 읽기 어렵다.",
+      traits: ["human", "hostile", "subway", "agile", "heavy"],
+    },
+    {
+      id: "deep_guard",
+      name: "심층 수문장",
+      hp: 12,
+      attack: 2,
+      description: "심층 구역의 장비를 독점한 수문장이다. 낡았지만 빈틈없는 보호구를 갖췄다.",
+      traits: ["human", "hostile", "subway", "armored", "heavy"],
+    },
+    {
+      id: "sector_boss",
+      name: "구역 지배자",
+      hp: 15,
+      attack: 3,
+      description: "열 층의 물자와 통로를 장악한 지배자다. 두꺼운 방호복과 절연 마체테로 무장했다.",
+      traits: ["human", "hostile", "subway", "boss", "armored", "heavy"],
+    },
+  ] as const;
+  const archetype = archetypes[localDepth - 1]!;
+  const maxHp = archetype.hp + cycle * 4;
+  const attack = archetype.attack + Math.floor((cycle + 1) / 2);
   return {
-    id: depth === 1 ? "subway_bandit" : `subway_raider_${depth}`,
-    name: depth === 1 ? "강도" : "약탈자",
+    id: `subway_${archetype.id}_${normalizedDepth}`,
+    name: cycle > 0 ? `${archetype.name} · ${cycle + 1}구역` : archetype.name,
     maxHp,
     hp: maxHp,
-    attack: depth >= 11 ? 2 : 1,
-    description: depth === 1
-      ? "해진 패딩과 천 마스크를 쓴 약탈자다. 짧은 쇠막대를 쥔 채 지하 1층 통로를 막고 있다."
-      : "지하 통로를 자기 영역처럼 지키는 무장한 생존자 한 명이다.",
-    traits: ["human", "hostile", "subway"],
+    attack,
+    description: archetype.description,
+    traits: [...archetype.traits, `depth:${normalizedDepth}`],
   };
 }
 
@@ -539,11 +821,14 @@ export function setSubwayEncounterGeneration(
   if (encounter.kind === "combat") {
     const authoritativeEnemy =
       encounter.enemy ?? createEnemy(state.subwayExpedition.depth);
-    encounter.enemy = {
-      ...authoritativeEnemy,
-      name: encounter.actor?.name ?? authoritativeEnemy.name,
-      description: encounter.actor?.appearance ?? authoritativeEnemy.description,
-    };
+    encounter.enemy = authoritativeEnemy;
+    if (encounter.actor) {
+      encounter.actor = {
+        ...encounter.actor,
+        name: authoritativeEnemy.name,
+        appearance: authoritativeEnemy.description,
+      };
+    }
   } else {
     encounter.enemy = null;
   }
@@ -633,7 +918,7 @@ export function resolveSubwaySituationChoice(
   const intent = choice.intent;
   if (
     intent.primary === "use_item" &&
-    (!intent.itemId || (state.inventory[intent.itemId] ?? 0) <= 0)
+    (!intent.itemId || availableItemAmount(state, intent.itemId) <= 0)
   ) {
     throw new Error("현재 사용할 수 없는 아이템입니다.");
   }
@@ -642,7 +927,7 @@ export function resolveSubwaySituationChoice(
   const incomingThreat = encounter.pendingThreat;
   encounter.pendingThreat = null;
   const statsBefore = { ...state.stats };
-  const inventoryBefore = { ...state.inventory };
+  const itemTotalsBefore = accessibleItemTotals(state);
 
   let actionRoll: number | null = null;
   let counterRoll: number | null = null;
@@ -659,7 +944,10 @@ export function resolveSubwaySituationChoice(
     const enemy = encounter.enemy;
     if (!enemy) throw new Error("전투 상대 정보가 없습니다.");
     if (intent.primary === "persuade") {
-      const chance = encounter.stage === "opening" ? 50 : 30;
+      const profile = combatActionProfile(state, encounter, actionToken);
+      const chance = profile?.kind === "talk"
+        ? profile.successChance
+        : encounter.stage === "opening" ? 50 : 30;
       actionRoll = rollPercent(rng);
       success = actionRoll <= chance;
       if (success) {
@@ -670,9 +958,13 @@ export function resolveSubwaySituationChoice(
         stageAfter = "active";
         relationshipChange = -5;
         if (incomingThreat) {
+          const counterChance =
+            profile?.kind === "talk"
+              ? profile.counterChance
+              : encounter.stage === "opening" ? 50 : 65;
           const counter = counterDamage(
             encounter,
-            encounter.stage === "opening" ? 50 : 65,
+            counterChance,
             rng,
           );
           counterRoll = counter.roll;
@@ -681,9 +973,13 @@ export function resolveSubwaySituationChoice(
       }
     } else if (intent.primary === "retreat" || intent.primary === "evade") {
       actionRoll = rollPercent(rng);
-      const chance = intent.primary === "evade"
-        ? 80
-        : encounter.stage === "opening" ? 80 : 60;
+      const profile = combatActionProfile(state, encounter, actionToken);
+      const chance =
+        intent.primary === "evade"
+          ? 80
+          : profile?.kind === "flee"
+            ? profile.successChance
+            : encounter.stage === "opening" ? 80 : 60;
       success = actionRoll <= chance;
       if (success && intent.primary === "retreat") {
         stageAfter = "resolved";
@@ -691,49 +987,64 @@ export function resolveSubwaySituationChoice(
       } else {
         stageAfter = "active";
         if (!success && incomingThreat) {
+          const counterChance =
+            profile?.kind === "flee"
+              ? profile.counterChance
+              : encounter.stage === "opening" ? 50 : 70;
           const counter = counterDamage(
             encounter,
             intent.primary === "evade"
               ? 100
-              : encounter.stage === "opening" ? 50 : 70,
+              : counterChance,
             rng,
           );
           counterRoll = counter.roll;
           damageTaken = counter.damage;
         }
       }
-    } else if (intent.primary === "defend") {
+    } else if (
+      intent.primary === "defend" ||
+      actionToken === "use_item:makeshiftShield"
+    ) {
+      const profile = combatActionProfile(state, encounter, actionToken);
+      if (actionToken === "use_item:makeshiftShield") {
+        itemToken = actionToken;
+        damageTool(state, "makeshiftShield");
+      }
       actionRoll = rollPercent(rng);
-      success = actionRoll <= 80;
+      success = actionRoll <= (
+        profile?.kind === "guard" ? profile.successChance : 80
+      );
       if (!success && incomingThreat) {
         const counter = counterDamage(encounter, 100, rng);
         counterRoll = counter.roll;
-        damageTaken = counter.damage;
+        damageTaken = Math.max(
+          0,
+          counter.damage -
+            (profile?.kind === "guard" ? profile.damageReduction : 0),
+        );
       }
       stageAfter = "active";
     } else {
-      const forcefulAttack =
-        intent.primary === "attack" &&
-        intent.style !== "quick" &&
-        intent.style !== "cunning";
-      let hitChance = forcefulAttack ? 80 : 65;
-      let attackDamage = forcefulAttack ? 2 : 1;
-      let counterChance = forcefulAttack ? 60 : 35;
+      const initialProfile = combatActionProfile(state, encounter, actionToken);
+      let hitChance =
+        initialProfile?.kind === "attack" ? initialProfile.hitChance : 50;
+      let attackDamage =
+        initialProfile?.kind === "attack" ? initialProfile.damage : 0;
+      let counterChance =
+        initialProfile?.kind === "attack" ? initialProfile.counterChance : 65;
       if (intent.primary === "use_item" && intent.itemId) {
         itemToken = actionToken;
         const itemId = intent.itemId;
         const item = itemDefinition(itemId);
         if (item?.kind === "tool") {
           damageTool(state, itemId);
-          if (itemId === "utilityKnife") {
-            hitChance = 90;
-            attackDamage = 3;
-            counterChance = 50;
-          } else {
-            hitChance = 85;
-            attackDamage = 4;
-            counterChance = 60;
-          }
+          const itemProfile = combatActionProfile(state, encounter, actionToken);
+          hitChance = itemProfile?.kind === "attack" ? itemProfile.hitChance : 85;
+          attackDamage = itemProfile?.kind === "attack" ? itemProfile.damage : 1;
+          counterChance = itemProfile?.kind === "attack"
+            ? itemProfile.counterChance
+            : 60;
         } else {
           minutes = useRecoveryItem(state, itemId);
           if (incomingThreat) {
@@ -745,9 +1056,7 @@ export function resolveSubwaySituationChoice(
           hitChance = 0;
         }
       } else if (intent.primary !== "attack") {
-        hitChance = 50;
-        attackDamage = 0;
-        counterChance = 65;
+        hitChance = 0;
       }
       if (hitChance > 0) {
         actionRoll = rollPercent(rng);
@@ -813,15 +1122,6 @@ export function resolveSubwaySituationChoice(
     }
   }
 
-  if (
-    encounter.kind === "combat" &&
-    !resolution &&
-    encounter.turnNumber + 1 >= MAX_SITUATION_TURNS
-  ) {
-    stageAfter = "resolved";
-    resolution = "failed";
-  }
-
   if (damageTaken > 0) changeSurvivalStat(state, "hp", -damageTaken);
   advanceGameMinutes(state, minutes);
   syncClock(state);
@@ -839,7 +1139,11 @@ export function resolveSubwaySituationChoice(
       Math.min(100, encounter.actor.relationship + relationshipChange),
     );
   }
-  if (resolution === "victory") addEncounterReward(state, encounter);
+  const itemTotalsAfterAction = accessibleItemTotals(state);
+  if (resolution === "victory") {
+    addEncounterReward(state, encounter);
+    applySubwayVictoryRecovery(state);
+  }
   progress.phase = resolution ? "encounter_result" : "encounter";
 
   const result = SubwayEncounterTurnResultSchema.parse({
@@ -863,10 +1167,11 @@ export function resolveSubwaySituationChoice(
       return amount === 0 ? [] : [{ stat, amount }];
     }),
     itemChanges: Array.from(new Set([
-      ...Object.keys(inventoryBefore),
-      ...Object.keys(state.inventory),
+      ...Object.keys(itemTotalsBefore),
+      ...Object.keys(itemTotalsAfterAction),
     ])).flatMap((itemId) => {
-      const amount = (state.inventory[itemId] ?? 0) - (inventoryBefore[itemId] ?? 0);
+      const amount =
+        (itemTotalsAfterAction[itemId] ?? 0) - (itemTotalsBefore[itemId] ?? 0);
       return amount === 0 ? [] : [{ itemId, amount }];
     }),
     toolDurabilityChanges: itemToken &&
@@ -913,7 +1218,10 @@ export function acknowledgeSubwaySituationResult(state: GameState) {
   progress.eventResolved = true;
   progress.eventChoiceLabel = encounter.history.at(-1)?.result.selectedLabel ?? "";
   progress.eventOutcome = encounter.history.at(-1)?.result.summary ?? "상황을 해결했다.";
-  progress.phase = "complete";
+  const upgrades = encounter.resolution === "victory"
+    ? prepareSubwayUpgradeChoices(state)
+    : [];
+  progress.phase = upgrades.length > 0 ? "upgrade" : "complete";
   progress.currentResult = null;
   state.subwayExpedition.lastOutcome = progress.eventOutcome;
   state.subwayExpedition.storyMemory.facts = Array.from(new Set([

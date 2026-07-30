@@ -8,6 +8,11 @@ import {
   buildTemplateSubwayRunPlan,
   prepareSubwayFloorGeneration,
 } from "./subway-expedition-generator";
+import {
+  createEmptySubwayRunBuild,
+  subwayRunBuildSummary,
+  subwaySkillDefinition,
+} from "./subway-roguelike";
 import type {
   ActionChoice,
   GameState,
@@ -347,6 +352,7 @@ function cleanupFailedExpedition(state: GameState) {
   state.subwayExpedition.currentFloor = null;
   state.subwayExpedition.carriedLoot = {};
   resetFloorProgress(state);
+  state.subwayExpedition.runBuild = createEmptySubwayRunBuild();
   state.subwayExpedition.runPlan = null;
   state.subwayExpedition.storyMemory = emptyStoryMemory();
   state.subwayExpedition.preparedNextFloor = null;
@@ -435,6 +441,7 @@ export async function startSubwayExpedition(
       floorLoot: {},
       generationFailure: "",
     },
+    runBuild: createEmptySubwayRunBuild(),
     runPlan,
     storyMemory: storyMemoryFromPlan(runPlan),
     preparedNextFloor: null,
@@ -748,6 +755,7 @@ export function returnFromSubwayExpedition(state: GameState) {
   expedition.currentFloor = null;
   expedition.carriedLoot = {};
   resetFloorProgress(state);
+  expedition.runBuild = createEmptySubwayRunBuild();
   expedition.runPlan = null;
   expedition.storyMemory = emptyStoryMemory();
   expedition.preparedNextFloor = null;
@@ -812,8 +820,8 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
     return encounter.currentScene.choices.map((choice) => ({
       id: choice.id,
       label: choice.label,
-      outcomeHint: "",
-      showOutcomeHint: false,
+      outcomeHint: choice.effectDescription,
+      showOutcomeHint: true,
       postChoiceNarrative: choice.postChoiceNarrative,
       action: {
         type: "subway_expedition" as const,
@@ -826,6 +834,28 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
       },
       isAvailable: true,
     }));
+  }
+
+  if (phase === "upgrade") {
+    return expedition.runBuild.pendingUpgradeChoices.map((skillId) => {
+      const skill = subwaySkillDefinition(skillId);
+      const nextRank = expedition.runBuild.skillRanks[skillId] + 1;
+      return {
+        id: `subway-upgrade-${skillId}-${nextRank}`,
+        label: `${skill.name} ${nextRank}등급을 익힌다`,
+        outcomeHint: skill.description,
+        showOutcomeHint: true,
+        action: {
+          type: "subway_expedition" as const,
+          command: "choose_upgrade" as const,
+          optionId: skillId,
+        },
+        loading: {
+          durationMs: 500,
+        },
+        isAvailable: true,
+      };
+    });
   }
 
   if (phase === "encounter_result") {
@@ -947,15 +977,26 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
   const encounter = progress.encounter;
   const encounterScene = encounter?.currentScene;
   if (
-    (phase === "encounter" || phase === "encounter_result" || phase === "complete") &&
+    (
+      phase === "encounter" ||
+      phase === "encounter_result" ||
+      phase === "upgrade" ||
+      phase === "complete"
+    ) &&
     encounter &&
     encounterScene
   ) {
+    const upgradePrompt = phase === "upgrade"
+      ? [
+          `전투를 통해 몸에 밴 요령 하나를 이번 원정의 기술로 굳힐 수 있다. ${subwayRunBuildSummary(state)}.`,
+          "아래 기술 가운데 하나를 선택하면 이번 지하철 원정이 끝날 때까지 모든 이후 전투에 적용된다.",
+        ]
+      : [];
     return {
-      id: `${floor.id}:encounter:${encounter.id}:${encounter.turnNumber}`,
+      id: `${floor.id}:encounter:${encounter.id}:${encounter.turnNumber}:${phase}`,
       locationId: "subway",
       title: `지하 ${floor.depth}층 · ${encounterScene.title}`,
-      paragraphs: [...encounterScene.paragraphs],
+      paragraphs: [...encounterScene.paragraphs, ...upgradePrompt],
       choices,
       materialIds: {
         ...materialIds,
