@@ -560,7 +560,7 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
 
 type SkillUseDefinition = {
   effects: Effect[];
-  skillUse?: { skillId: "collection" | "exploration" };
+  skillUse?: { skillId: "collection" | "exploration" | "fishing" };
 };
 
 function validateSkillUseDefinition(definition: SkillUseDefinition, source: string) {
@@ -601,7 +601,7 @@ function validateSkillUseDefinition(definition: SkillUseDefinition, source: stri
   );
   if (randomOutcomeEffects.length !== 1) {
     throw new Error(
-      `${source} exploration skillUse requires exactly one direct random_outcome effect.`,
+      `${source} ${skillUse.skillId} skillUse requires exactly one direct random_outcome effect.`,
     );
   }
 
@@ -610,13 +610,13 @@ function validateSkillUseDefinition(definition: SkillUseDefinition, source: stri
   }>;
   if (outcomes.some((outcome) => outcome.result !== "success" && outcome.result !== "failure")) {
     throw new Error(
-      `${source} exploration skillUse requires every random outcome to declare result.`,
+      `${source} ${skillUse.skillId} skillUse requires every random outcome to declare result.`,
     );
   }
   const results = new Set(outcomes.map((outcome) => outcome.result));
   if (!results.has("success") || !results.has("failure")) {
     throw new Error(
-      `${source} exploration skillUse requires at least one success and one failure outcome.`,
+      `${source} ${skillUse.skillId} skillUse requires at least one success and one failure outcome.`,
     );
   }
 }

@@ -237,16 +237,18 @@ npm.cmd run content:validate
 npm.cmd run build
 ```
 
-## 수집·탐색 숙련도 태그
+## 수집·탐색·낚시 숙련도 태그
 
 숙련도 경험치를 주는 행동과 선택지에만 `skillUse`를 선언합니다.
 
 ```ts
 skillUse: { skillId: "collection" }
 skillUse: { skillId: "exploration" }
+skillUse: { skillId: "fishing" }
 ```
 
 - `collection`은 직접 `add_item`, `collect_stock_item(_all)`, `collect_stock_money(_all)` 중 하나를 실행해야 합니다. 재고 아이템 선택지는 `collectStockItemChoiceParts()`가 태그를 자동으로 붙입니다.
 - `exploration`은 정확히 하나의 `random_outcome`을 가져야 합니다. 각 결과에 `result: "success"` 또는 `result: "failure"`를 붙이고, 성공과 실패를 각각 하나 이상 작성합니다.
-- 두 숙련도 행동 모두 보정 전 시간을 나타내는 직접 `advance_time` 효과가 정확히 하나 필요합니다. `advance_to_daybreak`는 숙련도 행동에 사용할 수 없습니다.
+- `fishing`도 성공·실패가 선언된 `random_outcome` 하나를 사용하며, 레벨이 오를수록 어획 성공률이 10%p씩 높아집니다.
+- 세 숙련도 행동 모두 보정 전 시간을 나타내는 직접 `advance_time` 효과가 정확히 하나 필요합니다. `advance_to_daybreak`는 숙련도 행동에 사용할 수 없습니다.
 - 숙련도 대상이 아닌 확률 행동에는 `skillUse`와 `result` 표식을 추가하지 않아도 됩니다.

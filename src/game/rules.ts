@@ -125,6 +125,7 @@ function markLocationKnown(state: GameState, locationId: string) {
 
 const DISCOVERY_UNLOCK_FLAGS: Record<string, string[]> = {
   hospital: ["hospital_lead_checked", "visited_convenience", "visited_hospital"],
+  river: ["visited_convenience", "visited_forest", "visited_hospital", "visited_river"],
   checkpoint: ["checkpoint_lead_checked", "visited_subway", "visited_checkpoint"],
   arcana_plaza: ["magic_world_entered_once", "visited_arcana_plaza"],
   arcana_hunting_ground: ["visited_arcana_plaza", "visited_arcana_hunting_ground"],

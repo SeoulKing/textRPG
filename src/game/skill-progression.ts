@@ -8,6 +8,8 @@ export const SKILL_LEVEL_THRESHOLDS = [0, 50, 120, 210, 320] as const;
 export const MAX_SKILL_LEVEL = SKILL_LEVEL_THRESHOLDS.length;
 export const MAX_SKILL_XP = SKILL_LEVEL_THRESHOLDS[MAX_SKILL_LEVEL - 1];
 export const SKILL_EFFECT_PER_LEVEL_PERCENT = 10;
+export const FISHING_BASE_SUCCESS_PERCENT = 50;
+export const FISHING_EFFECT_PER_LEVEL_PERCENT = 10;
 
 export const PROGRESSION_SKILLS: Record<
   SkillId,
@@ -23,6 +25,11 @@ export const PROGRESSION_SKILLS: Record<
     name: "탐색",
     description: "숙련도가 오를수록 탐색 성공률이 높아집니다.",
   },
+  fishing: {
+    id: "fishing",
+    name: "낚시",
+    description: "숙련도가 오를수록 민물고기를 낚을 확률이 높아집니다.",
+  },
 };
 
 export function normalizeSkillTotalXp(value: unknown) {
@@ -36,6 +43,7 @@ export function createEmptySkillProgress(): SkillProgressState {
   return {
     collection: { totalXp: 0 },
     exploration: { totalXp: 0 },
+    fishing: { totalXp: 0 },
   };
 }
 
@@ -49,9 +57,13 @@ export function normalizeSkillProgress(raw: unknown): SkillProgressState {
   const exploration = candidate.exploration && typeof candidate.exploration === "object"
     ? candidate.exploration as Record<string, unknown>
     : {};
+  const fishing = candidate.fishing && typeof candidate.fishing === "object"
+    ? candidate.fishing as Record<string, unknown>
+    : {};
   return {
     collection: { totalXp: normalizeSkillTotalXp(collection.totalXp) },
     exploration: { totalXp: normalizeSkillTotalXp(exploration.totalXp) },
+    fishing: { totalXp: normalizeSkillTotalXp(fishing.totalXp) },
   };
 }
 
@@ -81,7 +93,11 @@ export function getSkillXpForMinutes(baseMinutes: number) {
   return Math.max(1, Math.ceil(normalizedMinutes / 5));
 }
 
-export function getSkillEffectPercent(level: number) {
+export function getSkillEffectPercent(level: number, skillId?: SkillId) {
+  if (skillId === "fishing") {
+    const normalizedLevel = Math.max(1, Math.min(MAX_SKILL_LEVEL, Math.floor(level)));
+    return FISHING_BASE_SUCCESS_PERCENT + (normalizedLevel - 1) * FISHING_EFFECT_PER_LEVEL_PERCENT;
+  }
   const normalizedLevel = Math.max(1, Math.min(MAX_SKILL_LEVEL, Math.floor(level)));
   return (normalizedLevel - 1) * SKILL_EFFECT_PER_LEVEL_PERCENT;
 }
@@ -131,9 +147,11 @@ function baseOutcomeProbabilities<T extends WeightedOutcome>(outcomes: T[]) {
   return outcomes.map((outcome) => outcome.weight / totalWeight);
 }
 
-export function getExplorationOutcomeProbabilities<T extends WeightedOutcome>(
+function getSuccessOutcomeProbabilities<T extends WeightedOutcome>(
   outcomes: T[],
   level: number,
+  effectPerLevelPercent: number,
+  minimumLevel = 1,
 ) {
   if (
     outcomes.length === 0 ||
@@ -153,7 +171,8 @@ export function getExplorationOutcomeProbabilities<T extends WeightedOutcome>(
   }
 
   const baseSuccessProbability = successWeight / (failureWeight + successWeight);
-  const successBonus = getSkillEffectPercent(level) / 100;
+  const normalizedLevel = Math.max(minimumLevel, Math.min(MAX_SKILL_LEVEL, Math.floor(level)));
+  const successBonus = ((normalizedLevel - minimumLevel) * effectPerLevelPercent) / 100;
   const adjustedSuccessProbability = Math.min(1, baseSuccessProbability + successBonus);
   const adjustedFailureProbability = 1 - adjustedSuccessProbability;
   return outcomes.map((outcome) =>
@@ -161,6 +180,20 @@ export function getExplorationOutcomeProbabilities<T extends WeightedOutcome>(
       ? adjustedFailureProbability * (outcome.weight / failureWeight)
       : adjustedSuccessProbability * (outcome.weight / successWeight),
   );
+}
+
+export function getExplorationOutcomeProbabilities<T extends WeightedOutcome>(
+  outcomes: T[],
+  level: number,
+) {
+  return getSuccessOutcomeProbabilities(outcomes, level, SKILL_EFFECT_PER_LEVEL_PERCENT);
+}
+
+export function getFishingOutcomeProbabilities<T extends WeightedOutcome>(
+  outcomes: T[],
+  level: number,
+) {
+  return getSuccessOutcomeProbabilities(outcomes, level, FISHING_EFFECT_PER_LEVEL_PERCENT);
 }
 
 function normalizedRandomRoll(rng: () => number) {
@@ -182,11 +215,17 @@ export function selectRandomOutcome<T extends WeightedOutcome>(
   if (outcomes.length === 0) {
     return undefined;
   }
-  const probabilities = options.skillUse?.skillId === "exploration"
+  const probabilitySkillId = options.skillUse?.skillId;
+  const probabilities = probabilitySkillId === "exploration"
     ? getExplorationOutcomeProbabilities(
         outcomes,
-        getProgressionSkillLevel(options.progress, "exploration"),
+        getProgressionSkillLevel(options.progress, probabilitySkillId),
       )
+    : probabilitySkillId === "fishing"
+      ? getFishingOutcomeProbabilities(
+          outcomes,
+          getProgressionSkillLevel(options.progress, probabilitySkillId),
+        )
     : baseOutcomeProbabilities(outcomes);
   const roll = normalizedRandomRoll(options.rng ?? Math.random);
   let cursor = 0;
@@ -223,7 +262,7 @@ export function buildSkillProgressCards(progress: SkillProgressState) {
       xpIntoLevel,
       xpForNextLevel,
       progressPercent,
-      effectPercent: getSkillEffectPercent(level),
+      effectPercent: getSkillEffectPercent(level, skillId),
       isMaxLevel,
     };
   });

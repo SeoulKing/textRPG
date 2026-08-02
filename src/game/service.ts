@@ -278,6 +278,7 @@ const CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   cook_rice_porridge: "+1 정신력 / +4 기력",
   cook_greens_soup: "+1 정신력 / +3 기력",
   cook_forest_stew: "+6 기력 / 피로 완화",
+  cook_grilled_fish: "+3 기력",
   assemble_rescue_radio: "10일차 구조 신호 준비",
   brew_mana_potion: "MP +4",
   craft_rune_compass: "마법도시의 숨은 길 탐색",
@@ -288,6 +289,9 @@ const CRAFTING_RECIPE_PREREQUISITES: Record<string, Array<{ flag: string; label:
   cook_rice_porridge: [{ flag: "shelter_brazier", label: "간이 화로" }],
   cook_greens_soup: [{ flag: "shelter_brazier", label: "간이 화로" }],
   cook_forest_stew: [
+    { flag: "shelter_brazier", label: "간이 화로" },
+  ],
+  cook_grilled_fish: [
     { flag: "shelter_brazier", label: "간이 화로" },
   ],
 };

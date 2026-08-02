@@ -327,6 +327,31 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
     riskHint: "low",
   }),
   sceneChoice({
+    id: "cook_grilled_fish",
+    showOutcomeHint: true,
+    label: "{{item:grilledFish}}",
+    outcomeHint: "간이 화로에서 {{item:riverFish}} 한 마리를 구워 {{item:grilledFish|을를}} 만든다.",
+    presentationMode: "always",
+    conditions: [
+      { type: "flag", flag: "shelter_brazier" },
+      { type: "has_item", itemId: "riverFish", amount: 1 },
+      { type: "has_item", itemId: "woodPlank", amount: 1 },
+    ],
+    failureNote: "{{item:grilledFish|은는}} 간이 화로가 있어야 하고, {{item:riverFish}} 1 / {{item:woodPlank}} 1이 필요하다.",
+    failureEffects: [
+      { type: "log", message: "{{item:grilledFish|을를}} 만들려면 간이 화로와 {{item:riverFish}} 한 마리, 불씨를 살릴 {{item:woodPlank}} 한 장이 필요하다." },
+    ],
+    effects: [
+      { type: "remove_item", itemId: "riverFish", amount: 1 },
+      { type: "remove_item", itemId: "woodPlank", amount: 1 },
+      { type: "add_item", itemId: "grilledFish", amount: 1 },
+      { type: "log", message: "당신은 {{item:riverFish|을를}} 손질해 잔불 위에 올린다. 껍질이 노릇해지고 고소한 냄새가 퍼질 즈음 {{item:grilledFish|이가}} 완성된다." },
+      { type: "advance_time", minutes: 15 },
+    ],
+    nextSceneId: "shelter_cooking_menu",
+    riskHint: "low",
+  }),
+  sceneChoice({
     id: "assemble_rescue_radio",
     showOutcomeHint: true,
     label: "무전기",

@@ -124,6 +124,7 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
       "cook_rice_porridge",
       "cook_greens_soup",
       "cook_forest_stew",
+      "cook_grilled_fish",
       "leave_shelter_cooking",
     ],
     conditions: [
@@ -143,6 +144,7 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
       "cook_rice_porridge",
       "cook_greens_soup",
       "cook_forest_stew",
+      "cook_grilled_fish",
       "leave_shelter_cooking",
     ],
     conditions: [

@@ -12,6 +12,7 @@ import {
   buildSkillProgressCards,
   createEmptySkillProgress,
   getExplorationOutcomeProbabilities,
+  getFishingOutcomeProbabilities,
   getSkillLevel,
   getSkillXpForMinutes,
   resolveSkillAdjustedMinutes,
@@ -161,12 +162,12 @@ test("exploration success probability grows while outcome ratios stay intact", (
   );
 });
 
-test("save normalization adds v17 progress and clamps malformed XP", () => {
+test("save normalization adds missing progress and clamps malformed XP", () => {
   const initial = createInitialGameState();
   const rawWithoutProgress = structuredClone(initial) as GameState & {
     skillProgress?: GameState["skillProgress"];
   };
-  delete rawWithoutProgress.skillProgress;
+  Reflect.deleteProperty(rawWithoutProgress, "skillProgress");
   const world = {
     locationCards: {},
     personCards: {},
@@ -200,7 +201,61 @@ test("save normalization adds v17 progress and clamps malformed XP", () => {
   assert.deepEqual(normalizedMalformed.state.skillProgress, {
     collection: { totalXp: 320 },
     exploration: { totalXp: 0 },
+    fishing: { totalXp: 0 },
   });
+});
+
+test("fishing starts at level 1 with 50 percent success and reaches 90 percent", () => {
+  const outcomes = [
+    { weight: 100, result: "failure" as const, id: "failure" },
+    { weight: 75, result: "success" as const, id: "one-fish" },
+    { weight: 25, result: "success" as const, id: "two-fish" },
+  ];
+  const levelOne = getFishingOutcomeProbabilities(outcomes, 1);
+  const levelFive = getFishingOutcomeProbabilities(outcomes, 5);
+  assert.deepEqual(levelOne, [0.5, 0.375, 0.125]);
+  assert.ok(Math.abs(levelFive[0] - 0.1) < 1e-12);
+  assert.ok(Math.abs(levelFive[1] - 0.675) < 1e-12);
+  assert.ok(Math.abs(levelFive[2] - 0.225) < 1e-12);
+
+  const failed = stateAt("river", "river_first_intro");
+  performAction(
+    failed,
+    { type: "content_action", actionId: "fish_at_river" },
+    { rng: () => 0.49 },
+  );
+  assert.equal(failed.inventory.riverFish ?? 0, 0);
+  assert.equal(failed.skillProgress.fishing.totalXp, 6);
+
+  const succeeded = stateAt("river", "river_first_intro");
+  succeeded.skillProgress.fishing.totalXp = 320;
+  performAction(
+    succeeded,
+    { type: "content_action", actionId: "fish_at_river" },
+    { rng: () => 0.49 },
+  );
+  assert.equal(succeeded.inventory.riverFish, 1);
+});
+
+test("grilled fish recipe consumes the catch and restores exactly 3 energy", () => {
+  const state = stateAt("shelter", "shelter_cooking_menu");
+  state.flags.shelter_brazier = true;
+  state.flags.shelter_cooking_open = true;
+  state.inventory.riverFish = 1;
+  state.inventory.woodPlank = 1;
+
+  performAction(state, {
+    type: "content_choice",
+    choiceId: "cook_grilled_fish",
+  });
+  assert.equal(state.inventory.riverFish ?? 0, 0);
+  assert.equal(state.inventory.woodPlank ?? 0, 0);
+  assert.equal(state.inventory.grilledFish, 1);
+
+  const beforeEnergy = state.stats.energy;
+  performAction(state, { type: "use_item", itemId: "grilledFish" });
+  assert.equal(state.stats.energy, beforeEnergy + 3);
+  assert.equal(state.inventory.grilledFish ?? 0, 0);
 });
 
 test("skill_gte reads progression levels and treats owned legacy traits as level 1", () => {
@@ -261,7 +316,7 @@ test("actual stock collection awards XP only when inventory increases", () => {
   assert.equal(state.skillProgress.collection.totalXp, 1);
 });
 
-test("unannotated actions do not advance either skill", () => {
+test("unannotated actions do not advance progression skills", () => {
   const state = createInitialGameState();
   performAction(state, {
     type: "content_action",
@@ -348,17 +403,15 @@ test("actual exploration failure still awards XP, and level 5 changes the result
 });
 
 test("condition failure path awards no XP or time", () => {
-  const state = stateAt("arcana_plaza", "arcana_plaza_first_intro");
-  state.flags.in_magic_world = true;
-  state.stats.mind = 0;
+  const state = stateAt("forest", "forest_first_intro");
   const beforeElapsed = state.worldElapsedMs;
-  performAction(state, {
+  assert.throws(() => performAction(state, {
     type: "content_action",
-    actionId: "trace_floating_rune_at_arcana_plaza",
-  });
+    actionId: "chop_wood_with_crude_axe",
+  }));
   assert.equal(state.skillProgress.collection.totalXp, 0);
   assert.equal(state.worldElapsedMs, beforeElapsed);
-  assert.equal(state.inventory.arcaneDust ?? 0, 0);
+  assert.equal(state.inventory.woodPlank ?? 0, 0);
 });
 
 test("level crossing adds one Korean log and one system-note token", () => {
@@ -381,6 +434,7 @@ test("snapshot cards expose interval XP, effects, and MAX state", () => {
   const cards = buildSkillProgressCards({
     collection: { totalXp: 80 },
     exploration: { totalXp: 320 },
+    fishing: { totalXp: 0 },
   });
   assert.deepEqual(cards[0], {
     id: "collection",
@@ -400,4 +454,11 @@ test("snapshot cards expose interval XP, effects, and MAX state", () => {
   assert.equal(cards[1].progressPercent, 100);
   assert.equal(cards[1].effectPercent, 40);
   assert.equal(cards[1].isMaxLevel, true);
+  assert.equal(cards[2].level, 1);
+  assert.equal(cards[2].effectPercent, 50);
+  assert.equal(buildSkillProgressCards({
+    collection: { totalXp: 0 },
+    exploration: { totalXp: 0 },
+    fishing: { totalXp: 320 },
+  })[2].effectPercent, 90);
 });

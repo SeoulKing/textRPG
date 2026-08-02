@@ -2960,12 +2960,14 @@ function skillsPanelMarkup() {
               const xpForNextLevel = Math.max(0, Number(skill.xpForNextLevel) || 0);
               const effectPercent = Math.max(0, Number(skill.effectPercent) || 0);
               const skillName = skill.name
-                || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id);
+                || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id === "fishing" ? "낚시" : skill.id);
               const effectLabel = skill.id === "collection"
                 ? `시간 -${effectPercent}%`
                 : skill.id === "exploration"
                   ? `성공률 +${effectPercent}%`
-                  : `효과 ${effectPercent}%`;
+                  : skill.id === "fishing"
+                    ? `성공률 ${effectPercent}%`
+                    : `효과 ${effectPercent}%`;
               const xpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel} / ${xpForNextLevel} XP`;
               const compactXpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel}/${xpForNextLevel}`;
               const meterValue = isMaxLevel ? 100 : progressPercent;

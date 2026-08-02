@@ -151,6 +151,7 @@ export const BUILT_IN_RECIPE_MENUS = {
   cook_rice_porridge: "cooking",
   cook_greens_soup: "cooking",
   cook_forest_stew: "cooking",
+  cook_grilled_fish: "cooking",
 } as const satisfies Record<string, StudioRecipe["menu"]>;
 
 export const CRAFTING_MENU_SCENE_IDS = [

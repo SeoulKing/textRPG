@@ -93,10 +93,11 @@ export const hospitalLocation = defineLocation({
   tags: ["medicine", "signal", "day4"],
   traits: ["first aid", "battery", "stress", "triage work"],
   obtainableItemIds: ["painRelief", "clothScrap", "cordage", "radioBattery"],
-  neighbors: ["convenience"],
+  neighbors: ["convenience", "river"],
   interactionChoices: hospitalChoices,
   links: {
     convenience: { note: "병원 뒤편 골목을 거슬러 편의점 폐허 쪽으로 돌아간다." },
+    river: { note: "병원 옆 무너진 제방 계단을 따라 강가로 내려간다." },
   },
   stockNodes: [
     stockNode({
