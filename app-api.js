@@ -1763,7 +1763,7 @@ function itemDurabilityHintHtml(item, state) {
   return `<span class="item-effect-list"><span class="item-durability-hint">내구도 ${current}/${item.maxDurability}</span></span>`;
 }
 
-function craftingRecipeMetaHtml(recipe) {
+function craftingRecipeMetaHtml(recipe, { showEffect = true } = {}) {
   if (!recipe) {
     return "";
   }
@@ -1798,20 +1798,25 @@ function craftingRecipeMetaHtml(recipe) {
       </span>
     `
     : "";
-
-  return `
-    <span class="crafting-recipe-detail">
+  const effectHtml = showEffect
+    ? `
       <span class="crafting-recipe-row is-effect">
         <span class="crafting-recipe-label">효과</span>
         <span class="crafting-recipe-effect">${escapeHtml(recipe.effect)}</span>
       </span>
+    `
+    : "";
+
+  return `
+    <span class="crafting-recipe-detail">
+      ${effectHtml}
       ${prerequisiteHtml}
       ${requirementsHtml}
     </span>
   `;
 }
 
-function renderCraftingChoices(snapshot) {
+function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
   const recipeChoices = snapshot.availableActions.filter((choice) =>
     !["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) && choice.craftingRecipe
   );
@@ -1823,16 +1828,21 @@ function renderCraftingChoices(snapshot) {
 
   if (selectedChoice?.craftingRecipe) {
     const detail = document.createElement("section");
-    detail.className = "crafting-recipe-panel";
+    detail.className = `crafting-recipe-panel${isCookingMenu ? " is-cooking-menu" : ""}`;
     detail.setAttribute("aria-live", "polite");
-    detail.innerHTML = `
-      <div class="crafting-recipe-panel-head">
-        <strong>${escapeHtml(selectedChoice.label)}</strong>
+    const detailHeadMeta = isCookingMenu
+      ? `<span class="crafting-recipe-effect">${escapeHtml(selectedChoice.craftingRecipe.effect)}</span>`
+      : `
         <span class="crafting-recipe-state ${selectedChoice.isAvailable ? "is-met" : "is-missing"}">
           ${selectedChoice.isAvailable ? "제작 가능" : "재료 부족"}
         </span>
+      `;
+    detail.innerHTML = `
+      <div class="crafting-recipe-panel-head">
+        <strong>${escapeHtml(selectedChoice.label)}</strong>
+        ${detailHeadMeta}
       </div>
-      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe)}
+      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe, { showEffect: !isCookingMenu })}
     `;
     dom.choices.appendChild(detail);
   }
@@ -1884,6 +1894,9 @@ function renderCraftingChoices(snapshot) {
     const status = fragment.querySelector(".choice-status");
     const remaining = fragment.querySelector(".choice-remaining");
     const meta = fragment.querySelector(".choice-meta");
+    if (isCookingMenu && choice.id === "leave_shelter_cooking") {
+      button.classList.add("is-cooking-menu-exit");
+    }
     label.textContent = choice.label;
     status.textContent = choice.statusLabel || "";
     status.hidden = !choice.statusLabel;
@@ -2257,7 +2270,8 @@ function renderStatusBar() {
 function renderChoices() {
   const snapshot = client.snapshot;
   dom.choices.innerHTML = "";
-  dom.choices.classList.remove("revealed", "is-crafting-menu");
+  dom.choices.classList.remove("revealed", "is-crafting-menu", "is-cooking-menu");
+  dom.sceneFrame.classList.remove("is-cooking-menu");
   if (!snapshot) {
     syncMobileChoiceZoneHeight();
     return;
@@ -2283,9 +2297,12 @@ function renderChoices() {
   }
 
   const isRecipeMenu = snapshot.availableActions.some((choice) => choice.craftingRecipe);
+  const isCookingMenu = snapshot.availableActions.some((choice) => choice.id === "leave_shelter_cooking");
   if (isRecipeMenu) {
     dom.choices.classList.add("is-crafting-menu");
-    renderCraftingChoices(snapshot);
+    dom.choices.classList.toggle("is-cooking-menu", isCookingMenu);
+    dom.sceneFrame.classList.toggle("is-cooking-menu", isCookingMenu);
+    renderCraftingChoices(snapshot, { isCookingMenu });
     dom.choices.classList.add("revealed");
     syncMobileChoiceZoneHeight();
     return;

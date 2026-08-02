@@ -744,6 +744,10 @@ a:focus:not(:focus-visible),
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.22));
 }
 
+.scene-frame.is-cooking-menu .scene-art-wrap {
+  aspect-ratio: 96 / 7;
+}
+
 .scene-art-wrap img {
   width: 100%;
   height: 100%;
@@ -1339,6 +1343,111 @@ a:focus:not(:focus-visible),
 .crafting-recipe-token.is-missing {
   background: rgba(154, 79, 58, 0.12);
   color: #813f2f;
+}
+
+.choice-list.is-cooking-menu {
+  gap: 0;
+}
+
+.choice-list.is-cooking-menu .crafting-recipe-panel {
+  gap: 5px;
+  margin: 0 0 4px;
+  padding: 9px 12px;
+  border-radius: 12px;
+}
+
+.crafting-recipe-panel.is-cooking-menu .crafting-recipe-panel-head {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.crafting-recipe-panel.is-cooking-menu .crafting-recipe-panel-head strong {
+  flex: 0 1 auto;
+}
+
+.crafting-recipe-panel.is-cooking-menu .crafting-recipe-panel-head .crafting-recipe-effect {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.crafting-recipe-panel.is-cooking-menu .crafting-recipe-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 3px;
+}
+
+.crafting-recipe-panel.is-cooking-menu .crafting-recipe-row {
+  display: contents;
+}
+
+.crafting-recipe-panel.is-cooking-menu .crafting-recipe-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.crafting-recipe-panel.is-cooking-menu .crafting-recipe-token-list {
+  display: contents;
+}
+
+.crafting-recipe-panel.is-cooking-menu .crafting-recipe-token {
+  flex: 0 0 auto;
+  min-height: 21px;
+  padding: 2px 5px;
+  font-size: 0.68rem;
+}
+
+.choice-list.is-cooking-menu .crafting-choice-card {
+  gap: 4px;
+  min-height: 34px;
+  padding: 0 2px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.12);
+  background: #fff;
+}
+
+.choice-list.is-cooking-menu .crafting-choice-select,
+.choice-list.is-cooking-menu .crafting-choice-select:hover,
+.choice-list.is-cooking-menu .crafting-choice-select:focus-visible,
+.choice-list.is-cooking-menu .crafting-choice-card.is-active .crafting-choice-select,
+.choice-list.is-cooking-menu .crafting-choice-card.is-recipe-available .crafting-choice-select,
+.choice-list.is-cooking-menu .crafting-choice-card.is-recipe-available.is-active .crafting-choice-select {
+  min-height: 32px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.choice-list.is-cooking-menu .crafting-choice-card.is-active .crafting-recipe-name {
+  color: var(--accent-strong);
+}
+
+.choice-list.is-cooking-menu .crafting-choice-submit {
+  min-height: 28px;
+  margin-right: 2px;
+  padding: 4px 8px;
+}
+
+.choice-list.is-cooking-menu .choice-button.is-cooking-menu-exit {
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 0;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.12);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+  transform: none;
 }
 
 .choice-button.is-recipe-available {
@@ -3089,6 +3198,11 @@ a:focus:not(:focus-visible),
   .scene-art-wrap {
     aspect-ratio: 48 / 10;
     max-height: 112px;
+  }
+
+  .scene-frame.is-cooking-menu .scene-art-wrap {
+    aspect-ratio: 48 / 5;
+    max-height: 56px;
   }
 
   .scene-frame {
