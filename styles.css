@@ -740,12 +740,13 @@ a:focus:not(:focus-visible),
 
 .scene-art-wrap {
   position: relative;
+  overflow: hidden;
   aspect-ratio: 48 / 7;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.22));
 }
 
 .scene-frame.is-cooking-menu .scene-art-wrap {
-  aspect-ratio: 96 / 7;
+  aspect-ratio: 24 / 7;
 }
 
 .scene-art-wrap img {
@@ -755,8 +756,23 @@ a:focus:not(:focus-visible),
   display: block;
 }
 
+.scene-animation-canvas {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.scene-frame.has-cooking-scene-visual .scene-art-wrap > img {
+  opacity: 0;
+}
+
 .scene-overlay {
   position: absolute;
+  z-index: 2;
   top: 20px;
   left: 20px;
   display: flex;
@@ -1345,8 +1361,14 @@ a:focus:not(:focus-visible),
   color: #813f2f;
 }
 
-.choice-list.is-cooking-menu {
+.choice-list.is-crafting-menu {
   gap: 0;
+}
+
+.choice-list.is-crafting-menu .crafting-recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 8px;
 }
 
 .choice-list.is-cooking-menu .crafting-recipe-panel {
@@ -1407,20 +1429,21 @@ a:focus:not(:focus-visible),
   font-size: 0.68rem;
 }
 
-.choice-list.is-cooking-menu .crafting-choice-card {
-  gap: 4px;
+.choice-list.is-crafting-menu .crafting-choice-card {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   min-height: 34px;
   padding: 0 2px;
   border-bottom: 1px solid rgba(31, 41, 55, 0.12);
   background: #fff;
 }
 
-.choice-list.is-cooking-menu .crafting-choice-select,
-.choice-list.is-cooking-menu .crafting-choice-select:hover,
-.choice-list.is-cooking-menu .crafting-choice-select:focus-visible,
-.choice-list.is-cooking-menu .crafting-choice-card.is-active .crafting-choice-select,
-.choice-list.is-cooking-menu .crafting-choice-card.is-recipe-available .crafting-choice-select,
-.choice-list.is-cooking-menu .crafting-choice-card.is-recipe-available.is-active .crafting-choice-select {
+.choice-list.is-crafting-menu .crafting-choice-select,
+.choice-list.is-crafting-menu .crafting-choice-select:hover,
+.choice-list.is-crafting-menu .crafting-choice-select:focus-visible,
+.choice-list.is-crafting-menu .crafting-choice-card.is-active .crafting-choice-select,
+.choice-list.is-crafting-menu .crafting-choice-card.is-recipe-available .crafting-choice-select,
+.choice-list.is-crafting-menu .crafting-choice-card.is-recipe-available.is-active .crafting-choice-select {
   min-height: 32px;
   padding: 4px 6px;
   border: 0;
@@ -1429,17 +1452,33 @@ a:focus:not(:focus-visible),
   box-shadow: none;
 }
 
-.choice-list.is-cooking-menu .crafting-choice-card.is-active .crafting-recipe-name {
+.choice-list.is-crafting-menu .crafting-choice-card.is-active .crafting-recipe-name {
   color: var(--accent-strong);
 }
 
-.choice-list.is-cooking-menu .crafting-choice-submit {
+.choice-list.is-crafting-menu .crafting-choice-submit {
   min-height: 28px;
   margin-right: 2px;
   padding: 4px 8px;
 }
 
-.choice-list.is-cooking-menu .choice-button.is-cooking-menu-exit {
+.choice-list.is-crafting-menu .recipe-menu-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.choice-list.is-crafting-menu .crafting-choice-submit.is-recipe-menu-submit {
+  width: 100%;
+  min-height: 34px;
+  margin: 0;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.choice-list.is-crafting-menu .choice-button.is-recipe-menu-exit {
   min-height: 34px;
   padding: 4px 8px;
   border: 0;
@@ -1448,6 +1487,14 @@ a:focus:not(:focus-visible),
   background: #fff;
   box-shadow: none;
   transform: none;
+}
+
+.choice-list.is-crafting-menu .crafting-recipe-name,
+.choice-list.is-crafting-menu .choice-button.is-recipe-menu-exit .choice-label {
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1.28;
 }
 
 .choice-button.is-recipe-available {
@@ -3200,9 +3247,10 @@ a:focus:not(:focus-visible),
     max-height: 112px;
   }
 
+  .scene-frame.has-cooking-scene-visual .scene-art-wrap,
   .scene-frame.is-cooking-menu .scene-art-wrap {
-    aspect-ratio: 48 / 5;
-    max-height: 56px;
+    aspect-ratio: 24 / 7;
+    max-height: 112px;
   }
 
   .scene-frame {

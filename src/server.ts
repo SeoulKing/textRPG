@@ -46,6 +46,7 @@ const authController = new AuthController(repository, gameService);
 const contentStudioEnabled =
   process.env.NODE_ENV !== "production" ||
   process.env.ENABLE_CONTENT_STUDIO === "true";
+const graphicsPreviewEnabled = process.env.NODE_ENV !== "production";
 const contentStudioAdminToken = process.env.CONTENT_STUDIO_ADMIN_TOKEN?.trim() || "";
 const ActionRequestSchema = z.union([
   GameActionSchema,
@@ -153,6 +154,11 @@ async function bootstrap() {
     root: path.join(webRoot, "assets"),
     prefix: "/assets/",
   });
+  await app.register(staticPlugin, {
+    root: path.join(webRoot, "client"),
+    prefix: "/client/",
+    decorateReply: false,
+  });
 
   app.get("/", async (_request, reply) => {
     reply.type("text/html; charset=utf-8");
@@ -170,10 +176,21 @@ async function bootstrap() {
     reply.type("application/javascript; charset=utf-8");
     return readFile(path.join(webRoot, "node_modules", "honeycomb-grid", "dist", "honeycomb-grid.mjs"), "utf8");
   });
+  app.get("/vendor/phaser.mjs", async (_request, reply) => {
+    reply.type("application/javascript; charset=utf-8");
+    return readFile(path.join(webRoot, "node_modules", "phaser", "dist", "phaser.esm.min.js"), "utf8");
+  });
   app.get("/styles.css", async (_request, reply) => {
     reply.type("text/css; charset=utf-8");
     return readFile(path.join(webRoot, "styles.css"), "utf8");
   });
+
+  if (graphicsPreviewEnabled) {
+    app.get("/graphics-preview", async (_request, reply) => {
+      reply.type("text/html; charset=utf-8");
+      return readFile(path.join(webRoot, "graphics-preview.html"), "utf8");
+    });
+  }
 
   if (contentStudioEnabled) {
     app.get("/content-editor", async (_request, reply) => {

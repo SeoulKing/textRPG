@@ -283,6 +283,7 @@ const dom = {
   statusPopover: document.querySelector("#status-popover"),
   sceneFrame: document.querySelector(".scene-frame"),
   sceneArt: document.querySelector("#scene-art"),
+  sceneAnimation: document.querySelector("#scene-animation"),
   sceneLocationBadge: document.querySelector("#scene-location-badge"),
   sceneRiskBadge: document.querySelector("#scene-risk-badge"),
   sceneDevSource: document.querySelector("#scene-dev-source"),
@@ -296,6 +297,55 @@ const dom = {
   panelTitle: document.querySelector("#panel-title"),
   panelContent: document.querySelector("#panel-content"),
   dockButtons: Array.from(document.querySelectorAll(".dock-button")),
+};
+
+let activeSceneDirector = null;
+let sceneDirectorLoadError = null;
+const sceneDirectorReady = import("./client/graphics/scene-director.js")
+  .then(({ SceneDirector }) => {
+    activeSceneDirector = new SceneDirector({
+      canvas: dom.sceneAnimation,
+      host: dom.sceneFrame,
+    });
+    return activeSceneDirector;
+  })
+  .catch((error) => {
+    sceneDirectorLoadError = error instanceof Error ? error.message : String(error);
+    throw error;
+  });
+
+const sceneDirector = {
+  preloadCooking() {
+    return sceneDirectorReady.then((director) => director.preloadCooking());
+  },
+  showCookingAtRest(options) {
+    return sceneDirectorReady.then((director) =>
+      director.showCookingAtRest(options)
+    );
+  },
+  playCookingEntrance(options) {
+    return sceneDirectorReady.then((director) =>
+      director.playCookingEntrance(options)
+    );
+  },
+  hideCooking() {
+    activeSceneDirector?.hideCooking();
+    dom.sceneAnimation.hidden = true;
+    dom.sceneFrame.classList.remove("has-cooking-scene-visual");
+  },
+  snapshot() {
+    if (sceneDirectorLoadError) {
+      return {
+        engine: "phaser",
+        state: "error",
+        error: sceneDirectorLoadError,
+      };
+    }
+    return activeSceneDirector?.snapshot() ?? {
+      engine: "phaser",
+      state: "loading",
+    };
+  },
 };
 
 const client = {
@@ -656,6 +706,47 @@ function waitForMilliseconds(durationMs) {
   });
 }
 
+function isCookingSceneOpenAction(action) {
+  return action?.type === "content_action" && [
+    "open_shelter_cooking",
+    "open_shelter_cooking_repeat",
+  ].includes(action.actionId);
+}
+
+function isCookingMenuSnapshot(snapshot) {
+  return Boolean(snapshot?.availableActions?.some((choice) =>
+    choice.id === "leave_shelter_cooking"
+  ));
+}
+
+function showCookingSceneVisualAtRest() {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  sceneDirector.showCookingAtRest({ reduceMotion }).catch((error) => {
+    console.warn(error);
+    sceneDirector.hideCooking();
+  });
+}
+
+function playCookingEntranceVisual() {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return sceneDirector.playCookingEntrance({
+    reduceMotion,
+  }).catch((error) => {
+    console.warn(error);
+    sceneDirector.hideCooking();
+  });
+}
+
+function syncCookingSceneVisual(snapshot) {
+  if (isCookingMenuSnapshot(snapshot)) {
+    showCookingSceneVisualAtRest();
+    return;
+  }
+  if (!isCookingSceneOpenAction(client.pendingAction)) {
+    sceneDirector.hideCooking();
+  }
+}
+
 function isMovementAction(action, loading = null) {
   if (!action) {
     return false;
@@ -782,9 +873,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
       : control;
   const isMovement = isMovementAction(action, loading);
   const usesOverlay = usesRegionTravelOverlay(action, loading);
-  const usesEncounterOverlay = action?.type === "subway_expedition" &&
-    action.command === "encounter_choice";
-  const message = usesOverlay || usesEncounterOverlay
+  const message = usesOverlay
     ? actionTransitionMessage(action, loading)
     : "";
   const usesInlineSurfaceFill = visualTarget instanceof HTMLElement
@@ -1847,6 +1936,34 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     dom.choices.appendChild(detail);
   }
 
+  const createCraftButton = (choice, { menuFooter = false } = {}) => {
+    const craftButton = document.createElement("button");
+    craftButton.className = [
+      "inline-action",
+      "crafting-choice-submit",
+      menuFooter ? "is-recipe-menu-submit" : "",
+    ].filter(Boolean).join(" ");
+    craftButton.type = "button";
+    craftButton.textContent = menuFooter
+      ? isCookingMenu ? "요리하기" : "제작하기"
+      : choice.craftingRecipe.actionLabel || "제작";
+    craftButton.disabled = client.actionInFlight;
+    craftButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      submitAction(
+        choice.action,
+        craftButton,
+        choice.loading,
+        choice.postChoiceNarrative,
+      );
+    });
+    return craftButton;
+  };
+
+  const recipeGrid = document.createElement("div");
+  recipeGrid.className = "crafting-recipe-grid";
+
   recipeChoices.forEach((choice) => {
     const card = document.createElement("article");
     card.className = [
@@ -1867,25 +1984,13 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
       renderChoices();
     });
 
-    const craftButton = document.createElement("button");
-    craftButton.className = "inline-action crafting-choice-submit";
-    craftButton.type = "button";
-    craftButton.textContent = choice.craftingRecipe.actionLabel || "제작";
-    craftButton.disabled = client.actionInFlight;
-    craftButton.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      submitAction(
-        choice.action,
-        craftButton,
-        choice.loading,
-        choice.postChoiceNarrative,
-      );
-    });
-
-    card.append(selectButton, craftButton);
-    dom.choices.appendChild(card);
+    card.appendChild(selectButton);
+    recipeGrid.appendChild(card);
   });
+
+  dom.choices.appendChild(recipeGrid);
+
+  let recipeMenuExitButton = null;
 
   otherChoices.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
@@ -1894,8 +1999,12 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     const status = fragment.querySelector(".choice-status");
     const remaining = fragment.querySelector(".choice-remaining");
     const meta = fragment.querySelector(".choice-meta");
-    if (isCookingMenu && choice.id === "leave_shelter_cooking") {
-      button.classList.add("is-cooking-menu-exit");
+    const isRecipeMenuExit = [
+      "leave_shelter_crafting",
+      "leave_shelter_cooking",
+    ].includes(choice.id);
+    if (isRecipeMenuExit) {
+      button.classList.add("is-recipe-menu-exit");
     }
     label.textContent = choice.label;
     status.textContent = choice.statusLabel || "";
@@ -1914,8 +2023,22 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
       choice.loading,
       choice.postChoiceNarrative,
     ));
-    dom.choices.appendChild(fragment);
+    if (isRecipeMenuExit) {
+      recipeMenuExitButton = button;
+    } else {
+      dom.choices.appendChild(fragment);
+    }
   });
+
+  if (recipeMenuExitButton) {
+    const footer = document.createElement("div");
+    footer.className = "recipe-menu-footer";
+    footer.appendChild(recipeMenuExitButton);
+    if (selectedChoice) {
+      footer.appendChild(createCraftButton(selectedChoice, { menuFooter: true }));
+    }
+    dom.choices.appendChild(footer);
+  }
 }
 
 function hideSystemNote() {
@@ -2361,6 +2484,7 @@ function renderScene(animateText = true, appendStory = false) {
   const expedition = snapshot.state.subwayExpedition;
   const isSubwayExpedition = Boolean(expedition?.active && expedition.currentFloor);
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
+  syncCookingSceneVisual(snapshot);
   dom.sceneLocationBadge.textContent = isSubwayExpedition
     ? `${location.name} · ${expedition.depth}층`
     : location.name;
@@ -3455,6 +3579,9 @@ async function submitAction(
         return { snapshot, error: null };
       })
       .catch((error) => ({ snapshot: null, error }));
+    const cookingSceneVisualPromise = isCookingSceneOpenAction(action)
+      ? playCookingEntranceVisual()
+      : Promise.resolve();
     if (isMovementAction(action, loading)) {
       client.isPanelOpen = false;
       renderPanel();
@@ -3470,6 +3597,7 @@ async function submitAction(
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
       transitionPromise,
+      cookingSceneVisualPromise,
     ]);
     if (error) {
       throw error;
@@ -3879,8 +4007,12 @@ window.render_game_to_text = () => JSON.stringify({
         action: client.pendingAction,
       }
     : null,
+  sceneVisual: dom.sceneFrame.classList.contains("has-cooking-scene-visual")
+    ? sceneDirector.snapshot()
+    : null,
 });
 
+sceneDirector.preloadCooking().catch((error) => console.warn(error));
 bootstrap().catch((error) => {
   console.error(error);
   dom.homeScreen.hidden = false;

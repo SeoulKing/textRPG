@@ -1,69 +1,37 @@
-# 요리 목록 밀도 개선 Design QA
+# Phaser 요리 장면 애니메이션 Design QA
 
-## 비교 대상
+## 기준
 
-- source visual truth path: 인앱 브라우저 캡처 `cookingAfterPng` (이전 요리 목록)
-- implementation screenshot path: 인앱 브라우저 캡처 `cookingSecondRenderedReady` (간격·칩·복귀 항목 개선 후)
-- viewport: 325 × 631 CSS px
-- source pixels: 325 × 631 px
-- implementation pixels: 325 × 631 px
-- CSS size / density normalization: 동일한 viewport와 동일한 브라우저 캡처 배율을 사용했으므로 별도 보정 없음
-- state: 임시 거처의 요리 메뉴, `따뜻한 식사` 레시피가 선택된 상태
+- 배경: `assets/scenes/cooking/shelter-cooking-background.png` (`768 × 224`)
+- 캐릭터 시트: `assets/scenes/cooking/survivor-cooking-cycle.png`
+- 캐릭터 규격: `96 × 128` 고정 셀 12개(걷기 8, 요리 대기 4)
+- 목표 뷰포트: `384 × 824` CSS px
+- 장면 상태: `hidden → entering → ready`
 
-## Full-view comparison evidence
+## 구현 결과
 
-- 레시피 선택 행의 세로 패딩을 8px에서 4px로 줄여 행 높이가 42px에서 34px로 감소했습니다.
-- `조건`, `필요 재료` 텍스트는 화면에서 제거하고 조건·재료를 동일한 칩 흐름으로 합쳤습니다.
-- 가장 많은 칩을 가진 `따뜻한 식사`도 정확히 두 줄에 모두 표시됩니다.
-- 상세 패널의 `scrollWidth`와 `clientWidth`가 모두 284px로 같아 가로 스크롤이나 잘림이 없습니다.
-- `거처로 돌아가기`는 34px 높이, 흰색 배경, 0px radius, 얇은 하단선으로 레시피 목록과 같은 시각 체계에 들어갔습니다.
-- 다섯 레시피와 복귀 항목이 325 × 631 화면에 모두 보입니다.
+- 캐릭터는 `(180, 207)`에서 `(445, 207)`까지 2.16초 동안 선형 이동합니다.
+- 걷기는 14fps, 요리 대기는 4fps로 재생하며 전 과정에서 배율 `0.625`와 발 위치 `y=207`을 유지합니다.
+- 12개 프레임의 알파 실루엣 높이는 120px, 발 기준선은 셀 내부 `y=124`로 통일했습니다.
+- 접지 그림자는 캐릭터의 수평 위치를 따라가며 도착 순간 위치·크기 점프 없이 대기 루프로 전환됩니다.
+- `prefers-reduced-motion`에서는 이동을 생략하고 도착 위치의 대기 첫 프레임을 표시합니다.
+- Phaser 모듈 또는 장면 에셋 로딩이 실패하면 캔버스를 숨기고 기존 장소 이미지를 유지합니다.
+- 요리 진입과 메뉴 모두 `24 / 7` 비율을 사용해 모바일에서 `384 × 112`로 표시됩니다.
+- `/graphics-preview`에서 저장 데이터와 무관하게 걷기, 도착, 초기화를 확인할 수 있습니다.
 
-## Focused region comparison evidence
+## 검증 결과
 
-- 전체 캡처에서 레시피 상세 칩과 여섯 개 목록 행의 간격·경계·텍스트가 판독 가능해 별도 확대 비교는 필요하지 않았습니다.
-
-## Findings
-
-- P0: 없음
-- P1: 없음
-- P2: 없음
-- P3: 없음
-
-## Required fidelity surfaces
-
-- Fonts and typography: 기존 글꼴·굵기·크기를 유지해 정보 위계를 보존했고 칩 텍스트도 잘리지 않습니다.
-- Spacing and layout rhythm: 요청대로 선택 행의 세로 패딩을 절반으로 줄였으며 목록 사이의 별도 간격은 0px입니다.
-- Colors and visual tokens: 기존 흰색 목록 배경, 강조색, 조건·재료 상태색을 그대로 사용했습니다.
-- Image quality and asset fidelity: 상단 장면 이미지는 기존 크롭과 품질을 그대로 유지했습니다.
-- Copy and content: 조건·재료의 실제 내용은 모두 보존하면서 두 제목만 시각적으로 숨겼고, 화면 읽기 도구용 텍스트는 유지했습니다.
-
-## Primary interactions tested
-
-- `생선구이` 선택 시 상세 제목이 `생선구이`, 효과가 `+3 기력`으로 갱신되는 것을 확인했습니다.
-- 다시 `따뜻한 식사`를 선택해 전달 화면의 기준 상태로 복귀했습니다.
-- `거처로 돌아가기`에 전용 목록 행 클래스가 유지되는 것을 확인했습니다.
-
-## Console errors checked
-
-- 브라우저 경고·오류 로그를 확인했으며 발견된 항목이 없습니다.
-
-## Comparison history
-
-- 1차 비교: 같은 viewport와 같은 요리 메뉴 상태의 전후 캡처를 하나의 비교 입력으로 확인했습니다. 조치가 필요한 P0/P1/P2 차이가 없어 추가 시각 수정 없이 통과했습니다.
-
-## Implementation Checklist
-
-- [x] 선택 행 세로 패딩 50% 축소
-- [x] 복귀 항목을 동일한 목록 스타일로 통합
-- [x] 조건·필요 재료 제목 제거
-- [x] 칩 전체를 최대 두 줄로 표시
-- [x] 가로 스크롤 제거
-- [x] 레시피 선택 상호작용 확인
-- [x] 브라우저 콘솔 오류 확인
-
-## Follow-up Polish
-
-- 없음
+- 브라우저 ESM 구문 검사 통과
+- 서버 TypeScript 타입 검사 통과
+- 스프라이트 규격 검사 통과: 12프레임, `96 × 128`, 기준선 124
+- 관련 위치·지하철 테스트 19개 통과
+- 메인 HTML, Phaser, 그래픽 모듈, 배경·스프라이트 PNG, 미리보기 경로 HTTP 200
+- `384 × 824` 실제 미리보기:
+  - 시작/이동/도착 중 발 위치 `y=207` 유지
+  - 이동/도착 중 배율 `0.625` 유지
+  - 장면 영역 `384 × 112`
+  - 이동 중 캐릭터와 접지 그림자가 바닥선을 따라 이동
+  - 도착 후 4프레임 대기 루프 재생
+  - 콘솔 경고·오류 없음
 
 final result: passed

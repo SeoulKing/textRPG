@@ -439,6 +439,11 @@ export function syncScene(state: GameState, preferredSceneId?: string) {
   state.activeEventId = scene.eventId ?? null;
 }
 
+function closeShelterSubmenus(state: GameState) {
+  delete state.flags.shelter_crafting_open;
+  delete state.flags.shelter_cooking_open;
+}
+
 function applyEvolutionUpdate(state: GameState, update: DayEvolutionUpdate) {
   switch (update.type) {
     case "stock_item":
@@ -1171,6 +1176,7 @@ export function performAction(
       if (!allowed || !path || path.length < 2) {
         throw new Error(reason);
       }
+      closeShelterSubmenus(state);
       const routeTargets = path.slice(1);
       const destinationId = routeTargets[routeTargets.length - 1];
       const destinationName = String(registry.locations[destinationId]?.name ?? destinationId);

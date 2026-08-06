@@ -76,74 +76,6 @@ function consumeAccessibleItem(state: GameState, itemId: string) {
   else delete state.inventory[itemId];
 }
 
-function itemEffectHint(itemId: string) {
-  const item = itemDefinition(itemId);
-  if (!item) return "";
-  const parts = [`-1 ${item.name}`];
-  if (item.effects.hp) parts.push(`+${item.effects.hp} 체력`);
-  if (item.effects.mind) parts.push(`+${item.effects.mind} 정신력`);
-  if (item.effects.energy) parts.push(`+${item.effects.energy} 기력`);
-  parts.push(`+${item.useMinutes ?? 0}분`);
-  return parts.join(" / ");
-}
-
-function recoveryItemActions(state: GameState): SubwayEncounterActionCatalogEntry[] {
-  return Object.entries(accessibleItemTotals(state))
-    .filter(([itemId, amount]) => {
-      if (amount <= 0) return false;
-      const item = itemDefinition(itemId);
-      return Boolean(
-        item &&
-        (item.effects.hp > 0 || item.effects.mind > 0 || item.effects.energy > 0),
-      );
-    })
-    .map(([itemId]) => ({
-      actionToken: `use_item:${itemId}`,
-      intent: `${itemName(itemId)}을 실제로 한 개 사용해 몸을 추스른다.`,
-      mechanicalHint: itemEffectHint(itemId),
-    }));
-}
-
-function toolItemActions(
-  state: GameState,
-  kind: SubwaySituationKind,
-): SubwayEncounterActionCatalogEntry[] {
-  const tools = [
-    {
-      itemId: "utilityKnife",
-      combatHint: "간이 칼 내구도 -1 / 명중 90%: 적 3피해 / 반격 50%: 나 1피해 / +5분",
-      otherHint: "간이 칼 내구도 -1 / 성공 90% / +10분",
-    },
-    {
-      itemId: "crudeAxe",
-      combatHint: "손도끼 내구도 -1 / 명중 85%: 적 4피해 / 반격 60%: 나 1피해 / +5분",
-      otherHint: "손도끼 내구도 -1 / 성공 85% / +10분",
-    },
-    {
-      itemId: "subwayBaton",
-      combatHint: "철제 진압봉 내구도 -1 / 명중 88%: 적 3피해 / 반격 45% / +5분",
-      otherHint: "철제 진압봉 내구도 -1 / 성공 88% / +10분",
-    },
-    {
-      itemId: "makeshiftShield",
-      combatHint: "철판 방패 내구도 -1 / 방어 100% / +5분",
-      otherHint: "철판 방패 내구도 -1 / 성공 90% / +10분",
-    },
-    {
-      itemId: "breakerMachete",
-      combatHint: "절연 마체테 내구도 -1 / 명중 85%: 적 5피해 / 반격 45% / +5분",
-      otherHint: "절연 마체테 내구도 -1 / 성공 90% / +10분",
-    },
-  ];
-  return tools
-    .filter(({ itemId }) => availableItemAmount(state, itemId) > 0)
-    .map(({ itemId, combatHint, otherHint }) => ({
-      actionToken: `use_item:${itemId}`,
-      intent: `${itemName(itemId)}을 상황에 맞게 사용한다. 다른 물건으로 바꾸어 서술하지 않는다.`,
-      mechanicalHint: kind === "combat" ? combatHint : otherHint,
-    }));
-}
-
 const OPENING_COMBAT_ACTIONS: SubwayEncounterActionCatalogEntry[] = [
   {
     actionToken: "fight",
@@ -389,16 +321,8 @@ export function subwaySituationActionCatalog(
   }
   if (encounter.kind === "combat") {
     const actions = encounter.stage === "opening"
-      ? [
-          ...structuredClone(OPENING_COMBAT_ACTIONS),
-          ...toolItemActions(state, "combat"),
-          ...recoveryItemActions(state),
-        ]
-      : [
-      ...structuredClone(ACTIVE_COMBAT_ACTIONS),
-      ...toolItemActions(state, "combat"),
-      ...recoveryItemActions(state),
-    ];
+      ? structuredClone(OPENING_COMBAT_ACTIONS)
+      : structuredClone(ACTIVE_COMBAT_ACTIONS);
     return actions.map((action) => ({
       ...action,
       mechanicalHint:
@@ -407,10 +331,7 @@ export function subwaySituationActionCatalog(
     }));
   }
   const common = encounter.kind === "social" ? SOCIAL_ACTIONS : HAZARD_ACTIONS;
-  return [
-    ...structuredClone(common),
-    ...toolItemActions(state, encounter.kind),
-  ];
+  return structuredClone(common);
 }
 
 export function banditEncounterActionCatalog(
@@ -430,7 +351,9 @@ function selectedChoice(
   choiceId: string,
 ) {
   return encounter.currentScene?.choices.find(
-    (choice) => choice.id === choiceId || choice.legacyActionToken === choiceId,
+    (choice) =>
+      choice.intent.primary !== "use_item" &&
+      (choice.id === choiceId || choice.legacyActionToken === choiceId),
   );
 }
 

@@ -19,6 +19,7 @@ import {
   type SubwaySituationKind,
 } from "./schemas";
 import { subwaySituationActionCatalog } from "./subway-encounter";
+import { withoutRepeatedSubwayNarrative } from "./subway-narrative";
 import {
   generateSubwayRoleJson,
   hasSubwayRoleConfig,
@@ -723,6 +724,19 @@ function compileGeneration(
               ? `${actor?.name ?? "낯선 생존자"}가 거리를 둔 채 이쪽을 살핀다.`
               : "앞쪽 구조물이 불안정하게 흔들리며 안전한 길을 가늠하기 어렵다.",
         ];
+    repaired += 1;
+  }
+
+  const originalParagraphCount = paragraphs.length;
+  paragraphs = withoutRepeatedSubwayNarrative(
+    paragraphs,
+    input.latestServerResult?.postChoiceNarrative ?? [],
+  );
+  if (paragraphs.length < originalParagraphCount) {
+    repaired += originalParagraphCount - paragraphs.length;
+  }
+  if (paragraphs.length === 0 && input.latestServerResult) {
+    paragraphs = [input.latestServerResult.summary];
     repaired += 1;
   }
 

@@ -238,7 +238,7 @@ test("장면 선택지는 짧은 행동과 선택후 서사만 표시 데이터�
   assert.deepEqual(attack?.postChoiceNarrative, ["fight 행동을 시작한다."]);
 });
 
-test("보유한 허용 도구만 선택지와 서버 판정에 사용할 수 있다", async () => {
+test("지하철 상황 선택지에는 보유 아이템 사용을 제시하지 않는다", async () => {
   const state = await stateWithBanditEncounter();
   resolveSubwayBanditChoice(
     state,
@@ -250,72 +250,42 @@ test("보유한 허용 도구만 선택지와 서버 판정에 사용할 수 있
   state.toolDurability.utilityKnife = 10;
   state.inventory.waterBottle = 1;
   const generation = compileSubwayEncounterDraftForTest({
-    title: "손에 잡힌 간이 칼",
+    title: "손에 잡힌 물건들",
     narrative: [
       "가방 옆주머니의 간이 칼이 손에 닿는다.",
       "생수병도 손을 뻗으면 닿을 거리에 남아 있다.",
     ],
   }, { gameId: "server-item-choices", state });
   setSubwayEncounterGeneration(state, generation);
-  assert.ok(
-    generation.scene.choices.some((choice) =>
-      choice.legacyActionToken === "use_item:utilityKnife"
-    ),
-  );
-  assert.ok(
-    generation.scene.choices.some((choice) =>
-      choice.legacyActionToken === "use_item:waterBottle"
-    ),
+  assert.equal(
+    generation.scene.choices.some((choice) => choice.intent.primary === "use_item"),
+    false,
   );
 
-  const action = buildSubwayExpeditionActions(state).find((entry) => {
-    if (entry.action.type !== "subway_expedition") return false;
-    const optionId = entry.action.optionId;
-    return generation.scene.choices.some((choice) =>
-      choice.id === optionId &&
-      choice.legacyActionToken === "use_item:utilityKnife"
-    );
-  });
+  const legacyItemChoice = {
+    id: "legacy-use-item-choice",
+    label: "비상식량을 사용한다",
+    effectDescription: "-1 비상식량 / +5 기력 / +0분",
+    postChoiceNarrative: [],
+    intent: {
+      primary: "use_item" as const,
+      style: "careful" as const,
+      target: "self" as const,
+      itemId: "emergencySnack",
+    },
+    legacyActionToken: "use_item:emergencySnack" as const,
+  };
+  state.subwayExpedition.currentFloorProgress.encounter!.currentScene!.choices.push(
+    legacyItemChoice,
+  );
   assert.equal(
-    action?.outcomeHint,
-    "간이 칼 내구도 -1 / 명중 90%: 적 3피해 / 반격 50%: 나 1피해 / +5분",
+    buildSubwayExpeditionActions(state).some((entry) => entry.id === legacyItemChoice.id),
+    false,
   );
-  const result = resolveSubwayBanditChoice(
-    state,
-    action!.id,
-    1,
-    sequenceRng([0, 0.99]),
-  );
-  assert.equal(result.damageDealt, 3);
-  assert.equal(state.toolDurability.utilityKnife, 9);
-  assert.match(state.systemNote, /^간이 칼 내구도 -1 \/ 강도: 3피해/);
   assert.throws(
-    () => resolveSubwayBanditChoice(state, "use_item:crudeAxe", 2, () => 0),
+    () => resolveSubwayBanditChoice(state, legacyItemChoice.id, 1, () => 0),
     /선택할 수 없는 행동/,
   );
-
-  state.subwayExpedition.carriedLoot.subwayBaton = 1;
-  const nextGeneration = compileSubwayEncounterDraftForTest({
-    title: "전리품으로 얻은 진압봉",
-    narrative: [
-      "조금 전 챙긴 진압봉의 무게가 손바닥에 단단히 실린다.",
-      "강도는 상처 입은 채 다시 쇠막대를 들어 올렸다.",
-    ],
-  }, { gameId: "server-run-loot-tool", state, latestServerResult: result });
-  setSubwayEncounterGeneration(state, nextGeneration);
-  const batonChoice = nextGeneration.scene.choices.find(
-    (choice) => choice.legacyActionToken === "use_item:subwayBaton",
-  );
-  assert.ok(batonChoice);
-  const batonResult = resolveSubwayBanditChoice(
-    state,
-    batonChoice!.id,
-    2,
-    sequenceRng([0]),
-  );
-  assert.equal(batonResult.resolution, "victory");
-  assert.equal(state.toolDurability.subwayBaton, 13);
-  assert.equal(state.subwayExpedition.carriedLoot.subwayBaton, 1);
 });
 
 test("깊은 층도 전투로 고정하고 서버가 확정한 층 전리품을 승리 시 자동 지급한다", async () => {
@@ -602,7 +572,7 @@ test("지하철 opening은 묘사 역할 한 번만 호출하고 서버 선택�
   assert.equal(generation.eventKind, "combat");
   assert.equal(generation.actor?.name, "강도");
   assert.equal(generation.scene.title, "푸른 유도등 아래");
-  assert.equal(generation.scene.choices.length, 5);
+  assert.equal(generation.scene.choices.length, 3);
   assert.deepEqual(
     generation.scene.choices.slice(0, 3).map((choice) => choice.intent.primary),
     ["attack", "persuade", "retreat"],
@@ -659,6 +629,7 @@ test("서버 판정 뒤에는 결과 서사 역할 한 번만 호출하고 전�
       return {
         title: "밀려난 강도",
         narrative: [
+          ...serverResult.postChoiceNarrative,
           authoritative.summary,
           "강도는 개찰구에 어깨를 부딪친 뒤 다시 쇠막대를 고쳐 쥔다.",
         ],
@@ -679,6 +650,16 @@ test("서버 판정 뒤에는 결과 서사 역할 한 번만 호출하고 전�
 
   assert.deepEqual(roles, ["result_scene"]);
   assert.equal(generation.scene.title, "밀려난 강도");
+  assert.equal(
+    generation.scene.paragraphs.some((paragraph) =>
+      serverResult.postChoiceNarrative.includes(paragraph)
+    ),
+    false,
+  );
+  assert.deepEqual(generation.scene.paragraphs, [
+    serverResult.summary,
+    "강도는 개찰구에 어깨를 부딪친 뒤 다시 쇠막대를 고쳐 쥔다.",
+  ]);
   assert.deepEqual(
     generation.scene.choices.slice(0, 5).map((choice) =>
       choice.legacyActionToken
@@ -781,7 +762,7 @@ test("LLM 초안의 사건·인물·선택지는 무시하고 서버 전투 상�
 
   assert.equal(generation.actor?.name, "강도");
   assert.equal(generation.eventKind, "combat");
-  assert.equal(generation.scene.choices.length, 5);
+  assert.equal(generation.scene.choices.length, 3);
   assert.equal(
     generation.scene.choices[0]?.label,
     "빈틈을 노려 먼저 공격한다",

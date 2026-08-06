@@ -13,6 +13,7 @@ import {
   subwayRunBuildSummary,
   subwaySkillDefinition,
 } from "./subway-roguelike";
+import { withoutRepeatedSubwayNarrative } from "./subway-narrative";
 import type {
   ActionChoice,
   GameState,
@@ -817,7 +818,9 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
     if (!encounter?.currentScene) {
       return [];
     }
-    return encounter.currentScene.choices.map((choice) => ({
+    return encounter.currentScene.choices
+      .filter((choice) => choice.intent.primary !== "use_item")
+      .map((choice) => ({
       id: choice.id,
       label: choice.label,
       outcomeHint: choice.effectDescription,
@@ -832,8 +835,8 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
       loading: {
         durationMs: 650,
       },
-      isAvailable: true,
-    }));
+        isAvailable: true,
+      }));
   }
 
   if (phase === "upgrade") {
@@ -986,6 +989,12 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
     encounter &&
     encounterScene
   ) {
+    const latestEncounterResult =
+      encounter.history[encounter.history.length - 1]?.result;
+    const freshEncounterParagraphs = withoutRepeatedSubwayNarrative(
+      encounterScene.paragraphs,
+      latestEncounterResult?.postChoiceNarrative ?? [],
+    );
     const upgradePrompt = phase === "upgrade"
       ? [
           `전투를 통해 몸에 밴 요령 하나를 이번 원정의 기술로 굳힐 수 있다. ${subwayRunBuildSummary(state)}.`,
@@ -996,7 +1005,12 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
       id: `${floor.id}:encounter:${encounter.id}:${encounter.turnNumber}:${phase}`,
       locationId: "subway",
       title: `지하 ${floor.depth}층 · ${encounterScene.title}`,
-      paragraphs: [...encounterScene.paragraphs, ...upgradePrompt],
+      paragraphs: [
+        ...(freshEncounterParagraphs.length > 0
+          ? freshEncounterParagraphs
+          : latestEncounterResult ? [latestEncounterResult.summary] : encounterScene.paragraphs),
+        ...upgradePrompt,
+      ],
       choices,
       materialIds: {
         ...materialIds,

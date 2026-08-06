@@ -81,6 +81,14 @@
         <section class="scene-frame">
           <div class="scene-art-wrap">
             <img id="scene-art" src="assets/scenes/camp.svg" alt="현재 장면 일러스트">
+            <canvas
+              id="scene-animation"
+              class="scene-animation-canvas"
+              width="768"
+              height="224"
+              aria-hidden="true"
+              hidden
+            ></canvas>
             <div class="scene-overlay">
               <span id="scene-location-badge" class="pill">생존자 캠프</span>
               <span id="scene-risk-badge" class="pill muted">안전</span>
@@ -126,6 +134,6 @@
     </button>
   </template>
 
-  <script type="module" src="app-api.js?v=20260731-subway-roguelike"></script>
+  <script type="module" src="app-api.js?v=20260807-phaser-cooking-v2"></script>
 </body>
 </html>
