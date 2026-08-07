@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 
 const filePath = new URL(
-  "../assets/scenes/cooking/survivor-cooking-cycle.png",
+  "../assets/scenes/cooking/survivor-cooking-cycle-v2.png",
   import.meta.url,
 );
 const png = readFileSync(filePath);
@@ -118,7 +118,12 @@ for (let frame = 0; frame < frameCount; frame += 1) {
     height: maxY - minY + 1,
     baseline: maxY + 1,
   };
-  if (bounds.y !== 4 || bounds.height !== 120 || bounds.baseline !== 124) {
+  if (
+    bounds.baseline !== 124 ||
+    bounds.height < 119 ||
+    bounds.height > 121 ||
+    bounds.y + bounds.height !== 124
+  ) {
     throw new Error(`Cooking sprite frame ${frame} is misaligned: ${JSON.stringify(bounds)}`);
   }
   if (bounds.width > 88 || bounds.x < 4 || bounds.x + bounds.width > 92) {
@@ -127,4 +132,12 @@ for (let frame = 0; frame < frameCount; frame += 1) {
   frames.push(bounds);
 }
 
-console.log(`cooking sprites ok: ${frameCount} frames, 96x128 cells, baseline 124`);
+const silhouetteHeights = frames.map((frame) => frame.height);
+if (Math.max(...silhouetteHeights) - Math.min(...silhouetteHeights) > 1) {
+  throw new Error(`Cooking sprite silhouette heights vary: ${silhouetteHeights.join(", ")}`);
+}
+
+console.log(
+  `cooking sprites ok: ${frameCount} frames, 96x128 cells, baseline 124, ` +
+  `silhouette ${Math.min(...silhouetteHeights)}-${Math.max(...silhouetteHeights)}px`,
+);

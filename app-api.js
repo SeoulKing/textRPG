@@ -284,8 +284,6 @@ const dom = {
   sceneFrame: document.querySelector(".scene-frame"),
   sceneArt: document.querySelector("#scene-art"),
   sceneAnimation: document.querySelector("#scene-animation"),
-  sceneLocationBadge: document.querySelector("#scene-location-badge"),
-  sceneRiskBadge: document.querySelector("#scene-risk-badge"),
   sceneDevSource: document.querySelector("#scene-dev-source"),
   sceneText: document.querySelector("#scene-text"),
   systemNote: document.querySelector("#system-note"),
@@ -315,23 +313,23 @@ const sceneDirectorReady = import("./client/graphics/scene-director.js")
   });
 
 const sceneDirector = {
-  preloadCooking() {
-    return sceneDirectorReady.then((director) => director.preloadCooking());
+  preloadShelter() {
+    return sceneDirectorReady.then((director) => director.preloadShelter());
   },
-  showCookingAtRest(options) {
+  showShelterAtStation(station, options) {
     return sceneDirectorReady.then((director) =>
-      director.showCookingAtRest(options)
+      director.showShelterAtStation(station, options)
     );
   },
-  playCookingEntrance(options) {
+  moveShelterActor(station, options) {
     return sceneDirectorReady.then((director) =>
-      director.playCookingEntrance(options)
+      director.moveShelterActor(station, options)
     );
   },
-  hideCooking() {
-    activeSceneDirector?.hideCooking();
+  hideShelter() {
+    activeSceneDirector?.hideShelter();
     dom.sceneAnimation.hidden = true;
-    dom.sceneFrame.classList.remove("has-cooking-scene-visual");
+    dom.sceneFrame.classList.remove("has-shelter-scene-visual");
   },
   snapshot() {
     if (sceneDirectorLoadError) {
@@ -706,11 +704,22 @@ function waitForMilliseconds(durationMs) {
   });
 }
 
-function isCookingSceneOpenAction(action) {
-  return action?.type === "content_action" && [
-    "open_shelter_cooking",
-    "open_shelter_cooking_repeat",
-  ].includes(action.actionId);
+function shelterStationForAction(action) {
+  if (action?.type === "content_action") {
+    if (["open_shelter_crafting", "open_shelter_crafting_repeat"].includes(action.actionId)) {
+      return "crafting";
+    }
+    if (["open_shelter_cooking", "open_shelter_cooking_repeat"].includes(action.actionId)) {
+      return "cooking";
+    }
+  }
+  if (
+    action?.type === "content_choice"
+    && ["leave_shelter_crafting", "leave_shelter_cooking"].includes(action.choiceId)
+  ) {
+    return "rest";
+  }
+  return null;
 }
 
 function isCookingMenuSnapshot(snapshot) {
@@ -719,32 +728,53 @@ function isCookingMenuSnapshot(snapshot) {
   ));
 }
 
-function showCookingSceneVisualAtRest() {
+function isCraftingMenuSnapshot(snapshot) {
+  return Boolean(snapshot?.availableActions?.some((choice) =>
+    choice.id === "leave_shelter_crafting"
+  ));
+}
+
+function shelterStationForSnapshot(snapshot) {
+  if (isCookingMenuSnapshot(snapshot)) {
+    return "cooking";
+  }
+  if (isCraftingMenuSnapshot(snapshot)) {
+    return "crafting";
+  }
+  return "rest";
+}
+
+function isShelterSnapshot(snapshot) {
+  return snapshot?.state?.location === "shelter";
+}
+
+function showShelterSceneVisual(station) {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  sceneDirector.showCookingAtRest({ reduceMotion }).catch((error) => {
+  sceneDirector.showShelterAtStation(station, { reduceMotion }).catch((error) => {
     console.warn(error);
-    sceneDirector.hideCooking();
+    sceneDirector.hideShelter();
   });
 }
 
-function playCookingEntranceVisual() {
+function playShelterStationTransition(station) {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  return sceneDirector.playCookingEntrance({
+  return sceneDirector.moveShelterActor(station, {
     reduceMotion,
   }).catch((error) => {
     console.warn(error);
-    sceneDirector.hideCooking();
+    sceneDirector.hideShelter();
   });
 }
 
-function syncCookingSceneVisual(snapshot) {
-  if (isCookingMenuSnapshot(snapshot)) {
-    showCookingSceneVisualAtRest();
+function syncShelterSceneVisual(snapshot) {
+  if (shelterStationForAction(client.pendingAction)) {
     return;
   }
-  if (!isCookingSceneOpenAction(client.pendingAction)) {
-    sceneDirector.hideCooking();
+  if (isShelterSnapshot(snapshot)) {
+    showShelterSceneVisual(shelterStationForSnapshot(snapshot));
+    return;
   }
+  sceneDirector.hideShelter();
 }
 
 function isMovementAction(action, loading = null) {
@@ -2481,20 +2511,8 @@ function renderScene(animateText = true, appendStory = false) {
     resetSceneScrollOnMobile();
   }
 
-  const expedition = snapshot.state.subwayExpedition;
-  const isSubwayExpedition = Boolean(expedition?.active && expedition.currentFloor);
   dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
-  syncCookingSceneVisual(snapshot);
-  dom.sceneLocationBadge.textContent = isSubwayExpedition
-    ? `${location.name} · ${expedition.depth}층`
-    : location.name;
-  dom.sceneRiskBadge.textContent = snapshot.state.isGameOver
-    ? "게임오버"
-    : isSubwayExpedition
-      ? `${scene.source === "template" ? "템플릿 층" : "LLM 생성 층"} · 최고 ${expedition.deepestDepth}층`
-    : isEventStoryActive(snapshot)
-      ? "이벤트"
-      : riskLabel(location.risk);
+  syncShelterSceneVisual(snapshot);
   renderSceneDevSource(snapshot);
   const systemNote = snapshot.state.systemNote || "";
   const currentSystemNoteKey = systemNoteKey(snapshot, systemNote);
@@ -3579,8 +3597,9 @@ async function submitAction(
         return { snapshot, error: null };
       })
       .catch((error) => ({ snapshot: null, error }));
-    const cookingSceneVisualPromise = isCookingSceneOpenAction(action)
-      ? playCookingEntranceVisual()
+    const shelterStation = shelterStationForAction(action);
+    const shelterSceneVisualPromise = shelterStation
+      ? playShelterStationTransition(shelterStation)
       : Promise.resolve();
     if (isMovementAction(action, loading)) {
       client.isPanelOpen = false;
@@ -3597,7 +3616,7 @@ async function submitAction(
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
       transitionPromise,
-      cookingSceneVisualPromise,
+      shelterSceneVisualPromise,
     ]);
     if (error) {
       throw error;
@@ -4007,12 +4026,12 @@ window.render_game_to_text = () => JSON.stringify({
         action: client.pendingAction,
       }
     : null,
-  sceneVisual: dom.sceneFrame.classList.contains("has-cooking-scene-visual")
+  sceneVisual: dom.sceneFrame.classList.contains("has-shelter-scene-visual")
     ? sceneDirector.snapshot()
     : null,
 });
 
-sceneDirector.preloadCooking().catch((error) => console.warn(error));
+sceneDirector.preloadShelter().catch((error) => console.warn(error));
 bootstrap().catch((error) => {
   console.error(error);
   dom.homeScreen.hidden = false;

@@ -745,6 +745,7 @@ a:focus:not(:focus-visible),
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.22));
 }
 
+.scene-frame.has-shelter-scene-visual .scene-art-wrap,
 .scene-frame.is-cooking-menu .scene-art-wrap {
   aspect-ratio: 24 / 7;
 }
@@ -766,32 +767,8 @@ a:focus:not(:focus-visible),
   pointer-events: none;
 }
 
-.scene-frame.has-cooking-scene-visual .scene-art-wrap > img {
+.scene-frame.has-shelter-scene-visual .scene-art-wrap > img {
   opacity: 0;
-}
-
-.scene-overlay {
-  position: absolute;
-  z-index: 2;
-  top: 20px;
-  left: 20px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid var(--line);
-  font-size: 0.85rem;
-}
-
-.pill.muted {
-  color: var(--muted);
 }
 
 .scene-copy {
@@ -3247,7 +3224,7 @@ a:focus:not(:focus-visible),
     max-height: 112px;
   }
 
-  .scene-frame.has-cooking-scene-visual .scene-art-wrap,
+  .scene-frame.has-shelter-scene-visual .scene-art-wrap,
   .scene-frame.is-cooking-menu .scene-art-wrap {
     aspect-ratio: 24 / 7;
     max-height: 112px;
@@ -3276,18 +3253,6 @@ a:focus:not(:focus-visible),
 
   .hex-tile-name {
     font-size: 15px;
-  }
-
-  .scene-overlay {
-    top: 14px;
-    left: 14px;
-    right: 14px;
-    gap: 8px;
-  }
-
-  .pill {
-    padding: 7px 10px;
-    font-size: 0.8rem;
   }
 
   .scene-copy {

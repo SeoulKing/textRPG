@@ -1,9 +1,8 @@
 import Phaser from "/vendor/phaser.mjs";
 import {
-  COOKING_ENTRANCE_DURATION_MS,
-  COOKING_SCENE_HEIGHT,
-  COOKING_SCENE_WIDTH,
-  CookingScene,
+  SHELTER_SCENE_HEIGHT,
+  SHELTER_SCENE_WIDTH,
+  ShelterScene,
 } from "./scenes/cooking-scene.js";
 
 export class SceneDirector {
@@ -11,7 +10,7 @@ export class SceneDirector {
     this.canvas = canvas;
     this.host = host;
     this.game = null;
-    this.cookingScene = null;
+    this.shelterScene = null;
     this.readyPromise = null;
     this.commandToken = 0;
     this.lastError = null;
@@ -25,11 +24,11 @@ export class SceneDirector {
       return this.readyPromise;
     }
 
-    this.cookingScene = new CookingScene();
+    this.shelterScene = new ShelterScene();
     this.game = new Phaser.Game({
       type: Phaser.CANVAS,
-      width: COOKING_SCENE_WIDTH,
-      height: COOKING_SCENE_HEIGHT,
+      width: SHELTER_SCENE_WIDTH,
+      height: SHELTER_SCENE_HEIGHT,
       canvas: this.canvas,
       canvasStyle: "width: 100%; height: 100%;",
       transparent: true,
@@ -43,14 +42,14 @@ export class SceneDirector {
       audio: {
         noAudio: true,
       },
-      scene: [this.cookingScene],
+      scene: [this.shelterScene],
     });
 
-    this.readyPromise = this.cookingScene
+    this.readyPromise = this.shelterScene
       .whenReady()
       .then(() => {
         this.lastError = null;
-        return this.cookingScene;
+        return this.shelterScene;
       })
       .catch((error) => {
         this.lastError = error instanceof Error ? error.message : String(error);
@@ -59,29 +58,29 @@ export class SceneDirector {
     return this.readyPromise;
   }
 
-  preloadCooking() {
+  preloadShelter() {
     return this.ensureReady();
   }
 
-  setCookingVisible(visible) {
+  setShelterVisible(visible) {
     if (this.canvas) {
       this.canvas.hidden = !visible;
     }
-    this.host?.classList.toggle("has-cooking-scene-visual", visible);
+    this.host?.classList.toggle("has-shelter-scene-visual", visible);
   }
 
-  async showCookingAtRest({ reduceMotion = false } = {}) {
+  async showShelterAtStation(station, { reduceMotion = false } = {}) {
     const token = ++this.commandToken;
     const scene = await this.ensureReady();
     if (token !== this.commandToken) {
       return;
     }
-    this.setCookingVisible(true);
-    scene.showAtRest({ reduceMotion });
+    this.setShelterVisible(true);
+    scene.showAtStation(station, { reduceMotion });
   }
 
-  async playCookingEntrance({
-    durationMs = COOKING_ENTRANCE_DURATION_MS,
+  async moveShelterActor(station, {
+    durationMs = null,
     reduceMotion = false,
   } = {}) {
     const token = ++this.commandToken;
@@ -89,14 +88,14 @@ export class SceneDirector {
     if (token !== this.commandToken) {
       return;
     }
-    this.setCookingVisible(true);
-    await scene.playEntrance({ durationMs, reduceMotion });
+    this.setShelterVisible(true);
+    await scene.moveToStation(station, { durationMs, reduceMotion });
   }
 
-  hideCooking() {
+  hideShelter() {
     this.commandToken += 1;
-    this.cookingScene?.hideVisual();
-    this.setCookingVisible(false);
+    this.shelterScene?.hideVisual();
+    this.setShelterVisible(false);
   }
 
   snapshot() {
@@ -107,7 +106,7 @@ export class SceneDirector {
         error: this.lastError,
       };
     }
-    return this.cookingScene?.snapshot() ?? {
+    return this.shelterScene?.snapshot() ?? {
       engine: "phaser",
       state: this.readyPromise ? "loading" : "idle",
     };

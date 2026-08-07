@@ -3,9 +3,9 @@ import { SceneDirector } from "./scene-director.js";
 const canvas = document.querySelector("#scene-animation");
 const host = document.querySelector("#preview-frame");
 const debug = document.querySelector("#preview-debug");
-const playButton = document.querySelector("#preview-play");
-const readyButton = document.querySelector("#preview-ready");
-const resetButton = document.querySelector("#preview-reset");
+const restButton = document.querySelector("#preview-rest");
+const craftingButton = document.querySelector("#preview-crafting");
+const cookingButton = document.querySelector("#preview-cooking");
 
 const director = new SceneDirector({ canvas, host });
 
@@ -13,30 +13,28 @@ function renderDebug() {
   debug.textContent = JSON.stringify(director.snapshot(), null, 2);
 }
 
-async function showReady() {
-  await director.showCookingAtRest();
+async function showRest() {
+  await director.showShelterAtStation("rest");
   renderDebug();
 }
 
-playButton.addEventListener("click", async () => {
-  playButton.disabled = true;
+async function moveTo(station, button) {
+  button.disabled = true;
   try {
-    await director.playCookingEntrance();
+    await director.moveShelterActor(station);
   } finally {
-    playButton.disabled = false;
+    button.disabled = false;
     renderDebug();
   }
-});
+}
 
-readyButton.addEventListener("click", showReady);
-resetButton.addEventListener("click", () => {
-  director.hideCooking();
-  renderDebug();
-});
+restButton.addEventListener("click", () => moveTo("rest", restButton));
+craftingButton.addEventListener("click", () => moveTo("crafting", craftingButton));
+cookingButton.addEventListener("click", () => moveTo("cooking", cookingButton));
 
 window.setInterval(renderDebug, 80);
-director.preloadCooking()
-  .then(showReady)
+director.preloadShelter()
+  .then(showRest)
   .catch((error) => {
     debug.textContent = error instanceof Error ? error.message : String(error);
   });
