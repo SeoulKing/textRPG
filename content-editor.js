@@ -186,10 +186,12 @@ function bindItemReferencePickers(container) {
     const particleSelect = picker.querySelector("[data-item-reference-particle]");
     const insertButton = picker.querySelector("[data-insert-item-reference]");
     if (!target || !itemSelect || !particleSelect || !insertButton) return;
+    const itemEditor = typeof StudioItemTextEditor !== 'undefined' ? StudioItemTextEditor.mount(target,target.value,{key:`${state.selectedId}:legacy:${picker.dataset.targetField}`}) : null;
 
     insertButton.addEventListener("click", () => {
       const particle = particleSelect.value ? `|${particleSelect.value}` : "";
       const token = `{{item:${itemSelect.value}${particle}}}`;
+      if (itemEditor) { itemEditor.insert(token); return; }
       const start = target.selectionStart ?? target.value.length;
       const end = target.selectionEnd ?? start;
       target.setRangeText(token, start, end, "end");
@@ -293,7 +295,6 @@ function entityBadges(entity) {
   if (state.tab === "items") {
     return [
       `<span class="badge">${escapeHtml(entity.kind)}</span>`,
-      `<span class="badge accent">${escapeHtml(entity.rarity)}</span>`,
     ];
   }
   if (state.tab === "recipes") {
@@ -319,6 +320,7 @@ function renderCounts() {
 }
 
 function renderList() {
+  ui.entityList.classList.toggle('writer-story-list', state.tab === 'stories');
   const normalizedQuery = state.query.trim().toLowerCase();
   const entries = collection()
     .filter(entry => typeof writerMatches !== "function" || writerMatches(entry))
@@ -330,7 +332,7 @@ function renderList() {
 
   ui.entityList.innerHTML = entries.length
     ? entries.map((entry) => `
-      <button class="entity-card ${entry.id === state.selectedId ? "active" : ""}" data-select-id="${escapeHtml(entry.id)}" type="button">
+      <button class="entity-card ${state.tab === "items" ? "item-list-row" : ""} ${entry.id === state.selectedId ? "active" : ""}" data-select-id="${escapeHtml(entry.id)}" type="button">
         <strong>${escapeHtml(entityName(entry))}</strong>
         <span class="entity-id">${escapeHtml(entry.id)}</span>
         <span class="entity-meta">${entityBadges(entry).join("")}</span>
@@ -450,8 +452,9 @@ function editorHeader(kind, title, id, description) {
 
 function renderItem(item) {
   ui.editorPanel.innerHTML = `
+    <div class="item-editor">
     ${editorHeader("ITEM", item.name, item.id, "게임 안에서 획득하고 사용할 수 있는 물건")}
-    <div class="form-stack">
+    <div class="form-stack item-form-layout">
       <section class="form-section">
         <div class="section-title"><div><h3>기본 정보</h3><p>저장 데이터에서 사용하는 ID와 플레이어에게 보이는 정보를 정합니다.</p></div></div>
         <div class="field-grid">
@@ -487,6 +490,7 @@ function renderItem(item) {
           `).join("")}
         </div>
       </section>
+    </div>
     </div>
   `;
 
@@ -691,6 +695,10 @@ function bindArrayEditors(container, owner) {
       entry[input.dataset.key] = input.dataset.mode === "number" ? Number(input.value || 0) : input.value;
       markDirty();
     });
+    const entry=owner[input.dataset.array][Number(input.dataset.index)];
+    if(entry.type==='log' && input.dataset.key==='message' && typeof StudioItemTextEditor!=='undefined') {
+      StudioItemTextEditor.mount(input,entry.message,{key:`${state.selectedId}:${owner.id??state.selectedChoiceId}:log:${input.dataset.array}:${input.dataset.index}`});
+    }
   });
 
   container.querySelectorAll("[data-raw-array]").forEach((textarea) => {
@@ -1134,6 +1142,12 @@ ui.searchInput.addEventListener("input", (event) => {
   state.query = ui.searchInput.value;
   if (event.isComposing) return;
   renderList();
+});
+
+document.querySelector("#listPanelToggle").addEventListener("click", (event) => {
+  const collapsed = document.querySelector(".workspace").classList.toggle("list-collapsed");
+  event.currentTarget.setAttribute("aria-expanded", String(!collapsed));
+  event.currentTarget.textContent = collapsed ? "목록 펼치기" : "목록 접기";
 });
 
 ui.addButton.addEventListener("click", addEntity);

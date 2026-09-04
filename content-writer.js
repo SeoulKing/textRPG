@@ -8,7 +8,7 @@ const field = (label, key, value, type = "text") => `<label class="field"><span>
 const area = (label, key, value) => `<label class="field full"><span>${esc(label)}</span><textarea data-w="${key}">${esc(value ?? "")}</textarea></label>`;
 const select = (label, key, entries, value, empty = true) => `<label class="field"><span>${esc(label)}</span><select data-w="${key}">${options(entries, value, empty)}</select></label>`;
 const check = (label, key, value) => `<label class="check-field"><input type="checkbox" data-w="${key}" ${value ? "checked" : ""}> ${esc(label)}</label>`;
-const section = (title, content, actions = "") => `<section class="form-section"><div class="section-title"><h3>${esc(title)}</h3>${actions}</div>${content}</section>`;
+const section = (title, content, actions = "", className = "") => `<section class="form-section${className ? ` ${esc(className)}` : ''}"><div class="section-title"><h3>${esc(title)}</h3>${actions}</div>${content}</section>`;
 const locEntries = () => state.document.locations.map(l => [l.id, l.name]);
 const personEntries = () => state.document.people.map(p => [p.id, p.name]);
 const storyEntries = () => state.document.stories.map(s => [s.id, s.title]);
@@ -23,6 +23,9 @@ function bindWriter(root, target, onChange = () => {}, persistent = true) {
       markDirty();
       clearTimeout(writer.graphTimer); if (!writer.composing) writer.graphTimer = setTimeout(() => { drawGraph(); renderList(); refreshWriterCardSummaries(); }, 160);
     });
+    if (persistent && root.matches('#storyInfo, #sceneInfo, #choiceInfo, [data-action-info]') && ['title','entryLabel','entryHint','label','outcomeHint'].includes(input.dataset.w)) {
+      StudioItemTextEditor.mount(input,target[input.dataset.w],{key:`${target.id}:${input.dataset.w}`});
+    }
   });
 }
 function writerChanged() {
@@ -34,6 +37,7 @@ function writerChanged() {
     if (recipe) { const { menu, enabled, ...choice } = recipe; for (const story of state.document.stories) for (const scene of story.scenes) scene.choices = scene.choices.map(c => c.id === choice.id ? structuredClone(choice) : c); }
   }
   clearTimeout(writer.timer);
+  if (typeof StudioItemTextEditor !== 'undefined') StudioItemTextEditor.refresh();
   if (typeof livePreviewChanged === 'function') livePreviewChanged();
   if (writer.composing) return;
   if (!writer.restoring) writer.history?.record(state.document, writerSelection(), writer.inputGroup);
@@ -87,6 +91,7 @@ async function writerSave(publishing = false, automatic = false, reviewed = fals
   }
 }
 function writerMatches(entity) {
+  if (state.tab === "items") return !writer.filterItemKind || entity.kind === writer.filterItemKind;
   if (state.tab !== "stories") return true;
   return (!writer.filterLocation || entity.locationId === writer.filterLocation)
     && (!writer.filterStatus || entity.status === writer.filterStatus)
@@ -94,6 +99,17 @@ function writerMatches(entity) {
 }
 function renderWriterFilters() {
   const root = $("#writerFilters");
+  if (state.tab === "items") {
+    root.innerHTML = `<div class="writer-filters">${select("아이템 종류", "filterItemKind", [
+      ["", "전체"], ["food", "음식"], ["drink", "음료"], ["medicine", "약품"],
+      ["trade", "거래품"], ["ticket", "교환권"], ["material", "재료"], ["tool", "도구"],
+    ], writer.filterItemKind ?? "", false)}</div>`;
+    $('[data-w="filterItemKind"]', root).onchange = (event) => {
+      writer.filterItemKind = event.target.value;
+      renderList();
+    };
+    return;
+  }
   root.innerHTML = state.tab === "stories" ? `<div class="writer-filters">${select("지역", "filterLocation", locEntries(), writer.filterLocation)}${select("등장인물", "filterPerson", personEntries(), writer.filterPerson)}${select("작성 상태", "filterStatus", [["draft", "작성 중"], ["ready", "검토 완료"]], writer.filterStatus)}${btn("이야기 모아보기", "library")}${btn("전체 이야기 흐름", "overview")}</div>` : "";
   $$('[data-w]', root).forEach(input => input.onchange = () => { writer[input.dataset.w] = input.value; renderList(); });
   listen("library", showStoryLibrary, root); listen("overview", () => { captureWriterLibrary(); writer.library = false; state.selectedId ??= state.document.stories[0]?.id; writer.graphMode = "story"; writer.graphOpen = true; renderEditor(); $('.writer-flow')?.scrollIntoView({block:'start'}); }, root);
@@ -233,6 +249,7 @@ renderStory = function(story) {
     ${story.actions.length?`<select id="nativeAction" hidden aria-hidden="true"><option value=""></option>${options(story.actions.map(a=>[a.id,a.label]),"")}</select>`:""}
     </div><aside class="flow-pane"><div class="graph-toolbar"><select id="graphMode" aria-label="흐름도 범위">${options([["scene","이벤트 내부"],["story","전체 이야기"]],writer.graphMode)}</select>${btn("−","zoomOut")}${btn("＋","zoomIn")}${btn("자동 정렬","arrange")}</div><p class="graph-legend"><span>── 즉시 연결</span><span>┄┄ 조건 충족 후</span></p><div id="storyGraph" class="story-graph"></div><div id="writerIssues"></div></aside></div>`;
   const info=$("#storyInfo");if(story.native)$('[data-w="locationId"]',info).disabled=true;
+  info.insertAdjacentHTML('beforeend',area('이벤트 진입 안내','entryHint',story.entryHint??''));
   bindWriter(info,story,(key,value)=>{if(key==="locationId")story.scenes.forEach(s=>s.locationId=value);});
   $('[data-w="cast"]').onchange=e=>{if(e.target.value)story.personIds.push(e.target.value);markDirty();renderEditor();};
   $$('[data-remove-person]').forEach(b=>b.onclick=()=>{story.personIds=story.personIds.filter(id=>id!==b.dataset.removePerson);markDirty();renderEditor();});
@@ -251,7 +268,11 @@ renderStory = function(story) {
     });
     const ensureBlocks=()=>{scene.blocks??=scene.paragraphs.map(text=>({text}));return scene.blocks;};
     $$('[data-speaker]').forEach(input=>input.onchange=()=>{const block=ensureBlocks()[Number(input.dataset.speaker)];if(input.value)block.speakerId=input.value;else delete block.speakerId;markDirty();});
-    $$('[data-block-text]').forEach(input=>input.oninput=()=>{ensureBlocks()[Number(input.dataset.blockText)].text=input.value;markDirty();});
+    $$('[data-block-text]').forEach(input=>{
+      const index=Number(input.dataset.blockText);
+      input.oninput=()=>{ensureBlocks()[index].text=input.value;markDirty();};
+      StudioItemTextEditor.mount(input,scene.blocks?.[index]?.text??scene.paragraphs[index]??'',{key:`${scene.id}:block:${index}`});
+    });
     $$('[data-remove-block]').forEach(b=>b.onclick=()=>{ensureBlocks().splice(Number(b.dataset.removeBlock),1);markDirty();renderEditor();});
     listen("addBlock",()=>{ensureBlocks().push({text:""});markDirty();renderEditor();});
     listen("deleteScene",()=>deleteScene(story,scene));
@@ -286,13 +307,41 @@ function deleteScene(story,scene){
   story.scenes=story.scenes.filter(s=>s.id!==scene.id);state.selectedSceneId=null;markDirty();renderEditor();
 }
 function renderRewards(choice,root){
-  root.innerHTML=section('weight' in choice ? "이 결과에서 얻는 아이템" : "선택하면 얻는 아이템",`<p class="muted">${'weight' in choice ? '이 결과가 뽑혔을 때만 지급됩니다.' : '정상 실행 시 확정 지급됩니다.'} 필요한 아이템의 소모는 아래에서 따로 설정하세요.</p><div class="reward-list">${rewardRows(choice,"add_item")}</div><div class="writer-toolbar">${btn("아이템 추가","addReward","secondary")}${btn("새 아이템 만들기","createReward")}</div>`)+section("소모하는 아이템",`<div class="reward-list">${rewardRows(choice,"remove_item")}</div>${btn("소모 아이템 추가","addCost")}`);
+  const stocks=choice.effects.filter(effect=>studioStockReward(state.document,effect));
+  const explanation=stocks.length?'보관 장소에서 가져오는 아이템도 여기에 표시됩니다. 가져온 만큼 그 장소에서 줄어들며, 비어 있으면 지급되지 않습니다.':('weight' in choice?'이 결과가 뽑혔을 때만 지급됩니다.':'정상 실행 시 확정 지급됩니다.');
+  const moneyRows=choice.effects.map((effect,index)=>({effect,index})).filter(({effect})=>['collect_stock_money','collect_stock_money_all'].includes(effect.type));
+  const hasItems=choice.effects.some(effect=>['add_item','collect_stock_item','collect_stock_item_all'].includes(effect.type));
+  const hasCosts=choice.effects.some(effect=>effect.type==='remove_item');
+  const rewardTitle='weight' in choice?'이 결과에서 얻는 아이템':'선택하면 얻는 아이템';
+  const rewardActions=btn('아이템 추가','addReward','secondary')+btn('새 아이템 만들기','createReward');
+  root.innerHTML=(hasItems?section(rewardTitle,`<p class="muted">${explanation} 필요한 아이템의 소모는 아래에서 따로 설정하세요.</p><div class="reward-list">${rewardRows(choice,'add_item')}</div><div class="writer-toolbar">${rewardActions}</div>`):writerEmptySection(rewardTitle,'보상 아이템 없음',rewardActions))
+    +(moneyRows.length?section('얻는 돈',`<p class="muted">보관 장소에 남은 돈을 가져옵니다.</p>${moneyRows.map(({effect,index})=>stockRewardRow(effect,index)).join('')}`):'')
+    +(hasCosts?section('소모하는 아이템',`<div class="reward-list">${rewardRows(choice,'remove_item')}</div>${btn('소모 아이템 추가','addCost')}`):writerEmptySection('소모하는 아이템','소모 없음',btn('소모 아이템 추가','addCost')));
   $$('[data-reward-amount]',root).forEach(input=>{const effect=choice.effects[Number(input.dataset.rewardAmount)];input.oninput=()=>{if(!input.validity.valid||!input.value||!choice.effects.includes(effect))return;effect.amount=Number(input.value);markDirty();};});
-  $$('[data-reward-remove]',root).forEach(b=>{const effect=choice.effects[Number(b.dataset.rewardRemove)];b.onclick=()=>{const index=choice.effects.indexOf(effect);if(index>=0)choice.effects.splice(index,1);markDirty();renderRewards(choice,root);};});
-  listen("addReward",()=>itemPicker(choice,"add_item",()=>renderRewards(choice,root)),root);listen("addCost",()=>itemPicker(choice,"remove_item",()=>renderRewards(choice,root)),root);listen("createReward",()=>createRewardItem(choice,()=>renderRewards(choice,root)),root);
+  $$('[data-reward-remove]',root).forEach(button=>{const effect=choice.effects[Number(button.dataset.rewardRemove)];button.onclick=()=>{const index=choice.effects.indexOf(effect);if(index>=0)choice.effects.splice(index,1);markDirty();renderRewards(choice,root);};});
+  $$('[data-stock-mode]',root).forEach(input=>{const effect=choice.effects[Number(input.dataset.stockMode)];input.onchange=()=>{if(!choice.effects.includes(effect))return;studioSetStockRewardMode(effect,input.value,effect.amount??1);markDirty();renderRewards(choice,root);};});
+  $$('[data-stock-initial]',root).forEach(input=>{const effect=choice.effects[Number(input.dataset.stockInitial)];input.oninput=()=>{
+    if(!input.value||!input.validity.valid||!choice.effects.includes(effect))return;
+    try {studioSetStockInitialQuantity(state.document,effect,Number(input.value));const reward=studioStockReward(state.document,effect);$('[data-stock-initial-summary]',input.closest('.stock-reward')).textContent=`처음 ${reward.initial.toLocaleString('ko-KR')}${reward.money?'원':'개'} · 실제 획득량은 남은 수량에 따라 달라집니다.`;markDirty();}
+    catch(error){showToast(error.message,true);}
+  };});
+  listen('addReward',()=>itemPicker(choice,'add_item',()=>renderRewards(choice,root)),root);listen('addCost',()=>itemPicker(choice,'remove_item',()=>renderRewards(choice,root)),root);listen('createReward',()=>createRewardItem(choice,()=>renderRewards(choice,root)),root);
 }
-function rewardRows(choice,type){return choice.effects.map((e,index)=>({e,index})).filter(({e})=>e.type===type).map(({e,index})=>{const item=state.document.items.find(i=>i.id===e.itemId);return `<div class="reward-row"><div><strong>${esc(item?.name??"연결이 끊어진 아이템")}</strong><small>${esc(item?.description??e.itemId)}</small></div><label><input aria-label="${esc(item?.name??e.itemId)} 수량" type="number" min="1" step="1" value="${e.amount??1}" data-reward-amount="${index}"> 개</label><button class="remove-row" data-reward-remove="${index}" aria-label="아이템 제거">×</button></div>`;}).join("")||'<p class="muted">설정된 아이템이 없습니다.</p>';}
-function addReward(choice,type,itemId,amount=1){const effect=choice.effects.find(e=>e.type===type&&e.itemId===itemId);if(effect)effect.amount=(effect.amount??1)+amount;else choice.effects.push({type,itemId,amount});markDirty();}
+function stockRewardRow(effect,index){
+  const reward=studioStockReward(state.document,effect),unit=reward.money?'원':'개',name=reward.name,source=reward.node?.name??'보관 장소';
+  return `<div class="reward-row stock-reward" data-stock-reward="${index}"><div class="stock-reward-heading"><div><strong>${esc(name)}</strong><small>${esc(reward.item?.description??reward.node?.summary??'')}</small></div><button type="button" class="remove-row" data-reward-remove="${index}" aria-label="${esc(name)} 보상 제거">×</button></div><p class="stock-reward-source">${esc(reward.source)}에서 가져오기</p>${reward.missing?'<p class="field-error">아이템 또는 보관 장소 연결을 확인해 주세요.</p>':`<p class="stock-initial-summary" data-stock-initial-summary>처음 ${reward.initial.toLocaleString('ko-KR')}${unit} · 실제 획득량은 남은 수량에 따라 달라집니다.</p>`}<div class="stock-reward-settings"><label class="field"><span>가져오는 방식</span><select aria-label="${esc(name)} 가져오는 방식" data-stock-mode="${index}" ${reward.missing?'disabled':''}>${options([['all',reward.money?'남은 금액 전부':'남은 수량 전부'],['amount',reward.money?'최대 금액 지정':'최대 수량 지정']],reward.all?'all':'amount')}</select></label>${!reward.all?`<label class="field"><span>한 번에 최대</span><div><input type="number" min="1" step="1" data-reward-amount="${index}" aria-label="${esc(name)} 최대 ${reward.money?'금액':'수량'}" value="${effect.amount}"> ${unit}</div></label>`:''}</div>${!reward.all?'<p class="muted">남은 수량이 적으면 남아 있는 만큼만 가져옵니다.</p>':''}${!reward.missing?`<details class="stock-initial-settings"><summary>${esc(source)}의 처음 ${reward.money?'금액':'수량'} 설정</summary><label class="field"><span>새 게임에서 ${esc(source)}에 놓일 ${esc(name)}</span><div><input type="number" min="0" step="1" data-stock-initial="${index}" aria-label="${esc(source)} ${esc(name)} 처음 ${reward.money?'금액':'수량'}" value="${reward.initial}"> ${unit}</div></label><p class="muted">같은 보관 장소를 사용하는 선택지에 함께 적용됩니다. 시험 중 이미 가져간 수량은 유지되며, 처음부터 확인하려면 시험을 다시 시작하세요.</p></details>`:''}</div>`;
+}
+function rewardRows(choice,type){
+  return choice.effects.map((effect,index)=>({effect,index})).filter(({effect})=>effect.type===type||(type==='add_item'&&['collect_stock_item','collect_stock_item_all'].includes(effect.type))).map(({effect,index})=>{
+    if(studioStockReward(state.document,effect))return stockRewardRow(effect,index);
+    const item=state.document.items.find(item=>item.id===effect.itemId);
+    return `<div class="reward-row"><div><strong>${esc(item?.name??'연결이 끊어진 아이템')}</strong><small>${esc(item?.description??effect.itemId)}</small></div><label><input aria-label="${esc(item?.name??effect.itemId)} 수량" type="number" min="1" step="1" value="${effect.amount??1}" data-reward-amount="${index}"> 개</label><button type="button" class="remove-row" data-reward-remove="${index}" aria-label="아이템 제거">×</button></div>`;
+  }).join('')||'<p class="muted">설정된 아이템이 없습니다.</p>';
+}
+function addReward(choice,type,itemId,amount=1){
+  if(!studioAddItemReward(choice,type,itemId,amount)){showToast('이미 보관 장소에서 전부 가져오는 아이템입니다. 해당 행에서 가져오는 방식과 처음 수량을 수정하세요.');return;}
+  markDirty();
+}
 function itemPicker(choice,type,done){
   modal(type==="add_item"?"얻는 아이템 선택":"소모하는 아이템 선택",'<input id="itemSearch" type="search" placeholder="아이템 이름 검색" aria-label="아이템 이름 검색"><div id="itemPickerResults"></div>',dialog=>{
     const render=()=>{const query=$('#itemSearch',dialog).value.toLowerCase();$('#itemPickerResults',dialog).innerHTML=state.document.items.filter(i=>i.name.toLowerCase().includes(query)).map(i=>`<button class="item-result" data-item="${esc(i.id)}"><strong>${esc(i.name)}</strong><small>${esc(i.description)}</small></button>`).join("");$$('[data-item]',dialog).forEach(b=>b.onclick=()=>{addReward(choice,type,b.dataset.item);dialog.close();done();});};$('#itemSearch',dialog).oninput=render;render();$('#itemSearch',dialog).focus();
@@ -303,6 +352,7 @@ function createRewardItem(choice,done){
   modal("새 보상 아이템",`<div id="quickItem" class="field-grid">${field("아이템 이름","name","")}${select("종류","kind",[["material","재료"],["food","음식"],["drink","음료"],["medicine","약품"],["trade","거래품"],["ticket","표"],["tool","도구"]],item.kind,false)}${area("설명","description","")}${field("가격","price",0,"number")}</div><p class="muted">기본 등급은 일반입니다. 생성 후 아이템 메뉴에서 사용 효과와 상세 설정을 편집할 수 있습니다.</p>${btn("아이템 생성 후 보상에 추가","create","primary")}`,dialog=>{bindWriter($('#quickItem',dialog),item,()=>{},false);listen("create",()=>{if(!item.name.trim())return showToast("이름을 입력해 주세요.",true);if(!Number.isInteger(item.price)||item.price<0)return showToast("가격은 0 이상의 정수로 입력해 주세요.",true);if(item.kind==="tool")item.maxDurability=10;state.document.items.push(item);addReward(choice,"add_item",item.id);dialog.close();done();renderCounts();},dialog);});
 }
 function conditionLabel(condition){
+  const stock = studioStockConditionLabel(state.document,condition); if(stock)return stock;
   const item=state.document.items.find(i=>i.id===condition.itemId)?.name??condition.itemId;
   const loc=state.document.locations.find(l=>l.id===condition.locationId)?.name??condition.locationId;
   const labels={has_item:`${item} ${condition.amount??1}개 보유`,not_has_item:`${item} 미보유`,day_gte:`${condition.value}일째부터`,day_lt:`${condition.value}일째 이전`,location_visited:`${loc} 방문`,location:`${loc}에서`,money_gte:`${condition.amount}원 이상`,flag:flagLabel(condition.flag),flag_not:`${flagLabel(condition.flag)} 아님`};
@@ -383,7 +433,7 @@ function openPreview(story,sceneId,immediate=false){
 const originalRenderList=renderList;
 renderList=function(){originalRenderList();if(state.tab==="stories"&&(writer.library||!selectedEntity()))renderStoryLibrary();renderWriterSceneNav();$$('[data-select-id]',ui.entityList).forEach(b=>b.addEventListener('click',()=>{captureWriterLibrary();synchronizeSharedChoices();},{capture:true}));};
 const originalRenderEditor=renderEditor;
-renderEditor=function(){const scroll=window.scrollY;writer.activeAction=null;renderWriterSceneNav();if(state.tab==="stories"&&(writer.library||!selectedEntity())){renderStoryLibrary();syncLivePreviewEditor();return;}originalRenderEditor();enableReferenceSearch(ui.editorPanel);syncLivePreviewEditor();window.scrollTo({top:scroll});};
+renderEditor=function(){const scroll=window.scrollY;StudioItemTextEditor.close();writer.activeAction=null;renderWriterSceneNav();if(state.tab==="stories"&&(writer.library||!selectedEntity())){renderStoryLibrary();syncLivePreviewEditor();return;}originalRenderEditor();enableReferenceSearch(ui.editorPanel);syncLivePreviewEditor();window.scrollTo({top:scroll});};
 function enableReferenceSearch(root) {
   $$('select',root).filter(select=>select.options.length>9&&!select.hidden&&!select.dataset.referenceSearch&&!select.hasAttribute('data-array-type')).forEach(select=>{
     select.dataset.referenceSearch='true';

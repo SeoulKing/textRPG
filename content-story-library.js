@@ -147,12 +147,12 @@ function regionActionCards(entries) {
   }).join('');
 }
 function regionActionSection(entries, editorId, locationId) {
-  return section('이 지역에서 할 수 있는 선택',`<p class="muted">게임에 표시되는 선택지입니다. 카드를 눌러 문구, 조건, 아이템 보상과 이어지는 결과를 편집하세요.</p><div class="region-choice-grid">${regionActionCards(entries)||'<p class="muted">등록된 지역 선택지가 없습니다. 아래 이벤트에서 새로운 이야기를 만들 수 있습니다.</p>'}</div><div id="${editorId}"></div>`, `<button type="button" class="button primary small" data-new-region-action="${esc(locationId??entries[0]?.locationId??'')}">선택지 추가</button>`);
+  return section('이 지역에서 할 수 있는 선택',`<p class="muted">게임에 표시되는 선택지입니다. 카드를 눌러 문구, 조건, 아이템 보상과 이어지는 결과를 편집하세요.</p><div class="region-choice-grid">${regionActionCards(entries)||'<p class="muted">등록된 지역 선택지가 없습니다. 아래 이벤트에서 새로운 이야기를 만들 수 있습니다.</p>'}</div><div id="${editorId}"></div>`, `<button type="button" class="button primary small" data-new-region-action="${esc(locationId??entries[0]?.locationId??'')}">선택지 추가</button>`, 'writer-flat-ui region-action-section');
 }
 function openRegionAction(locationId, actionId) {
   writer.selectedActionId=actionId;writer.mobilePane='manuscript';go('locations',locationId);
   $('#regionActionEditor')?.scrollIntoView({block:'start'});
-  $('#regionActionEditor [data-w="label"]')?.focus({preventScroll:true});
+  StudioItemTextEditor.surface($('#regionActionEditor [data-w="label"]'))?.focus({preventScroll:true});
 }
 function bindRegionActions(entries, root, editorId) {
   const create=root.querySelector("[data-new-region-action]");if(create)create.onclick=()=>addRegionAction(create.dataset.newRegionAction);
@@ -161,7 +161,7 @@ function bindRegionActions(entries, root, editorId) {
     $$('[data-region-action]',root).forEach(button=>button.classList.toggle('active',button.dataset.regionAction===entry.action.id));
     renderRegionActionEditor(entry,$(`#${editorId}`));
   };
-  $$('[data-region-action]',root).forEach(button=>button.onclick=()=>{const entry=entries.find(row=>row.action.id===button.dataset.regionAction);if(entry){render(entry);$(`#${editorId}`).scrollIntoView({block:'start'});$(`#${editorId} [data-w="label"]`)?.focus({preventScroll:true});}});
+  $$('[data-region-action]',root).forEach(button=>button.onclick=()=>{const entry=entries.find(row=>row.action.id===button.dataset.regionAction);if(entry){render(entry);$(`#${editorId}`).scrollIntoView({block:'start'});StudioItemTextEditor.surface($(`#${editorId} [data-w="label"]`))?.focus({preventScroll:true});}});
   const selected=entries.find(entry=>entry.action.id===writer.selectedActionId);
   if(selected)render(selected);
 }
@@ -191,6 +191,7 @@ function renderRegionActionEditor(entry, root) {
     <div data-action-outcomes></div>
     <details class="advanced"><summary>조건 미충족 시 결과</summary><div data-action-effects>${arrayEditorHtml(action,'failureEffects','effect','실패 시 결과','실행 조건을 충족하지 못한 경우의 결과입니다.')}</div></details>`;
   $('.region-action-heading',root).insertAdjacentHTML('beforeend',btn('선택지 삭제','deleteRegionAction','danger'));
+  $('.region-action-heading',root).insertAdjacentHTML('afterend',writerItemHelp());
   listen('deleteRegionAction',()=>deleteRegionAction(entry),root);
   renderActivityFlow(action,$('[data-action-flow]',root),story);
   bindWriter($('[data-action-info]',root),action,(key,value)=>{if(key==='nextSceneId'&&!value)delete action.nextSceneId;});
@@ -200,9 +201,63 @@ function renderRegionActionEditor(entry, root) {
   renderOutcomeEditor(action,$('[data-action-outcomes]',root),story);
   bindArrayEditors($('[data-action-conditions]',root),action);
   bindArrayEditors($('[data-action-effects]',root),action);
+  compactWriterConditions(root);
 
   $$('[data-action-scene]',root).forEach(button=>button.onclick=()=>{writer.graphMode='scene';go('stories',button.dataset.actionStory,button.dataset.actionScene);$('#sceneInfo')?.scrollIntoView({block:'start'});});
   enableReferenceSearch(root);
   if(typeof syncLivePreviewEditor==='function')syncLivePreviewEditor();
 }
 if (typeof module !== 'undefined') Object.assign(module.exports,{studioRegionActions,studioSyncAction});
+
+// Stock visits choose a scene from the remaining contents, rather than a random prose pool.
+function studioStockDestinations(document, choice, locationId) {
+  const effects = choice.effects ?? [];
+  if (choice.nextSceneId || choice.nextStoryId || choice.nextEventId || effects.some(effect => ['set_scene','set_random_scene','random_outcome'].includes(effect.type))) return null;
+  const focus = effects.filter(effect => effect.type === 'focus_stock_node').at(-1);
+  if (!focus) return null;
+  const region = effects.filter(effect => effect.type === 'travel').at(-1)?.locationId ?? locationId;
+  const entries = document.stories.flatMap(story => story.scenes
+    .filter(scene => scene.locationId === region && scene.conditions.some(condition => condition.type === 'active_stock_node' && condition.nodeId === focus.nodeId))
+    .map(scene => ({ story, scene, conditions: scene.conditions.filter(condition =>
+      !(condition.type === 'location' && condition.locationId === region) && !(condition.type === 'active_stock_node' && condition.nodeId === focus.nodeId)) })));
+  return { nodeId: focus.nodeId, locationId: region, entries };
+}
+function studioStockConditionLabel(document, condition) {
+  if (/^stock_(money|item)_(gte|lt)$/.test(condition.type)) {
+    const item = document.items.find(item => item.id === condition.itemId)?.name ?? condition.itemId;
+    const money = condition.type.startsWith('stock_money');
+    return `남은 ${money ? '돈' : item} ${Number(condition.amount).toLocaleString('ko-KR')}${money ? '원' : '개'} ${condition.type.endsWith('gte') ? '이상' : '미만'}`;
+  }
+  if (['active_stock_node','active_stock_node_not'].includes(condition.type)) {
+    const scene = document.stories.flatMap(story => story.scenes).find(scene => scene.conditions.some(row => row.type === 'active_stock_node' && row.nodeId === condition.nodeId));
+    return `${scene?.title ?? '해당 보관 장소'}${condition.type === 'active_stock_node' ? '에서 살펴보는 중' : '에서 벗어나 있을 때'}`;
+  }
+}
+function renderStockDestinations(choice, root, story) {
+  const connection = studioStockDestinations(state.document, choice, story.locationId);
+  root.hidden = !connection;
+  if (!connection) { root.innerHTML = ''; return; }
+  const { entries } = connection;
+  writer.stockConnectionScenes ??= new Map();
+  const key = `${story.id}:${choice.id}`;
+  const active = entries.find(entry => entry.scene.id === writer.stockConnectionScenes.get(key)) ?? entries[0];
+  const moneyOnly = entries.some(entry => entry.conditions.some(condition => condition.type.startsWith('stock_money')))
+    && !entries.some(entry => entry.conditions.some(condition => condition.type.startsWith('stock_item')));
+  root.innerHTML = `<section class="stock-destinations" aria-label="${esc(resolveItemTextPreview(choice.label))} 연결 상황"><div class="section-title"><h4>선택 후 이어지는 상황</h4><span class="badge">상태에 따른 분기</span></div><p class="stock-route-lead"><strong>${esc(resolveItemTextPreview(choice.label))}</strong><span aria-hidden="true"> → </span>${entries.length ? `${moneyOnly ? '남은 돈' : '남은 내용물'}에 따라 아래 ${entries.length}가지 상황 중 하나로 이어집니다.` : '연결된 상황을 찾을 수 없습니다.'}</p><div class="stock-case-tabs" role="group" aria-label="조건별 연결 상황">${entries.map(({scene,conditions},index)=>`<button type="button" data-stock-case="${index}" aria-pressed="${scene.id===active?.scene.id}"><strong>${esc(conditions.map(conditionLabel).join(' · ')||'별도 조건 없음')}</strong><span>→ ${esc(resolveItemTextPreview(scene.title))}</span><small>${scene.choices.filter(next=>!next.hidden).map(next=>esc(resolveItemTextPreview(next.label))).join(' · ')||'장면 선택지 없음'}</small></button>`).join('')}</div><div class="stock-destination-list">${entries.map(({scene, conditions}, index) => `<article class="stock-destination-card" ${scene.id===active?.scene.id?'':'hidden'}><p class="stock-destination-condition">${esc(conditions.map(conditionLabel).join(' · ') || '별도 조건 없음')}</p><h5>${esc(resolveItemTextPreview(scene.title))}</h5>${scene.locationId !== story.locationId ? `<p class="muted">${esc(state.document.locations.find(location => location.id === scene.locationId)?.name ?? scene.locationId)}에서 시작</p>` : ''}<p class="stock-destination-excerpt">${esc(librarySceneSummary(scene).slice(0,160))}${librarySceneSummary(scene).length > 160 ? '…' : ''}</p><strong class="stock-next-label">이 장면에서 할 수 있는 선택</strong><ul>${scene.choices.filter(next => !next.hidden).map(next => { const requirements=next.conditions.filter(condition => !(condition.type==='active_stock_node' && condition.nodeId===connection.nodeId) && !(condition.type==='location' && condition.locationId===scene.locationId));return `<li><button type="button" data-stock-next="${index}" data-stock-choice="${esc(next.id)}">${esc(resolveItemTextPreview(next.label))}<span aria-hidden="true"> ↗</span></button>${requirements.length ? `<small>${esc(requirements.map(conditionLabel).join(' · '))}</small>` : ''}</li>`; }).join('') || '<li>작성된 장면 선택지가 없습니다.</li>'}</ul><button type="button" class="button ghost small" data-stock-scene="${index}">이 상황의 원고 열기 →</button></article>`).join('')}</div><p class="muted stock-route-note">조건을 모두 충족하는 장면이 표시됩니다. 아래 버튼으로 원고를 열거나 다음 선택지를 눌러 연결된 내용을 편집할 수 있습니다.</p></section>`;
+  $$('[data-stock-case]',root).forEach(button => button.onclick = () => {
+    writer.stockConnectionScenes.set(key,entries[Number(button.dataset.stockCase)].scene.id);
+    renderStockDestinations(choice,root,story);
+    $(`[data-stock-case="${button.dataset.stockCase}"]`,root)?.focus({preventScroll:true});
+  });
+  const open = (index, choiceId) => {
+    const target = entries[index];
+    writer.connectionOrigin = { storyId: story.id, sceneId: state.selectedSceneId, choiceId: choice.id, label: resolveItemTextPreview(choice.label), targetSceneId: target.scene.id, action: state.tab === 'locations', locationId: story.locationId };
+    if (choiceId) writer.expandedChoice = choiceId;
+    go('stories', target.story.id, target.scene.id, choiceId);
+    const destination = choiceId ? $$('[data-choice-card]').find(card => card.dataset.choiceCard === choiceId) : $('.primary-manuscript');
+    destination?.scrollIntoView({block:'start'});
+  };
+  $$('[data-stock-scene]',root).forEach(button => button.onclick = () => open(Number(button.dataset.stockScene)));
+  $$('[data-stock-next]',root).forEach(button => button.onclick = () => open(Number(button.dataset.stockNext),button.dataset.stockChoice));
+}
+if (typeof module !== 'undefined') Object.assign(module.exports,{studioStockDestinations,studioStockConditionLabel});

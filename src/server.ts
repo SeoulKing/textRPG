@@ -219,7 +219,7 @@ async function bootstrap() {
     app.get("/content-scene-pool.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-scene-pool.js"), "utf8"); });
     app.get("/content-outcome-editor.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-outcome-editor.js"), "utf8"); });
     app.get("/content-writer.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-writer.js"), "utf8"); });
-    for (const file of ["content-writer-tools.js", "content-writer-workspace.js", "content-writer-preview.js"]) {
+    for (const file of ["content-item-text.js", "content-writer-tools.js", "content-writer-workspace.js", "content-writer-preview.js"]) {
       app.get(`/${file}`, async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, file), "utf8"); });
     }
     app.get("/api/content-studio/published", async (request, reply) => {

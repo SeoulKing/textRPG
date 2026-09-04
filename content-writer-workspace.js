@@ -7,6 +7,7 @@ function updateWriterHistoryButtons() {
 }
 function restoreWriterHistory(direction) {
   if (writer.composing) return;
+  const itemBookmark = StudioItemTextEditor.bookmark();
   const snapshot = writer.history?.move(direction);
   if (!snapshot) return;
   const scroll = window.scrollY;
@@ -15,7 +16,7 @@ function restoreWriterHistory(direction) {
   Object.assign(state, selection); writer.library = library; writer.activeAction = null;
   writer.restoring = true;
   try { markDirty(); renderShell(); } finally { writer.restoring = false; }
-  window.scrollTo({ top: scroll }); updateWriterHistoryButtons();
+  window.scrollTo({ top: scroll }); updateWriterHistoryButtons(); StudioItemTextEditor.restore(itemBookmark);
   showToast(direction < 0 ? '실행을 취소했습니다.' : '다시 실행했습니다.');
 }
 function installWriterWorkspace() {
@@ -25,6 +26,9 @@ function installWriterWorkspace() {
   $$('[data-history]', toolbar).forEach(button => button.onclick = () => restoreWriterHistory(button.dataset.history === 'undo' ? -1 : 1));
   const remember = () => writer.history?.visit(writerSelection());
   document.addEventListener('pointerdown', remember, true);
+  document.addEventListener('pointerdown', event => {
+    $$('.writer-block-tools[open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
+  });
   document.addEventListener('keydown', event => {
     remember();
     if (event.isComposing || writer.composing || $('#writerModal') || event.target.closest?.('#writerLivePreview') || event.target.matches?.('input[type="search"], .reference-search, [data-new-scene-title]') || !(event.ctrlKey || event.metaKey) || event.altKey) return;
@@ -33,7 +37,7 @@ function installWriterWorkspace() {
   }, true);
   document.addEventListener('input', event => {
     // The element identity groups typing, but never groups structural button actions.
-    writer.inputGroup = event.target;
+    writer.inputGroup = event.studioHistoryBoundary ? undefined : event.target;
     clearTimeout(writer.inputGroupTimer);
     writer.inputGroupTimer = setTimeout(() => { writer.inputGroup = undefined; }, 0);
   }, true);
@@ -93,9 +97,10 @@ function writerChoiceSummary(choice) {
 }
 function choiceDestinationMarkup(story, choice) {
   const mode = StudioWriterTools.destination(choice);
+  const stock = studioStockDestinations(state.document, choice, story.locationId);
   const entries = [['','진행 방식 선택'],['scene','기존 장면 연결'],['new','새 장면 만들기'],['story','다른 이벤트 연결'],['end','이야기 종료']];
-  if (mode === 'advanced') entries.unshift(['advanced','기존 고급 실행 규칙 유지']);
-  return `<label class="field"><span>다음 진행</span><select data-route-mode>${options(entries, mode)}</select></label><div data-route-target>${mode === 'scene' ? `<label class="field"><span>이어지는 장면</span><select data-route-scene>${options(story.scenes.map(scene => [scene.id, `${scene.title}${sceneVariantName(story, scene) ? ` · ${sceneVariantName(story, scene)}` : ''}`]), choice.nextSceneId)}</select></label>` : mode === 'story' ? `<label class="field"><span>이어지는 이벤트</span><select data-route-story>${options(storyEntries(), choice.nextStoryId ?? choice.nextEventId)}</select></label>` : `<p class="muted">${mode === 'end' ? '현재 이벤트의 완료를 기록하고 마칩니다.' : mode === 'advanced' ? '조건·확률 결과 안의 이동도 그대로 실행됩니다. 상세 설정에서 확인하세요.' : '연결을 정하기 전까지 기존 실행 동작을 유지합니다.'}</p>`}</div>`;
+  if (mode === 'advanced') entries.unshift(['advanced',stock ? '남은 내용물에 따라 장면 연결' : '기존 고급 실행 규칙 유지']);
+  return `<label class="field"><span>다음 진행</span><select data-route-mode>${options(entries, mode)}</select></label><div data-route-target>${mode === 'scene' ? `<label class="field"><span>이어지는 장면</span><select data-route-scene>${options(story.scenes.map(scene => [scene.id, `${scene.title}${sceneVariantName(story, scene) ? ` · ${sceneVariantName(story, scene)}` : ''}`]), choice.nextSceneId)}</select></label>` : mode === 'story' ? `<label class="field"><span>이어지는 이벤트</span><select data-route-story>${options(storyEntries(), choice.nextStoryId ?? choice.nextEventId)}</select></label>` : `<p class="muted">${mode === 'end' ? '현재 이벤트의 완료를 기록하고 마칩니다.' : mode === 'advanced' ? (stock ? '위 상황 카드에서 조건별 연결을 확인하고 원고를 열 수 있습니다.' : '조건·확률 결과 안의 이동도 그대로 실행됩니다. 상세 설정에서 확인하세요.') : '연결을 정하기 전까지 기존 실행 동작을 유지합니다.'}</p>`}</div>`;
 }
 function bindChoiceDestination(root, story, choice) {
   const commit = (mode, id) => {
@@ -128,10 +133,36 @@ function bindChoiceDestination(root, story, choice) {
 }
 function enhanceStoryWorkspace(story, scene, selectedChoice) {
   const pane = $('.manuscript-pane');
-  const settings = document.createElement('details'); settings.className = 'story-settings';
-  settings.innerHTML = '<summary>이야기 설정 · 제목, 지역, 발생 조건</summary>';
-  settings.open = writer.openSettings?.has(story.id) ?? false;
-  settings.ontoggle = () => { writer.openSettings ??= new Set(); if (settings.open) writer.openSettings.add(story.id); else writer.openSettings.delete(story.id); };
+  pane.closest('.writer-workspace').classList.add('writer-flat-ui');
+  const header = $('.writer-header', ui.editorPanel);
+  header.classList.add('writer-flat-header');
+  const origin = writer.connectionOrigin;
+  if (origin?.targetSceneId === scene?.id) {
+    const back = document.createElement('button'); back.type = 'button'; back.className = 'button ghost connection-back';
+    back.textContent = `← ‘${origin.label}’ 연결로 돌아가기`;
+    back.onclick = () => {
+      writer.connectionOrigin = null;
+      if (origin.action) openRegionAction(origin.locationId, origin.choiceId);
+      else {
+        go('stories', origin.storyId, origin.sceneId, origin.choiceId);
+        $$('[data-choice-card]').find(card => card.dataset.choiceCard === origin.choiceId)?.scrollIntoView({block:'start'});
+      }
+    };
+    pane.prepend(back);
+  }
+  const settings = document.createElement('section'); settings.className = 'story-settings writer-story-settings writer-flat-ui';
+  settings.id = 'writerStorySettings'; settings.setAttribute('aria-label', '이야기 설정');
+  settings.hidden = !(writer.openSettings?.has(story.id) ?? false);
+  const settingsButton = document.createElement('button'); settingsButton.type = 'button'; settingsButton.className = 'button ghost small';
+  settingsButton.textContent = '이야기 설정'; settingsButton.title = '제목, 지역, 발생 조건';
+  settingsButton.setAttribute('aria-controls', settings.id); settingsButton.setAttribute('aria-expanded', String(!settings.hidden));
+  settingsButton.onclick = () => {
+    settings.hidden = !settings.hidden; settingsButton.setAttribute('aria-expanded', String(!settings.hidden));
+    writer.openSettings ??= new Set();
+    if (settings.hidden) writer.openSettings.delete(story.id); else writer.openSettings.add(story.id);
+  };
+  const title = $('h2', header), titleRow = document.createElement('div'); titleRow.className = 'writer-title-row';
+  title.before(titleRow); titleRow.append(title, settingsButton);
   for (const node of [$('#storyInfo')?.closest('.form-section'), $('#prerequisite')?.closest('.form-section'), $('#storyConditions')]) if (node) settings.append(node);
   $('.scene-tabs')?.closest('.form-section')?.remove();
   const regionActions = $('#nativeActionEditor')?.closest('.form-section');
@@ -139,10 +170,11 @@ function enhanceStoryWorkspace(story, scene, selectedChoice) {
     const regional = document.createElement('details'); regional.className = 'story-settings region-action-details'; regional.innerHTML = '<summary>이 지역의 공통 행동 편집</summary>';
     regional.append(regionActions); pane.append(regional);
   }
-  pane.prepend(settings);
+  header.after(settings);
   const manuscript = $('#sceneInfo')?.closest('.form-section');
   if (manuscript) {
     manuscript.classList.add('primary-manuscript');
+    $('.section-title', manuscript).insertAdjacentHTML('afterend', writerItemHelp());
     // Only the title is in the writing path. Scene execution settings remain accessible.
     const sceneSettings = document.createElement('details'); sceneSettings.className = 'scene-settings'; sceneSettings.innerHTML = '<summary>장면 실행 설정</summary>';
     $$('.check-field', $('#sceneInfo')).forEach(node => sceneSettings.append(node));
@@ -172,9 +204,21 @@ function enhanceStoryWorkspace(story, scene, selectedChoice) {
         button.onclick = () => {
           const target = action === 'copy' ? index + 1 : index + (action === 'up' ? -1 : 1);
           if (action === 'copy') blocks().splice(target, 0, structuredClone(blocks()[index])); else StudioWriterTools.move(blocks(), index, action === 'up' ? -1 : 1);
-          markDirty(); renderEditor(); $(`[data-block-text="${target}"]`)?.focus({ preventScroll: true });
+          markDirty(); renderEditor(); StudioItemTextEditor.surface($(`[data-block-text="${target}"]`))?.focus({ preventScroll: true });
         }; controls.insertBefore(button, $('[data-remove-block]', controls));
       }
+      // Move the existing buttons, preserving their bindings and history behavior.
+      const menu = document.createElement('details'); menu.className = 'writer-block-tools';
+      menu.innerHTML = `<summary aria-label="문단 ${index + 1} 도구">문단 도구</summary><div class="writer-block-actions" role="group" aria-label="문단 ${index + 1} 편집 작업"></div>`;
+      const actions = $('.writer-block-actions', menu), remove = $('[data-remove-block]', controls);
+      if (remove) remove.textContent = '문단 삭제';
+      $$('button', controls).forEach(button => actions.append(button));
+      menu.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || event.isComposing) return;
+        event.preventDefault(); event.stopPropagation(); menu.open = false; $('summary', menu).focus();
+      });
+      menu.addEventListener('focusout', event => { if (event.relatedTarget && !menu.contains(event.relatedTarget)) menu.open = false; });
+      controls.append(menu);
     });
   }
   const choiceSection = $('.choice-tabs')?.closest('.form-section');
@@ -186,6 +230,7 @@ function enhanceStoryWorkspace(story, scene, selectedChoice) {
     $$('[data-do="deleteChoice"]', oldEditor).forEach(button => button.remove());
   }
   if (choiceSection && scene) {
+    choiceSection.classList.add('writer-choice-section');
     const cards = document.createElement('div'); cards.className = 'writer-choice-cards';
     scene.choices.forEach((choice, index) => {
       const refs = StudioWriterTools.sharedScenes(state.document, choice.id);
@@ -196,7 +241,11 @@ function enhanceStoryWorkspace(story, scene, selectedChoice) {
       deleteButton.classList.replace('ghost', 'danger');
       deleteButton.setAttribute('aria-label', `선택 ${index + 1} 삭제`);
       $('[data-card-label]', card).oninput = event => { choice.label = event.target.value; synchronizeSharedChoices(choice); markDirty(); };
+      StudioItemTextEditor.mount($('[data-card-label]',card),choice.label,{key:`${scene.id}:${choice.id}:label`});
       bindChoiceDestination($('.choice-card-route', card), story, choice);
+      const connections = document.createElement('div'); connections.dataset.stockConnection = choice.id;
+      $('.choice-card-route',card).before(connections);
+      renderStockDestinations(choice,connections,story);
       $$('[data-shared-ref]', card).forEach(button => button.onclick = () => { const ref = refs[Number(button.dataset.sharedRef)]; go('stories', ref.storyId, ref.sceneId, choice.id); });
       const details = $('.choice-card-details', card);
       if (choice.id === selectedChoice?.id && oldEditor) $('[data-card-detail]', card).append(oldEditor);
@@ -227,12 +276,27 @@ function enhanceStoryWorkspace(story, scene, selectedChoice) {
   flowDetails.innerHTML = '<summary>흐름도 보기 · 장면과 분기 연결</summary>'; flow.before(flowDetails); flowDetails.append(flow);
   flowDetails.open = writer.graphOpen ?? false; flowDetails.ontoggle = () => { writer.graphOpen = flowDetails.open; if (flowDetails.open) drawGraph(); };
   $('.writer-mobile-tabs')?.remove();
-  const toolbar = $('.writer-header .writer-toolbar');
-  toolbar.insertAdjacentHTML('afterbegin', btn('미리보기 보기','readNow') + (scene ? btn('현재 장면 시험','previewScene') : ''));
-  listen('readNow', () => showWriterReading(story, scene));
-  listen('previewScene', () => openPreview(story, scene.id, true));
+  // Preview navigation uses the responsive tabs; all trial controls live in the panel.
+  $('[data-do="preview"]', header)?.remove();
+  compactWriterConditions(pane); compactWriterConditions(settings);
   $('#writerIssues') && flowDetails.before($('#writerIssues'));
   renderWriterSceneNav(); updateWriterHistoryButtons();
+}
+function writerItemHelp() {
+  return '<p class="writer-item-help">문장에 <kbd>/아이템이름</kbd>을 입력해 연결하세요. Enter·Tab으로 선택하고 Esc로 닫습니다.</p>';
+}
+function writerEmptySection(title, message, actions) {
+  return section(title, '', `<span class="compact-empty-label">${esc(message)}</span><div class="writer-toolbar">${actions}</div>`, 'compact-empty-editor');
+}
+function compactWriterConditions(root) {
+  $$('[data-add-array][data-array-kind="condition"]', root).forEach(button => {
+    const group = button.closest('.form-section');
+    if (!group || group.classList.contains('compact-empty-editor') || !$('.array-stack > .empty-array', group)) return;
+    group.classList.add('compact-empty-editor');
+    button.insertAdjacentHTML('beforebegin', '<span class="compact-empty-label">조건 없음</span>');
+    button.textContent = '조건 추가';
+    button.setAttribute('aria-label', `${$('h3', group)?.textContent ?? '조건'} 추가`);
+  });
 }
 function refreshWriterCardSummaries() {
   const story = state.tab === 'stories' ? selectedEntity() : null;
@@ -243,6 +307,8 @@ function refreshWriterCardSummaries() {
     if (!choice) return;
     $('[data-result-summary]', card).textContent = writerChoiceSummary(choice);
     $('.choice-conditions', card).textContent = choice.conditions.map(conditionLabel).join(' · ') || '조건 없음';
+    const connections = $('[data-stock-connection]',card);
+    if (connections) renderStockDestinations(choice,connections,story);
   });
 }
 function showWriterReading(story, scene) {

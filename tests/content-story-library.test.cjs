@@ -43,3 +43,32 @@ test('region action cards use saved overrides and keep fishing outcomes when edi
   assert.equal(registry.actions.fish_at_river.outcomeHint,'물결을 살피고 낚싯줄을 드리운다.');
   assert.deepEqual(registry.actions.fish_at_river.effects,outcomes);
 });
+
+test('register connection shows exact stock thresholds and the choices at each destination without changing data',()=>{
+  const {studioStockDestinations,studioStockConditionLabel}=require('../content-story-library');
+  const document=getEffectiveContentStudioDocument(),before=JSON.stringify(document);
+  const story=document.stories.find(story=>story.id==='native_region_convenience');
+  const choice=story.scenes.flatMap(scene=>scene.choices).find(choice=>choice.id==='go_to_convenience_register');
+  const result=studioStockDestinations(document,choice,story.locationId);
+  assert.deepEqual(result.entries.map(entry=>entry.scene.id),['convenience_register_full','convenience_register_low','convenience_register_empty']);
+  assert.deepEqual(result.entries.map(entry=>entry.conditions.map(condition=>studioStockConditionLabel(document,condition))),[
+    ['남은 돈 1,200원 이상'],['남은 돈 600원 이상','남은 돈 1,200원 미만'],['남은 돈 600원 미만']
+  ]);
+  assert.deepEqual(result.entries[0].scene.choices.map(choice=>choice.id),['collect_cash_from_register','leave_convenience_register']);
+  assert.deepEqual(result.entries[2].scene.choices.map(choice=>choice.id),['leave_convenience_register']);
+  assert.equal(JSON.stringify(document),before);
+  const shelf=story.scenes.flatMap(scene=>scene.choices).find(choice=>choice.id==='go_to_convenience_shelf');
+  assert.equal(studioStockDestinations(document,shelf,story.locationId).entries.length,4);
+});
+
+test('stock connection follows draft edits, scopes the location and does not describe explicit or random routes as stock branches',()=>{
+  const {studioStockDestinations}=require('../content-story-library');
+  const document=getEffectiveContentStudioDocument(),story=document.stories.find(story=>story.id==='native_region_convenience');
+  const choice=story.scenes.flatMap(scene=>scene.choices).find(choice=>choice.id==='go_to_convenience_register');
+  assert.equal(studioStockDestinations(document,choice,'forest').entries.length,0);
+  const low=story.scenes.find(scene=>scene.id==='convenience_register_low');low.title='동전이 남은 계산대';low.conditions.find(condition=>condition.type==='stock_money_gte').amount=100;
+  const result=studioStockDestinations(document,choice,story.locationId);
+  assert.equal(result.entries[1].scene.title,'동전이 남은 계산대');assert.equal(result.entries[1].conditions[0].amount,100);
+  assert.equal(studioStockDestinations(document,{...choice,nextSceneId:'convenience_register_full'},story.locationId),null);
+  assert.equal(studioStockDestinations(document,{effects:[{type:'set_random_scene',tag:'forest:result:chop'}]},'forest'),null);
+});

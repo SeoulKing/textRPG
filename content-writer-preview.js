@@ -33,7 +33,7 @@ function resetLivePreview() {
 function installLivePreview() {
   const root = document.createElement('aside'); root.id = 'writerLivePreview'; root.className = 'live-preview-panel'; root.hidden = true;
   root.setAttribute('aria-label','게임 미리보기');
-  root.innerHTML = `<header class="live-preview-header"><div><span class="eyebrow">LIVE PREVIEW</span><h2>게임 미리보기</h2></div><button type="button" class="button ghost small" data-live-settings-toggle>시험 조건</button></header>
+  root.innerHTML = `<header class="live-preview-header"><div><span class="eyebrow">LIVE PREVIEW</span><h2>게임 미리보기</h2></div></header>
     <p class="live-preview-status" role="status" data-live-status></p>
     <div class="live-preview-controls"><button type="button" class="button ghost small" data-live-undo>직전 단계</button><button type="button" class="button ghost small" data-live-restart>현재 장면부터 다시 시작</button><button type="button" class="button ghost small" data-live-refresh>다시 동기화</button></div>
     <details class="live-preview-settings"><summary>시험 조건 설정</summary><div data-live-settings></div></details>
@@ -43,7 +43,6 @@ function installLivePreview() {
   tabs.innerHTML = '<button type="button" class="button ghost" data-live-pane="editor" aria-pressed="true">원고 편집</button><button type="button" class="button ghost" data-live-pane="preview" aria-pressed="false">게임 미리보기</button>';
   ui.editorPanel.before(tabs);
   $$('[data-live-pane]',tabs).forEach(button => button.onclick = () => setLivePreviewPane(button.dataset.livePane));
-  $('[data-live-settings-toggle]',root).onclick = () => { const details=$('.live-preview-settings',root); details.open=!details.open; };
   $('[data-live-restart]',root).onclick = () => requestLivePreview({restart:true});
   $('[data-live-undo]',root).onclick = () => requestLivePreview({undo:true});
   $('[data-live-refresh]',root).onclick = () => requestLivePreview({recover:true});
@@ -65,7 +64,8 @@ function installLivePreview() {
     if (!ui.editorPanel.contains(event.target)) return;
     const context=livePreviewContext(), live=livePreviewState();
     if (!context) return;
-    const card=event.target.closest('[data-choice-card]'), paragraph=event.target.closest('[data-block-text]');
+    const source=StudioItemTextEditor.sourceFor(event.target);
+    const card=source.closest('[data-choice-card]'), paragraph=source.closest('[data-block-text]');
     if (card) live.highlight={kind:'choice',id:card.dataset.choiceCard,sceneId:context.scene?.id,source:{tab:'stories',id:context.story.id,sceneId:context.scene?.id,choiceId:card.dataset.choiceCard}};
     else if (paragraph) live.highlight={kind:'block',index:Number(paragraph.dataset.blockText),sceneId:context.scene?.id};
     else if (event.target.closest('#regionActionEditor, #nativeActionEditor') && writer.activeAction) live.highlight={kind:'action',id:writer.activeAction.id,sceneId:context.scene?.id,source:{tab:'locations',id:context.location.id,actionId:writer.activeAction.id}};
@@ -249,7 +249,7 @@ function editLivePreviewTarget(target,blockIndex) {
   let input;
   if(blockIndex!==undefined)input=$(`[data-block-text="${blockIndex}"]`,ui.editorPanel);
   else if(target.choiceId)input=$$('[data-choice-card]',ui.editorPanel).find(card=>card.dataset.choiceCard===target.choiceId)?.querySelector('[data-card-label]');
-  input?.scrollIntoView({block:'center'});input?.focus({preventScroll:true});
+  const surface=StudioItemTextEditor.surface(input);surface?.scrollIntoView({block:'center'});surface?.focus({preventScroll:true});
 }
 function renderLivePreviewSettings(force=false) {
   const live=livePreviewState(), root=$('[data-live-settings]'), context=live.context;

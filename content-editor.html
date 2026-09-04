@@ -11,7 +11,6 @@
     <div class="studio-shell">
       <header class="topbar">
         <div class="brand">
-          <span class="brand-mark">TR</span>
           <div>
             <strong>콘텐츠 스튜디오</strong>
             <span>TextRPG 월드 빌더</span>
@@ -25,8 +24,8 @@
             <span class="narrow-label">저장</span>
           </button>
           <button class="button primary" id="publishButton" type="button">
-            <span class="wide-label">게임에 공개</span>
-            <span class="narrow-label">공개</span>
+            <span class="wide-label">게임에 배포</span>
+            <span class="narrow-label">배포</span>
           </button>
         </div>
       </header>
@@ -51,13 +50,10 @@
             <b id="recipeCount">0</b>
           </button>
 
-          <div class="nav-note">
-            <strong>자동 검증</strong>
-            <p>미완성 원고도 초안으로 저장됩니다. 공개 전 연결과 보상을 확인하세요.</p>
-          </div>
+          <button class="button ghost list-panel-toggle" id="listPanelToggle" type="button" aria-expanded="true" aria-controls="contentListPanel">목록 접기</button>
         </nav>
 
-        <section class="content-list-panel">
+        <section class="content-list-panel" id="contentListPanel">
           <div class="list-heading">
             <div>
               <span class="eyebrow" id="listEyebrow">ITEMS</span>
@@ -99,6 +95,7 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="/content-editor.js"></script>
+    <script src="/content-item-text.js"></script>
     <script src="/content-story-library.js"></script>
     <script src="/content-scene-pool.js"></script>
     <script src="/content-outcome-editor.js"></script>
