@@ -59,7 +59,7 @@ const InstantEffectSchemas = [
   z.object({ type: z.literal("complete_quest"), questId: z.string() }),
   z.object({ type: z.literal("log"), message: z.string() }),
   z.object({ type: z.literal("set_scene"), sceneId: z.string() }),
-  z.object({ type: z.literal("set_random_scene"), tag: z.string() }),
+  z.object({ type: z.literal("set_random_scene"), tag: z.string(), sceneIds: z.array(z.string()).min(1).optional(), avoidRepeat: z.boolean().optional(), returnToLocation: z.boolean().optional() }),
   z.object({ type: z.literal("discover_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("focus_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("clear_stock_node_focus") }),
@@ -105,10 +105,11 @@ export const EffectSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("random_outcome"),
     outcomes: z.array(z.object({
-      weight: z.number().positive(),
+      weight: z.number().nonnegative(),
+      label: z.string().optional(),
       result: z.enum(["success", "failure"]).optional(),
       effects: z.array(RandomOutcomeEffectSchema).default([]),
-    })).min(1),
+    })).min(1).refine(outcomes => outcomes.some(outcome => outcome.weight > 0), "결과 확률의 합은 0보다 커야 합니다."),
   }),
 ] as const);
 

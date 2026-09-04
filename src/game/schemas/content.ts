@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ConditionSchema } from "./condition-effect";
 import { RiskSchema } from "./base";
 import { ActionDefinitionSchema } from "./action";
 import { ChoiceDefinitionSchema } from "./choice";
@@ -36,6 +37,7 @@ export const LocationDefinitionSchema = z.object({
   name: z.string(),
   risk: RiskSchema,
   mapPosition: AxialCoordSchema.optional(),
+  discoveryConditions: z.array(ConditionSchema).optional(),
   imagePath: z.string().nullable(),
   summary: z.string(),
   tags: z.array(z.string()),

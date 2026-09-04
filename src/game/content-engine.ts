@@ -56,7 +56,7 @@ export function buildStoryChoiceFromChoice(
     id: choice.id,
     label: choice.label,
     outcomeHint: standardizedHint || choice.outcomeHint,
-    showOutcomeHint: standardizedHint ? true : choice.showOutcomeHint,
+    showOutcomeHint: choice.tags?.includes("studio-authored") ? choice.showOutcomeHint : standardizedHint ? true : choice.showOutcomeHint,
     loading: resolveInteractionLoading(choice),
     isAvailable: true,
     descriptionTag: choice.descriptionTag,
@@ -130,6 +130,7 @@ export function resolveNextSceneDefinition(
   }
 
   const candidates = Object.values(registry.scenes)
+    .filter(scene => !scene.studioStoryId)
     .filter((scene) => scene.locationId === locationId)
     .filter((scene) => sceneMatchesDetailFocus(scene, state))
     .filter((scene) => scene.conditions.every((condition) => evaluateCondition(condition, state)));

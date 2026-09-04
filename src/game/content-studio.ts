@@ -7,6 +7,7 @@ import {
   EffectSchema,
   ItemCardSchema,
   SceneDefinitionSchema,
+  LocationDefinitionSchema, PersonCardSchema, ActionDefinitionSchema, EventDefinitionSchema,
   type ChoiceDefinition,
 } from "./schemas";
 import {
@@ -26,26 +27,49 @@ export const StudioRecipeSchema = ChoiceDefinitionSchema.extend({
   enabled: z.boolean().default(true),
 });
 
+export const StudioChoiceSchema = ChoiceDefinitionSchema.extend({
+  once: z.boolean().optional(),
+  nextStoryId: z.string().optional(),
+  endsStory: z.boolean().optional(),
+});
+export const StudioPersonSchema = PersonCardSchema.omit({ source: true, generatedAt: true });
+export const StudioLocationSchema = LocationDefinitionSchema.extend({
+  discoveryConditions: z.array(ConditionSchema).optional(),
+});
 export const StudioSceneSchema = SceneDefinitionSchema.omit({
   choiceIds: true,
 }).extend({
-  choices: z.array(ChoiceDefinitionSchema).default([]),
+  paragraphs: z.array(z.string()).default([]),
+  choices: z.array(StudioChoiceSchema).default([]),
+  blocks: z.array(z.object({ speakerId: z.string().optional(), text: z.string() })).optional(),
+  terminal: z.boolean().optional(),
 });
 
 export const StudioStorySchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(1),
-  locationId: z.string().min(1),
-  entryLabel: z.string().min(1),
+  title: z.string(),
+  locationId: z.string(),
+  entryLabel: z.string(),
   entryHint: z.string().default("이야기를 시작한다."),
   enabled: z.boolean().default(true),
   tags: z.array(z.string()).default([]),
   conditions: z.array(ConditionSchema).default([]),
-  scenes: z.array(StudioSceneSchema).min(1),
+  scenes: z.array(StudioSceneSchema).default([]),
+  once: z.boolean().optional(),
+  status: z.enum(["draft", "ready"]).default("draft"),
+  personIds: z.array(z.string()).default([]),
+  prerequisite: z.object({ storyId: z.string(), choiceId: z.string().optional() }).optional(),
+  native: z.enum(["event", "region"]).optional(),
+  event: EventDefinitionSchema.optional(),
+  actions: z.array(ActionDefinitionSchema).default([]),
+  layout: z.record(z.string(), z.object({ x: z.number(), y: z.number() })).default({}),
 });
 
 export const ContentStudioDocumentSchema = z.object({
-  version: z.literal(1),
+  version: z.union([z.literal(1), z.literal(2)]).transform(() => 2 as const),
+  locations: z.array(StudioLocationSchema).default([]),
+  people: z.array(StudioPersonSchema).default([]),
+  layout: z.record(z.string(), z.object({ x: z.number(), y: z.number() })).default({}),
   items: z.array(StudioItemSchema).default([]),
   recipes: z.array(StudioRecipeSchema).default([]),
   stories: z.array(StudioStorySchema).default([]),
@@ -68,6 +92,7 @@ const ITEM_TEXT_FIELDS = new Set([
   "entryLabel",
   "entryHint",
   "paragraphs",
+  "text",
 ]);
 
 function itemTextRegistry(
@@ -176,12 +201,14 @@ function asUniqueRecord<T extends { id: string }>(entries: T[], label: string) {
 }
 
 export function assertUniqueStudioIds(document: ContentStudioDocument) {
+  asUniqueRecord(document.locations, "location");
+  asUniqueRecord(document.people, "person");
   asUniqueRecord(document.items, "item");
   asUniqueRecord(document.recipes, "recipe");
   asUniqueRecord(document.stories, "story");
 
   const sceneIds = new Set<string>();
-  const choiceIds = new Set<string>();
+  const choiceIds = new Map<string, string>();
   document.stories.forEach((story) => {
     story.scenes.forEach((scene) => {
       if (sceneIds.has(scene.id)) {
@@ -189,10 +216,10 @@ export function assertUniqueStudioIds(document: ContentStudioDocument) {
       }
       sceneIds.add(scene.id);
       scene.choices.forEach((choice) => {
-        if (choiceIds.has(choice.id)) {
+        if (choiceIds.has(choice.id) && choiceIds.get(choice.id) !== JSON.stringify(choice)) {
           throw new Error(`choice id '${choice.id}' is duplicated.`);
         }
-        choiceIds.add(choice.id);
+        choiceIds.set(choice.id, JSON.stringify(choice));
       });
     });
   });
@@ -243,7 +270,8 @@ export function effectiveContentStudioDocument(
   });
 
   return normalizeContentStudioItemTextReferences({
-    version: 1,
+    ...stored,
+    version: 2,
     items,
     recipes,
     stories: stored.stories,

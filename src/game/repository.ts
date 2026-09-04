@@ -1,3 +1,4 @@
+import { legacyContentVersionId, versionRegistry } from "./content-versions";
 import { copyFile, mkdir, readFile, rename, unlink, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 import {
@@ -70,10 +71,10 @@ export const emptyTemplateStore: TemplateStore = {
   protagonistCard: null,
 };
 
-function normalizeDynamicContent(raw: unknown) {
+function normalizeDynamicContent(raw: unknown, contentVersionId?: string) {
   const parsed = DynamicWorldRegistrySchema.safeParse(raw && typeof raw === "object" ? raw : {});
   return parsed.success
-    ? normalizeDynamicLocationNames(parsed.data, Object.values(worldRegistry.locations).map((location) => location.name))
+    ? normalizeDynamicLocationNames(parsed.data, Object.values((versionRegistry(contentVersionId) ?? worldRegistry).locations).map((location) => location.name))
     : structuredClone(emptyDynamicWorldRegistry);
 }
 
@@ -112,8 +113,8 @@ function normalizeNarrativeState(raw: unknown) {
   return NarrativeStateSchema.parse({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} });
 }
 
-function buildValidContentIds(dynamicContent: GameState["dynamicContent"]): ValidContentIds {
-  const registry = buildRuntimeRegistry({ dynamicContent });
+function buildValidContentIds(dynamicContent: GameState["dynamicContent"], contentVersionId?: string): ValidContentIds {
+  const registry = buildRuntimeRegistry({ dynamicContent, contentVersionId });
   const validLocationIds = new Set(Object.keys(registry.locations));
   const validQuestIds = new Set(Object.keys(registry.quests));
   const validSceneIds = new Set(Object.keys(registry.scenes));
@@ -147,8 +148,8 @@ function isJsonParseError(error: unknown) {
   return error instanceof SyntaxError;
 }
 
-function fallbackSceneId(locationId: string, validSceneIds: Set<string>, dynamicContent: GameState["dynamicContent"]) {
-  const registry = buildRuntimeRegistry({ dynamicContent });
+function fallbackSceneId(locationId: string, validSceneIds: Set<string>, dynamicContent: GameState["dynamicContent"], contentVersionId?: string) {
+  const registry = buildRuntimeRegistry({ dynamicContent, contentVersionId });
   const scene = Object.values(registry.scenes).find((entry) => entry.locationId === locationId);
   if (scene && validSceneIds.has(scene.id)) {
     return scene.id;
@@ -302,15 +303,15 @@ function normalizeInventory(rawInventory: unknown, validItemIds: Set<string>) {
   ) as Record<string, number>;
 }
 
-function maxToolDurability(itemId: string) {
-  const item = worldRegistry.items[itemId] as { maxDurability?: number } | undefined;
+function maxToolDurability(itemId: string, contentVersionId?: string) {
+  const item = (versionRegistry(contentVersionId) ?? worldRegistry).items[itemId] as { maxDurability?: number } | undefined;
   const maxDurability = item?.maxDurability;
   return Number.isInteger(maxDurability) && Number(maxDurability) > 0
     ? Number(maxDurability)
     : 0;
 }
 
-function normalizeToolDurability(rawDurability: unknown, inventory: Record<string, number>, validItemIds: Set<string>) {
+function normalizeToolDurability(rawDurability: unknown, inventory: Record<string, number>, validItemIds: Set<string>, contentVersionId?: string) {
   const raw = rawDurability && typeof rawDurability === "object"
     ? rawDurability as Record<string, unknown>
     : {};
@@ -321,7 +322,7 @@ function normalizeToolDurability(rawDurability: unknown, inventory: Record<strin
       return;
     }
 
-    const maxDurability = maxToolDurability(itemId);
+    const maxDurability = maxToolDurability(itemId, contentVersionId);
     if (maxDurability <= 0) {
       return;
     }
@@ -344,9 +345,10 @@ function normalizeStats(rawStats: unknown) {
 
 function pruneState(state: unknown): GameState {
   const rawState = (state && typeof state === "object" ? state : {}) as Partial<GameState> & Record<string, unknown>;
-  const dynamicContent = normalizeDynamicContent(rawState.dynamicContent);
+  const contentVersionId = rawState.contentVersionId ?? legacyContentVersionId();
+  const dynamicContent = normalizeDynamicContent(rawState.dynamicContent, contentVersionId);
   const { validLocationIds, validQuestIds, validSceneIds, validEventFlags, validItemIds, validStockNodeLocationIds, validStockStateKeys } =
-    buildValidContentIds(dynamicContent);
+    buildValidContentIds(dynamicContent, contentVersionId);
   const rawLocation = typeof rawState.location === "string" ? rawState.location : "shelter";
   const nextLocation = validLocationIds.has(rawLocation) ? rawLocation : "shelter";
   const nextDay = normalizeInt(rawState.day, 1, 1);
@@ -394,10 +396,11 @@ function pruneState(state: unknown): GameState {
   }
   return {
     saveVersion: SAVE_VERSION,
+    contentVersionId,
     location: nextLocation,
     sceneId: typeof rawState.sceneId === "string" && validSceneIds.has(rawState.sceneId)
       ? rawState.sceneId
-      : fallbackSceneId(nextLocation, validSceneIds, dynamicContent),
+      : fallbackSceneId(nextLocation, validSceneIds, dynamicContent, contentVersionId),
     activeEventId: typeof rawState.activeEventId === "string" && validEventFlags.has(`event_seen_${rawState.activeEventId}`)
       ? rawState.activeEventId
       : null,
@@ -415,7 +418,7 @@ function pruneState(state: unknown): GameState {
     skills: normalizeStringArray(rawState.skills),
     skillProgress: normalizeSkillProgress(rawState.skillProgress),
     inventory: nextInventory,
-    toolDurability: normalizeToolDurability(rawState.toolDurability, nextInventory, validItemIds),
+    toolDurability: normalizeToolDurability(rawState.toolDurability, nextInventory, validItemIds, contentVersionId),
     dynamicContent,
     worldPlan,
     frontierState,
@@ -494,7 +497,7 @@ function normalizeWorldPayload(raw: unknown, validItemIds: Set<string>): WorldIn
 export function normalizeGameSession(raw: unknown): GameSession {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const nextState = pruneState(parsed.state as GameState);
-  const { validItemIds } = buildValidContentIds(nextState.dynamicContent);
+  const { validItemIds } = buildValidContentIds(nextState.dynamicContent, nextState.contentVersionId);
   const nextWorld = normalizeWorldPayload(parsed.world, validItemIds);
   return GameSessionSchema.parse({
     ...parsed,

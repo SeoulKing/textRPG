@@ -238,7 +238,7 @@ export function selectRandomOutcome<T extends WeightedOutcome>(
   return outcomes[outcomes.length - 1];
 }
 
-export function buildSkillProgressCards(progress: SkillProgressState) {
+export function buildSkillProgressCards(progress: SkillProgressState, fishingOutcomes?: WeightedOutcome[]) {
   return (Object.keys(PROGRESSION_SKILLS) as SkillId[]).map((skillId) => {
     const totalXp = normalizeSkillTotalXp(progress[skillId].totalXp);
     const level = getSkillLevel(totalXp);
@@ -262,7 +262,9 @@ export function buildSkillProgressCards(progress: SkillProgressState) {
       xpIntoLevel,
       xpForNextLevel,
       progressPercent,
-      effectPercent: getSkillEffectPercent(level, skillId),
+      effectPercent: skillId === "fishing" && fishingOutcomes?.length
+        ? Math.min(100, getFishingOutcomeProbabilities(fishingOutcomes, level).reduce((total, probability, index) => total + (fishingOutcomes[index].result === "success" ? probability * 100 : 0), 0))
+        : getSkillEffectPercent(level, skillId),
       isMaxLevel,
     };
   });

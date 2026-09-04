@@ -29,7 +29,7 @@ const state = {
     builtInItemIds: [],
     builtInRecipeIds: [],
   },
-  tab: "items",
+  tab: "stories",
   selectedId: null,
   selectedSceneId: null,
   selectedChoiceId: null,
@@ -48,7 +48,9 @@ const state = {
 const TAB_META = {
   items: { eyebrow: "ITEMS", title: "아이템", singular: "아이템" },
   recipes: { eyebrow: "RECIPES", title: "레시피", singular: "레시피" },
-  stories: { eyebrow: "STORIES", title: "이야기", singular: "이야기" },
+  stories: { eyebrow: "STORIES", title: "이벤트", singular: "이벤트" },
+  locations: { eyebrow: "WORLD", title: "지역", singular: "지역" },
+  people: { eyebrow: "CHARACTERS", title: "캐릭터", singular: "캐릭터" },
 };
 
 const CONDITION_TYPES = [
@@ -99,7 +101,7 @@ function options(entries, selected, includeEmpty = false) {
 
 function itemOptions(selected, includeEmpty = false) {
   const entries = state.document.items
-    .map((item) => [item.id, `${item.name} · ${item.id}`])
+    .map((item) => [item.id, item.name])
     .sort((left, right) => left[1].localeCompare(right[1], "ko"));
   return options(entries, selected, includeEmpty);
 }
@@ -199,7 +201,7 @@ function bindItemReferencePickers(container) {
 
 function locationOptions(selected) {
   return options(
-    state.catalogs.locations.map((location) => [location.id, `${location.name} · ${location.id}`]),
+    state.catalogs.locations.map((location) => [location.id, location.name]),
     selected,
   );
 }
@@ -233,6 +235,7 @@ function selectedEntity() {
 
 function markDirty() {
   state.dirty = true;
+  if (typeof writerChanged === "function") writerChanged();
   ui.saveState.textContent = "저장되지 않은 변경사항";
   ui.saveState.className = "save-state dirty";
 }
@@ -279,12 +282,14 @@ function showToast(message, error = false) {
 }
 
 function entityName(entity) {
-  if (state.tab === "items") return entity.name;
+  if (["items", "locations", "people"].includes(state.tab)) return entity.name;
   if (state.tab === "recipes") return resolveItemTextPreview(entity.label);
   return entity.title;
 }
 
 function entityBadges(entity) {
+  if (state.tab === "locations") return [`<span class="badge">연결 ${entity.neighbors.length}</span>`];
+  if (state.tab === "people") return [`<span class="badge">${escapeHtml(entity.role)}</span>`];
   if (state.tab === "items") {
     return [
       `<span class="badge">${escapeHtml(entity.kind)}</span>`,
@@ -305,6 +310,9 @@ function entityBadges(entity) {
 }
 
 function renderCounts() {
+  document.querySelector("#locationCount").textContent = state.document.locations.length;
+  document.querySelector("#personCount").textContent = state.document.people.length;
+  state.catalogs.locations = state.document.locations;
   ui.itemCount.textContent = state.document.items.length;
   ui.recipeCount.textContent = state.document.recipes.length;
   ui.storyCount.textContent = state.document.stories.length;
@@ -313,8 +321,9 @@ function renderCounts() {
 function renderList() {
   const normalizedQuery = state.query.trim().toLowerCase();
   const entries = collection()
+    .filter(entry => typeof writerMatches !== "function" || writerMatches(entry))
     .filter((entry) => {
-      const haystack = `${entry.id} ${entityName(entry)}`.toLowerCase();
+      const haystack = state.tab === "stories" ? studioStorySearchText(entry, state.document) : `${entry.id} ${entityName(entry)}`.toLowerCase();
       return !normalizedQuery || haystack.includes(normalizedQuery);
     })
     .sort((left, right) => entityName(left).localeCompare(entityName(right), "ko"));
@@ -331,6 +340,7 @@ function renderList() {
 
   ui.entityList.querySelectorAll("[data-select-id]").forEach((button) => {
     button.addEventListener("click", () => {
+      if (state.tab === "stories") writer.library = false;
       state.selectedId = button.dataset.selectId;
       state.selectedSceneId = null;
       state.selectedChoiceId = null;
@@ -346,6 +356,7 @@ function renderShell() {
   ui.listTitle.textContent = meta.title;
   ui.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === state.tab));
   renderCounts();
+  if (typeof renderWriterFilters === "function") renderWriterFilters();
   renderList();
   renderEditor();
 }
@@ -616,7 +627,7 @@ function effectParams(effect, index, arrayName) {
 
 function arrayEditorHtml(owner, arrayName, kind, title, description) {
   const entries = owner[arrayName] ?? [];
-  const typeList = kind === "condition" ? CONDITION_TYPES : EFFECT_TYPES;
+  const typeList = kind === "condition" ? CONDITION_TYPES : EFFECT_TYPES.filter(([type]) => !('weight' in owner) || !['advance_time', 'advance_to_daybreak', 'random_outcome'].includes(type));
   return `
     <section class="form-section">
       <div class="section-title">
@@ -1002,9 +1013,13 @@ function renderEditor() {
   if (state.tab === "items") renderItem(entity);
   if (state.tab === "recipes") renderRecipe(entity);
   if (state.tab === "stories") renderStory(entity);
+  if (state.tab === "locations") renderLocation(entity);
+  if (state.tab === "people") renderPerson(entity);
+  ui.editorPanel.querySelectorAll('[data-field="id"]').forEach(input => { input.readOnly = true; input.closest("label").hidden = true; });
 }
 
 function addEntity() {
+  if (["stories", "locations", "people"].includes(state.tab)) return writerAddEntity();
   if (state.tab === "items") {
     const id = makeId("item");
     state.document.items.push({
@@ -1066,79 +1081,8 @@ function addEntity() {
   renderShell();
 }
 
-async function save() {
-  if (state.saving || state.publishing) return;
-  state.saving = true;
-  ui.saveButton.disabled = true;
-  ui.publishButton.disabled = true;
-  ui.saveState.textContent = "초안 검사 및 저장 중…";
-  ui.saveState.className = "save-state";
-  try {
-    const response = await studioFetch("/api/content-studio", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.document),
-    });
-    const payload = await response.json();
-    if (response.status === 401) {
-      showAuthGate(payload.message);
-      throw new Error(payload.message);
-    }
-    if (!response.ok) {
-      throw new Error(payload.message || "초안을 저장하지 못했습니다.");
-    }
-    state.document = payload.document;
-    state.status = payload.status;
-    markSaved();
-    renderShell();
-    showToast("초안을 저장했습니다. 게임에는 아직 공개되지 않았습니다.");
-  } catch (error) {
-    ui.saveState.textContent = "저장 실패";
-    ui.saveState.className = "save-state dirty";
-    showToast(error instanceof Error ? error.message : "저장하지 못했습니다.", true);
-  } finally {
-    state.saving = false;
-    ui.saveButton.disabled = false;
-    ui.publishButton.disabled = false;
-  }
-}
-
-async function publish() {
-  if (state.saving || state.publishing) return;
-  state.publishing = true;
-  ui.saveButton.disabled = true;
-  ui.publishButton.disabled = true;
-  ui.saveState.textContent = "콘텐츠 검사 및 공개 중…";
-  ui.saveState.className = "save-state";
-  try {
-    const response = await studioFetch("/api/content-studio/publish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.document),
-    });
-    const payload = await response.json();
-    if (response.status === 401) {
-      showAuthGate(payload.message);
-      throw new Error(payload.message);
-    }
-    if (!response.ok) {
-      throw new Error(payload.message || "콘텐츠를 공개하지 못했습니다.");
-    }
-    state.document = payload.document;
-    state.status = payload.status;
-    markSaved();
-    renderShell();
-    showToast("게임 콘텐츠를 공개했습니다. 다음 요청부터 바로 적용됩니다.");
-  } catch (error) {
-    ui.saveState.textContent = "공개 실패";
-    ui.saveState.className = "save-state dirty";
-    showToast(error instanceof Error ? error.message : "콘텐츠를 공개하지 못했습니다.", true);
-  } finally {
-    state.publishing = false;
-    ui.saveButton.disabled = false;
-    ui.publishButton.disabled = false;
-  }
-}
+async function save() { return writerSave(false); }
+async function publish() { return writerSave(true); }
 
 async function load() {
   try {
@@ -1154,6 +1098,8 @@ async function load() {
     }
     state.document = payload.document;
     state.catalogs = payload.catalogs;
+    state.selectedId ??= state.document.stories.find(s => !s.native)?.id ?? state.document.stories[0]?.id;
+    if (typeof writerLoaded === "function") writerLoaded();
     state.status = payload.status;
     markSaved();
     renderShell();
@@ -1184,8 +1130,9 @@ ui.tabs.forEach((tab) => {
   });
 });
 
-ui.searchInput.addEventListener("input", () => {
+ui.searchInput.addEventListener("input", (event) => {
   state.query = ui.searchInput.value;
+  if (event.isComposing) return;
   renderList();
 });
 
@@ -1212,5 +1159,3 @@ window.addEventListener("beforeunload", (event) => {
   event.preventDefault();
   event.returnValue = "";
 });
-
-load();

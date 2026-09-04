@@ -15,6 +15,7 @@ export const LogEntrySchema = z.object({
 
 export const GameStateSchema = z.object({
   saveVersion: z.number().int(),
+  contentVersionId: z.string().optional(),
   sceneId: z.string(),
   activeEventId: z.string().nullable(),
   location: z.string(),

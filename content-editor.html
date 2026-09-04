@@ -33,7 +33,14 @@
 
       <main class="workspace">
         <nav class="section-nav" aria-label="콘텐츠 종류">
-          <button class="nav-item active" data-tab="items" type="button">
+          <button class="nav-item" data-tab="locations" type="button"><span class="nav-icon">⌖</span><span>지역</span><b id="locationCount">0</b></button>
+          <button class="nav-item" data-tab="people" type="button"><span class="nav-icon">♙</span><span>캐릭터</span><b id="personCount">0</b></button>
+          <button class="nav-item" data-tab="stories" type="button">
+            <span class="nav-icon">¶</span>
+            <span>이벤트</span>
+            <b id="storyCount">0</b>
+          </button>
+          <button class="nav-item" data-tab="items" type="button">
             <span class="nav-icon">◈</span>
             <span>아이템</span>
             <b id="itemCount">0</b>
@@ -43,14 +50,10 @@
             <span>레시피</span>
             <b id="recipeCount">0</b>
           </button>
-          <button class="nav-item" data-tab="stories" type="button">
-            <span class="nav-icon">¶</span>
-            <span>이야기</span>
-            <b id="storyCount">0</b>
-          </button>
+
           <div class="nav-note">
             <strong>자동 검증</strong>
-            <p>저장할 때 잘못된 ID와 존재하지 않는 참조를 검사합니다.</p>
+            <p>미완성 원고도 초안으로 저장됩니다. 공개 전 연결과 보상을 확인하세요.</p>
           </div>
         </nav>
 
@@ -64,9 +67,9 @@
           </div>
           <label class="search-box">
             <span>⌕</span>
-            <input id="searchInput" type="search" placeholder="이름 또는 ID 검색" />
+            <input id="searchInput" type="search" placeholder="이름 검색" />
           </label>
-          <div class="entity-list" id="entityList"></div>
+          <div id="writerFilters"></div><div class="entity-list" id="entityList"></div>
         </section>
 
         <section class="editor-panel" id="editorPanel">
@@ -96,5 +99,12 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="/content-editor.js"></script>
+    <script src="/content-story-library.js"></script>
+    <script src="/content-scene-pool.js"></script>
+    <script src="/content-outcome-editor.js"></script>
+    <script src="/content-writer-tools.js"></script>
+    <script src="/content-writer-workspace.js"></script>
+    <script src="/content-writer-preview.js"></script>
+    <script src="/content-writer.js"></script>
   </body>
 </html>

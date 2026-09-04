@@ -1,3 +1,4 @@
+import { versionRegistry } from "./content-versions";
 import { worldRegistry } from "./data/registry";
 import type {
   ContentRegistry,
@@ -76,7 +77,7 @@ export function mergeDynamicWorldRegistry(
 }
 
 export function buildRuntimeRegistry(
-  stateOrDynamic?: Pick<GameState, "dynamicContent"> | DynamicWorldRegistry | null,
+  stateOrDynamic?: Pick<GameState, "dynamicContent" | "contentVersionId"> | DynamicWorldRegistry | null,
 ): ContentRegistry {
   const dynamicContent =
     !stateOrDynamic
@@ -85,16 +86,17 @@ export function buildRuntimeRegistry(
         ? stateOrDynamic.dynamicContent
         : stateOrDynamic;
 
+  const base = stateOrDynamic && "dynamicContent" in stateOrDynamic ? (versionRegistry(stateOrDynamic.contentVersionId) ?? worldRegistry) : worldRegistry;
   return {
-    items: { ...worldRegistry.items, ...dynamicContent.items },
-    people: { ...worldRegistry.people, ...dynamicContent.people },
-    locations: { ...worldRegistry.locations, ...dynamicContent.locations },
-    quests: { ...worldRegistry.quests, ...dynamicContent.quests },
-    skills: { ...worldRegistry.skills, ...dynamicContent.skills },
-    actions: { ...worldRegistry.actions, ...dynamicContent.actions },
-    choices: { ...worldRegistry.choices, ...dynamicContent.choices },
-    events: { ...worldRegistry.events, ...dynamicContent.events },
-    scenes: { ...worldRegistry.scenes, ...dynamicContent.scenes },
+    items: { ...base.items, ...dynamicContent.items },
+    people: { ...base.people, ...dynamicContent.people },
+    locations: { ...base.locations, ...dynamicContent.locations },
+    quests: { ...base.quests, ...dynamicContent.quests },
+    skills: { ...base.skills, ...dynamicContent.skills },
+    actions: { ...base.actions, ...dynamicContent.actions },
+    choices: { ...base.choices, ...dynamicContent.choices },
+    events: { ...base.events, ...dynamicContent.events },
+    scenes: { ...base.scenes, ...dynamicContent.scenes },
   };
 }
 

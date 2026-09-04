@@ -11,7 +11,8 @@
     "test:skills": "tsx --test tests/skill-progression.test.ts",
     "db:init": "tsx src/db/init.ts",
     "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\"",
-    "assets:validate": "node scripts/validate-cooking-sprites.mjs"
+    "assets:validate": "node scripts/validate-cooking-sprites.mjs",
+    "test:studio": "npm run build && node --test tests/content-studio.test.cjs tests/content-story-library.test.cjs tests/studio-outcomes.test.cjs tests/studio-hex-map.test.cjs tests/content-writer-workspace.test.cjs tests/studio-scene-pool.test.cjs"
   },
   "repository": {
     "type": "git",

@@ -31,6 +31,7 @@ import {
   parseContentStudioDocument,
   type ContentStudioDocument,
   type StudioRecipe,
+  StudioStorySchema, StudioLocationSchema, StudioPersonSchema,
 } from "../content-studio";
 import type {
   ActionDefinition,
@@ -214,68 +215,133 @@ function mergeMenuChoiceIds(
   ];
 }
 
+function studioItemCosts(effects: Effect[]): Map<string, number> {
+  const costs = new Map<string, number>();
+  const add = (id: string, amount: number) => costs.set(id, (costs.get(id) ?? 0) + amount);
+  for (const effect of effects) {
+    if (effect.type === "remove_item") add(effect.itemId, effect.amount);
+    if (effect.type === "random_outcome") {
+      const branchCosts = new Map<string, number>();
+      for (const outcome of effect.outcomes.filter(row => row.weight > 0)) {
+        for (const [id, amount] of studioItemCosts(outcome.effects)) branchCosts.set(id, Math.max(branchCosts.get(id) ?? 0, amount));
+      }
+      for (const [id, amount] of branchCosts) add(id, amount);
+    }
+  }
+  return costs;
+}
 function compileStudioStories(
   document: ContentStudioDocument,
-  locations: Record<string, LocationDefinition>,
-  actions: Record<string, ActionDefinition>,
-  choices: Record<string, ChoiceDefinition>,
-  scenes: Record<string, SceneDefinition>,
+  registry: ContentRegistry,
 ) {
-  document.stories.filter((story) => story.enabled).forEach((story) => {
+  const { locations, actions, choices, scenes, events } = registry;
+  document.stories.forEach((story) => {
+    if (!story.enabled && !story.native) return;
     const location = locations[story.locationId];
-    if (!location) {
-      throw new Error(`story:${story.id} references unknown location '${story.locationId}'.`);
-    }
+    if (!location) throw new Error(`지역을 찾을 수 없습니다: story:${story.id}`);
     const firstScene = story.scenes[0];
-    const entryAction: ActionDefinition = {
-      id: `studio_story_${story.id}`,
-      label: story.entryLabel,
-      type: "talk",
-      outcomeHint: story.entryHint,
-      visibility: "scene",
-      presentationMode: "when_conditions_met",
-      locationIds: [story.locationId],
-      conditions: story.conditions,
-      effects: [],
-      failureEffects: [],
-      nextSceneId: firstScene.id,
-      tags: ["content-studio", "story", ...story.tags],
-      riskHint: "low",
-    };
-
-    actions[entryAction.id] = entryAction;
-    locations[story.locationId] = {
-      ...location,
-      interactionChoices: [
-        ...location.interactionChoices.filter((action) => action.id !== entryAction.id),
-        entryAction,
-      ],
-    };
-
+    const startConditions: Condition[] = [...story.conditions];
+    if (story.once) startConditions.push({ type: "flag_not", flag: `studio_started_${story.id}` }, { type: "flag_not", flag: `studio_completed_${story.id}` });
+    if (story.prerequisite) startConditions.push({ type: "flag", flag: story.prerequisite.choiceId
+      ? `studio_chosen_${story.prerequisite.choiceId}` : `studio_completed_${story.prerequisite.storyId}` });
+    if (story.native === "event" && story.event) {
+      events[story.event.id] = { ...story.event, title: story.title, locationId: story.locationId, triggerConditions: startConditions, once: story.once ?? story.event.once };
+      if (!story.enabled) locations[story.locationId].eventIds = location.eventIds.filter(id => id !== story.event!.id);
+    }
+    if (!story.native && firstScene) {
+      const entryAction: ActionDefinition = {
+        id: `studio_story_${story.id}`, label: story.entryLabel, type: "talk", outcomeHint: story.entryHint,
+        visibility: "scene", presentationMode: "when_conditions_met", locationIds: [story.locationId],
+        conditions: [{ type: "location", locationId: story.locationId }, ...startConditions], effects: [{ type: "set_flag", flag: `studio_started_${story.id}` }],
+        failureEffects: [], nextSceneId: firstScene.id, tags: ["content-studio", "story", ...story.tags], riskHint: "low",
+      };
+      actions[entryAction.id] = entryAction;
+      location.interactionChoices = [...location.interactionChoices.filter(action => action.id !== entryAction.id), entryAction];
+    }
+    for (const action of story.actions) {
+      const compiled = action.tags.includes("studio-authored-action") ? {
+        ...action,
+        conditions: [...action.conditions, ...[...studioItemCosts(action.effects)].map(([itemId, amount]): Condition => ({ type: "has_item", itemId, amount }))],
+      } : action;
+      actions[action.id] = compiled;
+      for (const loc of Object.values(locations)) loc.interactionChoices = loc.interactionChoices.map(old => old.id === action.id ? compiled : old);
+    }
     story.scenes.forEach((scene) => {
-      scene.choices.forEach((choice) => {
-        choices[choice.id] = choice;
-      });
+      for (const choice of scene.choices) {
+        const effects: Effect[] = [...choice.effects];
+        const conditions: Condition[] = [...choice.conditions];
+        if (!story.native || choice.tags?.includes("studio-authored")) {
+          for (const [itemId, amount] of studioItemCosts(effects)) conditions.push({ type: "has_item", itemId, amount });
+        }
+        if (choice.once) conditions.push({ type: "flag_not", flag: `studio_chosen_${choice.id}` });
+        // Non-native choices record authored decisions; existing mechanics are preserved.
+        if (!story.native || choice.once || document.stories.some(s => s.prerequisite?.choiceId === choice.id)) effects.push({ type: "set_flag", flag: `studio_chosen_${choice.id}` });
+        let nextSceneId = choice.nextSceneId;
+        if (choice.endsStory) {
+          effects.push({ type: "set_flag", flag: `studio_completed_${story.id}` });
+          effects.push({ type: "clear_flag", flag: `studio_started_${story.id}` });
+          nextSceneId = Object.values(scenes).find(s => s.locationId === story.locationId && !s.studioStoryId && !s.eventId)?.id;
+        }
+        if (choice.nextStoryId) {
+          const target = document.stories.find(s => s.id === choice.nextStoryId && s.enabled);
+          if (!target?.scenes[0]) throw new Error(`후속 이벤트를 찾을 수 없습니다: choice:${choice.id}`);
+          if (target.locationId !== story.locationId) effects.push({ type: "travel", locationId: target.locationId });
+          effects.push({ type: "set_flag", flag: `studio_started_${target.id}` });
+          if (target.once) conditions.push({ type: "flag_not", flag: `studio_started_${target.id}` }, { type: "flag_not", flag: `studio_completed_${target.id}` });
+          conditions.push(...target.conditions);
+          if (target.prerequisite && !(target.prerequisite.choiceId === choice.id || (!target.prerequisite.choiceId && target.prerequisite.storyId === story.id && choice.endsStory))) conditions.push({ type: "flag", flag: target.prerequisite.choiceId ? `studio_chosen_${target.prerequisite.choiceId}` : `studio_completed_${target.prerequisite.storyId}` });
+          nextSceneId = target.scenes[0].id;
+        }
+        choices[choice.id] = { ...choice, conditions, effects, nextSceneId, tags: story.native ? choice.tags : [...(choice.tags ?? []), "studio-authored"] };
+      }
+      const { choices: _choices, blocks, terminal, ...definition } = scene;
+      const choiceIds = scene.choices.map(choice => choice.id);
+      if (terminal && !story.native && !choiceIds.length) {
+        const id = `studio_finish_${scene.id}`;
+        choices[id] = {
+          id, label: "이벤트 마치기", outcomeHint: "", presentationMode: "always", hidden: false, conditions: [], failureEffects: [],
+          effects: [{ type: "set_flag", flag: `studio_completed_${story.id}` }, { type: "clear_flag", flag: `studio_started_${story.id}` }],
+          nextSceneId: Object.values(scenes).find(s => s.locationId === story.locationId && !s.studioStoryId && !s.eventId)?.id,
+          tags: ["studio-authored"],
+        };
+        choiceIds.push(id);
+      }
       scenes[scene.id] = {
-        id: scene.id,
-        eventId: scene.eventId,
-        locationId: story.locationId,
-        title: scene.title,
-        paragraphs: scene.paragraphs,
-        tags: scene.tags,
-        choiceIds: scene.choices.map((choice) => choice.id),
-        conditions: scene.conditions,
-        introFlag: scene.introFlag,
-        suppressLocationInteractions: scene.suppressLocationInteractions,
+        ...definition,
+        paragraphs: blocks ? blocks.map(block => block.speakerId ? `${block.speakerId === "protagonist" ? "플레이어" : (registry.people[block.speakerId] as { name: string })?.name ?? block.speakerId}: “${block.text}”` : block.text) : scene.paragraphs,
+        choiceIds,
+        ...(story.native ? {} : { studioStoryId: story.id, suppressLocationInteractions: scene.suppressLocationInteractions ?? (story.once !== undefined ? true : undefined) }),
+        ...(terminal ? { completionFlag: `studio_completed_${story.id}` } : {}),
       };
     });
   });
 }
 
-export function getEffectiveContentStudioDocument(
-  stored = loadStoredContentStudioDocument(),
-) {
-  return effectiveContentStudioDocument(stored, baseItems, choiceDefinitions);
+export function getEffectiveContentStudioDocument(stored = loadStoredContentStudioDocument()) {
+  const doc = effectiveContentStudioDocument(stored, baseItems, choiceDefinitions);
+  const nativeStories = [];
+  const assigned = new Set<string>();
+  for (const event of Object.values(builtInWorldRegistry.events)) {
+    const ids = [...new Set([event.startSceneId, ...event.sceneIds])];
+    ids.forEach(id => assigned.add(id));
+    nativeStories.push(StudioStorySchema.parse({
+      id: event.id, title: event.title, entryLabel: event.title, locationId: event.locationId,
+      native: "event", event, once: event.once, conditions: event.triggerConditions, status: "ready",
+      scenes: ids.map(id => ({ ...builtInWorldRegistry.scenes[id], choices: (builtInWorldRegistry.scenes[id]?.choiceIds ?? []).map(id => builtInWorldRegistry.choices[id]) })),
+    }));
+  }
+  for (const location of Object.values(builtInWorldRegistry.locations)) {
+    nativeStories.push(StudioStorySchema.parse({
+      id: `native_region_${location.id}`, title: `${location.name} · 기본 장면`, entryLabel: location.name, locationId: location.id,
+      native: "region", status: "ready", actions: location.interactionChoices,
+      scenes: Object.values(builtInWorldRegistry.scenes).filter(scene => scene.locationId === location.id && !assigned.has(scene.id)).map(scene => ({ ...scene, choices: scene.choiceIds.map(id => builtInWorldRegistry.choices[id]) })),
+    }));
+  }
+  return parseContentStudioDocument({ ...doc,
+    locations: Object.values({ ...Object.fromEntries(Object.values(builtInWorldRegistry.locations).map(l => [l.id, StudioLocationSchema.parse(l)])), ...asRecord(doc.locations) }),
+    people: Object.values({ ...Object.fromEntries(Object.values(basePeople).map(p => [p.id, StudioPersonSchema.parse(p)])), ...asRecord(doc.people) }),
+    stories: Object.values({ ...asRecord(nativeStories), ...asRecord(doc.stories) }),
+  });
 }
 
 function repairQuestionMarkText(
@@ -361,10 +427,17 @@ export function buildWorldRegistryFromStudio(
   stored: ContentStudioDocument,
 ): ContentRegistry {
   const document = getEffectiveContentStudioDocument(stored);
-  const locations = structuredClone(builtInWorldRegistry.locations);
+  const locations = structuredClone(asRecord(document.locations));
   const actions = structuredClone(builtInWorldRegistry.actions);
   const choices = structuredClone(builtInWorldRegistry.choices);
   const scenes = structuredClone(builtInWorldRegistry.scenes);
+
+  const registry: ContentRegistry = { ...structuredClone(builtInWorldRegistry), locations, actions, choices, scenes, items: asRecord(document.items), people: asRecord(document.people) };
+  for (const location of Object.values(locations)) {
+    location.residentIds = document.people.filter(person => person.locationId === location.id).map(person => person.id);
+  }
+  compileStudioStories(document, registry);
+  compileActivityReturns(registry);
 
   document.recipes.forEach((recipe) => {
     if (recipe.enabled) {
@@ -388,18 +461,45 @@ export function buildWorldRegistryFromStudio(
     }
   });
 
-  compileStudioStories(document, locations, actions, choices, scenes);
-
-  return {
-    ...builtInWorldRegistry,
-    items: asRecord(document.items),
-    locations,
-    actions,
-    choices,
-    scenes,
-  };
+  return registry;
 }
 
+function compileActivityReturns(registry: ContentRegistry) {
+  const sourceScenes = Object.values(registry.scenes);
+  const compile = (ownerId: string, effects: Effect[], sourceLocation: string) => {
+    let poolIndex = 0;
+    const walk = (effects: Effect[]): Effect[] => effects.map(effect => {
+      if (effect.type === "random_outcome") return { ...effect, outcomes: effect.outcomes.map(outcome => ({ ...outcome, effects: walk(outcome.effects) as typeof outcome.effects })) };
+      if (effect.type !== "set_random_scene" || !effect.returnToLocation) return effect;
+      const index = poolIndex++;
+      const locationId = effects.find(e => e.type === "travel")?.locationId ?? sourceLocation;
+      const variants = effect.sceneIds ? effect.sceneIds.map(id => registry.scenes[id]).filter(Boolean) : sourceScenes.filter(scene => scene.locationId === locationId && scene.tags?.includes(effect.tag));
+      if (!variants.length) return effect;
+      const base = sourceScenes.find(scene => scene.locationId === variants[0].locationId && !scene.studioStoryId && !scene.eventId && !scene.tags?.some(tag => tag.includes('result')));
+      if (!base) throw new Error(`기본 화면을 찾을 수 없습니다: action:${ownerId}`);
+      if (variants.some(scene => scene.choiceIds.length)) throw new Error(`후속 선택지가 있는 장면은 기본 화면 복귀용 묘사로 사용할 수 없습니다: action:${ownerId}`);
+      const returnId = `studio_return_${ownerId}_${index}`;
+      registry.choices[returnId] = { id: returnId, label: `${registry.locations[base.locationId].name}으로 돌아가기`, outcomeHint: "", showOutcomeHint: false, systemNote: null, presentationMode: "when_conditions_met", conditions: [], effects: [], failureEffects: [], hidden: false, tags: ["studio-authored"], nextSceneId: base.id };
+      const sceneIds = variants.map(scene => {
+        const id = `studio_activity_${ownerId}_${index}_${scene.id}`;
+        registry.scenes[id] = { ...scene, id, sourceSceneId: scene.id, studioStoryId: `activity:${ownerId}`, tags: [], choiceIds: [returnId], suppressLocationInteractions: true };
+        return id;
+      });
+      return { ...effect, sceneIds };
+    });
+    return walk(effects);
+  };
+  for (const action of Object.values(registry.actions)) {
+    const updated = { ...action, effects: compile(action.id, action.effects, action.locationIds[0] ?? '') };
+    registry.actions[action.id] = updated;
+    for (const location of Object.values(registry.locations)) location.interactionChoices = location.interactionChoices.map(row => row.id === action.id ? updated : row);
+  }
+  // Snapshot before adding generated return choices, which have no effects.
+  for (const choice of Object.values(registry.choices)) {
+    const location = sourceScenes.find(scene => scene.choiceIds.includes(choice.id))?.locationId ?? '';
+    registry.choices[choice.id] = { ...choice, effects: compile(choice.id, choice.effects, location) };
+  }
+}
 export const worldRegistry: ContentRegistry = buildWorldRegistryFromStudio(
   loadStoredContentStudioDocument(),
 );
@@ -526,6 +626,10 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
       assertKnownScene(registry, effect.sceneId, source);
       break;
     case "set_random_scene": {
+      if (effect.sceneIds) {
+        for (const sceneId of effect.sceneIds) assertKnownScene(registry, sceneId, source);
+        break;
+      }
       const matchingScenes = Object.values(registry.scenes).filter((scene) => (scene.tags ?? []).includes(effect.tag));
       if (matchingScenes.length === 0) {
         throw new Error(`${source} references unknown random scene tag '${effect.tag}'.`);

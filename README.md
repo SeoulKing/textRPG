@@ -44,33 +44,12 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 ## Content Studio
 
-The local home screen includes a `콘텐츠 스튜디오` button. The studio runs on its own page at
-[http://127.0.0.1:3000/content-editor](http://127.0.0.1:3000/content-editor).
+The home screen links to the writer workspace at [/content-editor](http://127.0.0.1:3000/content-editor).
+Create regions and characters, write dialogue and choices, assign item rewards, connect story graphs, and test drafts without affecting player saves.
+Published content applies to new games; existing saves retain their content version.
 
-Use it to:
-
-- create or edit items and their stat effects
-- create or edit crafting and cooking recipes
-- build regional stories from scenes and choices
-- configure choice conditions and effects without editing TypeScript
-
-The editor separates safe editing from live content:
-
-- `초안 저장` validates IDs and references and keeps the work out of the live game.
-- `게임에 공개` stores the same validated document as the published version and refreshes the
-  running game registry immediately.
-
-Local development stores the published document in `content/content-studio.json` and the draft under
-`.runtime`. Online deployment stores both versions in PostgreSQL so they survive restarts and
-redeployments. Production access requires all of:
-
-```text
-ENABLE_CONTENT_STUDIO=true
-CONTENT_STUDIO_ADMIN_TOKEN=a-long-random-password
-NEON_DATABASE_URL=postgresql-connection-string
-```
-
-The browser keeps the administrator token only for the current tab session.
+See [the writer guide and storage migration notes](CONTENT_STUDIO.md).
+Production access retains the existing ENABLE_CONTENT_STUDIO, CONTENT_STUDIO_ADMIN_TOKEN and PostgreSQL requirements.
 
 ## Deploy
 

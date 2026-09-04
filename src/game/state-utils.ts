@@ -468,10 +468,15 @@ export function applyEffect(
       break;
     case "set_random_scene": {
       const registry = buildRuntimeRegistry(state);
-      const candidates = Object.values(registry.scenes)
+      let candidates = Object.values(registry.scenes)
         .filter((scene) => scene.locationId === state.location)
-        .filter((scene) => (scene.tags ?? []).includes(effect.tag))
+        .filter((scene) => effect.sceneIds ? effect.sceneIds.includes(scene.id) : (scene.tags ?? []).includes(effect.tag))
         .filter((scene) => scene.conditions.every((condition) => evaluateCondition(condition, state)));
+      const poolKey = `studio_narration_last_${effect.sceneIds?.join('|') ?? effect.tag}:`;
+      if (effect.avoidRepeat && candidates.length > 1) {
+        const fresh = candidates.filter(scene => scene.id !== state.sceneId && !state.flags[poolKey + scene.id]);
+        if (fresh.length) candidates = fresh;
+      }
       if (candidates.length > 0) {
         const roll = options.rng ? options.rng() : Math.random();
         const normalizedRoll = Number.isFinite(roll)
@@ -479,6 +484,10 @@ export function applyEffect(
           : 0;
         const index = Math.floor(normalizedRoll * candidates.length);
         state.sceneId = candidates[Math.min(index, candidates.length - 1)].id;
+        if (effect.avoidRepeat) {
+          for (const key of Object.keys(state.flags)) if (key.startsWith(poolKey)) delete state.flags[key];
+          state.flags[poolKey + state.sceneId] = true;
+        }
       }
       break;
     }

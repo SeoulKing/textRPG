@@ -1,3 +1,4 @@
+import { currentContentVersionId } from "./content-versions";
 import {
   AUTO_ENERGY_TICK_MS,
   GAME_MINUTE_MS,
@@ -132,6 +133,9 @@ const DISCOVERY_UNLOCK_FLAGS: Record<string, string[]> = {
 };
 
 function normalizeExplorationKnowledge(state: GameState) {
+  for (const location of Object.values(buildRuntimeRegistry(state).locations)) {
+    if (location.discoveryConditions?.every(condition => evaluateCondition(condition, state))) state.flags[`known_${location.id}`] = true;
+  }
   state.flags.known_convenience = true;
   state.flags.known_kitchen = true;
   state.flags.known_forest = true;
@@ -436,6 +440,7 @@ export function syncScene(state: GameState, preferredSceneId?: string) {
       ? resolveNextSceneDefinition(state, registry, state.location, preferredSceneId)
       : resolveSceneDefinition(state, registry, state.location);
   state.sceneId = scene.id;
+  if (scene.completionFlag) state.flags[scene.completionFlag] = true;
   state.activeEventId = scene.eventId ?? null;
 }
 
@@ -668,6 +673,7 @@ export function createInitialGameState(): GameState {
   const registry = buildRuntimeRegistry();
   const state: GameState = {
     saveVersion: SAVE_VERSION,
+    contentVersionId: currentContentVersionId(),
     sceneId: "prologue_opening",
     activeEventId: null,
     location: "shelter",
@@ -1146,6 +1152,7 @@ function executeSceneChoiceDefinition(
     };
   }
 
+  if (choice.tags?.includes("studio-authored") && !resolveSceneDefinition(state, buildRuntimeRegistry(state)).choiceIds.includes(choice.id)) throw new Error("현재 장면에서 선택할 수 없습니다.");
   consumeCurrentSceneIntro(state);
   const previousState = structuredClone(state);
   applyDefinitionEffects(state, choice.effects, choice.skillUse, options);

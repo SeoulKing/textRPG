@@ -127,6 +127,20 @@ import {
 } from "./schemas";
 import { buildPlannedRegionSummary, createWorldPlanner, type WorldPlanner } from "./world-planner";
 
+function runtimeNpcDialogueProfile(npcId: string, registry: ContentRegistry): ReturnType<typeof getNpcDialogueProfile> {
+  const profile = getNpcDialogueProfile(npcId);
+  const person = registry.people[npcId] as { name?: string; role?: string; personality?: string[]; relationToPlayer?: string; locationId?: string; summary?: string } | undefined;
+  if (!profile || !person) return profile;
+  return {
+    ...profile,
+    name: person.name ?? profile.name,
+    identity: person.summary || person.role || profile.identity,
+    personality: person.personality ?? profile.personality,
+    initialRelationship: person.relationToPlayer ?? profile.initialRelationship,
+    homeLocationId: person.locationId ?? profile.homeLocationId,
+  };
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -435,7 +449,7 @@ export class GameService {
     }
     const location = this.currentLocation(session, registry);
     return location.residentIds.flatMap((npcId) => {
-      const profile = getNpcDialogueProfile(npcId);
+      const profile = runtimeNpcDialogueProfile(npcId, registry);
       if (!profile || profile.homeLocationId !== location.id) {
         return [];
       }
@@ -884,7 +898,7 @@ export class GameService {
       if (session.state.subwayExpedition.active) {
         throw new Error("심층 탐험 중에는 NPC와 대화할 수 없습니다.");
       }
-      const profile = getNpcDialogueProfile(action.npcId);
+      const profile = runtimeNpcDialogueProfile(action.npcId, registry);
       if (!profile) {
         throw new Error("대화할 수 없는 인물입니다.");
       }
@@ -1383,6 +1397,11 @@ export class GameService {
   }
 
   private async ensureLocationCard(session: GameSession, locationId: string, registry: ContentRegistry) {
+    if (session.state.contentVersionId && registry.locations[locationId]) {
+      const card = await this.templateGenerator.generateLocationCard(locationId, this.generatorInput(session, false, registry));
+      session.world.locationCards[locationId] = card;
+      return card;
+    }
     const definition = registry.locations[locationId];
     const expectedImagePath = definition?.imagePath ?? null;
     const expectedName = definition?.name ?? "";
@@ -1434,6 +1453,11 @@ export class GameService {
   }
 
   private async ensurePersonCard(session: GameSession, personId: string, registry: ContentRegistry) {
+    if (session.state.contentVersionId && registry.people[personId]) {
+      const card = { ...(registry.people[personId] as Omit<PersonCard, "source" | "generatedAt">), source: "template" as const, generatedAt: nowIso() };
+      session.world.personCards[personId] = card;
+      return card;
+    }
     if (session.world.personCards[personId]) {
       return session.world.personCards[personId];
     }
@@ -1844,8 +1868,8 @@ export class GameService {
   private buildSnapshot(session: GameSession, latestEvent: EventCard | null, registry = this.runtimeRegistry(session)): StateSnapshot {
     const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true }, registry);
     const expeditionScene = buildSubwayExpeditionScene(session.state);
-    const activeDialogueProfile = getNpcDialogueProfile(
-      session.state.npcDialogue.active?.npcId ?? "",
+    const activeDialogueProfile = runtimeNpcDialogueProfile(
+      session.state.npcDialogue.active?.npcId ?? "", registry,
     );
     const dialogueScene = buildNpcDialogueScene(
       session.state,
@@ -1916,7 +1940,7 @@ export class GameService {
         requirements: this.buildQuestRequirements(session, quest, registry),
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
-      skillProgress: buildSkillProgressCards(session.state.skillProgress),
+      skillProgress: buildSkillProgressCards(session.state.skillProgress, registry.actions.fish_at_river?.effects.find(effect => effect.type === "random_outcome")?.outcomes),
       availableActions: (dialogueScene
         ? buildNpcDialogueActions(session.state)
         : expeditionScene
