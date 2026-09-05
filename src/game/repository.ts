@@ -2,6 +2,7 @@ import { normalizeHealthConditions } from "./health-conditions";
 import { legacyContentVersionId, versionRegistry } from "./content-versions";
 import { copyFile, mkdir, readFile, rename, unlink, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import {
   DynamicWorldRegistrySchema,
   FrontierStateSchema,
@@ -571,6 +572,7 @@ export function buildManualSaveInfo(gameId: string, record: ManualSaveRecord | n
 }
 
 export class FileGameRepository implements GameRepository {
+  private static readonly templateUpdates = new Map<string, Promise<void>>();
   private readonly runtimeDir: string;
   private readonly gamesDir: string;
   private readonly manualSavesDir: string;
@@ -594,7 +596,7 @@ export class FileGameRepository implements GameRepository {
   }
 
   private async writeTemplatesAtomically(templates: TemplateStore) {
-    const tmpPath = `${this.templatesPath}.tmp`;
+    const tmpPath = `${this.templatesPath}.${randomUUID()}.tmp`;
     await writeFile(tmpPath, JSON.stringify(templates, null, 2), "utf8");
     try {
       await rename(tmpPath, this.templatesPath);
@@ -805,16 +807,30 @@ export class FileGameRepository implements GameRepository {
     return templates[kind][id];
   }
 
+  private async updateTemplates(update: (templates: TemplateStore) => void) {
+    // Different games share this file; serialize the entire read/modify/write cycle.
+    const previous = FileGameRepository.templateUpdates.get(this.templatesPath) ?? Promise.resolve();
+    const pending = previous.catch(() => undefined).then(async () => {
+      const templates = await this.loadTemplates();
+      update(templates);
+      await this.writeTemplatesAtomically(templates);
+    });
+    FileGameRepository.templateUpdates.set(this.templatesPath, pending);
+    try {
+      await pending;
+    } finally {
+      if (FileGameRepository.templateUpdates.get(this.templatesPath) === pending) {
+        FileGameRepository.templateUpdates.delete(this.templatesPath);
+      }
+    }
+  }
+
   async saveTemplate(kind: CardKind, id: string, card: StoredCard) {
-    const templates = await this.loadTemplates();
-    templates[kind][id] = card as never;
-    await this.writeTemplatesAtomically(templates);
+    await this.updateTemplates(templates => { templates[kind][id] = card as never; });
   }
 
   async saveProtagonistTemplate(card: ProtagonistCard) {
-    const templates = await this.loadTemplates();
-    templates.protagonistCard = card;
-    await this.writeTemplatesAtomically(templates);
+    await this.updateTemplates(templates => { templates.protagonistCard = card; });
   }
 
   async appendActionLog(entry: Record<string, unknown>) {

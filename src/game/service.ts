@@ -1542,7 +1542,8 @@ export class GameService {
       ...this.generatorInput(session, false),
     });
     session.world.protagonistCard = card;
-    await this.repository.saveProtagonistTemplate(card);
+    // Player-specific data is persisted with the session by saveGame.
+    // Writing it to the shared template store serializes unrelated games.
     return card;
   }
 

@@ -71,3 +71,26 @@ test('archived saves adopt the explicit ingredient merge without changing their 
   assert.deepEqual(restored.state.inventory, { vegetables: 5 });
   assert.equal(restored.state.contentVersionId, version);
 });
+
+
+test('processing menus name their output in both current and archived catalogs', () => {
+  const { buildRuntimeRegistry } = require('../.server-dist/game/runtime-registry');
+  const stored=getEffectiveContentStudioDocument();
+  stored.items.find(item=>item.id==='woodPlank').name='목재 판자';
+  stored.recipes.find(recipe=>recipe.id==='craft_wood_plank').label='{{item:woodPlank}} 가공';
+  stored.recipes.find(recipe=>recipe.id==='craft_firewood').label='땔감 만들기';
+  const migrated=getEffectiveContentStudioDocument(stored);
+  assert.equal(migrated.items.find(item=>item.id==='woodPlank').name,'나무 판자');
+  assert.equal(migrated.recipes.find(recipe=>recipe.id==='craft_wood_plank').label,'{{item:woodPlank}}');
+  assert.equal(migrated.recipes.find(recipe=>recipe.id==='craft_firewood').label,'{{item:firewood}}');
+  const archived=structuredClone(worldRegistry);
+  archived.items.woodPlank.name='목재 판자';
+  archived.choices.craft_wood_plank.label='목재 가공';
+  archived.choices.craft_firewood.label='땔감 가공';
+  const state=createInitialGameState();
+  state.contentVersionId=registerContentVersion(archived);
+  const runtime=buildRuntimeRegistry(state);
+  assert.equal(runtime.items.woodPlank.name,'나무 판자');
+  assert.equal(runtime.choices.craft_wood_plank.label,'{{item:woodPlank}}');
+  assert.equal(runtime.choices.craft_firewood.label,'{{item:firewood}}');
+});

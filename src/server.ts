@@ -150,8 +150,14 @@ async function bootstrap() {
   await contentVersions.init(worldRegistry);
   validateContent();
 
-  app.addHook("onSend", async (_request, reply, payload) => {
-    reply.header("Cache-Control", "no-store");
+  app.addHook("onSend", async (request, reply, payload) => {
+    const pathname = request.url.split("?", 1)[0];
+    const isStaticAsset = pathname.startsWith("/assets/") || pathname.startsWith("/client/") || pathname.startsWith("/vendor/");
+    // Revalidate stable URLs so Studio image replacements appear on the next load.
+    // Static files retain their ETag/Last-Modified and can return an empty 304.
+    reply.header("Cache-Control", isStaticAsset && reply.statusCode < 400
+      ? "public, max-age=0, must-revalidate"
+      : "no-store");
     return payload;
   });
 

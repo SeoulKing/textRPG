@@ -16,6 +16,9 @@ const TYPEWRITER_PARAGRAPH_DELAY = 260;
 const ACTION_TRANSITION_ACTION_MS = 500;
 const ACTION_TRANSITION_MOVEMENT_MS = 1000;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
+const SCENE_IMAGE_CACHE_LIMIT = 8;
+const sceneImageCache = new Map();
+const preparedScenePresentations = new WeakMap();
 const TIME_ADVANCE_EMPHASIS_MS = 820;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
@@ -360,6 +363,10 @@ const client = {
   geminiTestStatus: null,
   lastFetchedAt: 0,
   syncTimer: null,
+  syncInFlight: false,
+  syncFailures: 0,
+  syncRetryAt: 0,
+  apiRetryAt: 0,
   mapHint: "",
   mapZoomIndex: MAP_ZOOM_FIT_INDEX,
   activeMapDetailKey: null,
@@ -381,6 +388,8 @@ const client = {
   actionTransitionMessage: "",
   actionTransitionStartedAt: 0,
   actionTransitionDurationMs: 0,
+  lastActionTiming: null,
+  sceneImageSource: "",
   sceneRenderToken: 0,
   activeSceneTimer: null,
   activeSceneTimerResolve: null,
@@ -682,7 +691,16 @@ function hexLabelMarkup(name) {
   ).join("");
 }
 
+function rateLimitError(retryAt) {
+  const seconds = Math.max(1, Math.ceil((retryAt - Date.now()) / 1000));
+  const error = new Error(`요청이 잠시 제한되었습니다. ${seconds}초 뒤 다시 시도해 주세요.`);
+  error.status = 429;
+  error.retryAt = retryAt;
+  return error;
+}
+
 async function api(path, options = {}) {
+  if (Date.now() < client.apiRetryAt) throw rateLimitError(client.apiRetryAt);
   const response = await fetch(path, {
     method: options.method || "GET",
     headers: {
@@ -692,8 +710,18 @@ async function api(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   if (!response.ok) {
+    if (response.status === 429) {
+      const retryAfter = response.headers.get("Retry-After");
+      const seconds = retryAfter?.trim() ? Number(retryAfter) : NaN;
+      const retryAt = Number.isFinite(seconds) ? Date.now() + Math.max(0, seconds) * 1000 : Date.parse(retryAfter);
+      client.apiRetryAt = Math.max(client.apiRetryAt, Number.isFinite(retryAt) ? Math.max(Date.now() + 1000, retryAt) : Date.now() + 30000);
+      console.warn(`HTTP 429: ${options.method || "GET"} ${path}`);
+      throw rateLimitError(client.apiRetryAt);
+    }
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.message || payload.error || `HTTP ${response.status}`);
+    const error = new Error(payload.message || payload.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
@@ -1018,35 +1046,107 @@ function snapshotLocationCard(snapshot) {
   return snapshot?.visibleLocations?.find((entry) => entry.id === locationId) || null;
 }
 
+function sceneImageSource(location) {
+  // Use the same address for prediction, preloading, and display of old saves.
+  const source = location?.imagePath || "assets/scenes/camp.svg";
+  return source.replace(/^\/?assets\/scenes\/forest\.svg$/, "assets/scenes/forest-pencil-charcoal.png");
+}
+
 function preloadImage(source) {
-  if (!source) {
-    return Promise.resolve();
+  if (!source) return Promise.resolve(null);
+  const cached = sceneImageCache.get(source);
+  if (cached) {
+    sceneImageCache.delete(source);
+    sceneImageCache.set(source, cached);
+    return cached.promise;
   }
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.addEventListener("load", resolve, { once: true });
-    image.addEventListener("error", resolve, { once: true });
+  const image = new Image();
+  const entry = { image, ready: false, promise: null };
+  entry.promise = new Promise((resolve) => {
+    let settled = false;
+    const finish = async () => {
+      if (settled) return;
+      settled = true;
+      if (!image.naturalWidth) {
+        if (sceneImageCache.get(source) === entry) sceneImageCache.delete(source);
+        resolve(null);
+        return;
+      }
+      // Retain the decoded image itself so displaying it does not start another load.
+      if (typeof image.decode === "function") await image.decode().catch(() => undefined);
+      entry.ready = true;
+      resolve(image);
+    };
+    image.addEventListener("load", finish, { once: true });
+    image.addEventListener("error", finish, { once: true });
     image.src = source;
-    if (image.complete) {
-      resolve();
-    }
+    if (image.complete) Promise.resolve().then(finish);
   });
+  sceneImageCache.set(source, entry);
+  while (sceneImageCache.size > SCENE_IMAGE_CACHE_LIMIT) {
+    sceneImageCache.delete(sceneImageCache.keys().next().value);
+  }
+  return entry.promise;
+}
+
+function displaySceneImage(source) {
+  client.sceneImageSource = source;
+  const show = (image) => {
+    if (client.sceneImageSource !== source) return;
+    if (!image) {
+      dom.sceneArt.hidden = true;
+      return;
+    }
+    if (image !== dom.sceneArt) {
+      for (const { name, value } of Array.from(dom.sceneArt.attributes)) {
+        if (name !== "src") image.setAttribute(name, value);
+      }
+      dom.sceneArt.replaceWith(image);
+      dom.sceneArt = image;
+    }
+    dom.sceneArt.hidden = false;
+  };
+  const cached = sceneImageCache.get(source);
+  if (cached?.ready) {
+    show(cached.image);
+    return;
+  }
+  // After the loading deadline, show the text without a wrong location image.
+  dom.sceneArt.hidden = true;
+  void preloadImage(source).then(show);
+}
+
+function preloadActionSceneAssets(action, snapshot) {
+  const targetId = action?.type === "travel" ? action.targetId : snapshot?.state?.location;
+  const location = snapshot?.visibleLocations?.find((entry) => entry.id === targetId);
+  if (location) void preloadImage(sceneImageSource(location));
 }
 
 async function preloadNextSceneAssets(snapshot) {
-  const location = snapshotLocationCard(snapshot);
-  const imageSources = new Set([
-    location?.imagePath,
-    snapshot?.currentScene?.imagePath,
-  ].filter(Boolean));
-  if (imageSources.size === 0) {
-    return;
+  let timer;
+  try {
+    await Promise.race([
+      preloadImage(sceneImageSource(snapshotLocationCard(snapshot))),
+      new Promise((resolve) => {
+        timer = window.setTimeout(resolve, ACTION_ASSET_PRELOAD_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    window.clearTimeout(timer);
   }
+}
 
-  await Promise.race([
-    Promise.all(Array.from(imageSources, preloadImage)),
-    waitForMilliseconds(ACTION_ASSET_PRELOAD_TIMEOUT_MS),
-  ]);
+function prepareScenePresentation(snapshot) {
+  let prepared = preparedScenePresentations.get(snapshot);
+  if (!prepared) {
+    prepared = { story: buildStoryDisplay(snapshot), choices: null, recipeDetailId: null };
+    preparedScenePresentations.set(snapshot, prepared);
+  }
+  if (!prepared.choices || prepared.recipeDetailId !== client.activeCraftingRecipeDetailId) {
+    prepared.choices = buildChoicePresentation(snapshot);
+    prepared.recipeDetailId = client.activeCraftingRecipeDetailId;
+  }
+  return prepared;
 }
 
 function clearLegacyGameIds() {
@@ -1985,7 +2085,7 @@ function craftingRecipeMetaHtml(recipe, { showEffect = true } = {}) {
   `;
 }
 
-function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
+function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {}) {
   const recipeChoices = snapshot.availableActions.filter((choice) =>
     !["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) && choice.craftingRecipe
   );
@@ -1993,7 +2093,7 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     ["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) || !choice.craftingRecipe
   );
   const selectedChoice = recipeChoices.find((choice) => choice.id === client.activeCraftingRecipeDetailId) || recipeChoices[0] || null;
-  client.activeCraftingRecipeDetailId = selectedChoice?.id || null;
+  const selectedRecipeId = selectedChoice?.id || null;
 
   if (selectedChoice?.craftingRecipe) {
     const detail = document.createElement("section");
@@ -2013,7 +2113,7 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
       </div>
       ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe, { showEffect: !isCookingMenu })}
     `;
-    dom.choices.appendChild(detail);
+    container.appendChild(detail);
   }
 
   const createCraftButton = (choice, { menuFooter = false } = {}) => {
@@ -2027,7 +2127,6 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     craftButton.textContent = menuFooter
       ? isCookingMenu ? "요리하기" : "제작하기"
       : choice.craftingRecipe.actionLabel || "제작";
-    craftButton.disabled = client.actionInFlight;
     craftButton.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -2049,13 +2148,13 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     card.className = [
       "crafting-choice-card",
       choice.isAvailable ? "is-recipe-available" : "is-recipe-unavailable",
-      choice.id === client.activeCraftingRecipeDetailId ? "is-active" : "",
+      choice.id === selectedRecipeId ? "is-active" : "",
     ].filter(Boolean).join(" ");
 
     const selectButton = document.createElement("button");
     selectButton.className = "crafting-choice-select";
     selectButton.type = "button";
-    selectButton.setAttribute("aria-pressed", choice.id === client.activeCraftingRecipeDetailId ? "true" : "false");
+    selectButton.setAttribute("aria-pressed", choice.id === selectedRecipeId ? "true" : "false");
     selectButton.innerHTML = `<span class="crafting-recipe-name">${escapeHtml(choice.label)}</span>`;
     selectButton.addEventListener("click", (event) => {
       event.preventDefault();
@@ -2068,7 +2167,7 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     recipeGrid.appendChild(card);
   });
 
-  dom.choices.appendChild(recipeGrid);
+  container.appendChild(recipeGrid);
 
   let recipeMenuExitButton = null;
 
@@ -2096,7 +2195,7 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     const shouldShowOutcomeHint = Boolean(choice.showOutcomeHint && outcomeHint);
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
-    button.disabled = client.actionInFlight || choice.isAvailable === false;
+    button.disabled = choice.isAvailable === false;
     button.addEventListener("click", () => submitAction(
       choice.action,
       button,
@@ -2106,7 +2205,7 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     if (isRecipeMenuExit) {
       recipeMenuExitButton = button;
     } else {
-      dom.choices.appendChild(fragment);
+      container.appendChild(fragment);
     }
   });
 
@@ -2117,8 +2216,9 @@ function renderCraftingChoices(snapshot, { isCookingMenu = false } = {}) {
     if (selectedChoice) {
       footer.appendChild(createCraftButton(selectedChoice, { menuFooter: true }));
     }
-    dom.choices.appendChild(footer);
+    container.appendChild(footer);
   }
+  return selectedRecipeId;
 }
 
 function hideSystemNote() {
@@ -2489,47 +2589,16 @@ function renderStatusBar() {
   }
 }
 
-function renderChoices() {
-  const snapshot = client.snapshot;
-  dom.choices.innerHTML = "";
-  dom.choices.classList.remove("revealed", "is-crafting-menu", "is-cooking-menu");
-  dom.sceneFrame.classList.remove("is-cooking-menu");
-  if (!snapshot) {
-    syncMobileChoiceZoneHeight();
-    return;
-  }
-  const pendingAction = client.pendingAction;
-  const isGeneratingSubwayFloor = client.actionInFlight && (
-    pendingAction?.type === "subway_expedition" &&
-      (pendingAction.command === "start" || pendingAction.command === "descend") ||
-    pendingAction?.type === "content_action" &&
-      pendingAction.actionId === "start_subway_expedition"
-  );
-  if (isGeneratingSubwayFloor) {
-    const loading = document.createElement("p");
-    loading.className = "empty-state";
-    loading.textContent = "준비된 지하 구간으로 이동하고 있습니다…";
-    loading.setAttribute("aria-live", "polite");
-    dom.choices.appendChild(loading);
-  }
-  if (snapshot.state.isGameOver) {
-    dom.choices.classList.add("revealed");
-    syncMobileChoiceZoneHeight();
-    return;
-  }
-
+function buildChoicePresentation(snapshot) {
+  const element = document.createDocumentFragment();
   const isRecipeMenu = snapshot.availableActions.some((choice) => choice.craftingRecipe);
   const isCookingMenu = snapshot.availableActions.some((choice) => choice.id === "leave_shelter_cooking");
+  const presentation = { element, isRecipeMenu, isCookingMenu, selectedRecipeId: null };
+  if (snapshot.state.isGameOver) return presentation;
   if (isRecipeMenu) {
-    dom.choices.classList.add("is-crafting-menu");
-    dom.choices.classList.toggle("is-cooking-menu", isCookingMenu);
-    dom.sceneFrame.classList.toggle("is-cooking-menu", isCookingMenu);
-    renderCraftingChoices(snapshot, { isCookingMenu });
-    dom.choices.classList.add("revealed");
-    syncMobileChoiceZoneHeight();
-    return;
+    presentation.selectedRecipeId = buildCraftingChoices(snapshot, element, { isCookingMenu });
+    return presentation;
   }
-
   snapshot.availableActions.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
@@ -2549,16 +2618,53 @@ function renderChoices() {
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
-    button.disabled = client.actionInFlight || choice.isAvailable === false;
+    button.disabled = choice.isAvailable === false;
     button.addEventListener("click", () => submitAction(
       choice.action,
       button,
       choice.loading,
       choice.postChoiceNarrative,
     ));
-    dom.choices.appendChild(fragment);
+    element.appendChild(fragment);
   });
 
+  return presentation;
+}
+
+function renderChoices() {
+  const snapshot = client.snapshot;
+  dom.choices.replaceChildren();
+  dom.choices.classList.remove("revealed", "is-crafting-menu", "is-cooking-menu");
+  dom.sceneFrame.classList.remove("is-cooking-menu");
+  if (!snapshot) {
+    syncMobileChoiceZoneHeight();
+    return;
+  }
+  const prepared = prepareScenePresentation(snapshot);
+  const presentation = prepared.choices;
+  prepared.choices = null; // The fragment is consumed when attached to the live document.
+  if (presentation.isRecipeMenu) {
+    client.activeCraftingRecipeDetailId = presentation.selectedRecipeId;
+    dom.choices.classList.add("is-crafting-menu");
+    dom.choices.classList.toggle("is-cooking-menu", presentation.isCookingMenu);
+    dom.sceneFrame.classList.toggle("is-cooking-menu", presentation.isCookingMenu);
+  }
+  const pendingAction = client.pendingAction;
+  const isGeneratingSubwayFloor = client.actionInFlight && (
+    pendingAction?.type === "subway_expedition" && ["start", "descend"].includes(pendingAction.command) ||
+    pendingAction?.type === "content_action" && pendingAction.actionId === "start_subway_expedition"
+  );
+  if (isGeneratingSubwayFloor && !snapshot.state.isGameOver) {
+    const status = document.createElement("p");
+    status.className = "empty-state";
+    status.textContent = "준비된 지하 구간으로 이동하고 있습니다…";
+    status.setAttribute("aria-live", "polite");
+    dom.choices.appendChild(status);
+  }
+  dom.choices.appendChild(presentation.element);
+  if (client.actionInFlight) {
+    dom.choices.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+  }
   dom.choices.classList.add("revealed");
   syncMobileChoiceZoneHeight();
 }
@@ -2571,7 +2677,7 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
     return;
   }
 
-  const story = buildStoryDisplay(snapshot);
+  const story = prepareScenePresentation(snapshot).story;
   const surfaceId = storySurfaceId(snapshot);
   const previousRenderedNoteKey = client.renderedSystemNoteKey;
   const surfaceChanged = Boolean(client.renderedStorySurfaceId && client.renderedStorySurfaceId !== surfaceId);
@@ -2579,11 +2685,7 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
     resetSceneScrollOnMobile();
   }
 
-  // Existing saves can retain the original forest asset path.
-  const sceneImagePath = location.imagePath === "assets/scenes/forest.svg"
-    ? "assets/scenes/forest-pencil-charcoal.png"
-    : location.imagePath;
-  dom.sceneArt.src = sceneImagePath || "assets/scenes/camp.svg";
+  displaySceneImage(sceneImageSource(location));
   syncShelterSceneVisual(snapshot);
   renderSceneDevSource(snapshot);
   const systemNote = snapshot.state.systemNote || "";
@@ -3661,26 +3763,28 @@ function renderMenuPanel() {
 }
 
 function renderPanel() {
-  const config = PANEL_CONFIG[client.activePanel];
-  dom.panelTitle.textContent = config.title;
-  dom.panelContent.classList.toggle(
-    "inventory-panel-content",
-    client.activePanel === "inventory",
-  );
-  if (client.activePanel === "map") {
-    renderMapPanel();
-  } else if (client.activePanel === "inventory") {
-    renderInventoryPanel();
-  } else if (client.activePanel === "status") {
-    renderStatusPanel();
-  } else if (client.activePanel === "quests") {
-    renderQuestsPanel();
-  } else if (client.activePanel === "log") {
-    renderLogPanel();
-  } else if (client.activePanel === "itemCodex") {
-    renderItemCodexPanel();
-  } else {
-    renderMenuPanel();
+  if (client.isPanelOpen) {
+    const config = PANEL_CONFIG[client.activePanel];
+    dom.panelTitle.textContent = config.title;
+    dom.panelContent.classList.toggle(
+      "inventory-panel-content",
+      client.activePanel === "inventory",
+    );
+    if (client.activePanel === "map") {
+      renderMapPanel();
+    } else if (client.activePanel === "inventory") {
+      renderInventoryPanel();
+    } else if (client.activePanel === "status") {
+      renderStatusPanel();
+    } else if (client.activePanel === "quests") {
+      renderQuestsPanel();
+    } else if (client.activePanel === "log") {
+      renderLogPanel();
+    } else if (client.activePanel === "itemCodex") {
+      renderItemCodexPanel();
+    } else {
+      renderMenuPanel();
+    }
   }
   dom.panelShell.classList.toggle("is-open", client.isPanelOpen);
   dom.panelShell.setAttribute("aria-hidden", client.isPanelOpen ? "false" : "true");
@@ -3733,13 +3837,22 @@ async function submitAction(
     : actionTransitionDurationMs(action, loading);
   const shouldShowTransition = transitionDurationMs > 0;
   const previousSnapshot = client.snapshot;
+  const timing = { action: action.type, startedAt: performance.now() };
+  const mark = (key) => { timing[key] = Math.round(performance.now() - timing.startedAt); };
+  client.lastActionTiming = timing;
   try {
+    preloadActionSceneAssets(action, previousSnapshot);
     const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
       body: action,
     })
       .then(async (snapshot) => {
-        await preloadNextSceneAssets(snapshot);
+        mark("responseMs");
+        const assetsReady = preloadNextSceneAssets(snapshot);
+        prepareScenePresentation(snapshot);
+        mark("preparedMs");
+        await assetsReady;
+        mark("assetsMs");
         return { snapshot, error: null };
       })
       .catch((error) => ({ snapshot: null, error }));
@@ -3771,6 +3884,7 @@ async function submitAction(
       throw error;
     }
     await immediateNarrativePromise;
+    mark("presentationReadyMs");
     if (needsFreshGame(snapshot)) {
       finishActionTransition();
       await createNewGame();
@@ -3810,6 +3924,8 @@ async function submitAction(
       appendScene: hasImmediateNarrative || continueLocationStory,
       scrollSceneToStart: continueLocationStory,
     });
+    mark("renderedMs");
+    timing.renderWorkMs = timing.renderedMs - timing.presentationReadyMs;
     showQuestCompletionBurst(newlyCompletedQuests);
     if (didMove) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3830,12 +3946,20 @@ async function submitAction(
 }
 
 async function backgroundSync() {
-  if (!client.gameId || client.actionInFlight) {
+  if (!client.gameId || client.isHomeVisible || document.hidden || client.actionInFlight || client.syncInFlight ||
+      Date.now() < Math.max(client.syncRetryAt, client.apiRetryAt)) {
     renderStatusBar();
     return;
   }
+  client.syncInFlight = true;
+  const gameId = client.gameId;
+  const snapshotAtRequest = client.snapshot;
   try {
-    const snapshot = await api(`/api/games/${client.gameId}/state`);
+    const snapshot = await api(`/api/games/${gameId}/state`);
+    client.syncFailures = 0;
+    client.syncRetryAt = 0;
+    // A late poll must not overwrite a newer action or a different game.
+    if (client.gameId !== gameId || client.isHomeVisible || client.actionInFlight || client.snapshot !== snapshotAtRequest) return;
     if (needsFreshGame(snapshot)) {
       await createNewGame();
       render({
@@ -3873,8 +3997,12 @@ async function backgroundSync() {
     }
     renderStatusBar();
     showQuestCompletionBurst(newlyCompletedQuests);
-  } catch (_error) {
+  } catch (error) {
+    client.syncFailures = Math.min(client.syncFailures + 1, 5);
+    client.syncRetryAt = Math.max(error.retryAt || 0, Date.now() + Math.min(120000, 10000 * 2 ** client.syncFailures));
     renderStatusBar();
+  } finally {
+    client.syncInFlight = false;
   }
 }
 
@@ -4169,6 +4297,7 @@ window.render_game_to_text = () => JSON.stringify({
     effectPercent: skill.effectPercent,
   })),
   subwayExpedition: client.snapshot?.state?.subwayExpedition || null,
+  lastActionTiming: client.lastActionTiming,
   actionTransition: client.actionInFlight
     ? {
         message: client.actionTransitionMessage,

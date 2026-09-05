@@ -87,7 +87,7 @@ export const baseItems = {
   wood: defineItem({
     id: "wood",
     name: "목재",
-    description: "벌목으로 얻은 가공 전 목재다. 목재 판자나 땔감으로 가공할 수 있다.",
+    description: "벌목으로 얻은 가공 전 목재다. 나무 판자나 땔감으로 가공할 수 있다.",
     kind: "material",
     rarity: "common",
     price: 500,
@@ -112,7 +112,7 @@ export const baseItems = {
   }),
   woodPlank: defineItem({
     id: "woodPlank",
-    name: "목재 판자",
+    name: "나무 판자",
     description: "목재를 평평하게 다듬은 판자다. 거처 보강과 시설, 도구 제작에 쓸 수 있다.",
     kind: "material",
     rarity: "common",
