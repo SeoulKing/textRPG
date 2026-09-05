@@ -3,7 +3,7 @@
  */
 
 export const PHASES = ["morning", "late morning", "afternoon", "evening", "night"] as const;
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 20;
 export const REAL_DAY_MS = 15 * 60 * 1000;
 export const PHASE_DURATION_MS = REAL_DAY_MS / PHASES.length;
 export const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);

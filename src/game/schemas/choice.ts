@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { ConditionSchema } from "./condition-effect";
 import { EffectSchema } from "./condition-effect";
-import { GameActionSchema } from "./action";
+import { ChoiceLoadingSchema, GameActionSchema } from "./action";
 import { ActionPresentationModeSchema } from "./action";
+import { SkillUseSchema } from "./skill-progression";
 
 export const RiskHintSchema = z.enum(["low", "medium", "high"]);
 
@@ -31,6 +32,8 @@ export const StoryChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  remainingUses: z.number().int().nonnegative().optional(),
+  loading: ChoiceLoadingSchema.optional(),
   craftingRecipe: CraftingRecipeSchema.optional(),
   serverActionHint: GameActionSchema,
   isAvailable: z.boolean().default(true),
@@ -49,9 +52,13 @@ export const ActionChoiceSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  postChoiceNarrative: z.array(z.string().min(1).max(600)).min(1).max(2).optional(),
+  remainingUses: z.number().int().nonnegative().optional(),
+  loading: ChoiceLoadingSchema.optional(),
   craftingRecipe: CraftingRecipeSchema.optional(),
   action: GameActionSchema,
   isAvailable: z.boolean().default(true),
+  statusLabel: z.string().optional(),
   nextSceneId: z.string().optional(),
 });
 
@@ -60,6 +67,7 @@ export const ChoiceDefinitionSchema = z.object({
   label: z.string(),
   outcomeHint: z.string(),
   showOutcomeHint: z.boolean().optional(),
+  loading: ChoiceLoadingSchema.optional(),
   descriptionTag: z.string().optional(),
   tags: z.array(z.string()).optional(),
   presentationMode: ActionPresentationModeSchema.default("when_conditions_met"),
@@ -67,10 +75,12 @@ export const ChoiceDefinitionSchema = z.object({
   effects: z.array(EffectSchema).default([]),
   failureEffects: z.array(EffectSchema).default([]),
   failureNote: z.string().optional(),
+  systemNote: z.string().nullable().optional(),
   riskHint: RiskHintSchema.optional(),
   hidden: z.boolean().default(false),
   nextEventId: z.string().optional(),
   nextSceneId: z.string().optional(),
+  skillUse: SkillUseSchema.optional(),
 });
 
 export type StoryChoice = z.infer<typeof StoryChoiceSchema>;

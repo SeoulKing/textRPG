@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TextRPG 콘텐츠 스튜디오</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/content-editor.css" />
+  </head>
+  <body>
+    <div class="studio-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div>
+            <strong>콘텐츠 스튜디오</strong>
+            <span>작가용 이야기 편집기</span>
+          </div>
+        </div>
+        <div class="save-state" id="saveState">불러오는 중…</div>
+        <div class="topbar-actions">
+          <a class="button ghost game-link" href="/" target="_blank">게임 열기</a>
+          <button class="button secondary" id="saveButton" type="button">
+            <span class="wide-label">초안 저장</span>
+            <span class="narrow-label">저장</span>
+          </button>
+          <button class="button primary" id="publishButton" type="button">
+            <span class="wide-label">검토 및 배포</span>
+            <span class="narrow-label">검토</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <nav class="section-nav" aria-label="콘텐츠 종류">
+          <button class="nav-item" data-tab="locations" type="button"><span class="nav-icon">⌖</span><span>지역</span><b id="locationCount">0</b></button>
+          <button class="nav-item" data-tab="people" type="button"><span class="nav-icon">♙</span><span>캐릭터</span><b id="personCount">0</b></button>
+          <button class="nav-item" data-tab="stories" type="button">
+            <span class="nav-icon">¶</span>
+            <span>이야기</span>
+            <b id="storyCount">0</b>
+          </button>
+          <button class="nav-item" data-tab="items" type="button">
+            <span class="nav-icon">◈</span>
+            <span>아이템</span>
+            <b id="itemCount">0</b>
+          </button>
+          <button class="nav-item" data-tab="recipes" type="button">
+            <span class="nav-icon">⌁</span>
+            <span>레시피</span>
+            <b id="recipeCount">0</b>
+          </button>
+
+          <button class="button ghost list-panel-toggle" id="listPanelToggle" type="button" aria-expanded="true" aria-controls="contentListPanel">목록 접기</button>
+        </nav>
+
+        <section class="content-list-panel" id="contentListPanel">
+          <div class="list-heading">
+            <div>
+              <span class="eyebrow" id="listEyebrow">ITEMS</span>
+              <h1 id="listTitle">아이템</h1>
+            </div>
+            <button class="icon-button" id="addButton" type="button" aria-label="새 콘텐츠 추가">＋</button>
+          </div>
+          <label class="search-box">
+            <span>⌕</span>
+            <input id="searchInput" type="search" placeholder="이름 검색" />
+          </label>
+          <div id="writerFilters"></div><div class="entity-list" id="entityList"></div>
+        </section>
+
+        <section class="editor-panel" id="editorPanel">
+          <div class="empty-state">
+            <span>◇</span>
+            <h2>콘텐츠를 선택하세요</h2>
+            <p>왼쪽 목록에서 편집할 항목을 고르거나 새 항목을 만드세요.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="auth-gate" id="authGate" hidden>
+      <form class="auth-card" id="authForm">
+        <span class="brand-mark">TR</span>
+        <p class="eyebrow">ONLINE CONTENT STUDIO</p>
+        <h1>관리자 확인</h1>
+        <p>온라인 콘텐츠를 수정하려면 관리자 비밀번호를 입력해 주세요.</p>
+        <label class="field">
+          <span>관리자 비밀번호</span>
+          <input id="adminTokenInput" type="password" autocomplete="current-password" required />
+        </label>
+        <p class="auth-error" id="authError" aria-live="polite"></p>
+        <button class="button primary" type="submit">콘텐츠 스튜디오 열기</button>
+      </form>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/content-editor.js"></script>
+    <script src="/content-item-text.js"></script>
+    <script src="/content-story-library.js"></script>
+    <script src="/content-scene-pool.js"></script>
+    <script src="/content-outcome-editor.js"></script>
+    <script src="/content-writer-tools.js"></script>
+    <script src="/content-writer-workspace.js"></script>
+    <script src="/content-writer-preview.js"></script>
+    <script src="/content-writer.js"></script>
+  </body>
+</html>

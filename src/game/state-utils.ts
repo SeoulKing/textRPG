@@ -3,11 +3,48 @@
  */
 
 import { PHASES, REAL_DAY_MS } from "./base-data";
+import { addHealthCondition, checkHealthFailure } from "./health-conditions";
+import { getGameClockShiftedMinutes, appendLogEntry } from "./game-log";
+import { resolveItemText } from "./item-text";
 import { buildRuntimeRegistry } from "./runtime-registry";
-import type { Condition, Effect, GameState, GameStateV2, Objective, Player, QuestReward, WorldState } from "./schemas";
+import {
+  getProgressionSkillLevel,
+  selectRandomOutcome,
+} from "./skill-progression";
+import type {
+  Condition,
+  DailyLimit,
+  Effect,
+  GameState,
+  GameStateV2,
+  Objective,
+  Player,
+  QuestReward,
+  SkillUse,
+  WorldState,
+} from "./schemas";
 
 function activeDayKey(state: GameState, flag: string) {
   return `day${state.day}_${flag}`;
+}
+
+export function getDailyUsage(state: GameState, limit: DailyLimit): number {
+  const value = state.flags[activeDayKey(state, limit.key)];
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : 0;
+}
+
+export function getRemainingDailyUses(state: GameState, limit: DailyLimit): number {
+  return Math.max(0, limit.max - getDailyUsage(state, limit));
+}
+
+export function consumeDailyUse(state: GameState, limit: DailyLimit): void {
+  const remaining = getRemainingDailyUses(state, limit);
+  if (remaining <= 0) {
+    throw new Error("오늘 가능한 횟수를 모두 사용했다.");
+  }
+  state.flags[activeDayKey(state, limit.key)] = getDailyUsage(state, limit) + 1;
 }
 
 type SurvivalStatKey = "hp" | "mind" | "energy";
@@ -34,6 +71,7 @@ function fallbackStatForDepleted(statKey: SurvivalStatKey): SurvivalStatKey | nu
 }
 
 export function changeSurvivalStat(state: GameState, statKey: SurvivalStatKey, delta: number) {
+  if (state.isGameOver || state.stageClear) return;
   if (delta >= 0) {
     state.stats[statKey] = clampStat(statKey, state.stats[statKey] + delta);
     return;
@@ -50,6 +88,7 @@ export function changeSurvivalStat(state: GameState, statKey: SurvivalStatKey, d
 
     target = fallbackStatForDepleted(target);
   }
+  checkHealthFailure(state);
 }
 
 export function getStockStateKey(locationId: string, nodeId: string, itemId: string) {
@@ -79,31 +118,7 @@ export function getStockNodeLocationId(state: GameState, nodeId: string) {
   return null;
 }
 
-/** 게임 내 시계(06:00를 하루 시작으로 하는 표시 시각) 기준, 자정 이후 경과 분(0–1439). */
-export function getGameClockShiftedMinutes(worldElapsedMs: number) {
-  const elapsedInDay = ((worldElapsedMs % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
-  const totalMinutes = Math.floor((elapsedInDay / REAL_DAY_MS) * 24 * 60);
-  return (totalMinutes + 6 * 60) % (24 * 60);
-}
-
-export function formatClockLabelFromElapsed(worldElapsedMs: number) {
-  const shiftedMinutes = getGameClockShiftedMinutes(worldElapsedMs);
-  const hours = String(Math.floor(shiftedMinutes / 60)).padStart(2, "0");
-  const minutes = String(shiftedMinutes % 60).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-export function formatLogTimestamp(day: number, worldElapsedMs: number) {
-  return `${day}일차 ${formatClockLabelFromElapsed(worldElapsedMs)}`;
-}
-
-export function appendLogEntry(state: GameState, message: string) {
-  state.log.unshift({
-    timestampLabel: formatLogTimestamp(state.day, state.worldElapsedMs),
-    message,
-  });
-  state.log = state.log.slice(0, 20);
-}
+export { getGameClockShiftedMinutes, formatClockLabelFromElapsed, formatLogTimestamp, appendLogEntry } from "./game-log";
 
 export function getStockQuantity(state: GameState, locationId: string, nodeId: string, itemId: string) {
   const key = getStockStateKey(locationId, nodeId, itemId);
@@ -124,6 +139,28 @@ export function getStockMoney(state: GameState, locationId: string, nodeId: stri
 
   const node = getStockNode(state, locationId, nodeId);
   return node?.money ?? 0;
+}
+
+export function isStockNodeDepleted(state: GameState, locationId: string, nodeId: string) {
+  const node = getStockNode(state, locationId, nodeId);
+  if (!node || (node.money <= 0 && node.items.length === 0)) {
+    return false;
+  }
+
+  return getStockMoney(state, locationId, nodeId) <= 0 &&
+    node.items.every((item) =>
+      getStockQuantity(state, locationId, nodeId, item.itemId) <= 0
+    );
+}
+
+export function isStockNodeGone(state: GameState, nodeId: string) {
+  const locationId = getStockNodeLocationId(state, nodeId);
+  if (!locationId) {
+    return false;
+  }
+  const node = getStockNode(state, locationId, nodeId);
+  return node?.depletionBehavior === "disappear" &&
+    isStockNodeDepleted(state, locationId, nodeId);
 }
 
 function getEquivalentInventoryItemIds(state: GameState, itemId: string) {
@@ -293,7 +330,10 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
     case "not_has_item":
       return getInventoryAmount(state, condition.itemId) < condition.amount;
     case "skill_gte":
-      return state.skills.includes(condition.skillId);
+      if (condition.skillId === "collection" || condition.skillId === "exploration" || condition.skillId === "fishing" || condition.skillId === "combat") {
+        return getProgressionSkillLevel(state.skillProgress, condition.skillId) >= condition.value;
+      }
+      return state.skills.includes(condition.skillId) && condition.value <= 1;
     case "flag":
       return Boolean(state.flags[condition.flag]);
     case "flag_not":
@@ -308,6 +348,8 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
       return state.day < condition.value;
     case "money_gte":
       return state.money >= condition.amount;
+    case "stat_gte":
+      return state.stats[condition.stat] >= condition.value;
     case "quest_state":
       return state.quests[condition.questId] === condition.status;
     case "stock_item_gte":
@@ -335,20 +377,31 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
   }
 }
 
-export function applyEffect(effect: Effect, state: GameState): void {
+export type ApplyEffectOptions = {
+  skillUse?: SkillUse;
+  rng?: () => number;
+};
+
+export function applyEffect(
+  effect: Effect,
+  state: GameState,
+  options: ApplyEffectOptions = {},
+): void {
+  if (state.isGameOver || state.stageClear) return;
   switch (effect.type) {
+    case "add_condition":
+      addHealthCondition(state, effect.condition, effect.chancePercent, options.rng);
+      break;
     case "random_outcome": {
-      const totalWeight = effect.outcomes.reduce((total, outcome) => total + outcome.weight, 0);
-      if (totalWeight <= 0) {
+      const selected = selectRandomOutcome(effect.outcomes, {
+        skillUse: options.skillUse,
+        progress: state.skillProgress,
+        rng: options.rng,
+      });
+      if (!selected) {
         break;
       }
-      const roll = Math.random() * totalWeight;
-      let cursor = 0;
-      const selected = effect.outcomes.find((outcome) => {
-        cursor += outcome.weight;
-        return roll < cursor;
-      }) ?? effect.outcomes[effect.outcomes.length - 1];
-      selected.effects.forEach((outcomeEffect) => applyEffect(outcomeEffect, state));
+      selected.effects.forEach((outcomeEffect) => applyEffect(outcomeEffect, state, options));
       break;
     }
     case "change_stat":
@@ -392,20 +445,33 @@ export function applyEffect(effect: Effect, state: GameState): void {
       state.quests[effect.questId] = "completed";
       break;
     case "log":
-      appendLogEntry(state, effect.message);
+      appendLogEntry(state, resolveItemText(effect.message, buildRuntimeRegistry(state)));
       break;
     case "set_scene":
       state.sceneId = effect.sceneId;
       break;
     case "set_random_scene": {
       const registry = buildRuntimeRegistry(state);
-      const candidates = Object.values(registry.scenes)
+      let candidates = Object.values(registry.scenes)
         .filter((scene) => scene.locationId === state.location)
-        .filter((scene) => (scene.tags ?? []).includes(effect.tag))
+        .filter((scene) => effect.sceneIds ? effect.sceneIds.includes(scene.id) : (scene.tags ?? []).includes(effect.tag))
         .filter((scene) => scene.conditions.every((condition) => evaluateCondition(condition, state)));
+      const poolKey = `studio_narration_last_${effect.sceneIds?.join('|') ?? effect.tag}:`;
+      if (effect.avoidRepeat && candidates.length > 1) {
+        const fresh = candidates.filter(scene => scene.id !== state.sceneId && !state.flags[poolKey + scene.id]);
+        if (fresh.length) candidates = fresh;
+      }
       if (candidates.length > 0) {
-        const index = Math.floor(Math.random() * candidates.length);
+        const roll = options.rng ? options.rng() : Math.random();
+        const normalizedRoll = Number.isFinite(roll)
+          ? Math.max(0, Math.min(1 - Number.EPSILON, roll))
+          : 0;
+        const index = Math.floor(normalizedRoll * candidates.length);
         state.sceneId = candidates[Math.min(index, candidates.length - 1)].id;
+        if (effect.avoidRepeat) {
+          for (const key of Object.keys(state.flags)) if (key.startsWith(poolKey)) delete state.flags[key];
+          state.flags[poolKey + state.sceneId] = true;
+        }
       }
       break;
     }
@@ -482,7 +548,8 @@ export function derivePlayer(state: GameState): Player {
     inventory: { ...state.inventory },
     skills: [...state.skills],
     flags: { ...state.flags },
-    statusEffects: state.exhaustionLevel > 0 ? ["exhausted"] : [],
+    conditions: structuredClone(state.conditions),
+    statusEffects: [...(state.exhaustionLevel > 0 ? ["exhausted"] : []), ...(["injury", "infection"] as const).filter(kind => state.conditions[kind].level > 0)],
   };
 }
 

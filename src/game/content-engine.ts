@@ -1,22 +1,63 @@
 import type {
   ActionDefinition,
+  ChoiceLoading,
   ChoiceDefinition,
   ContentRegistry,
+  Effect,
   EventDefinition,
   GameState,
   LocationDefinition,
   SceneDefinition,
   StoryChoice,
 } from "./schemas";
-import { evaluateCondition } from "./state-utils";
+import { evaluateCondition, isStockNodeGone } from "./state-utils";
 import { worldRegistry } from "./data/registry";
+import { formatOutcomeHint } from "./outcome-hint";
 
-export function buildStoryChoiceFromChoice(choice: ChoiceDefinition): StoryChoice {
+const ACTIVITY_LOADING_MS = 500;
+const REGION_TRAVEL_LOADING_MS = 1000;
+const INVESTIGATION_ACTION_ID_PATTERN = /^(search_|survey_|inspect_|listen_|ask_|explore_|track_)/;
+
+function effectContainsTravel(effect: Effect): boolean {
+  if (effect.type === "travel") {
+    return true;
+  }
+  return effect.type === "random_outcome" &&
+    effect.outcomes.some((outcome) => outcome.effects.some((nestedEffect) => nestedEffect.type === "travel"));
+}
+
+export function resolveInteractionLoading(definition: {
+  id: string;
+  type?: ActionDefinition["type"];
+  loading?: ChoiceLoading;
+  effects: Effect[];
+}): ChoiceLoading | undefined {
+  if (definition.effects.some(effectContainsTravel)) {
+    return { durationMs: REGION_TRAVEL_LOADING_MS, transitionType: "region_travel" };
+  }
+  const isInvestigation = definition.type === "search" ||
+    definition.type === "explore" ||
+    INVESTIGATION_ACTION_ID_PATTERN.test(definition.id);
+  const advancesTime = definition.effects.some(
+    (effect) => effect.type === "advance_time" || effect.type === "advance_to_daybreak",
+  );
+  if (isInvestigation || advancesTime) {
+    return { durationMs: ACTIVITY_LOADING_MS, transitionType: "activity" };
+  }
+  return definition.loading;
+}
+
+export function buildStoryChoiceFromChoice(
+  choice: ChoiceDefinition,
+  state: GameState,
+): StoryChoice {
+  const standardizedHint = formatOutcomeHint(choice.effects, state, choice.skillUse);
   return {
     id: choice.id,
     label: choice.label,
-    outcomeHint: choice.outcomeHint,
-    showOutcomeHint: choice.showOutcomeHint,
+    outcomeHint: standardizedHint || choice.outcomeHint,
+    showOutcomeHint: choice.tags?.includes("studio-authored") ? choice.showOutcomeHint : standardizedHint ? true : choice.showOutcomeHint,
+    loading: resolveInteractionLoading(choice),
     isAvailable: true,
     descriptionTag: choice.descriptionTag,
     tags: choice.tags,
@@ -81,14 +122,20 @@ export function resolveNextSceneDefinition(
   locationId = state.location,
   preferredSceneId?: string,
 ): SceneDefinition {
-  if (preferredSceneId && registry.scenes[preferredSceneId]) {
-    const preferred = registry.scenes[preferredSceneId];
-    if (preferred.locationId === locationId && preferred.conditions.every((condition) => evaluateCondition(condition, state))) {
+  const repeatMenus: Record<string, string> = {
+    shelter_cooking_menu: "shelter_cooking_menu_repeat",
+    shelter_crafting_menu: "shelter_crafting_menu_repeat",
+  };
+  // A consumed menu introduction returns to its repeat view before any location fallback.
+  for (const id of preferredSceneId ? [preferredSceneId, repeatMenus[preferredSceneId]] : []) {
+    const preferred = id ? registry.scenes[id] : undefined;
+    if (preferred && preferred.locationId === locationId && preferred.conditions.every((condition) => evaluateCondition(condition, state))) {
       return preferred;
     }
   }
 
   const candidates = Object.values(registry.scenes)
+    .filter(scene => !scene.studioStoryId)
     .filter((scene) => scene.locationId === locationId)
     .filter((scene) => sceneMatchesDetailFocus(scene, state))
     .filter((scene) => scene.conditions.every((condition) => evaluateCondition(condition, state)));
@@ -107,6 +154,10 @@ export function resolveAvailableActions(
 ): ActionDefinition[] {
   return (location.interactionChoices ?? [])
     .filter((action) => action.locationIds.length === 0 || action.locationIds.includes(location.id))
+    .filter((action) => {
+      const focusEffect = action.effects.find((effect) => effect.type === "focus_stock_node");
+      return !focusEffect || focusEffect.type !== "focus_stock_node" || !isStockNodeGone(state, focusEffect.nodeId);
+    })
     .filter((action) => canPresentAction(action, state));
 }
 

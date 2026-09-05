@@ -3,6 +3,11 @@ import { PlayerSchema } from "./player";
 import { WorldStateSchema } from "./world-state";
 import { QuestStateSchema } from "./quest";
 import { DynamicWorldRegistrySchema, FrontierStateSchema, NarrativeStateSchema, WorldPlanSchema } from "./dynamic-world";
+import { SubwayExpeditionStateSchema } from "./subway-expedition";
+import { SkillProgressStateSchema } from "./skill-progression";
+import { SystemNoteEntriesSchema } from "./system-note";
+import { NpcDialogueStateSchema } from "./npc-dialogue";
+import { HealthConditionsSchema } from "./health-condition";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -11,6 +16,7 @@ export const LogEntrySchema = z.object({
 
 export const GameStateSchema = z.object({
   saveVersion: z.number().int(),
+  contentVersionId: z.string().optional(),
   sceneId: z.string(),
   activeEventId: z.string().nullable(),
   location: z.string(),
@@ -30,6 +36,7 @@ export const GameStateSchema = z.object({
   }),
   money: z.number().int().nonnegative(),
   skills: z.array(z.string()),
+  skillProgress: SkillProgressStateSchema,
   inventory: z.record(z.string(), z.number().int().nonnegative()),
   toolDurability: z.record(z.string(), z.number().int().nonnegative()).default({}),
   stockState: z.record(z.string(), z.number().int().nonnegative()).default({}),
@@ -52,12 +59,16 @@ export const GameStateSchema = z.object({
   }),
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
+  subwayExpedition: SubwayExpeditionStateSchema,
+  npcDialogue: NpcDialogueStateSchema,
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),
   lastSleepEnergy: z.number().int().min(0).max(15),
   exhaustionLevel: z.number().int().nonnegative(),
+  conditions: HealthConditionsSchema,
   log: z.array(LogEntrySchema),
   systemNote: z.string(),
+  systemNoteEntries: SystemNoteEntriesSchema.default([]),
 });
 
 export const GameStateV2Schema = z.object({

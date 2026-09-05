@@ -75,6 +75,7 @@ class TemplateContentGenerator implements ContentGenerator {
       generatedAt: nowIso(),
       availableActionIds,
       eventIds: [...location.eventIds],
+      monsters: [...location.monsters],
     });
   }
 
@@ -223,7 +224,15 @@ class GenericRemoteContentGenerator implements ContentGenerator {
     return this.withFallback(
       async () => {
         const fallback = await this.fallback.generateLocationCard(locationId, input);
-        return LocationCardSchema.parse(await this.generateJson("locationCard", "location card json", { fallback, currentState: summarizeState(input.state) }));
+        const generated = await this.generateJson<LocationCard>(
+          "locationCard",
+          "location card json",
+          { fallback, currentState: summarizeState(input.state) },
+        );
+        return LocationCardSchema.parse({
+          ...generated,
+          monsters: fallback.monsters,
+        });
       },
       () => this.fallback.generateLocationCard(locationId, input),
     );
@@ -363,12 +372,20 @@ Return valid JSON with no markdown fences.`,
       `locationCard:${locationId}`,
       async () => {
         const fallback = await this.fallback.generateLocationCard(locationId, input);
-        return LocationCardSchema.parse(
-          await this.generateJson(input.gameId, `locationCard:${locationId}`, "locationCard", "location card json", {
+        const generated = await this.generateJson<LocationCard>(
+          input.gameId,
+          `locationCard:${locationId}`,
+          "locationCard",
+          "location card json",
+          {
             fallback,
             currentState: summarizeState(input.state),
-          }),
+          },
         );
+        return LocationCardSchema.parse({
+          ...generated,
+          monsters: fallback.monsters,
+        });
       },
       () => this.fallback.generateLocationCard(locationId, input),
     );

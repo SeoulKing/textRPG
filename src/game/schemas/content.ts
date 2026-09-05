@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { ConditionSchema } from "./condition-effect";
 import { RiskSchema } from "./base";
 import { ActionDefinitionSchema } from "./action";
 import { ChoiceDefinitionSchema } from "./choice";
 import { EventDefinitionSchema } from "./event";
 import { SceneDefinitionSchema } from "./scene";
+import { MonsterDefinitionSchema } from "./monster";
 
 export const LinkDefinitionSchema = z.object({
   note: z.string(),
@@ -25,6 +27,7 @@ export const StockNodeDefinitionSchema = z.object({
   id: z.string(),
   name: z.string(),
   summary: z.string(),
+  depletionBehavior: z.enum(["remain", "disappear"]).default("remain"),
   money: z.number().int().nonnegative().default(0),
   items: z.array(StockNodeItemDefinitionSchema).default([]),
 });
@@ -34,6 +37,7 @@ export const LocationDefinitionSchema = z.object({
   name: z.string(),
   risk: RiskSchema,
   mapPosition: AxialCoordSchema.optional(),
+  discoveryConditions: z.array(ConditionSchema).optional(),
   imagePath: z.string().nullable(),
   summary: z.string(),
   tags: z.array(z.string()),
@@ -46,6 +50,7 @@ export const LocationDefinitionSchema = z.object({
   eventIds: z.array(z.string()).default([]),
   links: z.record(z.string(), LinkDefinitionSchema),
   stockNodes: z.array(StockNodeDefinitionSchema).default([]),
+  monsters: z.array(MonsterDefinitionSchema).default([]),
 });
 
 export const ContentRegistrySchema = z.object({

@@ -19,13 +19,38 @@ import { eventDefinitions } from "./events";
 import { sceneDefinitions } from "./scenes";
 import { questDefinitions } from "../quest-definitions";
 import { baseSkills } from "../base-data";
-import type { ActionDefinition, ChoiceDefinition, Condition, ContentRegistry, Effect, Objective, QuestDefinition, QuestReward } from "../schemas";
+import {
+  canonicalizeItemText,
+  validateItemTextReferences,
+} from "../item-text";
+import {
+  CRAFTING_MENU_SCENE_IDS,
+  COOKING_MENU_SCENE_IDS,
+  effectiveContentStudioDocument,
+  loadStoredContentStudioDocument,
+  parseContentStudioDocument,
+  type ContentStudioDocument,
+  type StudioRecipe,
+  StudioStorySchema, StudioLocationSchema, StudioPersonSchema,
+} from "../content-studio";
+import type {
+  ActionDefinition,
+  ChoiceDefinition,
+  Condition,
+  ContentRegistry,
+  Effect,
+  LocationDefinition,
+  Objective,
+  QuestDefinition,
+  QuestReward,
+  SceneDefinition,
+} from "../schemas";
 
 function asRecord<T extends { id: string }>(entries: T[]) {
   return Object.fromEntries(entries.map((entry) => [entry.id, entry])) as Record<string, T>;
 }
 
-export const worldRegistry: ContentRegistry = {
+const authoredWorldRegistry: ContentRegistry = {
   items: baseItems,
   people: basePeople,
   locations: baseLocations,
@@ -36,6 +61,448 @@ export const worldRegistry: ContentRegistry = {
   events: asRecord(eventDefinitions),
   scenes: asRecord(sceneDefinitions),
 };
+
+function canonicalizeEffectItemText<T extends Effect>(
+  effect: T,
+  registry: ContentRegistry,
+): T {
+  if (effect.type === "log") {
+    return {
+      ...effect,
+      message: canonicalizeItemText(effect.message, registry),
+    } as T;
+  }
+
+  if (effect.type === "random_outcome") {
+    return {
+      ...effect,
+      outcomes: effect.outcomes.map((outcome) => ({
+        ...outcome,
+        effects: outcome.effects.map((outcomeEffect) =>
+          canonicalizeEffectItemText(outcomeEffect, registry),
+        ),
+      })),
+    } as T;
+  }
+
+  return effect;
+}
+
+function canonicalizeActionItemText(
+  action: ActionDefinition,
+  registry: ContentRegistry,
+): ActionDefinition {
+  return {
+    ...action,
+    label: canonicalizeItemText(action.label, registry),
+    outcomeHint: canonicalizeItemText(action.outcomeHint, registry),
+    failureNote: action.failureNote
+      ? canonicalizeItemText(action.failureNote, registry)
+      : action.failureNote,
+    systemNote: action.systemNote
+      ? canonicalizeItemText(action.systemNote, registry)
+      : action.systemNote,
+    effects: action.effects.map((effect) =>
+      canonicalizeEffectItemText(effect, registry),
+    ),
+    failureEffects: action.failureEffects.map((effect) =>
+      canonicalizeEffectItemText(effect, registry),
+    ),
+  };
+}
+
+function canonicalizeChoiceItemText(
+  choice: ChoiceDefinition,
+  registry: ContentRegistry,
+): ChoiceDefinition {
+  return {
+    ...choice,
+    label: canonicalizeItemText(choice.label, registry),
+    outcomeHint: canonicalizeItemText(choice.outcomeHint, registry),
+    descriptionTag: choice.descriptionTag
+      ? canonicalizeItemText(choice.descriptionTag, registry)
+      : choice.descriptionTag,
+    failureNote: choice.failureNote
+      ? canonicalizeItemText(choice.failureNote, registry)
+      : choice.failureNote,
+    systemNote: choice.systemNote
+      ? canonicalizeItemText(choice.systemNote, registry)
+      : choice.systemNote,
+    effects: choice.effects.map((effect) =>
+      canonicalizeEffectItemText(effect, registry),
+    ),
+    failureEffects: choice.failureEffects.map((effect) =>
+      canonicalizeEffectItemText(effect, registry),
+    ),
+  };
+}
+
+function canonicalizeAuthoredWorldRegistry(
+  registry: ContentRegistry,
+): ContentRegistry {
+  return {
+    ...registry,
+    locations: Object.fromEntries(
+      Object.entries(registry.locations).map(([locationId, location]) => [
+        locationId,
+        {
+          ...location,
+          interactionChoices: location.interactionChoices.map((action) =>
+            canonicalizeActionItemText(action, registry),
+          ),
+        },
+      ]),
+    ),
+    actions: Object.fromEntries(
+      Object.entries(registry.actions).map(([actionId, action]) => [
+        actionId,
+        canonicalizeActionItemText(action, registry),
+      ]),
+    ),
+    choices: Object.fromEntries(
+      Object.entries(registry.choices).map(([choiceId, choice]) => [
+        choiceId,
+        canonicalizeChoiceItemText(choice, registry),
+      ]),
+    ),
+    events: Object.fromEntries(
+      Object.entries(registry.events).map(([eventId, event]) => [
+        eventId,
+        {
+          ...event,
+          title: canonicalizeItemText(event.title, registry),
+          summary: canonicalizeItemText(event.summary, registry),
+        },
+      ]),
+    ),
+    scenes: Object.fromEntries(
+      Object.entries(registry.scenes).map(([sceneId, scene]) => [
+        sceneId,
+        {
+          ...scene,
+          title: canonicalizeItemText(scene.title, registry),
+          paragraphs: scene.paragraphs.map((paragraph) =>
+            canonicalizeItemText(paragraph, registry),
+          ),
+        },
+      ]),
+    ),
+  };
+}
+
+const builtInWorldRegistry = canonicalizeAuthoredWorldRegistry(
+  authoredWorldRegistry,
+);
+
+function mergeMenuChoiceIds(
+  existingIds: string[],
+  recipes: StudioRecipe[],
+  menu: StudioRecipe["menu"],
+) {
+  const allRecipeIds = new Set(recipes.map((recipe) => recipe.id));
+  const enabledRecipeIds = recipes
+    .filter((recipe) => recipe.enabled && recipe.menu === menu)
+    .map((recipe) => recipe.id);
+  const filtered = existingIds.filter((id) => !allRecipeIds.has(id));
+  const leaveIndex = filtered.findIndex((id) => id.startsWith("leave_shelter_"));
+  if (leaveIndex < 0) {
+    return [...filtered, ...enabledRecipeIds];
+  }
+  return [
+    ...filtered.slice(0, leaveIndex),
+    ...enabledRecipeIds,
+    ...filtered.slice(leaveIndex),
+  ];
+}
+
+function studioItemCosts(effects: Effect[]): Map<string, number> {
+  const costs = new Map<string, number>();
+  const add = (id: string, amount: number) => costs.set(id, (costs.get(id) ?? 0) + amount);
+  for (const effect of effects) {
+    if (effect.type === "remove_item") add(effect.itemId, effect.amount);
+    if (effect.type === "random_outcome") {
+      const branchCosts = new Map<string, number>();
+      for (const outcome of effect.outcomes.filter(row => row.weight > 0)) {
+        for (const [id, amount] of studioItemCosts(outcome.effects)) branchCosts.set(id, Math.max(branchCosts.get(id) ?? 0, amount));
+      }
+      for (const [id, amount] of branchCosts) add(id, amount);
+    }
+  }
+  return costs;
+}
+function compileStudioStories(
+  document: ContentStudioDocument,
+  registry: ContentRegistry,
+) {
+  const { locations, actions, choices, scenes, events } = registry;
+  document.stories.forEach((story) => {
+    if (!story.enabled && !story.native) return;
+    const location = locations[story.locationId];
+    if (!location) throw new Error(`지역을 찾을 수 없습니다: story:${story.id}`);
+    const firstScene = story.scenes[0];
+    const startConditions: Condition[] = [...story.conditions];
+    if (story.once) startConditions.push({ type: "flag_not", flag: `studio_started_${story.id}` }, { type: "flag_not", flag: `studio_completed_${story.id}` });
+    if (story.prerequisite) startConditions.push({ type: "flag", flag: story.prerequisite.choiceId
+      ? `studio_chosen_${story.prerequisite.choiceId}` : `studio_completed_${story.prerequisite.storyId}` });
+    if (story.native === "event" && story.event) {
+      events[story.event.id] = { ...story.event, title: story.title, locationId: story.locationId, triggerConditions: startConditions, once: story.once ?? story.event.once };
+      if (!story.enabled) locations[story.locationId].eventIds = location.eventIds.filter(id => id !== story.event!.id);
+    }
+    if (!story.native && firstScene) {
+      const entryAction: ActionDefinition = {
+        id: `studio_story_${story.id}`, label: story.entryLabel, type: "talk", outcomeHint: story.entryHint,
+        visibility: "scene", presentationMode: "when_conditions_met", locationIds: [story.locationId],
+        conditions: [{ type: "location", locationId: story.locationId }, ...startConditions], effects: [{ type: "set_flag", flag: `studio_started_${story.id}` }],
+        failureEffects: [], nextSceneId: firstScene.id, tags: ["content-studio", "story", ...story.tags], riskHint: "low",
+      };
+      actions[entryAction.id] = entryAction;
+      location.interactionChoices = [...location.interactionChoices.filter(action => action.id !== entryAction.id), entryAction];
+    }
+    for (const action of story.actions) {
+      const compiled = action.tags.includes("studio-authored-action") ? {
+        ...action,
+        conditions: [...action.conditions, ...[...studioItemCosts(action.effects)].map(([itemId, amount]): Condition => ({ type: "has_item", itemId, amount }))],
+      } : action;
+      actions[action.id] = compiled;
+      for (const loc of Object.values(locations)) loc.interactionChoices = loc.interactionChoices.map(old => old.id === action.id ? compiled : old);
+    }
+    story.scenes.forEach((scene) => {
+      for (const choice of scene.choices) {
+        const effects: Effect[] = [...choice.effects];
+        const conditions: Condition[] = [...choice.conditions];
+        if (!story.native || choice.tags?.includes("studio-authored")) {
+          for (const [itemId, amount] of studioItemCosts(effects)) conditions.push({ type: "has_item", itemId, amount });
+        }
+        if (choice.once) conditions.push({ type: "flag_not", flag: `studio_chosen_${choice.id}` });
+        // Non-native choices record authored decisions; existing mechanics are preserved.
+        if (!story.native || choice.once || document.stories.some(s => s.prerequisite?.choiceId === choice.id)) effects.push({ type: "set_flag", flag: `studio_chosen_${choice.id}` });
+        let nextSceneId = choice.nextSceneId;
+        if (choice.endsStory) {
+          effects.push({ type: "set_flag", flag: `studio_completed_${story.id}` });
+          effects.push({ type: "clear_flag", flag: `studio_started_${story.id}` });
+          nextSceneId = Object.values(scenes).find(s => s.locationId === story.locationId && !s.studioStoryId && !s.eventId)?.id;
+        }
+        if (choice.nextStoryId) {
+          const target = document.stories.find(s => s.id === choice.nextStoryId && s.enabled);
+          if (!target?.scenes[0]) throw new Error(`후속 이벤트를 찾을 수 없습니다: choice:${choice.id}`);
+          if (target.locationId !== story.locationId) effects.push({ type: "travel", locationId: target.locationId });
+          effects.push({ type: "set_flag", flag: `studio_started_${target.id}` });
+          if (target.once) conditions.push({ type: "flag_not", flag: `studio_started_${target.id}` }, { type: "flag_not", flag: `studio_completed_${target.id}` });
+          conditions.push(...target.conditions);
+          if (target.prerequisite && !(target.prerequisite.choiceId === choice.id || (!target.prerequisite.choiceId && target.prerequisite.storyId === story.id && choice.endsStory))) conditions.push({ type: "flag", flag: target.prerequisite.choiceId ? `studio_chosen_${target.prerequisite.choiceId}` : `studio_completed_${target.prerequisite.storyId}` });
+          nextSceneId = target.scenes[0].id;
+        }
+        choices[choice.id] = { ...choice, conditions, effects, nextSceneId, tags: story.native ? choice.tags : [...(choice.tags ?? []), "studio-authored"] };
+      }
+      const { choices: _choices, blocks, terminal, ...definition } = scene;
+      const choiceIds = scene.choices.map(choice => choice.id);
+      if (terminal && !story.native && !choiceIds.length) {
+        const id = `studio_finish_${scene.id}`;
+        choices[id] = {
+          id, label: "이벤트 마치기", outcomeHint: "", presentationMode: "always", hidden: false, conditions: [], failureEffects: [],
+          effects: [{ type: "set_flag", flag: `studio_completed_${story.id}` }, { type: "clear_flag", flag: `studio_started_${story.id}` }],
+          nextSceneId: Object.values(scenes).find(s => s.locationId === story.locationId && !s.studioStoryId && !s.eventId)?.id,
+          tags: ["studio-authored"],
+        };
+        choiceIds.push(id);
+      }
+      scenes[scene.id] = {
+        ...definition,
+        paragraphs: blocks ? blocks.map(block => block.speakerId ? `${block.speakerId === "protagonist" ? "플레이어" : (registry.people[block.speakerId] as { name: string })?.name ?? block.speakerId}: “${block.text}”` : block.text) : scene.paragraphs,
+        choiceIds,
+        ...(story.native ? {} : { studioStoryId: story.id, suppressLocationInteractions: scene.suppressLocationInteractions ?? (story.once !== undefined ? true : undefined) }),
+        ...(terminal ? { completionFlag: `studio_completed_${story.id}` } : {}),
+      };
+    });
+  });
+}
+
+export function getEffectiveContentStudioDocument(stored = loadStoredContentStudioDocument()) {
+  const doc = effectiveContentStudioDocument(stored, baseItems, choiceDefinitions);
+  const nativeStories = [];
+  const assigned = new Set<string>();
+  for (const event of Object.values(builtInWorldRegistry.events)) {
+    const ids = [...new Set([event.startSceneId, ...event.sceneIds])];
+    ids.forEach(id => assigned.add(id));
+    nativeStories.push(StudioStorySchema.parse({
+      id: event.id, title: event.title, entryLabel: event.title, locationId: event.locationId,
+      native: "event", event, once: event.once, conditions: event.triggerConditions, status: "ready",
+      scenes: ids.map(id => ({ ...builtInWorldRegistry.scenes[id], choices: (builtInWorldRegistry.scenes[id]?.choiceIds ?? []).map(id => builtInWorldRegistry.choices[id]) })),
+    }));
+  }
+  for (const location of Object.values(builtInWorldRegistry.locations)) {
+    nativeStories.push(StudioStorySchema.parse({
+      id: `native_region_${location.id}`, title: `${location.name} · 기본 장면`, entryLabel: location.name, locationId: location.id,
+      native: "region", status: "ready", actions: location.interactionChoices,
+      scenes: Object.values(builtInWorldRegistry.scenes).filter(scene => scene.locationId === location.id && !assigned.has(scene.id)).map(scene => ({ ...scene, choices: scene.choiceIds.map(id => builtInWorldRegistry.choices[id]) })),
+    }));
+  }
+  return parseContentStudioDocument({ ...doc,
+    locations: Object.values({ ...Object.fromEntries(Object.values(builtInWorldRegistry.locations).map(l => [l.id, StudioLocationSchema.parse(l)])), ...asRecord(doc.locations) }),
+    people: Object.values({ ...Object.fromEntries(Object.values(basePeople).map(p => [p.id, StudioPersonSchema.parse(p)])), ...asRecord(doc.people) }),
+    stories: Object.values({ ...asRecord(nativeStories), ...asRecord(doc.stories) }),
+  });
+}
+
+function repairQuestionMarkText(
+  stored: unknown,
+  baseline: unknown,
+): { value: unknown; repairedFields: number } {
+  if (typeof stored === "string" && typeof baseline === "string") {
+    const baselineHasKorean = /[가-힣]/.test(baseline);
+    const storedLostKorean = stored.includes("?") && !/[가-힣]/.test(stored);
+    return baselineHasKorean && storedLostKorean
+      ? { value: baseline, repairedFields: 1 }
+      : { value: stored, repairedFields: 0 };
+  }
+
+  if (Array.isArray(stored) && Array.isArray(baseline)) {
+    let repairedFields = 0;
+    const value = stored.map((entry, index) => {
+      const repaired = repairQuestionMarkText(entry, baseline[index]);
+      repairedFields += repaired.repairedFields;
+      return repaired.value;
+    });
+    return { value, repairedFields };
+  }
+
+  if (
+    stored &&
+    baseline &&
+    typeof stored === "object" &&
+    typeof baseline === "object" &&
+    !Array.isArray(stored) &&
+    !Array.isArray(baseline)
+  ) {
+    let repairedFields = 0;
+    const baselineRecord = baseline as Record<string, unknown>;
+    const value = Object.fromEntries(
+      Object.entries(stored as Record<string, unknown>).map(([key, entry]) => {
+        const repaired = repairQuestionMarkText(entry, baselineRecord[key]);
+        repairedFields += repaired.repairedFields;
+        return [key, repaired.value];
+      }),
+    );
+    return { value, repairedFields };
+  }
+
+  return { value: stored, repairedFields: 0 };
+}
+
+export function repairContentStudioQuestionMarkCorruption(input: unknown) {
+  const document = parseContentStudioDocument(input);
+  const baseline = getEffectiveContentStudioDocument(
+    parseContentStudioDocument({ version: 1 }),
+  );
+  const baselineItems = asRecord(baseline.items);
+  const baselineRecipes = asRecord(baseline.recipes);
+  let repairedFields = 0;
+
+  const items = document.items.map((item) => {
+    const baselineItem = baselineItems[item.id];
+    if (!baselineItem) return item;
+    const repaired = repairQuestionMarkText(item, baselineItem);
+    repairedFields += repaired.repairedFields;
+    return repaired.value;
+  });
+  const recipes = document.recipes.map((recipe) => {
+    const baselineRecipe = baselineRecipes[recipe.id];
+    if (!baselineRecipe) return recipe;
+    const repaired = repairQuestionMarkText(recipe, baselineRecipe);
+    repairedFields += repaired.repairedFields;
+    return repaired.value;
+  });
+
+  return {
+    document: parseContentStudioDocument({
+      ...document,
+      items,
+      recipes,
+    }),
+    repairedFields,
+  };
+}
+
+export function buildWorldRegistryFromStudio(
+  stored: ContentStudioDocument,
+): ContentRegistry {
+  const document = getEffectiveContentStudioDocument(stored);
+  const locations = structuredClone(asRecord(document.locations));
+  const actions = structuredClone(builtInWorldRegistry.actions);
+  const choices = structuredClone(builtInWorldRegistry.choices);
+  const scenes = structuredClone(builtInWorldRegistry.scenes);
+
+  const registry: ContentRegistry = { ...structuredClone(builtInWorldRegistry), locations, actions, choices, scenes, items: asRecord(document.items), people: asRecord(document.people) };
+  for (const location of Object.values(locations)) {
+    location.residentIds = document.people.filter(person => person.locationId === location.id).map(person => person.id);
+  }
+  compileStudioStories(document, registry);
+  compileActivityReturns(registry);
+
+  document.recipes.forEach((recipe) => {
+    if (recipe.enabled) {
+      const { menu: _menu, enabled: _enabled, ...choice } = recipe;
+      choices[recipe.id] = choice;
+    } else {
+      delete choices[recipe.id];
+    }
+  });
+
+  CRAFTING_MENU_SCENE_IDS.forEach((sceneId) => {
+    const scene = scenes[sceneId];
+    if (scene) {
+      scene.choiceIds = mergeMenuChoiceIds(scene.choiceIds, document.recipes, "crafting");
+    }
+  });
+  COOKING_MENU_SCENE_IDS.forEach((sceneId) => {
+    const scene = scenes[sceneId];
+    if (scene) {
+      scene.choiceIds = mergeMenuChoiceIds(scene.choiceIds, document.recipes, "cooking");
+    }
+  });
+
+  return registry;
+}
+
+function compileActivityReturns(registry: ContentRegistry) {
+  const sourceScenes = Object.values(registry.scenes);
+  const compile = (ownerId: string, effects: Effect[], sourceLocation: string) => {
+    let poolIndex = 0;
+    const walk = (effects: Effect[]): Effect[] => effects.map(effect => {
+      if (effect.type === "random_outcome") return { ...effect, outcomes: effect.outcomes.map(outcome => ({ ...outcome, effects: walk(outcome.effects) as typeof outcome.effects })) };
+      if (effect.type !== "set_random_scene" || !effect.returnToLocation) return effect;
+      const index = poolIndex++;
+      const locationId = effects.find(e => e.type === "travel")?.locationId ?? sourceLocation;
+      const variants = effect.sceneIds ? effect.sceneIds.map(id => registry.scenes[id]).filter(Boolean) : sourceScenes.filter(scene => scene.locationId === locationId && scene.tags?.includes(effect.tag));
+      if (!variants.length) return effect;
+      const base = sourceScenes.find(scene => scene.locationId === variants[0].locationId && !scene.studioStoryId && !scene.eventId && !scene.tags?.some(tag => tag.includes('result')));
+      if (!base) throw new Error(`기본 화면을 찾을 수 없습니다: action:${ownerId}`);
+      if (variants.some(scene => scene.choiceIds.length)) throw new Error(`후속 선택지가 있는 장면은 기본 화면 복귀용 묘사로 사용할 수 없습니다: action:${ownerId}`);
+      const returnId = `studio_return_${ownerId}_${index}`;
+      registry.choices[returnId] = { id: returnId, label: `${registry.locations[base.locationId].name}으로 돌아가기`, outcomeHint: "", showOutcomeHint: false, systemNote: null, presentationMode: "when_conditions_met", conditions: [], effects: [], failureEffects: [], hidden: false, tags: ["studio-authored"], nextSceneId: base.id };
+      const sceneIds = variants.map(scene => {
+        const id = `studio_activity_${ownerId}_${index}_${scene.id}`;
+        registry.scenes[id] = { ...scene, id, sourceSceneId: scene.id, studioStoryId: `activity:${ownerId}`, tags: [], choiceIds: [returnId], suppressLocationInteractions: true };
+        return id;
+      });
+      return { ...effect, sceneIds };
+    });
+    return walk(effects);
+  };
+  for (const action of Object.values(registry.actions)) {
+    const updated = { ...action, effects: compile(action.id, action.effects, action.locationIds[0] ?? '') };
+    registry.actions[action.id] = updated;
+    for (const location of Object.values(registry.locations)) location.interactionChoices = location.interactionChoices.map(row => row.id === action.id ? updated : row);
+  }
+  // Snapshot before adding generated return choices, which have no effects.
+  for (const choice of Object.values(registry.choices)) {
+    const location = sourceScenes.find(scene => scene.choiceIds.includes(choice.id))?.locationId ?? '';
+    registry.choices[choice.id] = { ...choice, effects: compile(choice.id, choice.effects, location) };
+  }
+}
+export const worldRegistry: ContentRegistry = buildWorldRegistryFromStudio(
+  loadStoredContentStudioDocument(),
+);
 
 export type ItemId = keyof typeof baseItems;
 export type PersonId = keyof typeof basePeople;
@@ -159,6 +626,10 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
       assertKnownScene(registry, effect.sceneId, source);
       break;
     case "set_random_scene": {
+      if (effect.sceneIds) {
+        for (const sceneId of effect.sceneIds) assertKnownScene(registry, sceneId, source);
+        break;
+      }
       const matchingScenes = Object.values(registry.scenes).filter((scene) => (scene.tags ?? []).includes(effect.tag));
       if (matchingScenes.length === 0) {
         throw new Error(`${source} references unknown random scene tag '${effect.tag}'.`);
@@ -169,6 +640,9 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
       effect.outcomes.forEach((outcome, index) => {
         outcome.effects.forEach((nestedEffect) => validateEffect(registry, nestedEffect, `${source}:outcome:${index + 1}`));
       });
+      break;
+    case "log":
+      validateItemTextReferences(effect.message, registry, `${source}:log`);
       break;
     case "discover_stock_node":
     case "focus_stock_node":
@@ -188,7 +662,74 @@ function validateEffect(registry: ContentRegistry, effect: Effect, source: strin
   }
 }
 
+type SkillUseDefinition = {
+  effects: Effect[];
+  skillUse?: { skillId: "collection" | "exploration" | "fishing" };
+};
+
+function validateSkillUseDefinition(definition: SkillUseDefinition, source: string) {
+  const skillUse = definition.skillUse;
+  if (!skillUse) return;
+
+  const advanceTimeEffects = definition.effects.filter(
+    (effect) => effect.type === "advance_time",
+  );
+  const usesDaybreak = definition.effects.some(
+    (effect) => effect.type === "advance_to_daybreak",
+  );
+  if (advanceTimeEffects.length !== 1 || usesDaybreak) {
+    throw new Error(
+      `${source} skillUse requires exactly one direct advance_time effect and cannot use advance_to_daybreak.`,
+    );
+  }
+
+  if (skillUse.skillId === "collection") {
+    const hasDirectCollection = definition.effects.some((effect) =>
+      effect.type === "add_item" ||
+      effect.type === "collect_stock_item" ||
+      effect.type === "collect_stock_item_all" ||
+      effect.type === "collect_stock_money" ||
+      effect.type === "collect_stock_money_all"
+    );
+    if (!hasDirectCollection) {
+      throw new Error(
+        `${source} collection skillUse requires a direct item or stock collection effect.`,
+      );
+    }
+    return;
+  }
+
+  const randomOutcomeEffects = definition.effects.filter(
+    (effect): effect is Extract<Effect, { type: "random_outcome" }> =>
+      effect.type === "random_outcome",
+  );
+  if (randomOutcomeEffects.length !== 1) {
+    throw new Error(
+      `${source} ${skillUse.skillId} skillUse requires exactly one direct random_outcome effect.`,
+    );
+  }
+
+  const outcomes = randomOutcomeEffects[0].outcomes as Array<{
+    result?: "success" | "failure";
+  }>;
+  if (outcomes.some((outcome) => outcome.result !== "success" && outcome.result !== "failure")) {
+    throw new Error(
+      `${source} ${skillUse.skillId} skillUse requires every random outcome to declare result.`,
+    );
+  }
+  const results = new Set(outcomes.map((outcome) => outcome.result));
+  if (!results.has("success") || !results.has("failure")) {
+    throw new Error(
+      `${source} ${skillUse.skillId} skillUse requires at least one success and one failure outcome.`,
+    );
+  }
+}
+
 function validateAction(registry: ContentRegistry, action: ActionDefinition) {
+  validateItemTextReferences(action.label, registry, `action:${action.id}:label`);
+  validateItemTextReferences(action.outcomeHint, registry, `action:${action.id}:outcomeHint`);
+  validateItemTextReferences(action.failureNote, registry, `action:${action.id}:failureNote`);
+  validateItemTextReferences(action.systemNote, registry, `action:${action.id}:systemNote`);
   for (const locationId of action.locationIds) {
     assertKnownLocation(registry, locationId, `action:${action.id}`);
   }
@@ -197,14 +738,20 @@ function validateAction(registry: ContentRegistry, action: ActionDefinition) {
   action.conditions.forEach((condition) => validateCondition(registry, condition, `action:${action.id}`));
   action.effects.forEach((effect) => validateEffect(registry, effect, `action:${action.id}`));
   action.failureEffects.forEach((effect) => validateEffect(registry, effect, `action:${action.id}:failure`));
+  validateSkillUseDefinition(action, `action:${action.id}`);
 }
 
 function validateChoice(registry: ContentRegistry, choice: ChoiceDefinition) {
+  validateItemTextReferences(choice.label, registry, `choice:${choice.id}:label`);
+  validateItemTextReferences(choice.outcomeHint, registry, `choice:${choice.id}:outcomeHint`);
+  validateItemTextReferences(choice.failureNote, registry, `choice:${choice.id}:failureNote`);
+  validateItemTextReferences(choice.systemNote, registry, `choice:${choice.id}:systemNote`);
   if (choice.nextEventId) assertKnownEvent(registry, choice.nextEventId, `choice:${choice.id}`);
   if (choice.nextSceneId) assertKnownScene(registry, choice.nextSceneId, `choice:${choice.id}`);
   choice.conditions.forEach((condition) => validateCondition(registry, condition, `choice:${choice.id}`));
   choice.effects.forEach((effect) => validateEffect(registry, effect, `choice:${choice.id}`));
   (choice.failureEffects ?? []).forEach((effect) => validateEffect(registry, effect, `choice:${choice.id}:failure`));
+  validateSkillUseDefinition(choice, `choice:${choice.id}`);
 }
 
 export function validateRegistry(registry: ContentRegistry) {
@@ -296,6 +843,8 @@ export function validateRegistry(registry: ContentRegistry) {
   });
 
   Object.values(registry.events).forEach((event) => {
+    validateItemTextReferences(event.title, registry, `event:${event.id}:title`);
+    validateItemTextReferences(event.summary, registry, `event:${event.id}:summary`);
     assertKnownLocation(registry, event.locationId, `event:${event.id}`);
     assertKnownScene(registry, event.startSceneId, `event:${event.id}`);
     event.sceneIds.forEach((sceneId) => assertKnownScene(registry, sceneId, `event:${event.id}`));
@@ -304,6 +853,10 @@ export function validateRegistry(registry: ContentRegistry) {
   });
 
   Object.values(registry.scenes).forEach((scene) => {
+    validateItemTextReferences(scene.title, registry, `scene:${scene.id}:title`);
+    scene.paragraphs.forEach((paragraph, index) => {
+      validateItemTextReferences(paragraph, registry, `scene:${scene.id}:paragraph:${index + 1}`);
+    });
     assertKnownLocation(registry, scene.locationId, `scene:${scene.id}`);
     if (scene.eventId) {
       assertKnownEvent(registry, scene.eventId, `scene:${scene.id}`);
@@ -328,4 +881,16 @@ export function validateRegistry(registry: ContentRegistry) {
 
 export function validateContent() {
   return validateRegistry(worldRegistry);
+}
+
+export function prepareContentStudioDocument(input: unknown) {
+  const document = parseContentStudioDocument(input);
+  const registry = buildWorldRegistryFromStudio(document);
+  validateRegistry(registry);
+  return { document, registry };
+}
+
+export function applyPreparedContentStudioRegistry(registry: ContentRegistry) {
+  Object.assign(worldRegistry, registry);
+  return worldRegistry;
 }

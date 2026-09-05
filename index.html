@@ -3,8 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>폐허 서울: 캠프 생존</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css?v=20260905-story-notes-v3">
 </head>
 <body>
   <section id="home-screen" class="home-screen">
@@ -16,6 +20,8 @@
       <div class="home-actions">
         <button id="home-new-game" class="home-action primary" type="button">새 게임</button>
         <button id="home-continue" class="home-action" type="button" disabled>이어하기</button>
+        <button id="home-fullscreen-play" class="home-action fullscreen" type="button">전체화면으로 플레이</button>
+        <a class="home-action studio" href="/content-editor">콘텐츠 스튜디오</a>
       </div>
       <div id="home-auth-panel" class="home-auth-panel">
         <p id="home-auth-status" class="home-auth-status">로그인 상태를 확인하고 있습니다.</p>
@@ -57,21 +63,44 @@
             <strong id="time-indicator">1일차 06:00</strong>
           </section>
         </div>
+        <div id="condition-badges" class="condition-badges" aria-label="부상과 감염" hidden></div>
+        <section id="encounter-status" class="encounter-status" aria-live="polite" hidden>
+          <strong id="encounter-status-name" class="encounter-status-name">강도</strong>
+          <progress
+            id="encounter-health"
+            class="encounter-health"
+            value="4"
+            max="4"
+            aria-label="강도 체력 4 / 4"
+          ></progress>
+          <span id="encounter-health-value" class="encounter-health-value">4/4</span>
+          <span id="encounter-build-summary" class="encounter-build-summary"></span>
+        </section>
         <div id="status-popover" class="status-popover" hidden></div>
       </header>
       <main class="story-stage">
         <section class="scene-frame">
           <div class="scene-art-wrap">
             <img id="scene-art" src="assets/scenes/camp.svg" alt="현재 장면 일러스트">
-            <div class="scene-overlay">
-              <span id="scene-location-badge" class="pill">생존자 캠프</span>
-              <span id="scene-risk-badge" class="pill muted">안전</span>
-            </div>
+            <canvas
+              id="scene-animation"
+              class="scene-animation-canvas"
+              width="768"
+              height="224"
+              aria-hidden="true"
+              hidden
+            ></canvas>
           </div>
           <div class="scene-copy">
             <div id="scene-dev-source" class="scene-dev-source" hidden></div>
-            <div id="scene-text" class="scene-text"></div>
-            <div id="system-note" class="system-note" hidden></div>
+            <div id="scene-text" class="scene-text">
+              <div class="scene-story-block">
+                <div class="scene-story-content">
+                  <div class="scene-prose"></div>
+                  <div id="system-note" class="system-note" role="status" hidden></div>
+                </div>
+              </div>
+            </div>
             <div id="choices" class="choice-list"></div>
           </div>
         </section>
@@ -97,11 +126,17 @@
 
   <template id="choice-template">
     <button class="choice-button" type="button">
-      <span class="choice-label"></span>
+      <span class="choice-label-row">
+        <span class="choice-label"></span>
+        <span class="choice-side">
+          <span class="choice-status" hidden></span>
+          <span class="choice-remaining" hidden></span>
+        </span>
+      </span>
       <span class="choice-meta"></span>
     </button>
   </template>
 
-  <script type="module" src="app-api.js"></script>
+  <script type="module" src="app-api.js?v=20260905-scene-preparation-v1"></script>
 </body>
 </html>

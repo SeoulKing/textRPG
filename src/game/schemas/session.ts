@@ -8,11 +8,12 @@ import { SceneCardSchema } from "./scene";
 import { ProtagonistCardSchema } from "./person";
 import { QuestStateSchema } from "./quest";
 import { ActionChoiceSchema } from "./choice";
+import { CombatSkillDetailsSchema, SkillIdSchema } from "./skill-progression";
 
 export const DevLlmTraceEntrySchema = z.object({
   id: z.string(),
   at: z.string(),
-  scope: z.enum(["planner", "card"]),
+  scope: z.enum(["planner", "card", "subway", "dialogue"]),
   target: z.string(),
   stage: z.enum(["request", "raw_draft", "draft_validation", "compiler_summary", "compiled_result", "fallback", "error"]).optional(),
   model: z.string(),
@@ -85,6 +86,10 @@ export const SurvivalGoalSchema = z.object({
 });
 
 export const StateSnapshotSchema = z.object({
+  conditionCards: z.array(z.object({
+    kind: z.enum(["injury", "infection"]), label: z.string(), level: z.number().int().min(1).max(4),
+    nextDamageMinutes: z.number().nonnegative(), nextWorseningMinutes: z.number().nonnegative().nullable(),
+  })).default([]),
   gameId: z.string(),
   state: GameStateSchema,
   currentScene: SceneCardSchema,
@@ -116,6 +121,22 @@ export const StateSnapshotSchema = z.object({
       id: z.string(),
       name: z.string(),
       description: z.string(),
+    })
+  ),
+  skillProgress: z.array(
+    z.object({
+      id: SkillIdSchema,
+      name: z.string(),
+      description: z.string(),
+      level: z.number().int().min(1).max(5),
+      maxLevel: z.literal(5),
+      totalXp: z.number().int().min(0).max(320),
+      xpIntoLevel: z.number().int().nonnegative(),
+      xpForNextLevel: z.number().int().positive().nullable(),
+      progressPercent: z.number().min(0).max(100),
+      effectPercent: z.number().min(0).max(100),
+      isMaxLevel: z.boolean(),
+      combat: CombatSkillDetailsSchema.optional(),
     })
   ),
   availableActions: z.array(ActionChoiceSchema),

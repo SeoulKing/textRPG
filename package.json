@@ -8,8 +8,11 @@
     "dev": "tsx watch src/server.ts",
     "start": "npm run build && node .server-dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test:skills": "tsx --test tests/skill-progression.test.ts",
     "db:init": "tsx src/db/init.ts",
-    "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\""
+    "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\"",
+    "assets:validate": "node scripts/validate-cooking-sprites.mjs",
+    "test:studio": "npm run build && node --test tests/content-studio.test.cjs tests/content-story-library.test.cjs tests/studio-outcomes.test.cjs tests/studio-hex-map.test.cjs tests/content-writer-workspace.test.cjs tests/studio-scene-pool.test.cjs tests/studio-stock-rewards.test.cjs"
   },
   "repository": {
     "type": "git",
@@ -29,6 +32,7 @@
     "fastify": "^5.8.2",
     "honeycomb-grid": "^4.1.5",
     "pg": "^8.20.0",
+    "phaser": "^4.2.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {

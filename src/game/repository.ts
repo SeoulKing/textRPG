@@ -1,10 +1,16 @@
+import { normalizeHealthConditions } from "./health-conditions";
+import { legacyContentVersionId, versionRegistry } from "./content-versions";
 import { copyFile, mkdir, readFile, rename, unlink, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import {
   DynamicWorldRegistrySchema,
   FrontierStateSchema,
   GameSessionSchema,
   NarrativeStateSchema,
+  NpcDialogueStateSchema,
+  SystemNoteEntriesSchema,
+  SubwayExpeditionStateSchema,
   TemplateStoreSchema,
   WorldPlanSchema,
   WorldInstanceSchema,
@@ -24,6 +30,7 @@ import { worldRegistry } from "./data/registry";
 import { normalizeDynamicLocationNames } from "./dynamic-location-naming";
 import { formatLogTimestamp } from "./state-utils";
 import { buildRuntimeRegistry, emptyDynamicWorldRegistry } from "./runtime-registry";
+import { normalizeSkillProgress } from "./skill-progression";
 
 export type CardKind = "locationCards" | "personCards" | "itemCards" | "eventCards" | "sceneCards";
 export type StoredCard = LocationCard | PersonCard | ItemCard | EventCard | SceneCard;
@@ -66,10 +73,10 @@ export const emptyTemplateStore: TemplateStore = {
   protagonistCard: null,
 };
 
-function normalizeDynamicContent(raw: unknown) {
+function normalizeDynamicContent(raw: unknown, contentVersionId?: string) {
   const parsed = DynamicWorldRegistrySchema.safeParse(raw && typeof raw === "object" ? raw : {});
   return parsed.success
-    ? normalizeDynamicLocationNames(parsed.data, Object.values(worldRegistry.locations).map((location) => location.name))
+    ? normalizeDynamicLocationNames(parsed.data, Object.values((versionRegistry(contentVersionId) ?? worldRegistry).locations).map((location) => location.name))
     : structuredClone(emptyDynamicWorldRegistry);
 }
 
@@ -82,6 +89,14 @@ function normalizeWorldPlan(raw: unknown, currentDay: number) {
     today: { day: currentDay, regions: [], notes: [] },
     tomorrow: { day: currentDay + 1, evolutions: [], notes: [] },
   });
+}
+
+function normalizeSubwayExpedition(raw: unknown) {
+  const parsed = SubwayExpeditionStateSchema.safeParse(raw);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  return SubwayExpeditionStateSchema.parse(undefined);
 }
 
 function normalizeFrontierState(raw: unknown) {
@@ -100,8 +115,8 @@ function normalizeNarrativeState(raw: unknown) {
   return NarrativeStateSchema.parse({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} });
 }
 
-function buildValidContentIds(dynamicContent: GameState["dynamicContent"]): ValidContentIds {
-  const registry = buildRuntimeRegistry({ dynamicContent });
+function buildValidContentIds(dynamicContent: GameState["dynamicContent"], contentVersionId?: string): ValidContentIds {
+  const registry = buildRuntimeRegistry({ dynamicContent, contentVersionId });
   const validLocationIds = new Set(Object.keys(registry.locations));
   const validQuestIds = new Set(Object.keys(registry.quests));
   const validSceneIds = new Set(Object.keys(registry.scenes));
@@ -135,8 +150,8 @@ function isJsonParseError(error: unknown) {
   return error instanceof SyntaxError;
 }
 
-function fallbackSceneId(locationId: string, validSceneIds: Set<string>, dynamicContent: GameState["dynamicContent"]) {
-  const registry = buildRuntimeRegistry({ dynamicContent });
+function fallbackSceneId(locationId: string, validSceneIds: Set<string>, dynamicContent: GameState["dynamicContent"], contentVersionId?: string) {
+  const registry = buildRuntimeRegistry({ dynamicContent, contentVersionId });
   const scene = Object.values(registry.scenes).find((entry) => entry.locationId === locationId);
   if (scene && validSceneIds.has(scene.id)) {
     return scene.id;
@@ -283,22 +298,26 @@ function normalizeInventory(rawInventory: unknown, validItemIds: Set<string>) {
     return {};
   }
 
-  return Object.fromEntries(
-    Object.entries(rawInventory).filter(([itemId, quantity]) =>
-      validItemIds.has(itemId) && Number.isInteger(quantity) && Number(quantity) >= 0,
-    ),
-  ) as Record<string, number>;
+  const inventory: Record<string, number> = {};
+  for (const [itemId, quantity] of Object.entries(rawInventory)) {
+    // Merge the retired ingredient only when this save uses the new catalog.
+    const resolvedId = itemId === "wildGreens" && !validItemIds.has(itemId) ? "vegetables" : itemId;
+    if (validItemIds.has(resolvedId) && Number.isInteger(quantity) && Number(quantity) >= 0) {
+      inventory[resolvedId] = (inventory[resolvedId] ?? 0) + Number(quantity);
+    }
+  }
+  return inventory;
 }
 
-function maxToolDurability(itemId: string) {
-  const item = worldRegistry.items[itemId] as { maxDurability?: number } | undefined;
+function maxToolDurability(itemId: string, contentVersionId?: string) {
+  const item = (versionRegistry(contentVersionId) ?? worldRegistry).items[itemId] as { maxDurability?: number } | undefined;
   const maxDurability = item?.maxDurability;
   return Number.isInteger(maxDurability) && Number(maxDurability) > 0
     ? Number(maxDurability)
     : 0;
 }
 
-function normalizeToolDurability(rawDurability: unknown, inventory: Record<string, number>, validItemIds: Set<string>) {
+function normalizeToolDurability(rawDurability: unknown, inventory: Record<string, number>, validItemIds: Set<string>, contentVersionId?: string) {
   const raw = rawDurability && typeof rawDurability === "object"
     ? rawDurability as Record<string, unknown>
     : {};
@@ -309,7 +328,7 @@ function normalizeToolDurability(rawDurability: unknown, inventory: Record<strin
       return;
     }
 
-    const maxDurability = maxToolDurability(itemId);
+    const maxDurability = maxToolDurability(itemId, contentVersionId);
     if (maxDurability <= 0) {
       return;
     }
@@ -332,9 +351,10 @@ function normalizeStats(rawStats: unknown) {
 
 function pruneState(state: unknown): GameState {
   const rawState = (state && typeof state === "object" ? state : {}) as Partial<GameState> & Record<string, unknown>;
-  const dynamicContent = normalizeDynamicContent(rawState.dynamicContent);
+  const contentVersionId = rawState.contentVersionId ?? legacyContentVersionId();
+  const dynamicContent = normalizeDynamicContent(rawState.dynamicContent, contentVersionId);
   const { validLocationIds, validQuestIds, validSceneIds, validEventFlags, validItemIds, validStockNodeLocationIds, validStockStateKeys } =
-    buildValidContentIds(dynamicContent);
+    buildValidContentIds(dynamicContent, contentVersionId);
   const rawLocation = typeof rawState.location === "string" ? rawState.location : "shelter";
   const nextLocation = validLocationIds.has(rawLocation) ? rawLocation : "shelter";
   const nextDay = normalizeInt(rawState.day, 1, 1);
@@ -360,6 +380,11 @@ function pruneState(state: unknown): GameState {
     : null;
   const frontierState = normalizeFrontierState(rawState.frontierState);
   const narrativeState = normalizeNarrativeState(rawState.narrativeState);
+  const subwayExpedition = normalizeSubwayExpedition(rawState.subwayExpedition);
+  const npcDialogue = NpcDialogueStateSchema.catch({
+    active: null,
+    conversations: {},
+  }).parse(rawState.npcDialogue);
   const worldPlan = normalizeWorldPlan(rawState.worldPlan, nextDay);
   const legacyAutoEnergyElapsedKey = "auto" + "Full" + "ness" + "ElapsedMs";
   const legacyExhaustionElapsedKey = "star" + "vation" + "ElapsedMs";
@@ -377,10 +402,12 @@ function pruneState(state: unknown): GameState {
   }
   return {
     saveVersion: SAVE_VERSION,
+    conditions: normalizeHealthConditions(rawState.conditions),
+    contentVersionId,
     location: nextLocation,
     sceneId: typeof rawState.sceneId === "string" && validSceneIds.has(rawState.sceneId)
       ? rawState.sceneId
-      : fallbackSceneId(nextLocation, validSceneIds, dynamicContent),
+      : fallbackSceneId(nextLocation, validSceneIds, dynamicContent, contentVersionId),
     activeEventId: typeof rawState.activeEventId === "string" && validEventFlags.has(`event_seen_${rawState.activeEventId}`)
       ? rawState.activeEventId
       : null,
@@ -396,18 +423,22 @@ function pruneState(state: unknown): GameState {
     stats: normalizeStats(rawState.stats),
     money: normalizeInt(rawState.money, 0, 0),
     skills: normalizeStringArray(rawState.skills),
+    skillProgress: normalizeSkillProgress(rawState.skillProgress),
     inventory: nextInventory,
-    toolDurability: normalizeToolDurability(rawState.toolDurability, nextInventory, validItemIds),
+    toolDurability: normalizeToolDurability(rawState.toolDurability, nextInventory, validItemIds, contentVersionId),
     dynamicContent,
     worldPlan,
     frontierState,
     narrativeState,
+    subwayExpedition,
+    npcDialogue,
     flags: nextFlags,
     quests: nextQuests,
     lastSleepEnergy: normalizeInt(rawState.lastSleepEnergy ?? rawState[legacyLastSleepEnergyKey], 8, 0, 15),
     exhaustionLevel: normalizeInt(rawState.exhaustionLevel ?? rawState[legacyExhaustionLevelKey], 0, 0),
     log: normalizeLogEntries(rawState.log, nextDay, nextWorldElapsedMs),
     systemNote: typeof rawState.systemNote === "string" ? rawState.systemNote : "",
+    systemNoteEntries: SystemNoteEntriesSchema.catch([]).parse(rawState.systemNoteEntries),
     stockState: nextStockState,
     discoveredStockNodeIds: activeStockNodeId && !discoveredStockNodeIds.includes(activeStockNodeId)
       ? [...discoveredStockNodeIds, activeStockNodeId]
@@ -473,7 +504,7 @@ function normalizeWorldPayload(raw: unknown, validItemIds: Set<string>): WorldIn
 export function normalizeGameSession(raw: unknown): GameSession {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const nextState = pruneState(parsed.state as GameState);
-  const { validItemIds } = buildValidContentIds(nextState.dynamicContent);
+  const { validItemIds } = buildValidContentIds(nextState.dynamicContent, nextState.contentVersionId);
   const nextWorld = normalizeWorldPayload(parsed.world, validItemIds);
   return GameSessionSchema.parse({
     ...parsed,
@@ -484,6 +515,7 @@ export function normalizeGameSession(raw: unknown): GameSession {
 
 export interface GameRepository {
   init(): Promise<void>;
+  withGameLock<T>(gameId: string, operation: () => Promise<T>): Promise<T>;
   saveGame(session: GameSession): Promise<void>;
   loadGame(gameId: string): Promise<GameSession>;
   saveManualGame(session: GameSession, savedAt: string, ownerId?: string | null): Promise<ManualSaveInfo>;
@@ -540,6 +572,7 @@ export function buildManualSaveInfo(gameId: string, record: ManualSaveRecord | n
 }
 
 export class FileGameRepository implements GameRepository {
+  private static readonly templateUpdates = new Map<string, Promise<void>>();
   private readonly runtimeDir: string;
   private readonly gamesDir: string;
   private readonly manualSavesDir: string;
@@ -563,7 +596,7 @@ export class FileGameRepository implements GameRepository {
   }
 
   private async writeTemplatesAtomically(templates: TemplateStore) {
-    const tmpPath = `${this.templatesPath}.tmp`;
+    const tmpPath = `${this.templatesPath}.${randomUUID()}.tmp`;
     await writeFile(tmpPath, JSON.stringify(templates, null, 2), "utf8");
     try {
       await rename(tmpPath, this.templatesPath);
@@ -600,6 +633,10 @@ export class FileGameRepository implements GameRepository {
       const raw = await readFile(this.templatesPath, "utf8").catch(() => "");
       await this.recoverTemplatesFile(raw, error);
     }
+  }
+
+  async withGameLock<T>(_gameId: string, operation: () => Promise<T>) {
+    return operation();
   }
 
   private gamePath(gameId: string) {
@@ -770,16 +807,30 @@ export class FileGameRepository implements GameRepository {
     return templates[kind][id];
   }
 
+  private async updateTemplates(update: (templates: TemplateStore) => void) {
+    // Different games share this file; serialize the entire read/modify/write cycle.
+    const previous = FileGameRepository.templateUpdates.get(this.templatesPath) ?? Promise.resolve();
+    const pending = previous.catch(() => undefined).then(async () => {
+      const templates = await this.loadTemplates();
+      update(templates);
+      await this.writeTemplatesAtomically(templates);
+    });
+    FileGameRepository.templateUpdates.set(this.templatesPath, pending);
+    try {
+      await pending;
+    } finally {
+      if (FileGameRepository.templateUpdates.get(this.templatesPath) === pending) {
+        FileGameRepository.templateUpdates.delete(this.templatesPath);
+      }
+    }
+  }
+
   async saveTemplate(kind: CardKind, id: string, card: StoredCard) {
-    const templates = await this.loadTemplates();
-    templates[kind][id] = card as never;
-    await this.writeTemplatesAtomically(templates);
+    await this.updateTemplates(templates => { templates[kind][id] = card as never; });
   }
 
   async saveProtagonistTemplate(card: ProtagonistCard) {
-    const templates = await this.loadTemplates();
-    templates.protagonistCard = card;
-    await this.writeTemplatesAtomically(templates);
+    await this.updateTemplates(templates => { templates.protagonistCard = card; });
   }
 
   async appendActionLog(entry: Record<string, unknown>) {

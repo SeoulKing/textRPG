@@ -1138,6 +1138,16 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
 
+- 2026-07-09 movement destination vertical centering:
+  fixed movement destination cards by making each card a flex container and centering its metadata row vertically.
+  kept the compact card height while preserving the destination name, risk tag, and travel-time tag layout.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
 - 2026-06-23 shelter recovery choice hints:
   enabled visible outcome hints for the shelter `휴식하기` and `취침하기` actions.
   `휴식하기` now shows `+1 체력 / +1 정신력 / +15분`.
@@ -1201,3 +1211,402 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   local API smoke confirmed `forage_forest_food` returns the probability-free `outcomeHint` with `showOutcomeHint: true`.
   Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-06-23 shelter crafting/cooking split:
+  split the shelter recipe flow into separate top-level actions: `open_shelter_crafting` for crafting/upgrades/tools/radio and `open_shelter_cooking` for food recipes.
+  added `shelter_cooking_menu` and `shelter_cooking_menu_repeat`, with cooking recipes returning to the cooking menu after use.
+  updated the shared recipe-card UI and server metadata so cooking menus use the same detail panel, with cooking submit buttons labeled `요리`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed shelter top-level actions show both `제작하기` and `요리하기`, crafting menus hide `cook_*` actions, cooking menus hide `craft_*`/radio actions, and cooking recipes use the `요리` action label.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-06-23 generic recipe-card rendering:
+  changed the frontend recipe-card switch from a hardcoded shelter scene-id list to the presence of `craftingRecipe` metadata on available actions.
+  This makes `요리하기` use the same recipe detail panel and compact recipe-card layout as `제작하기`, and keeps the UI reusable for future recipe menus.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed `shelter_cooking_menu` returns four recipe actions with `craftingRecipe` metadata and the `요리` action label.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-08 prologue-to-shelter mobile scroll stabilization:
+  reduced mobile scroll jumping during scene transitions by resetting the app shell scroll position when the rendered story surface changes.
+  changed the automatic bottom pinning so it only applies when the user is already near the bottom, and removed per-character scroll pinning during typewriter text.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed `prologue_old_woman_visit -> shelter_first_intro` still transitions correctly.
+  Browser visual verification could not run because the in-app browser endpoint was unavailable in this session, and Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package.
+
+- 2026-07-08 movement sheet map-first compact list:
+  removed the current-location summary card from the movement sheet so the hex map is the first visible section.
+  moved the zoom toolbar below the map board to keep the map itself at the top.
+  reduced movement destination cards with tighter padding, smaller title text, and smaller tags so the list uses roughly half the previous vertical space.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-02 kitchen ration-ticket exchange:
+  added a `배식권을 식사로 바꾼다` 급식소 action that appears when the player has `rationTicket`.
+  The exchange consumes 1 `rationTicket`, grants 1 `hotMeal`, marks the day's meal as secured, advances 10 minutes, and routes to a short `kitchen_ration_ticket_exchange` result scene.
+  Updated `CONTENT_LEDGER.md` so `rationTicket`, cooking ingredients, and stock-node quantities match the current authored content.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is available with a ration ticket, then produces `kitchen_ration_ticket_exchange`, consumes the ticket, adds a hot meal, and disappears after use.
+  local server smoke confirmed `/api/health` and `/` both return 200 on `http://127.0.0.1:3000`.
+  Playwright web-game smoke still cannot run because the local skill script cannot resolve the `playwright` package in this environment.
+
+- 2026-07-09 kitchen repeat work activity:
+  added a reusable `stat_gte` condition so content can require minimum hp/mind/energy before showing an action.
+  added the `배식소 일을 돕는다` kitchen action as a repeatable low-risk work loop: it requires at least 1 energy, spends 1 energy and 40 minutes, then randomly rewards either 1,200원, a ration ticket, a hot meal, or a water bottle.
+  added four short result scenes for the possible kitchen work outcomes so the reward appears as narrative body text instead of only as a system/log change.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the kitchen with energy, spends exactly 40 game minutes, reduces energy by 1, changes reward state, routes to a `kitchen_work_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 hospital triage work activity:
+  added the `임시 처치대를 돕는다` hospital action as a repeatable medium-risk support loop.
+  The action requires at least 1 energy, spends 1 energy and 35 minutes, then randomly rewards pain relief, cloth scrap, cordage, or a small hp treatment.
+  Added four `hospital_triage_*` result scenes so the outcome is shown through narrative body text.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the hospital with energy, spends exactly 35 game minutes, reduces energy by 1, changes reward state, routes to a `hospital_triage_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 subway platform salvage activity:
+  added the `승강장 자재를 회수한다` subway action as a repeatable high-risk salvage loop.
+  The action requires at least 1 energy, spends 1 energy and 40 minutes, then rewards scrap metal, cordage, or a water bottle, with a small injury outcome that still yields scrap.
+  Added four `subway_platform_*` result scenes to make the subway feel more alive through platform sounds, darkness, physical handling, and injury risk instead of only item log output.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the subway with energy, spends exactly 40 game minutes, reduces energy by 1, changes reward/risk state, routes to a `subway_platform_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 checkpoint perimeter patrol activity:
+  added the `초소 주변을 정찰한다` checkpoint action as a repeatable high-risk patrol loop.
+  The action requires at least 1 energy, spends 1 energy and 35 minutes, then rewards scrap metal, cordage, or a ration ticket, with a small injury outcome.
+  Added four `checkpoint_perimeter_*` result scenes so the checkpoint patrol resolves through location prose instead of dangling scene references.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+
+- 2026-07-10 kitchen rumor activities:
+  added `작은 병원 소문을 묻는다` as a one-time kitchen talk action that spends 20 minutes, sets `hospital_lead_checked` and `known_hospital`, and routes to `kitchen_rumor_hospital`.
+  added `배식줄 소문을 듣는다` as a repeatable 15-minute low-risk world flavor action with random results about food prices, subway sounds, checkpoint radio rumors, and night weather.
+  Added five `kitchen_rumor_*` scenes so world information appears as scene prose and not just system notes.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the one-time hospital rumor sets the knowledge flags, advances exactly 20 game minutes, disappears after use, and the repeatable line rumor advances exactly 15 game minutes and routes to a `kitchen_rumor_*` result scene.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 mobile story/choice scroll flow:
+  changed the mobile scene layout so choices are no longer fixed above the bottom dock or measured as a separate reserved zone.
+  Choices now render in the same `.scene-copy` document flow underneath the narrative, so scrolling moves the narrative and choices together.
+  While typewriter narration is still running, the choice list stays empty and the story area can use the full app viewport above the dock.
+  When narration finishes or is skipped, the app scrolls the shared story flow to the bottom once so the revealed choices push the completed narrative upward.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed after installing local `playwright` and Chromium for validation.
+  Additional 390px mobile Playwright probe confirmed typing state had 0 choices, revealed choices used `position: static` under `.scene-copy`, max scroll moved to the bottom, and a manual app-shell scroll moved story text and choices as one shared scroll flow.
+  TODO: if future scenes add much taller choice menus, re-check crafting menus on small screens to tune choice button density without reintroducing fixed positioning.
+
+- 2026-07-10 inventory card size consistency:
+  fixed the mobile inventory panel so one-line item cards use a uniform fixed card height regardless of whether the card has a money tag, use button, or no trailing control.
+  Inventory card titles now stay on one line with ellipsis to prevent wrapped text from changing card height.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed.
+  390px mobile Playwright inventory probe rendered 10 sample cards and confirmed all card heights were 64px and all widths were 166px with no console errors.
+
+- 2026-07-27 action transition prefetch:
+  added a minimum 1-second transition for every gameplay action while the browser sends the action request in parallel.
+  the selected control now shows a left-to-right progress bar, with contextual copy above it such as `걸어가는 중…`, `주변을 살피는 중…`, or `다음 층으로 내려가는 중…`.
+  the returned next-scene snapshot stays in memory and its scene image is preloaded before the new scene is rendered.
+  slow requests keep the completed bar visible and change the status to `장면을 준비하는 중…`.
+  subway descent continues to use the server's one-floor-ahead generation cache underneath this browser transition.
+  Initial verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed using the installed desktop Chrome because the bundled Chromium executable was unavailable.
+  a focused 390px mobile probe exercised the complete flow through `폐자재 더미로 간다`:
+  at 364ms the status was `걸어가는 중…` and the bar measured about 30%;
+  with an artificial 1700ms API delay, the bar reached 100% and the status changed to `장면을 준비하는 중…`;
+  the completed response switched directly to `kitchen_scrap_heap_full` with its image already visible.
+  the normal fast action still held the transition for 1195ms, and the browser reported no console errors.
+
+- 2026-07-27 action transition timing split:
+  changed ordinary gameplay actions to a 500ms minimum transition while keeping physical movement at 1000ms.
+  movement includes map travel, `go_to_` / physical `leave_` / `push_beyond_` actions, and subway start, descend, and return commands; leaving shelter crafting/cooking menus stays a 500ms UI action.
+  the progress bar now receives the same per-action duration as the transition wait, and `render_game_to_text` exposes `durationMs` for verification.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npx.cmd tsc --outDir .tmp-action-transition-build --rootDir src`
+  `git diff --check`
+  the required web-game client smoke passed through installed Chrome.
+  a focused 390px Playwright probe confirmed `opening_commit` reports 500ms with a 0.5s progress animation and map travel to the convenience store reports 1000ms with a 1s progress animation.
+  both actions completed into their expected scenes; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-27 structured LLM subway expedition:
+  limited LLM direction to one subway expedition run at a time while leaving the authored concourse and 10-day survival game unchanged.
+  added a run plan, compact story memory, one major event per floor, two pre-generated outcome variants per choice, three fixed-manifest loot spots, dedicated event/loot result scenes, and explicit result acknowledgement phases.
+  the engine now rolls depth-table loot and supplies an exact mechanics envelope; invalid model output receives at most two repair prompts, then falls back to a visibly labeled template without clamping model values.
+  event choices are only enabled when both their clean and costly variants can be paid exactly; resolution rechecks that guard and applies the declared values without the global depleted-stat fallback.
+  replaced the process-only next-floor cache with a persisted template-first wrapper carrying run/source/depth/hash metadata. Start and descent consume it immediately, while a background task conditionally upgrades the same manifest and envelope with LLM prose.
+  added per-game mutation serialization for service saves, branch-neutral next-floor generation with selected-result bridge injection, unique-loot reservation, and client redaction of future floors, unresolved outcomes, and unsearched contents.
+  enabled the subway generator in `render.yaml` while keeping the world planner disabled; `GEMINI_API_KEY` remains a deployment secret.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  isolated TypeScript build
+  `node --check app-api.js`
+  `git diff --check`
+  live Gemini probes passed with `gemini-3.1-flash-lite-preview`: the run plan returned an LLM source with three motifs/escalation notes, and a depth-1 floor returned an LLM source with two event choices, both outcome branches, and three loot spots.
+  service/repository integration probe passed persisted restart consumption, event/result/loot phases, exact one-time effects, next-depth preparation, bridge insertion, return settlement, and next-run reset.
+  the required web-game Playwright client passed against the current build using desktop Chrome.
+  a focused browser flow confirmed the `템플릿 층` badge, 1000ms start transition, 500ms event transition, event result scene, loot result scene, and correct 06:30 → 07:25 clock display; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 opening quest deployment-loop fix:
+  found that `saveVersion` is a server persistence schema version, but the browser treated any mismatch as an incompatible client response and immediately created another new game.
+  during a rolling deployment, an open v15 client receiving a normal v16 `opening_commit` response discarded the activated rescue quest and returned to a fresh `prologue_opening`, producing the reported infinite loop.
+  changed the client freshness check to validate snapshot shape only and added a versioned `app-api.js` URL so a refresh cannot reuse the pre-fix script.
+  wrapped every per-game service mutation in the repository lock contract; Postgres now uses a game-id advisory lock across the complete load/modify/save operation so old and new Render instances cannot overwrite each other's quest state during a rolling deployment.
+  added an `opening_seen` guard to the first quest choice so a stale/retried `opening_commit` request cannot consume later shelter scenes repeatedly.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh prologue successfully.
+  a focused browser regression rewrote the first action response to `saveVersion: 999`; the same game id advanced from `prologue_opening` to `prologue_old_woman_visit`, activated the rescue quest, and exposed the canned-food quest without console errors.
+  a direct engine probe confirmed the first `opening_commit` activates the rescue quest and an immediate replay is rejected without mutating the story state.
+
+- 2026-07-28 choice transition copy removal:
+  removed the `결정하는 중…` status line from `content_choice` transitions while retaining the 500ms in-button progress bar and response preloading.
+  choices also stay text-free on slow responses instead of changing to a secondary loading sentence.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `git diff --check`
+  the required web-game Playwright client passed.
+  a focused browser probe at 129ms confirmed zero `.action-transition-status` elements, one progress bar, an empty transition message, and successful advancement to `prologue_old_woman_visit`; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 item-use transition placement:
+  removed the `물건을 사용하는 중…` status line while retaining the 500ms minimum transition and response preloading.
+  item-use progress and pending emphasis now cover the complete inventory card instead of the small `사용` button.
+  inventory card selection is ignored while an item action is pending so rerendering cannot interrupt the card-level progress feedback.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a focused browser probe confirmed no status copy, one card progress bar, no button progress bar, card-only pending emphasis, a 500ms duration, uninterrupted feedback after a second card click, cleanup after completion, and the water bottle count changing from one to zero; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 crafting transition placement:
+  moved crafting progress and pending emphasis from the small `제작` button to the matching `.crafting-choice-select` item-name area.
+  the item-name controls are disabled with the crafting buttons while an action is pending, preventing selection rerenders from interrupting feedback.
+  the existing absolutely positioned progress track remains clipped inside the name area and does not participate in layout.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  focused desktop and 390px browser probes confirmed one progress bar in the item-name area, zero progress bars in the `제작` button, a 500ms transition, and exact zero-pixel changes to the name area, recipe card, submit button, choices container, and scroll height while the progress bar was visible.
+
+- 2026-07-28 item-name reference migration (in progress):
+  added `src/game/item-text.ts` with runtime `{{item:itemId}}` references and Korean particle forms such as `{{item:waterBottle|을를}}`.
+  wired item reference resolution into snapshot choices, recipe presentation, scene/event cards, authored logs, and fallback system notes so the current runtime registry is the display-name source.
+  added content validation for unknown item references and unsupported particle forms across actions, choices, logs, scenes, and events.
+  Initial `npm.cmd run typecheck` and `npm.cmd run content:validate` passed before migrating authored strings.
+  migrated built-in region actions/choices and persisted content-studio recipes away from duplicated item display names.
+  content studio recipe/story fields now include an item-reference picker, while recipe headers and lists preview the resolved display name instead of raw token text.
+  saving or publishing after an item rename automatically converts occurrences of the previous item name in recipe/story presentation fields into stable item references.
+  post-migration checks passed: `node --check content-editor.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, and `git diff --check` (line-ending warnings only).
+
+- 2026-07-28 movement transition restoration:
+  movement actions now receive a client-enforced 1000ms transition even when their authored choice or map button has no `loading` metadata.
+  ordinary choices without `loading` metadata remain immediate, while explicitly authored non-movement loading durations still work.
+  bumped the `app-api.js` query version so deployed browsers fetch the restored behavior.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a focused browser probe confirmed the opening quest choice showed no loading UI while its response was deliberately delayed, map travel kept the movement overlay through 913ms and completed at 1054ms, and the internal `진열대로 간다` choice kept it through 912ms and completed at 1052ms.
+  the movement overlay was visually inspected and correctly showed the destination, movement label, blurred scene, and progress bar; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 activity transition rules:
+  clarified the transition categories so 1000ms is reserved for actual region travel, including map travel and authored choices with a `travel` effect.
+  investigation actions and choices with `advance_time` / `advance_to_daybreak` now receive 500ms loading metadata automatically.
+  action-catalog construction reapplies the rule from preserved choice effects, so previously cached event choices also receive the correct activity loading.
+  same-region detail choices such as `go_to_convenience_shelf` are no longer classified as 1000ms movement merely from their ID.
+  added a `transitionType` marker to loading metadata so the client can distinguish regional travel from ordinary activity without guessing from labels.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a definition-level probe confirmed `buy_meal_at_kitchen` and `discover_magic_city_entrance` resolve to 500ms activity loading, `go_to_convenience_shelf` has no loading, and the portal choice with a real `travel` effect resolves to 1000ms regional loading.
+  focused browser checks confirmed map travel still reports 1000ms, the convenience investigation reports 500ms and advances the clock from 06:15 to 06:25, and same-region return/detail choices show no loading UI.
+  the 500ms activity overlay was visually inspected; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 item-name reference migration completed:
+  API rename regression changed `cannedFood` from `캔 음식` to `응급 식량` in an isolated test document and confirmed the next quest choice and outcome hint used the renamed value with zero unresolved item tokens in the snapshot.
+  resolved authored log effects inside presented scene/event choice data so raw references do not leak through nested snapshot metadata.
+  the required web-game Playwright client completed successfully with installed desktop Chrome.
+  focused browser verification confirmed `응급 식량` appeared in the rendered quest choice, no raw `{{item:...}}` reference appeared in the page or HTML, and there were no console or failed-resource errors.
+  content-studio browser verification confirmed the item-reference controls render for recipe presentation fields and insert `{{item:cannedFood}}` at the current cursor position.
+  added inline empty favicons to the game and content studio to eliminate the previously unrelated `/favicon.ico` 404 during browser checks.
+  final verification passed: `node --check content-editor.js`, `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, and `git diff --check`.
+
+- 2026-07-28 future scene and choice item-reference authoring:
+  added shared item-name canonicalization so plain display names in new scene titles, paragraphs, choice labels, outcome hints, failure notes, and log effects become stable `{{item:itemId}}` references with Korean particle forms.
+  built-in region content is canonicalized when its registry is assembled, Content Studio normalizes new stories/scenes/choices on save or publish, and generated narrative drafts are normalized while compiling.
+  the Content Studio story editor now exposes item-reference controls for scene titles as well as entry, paragraph, and choice presentation fields, with inline guidance explaining the automatic conversion.
+  Gemini planner prompts now receive the current item catalog and explicitly request ID references; the region authoring guide documents the same default structure and helper API.
+  direct regressions passed for particle conversion, plural wording, renamed-item rendering, malformed references, built-in scene normalization, and Content Studio document normalization.
+  the required web-game Playwright client rendered a fresh game successfully with installed desktop Chrome.
+  focused browser verification created a new story, scene, and choice, confirmed six item-reference pickers and the automatic-conversion guidance, and the isolated Content Studio API save returned normalized ID references.
+
+- 2026-07-28 inline choice activity transition:
+  limited the scene-wide popup overlay to actual region travel transitions; ordinary timed activities and subway-internal movement no longer create a popup or status message.
+  choice-triggered activities now fill the selected choice from left to right across its full height with a neutral gray that is darker than the resting choice background.
+  subway loot searches receive the same 500ms inline choice fill even though their generated actions do not carry authored loading metadata.
+  preserved the existing inline progress placement for inventory use and crafting controls, and kept the regional travel overlay unchanged.
+  bumped the client script version so deployed browsers fetch the updated transition behavior.
+  the required web-game Playwright client rendered a fresh game successfully with installed desktop Chrome.
+  focused 390px browser verification confirmed the stale-bread choice had no overlay, filled roughly 51% after 260ms with `rgba(31, 41, 55, 0.12)`, retained exact width and height, completed with two stale breads in inventory, and regional travel still used the popup overlay.
+  a generated subway-floor probe confirmed `search_loot` receives a 500ms full-choice gray fill with no popup while the loot action completes normally.
+
+- 2026-07-28 standardized choice outcome hints:
+  added a shared formatter that derives money, stat, item, tool-durability, random-result, and time hints directly from authored effects instead of relying on duplicated manual descriptions.
+  connected the formatter to location actions, scene choices, and event choices; generated mechanical hints are shown automatically and time is always placed last.
+  stock collection hints use the remaining runtime quantity, so the stale-bread choice changes from `눅눅한 빵 +2 / +5분` to `눅눅한 빵 +1 / +5분` after one unit remains.
+  changed the kitchen work reward and log to 6,000 won, producing the exact visible hint `+6,000원 / +60분`.
+  standardized generated subway-expedition hint separators and hid the non-mechanical result acknowledgement note.
+  updated the region authoring guide and Content Studio guidance so future content treats `outcomeHint` as a fallback for non-mechanical descriptions.
+  verification passed: `node --check content-editor.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, and `git diff --check`.
+  a 67-definition audit found no generated `보상:` / `효과:` prose or time token before the final position; focused checks passed for kitchen work, first aid, axe logging, random triage rewards, and runtime stock counts.
+  the required web-game Playwright client rendered the saved kitchen scene at 390×844 with no console errors; focused DOM verification confirmed `배식소 일을 돕는다` displays exactly `+6,000원 / +60분`.
+
+- 2026-07-28 outcome-hint quantity-first correction:
+  corrected the universal mechanical token order to `sign + quantity + target`.
+  item, durability, energy, random-reward, and generated subway hints now render as `+5 목재 판자`, `-1 손도끼 내구도`, `-1 기력`, and `+1 진통제`.
+  tool creation shows the actual durability delta from the current state, such as `+8 손도끼 내구도`.
+  updated all authoring-guide examples to use quantity-first item tokens.
+  a 67-definition audit confirmed every generated slash-delimited token starts with a signed quantity or the explicit `다음 날` time marker.
+  the required web-game Playwright client and 390×844 screenshot confirmed `-4,500원 / +1 따뜻한 식사 / +15분` and `+6,000원 / +60분` render correctly with no console errors.
+
+- 2026-07-29 collection/exploration skill progression:
+  fixed the v1 rules at five levels with total-XP thresholds `0 / 50 / 120 / 210 / 320`, one XP per started five authored minutes, and a 10% per-level collection-time / exploration-failure reduction.
+  tagged regular stock pickups, cash collection, direct gathering, three forest chance searches, and checkpoint patrol with explicit `skillUse` metadata; exploration outcomes now declare success or failure.
+  added content validation and authoring guidance for skill time costs, collection effects, and fully marked exploration outcomes.
+  added the first skill-panel presentation with collection/exploration cards, level and XP meters, current effect text, MAX handling, legacy trait separation, and skill progression in `render_game_to_text`.
+  added save-v17 normalization, legacy-trait compatibility, authored-time XP rewards, effective collection timing, proportional exploration outcome reweighting, and level-up-only notes/logs.
+  focused regressions cover thresholds, exact outcome ratios, legacy saves, stock item/cash collection, invalid actions, Lv2 authored-XP versus effective-time behavior, exploration success/failure, level-up notices, and snapshot cards.
+  final verification passed: `test:skills` 12/12, `typecheck`, `content:validate`, `build`, `node --check app-api.js`, and `git diff --check`.
+  the required web-game Playwright client completed with installed Chrome; focused desktop and 390px checks confirmed Lv1, Lv2, MAX, save/restore, effective `+27분`, original-time `+6 XP`, accessible meters, mobile scrolling, no horizontal overflow, and no console/page/resource errors.
+
+- 2026-07-29 item-use full-card transition restoration:
+  restored the client-enforced 500ms transition for `use_item` actions.
+  item use now reuses the choice-style neutral gray surface fill across the complete inventory card while keeping the card contents above the fill.
+  bumped the client script query version so browsers fetch the restored behavior.
+  `node --check app-api.js` and `git diff --check` passed.
+  the required web-game Playwright client completed successfully with installed Chrome.
+  focused desktop and 390px verification confirmed a single full-card fill, no button-level bar or scene overlay, a 500ms duration, preserved card dimensions, the exact choice gray `rgba(31, 41, 55, 0.12)`, content above the fill, item consumption after completion, no horizontal overflow, and no console/page/resource errors.
+
+- 2026-07-29 clock chip alignment and time-advance emphasis:
+  fixed the clock text line-height so its shared vertical padding resolves to the same desktop and mobile chip heights as the three status controls.
+  added a short red border/background/text emphasis that runs only when `worldElapsedMs` increases, then restores the normal clock appearance.
+  reset the comparison state when returning home, starting a new game, or restoring a save so initial rendering does not flash.
+  bumped the client script query version.
+  `node --check app-api.js` and `git diff --check` passed.
+  the required web-game Playwright client completed successfully with installed Chrome.
+  focused verification measured exact clock/status alignment at 30px with 4px vertical padding on desktop and 26px with 3px vertical padding at 390px.
+  two consecutive rest actions confirmed `06:00 → 06:15 → 06:30`, restarted the 820ms red emphasis each time, restored the original colors, matched `render_game_to_text`, introduced no horizontal overflow, and produced no console/page/resource errors.
+
+- 2026-07-29 home action visibility and travel copy:
+  gave the enabled Continue button the same white surface as New Game and Content Studio a blue surface so both actions stand out against the cover.
+  kept the no-save Continue state on the existing subdued disabled styling by applying the new color only to `:not(:disabled)`.
+  removed the delayed `장면을 준비하는 중…` replacement from region travel; the destination-aware movement message now remains unchanged until travel completes.
+  `node --check app-api.js` and `git diff --check` passed.
+  the bundled web-game Playwright client could not start because `playwright` is not installed; the in-app browser runtime also failed to initialize with `Cannot redefine property: process`, so no dependency was added solely for verification.
+  focused 390px Chrome verification confirmed the disabled no-save Continue appearance, the earlier enabled Continue surface, the blue Content Studio surface, and readable text contrast.
+  a delayed-response travel probe kept `편의점 폐허 쪽으로 이동하는 중…` visible after 1.35 seconds, never showed the removed scene-preparation copy, completed at the convenience store, and produced no console or page errors.
+  follow-up changed enabled Continue from lime to the same white as New Game; verification was intentionally skipped at the user's request.
+
+- 2026-07-29 compact inventory with fixed detail dock:
+  reduced inventory cards to thin two-column rows while preserving their existing item-name font size.
+  moved item descriptions, effect hints, and the contextual Use button into a non-scrolling detail dock below the independently scrolling item list.
+  the first owned item is selected automatically, selection and scroll position persist while browsing, and consuming the last copy falls forward to the next available item.
+  item-use progress now fills the fixed detail dock instead of a list card.
+  `node --check app-api.js` and `git diff --check` passed.
+  focused 390px Chrome verification measured 36px cards with the unchanged 15.2px item-name font, confirmed zero per-card Use buttons, and placed the contextual Use button 11px from the detail dock's right edge.
+  an expanded-list scroll probe produced 469px of list scrolling while the panel content stayed at 0 and the detail dock moved 0px.
+  selecting and consuming the water bottle filled about half of the detail dock at 250ms, removed the consumed card, selected emergency food next, preserved zero horizontal overflow, and produced no console or page errors.
+
+- 2026-07-29 runtime item-card synchronization:
+  inventory cards now refresh their complete presentation and effect data from the current runtime Content Studio definition while preserving only generation metadata from stored cards.
+  this prevents old session or template cards from displaying stale effect hints such as warm meal energy `+4` after the Studio value changes to `+6`.
+  focused regression verification passed: `test:skills` 13/13, `npm.cmd run typecheck`, and `git diff --check`.
+
+- 2026-07-29 stable mobile story scrolling:
+  removed the mobile story auto-follow that moved the viewport downward for every typed character and again when choices appeared.
+  scene changes still begin at the top, while the viewport now stays there until the player scrolls manually.
+  bumped the client script query version so browsers fetch the corrected behavior.
+  `node --check app-api.js` and `git diff --check` passed.
+  focused in-app browser verification at 390px confirmed a same-region shelter scene started at `scrollTop=0` and stayed at `0` after the completed content overflowed the viewport (`scrollHeight=642`, `clientHeight=398`) and four choices appeared; no console errors were reported.
+
+- 2026-07-29 skipped-story choice reveal:
+  skipping an active typewriter now completes only the narrative text immediately and explicitly restarts the existing choice-list `fade-up` animation.
+  the choice reveal keeps the same 220ms timing and motion as an unskipped story completion.
+  bumped the client script query version so browsers fetch the corrected behavior.
+  `node --check app-api.js` and `git diff --check` passed.
+  focused 390px in-app browser verification skipped `prologue_old_woman_visit` mid-sentence and confirmed the completed narrative, one revealed choice, the shared `fade-up` animation at `0.22s`, and no console errors.

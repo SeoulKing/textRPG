@@ -9,10 +9,17 @@ const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id-v7",
 ];
 const REAL_DAY_MS = 15 * 60 * 1000;
+const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const CLIENT_SAVE_VERSION = 13;
+const ACTION_TRANSITION_ACTION_MS = 500;
+const ACTION_TRANSITION_MOVEMENT_MS = 1000;
+const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
+const SCENE_IMAGE_CACHE_LIMIT = 8;
+const sceneImageCache = new Map();
+const preparedScenePresentations = new WeakMap();
+const TIME_ADVANCE_EMPHASIS_MS = 820;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
   shelter: { q: 0, r: 0 },
@@ -21,7 +28,7 @@ const DEFAULT_HEX_COORDS = {
   forest: { q: 0, r: 1 },
   subway: { q: 2, r: 0 },
   hospital: { q: -2, r: 2 },
-  checkpoint: { q: 3, r: 0 },
+  checkpoint: { q: 2, r: -2 },
 };
 const HEX_DIRECTIONS = [
   { q: 1, r: 0 },
@@ -237,10 +244,26 @@ const STATUS_DETAILS = {
   },
 };
 
+function isMagicWorldState(state = currentState()) {
+  return Boolean(state?.flags?.in_magic_world);
+}
+
+function statusDetailFor(statKey, state = currentState()) {
+  if (statKey === "mind" && isMagicWorldState(state)) {
+    return {
+      title: "MP",
+      max: 10,
+      note: "마법과 룬을 다룰 때 소모되는 마력",
+    };
+  }
+  return STATUS_DETAILS[statKey];
+}
+
 const dom = {
   homeScreen: document.querySelector("#home-screen"),
   homeNewGame: document.querySelector("#home-new-game"),
   homeContinue: document.querySelector("#home-continue"),
+  homeFullscreenPlay: document.querySelector("#home-fullscreen-play"),
   homeSaveStatus: document.querySelector("#home-save-status"),
   homeAuthStatus: document.querySelector("#home-auth-status"),
   homeKakaoLogin: document.querySelector("#home-kakao-login"),
@@ -253,12 +276,17 @@ const dom = {
   mindFill: document.querySelector("#mind-fill"),
   energyStatus: document.querySelector("#energy-status"),
   energyFill: document.querySelector("#energy-fill"),
+  timeStatus: document.querySelector(".status-time"),
   timeIndicator: document.querySelector("#time-indicator"),
+  encounterStatus: document.querySelector("#encounter-status"),
+  encounterStatusName: document.querySelector("#encounter-status-name"),
+  encounterHealth: document.querySelector("#encounter-health"),
+  encounterHealthValue: document.querySelector("#encounter-health-value"),
+  encounterBuildSummary: document.querySelector("#encounter-build-summary"),
   statusPopover: document.querySelector("#status-popover"),
   sceneFrame: document.querySelector(".scene-frame"),
   sceneArt: document.querySelector("#scene-art"),
-  sceneLocationBadge: document.querySelector("#scene-location-badge"),
-  sceneRiskBadge: document.querySelector("#scene-risk-badge"),
+  sceneAnimation: document.querySelector("#scene-animation"),
   sceneDevSource: document.querySelector("#scene-dev-source"),
   sceneText: document.querySelector("#scene-text"),
   systemNote: document.querySelector("#system-note"),
@@ -272,6 +300,55 @@ const dom = {
   dockButtons: Array.from(document.querySelectorAll(".dock-button")),
 };
 
+let activeSceneDirector = null;
+let sceneDirectorLoadError = null;
+const sceneDirectorReady = import("./client/graphics/scene-director.js")
+  .then(({ SceneDirector }) => {
+    activeSceneDirector = new SceneDirector({
+      canvas: dom.sceneAnimation,
+      host: dom.sceneFrame,
+    });
+    return activeSceneDirector;
+  })
+  .catch((error) => {
+    sceneDirectorLoadError = error instanceof Error ? error.message : String(error);
+    throw error;
+  });
+
+const sceneDirector = {
+  preloadShelter() {
+    return sceneDirectorReady.then((director) => director.preloadShelter());
+  },
+  showShelterAtStation(station, options) {
+    return sceneDirectorReady.then((director) =>
+      director.showShelterAtStation(station, options)
+    );
+  },
+  moveShelterActor(station, options) {
+    return sceneDirectorReady.then((director) =>
+      director.moveShelterActor(station, options)
+    );
+  },
+  hideShelter() {
+    activeSceneDirector?.hideShelter();
+    dom.sceneAnimation.hidden = true;
+    dom.sceneFrame.classList.remove("has-shelter-scene-visual");
+  },
+  snapshot() {
+    if (sceneDirectorLoadError) {
+      return {
+        engine: "phaser",
+        state: "error",
+        error: sceneDirectorLoadError,
+      };
+    }
+    return activeSceneDirector?.snapshot() ?? {
+      engine: "phaser",
+      state: "loading",
+    };
+  },
+};
+
 const client = {
   isHomeVisible: true,
   activePanel: "map",
@@ -282,8 +359,14 @@ const client = {
   authInfo: null,
   hasUnsavedProgress: false,
   menuStatusMessage: "",
+  geminiTestInFlight: false,
+  geminiTestStatus: null,
   lastFetchedAt: 0,
   syncTimer: null,
+  syncInFlight: false,
+  syncFailures: 0,
+  syncRetryAt: 0,
+  apiRetryAt: 0,
   mapHint: "",
   mapZoomIndex: MAP_ZOOM_FIT_INDEX,
   activeMapDetailKey: null,
@@ -291,19 +374,36 @@ const client = {
   activeStatusPanelView: "status",
   activeStatusDetailKey: null,
   activeInventoryDetailKey: null,
+  inventoryScrollTop: 0,
   activeCraftingRecipeDetailId: null,
   isCompletedQuestGroupOpen: false,
   actionInFlight: false,
+  fullscreenLaunchInFlight: false,
+  pendingAction: null,
+  pendingActionElement: null,
+  pendingActionSceneElement: null,
+  pendingActionStatusElement: null,
+  pendingActionProgressElement: null,
+  pendingActionDisabledControls: [],
+  actionTransitionMessage: "",
+  actionTransitionStartedAt: 0,
+  actionTransitionDurationMs: 0,
+  lastActionTiming: null,
+  sceneImageSource: "",
   sceneRenderToken: 0,
   activeSceneTimer: null,
+  activeSceneTimerResolve: null,
   activeAnimatedStory: null,
   activeAnimatedSystemNote: null,
+  activeStoryAnimationOptions: null,
   isSceneTyping: false,
   justCreatedGame: false,
   renderedSystemNote: "",
   renderedSystemNoteKey: "",
   renderedStorySurfaceId: "",
   questCelebrationTimer: null,
+  renderedWorldElapsedMs: null,
+  timeAdvanceTimer: null,
 };
 
 const TRANSIENT_SCROLLBAR_HIDE_MS = 700;
@@ -417,8 +517,11 @@ function hideScrollbarChrome(element) {
 }
 
 function refreshTransientScrollbars() {
-  setupTransientScrollbar(dom.appShell);
+  hideScrollbarChrome(dom.appShell);
   setupTransientScrollbar(dom.panelContent);
+  document.querySelectorAll(".inventory-list-scroll").forEach((list) => {
+    setupTransientScrollbar(list);
+  });
   document.querySelectorAll(".hex-map-board").forEach((board) => {
     hideScrollbarChrome(board);
   });
@@ -443,7 +546,7 @@ function projectedWorldElapsedMs() {
 
 function clockLabelFromElapsed(worldElapsedMs) {
   const elapsedInDay = ((worldElapsedMs % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
-  const totalMinutes = Math.floor((elapsedInDay / REAL_DAY_MS) * 24 * 60);
+  const totalMinutes = Math.floor((elapsedInDay / GAME_MINUTE_MS) + 1e-7);
   const shiftedMinutes = (totalMinutes + 6 * 60) % (24 * 60);
   const hours = String(Math.floor(shiftedMinutes / 60)).padStart(2, "0");
   const minutes = String(shiftedMinutes % 60).padStart(2, "0");
@@ -456,7 +559,7 @@ function gameClockLabel() {
 
 function survivalTimeSummary(snapshot) {
   const elapsedMs = Math.max(0, snapshot?.state?.worldElapsedMs || 0);
-  const totalMinutes = Math.floor((elapsedMs / REAL_DAY_MS) * 24 * 60);
+  const totalMinutes = Math.floor((elapsedMs / GAME_MINUTE_MS) + 1e-7);
   const days = Math.floor(totalMinutes / (24 * 60));
   const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
   const minutes = totalMinutes % 60;
@@ -588,7 +691,16 @@ function hexLabelMarkup(name) {
   ).join("");
 }
 
+function rateLimitError(retryAt) {
+  const seconds = Math.max(1, Math.ceil((retryAt - Date.now()) / 1000));
+  const error = new Error(`요청이 잠시 제한되었습니다. ${seconds}초 뒤 다시 시도해 주세요.`);
+  error.status = 429;
+  error.retryAt = retryAt;
+  return error;
+}
+
 async function api(path, options = {}) {
+  if (Date.now() < client.apiRetryAt) throw rateLimitError(client.apiRetryAt);
   const response = await fetch(path, {
     method: options.method || "GET",
     headers: {
@@ -598,10 +710,443 @@ async function api(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   if (!response.ok) {
+    if (response.status === 429) {
+      const retryAfter = response.headers.get("Retry-After");
+      const seconds = retryAfter?.trim() ? Number(retryAfter) : NaN;
+      const retryAt = Number.isFinite(seconds) ? Date.now() + Math.max(0, seconds) * 1000 : Date.parse(retryAfter);
+      client.apiRetryAt = Math.max(client.apiRetryAt, Number.isFinite(retryAt) ? Math.max(Date.now() + 1000, retryAt) : Date.now() + 30000);
+      console.warn(`HTTP 429: ${options.method || "GET"} ${path}`);
+      throw rateLimitError(client.apiRetryAt);
+    }
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.message || payload.error || `HTTP ${response.status}`);
+    const error = new Error(payload.message || payload.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return response.json();
+}
+
+function waitForMilliseconds(durationMs) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, Math.max(0, durationMs));
+  });
+}
+
+function shelterStationForAction(action) {
+  if (action?.type === "content_action") {
+    if (["open_shelter_crafting", "open_shelter_crafting_repeat"].includes(action.actionId)) {
+      return "crafting";
+    }
+    if (["open_shelter_cooking", "open_shelter_cooking_repeat"].includes(action.actionId)) {
+      return "cooking";
+    }
+  }
+  if (
+    action?.type === "content_choice"
+    && ["leave_shelter_crafting", "leave_shelter_cooking"].includes(action.choiceId)
+  ) {
+    return "rest";
+  }
+  return null;
+}
+
+function isCookingMenuSnapshot(snapshot) {
+  return Boolean(snapshot?.availableActions?.some((choice) =>
+    choice.id === "leave_shelter_cooking"
+  ));
+}
+
+function isCraftingMenuSnapshot(snapshot) {
+  return Boolean(snapshot?.availableActions?.some((choice) =>
+    choice.id === "leave_shelter_crafting"
+  ));
+}
+
+function shelterStationForSnapshot(snapshot) {
+  if (isCookingMenuSnapshot(snapshot)) {
+    return "cooking";
+  }
+  if (isCraftingMenuSnapshot(snapshot)) {
+    return "crafting";
+  }
+  return "rest";
+}
+
+function isShelterSnapshot(snapshot) {
+  return snapshot?.state?.location === "shelter";
+}
+
+function showShelterSceneVisual(station) {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  sceneDirector.showShelterAtStation(station, { reduceMotion }).catch((error) => {
+    console.warn(error);
+    sceneDirector.hideShelter();
+  });
+}
+
+function playShelterStationTransition(station) {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return sceneDirector.moveShelterActor(station, {
+    reduceMotion,
+  }).catch((error) => {
+    console.warn(error);
+    sceneDirector.hideShelter();
+  });
+}
+
+function syncShelterSceneVisual(snapshot) {
+  if (shelterStationForAction(client.pendingAction)) {
+    return;
+  }
+  if (isShelterSnapshot(snapshot)) {
+    showShelterSceneVisual(shelterStationForSnapshot(snapshot));
+    return;
+  }
+  sceneDirector.hideShelter();
+}
+
+function isMovementAction(action, loading = null) {
+  if (!action) {
+    return false;
+  }
+  if (action.type === "travel") {
+    return true;
+  }
+  if (action.type === "subway_expedition") {
+    return ["start", "descend", "return"].includes(action.command);
+  }
+
+  const actionId = action.actionId || action.choiceId || "";
+  return actionId === "start_subway_expedition" ||
+    loading?.transitionType === "region_travel";
+}
+
+function usesRegionTravelOverlay(action, loading = null) {
+  return action?.type === "travel" ||
+    loading?.transitionType === "region_travel";
+}
+
+function actionTransitionDurationMs(action, loading = null) {
+  if (isMovementAction(action, loading)) {
+    return ACTION_TRANSITION_MOVEMENT_MS;
+  }
+  if (action?.type === "use_item") {
+    return ACTION_TRANSITION_ACTION_MS;
+  }
+  if (action?.type === "subway_expedition" && action.command === "search_loot") {
+    return ACTION_TRANSITION_ACTION_MS;
+  }
+  if (!loading) {
+    return 0;
+  }
+  return Number.isFinite(loading.durationMs)
+    ? Math.max(0, loading.durationMs)
+    : ACTION_TRANSITION_ACTION_MS;
+}
+
+function actionTransitionMessage(action, loading = null) {
+  if (!action) {
+    return "행동하는 중…";
+  }
+
+  if (action.type === "travel") {
+    const destination = client.snapshot?.visibleLocations?.find(
+      (location) => location.id === action.targetId,
+    );
+    return destination
+      ? `${destination.name} 쪽으로 이동하는 중…`
+      : "이동하는 중…";
+  }
+  if (action.type === "use_item") {
+    return "아이템을 사용하는 중…";
+  }
+  if (action.type === "subway_expedition") {
+    const messages = {
+      start: "지하 1층으로 내려가는 중…",
+      choose: "상황에 대응하는 중…",
+      resolve_event: "상황에 대응하는 중…",
+      encounter_choice: "선택 결과를 판정하고 다음 상황을 구성하는 중…",
+      acknowledge_encounter: "상황 결과를 확인하는 중…",
+      acknowledge_result: "결과를 정리하는 중…",
+      descend: "다음 층으로 내려가는 중…",
+      return: "대합실로 돌아가는 중…",
+    };
+    return messages[action.command] || "지하철역을 탐색하는 중…";
+  }
+  if (loading?.transitionType === "region_travel") {
+    return "이동하는 중…";
+  }
+
+  const actionId = action.actionId || action.choiceId || "";
+  if (/^(collect_|buy_|exchange_|deliver_)/.test(actionId)) {
+    return "물건을 챙기는 중…";
+  }
+  if (/^(search_|survey_|inspect_|listen_|ask_|explore_)/.test(actionId)) {
+    return "주변을 살피는 중…";
+  }
+  if (/^(craft_|assemble_|cook_)/.test(actionId)) {
+    return "손을 움직이는 중…";
+  }
+  if (/^(rest_|sleep_)/.test(actionId)) {
+    return "숨을 고르는 중…";
+  }
+  if (action.type === "content_choice") {
+    return "선택의 결과가 이어지는 중…";
+  }
+  return "행동하는 중…";
+}
+
+function pendingActionControls() {
+  return Array.from(document.querySelectorAll([
+    ".choice-button",
+    ".crafting-choice-select",
+    ".crafting-choice-submit",
+    "[data-map-travel]",
+    "[data-use-item]",
+    "[data-hex-location]",
+    ".dock-button",
+  ].join(",")));
+}
+
+function beginActionTransition(action, triggerElement, durationMs, loading = null) {
+  const control = triggerElement instanceof Element
+    ? triggerElement.closest("button, [role='button']")
+    : null;
+  const anchor = control instanceof HTMLElement
+    ? control.closest(
+        ".crafting-choice-card, .inventory-detail-slot, .inventory-card, .map-destination-detail, .choice-button",
+      ) || control
+    : null;
+  const craftingNameTarget = control instanceof HTMLElement
+    && control.matches(".crafting-choice-submit")
+    && anchor instanceof HTMLElement
+    ? anchor.querySelector(".crafting-choice-select")
+    : null;
+  const visualTarget = action?.type === "use_item"
+    && anchor instanceof HTMLElement
+    && anchor.matches(".inventory-detail-slot, .inventory-card")
+    ? anchor
+    : craftingNameTarget instanceof HTMLElement
+      ? craftingNameTarget
+      : control;
+  const isMovement = isMovementAction(action, loading);
+  const usesOverlay = usesRegionTravelOverlay(action, loading);
+  const message = usesOverlay
+    ? actionTransitionMessage(action, loading)
+    : "";
+  const usesInlineSurfaceFill = visualTarget instanceof HTMLElement
+    && visualTarget.matches(".choice-button, .inventory-card, .inventory-detail-slot");
+  const status = message ? document.createElement("p") : null;
+  if (status) {
+    status.className = "action-transition-status";
+    status.setAttribute("aria-live", "polite");
+    status.textContent = message;
+  }
+
+  client.pendingActionElement = visualTarget;
+  client.pendingActionStatusElement = status;
+  client.actionTransitionStartedAt = Date.now();
+  client.actionTransitionDurationMs = durationMs;
+  client.actionTransitionMessage = message;
+
+  client.pendingActionDisabledControls = pendingActionControls().map((element) => ({
+    element,
+    disabled: "disabled" in element ? Boolean(element.disabled) : null,
+    ariaDisabled: element.getAttribute("aria-disabled"),
+  }));
+  client.pendingActionDisabledControls.forEach(({ element }) => {
+    if ("disabled" in element) {
+      element.disabled = true;
+    }
+    element.setAttribute("aria-disabled", "true");
+  });
+
+  if (message) {
+    const sceneTransition = document.createElement("div");
+    sceneTransition.className = "scene-action-transition";
+    sceneTransition.classList.toggle("is-movement", isMovement);
+    sceneTransition.setAttribute("role", "status");
+    sceneTransition.setAttribute("aria-live", "polite");
+
+    const card = document.createElement("div");
+    card.className = "scene-action-transition-card";
+
+    const kicker = document.createElement("span");
+    kicker.className = "scene-action-transition-kicker";
+    kicker.textContent = isMovement ? "이동" : "행동";
+    card.appendChild(kicker);
+    card.appendChild(status);
+
+    const progressTrack = document.createElement("span");
+    progressTrack.className = "action-transition-progress";
+    progressTrack.setAttribute("aria-hidden", "true");
+    const progressFill = document.createElement("span");
+    progressFill.className = "action-transition-progress-fill";
+    progressFill.style.animationDuration = `${durationMs}ms`;
+    progressTrack.appendChild(progressFill);
+    card.appendChild(progressTrack);
+    sceneTransition.appendChild(card);
+    document.body.appendChild(sceneTransition);
+
+    dom.sceneFrame.classList.add("is-action-in-progress");
+    dom.sceneFrame.setAttribute("aria-busy", "true");
+    client.pendingActionSceneElement = sceneTransition;
+    client.pendingActionStatusElement = status;
+    client.pendingActionProgressElement = progressTrack;
+  } else if (visualTarget instanceof HTMLElement) {
+    const progressTrack = document.createElement("span");
+    progressTrack.className = "action-transition-progress";
+    progressTrack.classList.toggle("is-choice-surface-fill", usesInlineSurfaceFill);
+    progressTrack.setAttribute("aria-hidden", "true");
+    const progressFill = document.createElement("span");
+    progressFill.className = "action-transition-progress-fill";
+    progressFill.style.animationDuration = `${durationMs}ms`;
+    progressTrack.appendChild(progressFill);
+    visualTarget.appendChild(progressTrack);
+    visualTarget.classList.add("is-action-pending");
+    visualTarget.classList.toggle("is-choice-surface-pending", usesInlineSurfaceFill);
+    client.pendingActionProgressElement = progressTrack;
+  }
+}
+
+function finishActionTransition() {
+  client.pendingActionStatusElement?.remove();
+  client.pendingActionProgressElement?.remove();
+  client.pendingActionSceneElement?.remove();
+  client.pendingActionElement?.classList.remove("is-action-pending");
+  client.pendingActionElement?.classList.remove("is-choice-surface-pending");
+  dom.sceneFrame.classList.remove("is-action-in-progress");
+  dom.sceneFrame.removeAttribute("aria-busy");
+  client.pendingActionDisabledControls.forEach(({ element, disabled, ariaDisabled }) => {
+    if (!element.isConnected) {
+      return;
+    }
+    if (disabled !== null && "disabled" in element) {
+      element.disabled = disabled;
+    }
+    if (ariaDisabled === null) {
+      element.removeAttribute("aria-disabled");
+    } else {
+      element.setAttribute("aria-disabled", ariaDisabled);
+    }
+  });
+
+  client.pendingActionElement = null;
+  client.pendingActionSceneElement = null;
+  client.pendingActionStatusElement = null;
+  client.pendingActionProgressElement = null;
+  client.pendingActionDisabledControls = [];
+  client.actionTransitionMessage = "";
+  client.actionTransitionStartedAt = 0;
+  client.actionTransitionDurationMs = 0;
+}
+
+function snapshotLocationCard(snapshot) {
+  const locationId = snapshot?.state?.location;
+  return snapshot?.visibleLocations?.find((entry) => entry.id === locationId) || null;
+}
+
+function sceneImageSource(location) {
+  // Use the same address for prediction, preloading, and display of old saves.
+  const source = location?.imagePath || "assets/scenes/camp.svg";
+  return source.replace(/^\/?assets\/scenes\/forest\.svg$/, "assets/scenes/forest-pencil-charcoal.png");
+}
+
+function preloadImage(source) {
+  if (!source) return Promise.resolve(null);
+  const cached = sceneImageCache.get(source);
+  if (cached) {
+    sceneImageCache.delete(source);
+    sceneImageCache.set(source, cached);
+    return cached.promise;
+  }
+  const image = new Image();
+  const entry = { image, ready: false, promise: null };
+  entry.promise = new Promise((resolve) => {
+    let settled = false;
+    const finish = async () => {
+      if (settled) return;
+      settled = true;
+      if (!image.naturalWidth) {
+        if (sceneImageCache.get(source) === entry) sceneImageCache.delete(source);
+        resolve(null);
+        return;
+      }
+      // Retain the decoded image itself so displaying it does not start another load.
+      if (typeof image.decode === "function") await image.decode().catch(() => undefined);
+      entry.ready = true;
+      resolve(image);
+    };
+    image.addEventListener("load", finish, { once: true });
+    image.addEventListener("error", finish, { once: true });
+    image.src = source;
+    if (image.complete) Promise.resolve().then(finish);
+  });
+  sceneImageCache.set(source, entry);
+  while (sceneImageCache.size > SCENE_IMAGE_CACHE_LIMIT) {
+    sceneImageCache.delete(sceneImageCache.keys().next().value);
+  }
+  return entry.promise;
+}
+
+function displaySceneImage(source) {
+  client.sceneImageSource = source;
+  const show = (image) => {
+    if (client.sceneImageSource !== source) return;
+    if (!image) {
+      dom.sceneArt.hidden = true;
+      return;
+    }
+    if (image !== dom.sceneArt) {
+      for (const { name, value } of Array.from(dom.sceneArt.attributes)) {
+        if (name !== "src") image.setAttribute(name, value);
+      }
+      dom.sceneArt.replaceWith(image);
+      dom.sceneArt = image;
+    }
+    dom.sceneArt.hidden = false;
+  };
+  const cached = sceneImageCache.get(source);
+  if (cached?.ready) {
+    show(cached.image);
+    return;
+  }
+  // After the loading deadline, show the text without a wrong location image.
+  dom.sceneArt.hidden = true;
+  void preloadImage(source).then(show);
+}
+
+function preloadActionSceneAssets(action, snapshot) {
+  const targetId = action?.type === "travel" ? action.targetId : snapshot?.state?.location;
+  const location = snapshot?.visibleLocations?.find((entry) => entry.id === targetId);
+  if (location) void preloadImage(sceneImageSource(location));
+}
+
+async function preloadNextSceneAssets(snapshot) {
+  let timer;
+  try {
+    await Promise.race([
+      preloadImage(sceneImageSource(snapshotLocationCard(snapshot))),
+      new Promise((resolve) => {
+        timer = window.setTimeout(resolve, ACTION_ASSET_PRELOAD_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+function prepareScenePresentation(snapshot) {
+  let prepared = preparedScenePresentations.get(snapshot);
+  if (!prepared) {
+    prepared = { story: buildStoryDisplay(snapshot), choices: null, recipeDetailId: null };
+    preparedScenePresentations.set(snapshot, prepared);
+  }
+  if (!prepared.choices || prepared.recipeDetailId !== client.activeCraftingRecipeDetailId) {
+    prepared.choices = buildChoicePresentation(snapshot);
+    prepared.recipeDetailId = client.activeCraftingRecipeDetailId;
+  }
+  return prepared;
 }
 
 function clearLegacyGameIds() {
@@ -672,11 +1217,44 @@ function showGameScreen() {
   startBackgroundSync();
 }
 
+async function requestGameFullscreen() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    return true;
+  }
+
+  const root = document.documentElement;
+  try {
+    if (typeof root.requestFullscreen === "function") {
+      try {
+        await root.requestFullscreen({ navigationUI: "hide" });
+      } catch (error) {
+        if (!(error instanceof TypeError)) {
+          throw error;
+        }
+        await root.requestFullscreen();
+      }
+      return true;
+    }
+
+    if (typeof root.webkitRequestFullscreen === "function") {
+      await root.webkitRequestFullscreen();
+      return true;
+    }
+  } catch (error) {
+    console.info("전체화면을 열 수 없어 일반 화면으로 게임을 시작합니다.", error);
+  }
+  return false;
+}
+
 function renderHomeScreen() {
   const info = activeHomeSaveInfo();
   dom.homeSaveStatus.textContent = info.exists ? info.label : "저장된 게임 없음";
   dom.homeContinue.disabled = !info.exists;
   dom.homeContinue.setAttribute("aria-disabled", info.exists ? "false" : "true");
+  dom.homeFullscreenPlay.setAttribute(
+    "aria-label",
+    info.exists ? "저장 게임을 전체화면으로 이어하기" : "새 게임을 전체화면으로 시작하기",
+  );
 
   const user = client.authInfo?.user;
   const kakaoConfigured = Boolean(client.authInfo?.kakaoConfigured);
@@ -742,6 +1320,7 @@ async function refreshHomeSaveInfo() {
 async function showHomeScreen() {
   stopBackgroundSync();
   clearSceneAnimation();
+  resetTimeAdvancePresentation();
   client.isHomeVisible = true;
   client.gameId = "";
   client.snapshot = null;
@@ -759,12 +1338,15 @@ async function createNewGame() {
     method: "POST",
     body: {},
   });
+  resetTimeAdvancePresentation();
   client.gameId = snapshot.gameId;
   client.snapshot = snapshot;
   client.lastFetchedAt = Date.now();
   client.activePanel = "map";
   client.isPanelOpen = false;
   client.mapHint = "";
+  client.activeInventoryDetailKey = null;
+  client.inventoryScrollTop = 0;
   client.activeCraftingRecipeDetailId = null;
   client.isCompletedQuestGroupOpen = false;
   client.justCreatedGame = true;
@@ -802,7 +1384,10 @@ async function restartGameFromOverlay() {
 }
 
 function needsFreshGame(snapshot) {
-  return !snapshot || !snapshot.state || snapshot.state.saveVersion !== CLIENT_SAVE_VERSION;
+  // saveVersion은 서버 저장 데이터의 스키마 버전입니다. 서버가 이전 저장을
+  // 정규화하므로 브라우저가 버전 차이만으로 새 게임을 만들면 안 됩니다.
+  // 특히 순차 배포 중 구 클라이언트와 새 서버가 잠시 섞일 때 무한 재시작이 됩니다.
+  return !snapshot || !snapshot.state;
 }
 
 async function loadGameState() {
@@ -837,12 +1422,15 @@ async function continueSavedGame() {
       method: "POST",
       body: {},
     });
+    resetTimeAdvancePresentation();
     client.gameId = snapshot.gameId;
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
     client.activePanel = "map";
     client.isPanelOpen = false;
     client.mapHint = "";
+    client.activeInventoryDetailKey = null;
+    client.inventoryScrollTop = 0;
     client.activeCraftingRecipeDetailId = null;
     client.isCompletedQuestGroupOpen = false;
     client.justCreatedGame = false;
@@ -907,6 +1495,42 @@ async function saveCurrentGameFromMenu() {
     window.alert(error instanceof Error ? error.message : "저장하지 못했습니다.");
   } finally {
     client.actionInFlight = false;
+  }
+}
+
+async function testGeminiConnectionFromMenu() {
+  if (client.geminiTestInFlight) {
+    return;
+  }
+
+  client.geminiTestInFlight = true;
+  client.geminiTestStatus = {
+    type: "pending",
+    message: "Gemini API 연결을 확인하고 있습니다.",
+  };
+  renderPanel();
+
+  try {
+    const result = await api("/api/gemini/test", {
+      method: "POST",
+      body: {},
+    });
+    client.geminiTestStatus = {
+      type: result.supportsGenerateContent ? "success" : "warning",
+      message: result.supportsGenerateContent
+        ? result.message
+        : `${result.message} · generateContent 미지원`,
+    };
+  } catch (error) {
+    client.geminiTestStatus = {
+      type: "error",
+      message: error instanceof Error
+        ? error.message
+        : "Gemini API 연결을 확인하지 못했습니다.",
+    };
+  } finally {
+    client.geminiTestInFlight = false;
+    renderPanel();
   }
 }
 
@@ -978,6 +1602,13 @@ function storyAnimationSurfaceId(snapshot) {
   if (isEventStoryActive(snapshot)) {
     return `event:${snapshot.latestEvent.id}`;
   }
+  if (snapshot.state?.npcDialogue?.active) {
+    return `dialogue:${currentSceneId(snapshot)}`;
+  }
+  const expedition = snapshot.state?.subwayExpedition;
+  if (expedition?.active && expedition.currentFloor) {
+    return `subway:${currentSceneId(snapshot)}`;
+  }
   return `scene:${currentSceneDefinitionId(snapshot)}`;
 }
 
@@ -1006,6 +1637,27 @@ function buildStoryDisplay(snapshot) {
     headline: "",
     paragraphs: (snapshot.currentScene.paragraphs || []).filter((paragraph) => String(paragraph).trim()),
   };
+}
+
+function normalizePostChoiceNarrative(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((paragraph) => String(paragraph).trim())
+    .filter(Boolean)
+    .slice(0, 2);
+}
+
+function beginPostChoiceNarrative(paragraphs, append = false) {
+  clearSceneAnimation();
+  const story = { headline: "", paragraphs };
+  const token = client.sceneRenderToken;
+  return animateStoryText(story, token, null, {
+    append,
+    scrollToStart: append,
+    revealChoices: false,
+  });
 }
 
 function currentSceneDefinitionId(snapshot = client.snapshot) {
@@ -1079,11 +1731,24 @@ function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
   return currentSceneId(previousSnapshot) === currentSceneId(nextSnapshot);
 }
 
+function shouldContinueLocationStory(previousSnapshot, nextSnapshot) {
+  if (!previousSnapshot?.currentScene || !nextSnapshot?.currentScene
+    || !previousSnapshot.gameId || previousSnapshot.gameId !== nextSnapshot.gameId
+    || !previousSnapshot.state?.location
+    || previousSnapshot.state.location !== nextSnapshot.state?.location
+    || previousSnapshot.state.subwayExpedition?.active
+    || nextSnapshot.state.subwayExpedition?.active) {
+    return false;
+  }
+  return storySurfaceId(previousSnapshot) !== storySurfaceId(nextSnapshot)
+    || JSON.stringify(buildStoryDisplay(previousSnapshot)) !== JSON.stringify(buildStoryDisplay(nextSnapshot));
+}
+
 function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${JSON.stringify(choice.craftingRecipe || null)}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}:${JSON.stringify(choice.postChoiceNarrative || null)}`)
     .join("|");
 }
 
@@ -1099,8 +1764,10 @@ function preserveDisplayedSceneSnapshot(previousSnapshot, nextSnapshot) {
 
 function scheduleSceneStep(callback, delay) {
   return new Promise((resolve) => {
+    client.activeSceneTimerResolve = resolve;
     client.activeSceneTimer = window.setTimeout(() => {
       client.activeSceneTimer = null;
+      client.activeSceneTimerResolve = null;
       callback();
       resolve();
     }, delay);
@@ -1113,29 +1780,90 @@ function clearSceneAnimation() {
     window.clearTimeout(client.activeSceneTimer);
     client.activeSceneTimer = null;
   }
+  if (client.activeSceneTimerResolve) {
+    const resolveActiveStep = client.activeSceneTimerResolve;
+    client.activeSceneTimerResolve = null;
+    resolveActiveStep();
+  }
   client.activeAnimatedStory = null;
   client.activeAnimatedSystemNote = null;
+  client.activeStoryAnimationOptions = null;
   client.isSceneTyping = false;
+  dom.sceneFrame.classList.remove("is-story-typing");
 }
 
-function pinSceneTextToBottomOnMobile() {
+function resetSceneScrollOnMobile() {
   if (!window.matchMedia("(max-width: 620px)").matches) {
     return;
   }
   window.requestAnimationFrame(() => {
-    dom.appShell.scrollTop = dom.appShell.scrollHeight;
+    dom.appShell.scrollTop = 0;
   });
 }
 
 function syncMobileChoiceZoneHeight() {
-  if (!window.matchMedia("(max-width: 620px)").matches) {
+  if (!window.matchMedia("(max-width: 620px)").matches || !dom.choices.childElementCount) {
     document.documentElement.style.removeProperty("--mobile-choice-zone-height");
     return;
   }
 
   window.requestAnimationFrame(() => {
-    const height = dom.choices.childElementCount > 0 ? Math.ceil(dom.choices.getBoundingClientRect().height) : 0;
-    document.documentElement.style.setProperty("--mobile-choice-zone-height", `${height}px`);
+    const choiceZoneHeight = Math.ceil(dom.choices.getBoundingClientRect().height);
+    document.documentElement.style.setProperty(
+      "--mobile-choice-zone-height",
+      `${choiceZoneHeight}px`,
+    );
+  });
+}
+
+function createSceneStoryBlock(append) {
+  const hasHistory = append && dom.sceneText.childElementCount > 0;
+  if (!append) {
+    dom.sceneText.replaceChildren();
+    client.renderedSystemNoteKey = "";
+  }
+  dom.sceneText.classList.toggle("has-story-history", hasHistory);
+  const block = document.createElement("div");
+  block.className = "scene-story-block";
+  // Reading space belongs to the outer block; prose and all results share natural height.
+  const content = document.createElement("div");
+  content.className = "scene-story-content";
+  const prose = document.createElement("div");
+  prose.className = "scene-prose";
+  content.appendChild(prose);
+  createSceneSystemNote(content);
+  block.appendChild(content);
+  dom.sceneText.appendChild(block);
+  return block;
+}
+
+function createSceneSystemNote(block) {
+  // Completed notes stay with their prose; only the newest note announces updates.
+  dom.systemNote.removeAttribute("id");
+  dom.systemNote.removeAttribute("role");
+  dom.systemNote.classList.remove("is-entering");
+  const note = document.createElement("div");
+  note.id = "system-note";
+  note.className = "system-note";
+  note.setAttribute("role", "status");
+  note.hidden = true;
+  block.appendChild(note);
+  dom.systemNote = note;
+  client.renderedSystemNote = "";
+  return note;
+}
+
+function scrollSceneStoryToStart(block) {
+  window.requestAnimationFrame(() => {
+    if (!block.isConnected || dom.sceneText.lastElementChild !== block) {
+      return;
+    }
+    const isMobile = window.matchMedia("(max-width: 620px)").matches;
+    const viewportTop = isMobile ? dom.appShell.getBoundingClientRect().top : 0;
+    const scrollTop = isMobile ? dom.appShell.scrollTop : window.scrollY;
+    const top = Math.max(0, scrollTop + block.getBoundingClientRect().top - viewportTop - 12);
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    (isMobile ? dom.appShell : window).scrollTo({ top, behavior });
   });
 }
 
@@ -1146,7 +1874,6 @@ async function typeParagraph(paragraphElement, text, token) {
       return false;
     }
     paragraphElement.textContent = text.slice(0, index);
-    pinSceneTextToBottomOnMobile();
     const currentChar = text[index - 1];
     const delay = /[.!?]/.test(currentChar)
       ? TYPEWRITER_CHAR_DELAY + 40
@@ -1159,29 +1886,36 @@ async function typeParagraph(paragraphElement, text, token) {
   return token === client.sceneRenderToken;
 }
 
-async function animateStoryText(story, token, systemNotePayload = null) {
+async function animateStoryText(
+  story,
+  token,
+  systemNotePayload = null,
+  options = {},
+) {
+  const append = options.append === true;
+  const revealChoices = options.revealChoices !== false;
+  const block = createSceneStoryBlock(append);
+  const prose = block.querySelector(".scene-prose");
   client.activeAnimatedStory = story;
   client.activeAnimatedSystemNote = systemNotePayload;
+  client.activeStoryAnimationOptions = { append, revealChoices, block, scrollToStart: options.scrollToStart === true };
   client.isSceneTyping = true;
-  dom.sceneText.innerHTML = "";
+  dom.sceneFrame.classList.add("is-story-typing");
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed");
+  if (options.scrollToStart) {
+    scrollSceneStoryToStart(block);
+  }
 
   if (story.headline) {
     if (token !== client.sceneRenderToken) {
-      client.isSceneTyping = false;
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
       return;
     }
     const headlineElement = document.createElement("p");
     headlineElement.className = "scene-headline";
-    dom.sceneText.appendChild(headlineElement);
+    prose.appendChild(headlineElement);
     const headlineDone = await typeParagraph(headlineElement, story.headline, token);
     if (!headlineDone) {
-      client.isSceneTyping = false;
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1189,18 +1923,12 @@ async function animateStoryText(story, token, systemNotePayload = null) {
 
   for (const paragraph of story.paragraphs) {
     if (token !== client.sceneRenderToken) {
-      client.isSceneTyping = false;
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
       return;
     }
     const paragraphElement = document.createElement("p");
-    dom.sceneText.appendChild(paragraphElement);
+    prose.appendChild(paragraphElement);
     const completed = await typeParagraph(paragraphElement, paragraph, token);
     if (!completed) {
-      client.isSceneTyping = false;
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1208,18 +1936,27 @@ async function animateStoryText(story, token, systemNotePayload = null) {
 
   if (token === client.sceneRenderToken) {
     client.isSceneTyping = false;
+    dom.sceneFrame.classList.remove("is-story-typing");
     client.activeAnimatedStory = null;
     client.activeAnimatedSystemNote = null;
+    client.activeStoryAnimationOptions = null;
     if (systemNotePayload?.note) {
-      renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+      renderSystemNote(
+        systemNotePayload.note,
+        systemNotePayload.key,
+        systemNotePayload.entries,
+      );
     }
-    renderChoices();
+    if (revealChoices) {
+      renderChoices();
+    }
   }
 }
 
 function skipSceneTyping() {
   const story = client.activeAnimatedStory;
   const systemNotePayload = client.activeAnimatedSystemNote;
+  const animationOptions = client.activeStoryAnimationOptions || {};
   if (!client.isSceneTyping || !story) {
     return false;
   }
@@ -1227,13 +1964,26 @@ function skipSceneTyping() {
   const headlineBlock = story.headline
     ? `<p class="scene-headline">${escapeHtml(story.headline)}</p>`
     : "";
-  dom.sceneText.innerHTML =
+  const storyHtml =
     headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
-  if (systemNotePayload?.note) {
-    renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+  // Replace only the typing block so history stays intact and partial text is not duplicated.
+  animationOptions.block.querySelector(".scene-prose").innerHTML = storyHtml;
+  if (animationOptions.scrollToStart) {
+    scrollSceneStoryToStart(animationOptions.block);
   }
-  renderChoices();
-  pinSceneTextToBottomOnMobile();
+  if (systemNotePayload?.note) {
+    renderSystemNote(
+      systemNotePayload.note,
+      systemNotePayload.key,
+      systemNotePayload.entries,
+    );
+  }
+  if (animationOptions.revealChoices !== false) {
+    renderChoices();
+    dom.choices.classList.remove("revealed");
+    void dom.choices.offsetWidth;
+    dom.choices.classList.add("revealed");
+  }
   return true;
 }
 
@@ -1247,9 +1997,10 @@ function escapeHtml(value) {
 }
 
 function itemEffectHintHtml(effects = {}, useMinutes = 0) {
+  const mindLabel = isMagicWorldState() ? "MP" : "정신력";
   const effectParts = [
     { key: "hp", label: "체력", className: "item-hp-hint" },
-    { key: "mind", label: "정신력", className: "item-mind-hint" },
+    { key: "mind", label: mindLabel, className: "item-mind-hint" },
     { key: "energy", label: "기력", className: "item-energy-hint" },
   ].flatMap(({ key, label, className }) => {
     const value = effects[key] ?? 0;
@@ -1259,6 +2010,10 @@ function itemEffectHintHtml(effects = {}, useMinutes = 0) {
     const signedValue = value > 0 ? `+${value}` : String(value);
     return [`<span class="${className}">${signedValue} ${label}</span>`];
   });
+  for (const [key, label] of [["injuryRelief", "부상"], ["infectionRelief", "감염"]]) {
+    if (effects[key] > 0) effectParts.push(`<span class="item-hp-hint">${label} -${effects[key]}단계</span>`);
+  }
+  if (effects.infectionRelief > 0) effectParts.push('<span class="item-time-hint">다음 감염 악화까지 6시간</span>');
   if (useMinutes && useMinutes > 0) {
     effectParts.push(`<span class="item-time-hint">+ ${formatMinutesLabel(useMinutes)}</span>`);
   }
@@ -1277,7 +2032,7 @@ function itemDurabilityHintHtml(item, state) {
   return `<span class="item-effect-list"><span class="item-durability-hint">내구도 ${current}/${item.maxDurability}</span></span>`;
 }
 
-function craftingRecipeMetaHtml(recipe) {
+function craftingRecipeMetaHtml(recipe, { showEffect = true } = {}) {
   if (!recipe) {
     return "";
   }
@@ -1312,57 +2067,94 @@ function craftingRecipeMetaHtml(recipe) {
       </span>
     `
     : "";
-
-  return `
-    <span class="crafting-recipe-detail">
+  const effectHtml = showEffect
+    ? `
       <span class="crafting-recipe-row is-effect">
         <span class="crafting-recipe-label">효과</span>
         <span class="crafting-recipe-effect">${escapeHtml(recipe.effect)}</span>
       </span>
+    `
+    : "";
+
+  return `
+    <span class="crafting-recipe-detail">
+      ${effectHtml}
       ${prerequisiteHtml}
       ${requirementsHtml}
     </span>
   `;
 }
 
-function renderCraftingChoices(snapshot) {
+function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {}) {
   const recipeChoices = snapshot.availableActions.filter((choice) =>
-    choice.id !== "leave_shelter_crafting" && choice.craftingRecipe
+    !["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) && choice.craftingRecipe
   );
   const otherChoices = snapshot.availableActions.filter((choice) =>
-    choice.id === "leave_shelter_crafting" || !choice.craftingRecipe
+    ["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) || !choice.craftingRecipe
   );
   const selectedChoice = recipeChoices.find((choice) => choice.id === client.activeCraftingRecipeDetailId) || recipeChoices[0] || null;
-  client.activeCraftingRecipeDetailId = selectedChoice?.id || null;
+  const selectedRecipeId = selectedChoice?.id || null;
 
   if (selectedChoice?.craftingRecipe) {
     const detail = document.createElement("section");
-    detail.className = "crafting-recipe-panel";
+    detail.className = `crafting-recipe-panel${isCookingMenu ? " is-cooking-menu" : ""}`;
     detail.setAttribute("aria-live", "polite");
-    detail.innerHTML = `
-      <div class="crafting-recipe-panel-head">
-        <strong>${escapeHtml(selectedChoice.label)}</strong>
+    const detailHeadMeta = isCookingMenu
+      ? `<span class="crafting-recipe-effect">${escapeHtml(selectedChoice.craftingRecipe.effect)}</span>`
+      : `
         <span class="crafting-recipe-state ${selectedChoice.isAvailable ? "is-met" : "is-missing"}">
           ${selectedChoice.isAvailable ? "제작 가능" : "재료 부족"}
         </span>
+      `;
+    detail.innerHTML = `
+      <div class="crafting-recipe-panel-head">
+        <strong>${escapeHtml(selectedChoice.label)}</strong>
+        ${detailHeadMeta}
       </div>
-      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe)}
+      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe, { showEffect: !isCookingMenu })}
     `;
-    dom.choices.appendChild(detail);
+    container.appendChild(detail);
   }
+
+  const createCraftButton = (choice, { menuFooter = false } = {}) => {
+    const craftButton = document.createElement("button");
+    craftButton.className = [
+      "inline-action",
+      "crafting-choice-submit",
+      menuFooter ? "is-recipe-menu-submit" : "",
+    ].filter(Boolean).join(" ");
+    craftButton.type = "button";
+    craftButton.textContent = menuFooter
+      ? isCookingMenu ? "요리하기" : "제작하기"
+      : choice.craftingRecipe.actionLabel || "제작";
+    craftButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      submitAction(
+        choice.action,
+        craftButton,
+        choice.loading,
+        choice.postChoiceNarrative,
+      );
+    });
+    return craftButton;
+  };
+
+  const recipeGrid = document.createElement("div");
+  recipeGrid.className = "crafting-recipe-grid";
 
   recipeChoices.forEach((choice) => {
     const card = document.createElement("article");
     card.className = [
       "crafting-choice-card",
       choice.isAvailable ? "is-recipe-available" : "is-recipe-unavailable",
-      choice.id === client.activeCraftingRecipeDetailId ? "is-active" : "",
+      choice.id === selectedRecipeId ? "is-active" : "",
     ].filter(Boolean).join(" ");
 
     const selectButton = document.createElement("button");
     selectButton.className = "crafting-choice-select";
     selectButton.type = "button";
-    selectButton.setAttribute("aria-pressed", choice.id === client.activeCraftingRecipeDetailId ? "true" : "false");
+    selectButton.setAttribute("aria-pressed", choice.id === selectedRecipeId ? "true" : "false");
     selectButton.innerHTML = `<span class="crafting-recipe-name">${escapeHtml(choice.label)}</span>`;
     selectButton.addEventListener("click", (event) => {
       event.preventDefault();
@@ -1371,35 +2163,62 @@ function renderCraftingChoices(snapshot) {
       renderChoices();
     });
 
-    const craftButton = document.createElement("button");
-    craftButton.className = "inline-action crafting-choice-submit";
-    craftButton.type = "button";
-    craftButton.textContent = choice.craftingRecipe.actionLabel || "제작";
-    craftButton.disabled = client.actionInFlight;
-    craftButton.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      submitAction(choice.action);
-    });
-
-    card.append(selectButton, craftButton);
-    dom.choices.appendChild(card);
+    card.appendChild(selectButton);
+    recipeGrid.appendChild(card);
   });
+
+  container.appendChild(recipeGrid);
+
+  let recipeMenuExitButton = null;
 
   otherChoices.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
     const label = fragment.querySelector(".choice-label");
+    const status = fragment.querySelector(".choice-status");
+    const remaining = fragment.querySelector(".choice-remaining");
     const meta = fragment.querySelector(".choice-meta");
+    const isRecipeMenuExit = [
+      "leave_shelter_crafting",
+      "leave_shelter_cooking",
+    ].includes(choice.id);
+    if (isRecipeMenuExit) {
+      button.classList.add("is-recipe-menu-exit");
+    }
     label.textContent = choice.label;
+    status.textContent = choice.statusLabel || "";
+    status.hidden = !choice.statusLabel;
+    const hasRemainingUses = Number.isInteger(choice.remainingUses);
+    remaining.textContent = hasRemainingUses ? `남은 횟수: ${choice.remainingUses}회` : "";
+    remaining.hidden = !hasRemainingUses;
     const outcomeHint = choice.outcomeHint || "";
     const shouldShowOutcomeHint = Boolean(choice.showOutcomeHint && outcomeHint);
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
-    button.disabled = client.actionInFlight;
-    button.addEventListener("click", () => submitAction(choice.action));
-    dom.choices.appendChild(fragment);
+    button.disabled = choice.isAvailable === false;
+    button.addEventListener("click", () => submitAction(
+      choice.action,
+      button,
+      choice.loading,
+      choice.postChoiceNarrative,
+    ));
+    if (isRecipeMenuExit) {
+      recipeMenuExitButton = button;
+    } else {
+      container.appendChild(fragment);
+    }
   });
+
+  if (recipeMenuExitButton) {
+    const footer = document.createElement("div");
+    footer.className = "recipe-menu-footer";
+    footer.appendChild(recipeMenuExitButton);
+    if (selectedChoice) {
+      footer.appendChild(createCraftButton(selectedChoice, { menuFooter: true }));
+    }
+    container.appendChild(footer);
+  }
+  return selectedRecipeId;
 }
 
 function hideSystemNote() {
@@ -1414,27 +2233,106 @@ function isElapsedTimeSystemNoteToken(value) {
   return /^\+\s*(?:(?:\d+시간)(?:\s+\d+분)?|\d+분)$/.test(value);
 }
 
-function renderSystemNote(note, noteKey = "") {
-  if (!note) {
-    hideSystemNote();
+function structuredSystemNoteToken(entry) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+  if (entry.type === "text" && typeof entry.text === "string") {
+    const toneClass = entry.tone === "positive"
+      ? " is-positive"
+      : entry.tone === "negative"
+        ? " is-negative"
+        : "";
+    return { text: entry.text, className: toneClass };
+  }
+  if (
+    entry.type === "damage" &&
+    typeof entry.target === "string" &&
+    Number.isFinite(entry.amount)
+  ) {
+    return {
+      text: `${entry.target}: ${entry.amount}피해`,
+      className: " is-damage",
+    };
+  }
+  if (entry.type === "time" && Number.isFinite(entry.minutes)) {
+    const hours = Math.floor(entry.minutes / 60);
+    const minutes = entry.minutes % 60;
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}시간`);
+    if (minutes > 0) parts.push(`${minutes}분`);
+    return { text: `+${parts.join(" ")}`, className: "" };
+  }
+  if (
+    entry.type === "delta" &&
+    typeof entry.label === "string" &&
+    Number.isFinite(entry.amount)
+  ) {
+    const sign = entry.amount > 0 ? "+" : "-";
+    const amount = Math.abs(entry.amount);
+    const text = entry.subject === "money"
+      ? `${sign}${amount.toLocaleString("ko-KR")}${entry.label}`
+      : entry.subject === "durability"
+        ? `${entry.label} 내구도 ${sign}${amount}`
+        : `${sign}${amount} ${entry.label}`;
+    return {
+      text,
+      className: entry.amount > 0 ? " is-positive" : " is-negative",
+    };
+  }
+  return null;
+}
+
+function renderSystemNote(note, noteKey = "", entries = []) {
+  if (!note || (noteKey && noteKey === client.renderedSystemNoteKey)) {
     return;
   }
 
+  // Another result on the same scene is also history, not a replacement.
+  if (!dom.systemNote.hidden) {
+    createSceneSystemNote(dom.systemNote.parentElement);
+  }
   const changed = note !== client.renderedSystemNote;
-  const parts = note.split(" / ").map((part) => {
-    const trimmed = part.trim();
-    if (isElapsedTimeSystemNoteToken(trimmed)) {
-      return `<span class="system-note-token">${escapeHtml(trimmed)}</span>`;
-    }
-    if (trimmed.startsWith("+")) {
-      return `<span class="system-note-token is-positive">${escapeHtml(trimmed)}</span>`;
-    }
-    if (trimmed.startsWith("-")) {
-      return `<span class="system-note-token is-negative">${escapeHtml(trimmed)}</span>`;
-    }
-    return `<span class="system-note-token">${escapeHtml(trimmed)}</span>`;
-  });
+  const structuredParts = Array.isArray(entries)
+    ? entries.map(structuredSystemNoteToken).filter(Boolean)
+    : [];
+  const parts = structuredParts.length > 0
+    ? structuredParts.map((part) =>
+        `<span class="system-note-token${part.className}">${escapeHtml(part.text)}</span>`
+      )
+    : note.split(" / ").flatMap((part) => {
+        const trimmed = part.trim();
+        const legacyItemParts = trimmed.split(",").map((itemPart) => itemPart.trim());
+        const legacyItems = legacyItemParts.map((itemPart) => {
+          const matched = itemPart.match(/^(.+?)\s+(\d+)개$/);
+          return matched
+            ? { name: matched[1].trim(), amount: Number(matched[2]) }
+            : null;
+        });
+        if (
+          legacyItems.length > 0 &&
+          legacyItems.every((item) => item && item.name && item.amount > 0)
+        ) {
+          return legacyItems.map((item) =>
+            `<span class="system-note-token is-positive">${escapeHtml(`+${item.amount} ${item.name}`)}</span>`
+          );
+        }
+        if (isElapsedTimeSystemNoteToken(trimmed)) {
+          return [`<span class="system-note-token">${escapeHtml(trimmed)}</span>`];
+        }
+        if (/^(?:강도|나):\s*\d+\s*피해$/.test(trimmed)) {
+          return [`<span class="system-note-token is-damage">${escapeHtml(trimmed)}</span>`];
+        }
+        if (trimmed.startsWith("+")) {
+          return [`<span class="system-note-token is-positive">${escapeHtml(trimmed)}</span>`];
+        }
+        if (trimmed.startsWith("-")) {
+          return [`<span class="system-note-token is-negative">${escapeHtml(trimmed)}</span>`];
+        }
+        return [`<span class="system-note-token">${escapeHtml(trimmed)}</span>`];
+      });
 
+  // The active story block owns the note from creation, including while typing.
   dom.systemNote.hidden = false;
   dom.systemNote.innerHTML = parts.join("");
   if (changed) {
@@ -1551,78 +2449,227 @@ function applyStatusSeverity(element, value) {
   }
 }
 
+function resetTimeAdvancePresentation() {
+  if (client.timeAdvanceTimer !== null) {
+    window.clearTimeout(client.timeAdvanceTimer);
+    client.timeAdvanceTimer = null;
+  }
+  dom.timeStatus?.classList.remove("is-time-advanced");
+  client.renderedWorldElapsedMs = null;
+}
+
+function emphasizeAdvancedTime() {
+  if (!dom.timeStatus) {
+    return;
+  }
+  if (client.timeAdvanceTimer !== null) {
+    window.clearTimeout(client.timeAdvanceTimer);
+  }
+  dom.timeStatus.classList.remove("is-time-advanced");
+  void dom.timeStatus.offsetWidth;
+  dom.timeStatus.classList.add("is-time-advanced");
+  client.timeAdvanceTimer = window.setTimeout(() => {
+    dom.timeStatus?.classList.remove("is-time-advanced");
+    client.timeAdvanceTimer = null;
+  }, TIME_ADVANCE_EMPHASIS_MS);
+}
+
+function renderEncounterStatus(state) {
+  const progress = state?.subwayExpedition?.currentFloorProgress;
+  const encounter = progress?.encounter;
+  const isVisible = Boolean(
+    state?.subwayExpedition?.active &&
+    encounter &&
+    ["encounter", "encounter_result"].includes(progress.phase),
+  );
+
+  document.body.classList.toggle("has-active-encounter", isVisible);
+  dom.encounterStatus.hidden = !isVisible;
+  if (!isVisible) {
+    return;
+  }
+
+  const isCombat = Boolean(encounter.enemy);
+  const value = isCombat
+    ? Math.max(0, encounter.enemy.hp)
+    : Math.max(0, encounter.progress || 0);
+  const maxValue = isCombat
+    ? Math.max(1, encounter.enemy.maxHp)
+    : Math.max(1, encounter.targetProgress || 1);
+  const name = isCombat
+    ? encounter.enemy.name
+    : encounter.kind === "social"
+      ? "대화 진행"
+      : "위험 돌파";
+  dom.encounterStatusName.textContent = name;
+  dom.encounterHealth.max = maxValue;
+  dom.encounterHealth.value = Math.min(value, maxValue);
+  dom.encounterHealth.setAttribute(
+    "aria-label",
+    isCombat
+      ? `${name} 체력 ${value} / ${maxValue}`
+      : `${name} ${value} / ${maxValue}`,
+  );
+  dom.encounterHealthValue.textContent = `${value}/${maxValue}`;
+  const skillNames = {
+    power_strike: "강타",
+    improvised_mastery: "임기응변",
+    iron_guard: "철벽",
+    second_wind: "재정비",
+    silver_tongue: "협상가",
+    escape_route: "퇴로 확보",
+  };
+  const runBuild = state.subwayExpedition?.runBuild;
+  const skillSummary = Object.entries(runBuild?.skillRanks || {})
+    .filter(([, rank]) => Number(rank) > 0)
+    .map(([skillId, rank]) => `${skillNames[skillId] || skillId} ${rank}`)
+    .join(" · ");
+  dom.encounterBuildSummary.textContent = [
+    `지하 ${state.subwayExpedition.depth}층`,
+    `승리 ${runBuild?.victories || 0}회`,
+    skillSummary,
+  ].filter(Boolean).join(" · ");
+}
+
 function renderStatusBar() {
   const snapshot = currentState();
   if (!snapshot) {
     return;
   }
 
+  renderEncounterStatus(snapshot);
+  const badges = document.querySelector("#condition-badges");
+  const conditions = client.snapshot?.conditionCards || [];
+  badges.hidden = conditions.length === 0;
+  const badgeMarkup = conditions.map(condition => `<button type="button" class="condition-badge ${condition.level >= 3 ? "is-critical" : ""}" data-condition-detail aria-label="${condition.label} Lv${condition.level} 상세 보기">${condition.label} Lv${condition.level}</button>`).join("");
+  if (badges.dataset.rendered !== badgeMarkup) {
+    badges.dataset.rendered = badgeMarkup;
+    badges.innerHTML = badgeMarkup;
+    badges.querySelectorAll("[data-condition-detail]").forEach(button => button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      client.isPanelOpen = true;
+      client.activePanel = "status";
+      client.activeStatusPanelView = "status";
+      renderPanel();
+    }));
+  }
   const hpMax = STATUS_DETAILS.hp.max;
-  const mindMax = STATUS_DETAILS.mind.max;
+  const mindDetail = statusDetailFor("mind", snapshot);
+  const mindMax = mindDetail.max;
   const energyMax = STATUS_DETAILS.energy.max;
   dom.hpFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.hp / hpMax) * 100))}%`;
   dom.mindFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.mind / mindMax) * 100))}%`;
   dom.energyFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.energy / energyMax) * 100))}%`;
   dom.hpStatus.setAttribute("aria-label", `체력 ${snapshot.stats.hp} / ${hpMax}`);
-  dom.mindStatus.setAttribute("aria-label", `정신력 ${snapshot.stats.mind} / ${mindMax}`);
+  dom.mindStatus.setAttribute("aria-label", `${mindDetail.title} ${snapshot.stats.mind} / ${mindMax}`);
+  dom.mindStatus.classList.toggle("is-magic-stat", isMagicWorldState(snapshot));
+  const mindIcon = dom.mindStatus.querySelector(".status-icon");
+  const mindHiddenLabel = dom.mindStatus.querySelector(".visually-hidden");
+  if (mindIcon) {
+    mindIcon.textContent = isMagicWorldState(snapshot) ? "✦" : "🧠";
+  }
+  if (mindHiddenLabel) {
+    mindHiddenLabel.textContent = mindDetail.title;
+  }
   dom.energyStatus.setAttribute("aria-label", `기력 ${snapshot.stats.energy} / ${energyMax}`);
   applyStatusSeverity(dom.hpStatus, snapshot.stats.hp);
   applyStatusSeverity(dom.mindStatus, snapshot.stats.mind);
   applyStatusSeverity(dom.energyStatus, snapshot.stats.energy);
+  const nextWorldElapsedMs = Math.max(0, snapshot.worldElapsedMs || 0);
+  const didTimeAdvance = client.renderedWorldElapsedMs !== null
+    && nextWorldElapsedMs > client.renderedWorldElapsedMs;
   dom.timeIndicator.textContent = `${snapshot.day}일차 ${gameClockLabel()}`;
+  client.renderedWorldElapsedMs = nextWorldElapsedMs;
+  if (didTimeAdvance) {
+    emphasizeAdvancedTime();
+  }
 
   if (client.activeStatusPopoverKey) {
     openStatusPopover(client.activeStatusPopoverKey, { toggle: false });
   }
 }
 
-function renderChoices() {
-  const snapshot = client.snapshot;
-  dom.choices.innerHTML = "";
-  dom.choices.classList.remove("revealed", "is-crafting-menu");
-  if (!snapshot) {
-    syncMobileChoiceZoneHeight();
-    return;
+function buildChoicePresentation(snapshot) {
+  const element = document.createDocumentFragment();
+  const isRecipeMenu = snapshot.availableActions.some((choice) => choice.craftingRecipe);
+  const isCookingMenu = snapshot.availableActions.some((choice) => choice.id === "leave_shelter_cooking");
+  const presentation = { element, isRecipeMenu, isCookingMenu, selectedRecipeId: null };
+  if (snapshot.state.isGameOver) return presentation;
+  if (isRecipeMenu) {
+    presentation.selectedRecipeId = buildCraftingChoices(snapshot, element, { isCookingMenu });
+    return presentation;
   }
-  if (snapshot.state.isGameOver) {
-    dom.choices.classList.add("revealed");
-    syncMobileChoiceZoneHeight();
-    return;
-  }
-
-  const isCraftingMenu = ["shelter_crafting_menu", "shelter_crafting_menu_repeat"].includes(currentSceneDefinitionId(snapshot));
-  if (isCraftingMenu) {
-    dom.choices.classList.add("is-crafting-menu");
-    renderCraftingChoices(snapshot);
-    dom.choices.classList.add("revealed");
-    syncMobileChoiceZoneHeight();
-    pinSceneTextToBottomOnMobile();
-    return;
-  }
-
   snapshot.availableActions.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
     const label = fragment.querySelector(".choice-label");
+    const status = fragment.querySelector(".choice-status");
+    const remaining = fragment.querySelector(".choice-remaining");
     const meta = fragment.querySelector(".choice-meta");
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
+    status.textContent = choice.statusLabel || "";
+    status.hidden = !choice.statusLabel;
+    const hasRemainingUses = Number.isInteger(choice.remainingUses);
+    remaining.textContent = hasRemainingUses ? `남은 횟수: ${choice.remainingUses}회` : "";
+    remaining.hidden = !hasRemainingUses;
     const outcomeHint = choice.outcomeHint || "";
     const shouldShowOutcomeHint = Boolean(choice.showOutcomeHint && outcomeHint);
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
-    button.disabled = client.actionInFlight;
-    button.addEventListener("click", () => submitAction(choice.action));
-    dom.choices.appendChild(fragment);
+    button.disabled = choice.isAvailable === false;
+    button.addEventListener("click", () => submitAction(
+      choice.action,
+      button,
+      choice.loading,
+      choice.postChoiceNarrative,
+    ));
+    element.appendChild(fragment);
   });
 
-  dom.choices.classList.add("revealed");
-  syncMobileChoiceZoneHeight();
-  pinSceneTextToBottomOnMobile();
+  return presentation;
 }
 
-function renderScene(animateText = true) {
+function renderChoices() {
+  const snapshot = client.snapshot;
+  dom.choices.replaceChildren();
+  dom.choices.classList.remove("revealed", "is-crafting-menu", "is-cooking-menu");
+  dom.sceneFrame.classList.remove("is-cooking-menu");
+  if (!snapshot) {
+    syncMobileChoiceZoneHeight();
+    return;
+  }
+  const prepared = prepareScenePresentation(snapshot);
+  const presentation = prepared.choices;
+  prepared.choices = null; // The fragment is consumed when attached to the live document.
+  if (presentation.isRecipeMenu) {
+    client.activeCraftingRecipeDetailId = presentation.selectedRecipeId;
+    dom.choices.classList.add("is-crafting-menu");
+    dom.choices.classList.toggle("is-cooking-menu", presentation.isCookingMenu);
+    dom.sceneFrame.classList.toggle("is-cooking-menu", presentation.isCookingMenu);
+  }
+  const pendingAction = client.pendingAction;
+  const isGeneratingSubwayFloor = client.actionInFlight && (
+    pendingAction?.type === "subway_expedition" && ["start", "descend"].includes(pendingAction.command) ||
+    pendingAction?.type === "content_action" && pendingAction.actionId === "start_subway_expedition"
+  );
+  if (isGeneratingSubwayFloor && !snapshot.state.isGameOver) {
+    const status = document.createElement("p");
+    status.className = "empty-state";
+    status.textContent = "준비된 지하 구간으로 이동하고 있습니다…";
+    status.setAttribute("aria-live", "polite");
+    dom.choices.appendChild(status);
+  }
+  dom.choices.appendChild(presentation.element);
+  if (client.actionInFlight) {
+    dom.choices.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+  }
+  dom.choices.classList.add("revealed");
+  syncMobileChoiceZoneHeight();
+}
+
+function renderScene(animateText = true, appendStory = false, scrollToStart = false) {
   const snapshot = client.snapshot;
   const scene = snapshot?.currentScene;
   const location = currentLocationCard();
@@ -1630,40 +2677,42 @@ function renderScene(animateText = true) {
     return;
   }
 
-  const story = buildStoryDisplay(snapshot);
+  const story = prepareScenePresentation(snapshot).story;
   const surfaceId = storySurfaceId(snapshot);
   const previousRenderedNoteKey = client.renderedSystemNoteKey;
   const surfaceChanged = Boolean(client.renderedStorySurfaceId && client.renderedStorySurfaceId !== surfaceId);
-  if (surfaceChanged) {
-    hideSystemNote();
+  if (surfaceChanged && !appendStory) {
+    resetSceneScrollOnMobile();
   }
 
-  dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
-  dom.sceneLocationBadge.textContent = location.name;
-  dom.sceneRiskBadge.textContent = snapshot.state.isGameOver
-    ? "게임오버"
-    : isEventStoryActive(snapshot)
-      ? "이벤트"
-      : riskLabel(location.risk);
+  displaySceneImage(sceneImageSource(location));
+  syncShelterSceneVisual(snapshot);
   renderSceneDevSource(snapshot);
   const systemNote = snapshot.state.systemNote || "";
   const currentSystemNoteKey = systemNoteKey(snapshot, systemNote);
-  const isCarriedNoteAfterSurfaceChange =
-    surfaceChanged && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
-  const systemNotePayload = systemNote && !isCarriedNoteAfterSurfaceChange
-    ? { key: currentSystemNoteKey, note: systemNote }
+  const isCarriedNote =
+    (surfaceChanged || appendStory) && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
+  const systemNotePayload = systemNote && !isCarriedNote
+    ? {
+        key: currentSystemNoteKey,
+        note: systemNote,
+        entries: snapshot.state.systemNoteEntries || [],
+      }
     : null;
   const isSameRenderedSurface =
     client.renderedStorySurfaceId === surfaceId && dom.sceneText.childElementCount > 0;
   client.renderedStorySurfaceId = surfaceId;
 
-  if (isSameRenderedSurface) {
+  if (isSameRenderedSurface && !appendStory) {
     if (!client.isSceneTyping) {
       if (systemNotePayload?.note) {
-        renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+        renderSystemNote(
+          systemNotePayload.note,
+          systemNotePayload.key,
+          systemNotePayload.entries,
+        );
       }
       renderChoices();
-      pinSceneTextToBottomOnMobile();
     }
     return;
   }
@@ -1673,18 +2722,30 @@ function renderScene(animateText = true) {
     const headlineBlock = story.headline
       ? `<p class="scene-headline">${escapeHtml(story.headline)}</p>`
       : "";
-    dom.sceneText.innerHTML =
+    const storyHtml =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
+    const block = createSceneStoryBlock(appendStory);
+    block.querySelector(".scene-prose").innerHTML = storyHtml;
+    if (scrollToStart) {
+      scrollSceneStoryToStart(block);
+    }
     if (systemNotePayload?.note) {
-      renderSystemNote(systemNotePayload.note, systemNotePayload.key);
+      renderSystemNote(
+        systemNotePayload.note,
+        systemNotePayload.key,
+        systemNotePayload.entries,
+      );
     }
     renderChoices();
-    pinSceneTextToBottomOnMobile();
     return;
   }
 
   const token = client.sceneRenderToken;
-  animateStoryText(story, token, systemNotePayload);
+  animateStoryText(story, token, systemNotePayload, {
+    append: appendStory,
+    scrollToStart,
+    revealChoices: true,
+  });
 }
 
 function locationMap() {
@@ -1693,9 +2754,55 @@ function locationMap() {
   return { visible, states };
 }
 
+function setupHexMapHighlight(stage) {
+  if (!stage) return;
+
+  // SVG siblings paint in DOM order. Draw the outline after every tile so
+  // neighboring fills and strokes cannot cover any of its six edges.
+  const outline = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  outline.setAttribute("class", "hex-tile-outline");
+  outline.setAttribute("aria-hidden", "true");
+  stage.appendChild(outline);
+
+  let hoveredTile = stage.querySelector(".hex-tile:hover");
+  let focusedTile = stage.querySelector(".hex-tile:focus-visible");
+  const syncOutline = () => {
+    const tile = hoveredTile || (focusedTile?.matches(":focus-visible") ? focusedTile : null);
+    const shape = tile?.querySelector(".hex-tile-shape");
+    outline.classList.toggle("is-visible", Boolean(shape));
+    if (!shape) return;
+    outline.setAttribute("points", shape.getAttribute("points"));
+    outline.setAttribute("transform", tile.getAttribute("transform") || "");
+  };
+
+  stage.querySelectorAll(".hex-tile").forEach((tile) => {
+    tile.addEventListener("pointerenter", () => { hoveredTile = tile; syncOutline(); });
+    tile.addEventListener("pointerleave", () => { hoveredTile = null; syncOutline(); });
+    tile.addEventListener("focus", () => { focusedTile = tile; syncOutline(); });
+    tile.addEventListener("blur", () => { focusedTile = null; syncOutline(); });
+  });
+  syncOutline();
+}
+
 function renderMapPanel() {
   const snapshot = client.snapshot;
   if (!snapshot) {
+    return;
+  }
+  if (snapshot.state.subwayExpedition?.active) {
+    const expedition = snapshot.state.subwayExpedition;
+    dom.panelContent.innerHTML = `
+      <section class="map-detail-slot">
+        <div class="map-detail-head">
+          <div>
+            <p class="meta-label">지하철 심층 탐험 중</p>
+            <h3>현재 ${expedition.depth}층</h3>
+          </div>
+          <span class="tag tag-route">최고 ${expedition.deepestDepth}층</span>
+        </div>
+        <p>지상 지도로 이동하려면 현재 장면에서 귀환을 선택해야 합니다. 귀환하기 전의 물자는 임시 전리품입니다.</p>
+      </section>
+    `;
     return;
   }
 
@@ -1905,21 +3012,6 @@ function renderMapPanel() {
 
   dom.panelContent.innerHTML = `
     <section class="hex-map-shell">
-      <article class="map-card map-current-card">
-        <div class="map-meta">
-          <h3>${currentLocation.name}</h3>
-          <span class="tag">${riskLabel(currentLocation.risk)}</span>
-        </div>
-        <p>${currentLocation.summary}</p>
-      </article>
-
-      <div class="hex-map-toolbar" aria-label="지도 확대 축소">
-        <button class="map-zoom-button" data-map-zoom="out" type="button" aria-label="지도 축소" ${canZoomOut ? "" : "disabled"}>−</button>
-        <span class="map-zoom-value">${mapZoomPercent}%</span>
-        <button class="map-zoom-button" data-map-zoom="in" type="button" aria-label="지도 확대" ${canZoomIn ? "" : "disabled"}>+</button>
-        <button class="map-zoom-button map-zoom-fit" data-map-zoom="fit" type="button" aria-label="지도 맞춤">맞춤</button>
-      </div>
-
       <div class="hex-map-board" style="height:${mapBoardHeight}px;">
         <div class="hex-map-scroll-space" style="width:${scrollSpaceWidth}px; height:${scrollSpaceHeight}px;">
           <div class="hex-map-canvas" style="width:${scaledMapWidth}px; height:${scaledMapHeight}px; left:${mapFocusGutter}px; top:${mapFocusGutter}px;">
@@ -1938,6 +3030,13 @@ function renderMapPanel() {
         </div>
       </div>
 
+      <div class="hex-map-toolbar" aria-label="지도 확대 축소">
+        <button class="map-zoom-button" data-map-zoom="out" type="button" aria-label="지도 축소" ${canZoomOut ? "" : "disabled"}>−</button>
+        <span class="map-zoom-value">${mapZoomPercent}%</span>
+        <button class="map-zoom-button" data-map-zoom="in" type="button" aria-label="지도 확대" ${canZoomIn ? "" : "disabled"}>+</button>
+        <button class="map-zoom-button map-zoom-fit" data-map-zoom="fit" type="button" aria-label="지도 맞춤">맞춤</button>
+      </div>
+
       <div class="map-list">
         ${travelCards}
       </div>
@@ -1946,6 +3045,7 @@ function renderMapPanel() {
     </section>
   `;
 
+  setupHexMapHighlight(dom.panelContent.querySelector(".hex-map-stage"));
   alignHexMapViewport(boardLayout, mapScale, currentLocation.id);
   refreshTransientScrollbars();
 
@@ -1982,7 +3082,7 @@ function renderMapPanel() {
       }
       if (entry.isReachable) {
         client.mapHint = "";
-        submitAction({ type: "travel", targetId: locationId });
+        submitAction({ type: "travel", targetId: locationId }, tile);
         return;
       }
       if (entry.isControlled) {
@@ -2032,30 +3132,80 @@ function renderMapPanel() {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       client.mapHint = "";
-      submitAction({ type: "travel", targetId: button.dataset.mapTravel });
+      submitAction({ type: "travel", targetId: button.dataset.mapTravel }, button);
     });
   });
+}
+
+function canUseTreatmentItem(item, state = currentState()) {
+  const effects = item.effects || {};
+  if (!effects.injuryRelief && !effects.infectionRelief) return true;
+  return Boolean((effects.injuryRelief > 0 && state?.conditions?.injury?.level > 0)
+    || (effects.infectionRelief > 0 && state?.conditions?.infection?.level > 0));
 }
 
 function renderInventoryPanel() {
   const snapshot = client.snapshot;
   const itemCards = snapshot.inventoryCards || [];
   const moneyDetailKey = "money";
-  const isMoneyActive = client.activeInventoryDetailKey === moneyDetailKey;
   const inventoryDetails = new Map([
-    [moneyDetailKey, [{ text: "한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다." }]],
+    [moneyDetailKey, {
+      name: "돈",
+      lines: [{ text: "한 끼를 사고, 필요한 물건을 마련하는 데 쓰는 현금이다." }],
+      itemId: null,
+      isUsable: false,
+    }],
   ]);
+
+  itemCards.forEach((item) => {
+    const detailLines = [{ text: item.description }];
+    if (!canUseTreatmentItem(item, snapshot.state)) detailLines.push({ text: "치료할 부상 또는 감염이 없습니다." });
+    const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
+      ? itemEffectHintHtml(item.effects, item.useMinutes)
+      : "";
+    if (effectHintHtml) {
+      detailLines.push({ html: effectHintHtml });
+    }
+    const durabilityHintHtml = itemDurabilityHintHtml(item, snapshot.state);
+    if (durabilityHintHtml) {
+      detailLines.push({ html: durabilityHintHtml });
+    }
+    inventoryDetails.set(item.id, {
+      name: item.name,
+      lines: detailLines,
+      itemId: item.id,
+      isUsable: ["food", "drink", "medicine"].includes(item.kind) && canUseTreatmentItem(item, snapshot.state),
+    });
+  });
+
+  if (!inventoryDetails.has(client.activeInventoryDetailKey)) {
+    client.activeInventoryDetailKey = itemCards[0]?.id || moneyDetailKey;
+  }
+
+  const isMoneyActive = client.activeInventoryDetailKey === moneyDetailKey;
   const selectInventoryDetail = (detailKey) => {
     client.activeInventoryDetailKey = detailKey;
     renderInventoryPanel();
   };
   const bindInventoryPanelInteractions = () => {
+    const scrollArea = dom.panelContent.querySelector(".inventory-list-scroll");
+    if (scrollArea) {
+      scrollArea.scrollTop = client.inventoryScrollTop;
+      scrollArea.addEventListener("scroll", () => {
+        client.inventoryScrollTop = scrollArea.scrollTop;
+      }, { passive: true });
+      setupTransientScrollbar(scrollArea);
+    }
+
     dom.panelContent.querySelectorAll("[data-inventory-detail]").forEach((card) => {
       card.addEventListener("click", () => {
+        if (client.actionInFlight) {
+          return;
+        }
         selectInventoryDetail(card.dataset.inventoryDetail);
       });
       card.addEventListener("keydown", (event) => {
-        if (event.target.closest("[data-use-item]")) {
+        if (client.actionInFlight) {
           return;
         }
         if (event.key !== "Enter" && event.key !== " ") {
@@ -2069,7 +3219,7 @@ function renderInventoryPanel() {
     dom.panelContent.querySelectorAll("[data-use-item]").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.stopPropagation();
-        submitAction({ type: "use_item", itemId: button.dataset.useItem });
+        submitAction({ type: "use_item", itemId: button.dataset.useItem }, button);
       });
     });
   };
@@ -2087,6 +3237,26 @@ function renderInventoryPanel() {
       </div>
     </article>
   `;
+
+  const renderedItemCards = itemCards.map((item) => {
+    const count = snapshot.state.inventory[item.id] || 0;
+    const isActive = client.activeInventoryDetailKey === item.id;
+    return `
+      <article
+        class="info-card inventory-card ${isActive ? "is-active" : ""}"
+        data-inventory-detail="${item.id}"
+        role="button"
+        tabindex="0"
+        aria-controls="inventory-detail-slot"
+        aria-pressed="${isActive ? "true" : "false"}"
+      >
+        <div class="inventory-card-head">
+          <h3>${escapeHtml(item.name)} ${count > 1 ? `x${count}` : ""}</h3>
+        </div>
+      </article>
+    `;
+  });
+
   const renderInventoryGrid = (cards) => {
     const columns = [[], []];
     cards.forEach((card, index) => {
@@ -2101,95 +3271,160 @@ function renderInventoryPanel() {
     `;
   };
   const renderInventoryDetailSlot = () => {
-    const detailLines = inventoryDetails.get(client.activeInventoryDetailKey) || [];
+    const detail = inventoryDetails.get(client.activeInventoryDetailKey);
     return `
-      <div class="inventory-detail-slot" id="inventory-detail-slot" aria-live="polite">
-        ${detailLines.map((line) => `
-          <p>${line.html ? line.html : escapeHtml(line.text)}</p>
-        `).join("")}
-      </div>
+      <section
+        class="inventory-detail-slot"
+        id="inventory-detail-slot"
+        aria-label="선택한 아이템 상세"
+        aria-live="polite"
+      >
+        <div class="inventory-detail-copy">
+          <strong class="inventory-detail-name">${escapeHtml(detail?.name || "아이템")}</strong>
+          <div class="inventory-detail-lines">
+            ${(detail?.lines || [{ text: "아이템을 선택하면 설명이 표시된다." }]).map((line) => `
+              <p>${line.html ? line.html : escapeHtml(line.text)}</p>
+            `).join("")}
+          </div>
+        </div>
+        ${detail?.isUsable ? `
+          <button
+            class="inline-action inventory-use-action"
+            data-use-item="${detail.itemId}"
+            type="button"
+            aria-label="${escapeHtml(detail.name)} 사용"
+          >사용</button>
+        ` : ""}
+      </section>
     `;
   };
 
-  if (itemCards.length === 0) {
-    dom.panelContent.innerHTML = `
-      ${renderInventoryGrid([moneyCard])}
-      ${renderInventoryDetailSlot()}
-      <p class="empty-state">지금 가진 물건이 없다.</p>
-    `;
-    bindInventoryPanelInteractions();
-    return;
-  }
-
-  const renderedCards = [
-    moneyCard,
-    ...itemCards.map((item) => {
-        const detailLines = [{ text: item.description }];
-        const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
-          ? itemEffectHintHtml(item.effects, item.useMinutes)
-          : "";
-        if (effectHintHtml) {
-          detailLines.push({ html: effectHintHtml });
-        }
-        const durabilityHintHtml = itemDurabilityHintHtml(item, snapshot.state);
-        if (durabilityHintHtml) {
-          detailLines.push({ html: durabilityHintHtml });
-        }
-        inventoryDetails.set(item.id, detailLines);
-        const count = snapshot.state.inventory[item.id] || 0;
-        const isUsable = item.kind === "food" || item.kind === "drink" || item.kind === "medicine";
-        const isActive = client.activeInventoryDetailKey === item.id;
-        return `
-          <article
-            class="info-card inventory-card ${isActive ? "is-active" : ""}"
-            data-inventory-detail="${item.id}"
-            role="button"
-            tabindex="0"
-            aria-pressed="${isActive ? "true" : "false"}"
-          >
-            <div class="inventory-card-head">
-              <h3>${item.name} ${count > 1 ? `x${count}` : ""}</h3>
-              <div class="item-actions">
-                ${isUsable ? `<button class="inline-action" data-use-item="${item.id}" type="button">사용</button>` : ""}
-              </div>
-            </div>
-          </article>
-        `;
-      }),
-  ];
-
-  if (client.activeInventoryDetailKey && !inventoryDetails.has(client.activeInventoryDetailKey)) {
-    client.activeInventoryDetailKey = null;
-  }
-
   dom.panelContent.innerHTML = `
-    ${renderInventoryGrid(renderedCards)}
-    ${renderInventoryDetailSlot()}
+    <div class="inventory-panel-layout">
+      <div class="inventory-list-scroll" aria-label="보유 아이템 목록">
+        ${renderInventoryGrid([moneyCard, ...renderedItemCards])}
+        ${itemCards.length === 0 ? `<p class="empty-state">지금 가진 물건이 없다.</p>` : ""}
+      </div>
+      ${renderInventoryDetailSlot()}
+    </div>
   `;
 
   bindInventoryPanelInteractions();
 }
 
+function combatSkillDetailsMarkup(combat) {
+  if (!combat) return "";
+  const statLabel = `공격 +${combat.attackBonus} · 명중 +${combat.hitChanceBonus}%p · 회피 +${combat.evasionBonus}%p`;
+  return `
+    <details class="combat-skill-details">
+      <summary aria-label="${escapeHtml(statLabel)}. 성장 단계 펼치기">${escapeHtml(statLabel)}</summary>
+      <div class="combat-skill-growth">
+        <p>공격 시 +${escapeHtml(combat.turnXp)} XP. 적의 위협을 방어·회피해도 같은 경험치를 얻습니다. 빗나가거나 방어에 실패해도 쌓이며, 승리하면 +${escapeHtml(combat.victoryXp)} XP를 추가로 얻습니다.</p>
+        <table>
+          <caption>레벨별 누적 보너스</caption>
+          <thead><tr><th scope="col">레벨</th><th scope="col">누적 XP</th><th scope="col">공격</th><th scope="col">명중</th><th scope="col">회피</th></tr></thead>
+          <tbody>${(combat.tiers || []).map(tier => `<tr><th scope="row">Lv.${escapeHtml(tier.level)}</th><td>${escapeHtml(tier.totalXp)}</td><td>+${escapeHtml(tier.attackBonus)}</td><td>+${escapeHtml(tier.hitChanceBonus)}%p</td><td>+${escapeHtml(tier.evasionBonus)}%p</td></tr>`).join("")}</tbody>
+        </table>
+        <p>공격 보너스는 공격 피해에 더해집니다. 명중률은 최대 ${escapeHtml(combat.hitChanceCap)}%이며, 회피 보너스만큼 적의 반격 명중 확률이 낮아집니다. 전투 숙련도는 탐험을 마치고 돌아와도 유지됩니다.</p>
+      </div>
+    </details>
+  `;
+}
+
 function skillsPanelMarkup() {
   const skills = client.snapshot.skills || [];
-  if (!skills.length) {
+  const skillProgress = client.snapshot.skillProgress || [];
+
+  if (!skillProgress.length && !skills.length) {
     return `<p class="empty-state">아직 얻은 생존 방식이 없다.</p>`;
   }
 
   return `
-    <div class="panel-grid">
-      ${skills.map((skill) => `
-        <article class="info-card">
-          <h3>${skill.name}</h3>
-          <p>${skill.description}</p>
-        </article>
-      `).join("")}
+    <div class="skills-panel">
+      ${skillProgress.length ? `
+        <section class="skill-section" aria-label="숙련도">
+          <h3 class="skill-section-title">숙련도</h3>
+          <div class="panel-grid skill-progress-grid">
+            ${skillProgress.map((skill) => {
+              const isMaxLevel = Boolean(skill.isMaxLevel);
+              const progressPercent = Math.max(0, Math.min(100, Number(skill.progressPercent) || 0));
+              const xpIntoLevel = Math.max(0, Number(skill.xpIntoLevel) || 0);
+              const xpForNextLevel = Math.max(0, Number(skill.xpForNextLevel) || 0);
+              const effectPercent = Math.max(0, Number(skill.effectPercent) || 0);
+              const skillName = skill.name
+                || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id === "fishing" ? "낚시" : skill.id === "combat" ? "전투" : skill.id);
+              const effectLabel = skill.id === "collection"
+                ? `시간 -${effectPercent}%`
+                : skill.id === "exploration" || skill.id === "fishing"
+                  ? `성공률 +${effectPercent}%`
+                  : `효과 ${effectPercent}%`;
+              const xpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel} / ${xpForNextLevel} XP`;
+              const compactXpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel}/${xpForNextLevel}`;
+              const meterValue = isMaxLevel ? 100 : progressPercent;
+              const meterMax = isMaxLevel ? 100 : Math.max(1, xpForNextLevel);
+              const meterNow = isMaxLevel ? 100 : Math.min(xpIntoLevel, meterMax);
+
+              return `
+                <article class="info-card skill-progress-card is-${escapeHtml(skill.id)}">
+                  <div class="skill-progress-compact-row">
+                    <h3>${escapeHtml(skillName)}</h3>
+                    ${skill.combat ? "" : `<span class="skill-progress-effect">${escapeHtml(effectLabel)}</span>`}
+                    <span class="skill-level-badge ${isMaxLevel ? "is-max" : ""}">
+                      ${isMaxLevel ? "MAX" : `Lv.${skill.level}`}
+                    </span>
+                    <div
+                      class="skill-xp-meter"
+                      role="progressbar"
+                      aria-label="${escapeHtml(`${skillName} 경험치`)}"
+                      aria-valuemin="0"
+                      aria-valuemax="${meterMax}"
+                      aria-valuenow="${meterNow}"
+                      aria-valuetext="${escapeHtml(xpLabel)}"
+                    >
+                      <span style="width:${meterValue}%"></span>
+                    </div>
+                    <strong class="skill-xp-value">${compactXpLabel}</strong>
+                  </div>
+                  ${combatSkillDetailsMarkup(skill.combat)}
+                </article>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      ` : ""}
+      ${skills.length ? `
+        <section class="skill-section legacy-skills-section" aria-label="보유 특성">
+          <h3 class="skill-section-title">보유 특성</h3>
+          <div class="panel-grid">
+            ${skills.map((skill) => `
+              <article class="info-card legacy-skill-card">
+                <h3>${escapeHtml(skill.name)}</h3>
+                <p>${escapeHtml(skill.description)}</p>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      ` : ""}
     </div>
   `;
 }
 
 function renderSkillsPanel() {
   dom.panelContent.innerHTML = skillsPanelMarkup();
+}
+
+function healthConditionDetailsMarkup() {
+  const conditions = client.snapshot?.conditionCards || [];
+  if (!conditions.length) return "";
+  return `<section class="condition-details" aria-label="부상과 감염 상세">${conditions.map(condition => `
+    <article class="condition-detail-card ${condition.level >= 3 ? "is-critical" : ""}">
+      <strong>${condition.label} Lv${condition.level}</strong>
+      ${condition.level >= 4 ? '<p>Lv4 도달 · 생존 종료</p>' : `
+      <p>다음 체력 −1까지 ${formatMinutesLabel(condition.nextDamageMinutes)}</p>
+      ${condition.nextWorseningMinutes === null ? '' : `<p>다음 악화까지 ${formatMinutesLabel(condition.nextWorseningMinutes)}</p>`}
+      <p>${condition.kind === "injury" ? "붕대" : "항생제"} 1개로 1단계 치료</p>
+      ${condition.level === 3 ? '<p class="condition-warning">한 단계 더 쌓이면 체력과 관계없이 생존 종료됩니다.</p>' : ''}`}
+    </article>`).join("")}<p class="status-detail-note">게임 시간이 흐를 때 진행됩니다. 취침 중에는 피해와 감염 악화가 25% 속도로 진행됩니다.</p></section>`;
 }
 
 function statusDetailMarkup() {
@@ -2211,9 +3446,10 @@ function statusDetailMarkup() {
   ];
 
   return `
+    ${healthConditionDetailsMarkup()}
     <div class="status-detail-stack">
       ${stats.map((stat) => {
-        const detail = STATUS_DETAILS[stat.key];
+        const detail = statusDetailFor(stat.key, state);
         const isActive = client.activeStatusDetailKey === stat.key;
         const fillPercent = Math.max(0, Math.min(100, (stat.value / detail.max) * 100));
         return `
@@ -2461,6 +3697,35 @@ function renderMenuPanel() {
   const statusMessage = client.menuStatusMessage
     ? `<p class="menu-status-message">${escapeHtml(client.menuStatusMessage)}</p>`
     : "";
+  const geminiStatus = client.geminiTestStatus
+    ? `
+      <p
+        class="menu-api-status ${escapeHtml(client.geminiTestStatus.type)}"
+        role="status"
+      >${escapeHtml(client.geminiTestStatus.message)}</p>
+    `
+    : "";
+  const llmDiagnostics = isDeveloperMode()
+    ? (client.snapshot?.devLlmTrace || [])
+      .filter((entry) => entry.scope === "subway")
+      .slice(0, 4)
+    : [];
+  const llmDiagnosticsHtml = llmDiagnostics.length
+    ? `
+      <section class="menu-llm-diagnostics" aria-label="LLM 생성 진단">
+        <strong>DEV · 최근 LLM 생성 진단</strong>
+        ${llmDiagnostics.map((entry) => `
+          <p class="${escapeHtml(entry.status)}">
+            <span>${escapeHtml(entry.stage)}</span>
+            ${escapeHtml(entry.message)}
+            ${entry.errorReason
+              ? `<small>${escapeHtml(entry.errorReason)}</small>`
+              : ""}
+          </p>
+        `).join("")}
+      </section>
+    `
+    : "";
   dom.panelContent.innerHTML = `
     <div class="menu-actions">
       <div class="menu-save-card">
@@ -2480,6 +3745,16 @@ function renderMenuPanel() {
       <button class="menu-action" data-menu-action="item-codex" type="button">
         <span>아이템 도감</span>
       </button>
+      <button
+        class="menu-action"
+        data-menu-action="test-gemini"
+        type="button"
+        ${client.geminiTestInFlight ? 'disabled aria-busy="true"' : ""}
+      >
+        <span>${client.geminiTestInFlight ? "Gemini 연결 확인 중…" : "Gemini API 연결 테스트"}</span>
+      </button>
+      ${geminiStatus}
+      ${llmDiagnosticsHtml}
       <button class="menu-action danger" data-menu-action="new-game" type="button">
         <span>새 게임</span>
       </button>
@@ -2488,22 +3763,28 @@ function renderMenuPanel() {
 }
 
 function renderPanel() {
-  const config = PANEL_CONFIG[client.activePanel];
-  dom.panelTitle.textContent = config.title;
-  if (client.activePanel === "map") {
-    renderMapPanel();
-  } else if (client.activePanel === "inventory") {
-    renderInventoryPanel();
-  } else if (client.activePanel === "status") {
-    renderStatusPanel();
-  } else if (client.activePanel === "quests") {
-    renderQuestsPanel();
-  } else if (client.activePanel === "log") {
-    renderLogPanel();
-  } else if (client.activePanel === "itemCodex") {
-    renderItemCodexPanel();
-  } else {
-    renderMenuPanel();
+  if (client.isPanelOpen) {
+    const config = PANEL_CONFIG[client.activePanel];
+    dom.panelTitle.textContent = config.title;
+    dom.panelContent.classList.toggle(
+      "inventory-panel-content",
+      client.activePanel === "inventory",
+    );
+    if (client.activePanel === "map") {
+      renderMapPanel();
+    } else if (client.activePanel === "inventory") {
+      renderInventoryPanel();
+    } else if (client.activePanel === "status") {
+      renderStatusPanel();
+    } else if (client.activePanel === "quests") {
+      renderQuestsPanel();
+    } else if (client.activePanel === "log") {
+      renderLogPanel();
+    } else if (client.activePanel === "itemCodex") {
+      renderItemCodexPanel();
+    } else {
+      renderMenuPanel();
+    }
   }
   dom.panelShell.classList.toggle("is-open", client.isPanelOpen);
   dom.panelShell.setAttribute("aria-hidden", client.isPanelOpen ? "false" : "true");
@@ -2524,13 +3805,22 @@ function render(options = {}) {
     return;
   }
   renderStatusBar();
-  renderScene(options.animateScene !== false);
+  renderScene(
+    options.animateScene !== false,
+    options.appendScene === true,
+    options.scrollSceneToStart === true,
+  );
   renderPanel();
   renderGameOverScreen();
   client.justCreatedGame = false;
 }
 
-async function submitAction(action) {
+async function submitAction(
+  action,
+  triggerElement = null,
+  loading = null,
+  postChoiceNarrative = null,
+) {
   if (!client.gameId || client.actionInFlight) {
     return;
   }
@@ -2539,13 +3829,64 @@ async function submitAction(action) {
     return;
   }
   client.actionInFlight = true;
+  client.pendingAction = action;
+  const immediateNarrative = normalizePostChoiceNarrative(postChoiceNarrative);
+  const hasImmediateNarrative = immediateNarrative.length > 0;
+  const transitionDurationMs = hasImmediateNarrative && !loading
+    ? 0
+    : actionTransitionDurationMs(action, loading);
+  const shouldShowTransition = transitionDurationMs > 0;
   const previousSnapshot = client.snapshot;
+  const timing = { action: action.type, startedAt: performance.now() };
+  const mark = (key) => { timing[key] = Math.round(performance.now() - timing.startedAt); };
+  client.lastActionTiming = timing;
   try {
-    const snapshot = await api(`/api/games/${client.gameId}/actions`, {
+    preloadActionSceneAssets(action, previousSnapshot);
+    const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
       body: action,
-    });
+    })
+      .then(async (snapshot) => {
+        mark("responseMs");
+        const assetsReady = preloadNextSceneAssets(snapshot);
+        prepareScenePresentation(snapshot);
+        mark("preparedMs");
+        await assetsReady;
+        mark("assetsMs");
+        return { snapshot, error: null };
+      })
+      .catch((error) => ({ snapshot: null, error }));
+    const shelterStation = shelterStationForAction(action);
+    const shelterSceneVisualPromise = shelterStation
+      ? playShelterStationTransition(shelterStation)
+      : Promise.resolve();
+    if (isMovementAction(action, loading)) {
+      client.isPanelOpen = false;
+      renderPanel();
+      resetSceneScrollOnMobile();
+    }
+    if (shouldShowTransition) {
+      beginActionTransition(action, triggerElement, transitionDurationMs, loading);
+    }
+    const transitionPromise = waitForMilliseconds(transitionDurationMs);
+    const immediateNarrativePromise = hasImmediateNarrative
+      ? transitionPromise.then(() => beginPostChoiceNarrative(
+          immediateNarrative,
+          !isMovementAction(action, loading) && !previousSnapshot.state.subwayExpedition?.active,
+        ))
+      : Promise.resolve();
+    const [{ snapshot, error }] = await Promise.all([
+      requestResultPromise,
+      transitionPromise,
+      shelterSceneVisualPromise,
+    ]);
+    if (error) {
+      throw error;
+    }
+    await immediateNarrativePromise;
+    mark("presentationReadyMs");
     if (needsFreshGame(snapshot)) {
+      finishActionTransition();
       await createNewGame();
       render({
         animateScene: shouldAnimateScene({
@@ -2560,6 +3901,7 @@ async function submitAction(action) {
       snapshot?.state?.location &&
       previousSnapshot.state.location !== snapshot.state.location;
     const newlyCompletedQuests = completedQuestChanges(previousSnapshot, snapshot);
+    const continueLocationStory = shouldContinueLocationStory(previousSnapshot, snapshot);
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
     client.mapHint = "";
@@ -2568,32 +3910,56 @@ async function submitAction(action) {
     if (didMove) {
       client.isPanelOpen = false;
     }
+    finishActionTransition();
     client.actionInFlight = false;
+    client.pendingAction = null;
     render({
-      animateScene: shouldAnimateScene({
-        source: "action",
-        previousSnapshot,
-        nextSnapshot: snapshot,
-      }),
+      animateScene: hasImmediateNarrative
+        ? true
+        : shouldAnimateScene({
+            source: "action",
+            previousSnapshot,
+            nextSnapshot: snapshot,
+          }),
+      appendScene: hasImmediateNarrative || continueLocationStory,
+      scrollSceneToStart: continueLocationStory,
     });
+    mark("renderedMs");
+    timing.renderWorkMs = timing.renderedMs - timing.presentationReadyMs;
     showQuestCompletionBurst(newlyCompletedQuests);
     if (didMove) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   } catch (error) {
     window.alert(error instanceof Error ? error.message : "액션 처리에 실패했습니다.");
-  } finally {
+    clearSceneAnimation();
+    client.renderedStorySurfaceId = "";
+    finishActionTransition();
     client.actionInFlight = false;
+    client.pendingAction = null;
+    render({ animateScene: false });
+  } finally {
+    finishActionTransition();
+    client.actionInFlight = false;
+    client.pendingAction = null;
   }
 }
 
 async function backgroundSync() {
-  if (!client.gameId || client.actionInFlight) {
+  if (!client.gameId || client.isHomeVisible || document.hidden || client.actionInFlight || client.syncInFlight ||
+      Date.now() < Math.max(client.syncRetryAt, client.apiRetryAt)) {
     renderStatusBar();
     return;
   }
+  client.syncInFlight = true;
+  const gameId = client.gameId;
+  const snapshotAtRequest = client.snapshot;
   try {
-    const snapshot = await api(`/api/games/${client.gameId}/state`);
+    const snapshot = await api(`/api/games/${gameId}/state`);
+    client.syncFailures = 0;
+    client.syncRetryAt = 0;
+    // A late poll must not overwrite a newer action or a different game.
+    if (client.gameId !== gameId || client.isHomeVisible || client.actionInFlight || client.snapshot !== snapshotAtRequest) return;
     if (needsFreshGame(snapshot)) {
       await createNewGame();
       render({
@@ -2631,8 +3997,12 @@ async function backgroundSync() {
     }
     renderStatusBar();
     showQuestCompletionBurst(newlyCompletedQuests);
-  } catch (_error) {
+  } catch (error) {
+    client.syncFailures = Math.min(client.syncFailures + 1, 5);
+    client.syncRetryAt = Math.max(error.retryAt || 0, Date.now() + Math.min(120000, 10000 * 2 ** client.syncFailures));
     renderStatusBar();
+  } finally {
+    client.syncInFlight = false;
   }
 }
 
@@ -2764,7 +4134,7 @@ async function goHomeFromMenu() {
   await showHomeScreen();
 }
 
-dom.homeNewGame.addEventListener("click", async () => {
+async function startNewGameFromHome() {
   if (client.actionInFlight) {
     return;
   }
@@ -2786,10 +4156,33 @@ dom.homeNewGame.addEventListener("click", async () => {
   } finally {
     client.actionInFlight = false;
   }
-});
+}
+
+dom.homeNewGame.addEventListener("click", startNewGameFromHome);
 
 dom.homeContinue.addEventListener("click", () => {
   continueSavedGame();
+});
+
+dom.homeFullscreenPlay.addEventListener("click", async () => {
+  if (client.actionInFlight || client.fullscreenLaunchInFlight) {
+    return;
+  }
+
+  client.fullscreenLaunchInFlight = true;
+  dom.homeFullscreenPlay.disabled = true;
+  try {
+    const shouldContinue = activeHomeSaveInfo().exists;
+    await requestGameFullscreen();
+    if (shouldContinue) {
+      await continueSavedGame();
+    } else {
+      await startNewGameFromHome();
+    }
+  } finally {
+    client.fullscreenLaunchInFlight = false;
+    dom.homeFullscreenPlay.disabled = false;
+  }
 });
 
 dom.homeLogout.addEventListener("click", async () => {
@@ -2871,6 +4264,10 @@ dom.panelContent.addEventListener("click", (event) => {
     renderPanel();
     return;
   }
+  if (action === "test-gemini") {
+    testGeminiConnectionFromMenu();
+    return;
+  }
   if (action === "new-game") {
     startNewGameFromMenu();
   }
@@ -2890,8 +4287,31 @@ window.render_game_to_text = () => JSON.stringify({
   location: client.snapshot?.state?.location || null,
   day: client.snapshot?.state?.day || null,
   time: client.snapshot ? gameClockLabel() : null,
+  skillProgress: (client.snapshot?.skillProgress || []).map((skill) => ({
+    id: skill.id,
+    level: skill.level,
+    totalXp: skill.totalXp,
+    nextTarget: skill.isMaxLevel
+      ? "MAX"
+      : Number(skill.totalXp) - Number(skill.xpIntoLevel) + Number(skill.xpForNextLevel),
+    effectPercent: skill.effectPercent,
+  })),
+  subwayExpedition: client.snapshot?.state?.subwayExpedition || null,
+  lastActionTiming: client.lastActionTiming,
+  actionTransition: client.actionInFlight
+    ? {
+        message: client.actionTransitionMessage,
+        elapsedMs: Math.max(0, Date.now() - client.actionTransitionStartedAt),
+        durationMs: client.actionTransitionDurationMs,
+        action: client.pendingAction,
+      }
+    : null,
+  sceneVisual: dom.sceneFrame.classList.contains("has-shelter-scene-visual")
+    ? sceneDirector.snapshot()
+    : null,
 });
 
+sceneDirector.preloadShelter().catch((error) => console.warn(error));
 bootstrap().catch((error) => {
   console.error(error);
   dom.homeScreen.hidden = false;

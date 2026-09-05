@@ -22,7 +22,7 @@ export const shelterChoices: ActionDefinition[] = [
     label: "취침하기",
     type: "use",
     presentationMode: "always",
-    outcomeHint: "오후 6시 이후 / +1 체력 / +1 정신력 / 다음 날 06:00",
+    outcomeHint: "오후 6시 이후 / +1 체력 / +1 정신력 / 취침 중 기력 소모 50% / 다음 날 06:00",
     showOutcomeHint: true,
     conditions: [{ type: "shelter_sleep_window" }],
     failureNote: "오후 6시 이후부터 잠자기를 이용할 수 있다.",
@@ -51,6 +51,7 @@ export const shelterChoices: ActionDefinition[] = [
     outcomeHint: "주워 온 재료를 펼쳐 놓고, 거처를 손보거나 식사를 만들 수 있는 레시피를 살핀다.",
     effects: [
       { type: "set_flag", flag: "shelter_crafting_open" },
+      { type: "clear_flag", flag: "shelter_cooking_open" },
       { type: "log", message: "당신은 모아 둔 자재를 천막 안쪽에 펼쳐 놓고, 지금 만들 수 있는 것들을 하나씩 따져 본다." },
     ],
     nextSceneId: "shelter_crafting_menu",
@@ -67,13 +68,48 @@ export const shelterChoices: ActionDefinition[] = [
     outcomeHint: "재료와 레시피를 바로 확인한다.",
     effects: [
       { type: "set_flag", flag: "shelter_crafting_open" },
+      { type: "clear_flag", flag: "shelter_cooking_open" },
     ],
     nextSceneId: "shelter_crafting_menu_repeat",
     tags: ["craft", "menu"],
     riskHint: "low",
   }),
   interactionFor("shelter", {
+    id: "open_shelter_cooking",
+    label: "요리하기",
+    type: "use",
+    conditions: [
+      { type: "flag_not", flag: "shelter_cooking_intro_seen" },
+    ],
+    outcomeHint: "식재료와 조리 도구를 확인하고, 지금 만들 수 있는 음식을 살핀다.",
+    effects: [
+      { type: "set_flag", flag: "shelter_cooking_open" },
+      { type: "clear_flag", flag: "shelter_crafting_open" },
+      { type: "log", message: "당신은 화로 주변을 정리하고, 가지고 있는 식재료와 조리 도구를 한곳에 모아 둔다." },
+    ],
+    nextSceneId: "shelter_cooking_menu",
+    tags: ["cooking", "menu"],
+    riskHint: "low",
+  }),
+  interactionFor("shelter", {
+    id: "open_shelter_cooking_repeat",
+    label: "요리하기",
+    type: "use",
+    conditions: [
+      { type: "flag", flag: "shelter_cooking_intro_seen" },
+    ],
+    outcomeHint: "요리할 수 있는 음식을 바로 확인한다.",
+    effects: [
+      { type: "set_flag", flag: "shelter_cooking_open" },
+      { type: "clear_flag", flag: "shelter_crafting_open" },
+    ],
+    nextSceneId: "shelter_cooking_menu_repeat",
+    tags: ["cooking", "menu"],
+    riskHint: "low",
+  }),
+  interactionFor("shelter", {
     id: "collect_rainwater_at_shelter",
+    skillUse: { skillId: "collection" },
     label: "물 확보하기",
     type: "use",
     outcomeHint: "오늘 고인 빗물을 병에 나눠 담아 물 한 병을 확보한다.",
@@ -109,12 +145,11 @@ export const shelterLocation = defineLocation({
     "waterBottle",
     "hotMeal",
     "ricePorridge",
-    "greensSoup",
-    "forestStew",
     "rawRice",
     "vegetables",
-    "wildGreens",
+    "wood",
     "woodPlank",
+    "firewood",
     "scrapMetal",
     "clothScrap",
     "cordage",
@@ -122,14 +157,20 @@ export const shelterLocation = defineLocation({
     "radioAntenna",
     "radioTransmitter",
   ],
-  neighbors: ["convenience", "kitchen", "forest"],
+  neighbors: ["magic_city_entrance", "convenience", "kitchen", "subway", "forest"],
   interactionChoices: shelterChoices,
   links: {
+    magic_city_entrance: {
+      note: "거처 왼쪽 위의 골목을 따라 푸른 포탈이 열린 마법도시 입구로 간다.",
+    },
     convenience: {
       note: "무너진 보도와 깨진 유리 조각을 밟으며 편의점 폐허 쪽으로 간다.",
     },
     kitchen: {
       note: "국물 냄새와 줄 선 사람들의 소리가 새어 나오는 급식소 쪽으로 향한다.",
+    },
+    subway: {
+      note: "거처 오른쪽 위의 도로를 따라 지하철역 대합실로 향한다.",
     },
     forest: {
       note: "천막 아래쪽의 젖은 흙길을 따라 작은 숲으로 내려간다.",

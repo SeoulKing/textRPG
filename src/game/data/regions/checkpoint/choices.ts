@@ -7,13 +7,13 @@ const radioTruck = { locationId: "checkpoint", nodeId: "checkpoint_radio_truck" 
 export const checkpointChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "collect_radio_transmitter_from_checkpoint",
-    label: "무전기 송신기 챙기기",
+    label: "{{item:radioTransmitter}} 챙기기",
     outcomeHint: "통신 차량 안쪽의 송신기 모듈을 떼어낸다. 구조 신호 장비의 마지막 핵심 부품이다.",
     ...collectStockItemChoiceParts({
       ...radioTruck,
       itemId: "radioTransmitter",
       extraEffects: [{ type: "change_stat", stat: "mind", value: -1 }],
-      logMessage: "검문소 통신 차량에서 무전기 송신기를 떼어냈다. 손끝은 떨렸지만, 구조 신호를 완성할 가능성이 또렷해졌다.",
+      logMessage: "검문소 통신 차량에서 {{item:radioTransmitter|을를}} 떼어냈다. 손끝은 떨렸지만, 구조 신호를 완성할 가능성이 또렷해졌다.",
       minutes: 15,
     }),
     riskHint: "high",
@@ -21,11 +21,11 @@ export const checkpointChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "collect_pain_relief_from_checkpoint",
     label: "응급 약품 챙기기",
-    outcomeHint: "버려진 응급 가방에서 쓸 만한 진통제를 챙긴다.",
+    outcomeHint: "버려진 응급 가방에서 쓸 만한 {{item:painRelief|을를}} 챙긴다.",
     ...collectStockItemChoiceParts({
       ...radioTruck,
       itemId: "painRelief",
-      logMessage: "검문소 응급 가방에서 아직 쓸 수 있는 진통제를 챙겼다.",
+      logMessage: "검문소 응급 가방에서 아직 쓸 수 있는 {{item:painRelief|을를}} 챙겼다.",
       minutes: 15,
     }),
     riskHint: "medium",
