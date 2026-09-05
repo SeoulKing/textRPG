@@ -33,7 +33,11 @@ export function applySurvivalCatalogUpdates(registry: ContentRegistry, current: 
       condition.type === "has_item" && ["woodPlank", "wildGreens"].includes(condition.itemId),
     ),
   );
-  if (!hasRetiredFood && !needsWoodProcessing && !hasRetiredRecipes && !hasLegacyCookingIngredients) return registry;
+  const needsProcessingRecipes = processingIds.some(id => current.choices[id] && (
+    !registry.choices[id] || registry.choices[id].label !== current.choices[id].label ||
+    craftingSceneIds.some(sceneId => registry.scenes[sceneId] && !registry.scenes[sceneId].choiceIds.includes(id))
+  ));
+  if (!hasRetiredFood && !needsWoodProcessing && !hasRetiredRecipes && !hasLegacyCookingIngredients && !needsProcessingRecipes) return registry;
 
   const updated = replaceItemReferences(registry, "wildGreens", "vegetables");
   for (const id of retiredFoodIds) delete updated.items[id];

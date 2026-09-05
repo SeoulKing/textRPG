@@ -122,9 +122,14 @@ export function resolveNextSceneDefinition(
   locationId = state.location,
   preferredSceneId?: string,
 ): SceneDefinition {
-  if (preferredSceneId && registry.scenes[preferredSceneId]) {
-    const preferred = registry.scenes[preferredSceneId];
-    if (preferred.locationId === locationId && preferred.conditions.every((condition) => evaluateCondition(condition, state))) {
+  const repeatMenus: Record<string, string> = {
+    shelter_cooking_menu: "shelter_cooking_menu_repeat",
+    shelter_crafting_menu: "shelter_crafting_menu_repeat",
+  };
+  // A consumed menu introduction returns to its repeat view before any location fallback.
+  for (const id of preferredSceneId ? [preferredSceneId, repeatMenus[preferredSceneId]] : []) {
+    const preferred = id ? registry.scenes[id] : undefined;
+    if (preferred && preferred.locationId === locationId && preferred.conditions.every((condition) => evaluateCondition(condition, state))) {
       return preferred;
     }
   }

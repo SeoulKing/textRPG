@@ -52,7 +52,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_firewood",
-    label: "{{item:firewood}} 가공",
+    label: "{{item:firewood}} 만들기",
     outcomeHint: "{{item:wood}} 1개를 가공해 {{item:firewood}} 4개를 만든다. 가공 시간 10분.",
     showOutcomeHint: true,
     presentationMode: "always",

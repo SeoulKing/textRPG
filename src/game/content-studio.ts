@@ -296,6 +296,9 @@ function migrateWoodProcessing(document: ContentStudioDocument): ContentStudioDo
       const target = loggingIds.has(id) ? "wood"
         : cookingIds.has(id) || record.menu === "cooking" ? "firewood" : replacement;
       const migrated = Object.fromEntries(Object.entries(record).map(([key, entry]) => [key, visit(entry, key, target)]));
+      if (id === "craft_firewood" && ["{{item:firewood}} 가공", "땔감 가공"].includes(String(migrated.label))) {
+        migrated.label = "{{item:firewood}} 만들기";
+      }
       if (id === "woodPlank" && migrated.description === "부서진 선반이나 가구에서 뜯어 낸 판자다. 거처 보강과 불쏘시개에 쓸 수 있다.") {
         migrated.description = "목재를 평평하게 다듬은 판자다. 거처 보강과 시설, 도구 제작에 쓸 수 있다.";
       }
