@@ -1,6 +1,6 @@
 import type { ContentRegistry } from "./schemas/content";
 
-export const RETIRED_ACTION_IDS = new Set(["forage_forest_food"]);
+export const RETIRED_ACTION_IDS = new Set(["forage_forest_food", "cook_greens_soup", "cook_forest_stew"]);
 
 /** Apply explicit action removals without rewriting archived content versions. */
 export function omitRetiredActions(registry: ContentRegistry): ContentRegistry {

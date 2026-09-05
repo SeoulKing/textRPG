@@ -63,11 +63,11 @@ test('current-catalog saves combine ingredient quantities and discard deleted di
   assert.deepEqual(normalizeGameSession(saved).state.inventory, { vegetables: 3 });
 });
 
-test('saves pinned to an archived catalog retain their original ingredient inventory', () => {
+test('archived saves adopt the explicit ingredient merge without changing their version', () => {
   const archived = structuredClone(worldRegistry);
   archived.items.wildGreens = oldItem('wildGreens', '산나물');
   const version = registerContentVersion(archived);
   const restored = normalizeGameSession(session({ vegetables: 3, wildGreens: 2 }, version));
-  assert.deepEqual(restored.state.inventory, { vegetables: 3, wildGreens: 2 });
+  assert.deepEqual(restored.state.inventory, { vegetables: 5 });
   assert.equal(restored.state.contentVersionId, version);
 });

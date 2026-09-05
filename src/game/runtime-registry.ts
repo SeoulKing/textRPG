@@ -1,4 +1,5 @@
 import { omitRetiredActions } from "./content-retirements";
+import { applySurvivalCatalogUpdates } from "./survival-catalog-updates";
 import { versionRegistry } from "./content-versions";
 import { worldRegistry } from "./data/registry";
 import type {
@@ -88,7 +89,7 @@ export function buildRuntimeRegistry(
         : stateOrDynamic;
 
   const base = stateOrDynamic && "dynamicContent" in stateOrDynamic ? (versionRegistry(stateOrDynamic.contentVersionId) ?? worldRegistry) : worldRegistry;
-  return omitRetiredActions({
+  return omitRetiredActions(applySurvivalCatalogUpdates({
     items: { ...base.items, ...dynamicContent.items },
     people: { ...base.people, ...dynamicContent.people },
     locations: { ...base.locations, ...dynamicContent.locations },
@@ -98,7 +99,7 @@ export function buildRuntimeRegistry(
     choices: { ...base.choices, ...dynamicContent.choices },
     events: { ...base.events, ...dynamicContent.events },
     scenes: { ...base.scenes, ...dynamicContent.scenes },
-  });
+  }, worldRegistry));
 }
 
 function expandedFrontierSlots(state: Pick<GameState, "frontierState"> | null | undefined, locationId: string) {
