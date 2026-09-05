@@ -565,11 +565,17 @@ a:focus:not(:focus-visible),
   background: linear-gradient(90deg, #d58a49, #b86129);
 }
 
+html,
+body,
+.app-shell,
 .transient-scroll-host {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.app-shell::-webkit-scrollbar,
 .transient-scroll-host::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -794,7 +800,9 @@ a:focus:not(:focus-visible),
 
 .system-note {
   align-self: stretch;
-  margin: 2px 0 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -824,6 +832,11 @@ a:focus:not(:focus-visible),
   display: none;
 }
 
+.system-note[hidden],
+.scene-prose:empty {
+  display: none;
+}
+
 .system-note.is-entering {
   animation: fade-up 220ms ease;
 }
@@ -842,7 +855,8 @@ a:focus:not(:focus-visible),
   font-weight: 600;
   line-height: 1.25;
   font-size: 0.9rem;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   animation: fade-up 220ms ease;
 }
 
@@ -932,12 +946,24 @@ a:focus:not(:focus-visible),
 }
 
 .scene-story-block {
-  display: flow-root;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 16px;
   overflow-anchor: none;
+}
+
+.scene-prose {
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .scene-story-block + .scene-story-block {
   margin-top: 16px;
+}
+
+.scene-prose > p:last-child {
+  margin-bottom: 0;
 }
 
 /* Keep enough reading space to align even a short new scene at the top. */
@@ -2044,19 +2070,31 @@ a:focus:not(:focus-visible),
   grid-template-columns: minmax(0, 1fr);
 }
 
-.status-summary-card {
-  padding: 12px;
+.info-card.status-summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--panel);
 }
 
-.status-summary-card h3 {
-  margin-bottom: 6px;
+.info-card.status-summary-card h3 {
+  margin: 0;
   font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.4;
 }
 
-.status-summary-card p {
-  color: var(--text);
-  font-size: 0.92rem;
+.info-card.status-summary-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
   line-height: 1.4;
+  white-space: nowrap;
 }
 
 .panel-grid {
@@ -2139,6 +2177,62 @@ a:focus:not(:focus-visible),
   grid-template-columns: auto auto auto minmax(24px, 1fr) auto;
   align-items: center;
   gap: 5px;
+}
+
+.skill-progress-card.is-combat .skill-progress-compact-row {
+  grid-template-columns: auto auto minmax(24px, 1fr) auto;
+}
+
+.combat-skill-details {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.combat-skill-details summary {
+  cursor: pointer;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.combat-skill-details summary:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+}
+
+.combat-skill-growth p {
+  margin: 10px 0 0;
+  font-size: inherit;
+  line-height: 1.6;
+}
+
+.combat-skill-growth table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.combat-skill-growth caption {
+  margin-bottom: 5px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.combat-skill-growth th,
+.combat-skill-growth td {
+  padding: 5px 2px;
+  text-align: right;
+}
+
+.combat-skill-growth th:first-child {
+  text-align: left;
+}
+
+.combat-skill-growth thead,
+.combat-skill-growth tbody tr:not(:last-child) {
+  border-bottom: 1px solid var(--line);
 }
 
 .skill-progress-card h3 {
@@ -2932,7 +3026,6 @@ a:focus:not(:focus-visible),
 .hex-tile.is-reachable:hover .hex-tile-shape,
 .hex-tile.is-reachable:focus-visible .hex-tile-shape {
   fill: url("#hex-fill-reachable-hover");
-  stroke: rgba(47, 125, 104, 0.8);
 }
 
 .hex-tile.is-locked .hex-tile-shape {
@@ -2971,6 +3064,21 @@ a:focus:not(:focus-visible),
 .hex-map-stage .hex-tile .hex-tile-shape {
   stroke: rgba(69, 84, 99, 0.82);
   stroke-width: 2.4;
+}
+
+/* Paint the complete hover/focus border above neighboring SVG tiles. */
+.hex-tile-outline {
+  display: none;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.hex-tile-outline.is-visible {
+  display: block;
 }
 
 .map-list {
@@ -3303,8 +3411,8 @@ a:focus:not(:focus-visible),
 
   .system-note {
     width: auto;
-    max-width: calc(100% - 32px);
-    margin: 0 16px 12px;
+    max-width: 100%;
+    margin: 0;
   }
 
   .scene-dev-source {

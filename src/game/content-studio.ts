@@ -1,6 +1,7 @@
 import path from "node:path";
 import { readFileSync } from "node:fs";
 import { z } from "zod";
+import { RETIRED_ACTION_IDS } from "./content-retirements";
 import {
   ChoiceDefinitionSchema,
   ConditionSchema,
@@ -165,6 +166,8 @@ export function migrateRenamedItemTextReferences(
 }
 
 export const BUILT_IN_RECIPE_MENUS = {
+  craft_wood_plank: "crafting",
+  craft_firewood: "crafting",
   craft_shelter_wall_patch: "crafting",
   craft_shelter_brazier: "crafting",
   craft_shelter_rain_bucket: "crafting",
@@ -174,8 +177,6 @@ export const BUILT_IN_RECIPE_MENUS = {
   assemble_rescue_radio: "crafting",
   cook_at_shelter: "cooking",
   cook_rice_porridge: "cooking",
-  cook_greens_soup: "cooking",
-  cook_forest_stew: "cooking",
   cook_grilled_fish: "cooking",
 } as const satisfies Record<string, StudioRecipe["menu"]>;
 
@@ -242,11 +243,79 @@ export function loadStoredContentStudioDocument(): ContentStudioDocument {
   }
 }
 
+// Apply catalog edits to stored Studio documents, including database-backed drafts.
+// Archived game versions keep their original catalog until explicitly upgraded.
+function migrateFoodCatalog(document: ContentStudioDocument): ContentStudioDocument {
+  const removedItems = new Set(["greensSoup", "forestStew"]);
+  const removedRecipes = new Set(["cook_greens_soup", "cook_forest_stew"]);
+  const itemIdLists = new Set(["obtainableItemIds", "inventoryItemIds"]);
+  function visit(value: unknown, field = ""): unknown {
+    if (typeof value === "string") {
+      if (field === "itemId") return value === "wildGreens" ? "vegetables" : value;
+      return value.replace(/\{\{item:wildGreens(?=[|}])/g, "{{item:vegetables").replace(/산나물/g, "채소");
+    }
+    if (Array.isArray(value)) {
+      if (itemIdLists.has(field)) {
+        return [...new Set(value.filter(id => !removedItems.has(id)).map(id => id === "wildGreens" ? "vegetables" : id))];
+      }
+      return value.filter(entry => {
+        if (["choiceIds", "availableActionIds"].includes(field) && typeof entry === "string") return !RETIRED_ACTION_IDS.has(entry);
+        if (!entry || typeof entry !== "object") return true;
+        if (["actions", "interactionChoices", "choices"].includes(field) && RETIRED_ACTION_IDS.has(entry.id)) return false;
+        if (field === "items") return entry.id !== "wildGreens" && !removedItems.has(entry.id ?? entry.itemId);
+        if (field === "recipes" || field === "choices") return !removedRecipes.has(entry.id);
+        return true;
+      }).map(entry => visit(entry, field));
+    }
+    if (value && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, visit(entry, key)]));
+    }
+    return value;
+  }
+  return parseContentStudioDocument(visit(document));
+}
+
+function migrateWoodProcessing(document: ContentStudioDocument): ContentStudioDocument {
+  const loggingIds = new Set(["chop_wood_at_forest", "chop_wood_with_crude_axe"]);
+  const cookingIds = new Set(["cook_at_shelter", "cook_rice_porridge", "cook_grilled_fish"]);
+  function visit(value: unknown, field = "", replacement?: "wood" | "firewood"): unknown {
+    if (typeof value === "string") {
+      if (!replacement) return value;
+      if (field === "itemId") return value === "woodPlank" ? replacement : value;
+      return value
+        .replace(/\{\{item:woodPlank(?=[|}])/g, `{{item:${replacement}`)
+        .replace(/목재 판자/g, replacement === "wood" ? "목재" : "땔감")
+        .replace(/(\{\{item:(?:wood|firewood)\}\}) 한 (?:장|개)이/g, "$1 한 개가")
+        .replace(/(\{\{item:(?:wood|firewood)\}\}) 한 장/g, "$1 한 개")
+        .replace("목재로 쓸 만한 판자들을 챙겼다.", "가공할 {{item:wood|을를}} 모았다.");
+    }
+    if (Array.isArray(value)) return value.map(entry => visit(entry, field, replacement));
+    if (value && typeof value === "object") {
+      const record = value as Record<string, unknown>;
+      const id = typeof record.id === "string" ? record.id : "";
+      const target = loggingIds.has(id) ? "wood"
+        : cookingIds.has(id) || record.menu === "cooking" ? "firewood" : replacement;
+      const migrated = Object.fromEntries(Object.entries(record).map(([key, entry]) => [key, visit(entry, key, target)]));
+      if (id === "woodPlank" && migrated.description === "부서진 선반이나 가구에서 뜯어 낸 판자다. 거처 보강과 불쏘시개에 쓸 수 있다.") {
+        migrated.description = "목재를 평평하게 다듬은 판자다. 거처 보강과 시설, 도구 제작에 쓸 수 있다.";
+      }
+      if (field === "locations" && Array.isArray(migrated.obtainableItemIds)) {
+        const added = id === "forest" ? ["wood"] : id === "shelter" ? ["wood", "firewood"] : [];
+        migrated.obtainableItemIds = [...new Set([...migrated.obtainableItemIds, ...added])];
+      }
+      return migrated;
+    }
+    return value;
+  }
+  return parseContentStudioDocument(visit(document));
+}
+
 export function effectiveContentStudioDocument(
   stored: ContentStudioDocument,
   builtInItems: Record<string, StudioItem>,
   builtInChoices: ChoiceDefinition[],
 ): ContentStudioDocument {
+  stored = migrateWoodProcessing(migrateFoodCatalog(stored));
   const storedItems = asUniqueRecord(stored.items, "item");
   const items = Object.values({
     ...builtInItems,

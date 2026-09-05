@@ -84,10 +84,36 @@ export const baseItems = {
     price: 0,
     tags: ["배식", "교환"],
   }),
+  wood: defineItem({
+    id: "wood",
+    name: "목재",
+    description: "벌목으로 얻은 가공 전 목재다. 목재 판자나 땔감으로 가공할 수 있다.",
+    kind: "material",
+    rarity: "common",
+    price: 500,
+    tags: [
+      "재료",
+      "목재",
+      "가공"
+    ]
+  }),
+  firewood: defineItem({
+    id: "firewood",
+    name: "땔감",
+    description: "불을 피우기 좋게 잘게 쪼갠 목재다. 목재 1개로 4개를 만들며, 요리에 연료로 사용한다.",
+    kind: "material",
+    rarity: "common",
+    price: 100,
+    tags: [
+      "재료",
+      "목재",
+      "연료"
+    ]
+  }),
   woodPlank: defineItem({
     id: "woodPlank",
     name: "목재 판자",
-    description: "부서진 선반이나 가구에서 뜯어 낸 판자다. 거처 보강과 불쏘시개에 쓸 수 있다.",
+    description: "목재를 평평하게 다듬은 판자다. 거처 보강과 시설, 도구 제작에 쓸 수 있다.",
     kind: "material",
     rarity: "common",
     price: 700,
@@ -192,10 +218,19 @@ export const baseItems = {
   vegetables: defineItem({
     id: "vegetables",
     name: "채소",
-    description: "요리 재료. 끓이거나 구우면 한 끼를 보탠다.",
+    description: "급식소와 숲에서 구할 수 있는 채소다. 끓이거나 구워 요리하는 식재료다.",
     kind: "food",
     rarity: "common",
     price: 600,
+    tags: ["재료", "요리"],
+  }),
+  meat: defineItem({
+    id: "meat",
+    name: "고기",
+    description: "손질해 둔 고기다. 불에 익혀 요리하는 식재료다.",
+    kind: "food",
+    rarity: "common",
+    price: 1500,
     tags: ["재료", "요리"],
   }),
   riverFish: defineItem({
@@ -218,17 +253,6 @@ export const baseItems = {
     effects: { energy: 3 },
     useMinutes: 10,
   }),
-  wildGreens: defineItem({
-    id: "wildGreens",
-    name: "산나물",
-    description: "숲 가장자리에서 뜯어 온 먹을 수 있는 풀잎이다. 그대로 먹기엔 거칠지만 끓이면 제법 양이 난다.",
-    kind: "food",
-    rarity: "common",
-    price: 400,
-    tags: ["식량", "재료", "숲"],
-    effects: { energy: 1 },
-    useMinutes: 10,
-  }),
   staleBread: defineItem({
     id: "staleBread",
     name: "눅눅한 빵",
@@ -249,28 +273,6 @@ export const baseItems = {
     price: 0,
     tags: ["식량", "요리", "회복"],
     effects: { mind: 1, energy: 4, exhaustionRelief: 2 },
-    useMinutes: 10,
-  }),
-  greensSoup: defineItem({
-    id: "greensSoup",
-    name: "나물국",
-    description: "산나물을 물에 풀어 끓인 국이다. 거칠지만 따뜻한 국물이 몸을 다시 움직이게 한다.",
-    kind: "food",
-    rarity: "common",
-    price: 0,
-    tags: ["식량", "요리", "회복"],
-    effects: { mind: 1, energy: 3, exhaustionRelief: 2 },
-    useMinutes: 10,
-  }),
-  forestStew: defineItem({
-    id: "forestStew",
-    name: "숲죽",
-    description: "산나물과 채소를 같이 넣어 끓인 걸쭉한 죽이다. 고급 식사는 아니지만 몸을 다시 움직이게 만든다.",
-    kind: "food",
-    rarity: "uncommon",
-    price: 0,
-    tags: ["식량", "요리", "회복"],
-    effects: { energy: 6, exhaustionRelief: 2 },
     useMinutes: 10,
   }),
   manaShard: defineItem({

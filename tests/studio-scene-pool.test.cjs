@@ -34,12 +34,12 @@ test('actual engine varies eligible narration, grants common reward once and kee
  story.scenes.find(row=>row.id==='forest_chop_result_3').conditions.push({type:'flag',flag:'writer_unmet_condition'});
  const saved=parseContentStudioDocument(JSON.parse(JSON.stringify(document))),registry=buildWorldRegistryFromStudio(saved);validateRegistry(registry);registerContentVersion(registry,true);applyPreparedContentStudioRegistry(registry);
  const state=createInitialGameState();state.location='forest';state.flags.opening_seen=true;state.sceneId='forest_repeat_intro';state.inventory={};
- let previous;for(let i=1;i<=3;i++){performAction(state,{type:'content_action',actionId:action.id},{rng:()=>0});assert.equal(state.inventory.woodPlank,3*i);assert.notEqual(state.sceneId,previous);assert.notEqual(state.sceneId,'forest_chop_result_3');previous=state.sceneId;}
+ let previous;for(let i=1;i<=3;i++){performAction(state,{type:'content_action',actionId:action.id},{rng:()=>0});assert.equal(state.inventory.wood,3*i);assert.notEqual(state.sceneId,previous);assert.notEqual(state.sceneId,'forest_chop_result_3');previous=state.sceneId;}
  // A newer publication changes both narration selection and rewards, while the prior game stays on A.
  const next=structuredClone(saved),nextAction=next.stories.find(row=>row.id===story.id).actions.find(row=>row.id===action.id);nextAction.effects.find(effect=>effect.type==='add_item').amount=7;studioWriteScenePool(next,nextAction,'forest',['forest_chop_result_1'],true);
  const registryB=buildWorldRegistryFromStudio(next);registerContentVersion(registryB,true);applyPreparedContentStudioRegistry(registryB);
- performAction(state,{type:'content_action',actionId:action.id},{rng:()=>0});assert.equal(state.inventory.woodPlank,12);assert.notEqual(state.sceneId,previous);
- const newState=createInitialGameState();newState.location='forest';newState.flags.opening_seen=true;newState.sceneId='forest_repeat_intro';newState.inventory={};performAction(newState,{type:'content_action',actionId:action.id},{rng:()=>0});assert.equal(newState.inventory.woodPlank,7);assert.equal(newState.sceneId,'forest_chop_result_1');
+ performAction(state,{type:'content_action',actionId:action.id},{rng:()=>0});assert.equal(state.inventory.wood,12);assert.notEqual(state.sceneId,previous);
+ const newState=createInitialGameState();newState.location='forest';newState.flags.opening_seen=true;newState.sceneId='forest_repeat_intro';newState.inventory={};performAction(newState,{type:'content_action',actionId:action.id},{rng:()=>0});assert.equal(newState.inventory.wood,7);assert.equal(newState.sceneId,'forest_chop_result_1');
 });
 
 test('activity narration shows one result then returns to base without granting twice; repeat avoidance survives return',()=>{
@@ -47,10 +47,10 @@ test('activity narration shows one result then returns to base without granting 
  studioWriteScenePool(document,action,'forest',['forest_chop_result_1','forest_chop_result_2','forest_chop_result_3'],true,true);
  const original=JSON.stringify(document),registry=buildWorldRegistryFromStudio(document);assert.equal(JSON.stringify(document),original);validateRegistry(registry);registerContentVersion(registry,true);applyPreparedContentStudioRegistry(registry);
  const state=createInitialGameState();state.location='forest';state.flags.opening_seen=true;state.flags.intro_seen_forest=true;state.sceneId='forest_repeat_intro';state.inventory={};
- performAction(state,{type:'content_action',actionId:action.id},{rng:()=>0});const first=state.sceneId;assert(first.startsWith('studio_activity_'));assert.equal(state.inventory.woodPlank,3);
+ performAction(state,{type:'content_action',actionId:action.id},{rng:()=>0});const first=state.sceneId;assert(first.startsWith('studio_activity_'));assert.equal(state.inventory.wood,3);
  const result=registry.scenes[first];assert.equal(result.suppressLocationInteractions,true);assert.equal(result.choiceIds.length,1);const returnChoice=registry.choices[result.choiceIds[0]];assert.equal(returnChoice.label,'숲으로 돌아가기');
- const minutes=state.worldElapsedMs;performAction(state,{type:'content_choice',choiceId:returnChoice.id},{rng:()=>0});assert.equal(state.sceneId,'forest_repeat_intro');assert.equal(state.inventory.woodPlank,3);assert.deepEqual(state.worldElapsedMs,minutes);
- performAction(state,{type:'content_action',actionId:action.id},{rng:()=>0});assert.notEqual(state.sceneId,first);assert.equal(state.inventory.woodPlank,6);
+ const minutes=state.worldElapsedMs;performAction(state,{type:'content_choice',choiceId:returnChoice.id},{rng:()=>0});assert.equal(state.sceneId,'forest_repeat_intro');assert.equal(state.inventory.wood,3);assert.deepEqual(state.worldElapsedMs,minutes);
+ performAction(state,{type:'content_action',actionId:action.id},{rng:()=>0});assert.notEqual(state.sceneId,first);assert.equal(state.inventory.wood,6);
 });
 
 test('live preview keeps the original manuscript and return choice attached to compiled activity scenes',()=>{
@@ -62,12 +62,12 @@ test('live preview keeps the original manuscript and return choice attached to c
   const start=service.start(document,{locationId:'forest',inventory:{},flags:{intro_seen_forest:true}});
   const result=service.step(start.id,{action:{type:'content_action',actionId:action.id}});
   assert.equal(result.sourceSceneId,'forest_chop_result_1');assert.equal(result.editorTarget.sceneId,result.sourceSceneId);
-  assert.equal(result.inventory.woodPlank,3);assert.equal(result.choices.length,1);
+  assert.equal(result.inventory.wood,3);assert.equal(result.choices.length,1);
   assert.equal(result.choices[0].label,'숲으로 돌아가기');assert.equal(result.choices[0].available,true);
   assert.equal(result.choices[0].editorTarget.sceneId,'forest_chop_result_1');
-  const synced=service.step(start.id,{document});assert.equal(synced.sceneId,result.sceneId);assert.equal(synced.inventory.woodPlank,3);
+  const synced=service.step(start.id,{document});assert.equal(synced.sceneId,result.sceneId);assert.equal(synced.inventory.wood,3);
   const returned=service.step(start.id,{action:result.choices[0].action});
-  assert.equal(returned.sceneId,'forest_repeat_intro');assert.equal(returned.inventory.woodPlank,3);
+  assert.equal(returned.sceneId,'forest_repeat_intro');assert.equal(returned.inventory.wood,3);
   assert(returned.choices.some(choice=>choice.id===action.id));
  } finally {service.dispose();}
 });

@@ -48,7 +48,7 @@ test("inventory cards follow the latest runtime item definition", () => {
     rarity: "common",
     price: 100,
     tags: ["stored"],
-    effects: { hp: 0, mind: 1, energy: 4, exhaustionRelief: 0 },
+    effects: { hp: 0, mind: 1, energy: 4, exhaustionRelief: 0, injuryRelief: 0, infectionRelief: 0 },
     source: "llm",
     generatedAt: "2026-01-01T00:00:00.000Z",
   };
@@ -202,6 +202,7 @@ test("save normalization adds missing progress and clamps malformed XP", () => {
     collection: { totalXp: 320 },
     exploration: { totalXp: 0 },
     fishing: { totalXp: 0 },
+    combat: { totalXp: 0 },
   });
 });
 
@@ -242,14 +243,16 @@ test("grilled fish recipe consumes the catch and restores exactly 3 energy", () 
   state.flags.shelter_brazier = true;
   state.flags.shelter_cooking_open = true;
   state.inventory.riverFish = 1;
-  state.inventory.woodPlank = 1;
+  state.inventory.firewood = 1;
+  state.inventory.woodPlank = 2;
 
   performAction(state, {
     type: "content_choice",
     choiceId: "cook_grilled_fish",
   });
   assert.equal(state.inventory.riverFish ?? 0, 0);
-  assert.equal(state.inventory.woodPlank ?? 0, 0);
+  assert.equal(state.inventory.firewood ?? 0, 0);
+  assert.equal(state.inventory.woodPlank, 2);
   assert.equal(state.inventory.grilledFish, 1);
 
   const beforeEnergy = state.stats.energy;
@@ -411,7 +414,7 @@ test("condition failure path awards no XP or time", () => {
   }));
   assert.equal(state.skillProgress.collection.totalXp, 0);
   assert.equal(state.worldElapsedMs, beforeElapsed);
-  assert.equal(state.inventory.woodPlank ?? 0, 0);
+  assert.equal(state.inventory.wood ?? 0, 0);
 });
 
 test("level crossing adds one Korean log and one system-note token", () => {
@@ -435,6 +438,7 @@ test("snapshot cards expose interval XP, effects, and MAX state", () => {
     collection: { totalXp: 80 },
     exploration: { totalXp: 320 },
     fishing: { totalXp: 0 },
+    combat: { totalXp: 0 },
   });
   assert.deepEqual(cards[0], {
     id: "collection",
@@ -460,5 +464,6 @@ test("snapshot cards expose interval XP, effects, and MAX state", () => {
     collection: { totalXp: 0 },
     exploration: { totalXp: 0 },
     fishing: { totalXp: 320 },
+    combat: { totalXp: 0 },
   })[2].effectPercent, 40);
 });

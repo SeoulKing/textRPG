@@ -8,6 +8,7 @@ import { SceneCardSchema } from "./scene";
 import { ProtagonistCardSchema } from "./person";
 import { QuestStateSchema } from "./quest";
 import { ActionChoiceSchema } from "./choice";
+import { CombatSkillDetailsSchema, SkillIdSchema } from "./skill-progression";
 
 export const DevLlmTraceEntrySchema = z.object({
   id: z.string(),
@@ -124,7 +125,7 @@ export const StateSnapshotSchema = z.object({
   ),
   skillProgress: z.array(
     z.object({
-      id: z.enum(["collection", "exploration", "fishing"]),
+      id: SkillIdSchema,
       name: z.string(),
       description: z.string(),
       level: z.number().int().min(1).max(5),
@@ -135,6 +136,7 @@ export const StateSnapshotSchema = z.object({
       progressPercent: z.number().min(0).max(100),
       effectPercent: z.number().min(0).max(100),
       isMaxLevel: z.boolean(),
+      combat: CombatSkillDetailsSchema.optional(),
     })
   ),
   availableActions: z.array(ActionChoiceSchema),

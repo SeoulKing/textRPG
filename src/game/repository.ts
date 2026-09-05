@@ -297,11 +297,15 @@ function normalizeInventory(rawInventory: unknown, validItemIds: Set<string>) {
     return {};
   }
 
-  return Object.fromEntries(
-    Object.entries(rawInventory).filter(([itemId, quantity]) =>
-      validItemIds.has(itemId) && Number.isInteger(quantity) && Number(quantity) >= 0,
-    ),
-  ) as Record<string, number>;
+  const inventory: Record<string, number> = {};
+  for (const [itemId, quantity] of Object.entries(rawInventory)) {
+    // Merge the retired ingredient only when this save uses the new catalog.
+    const resolvedId = itemId === "wildGreens" && !validItemIds.has(itemId) ? "vegetables" : itemId;
+    if (validItemIds.has(resolvedId) && Number.isInteger(quantity) && Number(quantity) >= 0) {
+      inventory[resolvedId] = (inventory[resolvedId] ?? 0) + Number(quantity);
+    }
+  }
+  return inventory;
 }
 
 function maxToolDurability(itemId: string, contentVersionId?: string) {

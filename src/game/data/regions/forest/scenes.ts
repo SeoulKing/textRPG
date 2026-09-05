@@ -288,7 +288,7 @@ export const forestSceneDefinitions: SceneDefinition[] = [
   {
     id: "forest_forage_greens_result_1",
     locationId: "forest",
-    title: "산나물",
+    title: "채소",
     tags: [forestResultSceneTags.forageGreens],
     paragraphs: [
       "젖은 풀잎 사이에서 익숙한 모양의 잎이 보인다. 당신은 독이 오를 만한 줄기는 버리고, 어린 잎만 조심스럽게 뜯는다.",
@@ -300,7 +300,7 @@ export const forestSceneDefinitions: SceneDefinition[] = [
   {
     id: "forest_forage_greens_result_2",
     locationId: "forest",
-    title: "산나물",
+    title: "채소",
     tags: [forestResultSceneTags.forageGreens],
     paragraphs: [
       "햇빛이 조금 드는 비탈에 잎이 옹기종기 돋아 있다. 당신은 흙을 털어 내며 먹을 수 있는 부분만 골라낸다.",

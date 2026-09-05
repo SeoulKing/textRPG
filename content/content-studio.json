@@ -127,9 +127,47 @@
       }
     },
     {
+      "id": "wood",
+      "name": "목재",
+      "description": "벌목으로 얻은 가공 전 목재다. 목재 판자나 땔감으로 가공할 수 있다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 500,
+      "tags": [
+        "재료",
+        "목재",
+        "가공"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "firewood",
+      "name": "땔감",
+      "description": "불을 피우기 좋게 잘게 쪼갠 목재다. 목재 1개로 4개를 만들며, 요리에 연료로 사용한다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 100,
+      "tags": [
+        "재료",
+        "목재",
+        "연료"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
       "id": "woodPlank",
       "name": "목재 판자",
-      "description": "부서진 선반이나 가구에서 뜯어 낸 판자다. 거처 보강과 불쏘시개에 쓸 수 있다.",
+      "description": "목재를 평평하게 다듬은 판자다. 거처 보강과 시설, 도구 제작에 쓸 수 있다.",
       "kind": "material",
       "rarity": "common",
       "price": 700,
@@ -283,7 +321,7 @@
     {
       "id": "vegetables",
       "name": "채소",
-      "description": "요리 재료. 끓이거나 구우면 한 끼를 보탠다.",
+      "description": "급식소와 숲에서 구할 수 있는 채소다. 끓이거나 구워 요리하는 식재료다.",
       "kind": "food",
       "rarity": "common",
       "price": 600,
@@ -299,24 +337,24 @@
       }
     },
     {
-      "id": "wildGreens",
-      "name": "산나물",
-      "description": "숲 가장자리에서 뜯어 온 먹을 수 있는 풀잎이다. 그대로 먹기엔 거칠지만 끓이면 제법 양이 난다.",
+      "id": "meat",
+      "name": "고기",
+      "description": "손질해 둔 고기다. 불에 익혀 요리하는 식재료다.",
       "kind": "food",
       "rarity": "common",
-      "price": 400,
+      "price": 1500,
       "tags": [
-        "식량",
         "재료",
-        "숲"
+        "요리"
       ],
       "effects": {
         "hp": 0,
         "mind": 0,
-        "energy": 1,
-        "exhaustionRelief": 0
-      },
-      "useMinutes": 10
+        "energy": 0,
+        "exhaustionRelief": 0,
+        "injuryRelief": 0,
+        "infectionRelief": 0
+      }
     },
     {
       "id": "staleBread",
@@ -353,46 +391,6 @@
         "hp": 0,
         "mind": 1,
         "energy": 4,
-        "exhaustionRelief": 2
-      },
-      "useMinutes": 10
-    },
-    {
-      "id": "greensSoup",
-      "name": "나물국",
-      "description": "산나물을 물에 풀어 끓인 국이다. 거칠지만 따뜻한 국물이 몸을 다시 움직이게 한다.",
-      "kind": "food",
-      "rarity": "common",
-      "price": 0,
-      "tags": [
-        "식량",
-        "요리",
-        "회복"
-      ],
-      "effects": {
-        "hp": 0,
-        "mind": 1,
-        "energy": 3,
-        "exhaustionRelief": 2
-      },
-      "useMinutes": 10
-    },
-    {
-      "id": "forestStew",
-      "name": "숲죽",
-      "description": "산나물과 채소를 같이 넣어 끓인 걸쭉한 죽이다. 고급 식사는 아니지만 몸을 다시 움직이게 만든다.",
-      "kind": "food",
-      "rarity": "uncommon",
-      "price": 0,
-      "tags": [
-        "식량",
-        "요리",
-        "회복"
-      ],
-      "effects": {
-        "hp": 0,
-        "mind": 0,
-        "energy": 6,
         "exhaustionRelief": 2
       },
       "useMinutes": 10
@@ -553,6 +551,98 @@
     }
   ],
   "recipes": [
+    {
+      "id": "craft_wood_plank",
+      "label": "{{item:woodPlank}} 가공",
+      "outcomeHint": "{{item:wood}} 1개를 가공해 {{item:woodPlank}} 1개를 만든다. 가공 시간 10분.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "has_item",
+          "itemId": "wood",
+          "amount": 1
+        }
+      ],
+      "failureNote": "가공하려면 {{item:wood}} 1개가 필요하다.",
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "가공할 {{item:wood|이가}} 없다. 숲에서 목재를 구해 와야 한다."
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "wood",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "log",
+          "message": "당신은 {{item:wood}}의 거친 면을 다듬어 단단한 {{item:woodPlank}} 한 장을 만든다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 10
+        }
+      ],
+      "nextSceneId": "shelter_crafting_menu",
+      "riskHint": "low",
+      "hidden": false,
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_firewood",
+      "label": "{{item:firewood}} 가공",
+      "outcomeHint": "{{item:wood}} 1개를 가공해 {{item:firewood}} 4개를 만든다. 가공 시간 10분.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "has_item",
+          "itemId": "wood",
+          "amount": 1
+        }
+      ],
+      "failureNote": "가공하려면 {{item:wood}} 1개가 필요하다.",
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "가공할 {{item:wood|이가}} 없다. 숲에서 목재를 구해 와야 한다."
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "wood",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "firewood",
+          "amount": 4
+        },
+        {
+          "type": "log",
+          "message": "당신은 {{item:wood|을를}} 잘게 쪼개 불을 피우기 좋은 {{item:firewood}} 네 개를 마련한다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 10
+        }
+      ],
+      "nextSceneId": "shelter_crafting_menu",
+      "riskHint": "low",
+      "hidden": false,
+      "menu": "crafting",
+      "enabled": true
+    },
     {
       "id": "craft_shelter_wall_patch",
       "label": "거처 보강",
@@ -763,7 +853,7 @@
     {
       "id": "cook_at_shelter",
       "label": "{{item:hotMeal}}",
-      "outcomeHint": "효과: +1 정신력 / +6 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. 냄비 내구도 -1.",
+      "outcomeHint": "효과: +1 정신력 / +6 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1. 냄비 내구도 -1.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -793,7 +883,7 @@
         },
         {
           "type": "has_item",
-          "itemId": "woodPlank",
+          "itemId": "firewood",
           "amount": 1
         }
       ],
@@ -815,7 +905,7 @@
         },
         {
           "type": "remove_item",
-          "itemId": "woodPlank",
+          "itemId": "firewood",
           "amount": 1
         },
         {
@@ -840,10 +930,10 @@
       "failureEffects": [
         {
           "type": "log",
-          "message": "{{item:hotMeal|을를}} 만들려면 화로와 냄비, {{item:rawRice|과와}} {{item:vegetables}}, 물, 불씨로 쓸 {{item:woodPlank}} 한 장이 필요하다."
+          "message": "{{item:hotMeal|을를}} 만들려면 화로와 냄비, {{item:rawRice|과와}} {{item:vegetables}}, 물, 불씨로 쓸 {{item:firewood}} 한 개가 필요하다."
         }
       ],
-      "failureNote": "간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다. 효과: +1 정신력 / +6 기력.",
+      "failureNote": "간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1이 필요하다. 효과: +1 정신력 / +6 기력.",
       "riskHint": "low",
       "hidden": false,
       "nextSceneId": "shelter_cooking_menu",
@@ -853,7 +943,7 @@
     {
       "id": "cook_rice_porridge",
       "label": "{{item:ricePorridge}}",
-      "outcomeHint": "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. 냄비 내구도 -1. 조리 시간 20분.",
+      "outcomeHint": "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1. 냄비 내구도 -1. 조리 시간 20분.",
       "showOutcomeHint": true,
       "presentationMode": "always",
       "conditions": [
@@ -878,7 +968,7 @@
         },
         {
           "type": "has_item",
-          "itemId": "woodPlank",
+          "itemId": "firewood",
           "amount": 1
         }
       ],
@@ -895,7 +985,7 @@
         },
         {
           "type": "remove_item",
-          "itemId": "woodPlank",
+          "itemId": "firewood",
           "amount": 1
         },
         {
@@ -923,87 +1013,7 @@
           "message": "{{item:ricePorridge|을를}} 끓이려면 냄비, {{item:rawRice}}, 물, 불씨로 쓸 목재가 필요하다."
         }
       ],
-      "failureNote": "{{item:ricePorridge|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
-      "riskHint": "low",
-      "hidden": false,
-      "nextSceneId": "shelter_cooking_menu",
-      "menu": "cooking",
-      "enabled": true
-    },
-    {
-      "id": "cook_greens_soup",
-      "label": "{{item:greensSoup}}",
-      "outcomeHint": "효과: +1 정신력 / +3 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:wildGreens}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1. 냄비 내구도 -1. 조리 시간 15분.",
-      "showOutcomeHint": true,
-      "presentationMode": "always",
-      "conditions": [
-        {
-          "type": "flag",
-          "flag": "shelter_brazier"
-        },
-        {
-          "type": "has_item",
-          "itemId": "dentedPot",
-          "amount": 1
-        },
-        {
-          "type": "has_item",
-          "itemId": "wildGreens",
-          "amount": 1
-        },
-        {
-          "type": "has_item",
-          "itemId": "waterBottle",
-          "amount": 1
-        },
-        {
-          "type": "has_item",
-          "itemId": "woodPlank",
-          "amount": 1
-        }
-      ],
-      "effects": [
-        {
-          "type": "remove_item",
-          "itemId": "wildGreens",
-          "amount": 1
-        },
-        {
-          "type": "remove_item",
-          "itemId": "waterBottle",
-          "amount": 1
-        },
-        {
-          "type": "remove_item",
-          "itemId": "woodPlank",
-          "amount": 1
-        },
-        {
-          "type": "add_item",
-          "itemId": "greensSoup",
-          "amount": 1
-        },
-        {
-          "type": "damage_tool",
-          "itemId": "dentedPot",
-          "amount": 1
-        },
-        {
-          "type": "log",
-          "message": "당신은 {{item:wildGreens|을를}} 물에 풀어 짧게 끓인다. 향은 거칠지만 따뜻한 국물이 몸을 깨운다."
-        },
-        {
-          "type": "advance_time",
-          "minutes": 15
-        }
-      ],
-      "failureEffects": [
-        {
-          "type": "log",
-          "message": "{{item:greensSoup|을를}} 끓이려면 냄비, {{item:wildGreens}}, 물, 불씨로 쓸 목재가 필요하다."
-        }
-      ],
-      "failureNote": "{{item:greensSoup|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:wildGreens}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
+      "failureNote": "{{item:ricePorridge|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1이 필요하다.",
       "riskHint": "low",
       "hidden": false,
       "nextSceneId": "shelter_cooking_menu",
@@ -1246,96 +1256,6 @@
       "hidden": false,
       "nextSceneId": "shelter_crafting_menu",
       "menu": "crafting",
-      "enabled": true
-    },
-    {
-      "id": "cook_forest_stew",
-      "label": "{{item:forestStew}}",
-      "outcomeHint": "{{item:wildGreens}} 2 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1을 써서 {{item:forestStew}} 1개를 끓인다. 전제: 간이 화로, {{item:dentedPot}}. 제작 시간 25분. 냄비 내구도 -1.",
-      "showOutcomeHint": true,
-      "presentationMode": "always",
-      "conditions": [
-        {
-          "type": "flag",
-          "flag": "shelter_brazier"
-        },
-        {
-          "type": "has_item",
-          "itemId": "dentedPot",
-          "amount": 1
-        },
-        {
-          "type": "has_item",
-          "itemId": "wildGreens",
-          "amount": 2
-        },
-        {
-          "type": "has_item",
-          "itemId": "vegetables",
-          "amount": 1
-        },
-        {
-          "type": "has_item",
-          "itemId": "waterBottle",
-          "amount": 1
-        },
-        {
-          "type": "has_item",
-          "itemId": "woodPlank",
-          "amount": 1
-        }
-      ],
-      "effects": [
-        {
-          "type": "remove_item",
-          "itemId": "wildGreens",
-          "amount": 2
-        },
-        {
-          "type": "remove_item",
-          "itemId": "vegetables",
-          "amount": 1
-        },
-        {
-          "type": "remove_item",
-          "itemId": "waterBottle",
-          "amount": 1
-        },
-        {
-          "type": "remove_item",
-          "itemId": "woodPlank",
-          "amount": 1
-        },
-        {
-          "type": "add_item",
-          "itemId": "forestStew",
-          "amount": 1
-        },
-        {
-          "type": "damage_tool",
-          "itemId": "dentedPot",
-          "amount": 1
-        },
-        {
-          "type": "log",
-          "message": "당신은 {{item:wildGreens|을를}} 물에 오래 끓여 묽은 {{item:forestStew|을를}} 만들었다. 냄비 바닥에는 또 하나의 검은 자국이 남았다."
-        },
-        {
-          "type": "advance_time",
-          "minutes": 25
-        }
-      ],
-      "failureEffects": [
-        {
-          "type": "log",
-          "message": "{{item:forestStew|을를}} 끓이려면 화로와 냄비, {{item:wildGreens}} 두 줌, {{item:vegetables}}, 물, 불쏘시개로 쓸 목재가 필요하다."
-        }
-      ],
-      "failureNote": "{{item:forestStew|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:wildGreens}} 2 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:woodPlank}} 1이 필요하다.",
-      "riskHint": "low",
-      "hidden": false,
-      "nextSceneId": "shelter_cooking_menu",
-      "menu": "cooking",
       "enabled": true
     },
     {

@@ -56,7 +56,9 @@ test('unchanged snapshots do not duplicate prose, but changed prose and events c
 
 test('skipping typing replaces only the partial current block, without duplicating history', () => {
   const history = { innerHTML: '<p>이전 서사</p>' };
-  const current = { innerHTML: '<p>새 서</p>' };
+  const currentProse = { innerHTML: '<p>새 서</p>' };
+  const note = { hidden: true };
+  const current = { children: [currentProse, note], querySelector(selector) { assert.equal(selector, '.scene-prose'); return currentProse; } };
   let revealed = 0, aligned = 0;
   const client = {
     isSceneTyping: true,
@@ -73,7 +75,8 @@ test('skipping typing replaces only the partial current block, without duplicati
   });
   assert.equal(ctx.skipSceneTyping(), true);
   assert.equal(history.innerHTML, '<p>이전 서사</p>');
-  assert.equal(current.innerHTML, '<p class="scene-headline">결과</p><p>새 서사</p><p>다음 문단</p>');
+  assert.equal(current.children[1], note);
+  assert.equal(currentProse.innerHTML, '<p class="scene-headline">결과</p><p>새 서사</p><p>다음 문단</p>');
   assert.equal(dom.sceneText.children.length, 2);
   assert.equal(revealed, 1);
   assert.equal(aligned, 1);
@@ -114,10 +117,84 @@ test('a cancelled typing run cannot clear a newer active narrative', async () =>
     client,
     dom: { sceneFrame: { classList: { add() {}, remove() {} } }, choices: { innerHTML: '', classList: { remove() {} } } },
     document: { createElement() { return {}; } },
-    createSceneStoryBlock() { return { appendChild() {} }; },
+    createSceneStoryBlock() { return { querySelector() { return { appendChild() {} }; } }; },
     async typeParagraph() { client.sceneRenderToken = 2; client.activeAnimatedStory = newer; return false; },
   });
   await ctx.animateStoryText({ paragraphs: ['이전 실행'] }, 1);
   assert.equal(client.activeAnimatedStory, newer);
   assert.equal(client.isSceneTyping, true);
+});
+
+
+function noteHistoryFixture() {
+  function element() {
+    return {
+      children: [], hidden: false, innerHTML: '', attributes: {},
+      classList: { remove() {}, add() {}, toggle() {} },
+      get childElementCount() { return this.children.length; },
+      appendChild(child) { child.parentElement = this; this.children.push(child); },
+      replaceChildren() { this.children.forEach(child => child.parentElement = null); this.children = []; },
+      setAttribute(name, value) { this.attributes[name] = value; },
+      removeAttribute(name) { delete this.attributes[name]; if (name === 'id') this.id = ''; },
+    };
+  }
+  const dom = { sceneText: element(), systemNote: element() };
+  const client = { renderedSystemNote: '', renderedSystemNoteKey: '' };
+  const ctx = loadFunctions([
+    'createSceneStoryBlock', 'createSceneSystemNote', 'renderSystemNote',
+    'structuredSystemNoteToken', 'isElapsedTimeSystemNoteToken', 'escapeHtml',
+  ], { client, dom, document: { createElement: element } });
+  return { ctx, dom, client };
+}
+
+test('each narrative keeps its note through an empty typing block and later results', () => {
+  const { ctx, dom } = noteHistoryFixture();
+  const first = ctx.createSceneStoryBlock(false);
+  ctx.renderSystemNote('+2 눅눅한 빵', 'reward-1');
+  const firstNote = dom.systemNote, firstHtml = firstNote.innerHTML;
+
+  const intermediate = ctx.createSceneStoryBlock(true);
+  assert.equal(first.children[1], firstNote);
+  assert.equal(firstNote.hidden, false);
+  assert.equal(firstNote.innerHTML, firstHtml);
+  assert.equal(firstNote.id, '');
+  assert.equal(firstNote.attributes.role, undefined);
+  assert.equal(intermediate.children[1].hidden, true);
+
+  const next = ctx.createSceneStoryBlock(true);
+  ctx.renderSystemNote('+2 눅눅한 빵', 'reward-1');
+  assert.equal(dom.systemNote.hidden, true, 'a carried result must not be copied to the new block');
+  ctx.renderSystemNote('+2 눅눅한 빵', 'reward-2');
+  assert.notEqual(dom.systemNote, firstNote);
+  assert.equal(dom.systemNote.parentElement, next);
+  assert.equal(dom.systemNote.hidden, false);
+  assert.equal(firstNote.innerHTML, firstHtml);
+  assert.equal(dom.sceneText.childElementCount, 3);
+});
+
+test('new results on unchanged prose accumulate once and a new location clears the history', () => {
+  const { ctx, dom } = noteHistoryFixture();
+  const block = ctx.createSceneStoryBlock(false);
+  ctx.renderSystemNote('+1 목재', 'result-1');
+  const firstNote = dom.systemNote;
+  ctx.renderSystemNote('-1 체력', 'result-2');
+  const secondNote = dom.systemNote;
+  assert.equal(block.children.length, 3);
+  assert.equal(firstNote.hidden, false);
+  assert.match(firstNote.innerHTML, /is-positive/);
+  assert.match(secondNote.innerHTML, /is-negative/);
+
+  ctx.renderSystemNote('-1 체력', 'result-2');
+  ctx.renderSystemNote('');
+  assert.equal(block.children.length, 3);
+  assert.equal(secondNote.hidden, false);
+  assert.equal(secondNote.id, 'system-note');
+  assert.equal(secondNote.attributes.role, 'status');
+
+  const replacement = ctx.createSceneStoryBlock(false);
+  ctx.renderSystemNote('-1 체력', 'result-2');
+  assert.equal(dom.sceneText.children.length, 1);
+  assert.equal(dom.sceneText.children[0], replacement);
+  assert.equal(block.parentElement, null);
+  assert.equal(dom.systemNote.hidden, false);
 });

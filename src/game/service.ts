@@ -284,6 +284,8 @@ const RECIPE_MENU_SCENE_IDS = [
 ];
 
 const CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
+  craft_wood_plank: "거처 보강과 시설·도구 제작 재료",
+  craft_firewood: "요리에 쓰는 연료 4개",
   craft_shelter_wall_patch: "잠자기 후 체력과 정신력 회복량 증가",
   craft_shelter_brazier: "거처에서 {{item:hotMeal}} 조리 가능",
   craft_shelter_rain_bucket: "하루에 한 번 물 한 병 확보 가능",
@@ -292,8 +294,6 @@ const CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   craft_dented_pot: "거처 요리 가능, 내구도 12",
   cook_at_shelter: "+1 정신력 / +6 기력",
   cook_rice_porridge: "+1 정신력 / +4 기력",
-  cook_greens_soup: "+1 정신력 / +3 기력",
-  cook_forest_stew: "+6 기력 / 피로 완화",
   cook_grilled_fish: "+3 기력",
   assemble_rescue_radio: "10일차 구조 신호 준비",
   brew_mana_potion: "MP +4",
@@ -303,10 +303,6 @@ const CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
 const CRAFTING_RECIPE_PREREQUISITES: Record<string, Array<{ flag: string; label: string }>> = {
   cook_at_shelter: [{ flag: "shelter_brazier", label: "간이 화로" }],
   cook_rice_porridge: [{ flag: "shelter_brazier", label: "간이 화로" }],
-  cook_greens_soup: [{ flag: "shelter_brazier", label: "간이 화로" }],
-  cook_forest_stew: [
-    { flag: "shelter_brazier", label: "간이 화로" },
-  ],
   cook_grilled_fish: [
     { flag: "shelter_brazier", label: "간이 화로" },
   ],

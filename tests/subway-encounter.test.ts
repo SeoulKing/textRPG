@@ -184,7 +184,7 @@ test("지하 1층 강도는 서버 판정으로 피해를 받고 고정 보상�
   assert.match(rendered?.paragraphs[1] ?? "", /승리 1회/);
   assert.equal(
     state.systemNote,
-    "강도: 2피해 / +1 캔 음식 / +1 진통제 / +5분",
+    "강도: 2피해 / +1 캔 음식 / +1 진통제 / +5분 / 전투 숙련도 +12 XP",
   );
   assert.equal(state.subwayExpedition.currentFloorProgress.phase, "upgrade");
   assert.equal(state.subwayExpedition.currentFloorProgress.eventResolved, true);

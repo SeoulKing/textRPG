@@ -1075,10 +1075,9 @@ function executeShelterCookingAction(
   action: ActionDefinition,
   options: PerformActionOptions,
 ): ExecutionResult {
-  const hasIngredients =
-    hasItemAmount(state, "rawRice", 1) &&
-    hasItemAmount(state, "vegetables", 1) &&
-    hasItemAmount(state, "woodPlank", 1);
+  const hasIngredients = action.effects.every(effect =>
+    effect.type !== "remove_item" || hasItemAmount(state, effect.itemId, effect.amount),
+  );
 
   if (!hasIngredients) {
     applyDefinitionEffects(state, action.failureEffects, undefined, options);

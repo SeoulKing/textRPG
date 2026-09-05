@@ -330,7 +330,7 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
     case "not_has_item":
       return getInventoryAmount(state, condition.itemId) < condition.amount;
     case "skill_gte":
-      if (condition.skillId === "collection" || condition.skillId === "exploration") {
+      if (condition.skillId === "collection" || condition.skillId === "exploration" || condition.skillId === "fishing" || condition.skillId === "combat") {
         return getProgressionSkillLevel(state.skillProgress, condition.skillId) >= condition.value;
       }
       return state.skills.includes(condition.skillId) && condition.value <= 1;

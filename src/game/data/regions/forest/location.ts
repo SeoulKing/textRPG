@@ -8,12 +8,12 @@ export const forestChoices: ActionDefinition[] = [
     skillUse: { skillId: "collection" },
     label: "벌목하기",
     type: "search",
-    outcomeHint: "30분을 들여 {{item:woodPlank}} 3개를 얻는다.",
+    outcomeHint: "30분을 들여 {{item:wood}} 3개를 얻는다.",
     showOutcomeHint: true,
     effects: [
       { type: "advance_time", minutes: 30 },
-      { type: "add_item", itemId: "woodPlank", amount: 3 },
-      { type: "log", message: "당신은 숲에서 목재로 쓸 만한 판자들을 챙겼다." },
+      { type: "add_item", itemId: "wood", amount: 3 },
+      { type: "log", message: "당신은 숲에서 가공할 {{item:wood|을를}} 모았다." },
       { type: "set_random_scene", tag: forestResultSceneTags.chop },
     ],
     tags: ["wood", "resource", "repeatable"],
@@ -24,12 +24,12 @@ export const forestChoices: ActionDefinition[] = [
     skillUse: { skillId: "collection" },
     label: "{{item:crudeAxe|으로로}} 벌목한다",
     type: "search",
-    outcomeHint: "{{item:woodPlank}} +5 / {{item:crudeAxe}} 내구도 -1 / +30분",
+    outcomeHint: "{{item:wood}} +5 / {{item:crudeAxe}} 내구도 -1 / +30분",
     showOutcomeHint: true,
     conditions: [{ type: "has_item", itemId: "crudeAxe", amount: 1 }],
     effects: [
       { type: "advance_time", minutes: 30 },
-      { type: "add_item", itemId: "woodPlank", amount: 5 },
+      { type: "add_item", itemId: "wood", amount: 5 },
       { type: "damage_tool", itemId: "crudeAxe", amount: 1 },
       { type: "log", message: "당신은 {{item:crudeAxe|으로로}} 마른 가지와 무너진 울타리 목재를 빠르게 쳐 냈다." },
       { type: "set_random_scene", tag: forestResultSceneTags.axeChop },
@@ -134,64 +134,11 @@ export const forestChoices: ActionDefinition[] = [
     riskHint: "low",
   }),
   interactionFor("forest", {
-    id: "forage_forest_food",
-    skillUse: { skillId: "exploration" },
-    label: "먹을 것을 뒤진다",
-    type: "search",
-    outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:clothScrap}} +1 / +30분",
-    showOutcomeHint: true,
-    effects: [
-      { type: "advance_time", minutes: 30 },
-      {
-        type: "random_outcome",
-        outcomes: [
-          {
-            weight: 55,
-            result: "failure",
-            effects: [
-              { type: "log", message: "당신은 먹을 만한 것을 오래 찾았지만 빈손으로 돌아왔다." },
-              { type: "set_random_scene", tag: forestResultSceneTags.forageNothing },
-            ],
-          },
-          {
-            weight: 25,
-            result: "success",
-            effects: [
-              { type: "add_item", itemId: "wildGreens", amount: 1 },
-              { type: "log", message: "당신은 숲 가장자리에서 먹을 수 있는 {{item:wildGreens}} 한 줌을 뜯었다." },
-              { type: "set_random_scene", tag: forestResultSceneTags.forageGreens },
-            ],
-          },
-          {
-            weight: 10,
-            result: "success",
-            effects: [
-              { type: "add_item", itemId: "staleBread", amount: 1 },
-              { type: "log", message: "당신은 젖은 봉지 안에서 {{item:staleBread}} 하나를 찾아냈다." },
-              { type: "set_random_scene", tag: forestResultSceneTags.forageBread },
-            ],
-          },
-          {
-            weight: 10,
-            result: "success",
-            effects: [
-              { type: "add_item", itemId: "clothScrap", amount: 1 },
-              { type: "log", message: "당신은 먹을 것은 찾지 못했지만 질긴 {{item:clothScrap}} 하나를 챙겼다." },
-              { type: "set_random_scene", tag: forestResultSceneTags.searchCloth },
-            ],
-          },
-        ],
-      },
-    ],
-    tags: ["forage", "food", "repeatable", "chance"],
-    riskHint: "low",
-  }),
-  interactionFor("forest", {
     id: "search_bushes_with_utility_knife",
     skillUse: { skillId: "exploration" },
     label: "{{item:utilityKnife|으로로}} 덤불을 뒤진다",
     type: "search",
-    outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:cannedFood}} +1 / {{item:clothScrap}} +1 / {{item:utilityKnife}} 내구도 -1 / +30분",
+    outcomeHint: "{{item:vegetables}} +1 / {{item:staleBread}} +1 / {{item:cannedFood}} +1 / {{item:clothScrap}} +1 / {{item:utilityKnife}} 내구도 -1 / +30분",
     showOutcomeHint: true,
     conditions: [{ type: "has_item", itemId: "utilityKnife", amount: 1 }],
     effects: [
@@ -211,8 +158,8 @@ export const forestChoices: ActionDefinition[] = [
             weight: 35,
             result: "success",
             effects: [
-              { type: "add_item", itemId: "wildGreens", amount: 1 },
-              { type: "log", message: "당신은 칼로 질긴 줄기를 잘라 {{item:wildGreens}} 한 줌을 챙겼다." },
+              { type: "add_item", itemId: "vegetables", amount: 1 },
+              { type: "log", message: "당신은 칼로 질긴 줄기를 잘라 {{item:vegetables}} 한 줌을 챙겼다." },
               { type: "set_random_scene", tag: forestResultSceneTags.forageGreens },
             ],
           },
@@ -261,7 +208,7 @@ export const forestLocation = defineLocation({
   summary: "임시 거처 아래로 이어지는 작은 숲. 무너진 울타리와 젖은 낙엽 사이에 아직 쓸 만한 자재가 남아 있다.",
   tags: ["resource", "forest", "forage"],
   traits: ["woodcutting", "foraging", "repeatable resources"],
-  obtainableItemIds: ["woodPlank", "cannedFood", "scrapMetal", "clothScrap", "cordage", "wildGreens", "staleBread"],
+  obtainableItemIds: ["wood", "woodPlank", "cannedFood", "scrapMetal", "clothScrap", "cordage", "vegetables", "staleBread"],
   neighbors: ["shelter", "convenience", "kitchen", "river"],
   interactionChoices: forestChoices,
   links: {

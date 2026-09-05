@@ -74,6 +74,8 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
       "각 레시피에는 필요한 재료와 완성했을 때 도움이 되는 점이 적혀 있다. 재료가 모자라면 지금 당장은 만들 수 없지만, 무엇을 노려야 할지는 분명해진다.",
     ],
     choiceIds: [
+      "craft_wood_plank",
+      "craft_firewood",
       "craft_shelter_wall_patch",
       "craft_shelter_brazier",
       "craft_shelter_rain_bucket",
@@ -96,6 +98,8 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     title: "제작 정리",
     paragraphs: [""],
     choiceIds: [
+      "craft_wood_plank",
+      "craft_firewood",
       "craft_shelter_wall_patch",
       "craft_shelter_brazier",
       "craft_shelter_rain_bucket",
@@ -122,8 +126,6 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     choiceIds: [
       "cook_at_shelter",
       "cook_rice_porridge",
-      "cook_greens_soup",
-      "cook_forest_stew",
       "cook_grilled_fish",
       "leave_shelter_cooking",
     ],
@@ -142,8 +144,6 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     choiceIds: [
       "cook_at_shelter",
       "cook_rice_porridge",
-      "cook_greens_soup",
-      "cook_forest_stew",
       "cook_grilled_fish",
       "leave_shelter_cooking",
     ],

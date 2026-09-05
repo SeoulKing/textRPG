@@ -508,7 +508,7 @@ function hideScrollbarChrome(element) {
 }
 
 function refreshTransientScrollbars() {
-  setupTransientScrollbar(dom.appShell);
+  hideScrollbarChrome(dom.appShell);
   setupTransientScrollbar(dom.panelContent);
   document.querySelectorAll(".inventory-list-scroll").forEach((list) => {
     setupTransientScrollbar(list);
@@ -1551,7 +1551,6 @@ function normalizePostChoiceNarrative(value) {
 
 function beginPostChoiceNarrative(paragraphs, append = false) {
   clearSceneAnimation();
-  hideSystemNote();
   const story = { headline: "", paragraphs };
   const token = client.sceneRenderToken;
   return animateStoryText(story, token, null, {
@@ -1721,12 +1720,33 @@ function createSceneStoryBlock(append) {
   const hasHistory = append && dom.sceneText.childElementCount > 0;
   if (!append) {
     dom.sceneText.replaceChildren();
+    client.renderedSystemNoteKey = "";
   }
   dom.sceneText.classList.toggle("has-story-history", hasHistory);
   const block = document.createElement("div");
   block.className = "scene-story-block";
+  const prose = document.createElement("div");
+  prose.className = "scene-prose";
+  block.appendChild(prose);
+  createSceneSystemNote(block);
   dom.sceneText.appendChild(block);
   return block;
+}
+
+function createSceneSystemNote(block) {
+  // Completed notes stay with their prose; only the newest note announces updates.
+  dom.systemNote.removeAttribute("id");
+  dom.systemNote.removeAttribute("role");
+  dom.systemNote.classList.remove("is-entering");
+  const note = document.createElement("div");
+  note.id = "system-note";
+  note.className = "system-note";
+  note.setAttribute("role", "status");
+  note.hidden = true;
+  block.appendChild(note);
+  dom.systemNote = note;
+  client.renderedSystemNote = "";
+  return note;
 }
 
 function scrollSceneStoryToStart(block) {
@@ -1771,6 +1791,7 @@ async function animateStoryText(
   const append = options.append === true;
   const revealChoices = options.revealChoices !== false;
   const block = createSceneStoryBlock(append);
+  const prose = block.querySelector(".scene-prose");
   client.activeAnimatedStory = story;
   client.activeAnimatedSystemNote = systemNotePayload;
   client.activeStoryAnimationOptions = { append, revealChoices, block, scrollToStart: options.scrollToStart === true };
@@ -1788,7 +1809,7 @@ async function animateStoryText(
     }
     const headlineElement = document.createElement("p");
     headlineElement.className = "scene-headline";
-    block.appendChild(headlineElement);
+    prose.appendChild(headlineElement);
     const headlineDone = await typeParagraph(headlineElement, story.headline, token);
     if (!headlineDone) {
       return;
@@ -1801,7 +1822,7 @@ async function animateStoryText(
       return;
     }
     const paragraphElement = document.createElement("p");
-    block.appendChild(paragraphElement);
+    prose.appendChild(paragraphElement);
     const completed = await typeParagraph(paragraphElement, paragraph, token);
     if (!completed) {
       return;
@@ -1842,7 +1863,7 @@ function skipSceneTyping() {
   const storyHtml =
     headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
   // Replace only the typing block so history stays intact and partial text is not duplicated.
-  animationOptions.block.innerHTML = storyHtml;
+  animationOptions.block.querySelector(".scene-prose").innerHTML = storyHtml;
   if (animationOptions.scrollToStart) {
     scrollSceneStoryToStart(animationOptions.block);
   }
@@ -2159,11 +2180,14 @@ function structuredSystemNoteToken(entry) {
 }
 
 function renderSystemNote(note, noteKey = "", entries = []) {
-  if (!note) {
-    hideSystemNote();
+  if (!note || (noteKey && noteKey === client.renderedSystemNoteKey)) {
     return;
   }
 
+  // Another result on the same scene is also history, not a replacement.
+  if (!dom.systemNote.hidden) {
+    createSceneSystemNote(dom.systemNote.parentElement);
+  }
   const changed = note !== client.renderedSystemNote;
   const structuredParts = Array.isArray(entries)
     ? entries.map(structuredSystemNoteToken).filter(Boolean)
@@ -2204,6 +2228,7 @@ function renderSystemNote(note, noteKey = "", entries = []) {
         return [`<span class="system-note-token">${escapeHtml(trimmed)}</span>`];
       });
 
+  // The active story block owns the note from creation, including while typing.
   dom.systemNote.hidden = false;
   dom.systemNote.innerHTML = parts.join("");
   if (changed) {
@@ -2546,11 +2571,8 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
   const surfaceId = storySurfaceId(snapshot);
   const previousRenderedNoteKey = client.renderedSystemNoteKey;
   const surfaceChanged = Boolean(client.renderedStorySurfaceId && client.renderedStorySurfaceId !== surfaceId);
-  if (surfaceChanged) {
-    hideSystemNote();
-    if (!appendStory) {
-      resetSceneScrollOnMobile();
-    }
+  if (surfaceChanged && !appendStory) {
+    resetSceneScrollOnMobile();
   }
 
   // Existing saves can retain the original forest asset path.
@@ -2562,9 +2584,9 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
   renderSceneDevSource(snapshot);
   const systemNote = snapshot.state.systemNote || "";
   const currentSystemNoteKey = systemNoteKey(snapshot, systemNote);
-  const isCarriedNoteAfterSurfaceChange =
-    surfaceChanged && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
-  const systemNotePayload = systemNote && !isCarriedNoteAfterSurfaceChange
+  const isCarriedNote =
+    (surfaceChanged || appendStory) && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
+  const systemNotePayload = systemNote && !isCarriedNote
     ? {
         key: currentSystemNoteKey,
         note: systemNote,
@@ -2597,7 +2619,7 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
     const storyHtml =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
     const block = createSceneStoryBlock(appendStory);
-    block.innerHTML = storyHtml;
+    block.querySelector(".scene-prose").innerHTML = storyHtml;
     if (scrollToStart) {
       scrollSceneStoryToStart(block);
     }
@@ -2624,6 +2646,36 @@ function locationMap() {
   const visible = new Map(client.snapshot.visibleLocations.map((entry) => [entry.id, entry]));
   const states = new Map(client.snapshot.mapEntries.map((entry) => [entry.locationId, entry]));
   return { visible, states };
+}
+
+function setupHexMapHighlight(stage) {
+  if (!stage) return;
+
+  // SVG siblings paint in DOM order. Draw the outline after every tile so
+  // neighboring fills and strokes cannot cover any of its six edges.
+  const outline = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  outline.setAttribute("class", "hex-tile-outline");
+  outline.setAttribute("aria-hidden", "true");
+  stage.appendChild(outline);
+
+  let hoveredTile = stage.querySelector(".hex-tile:hover");
+  let focusedTile = stage.querySelector(".hex-tile:focus-visible");
+  const syncOutline = () => {
+    const tile = hoveredTile || (focusedTile?.matches(":focus-visible") ? focusedTile : null);
+    const shape = tile?.querySelector(".hex-tile-shape");
+    outline.classList.toggle("is-visible", Boolean(shape));
+    if (!shape) return;
+    outline.setAttribute("points", shape.getAttribute("points"));
+    outline.setAttribute("transform", tile.getAttribute("transform") || "");
+  };
+
+  stage.querySelectorAll(".hex-tile").forEach((tile) => {
+    tile.addEventListener("pointerenter", () => { hoveredTile = tile; syncOutline(); });
+    tile.addEventListener("pointerleave", () => { hoveredTile = null; syncOutline(); });
+    tile.addEventListener("focus", () => { focusedTile = tile; syncOutline(); });
+    tile.addEventListener("blur", () => { focusedTile = null; syncOutline(); });
+  });
+  syncOutline();
 }
 
 function renderMapPanel() {
@@ -2887,6 +2939,7 @@ function renderMapPanel() {
     </section>
   `;
 
+  setupHexMapHighlight(dom.panelContent.querySelector(".hex-map-stage"));
   alignHexMapViewport(boardLayout, mapScale, currentLocation.id);
   refreshTransientScrollbars();
 
@@ -3153,6 +3206,25 @@ function renderInventoryPanel() {
   bindInventoryPanelInteractions();
 }
 
+function combatSkillDetailsMarkup(combat) {
+  if (!combat) return "";
+  const statLabel = `공격 +${combat.attackBonus} · 명중 +${combat.hitChanceBonus}%p · 회피 +${combat.evasionBonus}%p`;
+  return `
+    <details class="combat-skill-details">
+      <summary aria-label="${escapeHtml(statLabel)}. 성장 단계 펼치기">${escapeHtml(statLabel)}</summary>
+      <div class="combat-skill-growth">
+        <p>공격 시 +${escapeHtml(combat.turnXp)} XP. 적의 위협을 방어·회피해도 같은 경험치를 얻습니다. 빗나가거나 방어에 실패해도 쌓이며, 승리하면 +${escapeHtml(combat.victoryXp)} XP를 추가로 얻습니다.</p>
+        <table>
+          <caption>레벨별 누적 보너스</caption>
+          <thead><tr><th scope="col">레벨</th><th scope="col">누적 XP</th><th scope="col">공격</th><th scope="col">명중</th><th scope="col">회피</th></tr></thead>
+          <tbody>${(combat.tiers || []).map(tier => `<tr><th scope="row">Lv.${escapeHtml(tier.level)}</th><td>${escapeHtml(tier.totalXp)}</td><td>+${escapeHtml(tier.attackBonus)}</td><td>+${escapeHtml(tier.hitChanceBonus)}%p</td><td>+${escapeHtml(tier.evasionBonus)}%p</td></tr>`).join("")}</tbody>
+        </table>
+        <p>공격 보너스는 공격 피해에 더해집니다. 명중률은 최대 ${escapeHtml(combat.hitChanceCap)}%이며, 회피 보너스만큼 적의 반격 명중 확률이 낮아집니다. 전투 숙련도는 탐험을 마치고 돌아와도 유지됩니다.</p>
+      </div>
+    </details>
+  `;
+}
+
 function skillsPanelMarkup() {
   const skills = client.snapshot.skills || [];
   const skillProgress = client.snapshot.skillProgress || [];
@@ -3174,7 +3246,7 @@ function skillsPanelMarkup() {
               const xpForNextLevel = Math.max(0, Number(skill.xpForNextLevel) || 0);
               const effectPercent = Math.max(0, Number(skill.effectPercent) || 0);
               const skillName = skill.name
-                || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id === "fishing" ? "낚시" : skill.id);
+                || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id === "fishing" ? "낚시" : skill.id === "combat" ? "전투" : skill.id);
               const effectLabel = skill.id === "collection"
                 ? `시간 -${effectPercent}%`
                 : skill.id === "exploration" || skill.id === "fishing"
@@ -3190,7 +3262,7 @@ function skillsPanelMarkup() {
                 <article class="info-card skill-progress-card is-${escapeHtml(skill.id)}">
                   <div class="skill-progress-compact-row">
                     <h3>${escapeHtml(skillName)}</h3>
-                    <span class="skill-progress-effect">${escapeHtml(effectLabel)}</span>
+                    ${skill.combat ? "" : `<span class="skill-progress-effect">${escapeHtml(effectLabel)}</span>`}
                     <span class="skill-level-badge ${isMaxLevel ? "is-max" : ""}">
                       ${isMaxLevel ? "MAX" : `Lv.${skill.level}`}
                     </span>
@@ -3207,6 +3279,7 @@ function skillsPanelMarkup() {
                     </div>
                     <strong class="skill-xp-value">${compactXpLabel}</strong>
                   </div>
+                  ${combatSkillDetailsMarkup(skill.combat)}
                 </article>
               `;
             }).join("")}
