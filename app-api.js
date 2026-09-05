@@ -1725,10 +1725,14 @@ function createSceneStoryBlock(append) {
   dom.sceneText.classList.toggle("has-story-history", hasHistory);
   const block = document.createElement("div");
   block.className = "scene-story-block";
+  // Reading space belongs to the outer block; prose and all results share natural height.
+  const content = document.createElement("div");
+  content.className = "scene-story-content";
   const prose = document.createElement("div");
   prose.className = "scene-prose";
-  block.appendChild(prose);
-  createSceneSystemNote(block);
+  content.appendChild(prose);
+  createSceneSystemNote(content);
+  block.appendChild(content);
   dom.sceneText.appendChild(block);
   return block;
 }

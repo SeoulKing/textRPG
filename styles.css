@@ -946,11 +946,15 @@ body::-webkit-scrollbar,
 }
 
 .scene-story-block {
+  display: flow-root;
+  overflow-anchor: none;
+}
+
+/* Every result stays with its prose, above the outer block's reading space. */
+.scene-story-content {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   gap: 16px;
-  overflow-anchor: none;
 }
 
 .scene-prose {

@@ -154,19 +154,19 @@ test('each narrative keeps its note through an empty typing block and later resu
   const firstNote = dom.systemNote, firstHtml = firstNote.innerHTML;
 
   const intermediate = ctx.createSceneStoryBlock(true);
-  assert.equal(first.children[1], firstNote);
+  assert.equal(first.children[0].children[1], firstNote);
   assert.equal(firstNote.hidden, false);
   assert.equal(firstNote.innerHTML, firstHtml);
   assert.equal(firstNote.id, '');
   assert.equal(firstNote.attributes.role, undefined);
-  assert.equal(intermediate.children[1].hidden, true);
+  assert.equal(intermediate.children[0].children[1].hidden, true);
 
   const next = ctx.createSceneStoryBlock(true);
   ctx.renderSystemNote('+2 눅눅한 빵', 'reward-1');
   assert.equal(dom.systemNote.hidden, true, 'a carried result must not be copied to the new block');
   ctx.renderSystemNote('+2 눅눅한 빵', 'reward-2');
   assert.notEqual(dom.systemNote, firstNote);
-  assert.equal(dom.systemNote.parentElement, next);
+  assert.equal(dom.systemNote.parentElement, next.children[0]);
   assert.equal(dom.systemNote.hidden, false);
   assert.equal(firstNote.innerHTML, firstHtml);
   assert.equal(dom.sceneText.childElementCount, 3);
@@ -179,14 +179,14 @@ test('new results on unchanged prose accumulate once and a new location clears t
   const firstNote = dom.systemNote;
   ctx.renderSystemNote('-1 체력', 'result-2');
   const secondNote = dom.systemNote;
-  assert.equal(block.children.length, 3);
+  assert.equal(block.children[0].children.length, 3);
   assert.equal(firstNote.hidden, false);
   assert.match(firstNote.innerHTML, /is-positive/);
   assert.match(secondNote.innerHTML, /is-negative/);
 
   ctx.renderSystemNote('-1 체력', 'result-2');
   ctx.renderSystemNote('');
-  assert.equal(block.children.length, 3);
+  assert.equal(block.children[0].children.length, 3);
   assert.equal(secondNote.hidden, false);
   assert.equal(secondNote.id, 'system-note');
   assert.equal(secondNote.attributes.role, 'status');
@@ -197,4 +197,23 @@ test('new results on unchanged prose accumulate once and a new location clears t
   assert.equal(dom.sceneText.children[0], replacement);
   assert.equal(block.parentElement, null);
   assert.equal(dom.systemNote.hidden, false);
+});
+
+
+test('cash, items, stats, damage and travel share the same natural-height narrative content', () => {
+  const { ctx, dom } = noteHistoryFixture();
+  const block = ctx.createSceneStoryBlock(true);
+  const content = block.children[0];
+  assert.equal(content.className, 'scene-story-content');
+  assert.equal(content.children[0].className, 'scene-prose');
+  content.children[0].innerHTML = '<p>계산대 서랍에서 남은 지폐와 동전을 챙긴다.</p>';
+  const notes = ['+1,500원 / +5분', '+2 캔 음식', '-1 체력', '나: 2 피해', '이동: 숲 / +15분'];
+  notes.forEach((note, index) => {
+    ctx.renderSystemNote(note, `result-${index}`);
+    assert.equal(dom.systemNote.parentElement, content);
+    assert.equal(content.children.at(-1), dom.systemNote);
+    assert.equal(dom.systemNote.hidden, false);
+  });
+  assert.equal(block.children.length, 1, 'reading space must not sit between prose and results');
+  assert.equal(content.children.length, notes.length + 1);
 });
