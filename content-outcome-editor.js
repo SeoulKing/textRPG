@@ -30,6 +30,21 @@ function studioReplaceEffects(owner, types, replacement) {
   remaining.splice(first<0?remaining.length:Math.min(first,remaining.length),0,...replacement);
   owner.effects=remaining;
 }
+function studioSetConditionChance(owner, condition, percent) {
+  if (!['injury', 'infection'].includes(condition) || !Number.isFinite(percent) || percent < 0 || percent > 100) throw new Error('발생 확률은 0~100%로 입력해 주세요.');
+  const matches = owner.effects.filter(effect => effect.type === 'add_condition' && effect.condition === condition);
+  if (matches.length > 1) throw new Error('같은 상태의 판정이 여러 개입니다. 전체 결과에서 각각 편집해 주세요.');
+  if (matches.length) matches[0].chancePercent = percent;
+  else if (percent > 0) owner.effects.push({type:'add_condition',condition,chancePercent:percent});
+}
+function studioConditionChanceFields(owner) {
+  return '<section class="result-condition-block"><h4>부상·감염</h4><p class="muted">이 결과가 실행될 때 각각 별도로 판정합니다. 발생 시 +1단계이며 Lv4는 생존 종료입니다.</p><div class="field-grid">' +
+    ['injury','infection'].map(condition => {
+      const effects=owner.effects.filter(effect=>effect.type==='add_condition'&&effect.condition===condition);
+      const label=condition==='injury'?'부상':'감염';
+      return `<label class="field"><span>${label} 발생 확률 (%)</span><input type="number" min="0" max="100" step="any" data-condition-chance="${condition}" aria-label="${label} 발생 확률" value="${effects[0]?.chancePercent??0}" ${effects.length>1?'disabled':''}>${effects.length>1?'<small>판정이 여러 개입니다. 전체 결과에서 편집하세요.</small>':''}</label>`;
+    }).join('') + '</div></section>';
+}
 function studioCreateRegionAction(document, locationId, id, label='새 선택지') {
   const location=document.locations.find(row=>row.id===locationId);
   const story=document.stories.find(row=>row.locationId===locationId&&row.native==='region');
@@ -37,7 +52,7 @@ function studioCreateRegionAction(document, locationId, id, label='새 선택지
   const action={id,label,type:'search',outcomeHint:'',showOutcomeHint:true,visibility:'scene',presentationMode:'when_conditions_met',locationIds:[locationId],conditions:[],effects:[{type:'advance_time',minutes:15}],failureEffects:[],tags:['studio-authored-action'],riskHint:'low'};
   story.actions.push(action);location.interactionChoices.push(action);return {action,story,locationId};
 }
-if(typeof module!=='undefined')module.exports={studioOutcomeProbabilities,studioSetSuccessPercent,studioSetOutcomePercent,studioReplaceEffects,studioCreateRegionAction};
+if(typeof module!=='undefined')module.exports={studioSetConditionChance,studioConditionChanceFields,studioOutcomeProbabilities,studioSetSuccessPercent,studioSetOutcomePercent,studioReplaceEffects,studioCreateRegionAction};
 
 function studioPercent(value){return Number((value*100).toFixed(2));}
 function outcomeTitle(outcome,index){return outcome.label||`${outcome.result==='success'?'성공':outcome.result==='failure'?'실패':'일반'} 결과 ${index+1}`;}
@@ -77,7 +92,12 @@ function renderOutcomeEditor(owner,root,story) {
 }
 function renderResultBody(owner,root,story,{onChange,connection,rewards}) {
   const logs=owner.effects.filter(effect=>effect.type==='log');
-  root.innerHTML=`${connection?'<div data-scene-pool></div>':''}${rewards?'<div class="result-reward-block" data-result-rewards></div>':''}<details class="advanced result-numbers"><summary>능력치·돈·추가 안내 문장</summary><div class="field-grid">${['hp','mind','energy','money'].map(stat=>{const value=owner.effects.filter(effect=>stat==='money'?effect.type==='change_money':effect.type==='change_stat'&&effect.stat===stat).reduce((sum,effect)=>sum+(stat==='money'?effect.amount:effect.value),0);return `<label class="field"><span>${{hp:'체력',mind:'정신력',energy:'기력',money:'돈'}[stat]} 변화</span><input type="number" step="1" data-result-stat="${stat}" aria-label="${{hp:'체력',mind:'정신력',energy:'기력',money:'돈'}[stat]} 변화" value="${value}"></label>`;}).join('')}</div><label class="field"><span>추가 결과 안내</span><textarea aria-label="결과 문장" data-result-text placeholder="원고와 별도로 남길 짧은 안내를 작성하세요.">${esc(resolveItemTextPreview(logs.map(effect=>effect.message).join('\n\n')))}</textarea></label><p class="muted">이 안내는 매번 같게 표시됩니다. 매번 다르게 보여 줄 본문은 장면 묶음에서 작성하세요.</p></details><details class="advanced"><summary>이야기 상태·이동 등 추가 결과</summary><div data-other-result-effects></div></details>`;
+  root.innerHTML=`${studioConditionChanceFields(owner)}${connection?'<div data-scene-pool></div>':''}${rewards?'<div class="result-reward-block" data-result-rewards></div>':''}<details class="advanced result-numbers"><summary>능력치·돈·추가 안내 문장</summary><div class="field-grid">${['hp','mind','energy','money'].map(stat=>{const value=owner.effects.filter(effect=>stat==='money'?effect.type==='change_money':effect.type==='change_stat'&&effect.stat===stat).reduce((sum,effect)=>sum+(stat==='money'?effect.amount:effect.value),0);return `<label class="field"><span>${{hp:'체력',mind:'정신력',energy:'기력',money:'돈'}[stat]} 변화</span><input type="number" step="1" data-result-stat="${stat}" aria-label="${{hp:'체력',mind:'정신력',energy:'기력',money:'돈'}[stat]} 변화" value="${value}"></label>`;}).join('')}</div><label class="field"><span>추가 결과 안내</span><textarea aria-label="결과 문장" data-result-text placeholder="원고와 별도로 남길 짧은 안내를 작성하세요.">${esc(resolveItemTextPreview(logs.map(effect=>effect.message).join('\n\n')))}</textarea></label><p class="muted">이 안내는 매번 같게 표시됩니다. 매번 다르게 보여 줄 본문은 장면 묶음에서 작성하세요.</p></details><details class="advanced"><summary>이야기 상태·이동 등 추가 결과</summary><div data-other-result-effects></div></details>`;
+  $$('[data-condition-chance]',root).forEach(input=>input.oninput=()=>{
+    if (input.value === '' || !input.validity.valid) return;
+    studioSetConditionChance(owner,input.dataset.conditionChance,Number(input.value));
+    onChange();
+  });
   const extra=$('[data-other-result-effects]',root),details=extra.closest('details');
   details.ontoggle=()=>{if(!details.open)return;extra.innerHTML=arrayEditorHtml(owner,'effects','effect','전체 결과','문장·보상과 같은 데이터를 사용합니다. 이야기 상태, 이동, 퀘스트 결과도 설정할 수 있습니다.');bindArrayEditors(extra,owner);enableReferenceSearch(extra);};
   root.onfocusin=event=>{if(!details.contains(event.target))details.open=false;};

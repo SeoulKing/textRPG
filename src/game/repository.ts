@@ -1,3 +1,4 @@
+import { normalizeHealthConditions } from "./health-conditions";
 import { legacyContentVersionId, versionRegistry } from "./content-versions";
 import { copyFile, mkdir, readFile, rename, unlink, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
@@ -396,6 +397,7 @@ function pruneState(state: unknown): GameState {
   }
   return {
     saveVersion: SAVE_VERSION,
+    conditions: normalizeHealthConditions(rawState.conditions),
     contentVersionId,
     location: nextLocation,
     sceneId: typeof rawState.sceneId === "string" && validSceneIds.has(rawState.sceneId)

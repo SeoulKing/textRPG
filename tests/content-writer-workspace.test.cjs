@@ -62,9 +62,9 @@ test('IME keeps draft text in place without history, autosave or list redraw unt
   const source=fs.readFileSync(require.resolve('../content-writer'),'utf8').split('function writerMatches')[0];
   const doc=base(), input={dataset:{w:'text'},tagName:'TEXTAREA',value:'한',addEventListener(name,fn){this[name]=fn;}}, target={text:''};
   let records=0,timers=0,redraws=0;
-  const context=vm.createContext({state:{document:doc,tab:'stories',selectedId:'story',selectedSceneId:'start',selectedChoiceId:'shared'},ui:{},escapeHtml:String,document:{querySelectorAll:()=>[input]},clearTimeout(){},setTimeout(){timers++;},drawGraph(){redraws++;},renderList(){redraws++;},updateWriterHistoryButtons(){},refreshWriterCardSummaries(){},writerSelection:()=>({}),structuredClone,StudioWriterTools:tools});
+  const context=vm.createContext({state:{document:doc,tab:'stories',selectedId:'story',selectedSceneId:'start',selectedChoiceId:'shared'},ui:{},localStorage:{getItem:()=>null},escapeHtml:String,document:{querySelectorAll:()=>[input]},clearTimeout(){},setTimeout(){timers++;},drawGraph(){redraws++;},renderList(){redraws++;},updateWriterHistoryButtons(){},refreshWriterCardSummaries(){},refreshRegionResultSummaries(){},writerSelection:()=>({}),structuredClone,StudioWriterTools:tools});
   vm.runInContext(source+'\nglobalThis.testWriter=writer;globalThis.markDirty=writerChanged;',context);
-  context.testWriter.composing=true;context.testWriter.history={record(){records++;}};context.bindWriter({querySelectorAll:()=>[input]},target);
+  context.testWriter.composing=true;context.testWriter.history={record(){records++;}};context.bindWriter({querySelectorAll:()=>[input],matches:()=>false},target);
   input.input();input.value='한글';input.input();assert.equal(target.text,'한글');assert.equal(records,0);assert.equal(timers,0);assert.equal(redraws,0);
   context.testWriter.composing=false;context.writerChanged();assert.equal(records,1);assert.equal(timers,1);
 });

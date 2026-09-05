@@ -13,7 +13,7 @@ test('legacy logging imports one common reward and three narrative variants with
  const {document,action}=fixture(),before=JSON.stringify(document);
  const pool=studioScenePool(document,action,'forest');assert.equal(pool.entries.length,3);assert(pool.entries.every(row=>row.scene.id.startsWith('forest_chop_result_')));
  assert.match(studioChoiceResultSummary(document,action),/\+3/);assert.equal(action.effects.filter(effect=>effect.type==='add_item').length,1);assert.equal(JSON.stringify(document),before);
- const searching=document.stories.find(row=>row.id==='native_region_forest').actions.find(row=>row.id==='search_forest_resources');assert.match(studioChoiceResultSummary(document,searching),/20% \+1/);
+ const searching=document.stories.find(row=>row.id==='native_region_forest').actions.find(row=>row.id==='search_forest_resources');assert.match(studioChoiceResultSummary(document,searching),/20% 성공 시 \+1 목재 판자/);
 });
 
 test('pool membership is local to its result, saved IDs appear in graph and invalid references are rejected',()=>{

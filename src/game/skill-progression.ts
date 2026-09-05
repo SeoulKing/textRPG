@@ -254,6 +254,19 @@ export function buildSkillProgressCards(progress: SkillProgressState, fishingOut
     const progressPercent = xpForNextLevel === null
       ? 100
       : Math.max(0, Math.min(100, (xpIntoLevel / xpForNextLevel) * 100));
+    let effectPercent = getSkillEffectPercent(level, skillId);
+    if (skillId === "fishing") {
+      effectPercent -= FISHING_BASE_SUCCESS_PERCENT;
+      if (fishingOutcomes?.length) {
+        const baseProbabilities = getFishingOutcomeProbabilities(fishingOutcomes, 1);
+        const currentProbabilities = getFishingOutcomeProbabilities(fishingOutcomes, level);
+        const bonusPercent = fishingOutcomes.reduce((total, outcome, index) =>
+          total + (outcome.result === "success"
+            ? (currentProbabilities[index] - baseProbabilities[index]) * 100
+            : 0), 0);
+        effectPercent = Math.max(0, Math.round(bonusPercent * 100) / 100);
+      }
+    }
     return {
       ...PROGRESSION_SKILLS[skillId],
       level,
@@ -262,9 +275,7 @@ export function buildSkillProgressCards(progress: SkillProgressState, fishingOut
       xpIntoLevel,
       xpForNextLevel,
       progressPercent,
-      effectPercent: skillId === "fishing" && fishingOutcomes?.length
-        ? Math.min(100, getFishingOutcomeProbabilities(fishingOutcomes, level).reduce((total, probability, index) => total + (fishingOutcomes[index].result === "success" ? probability * 100 : 0), 0))
-        : getSkillEffectPercent(level, skillId),
+      effectPercent,
       isMaxLevel,
     };
   });

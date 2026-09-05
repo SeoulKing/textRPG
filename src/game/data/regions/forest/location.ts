@@ -257,7 +257,7 @@ export const forestLocation = defineLocation({
   name: "숲",
   risk: "low",
   mapPosition: { q: 0, r: 1 },
-  imagePath: "assets/scenes/forest.svg",
+  imagePath: "assets/scenes/forest-pencil-charcoal.png",
   summary: "임시 거처 아래로 이어지는 작은 숲. 무너진 울타리와 젖은 낙엽 사이에 아직 쓸 만한 자재가 남아 있다.",
   tags: ["resource", "forest", "forage"],
   traits: ["woodcutting", "foraging", "repeatable resources"],

@@ -1,5 +1,5 @@
 /* Writer workspace: forms and graph share the same Studio document. */
-const writer = { library: true, libraryCategory: "", librarySource: "", revision: 0, timer: null, conflict: false, filterLocation: "", filterPerson: "", filterStatus: "", graphMode: "scene", zoom: 1, mobilePane: "manuscript", preview: null, issues: [] };
+const writer = { library: true, libraryCategory: "", librarySource: "", revision: 0, timer: null, conflict: false, filterLocation: "", filterPerson: "", filterStatus: "", graphMode: "scene", zoom: 1, mobilePane: "manuscript", preview: null, issues: [], mode: localStorage.getItem("textrpg_writer_mode") === "advanced" ? "advanced" : "author", guide: null };
 const esc = escapeHtml;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -127,7 +127,7 @@ function newScene(locationId, title = "새 장면") { return { id: makeId("scene
 function newStory(locationId, personId) {
   const scene = newScene(locationId, "첫 장면");
   if (personId) scene.blocks[0].speakerId = personId;
-  const result = { id: makeId("story"), title: "새 이벤트", locationId, entryLabel: "이야기를 시작한다", entryHint: "", enabled: true, once: true, status: "draft", tags: [], conditions: [], personIds: personId ? [personId] : [], scenes: [scene], actions: [], layout: {} };
+  const result = { id: makeId("story"), title: "새 이야기", locationId, entryLabel: "이야기를 시작한다", entryHint: "", enabled: false, once: true, status: "draft", tags: [], conditions: [], personIds: personId ? [personId] : [], scenes: [scene], actions: [], layout: {} };
   state.document.stories.push(result); return result;
 }
 function modal(title, html, setup) {
@@ -143,7 +143,7 @@ function writerAddEntity() {
     const person = { id: makeId("person"), name: "새 캐릭터", role: "주민", personality: ["신중함"], relationToPlayer: "처음 만나는 사이", inventoryItemIds: [], locationId: state.document.locations[0]?.id ?? "shelter", summary: "" };
     state.document.people.push(person); go("people", person.id); markDirty(); return;
   }
-  const story = newStory(writer.filterLocation || "shelter"); writer.graphMode = "scene"; go("stories", story.id, story.scenes[0].id); markDirty();
+  const story = newStory(writer.filterLocation || "shelter"); writer.graphMode = "scene"; startStoryGuide(story, 1); go("stories", story.id, story.scenes[0].id); markDirty();
 }
 function regionWizard() {
   const draft = { name: "", summary: "", neighbor: state.document.locations[0]?.id ?? "shelter", opening: "" }; let step = 1;
@@ -180,7 +180,7 @@ function renderLocation(location) {
   listen("link",()=>{const id=$('[data-w="neighbor"]').value;const other=state.document.locations.find(l=>l.id===id);if(!other)return;
     location.links[id]={note:`${other.name}(으)로 이동한다.`};other.links[location.id]={note:`${location.name}(으)로 이동한다.`};location.neighbors=[...new Set([...location.neighbors,id])];other.neighbors=[...new Set([...other.neighbors,location.id])];markDirty();renderEditor();});
   $$('[data-unlink]').forEach(b=>b.onclick=()=>{const other=state.document.locations.find(l=>l.id===b.dataset.unlink);delete location.links[b.dataset.unlink];location.neighbors=location.neighbors.filter(id=>id!==b.dataset.unlink);if(other){delete other.links[location.id];other.neighbors=other.neighbors.filter(id=>id!==location.id);}markDirty();renderEditor();});
-  $$('[data-person]').forEach(b=>b.onclick=()=>go("people",b.dataset.person));bindRelated();listen("newStory",()=>{const story=newStory(location.id);go("stories",story.id);markDirty();});drawRegionMap(location);
+  $$('[data-person]').forEach(b=>b.onclick=()=>go("people",b.dataset.person));bindRelated();listen("newStory",()=>{const story=newStory(location.id);startStoryGuide(story,1);go("stories",story.id,story.scenes[0].id);markDirty();});drawRegionMap(location);
 }
 function regionHexLayout(center, size = 46, radius = 3) {
   const height = Math.sqrt(3) * size;
@@ -229,7 +229,7 @@ function renderPerson(person) {
   const related=state.document.stories.filter(s=>studioStoryPeople(s,state.document.people).some(p=>p.id===person.id));
   ui.editorPanel.innerHTML=`<div class="writer-header"><div><span class="eyebrow">CHARACTER</span><h2>${esc(person.name)}</h2><p>인물 설정과 이 인물이 등장하는 이야기를 관리합니다.</p></div></div><div class="writer-single">${section("캐릭터 설정",`<div id="personInfo" class="field-grid">${field("이름","name",person.name)}${field("역할","role",person.role)}${select("머무는 지역","locationId",locEntries(),person.locationId,false)}${field("성격 · 쉼표로 구분","personalityText",person.personality.join(", "))}${area("소개","summary",person.summary)}${area("플레이어와의 관계","relationToPlayer",person.relationToPlayer)}</div>`)}${section("대화와 이벤트",relatedLinks(related),btn("대화 이벤트 만들기","newDialogue","primary"))}</div>`;
   bindWriter($("#personInfo"),person,(key,value)=>{if(key==="personalityText"){person.personality=value.split(",").map(x=>x.trim()).filter(Boolean);if(!person.personality.length)person.personality=[""];delete person.personalityText;}});
-  bindRelated();listen("newDialogue",()=>{const story=newStory(person.locationId,person.id);story.title=`${person.name} · 대화`;story.entryLabel=`${person.name}에게 말을 건다`;go("stories",story.id);markDirty();});
+  bindRelated();listen("newDialogue",()=>{const story=newStory(person.locationId,person.id);story.title=`${person.name} · 대화`;story.entryLabel=`${person.name}에게 말을 건다`;startStoryGuide(story,1);go("stories",story.id,story.scenes[0].id);markDirty();});
 }
 renderStory = function(story) {
   const scene=story.scenes.find(s=>s.id===state.selectedSceneId)??story.scenes[0];state.selectedSceneId=scene?.id??null;
@@ -431,9 +431,9 @@ function openPreview(story,sceneId,immediate=false){
 }
 // Make navigating away from a shared native choice synchronize its other occurrences.
 const originalRenderList=renderList;
-renderList=function(){originalRenderList();if(state.tab==="stories"&&(writer.library||!selectedEntity()))renderStoryLibrary();renderWriterSceneNav();$$('[data-select-id]',ui.entityList).forEach(b=>b.addEventListener('click',()=>{captureWriterLibrary();synchronizeSharedChoices();},{capture:true}));};
+renderList=function(){originalRenderList();if(state.tab==="stories"&&(writer.library||!selectedEntity()))renderStoryLibrary();renderWriterSceneNav();updateStudioAuthorMode();$$('[data-select-id]',ui.entityList).forEach(b=>b.addEventListener('click',()=>{captureWriterLibrary();synchronizeSharedChoices();},{capture:true}));};
 const originalRenderEditor=renderEditor;
-renderEditor=function(){const scroll=window.scrollY;StudioItemTextEditor.close();writer.activeAction=null;renderWriterSceneNav();if(state.tab==="stories"&&(writer.library||!selectedEntity())){renderStoryLibrary();syncLivePreviewEditor();return;}originalRenderEditor();enableReferenceSearch(ui.editorPanel);syncLivePreviewEditor();window.scrollTo({top:scroll});};
+renderEditor=function(){const scroll=window.scrollY;StudioItemTextEditor.close();writer.activeAction=null;renderWriterSceneNav();if(state.tab==="stories"&&(writer.library||!selectedEntity())){renderStoryLibrary();updateStudioAuthorMode();syncLivePreviewEditor();return;}originalRenderEditor();updateStudioAuthorMode();enableReferenceSearch(ui.editorPanel);syncLivePreviewEditor();window.scrollTo({top:scroll});};
 function enableReferenceSearch(root) {
   $$('select',root).filter(select=>select.options.length>9&&!select.hidden&&!select.dataset.referenceSearch&&!select.hasAttribute('data-array-type')).forEach(select=>{
     select.dataset.referenceSearch='true';

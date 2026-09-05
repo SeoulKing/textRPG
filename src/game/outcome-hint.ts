@@ -1,4 +1,5 @@
 import { itemTextReference } from "./item-text";
+import { CONDITION_LABELS } from "./health-conditions";
 import type { Effect, GameState, SkillUse } from "./schemas";
 import { getStockMoney, getStockQuantity } from "./state-utils";
 import { resolveSkillAdjustedMinutes } from "./skill-progression";
@@ -189,6 +190,20 @@ export function formatOutcomeHint(
   );
   const totals = collectDeterministicEffects(deterministicEffects, state, skillUse);
   const tokens = hintTokens(totals, false);
+  for (const effect of effects) {
+    if (effect.type === "add_condition" && effect.chancePercent > 0) {
+      tokens.push(`${CONDITION_LABELS[effect.condition]} +1단계 ${effect.chancePercent}%`);
+    }
+    if (effect.type === "random_outcome") {
+      for (const outcome of effect.outcomes.filter(row => row.weight > 0)) {
+        for (const risk of outcome.effects) {
+          if (risk.type !== "add_condition" || risk.chancePercent <= 0) continue;
+          const branch = outcome.result === "failure" ? "실패" : outcome.result === "success" ? "성공" : outcome.label || "해당 결과";
+          tokens.push(`${branch} 시 ${CONDITION_LABELS[risk.condition]} +1단계 ${risk.chancePercent}%`);
+        }
+      }
+    }
+  }
   effects.forEach((effect) => {
     if (effect.type !== "random_outcome") {
       return;

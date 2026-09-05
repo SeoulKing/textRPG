@@ -3,6 +3,8 @@
  */
 
 import { PHASES, REAL_DAY_MS } from "./base-data";
+import { addHealthCondition, checkHealthFailure } from "./health-conditions";
+import { getGameClockShiftedMinutes, appendLogEntry } from "./game-log";
 import { resolveItemText } from "./item-text";
 import { buildRuntimeRegistry } from "./runtime-registry";
 import {
@@ -69,6 +71,7 @@ function fallbackStatForDepleted(statKey: SurvivalStatKey): SurvivalStatKey | nu
 }
 
 export function changeSurvivalStat(state: GameState, statKey: SurvivalStatKey, delta: number) {
+  if (state.isGameOver || state.stageClear) return;
   if (delta >= 0) {
     state.stats[statKey] = clampStat(statKey, state.stats[statKey] + delta);
     return;
@@ -85,6 +88,7 @@ export function changeSurvivalStat(state: GameState, statKey: SurvivalStatKey, d
 
     target = fallbackStatForDepleted(target);
   }
+  checkHealthFailure(state);
 }
 
 export function getStockStateKey(locationId: string, nodeId: string, itemId: string) {
@@ -114,31 +118,7 @@ export function getStockNodeLocationId(state: GameState, nodeId: string) {
   return null;
 }
 
-/** 게임 내 시계(06:00를 하루 시작으로 하는 표시 시각) 기준, 자정 이후 경과 분(0–1439). */
-export function getGameClockShiftedMinutes(worldElapsedMs: number) {
-  const elapsedInDay = ((worldElapsedMs % REAL_DAY_MS) + REAL_DAY_MS) % REAL_DAY_MS;
-  const totalMinutes = Math.floor((elapsedInDay / REAL_DAY_MS) * 24 * 60);
-  return (totalMinutes + 6 * 60) % (24 * 60);
-}
-
-export function formatClockLabelFromElapsed(worldElapsedMs: number) {
-  const shiftedMinutes = getGameClockShiftedMinutes(worldElapsedMs);
-  const hours = String(Math.floor(shiftedMinutes / 60)).padStart(2, "0");
-  const minutes = String(shiftedMinutes % 60).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-export function formatLogTimestamp(day: number, worldElapsedMs: number) {
-  return `${day}일차 ${formatClockLabelFromElapsed(worldElapsedMs)}`;
-}
-
-export function appendLogEntry(state: GameState, message: string) {
-  state.log.unshift({
-    timestampLabel: formatLogTimestamp(state.day, state.worldElapsedMs),
-    message,
-  });
-  state.log = state.log.slice(0, 20);
-}
+export { getGameClockShiftedMinutes, formatClockLabelFromElapsed, formatLogTimestamp, appendLogEntry } from "./game-log";
 
 export function getStockQuantity(state: GameState, locationId: string, nodeId: string, itemId: string) {
   const key = getStockStateKey(locationId, nodeId, itemId);
@@ -407,7 +387,11 @@ export function applyEffect(
   state: GameState,
   options: ApplyEffectOptions = {},
 ): void {
+  if (state.isGameOver || state.stageClear) return;
   switch (effect.type) {
+    case "add_condition":
+      addHealthCondition(state, effect.condition, effect.chancePercent, options.rng);
+      break;
     case "random_outcome": {
       const selected = selectRandomOutcome(effect.outcomes, {
         skillUse: options.skillUse,
@@ -564,7 +548,8 @@ export function derivePlayer(state: GameState): Player {
     inventory: { ...state.inventory },
     skills: [...state.skills],
     flags: { ...state.flags },
-    statusEffects: state.exhaustionLevel > 0 ? ["exhausted"] : [],
+    conditions: structuredClone(state.conditions),
+    statusEffects: [...(state.exhaustionLevel > 0 ? ["exhausted"] : []), ...(["injury", "infection"] as const).filter(kind => state.conditions[kind].level > 0)],
   };
 }
 

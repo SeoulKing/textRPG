@@ -18,6 +18,8 @@ export const ItemEffectsSchema = z.preprocess((raw) => {
   mind: z.number().int().default(0),
   energy: z.number().int().default(0),
   exhaustionRelief: z.number().int().default(0),
+  injuryRelief: z.number().int().min(0).max(3).default(0),
+  infectionRelief: z.number().int().min(0).max(3).default(0),
 }));
 
 export const ItemCardSchema = z.object({

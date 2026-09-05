@@ -42,7 +42,10 @@ function buildStoryChoiceFromActionDefinition(
   resolveNextSceneId?: NextScenePreviewResolver,
 ): StoryChoice {
   const serverActionHint: GameAction = { type: "content_action", actionId: action.id };
-  const standardizedHint = formatOutcomeHint(action.effects, state, action.skillUse);
+  const hintEffects = action.id === "fish_at_river"
+    ? action.effects.filter((effect) => effect.type === "advance_time")
+    : action.effects;
+  const standardizedHint = formatOutcomeHint(hintEffects, state, action.skillUse);
   const remainingUses = action.dailyLimit
     ? getRemainingDailyUses(state, action.dailyLimit)
     : undefined;

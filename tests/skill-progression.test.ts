@@ -80,7 +80,7 @@ test("inventory cards follow the latest runtime item definition", () => {
     rarity: "uncommon",
     price: 600,
     tags: ["studio"],
-    effects: { hp: 0, mind: 1, energy: 6, exhaustionRelief: 3 },
+    effects: { hp: 0, mind: 1, energy: 6, exhaustionRelief: 3, injuryRelief: 0, infectionRelief: 0 },
     useMinutes: 15,
     source: "llm",
     generatedAt: "2026-01-01T00:00:00.000Z",
@@ -455,10 +455,10 @@ test("snapshot cards expose interval XP, effects, and MAX state", () => {
   assert.equal(cards[1].effectPercent, 40);
   assert.equal(cards[1].isMaxLevel, true);
   assert.equal(cards[2].level, 1);
-  assert.equal(cards[2].effectPercent, 50);
+  assert.equal(cards[2].effectPercent, 0);
   assert.equal(buildSkillProgressCards({
     collection: { totalXp: 0 },
     exploration: { totalXp: 0 },
     fishing: { totalXp: 320 },
-  })[2].effectPercent, 90);
+  })[2].effectPercent, 40);
 });

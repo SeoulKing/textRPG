@@ -1549,13 +1549,14 @@ function normalizePostChoiceNarrative(value) {
     .slice(0, 2);
 }
 
-function beginPostChoiceNarrative(paragraphs) {
+function beginPostChoiceNarrative(paragraphs, append = false) {
   clearSceneAnimation();
   hideSystemNote();
   const story = { headline: "", paragraphs };
   const token = client.sceneRenderToken;
   return animateStoryText(story, token, null, {
-    append: false,
+    append,
+    scrollToStart: append,
     revealChoices: false,
   });
 }
@@ -1631,6 +1632,19 @@ function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
   return currentSceneId(previousSnapshot) === currentSceneId(nextSnapshot);
 }
 
+function shouldContinueLocationStory(previousSnapshot, nextSnapshot) {
+  if (!previousSnapshot?.currentScene || !nextSnapshot?.currentScene
+    || !previousSnapshot.gameId || previousSnapshot.gameId !== nextSnapshot.gameId
+    || !previousSnapshot.state?.location
+    || previousSnapshot.state.location !== nextSnapshot.state?.location
+    || previousSnapshot.state.subwayExpedition?.active
+    || nextSnapshot.state.subwayExpedition?.active) {
+    return false;
+  }
+  return storySurfaceId(previousSnapshot) !== storySurfaceId(nextSnapshot)
+    || JSON.stringify(buildStoryDisplay(previousSnapshot)) !== JSON.stringify(buildStoryDisplay(nextSnapshot));
+}
+
 function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
@@ -1703,6 +1717,32 @@ function syncMobileChoiceZoneHeight() {
   });
 }
 
+function createSceneStoryBlock(append) {
+  const hasHistory = append && dom.sceneText.childElementCount > 0;
+  if (!append) {
+    dom.sceneText.replaceChildren();
+  }
+  dom.sceneText.classList.toggle("has-story-history", hasHistory);
+  const block = document.createElement("div");
+  block.className = "scene-story-block";
+  dom.sceneText.appendChild(block);
+  return block;
+}
+
+function scrollSceneStoryToStart(block) {
+  window.requestAnimationFrame(() => {
+    if (!block.isConnected || dom.sceneText.lastElementChild !== block) {
+      return;
+    }
+    const isMobile = window.matchMedia("(max-width: 620px)").matches;
+    const viewportTop = isMobile ? dom.appShell.getBoundingClientRect().top : 0;
+    const scrollTop = isMobile ? dom.appShell.scrollTop : window.scrollY;
+    const top = Math.max(0, scrollTop + block.getBoundingClientRect().top - viewportTop - 12);
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    (isMobile ? dom.appShell : window).scrollTo({ top, behavior });
+  });
+}
+
 async function typeParagraph(paragraphElement, text, token) {
   paragraphElement.classList.add("typing");
   for (let index = 1; index <= text.length; index += 1) {
@@ -1730,36 +1770,27 @@ async function animateStoryText(
 ) {
   const append = options.append === true;
   const revealChoices = options.revealChoices !== false;
+  const block = createSceneStoryBlock(append);
   client.activeAnimatedStory = story;
   client.activeAnimatedSystemNote = systemNotePayload;
-  client.activeStoryAnimationOptions = { append, revealChoices };
+  client.activeStoryAnimationOptions = { append, revealChoices, block, scrollToStart: options.scrollToStart === true };
   client.isSceneTyping = true;
   dom.sceneFrame.classList.add("is-story-typing");
-  if (!append) {
-    dom.sceneText.innerHTML = "";
-  }
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed");
+  if (options.scrollToStart) {
+    scrollSceneStoryToStart(block);
+  }
 
   if (story.headline) {
     if (token !== client.sceneRenderToken) {
-      client.isSceneTyping = false;
-      dom.sceneFrame.classList.remove("is-story-typing");
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
-      client.activeStoryAnimationOptions = null;
       return;
     }
     const headlineElement = document.createElement("p");
     headlineElement.className = "scene-headline";
-    dom.sceneText.appendChild(headlineElement);
+    block.appendChild(headlineElement);
     const headlineDone = await typeParagraph(headlineElement, story.headline, token);
     if (!headlineDone) {
-      client.isSceneTyping = false;
-      dom.sceneFrame.classList.remove("is-story-typing");
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
-      client.activeStoryAnimationOptions = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1767,22 +1798,12 @@ async function animateStoryText(
 
   for (const paragraph of story.paragraphs) {
     if (token !== client.sceneRenderToken) {
-      client.isSceneTyping = false;
-      dom.sceneFrame.classList.remove("is-story-typing");
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
-      client.activeStoryAnimationOptions = null;
       return;
     }
     const paragraphElement = document.createElement("p");
-    dom.sceneText.appendChild(paragraphElement);
+    block.appendChild(paragraphElement);
     const completed = await typeParagraph(paragraphElement, paragraph, token);
     if (!completed) {
-      client.isSceneTyping = false;
-      dom.sceneFrame.classList.remove("is-story-typing");
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
-      client.activeStoryAnimationOptions = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1820,10 +1841,10 @@ function skipSceneTyping() {
     : "";
   const storyHtml =
     headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
-  if (animationOptions.append) {
-    dom.sceneText.insertAdjacentHTML("beforeend", storyHtml);
-  } else {
-    dom.sceneText.innerHTML = storyHtml;
+  // Replace only the typing block so history stays intact and partial text is not duplicated.
+  animationOptions.block.innerHTML = storyHtml;
+  if (animationOptions.scrollToStart) {
+    scrollSceneStoryToStart(animationOptions.block);
   }
   if (systemNotePayload?.note) {
     renderSystemNote(
@@ -1864,6 +1885,10 @@ function itemEffectHintHtml(effects = {}, useMinutes = 0) {
     const signedValue = value > 0 ? `+${value}` : String(value);
     return [`<span class="${className}">${signedValue} ${label}</span>`];
   });
+  for (const [key, label] of [["injuryRelief", "부상"], ["infectionRelief", "감염"]]) {
+    if (effects[key] > 0) effectParts.push(`<span class="item-hp-hint">${label} -${effects[key]}단계</span>`);
+  }
+  if (effects.infectionRelief > 0) effectParts.push('<span class="item-time-hint">다음 감염 악화까지 6시간</span>');
   if (useMinutes && useMinutes > 0) {
     effectParts.push(`<span class="item-time-hint">+ ${formatMinutesLabel(useMinutes)}</span>`);
   }
@@ -2384,6 +2409,21 @@ function renderStatusBar() {
   }
 
   renderEncounterStatus(snapshot);
+  const badges = document.querySelector("#condition-badges");
+  const conditions = client.snapshot?.conditionCards || [];
+  badges.hidden = conditions.length === 0;
+  const badgeMarkup = conditions.map(condition => `<button type="button" class="condition-badge ${condition.level >= 3 ? "is-critical" : ""}" data-condition-detail aria-label="${condition.label} Lv${condition.level} 상세 보기">${condition.label} Lv${condition.level}</button>`).join("");
+  if (badges.dataset.rendered !== badgeMarkup) {
+    badges.dataset.rendered = badgeMarkup;
+    badges.innerHTML = badgeMarkup;
+    badges.querySelectorAll("[data-condition-detail]").forEach(button => button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      client.isPanelOpen = true;
+      client.activePanel = "status";
+      client.activeStatusPanelView = "status";
+      renderPanel();
+    }));
+  }
   const hpMax = STATUS_DETAILS.hp.max;
   const mindDetail = statusDetailFor("mind", snapshot);
   const mindMax = mindDetail.max;
@@ -2494,7 +2534,7 @@ function renderChoices() {
   syncMobileChoiceZoneHeight();
 }
 
-function renderScene(animateText = true, appendStory = false) {
+function renderScene(animateText = true, appendStory = false, scrollToStart = false) {
   const snapshot = client.snapshot;
   const scene = snapshot?.currentScene;
   const location = currentLocationCard();
@@ -2506,12 +2546,18 @@ function renderScene(animateText = true, appendStory = false) {
   const surfaceId = storySurfaceId(snapshot);
   const previousRenderedNoteKey = client.renderedSystemNoteKey;
   const surfaceChanged = Boolean(client.renderedStorySurfaceId && client.renderedStorySurfaceId !== surfaceId);
-  if (surfaceChanged && !appendStory) {
+  if (surfaceChanged) {
     hideSystemNote();
-    resetSceneScrollOnMobile();
+    if (!appendStory) {
+      resetSceneScrollOnMobile();
+    }
   }
 
-  dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
+  // Existing saves can retain the original forest asset path.
+  const sceneImagePath = location.imagePath === "assets/scenes/forest.svg"
+    ? "assets/scenes/forest-pencil-charcoal.png"
+    : location.imagePath;
+  dom.sceneArt.src = sceneImagePath || "assets/scenes/camp.svg";
   syncShelterSceneVisual(snapshot);
   renderSceneDevSource(snapshot);
   const systemNote = snapshot.state.systemNote || "";
@@ -2550,10 +2596,10 @@ function renderScene(animateText = true, appendStory = false) {
       : "";
     const storyHtml =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
-    if (appendStory) {
-      dom.sceneText.insertAdjacentHTML("beforeend", storyHtml);
-    } else {
-      dom.sceneText.innerHTML = storyHtml;
+    const block = createSceneStoryBlock(appendStory);
+    block.innerHTML = storyHtml;
+    if (scrollToStart) {
+      scrollSceneStoryToStart(block);
     }
     if (systemNotePayload?.note) {
       renderSystemNote(
@@ -2569,6 +2615,7 @@ function renderScene(animateText = true, appendStory = false) {
   const token = client.sceneRenderToken;
   animateStoryText(story, token, systemNotePayload, {
     append: appendStory,
+    scrollToStart,
     revealChoices: true,
   });
 }
@@ -2931,6 +2978,13 @@ function renderMapPanel() {
   });
 }
 
+function canUseTreatmentItem(item, state = currentState()) {
+  const effects = item.effects || {};
+  if (!effects.injuryRelief && !effects.infectionRelief) return true;
+  return Boolean((effects.injuryRelief > 0 && state?.conditions?.injury?.level > 0)
+    || (effects.infectionRelief > 0 && state?.conditions?.infection?.level > 0));
+}
+
 function renderInventoryPanel() {
   const snapshot = client.snapshot;
   const itemCards = snapshot.inventoryCards || [];
@@ -2946,6 +3000,7 @@ function renderInventoryPanel() {
 
   itemCards.forEach((item) => {
     const detailLines = [{ text: item.description }];
+    if (!canUseTreatmentItem(item, snapshot.state)) detailLines.push({ text: "치료할 부상 또는 감염이 없습니다." });
     const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
       ? itemEffectHintHtml(item.effects, item.useMinutes)
       : "";
@@ -2960,7 +3015,7 @@ function renderInventoryPanel() {
       name: item.name,
       lines: detailLines,
       itemId: item.id,
-      isUsable: ["food", "drink", "medicine"].includes(item.kind),
+      isUsable: ["food", "drink", "medicine"].includes(item.kind) && canUseTreatmentItem(item, snapshot.state),
     });
   });
 
@@ -3122,11 +3177,9 @@ function skillsPanelMarkup() {
                 || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id === "fishing" ? "낚시" : skill.id);
               const effectLabel = skill.id === "collection"
                 ? `시간 -${effectPercent}%`
-                : skill.id === "exploration"
+                : skill.id === "exploration" || skill.id === "fishing"
                   ? `성공률 +${effectPercent}%`
-                  : skill.id === "fishing"
-                    ? `성공률 ${effectPercent}%`
-                    : `효과 ${effectPercent}%`;
+                  : `효과 ${effectPercent}%`;
               const xpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel} / ${xpForNextLevel} XP`;
               const compactXpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel}/${xpForNextLevel}`;
               const meterValue = isMaxLevel ? 100 : progressPercent;
@@ -3181,6 +3234,20 @@ function renderSkillsPanel() {
   dom.panelContent.innerHTML = skillsPanelMarkup();
 }
 
+function healthConditionDetailsMarkup() {
+  const conditions = client.snapshot?.conditionCards || [];
+  if (!conditions.length) return "";
+  return `<section class="condition-details" aria-label="부상과 감염 상세">${conditions.map(condition => `
+    <article class="condition-detail-card ${condition.level >= 3 ? "is-critical" : ""}">
+      <strong>${condition.label} Lv${condition.level}</strong>
+      ${condition.level >= 4 ? '<p>Lv4 도달 · 생존 종료</p>' : `
+      <p>다음 체력 −1까지 ${formatMinutesLabel(condition.nextDamageMinutes)}</p>
+      ${condition.nextWorseningMinutes === null ? '' : `<p>다음 악화까지 ${formatMinutesLabel(condition.nextWorseningMinutes)}</p>`}
+      <p>${condition.kind === "injury" ? "붕대" : "항생제"} 1개로 1단계 치료</p>
+      ${condition.level === 3 ? '<p class="condition-warning">한 단계 더 쌓이면 체력과 관계없이 생존 종료됩니다.</p>' : ''}`}
+    </article>`).join("")}<p class="status-detail-note">게임 시간이 흐를 때 진행됩니다. 취침 중에는 피해와 감염 악화가 25% 속도로 진행됩니다.</p></section>`;
+}
+
 function statusDetailMarkup() {
   const snapshot = client.snapshot;
   const state = snapshot.state;
@@ -3200,6 +3267,7 @@ function statusDetailMarkup() {
   ];
 
   return `
+    ${healthConditionDetailsMarkup()}
     <div class="status-detail-stack">
       ${stats.map((stat) => {
         const detail = statusDetailFor(stat.key, state);
@@ -3559,6 +3627,7 @@ function render(options = {}) {
   renderScene(
     options.animateScene !== false,
     options.appendScene === true,
+    options.scrollSceneToStart === true,
   );
   renderPanel();
   renderGameOverScreen();
@@ -3611,7 +3680,10 @@ async function submitAction(
     }
     const transitionPromise = waitForMilliseconds(transitionDurationMs);
     const immediateNarrativePromise = hasImmediateNarrative
-      ? transitionPromise.then(() => beginPostChoiceNarrative(immediateNarrative))
+      ? transitionPromise.then(() => beginPostChoiceNarrative(
+          immediateNarrative,
+          !isMovementAction(action, loading) && !previousSnapshot.state.subwayExpedition?.active,
+        ))
       : Promise.resolve();
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
@@ -3638,6 +3710,7 @@ async function submitAction(
       snapshot?.state?.location &&
       previousSnapshot.state.location !== snapshot.state.location;
     const newlyCompletedQuests = completedQuestChanges(previousSnapshot, snapshot);
+    const continueLocationStory = shouldContinueLocationStory(previousSnapshot, snapshot);
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
     client.mapHint = "";
@@ -3657,7 +3730,8 @@ async function submitAction(
             previousSnapshot,
             nextSnapshot: snapshot,
           }),
-      appendScene: hasImmediateNarrative,
+      appendScene: hasImmediateNarrative || continueLocationStory,
+      scrollSceneToStart: continueLocationStory,
     });
     showQuestCompletionBurst(newlyCompletedQuests);
     if (didMove) {

@@ -69,12 +69,13 @@ function studioChoiceResultSummary(document,owner) {
     if(['add_item','remove_item'].includes(effect.type))return `${effect.type==='add_item'?'+':'−'}${effect.amount??1} ${item(effect.itemId)}`;
     if(effect.type==='change_money')return `돈 ${effect.amount>0?'+':''}${effect.amount}`;
     if(effect.type==='change_stat')return `${{hp:'체력',mind:'정신력',energy:'기력'}[effect.stat]} ${effect.value>0?'+':''}${effect.value}`;
+    if(effect.type==='add_condition'&&effect.chancePercent>0)return `${effect.condition==='injury'?'부상':'감염'} +1단계 ${effect.chancePercent}%`;
     if(effect.type==='damage_tool')return `${item(effect.itemId)} 내구도 −${effect.amount}`;
     return [];
   }).join(' · ');
   const fixed=describe(owner.effects),random=owner.effects.filter(effect=>effect.type==='random_outcome');
   const pieces=fixed?[`${random.length?'공통':'기본'} 결과 ${fixed}`]:[];
-  for(const effect of random){const total=effect.outcomes.reduce((sum,row)=>sum+row.weight,0);pieces.push(...effect.outcomes.map(row=>`${Number((100*row.weight/total).toFixed(1))}% ${describe(row.effects)||row.label||(row.result==='failure'?'획득 없음':'아이템 보상 없음')}`));}
+  for(const effect of random){const total=effect.outcomes.reduce((sum,row)=>sum+row.weight,0);pieces.push(...effect.outcomes.map(row=>`${Number((100*row.weight/total).toFixed(1))}% ${row.result==='failure'?'실패 시 ':row.result==='success'?'성공 시 ':''}${describe(row.effects)||row.label||(row.result==='failure'?'획득 없음':'아이템 보상 없음')}`));}
   return pieces.join(' / ')||'아이템 보상 없음';
 }
 if(typeof module!=='undefined')module.exports={studioScenePool,studioWriteScenePool,studioChoiceResultSummary,studioStockReward,studioStockRewardSummary,studioSetStockRewardMode,studioSetStockInitialQuantity,studioAddItemReward};

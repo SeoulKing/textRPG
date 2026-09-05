@@ -7,6 +7,7 @@ import { SubwayExpeditionStateSchema } from "./subway-expedition";
 import { SkillProgressStateSchema } from "./skill-progression";
 import { SystemNoteEntriesSchema } from "./system-note";
 import { NpcDialogueStateSchema } from "./npc-dialogue";
+import { HealthConditionsSchema } from "./health-condition";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -64,6 +65,7 @@ export const GameStateSchema = z.object({
   quests: z.record(z.string(), QuestStateSchema),
   lastSleepEnergy: z.number().int().min(0).max(15),
   exhaustionLevel: z.number().int().nonnegative(),
+  conditions: HealthConditionsSchema,
   log: z.array(LogEntrySchema),
   systemNote: z.string(),
   systemNoteEntries: SystemNoteEntriesSchema.default([]),

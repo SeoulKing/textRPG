@@ -1,3 +1,4 @@
+import { applyTreatment, canApplyTreatment } from "./health-conditions";
 import { baseItems } from "./data/items";
 import { advanceGameMinutes, syncClock } from "./rules";
 import {
@@ -439,10 +440,12 @@ function useRecoveryItem(state: GameState, itemId: string) {
   if (!item || availableItemAmount(state, itemId) <= 0) {
     throw new Error("현재 사용할 수 없는 아이템입니다.");
   }
-  if (!item.effects.hp && !item.effects.mind && !item.effects.energy) {
+  if (!canApplyTreatment(state, item.effects)) throw new Error("치료할 부상 또는 감염이 없습니다.");
+  if (!item.effects.hp && !item.effects.mind && !item.effects.energy && !item.effects.injuryRelief && !item.effects.infectionRelief) {
     throw new Error("이 상황에서 사용할 효과가 없는 아이템입니다.");
   }
   consumeAccessibleItem(state, itemId);
+  applyTreatment(state, item.effects);
   changeSurvivalStat(state, "hp", item.effects.hp);
   changeSurvivalStat(state, "mind", item.effects.mind);
   changeSurvivalStat(state, "energy", item.effects.energy);

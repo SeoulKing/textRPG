@@ -15,7 +15,7 @@ test('probability editing matches engine at every level, preserves result effect
  studioSetSuccessPercent(effect,60);const expected=[.4,.45,.15];studioOutcomeProbabilities(effect.outcomes).forEach((p,i)=>close(p,expected[i]));
  for(let level=1;level<=5;level++)studioOutcomeProbabilities(effect.outcomes,level,10,5).forEach((p,i)=>close(p,getFishingOutcomeProbabilities(effect.outcomes,level)[i]));
  assert.deepEqual(effect.outcomes.map(row=>row.effects),original);
- close(buildSkillProgressCards(createEmptySkillProgress(),effect.outcomes).find(row=>row.id==='fishing').effectPercent,60);
+ close(buildSkillProgressCards(createEmptySkillProgress(),effect.outcomes).find(row=>row.id==='fishing').effectPercent,0);
  studioSetOutcomePercent(effect,2,25);close(studioOutcomeProbabilities(effect.outcomes)[2],.25);close(studioOutcomeProbabilities(effect.outcomes).reduce((sum,p)=>sum+p,0),1);
  assert.throws(()=>studioSetSuccessPercent(effect,101));assert.throws(()=>studioSetOutcomePercent(effect,0,NaN));
 });

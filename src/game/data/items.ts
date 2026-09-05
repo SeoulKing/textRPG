@@ -5,6 +5,16 @@
 import { defineItem } from "./item-helpers";
 
 export const baseItems = {
+  bandage: defineItem({
+    id: "bandage", name: "붕대", description: "상처를 감싸 부상을 1단계 치료한다. 체력은 회복하지 않는다.",
+    kind: "medicine", rarity: "common", price: 1800, tags: ["약품", "부상 치료"],
+    effects: { injuryRelief: 1 }, useMinutes: 5,
+  }),
+  antibiotics: defineItem({
+    id: "antibiotics", name: "항생제", description: "감염을 1단계 치료하고 다음 악화까지의 시간을 6시간으로 되돌린다.",
+    kind: "medicine", rarity: "uncommon", price: 3800, tags: ["약품", "감염 치료"],
+    effects: { infectionRelief: 1 }, useMinutes: 5,
+  }),
   emergencySnack: defineItem({
     id: "emergencySnack",
     name: "비상식량",

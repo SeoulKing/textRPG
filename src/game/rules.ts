@@ -1,4 +1,5 @@
 import { currentContentVersionId } from "./content-versions";
+import { advanceConditions, minutesToConditionEvent, normalizeHealthConditions, checkHealthFailure, applyTreatment, canApplyTreatment, CONDITION_LABELS, SLEEP_CONDITION_RATE } from "./health-conditions";
 import {
   AUTO_ENERGY_TICK_MS,
   GAME_MINUTE_MS,
@@ -185,6 +186,7 @@ function triggerStageClear(state: GameState) {
 }
 
 function evaluateSurvivalOutcome(state: GameState) {
+  checkHealthFailure(state);
   if (state.isGameOver || state.stageClear) {
     return;
   }
@@ -246,6 +248,12 @@ function summarizeSystemNoteEntries(
       text: `이동: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`,
       tone: "neutral",
     });
+  }
+
+  for (const kind of ["injury", "infection"] as const) {
+    const before = previousState.conditions[kind].level;
+    const after = nextState.conditions[kind].level;
+    if (before !== after) entries.push({ type: "text", text: `${CONDITION_LABELS[kind]} Lv${before} → Lv${after}`, tone: after > before ? "negative" : "positive" });
   }
 
   const elapsedMinutes = elapsedTimeMinutes(
@@ -621,7 +629,7 @@ function applySurvivalPressureForElapsed(
 function advanceGameTime(
   state: GameState,
   elapsed: number,
-  options: { energyDrainMultiplier?: number } = {},
+  options: { energyDrainMultiplier?: number; conditionRate?: number; onConditionDamage?: (amount: number) => void } = {},
 ) {
   if (state.isGameOver || state.stageClear) {
     return;
@@ -632,21 +640,36 @@ function advanceGameTime(
     return;
   }
 
-  const previousDay = state.day;
-  state.worldElapsedMs += safeElapsed;
-  applySurvivalPressureForElapsed(
-    state,
-    safeElapsed,
-    options.energyDrainMultiplier,
-  );
-
-  setClockFromElapsed(state);
-  applyDayTransition(state, previousDay);
+  checkHealthFailure(state);
+  const conditionRate = options.conditionRate ?? 1;
+  const energyRate = options.energyDrainMultiplier ?? 1;
+  let remaining = safeElapsed;
+  while (remaining > 1e-7 && !state.isGameOver && !state.stageClear) {
+    const previousDay = state.day;
+    const untilDaybreak = REAL_DAY_MS - state.worldElapsedMs % REAL_DAY_MS;
+    const untilEnergy = energyRate > 0 ? Math.max(0, AUTO_ENERGY_TICK_MS - state.autoEnergyElapsedMs) / energyRate : Infinity;
+    const untilCondition = minutesToConditionEvent(state) * GAME_MINUTE_MS / conditionRate;
+    const step = Math.min(remaining, untilDaybreak, untilEnergy, untilCondition);
+    state.worldElapsedMs += step;
+    setClockFromElapsed(state);
+    applySurvivalPressureForElapsed(state, step, energyRate);
+    const damage = advanceConditions(state, step / GAME_MINUTE_MS * conditionRate);
+    if (damage > 0) options.onConditionDamage?.(damage);
+    if (!state.isGameOver) applyDayTransition(state, previousDay);
+    evaluateSurvivalOutcome(state);
+    remaining -= step;
+  }
+  // The world clock is stored in milliseconds; fractional event boundaries can
+  // arise when a partially progressed condition changes level.
+  state.worldElapsedMs = Math.round(state.worldElapsedMs);
+  state.autoEnergyElapsedMs = Math.round(state.autoEnergyElapsedMs);
+  state.exhaustionElapsedMs = Math.round(state.exhaustionElapsedMs);
   refreshLocationKnowledge(state);
-  evaluateSurvivalOutcome(state);
 }
 
-export function advanceGameMinutes(state: GameState, minutes: number) {
+export function advanceGameMinutes(state: GameState, minutes: number, options: { onConditionDamage?: (amount: number) => void } = {}) {
+  checkHealthFailure(state);
+  if (state.isGameOver || state.stageClear) return;
   if (state.phaseIndex >= PHASES.length - 1) {
     adjustStat(state, "hp", -1);
     if (state.stats.mind > 0) {
@@ -654,7 +677,7 @@ export function advanceGameMinutes(state: GameState, minutes: number) {
     }
     addLog(state, "밤이 깊은 뒤에도 움직인 탓에 몸과 마음이 동시에 깎여 나간다.");
   }
-  advanceGameTime(state, GAME_MINUTE_MS * Math.max(1, minutes));
+  advanceGameTime(state, GAME_MINUTE_MS * Math.max(1, minutes), options);
 }
 
 function advanceTravelTime(state: GameState) {
@@ -673,6 +696,7 @@ export function createInitialGameState(): GameState {
   const registry = buildRuntimeRegistry();
   const state: GameState = {
     saveVersion: SAVE_VERSION,
+    conditions: normalizeHealthConditions(undefined),
     contentVersionId: currentContentVersionId(),
     sceneId: "prologue_opening",
     activeEventId: null,
@@ -893,7 +917,7 @@ function useItem(state: GameState, itemId: string) {
   const item = registry.items[itemId] as {
     name: string;
     kind: string;
-    effects: { hp: number; mind: number; energy: number; exhaustionRelief: number };
+    effects: { hp: number; mind: number; energy: number; exhaustionRelief: number; injuryRelief?: number; infectionRelief?: number };
     useMinutes?: number;
   } | undefined;
   const count = state.inventory[itemId] || 0;
@@ -904,12 +928,14 @@ function useItem(state: GameState, itemId: string) {
     throw new Error("그 물건은 바로 사용할 수 없다.");
   }
 
+  if (!canApplyTreatment(state, item.effects)) throw new Error("치료할 부상 또는 감염이 없습니다.");
   consumeCurrentSceneIntro(state);
   state.inventory[itemId] = count - 1;
   if (state.inventory[itemId] <= 0) {
     delete state.inventory[itemId];
   }
 
+  applyTreatment(state, item.effects);
   adjustStat(state, "hp", item.effects.hp);
   adjustStat(state, "mind", item.effects.mind);
   adjustStat(state, "energy", item.effects.energy);
@@ -944,12 +970,12 @@ export function consumeCurrentSceneIntro(state: GameState) {
   state.flags[introFlag] = true;
 }
 
-function jumpToNextDaybreak(state: GameState) {
+function jumpToNextDaybreak(state: GameState, options: { onConditionDamage?: (amount: number) => void } = {}) {
   const nextDaybreakMs = Math.floor(state.worldElapsedMs / REAL_DAY_MS) * REAL_DAY_MS + REAL_DAY_MS;
   advanceGameTime(
     state,
     Math.max(0, nextDaybreakMs - state.worldElapsedMs),
-    { energyDrainMultiplier: 0.5 },
+    { ...options, energyDrainMultiplier: 0.5, conditionRate: SLEEP_CONDITION_RATE },
   );
 }
 
@@ -960,6 +986,7 @@ type ExecutionResult = {
 
 export type PerformActionOptions = {
   rng?: () => number;
+  onConditionDamage?: (amount: number) => void;
 };
 
 function applyDefinitionEffects(
@@ -969,13 +996,15 @@ function applyDefinitionEffects(
   options: PerformActionOptions,
 ) {
   effects.forEach((effect) => {
+    if (state.isGameOver || state.stageClear) return;
     if (isTimeEffect(effect)) {
       if (effect.type === "advance_to_daybreak") {
-        jumpToNextDaybreak(state);
+        jumpToNextDaybreak(state, options);
       } else {
         advanceGameMinutes(
           state,
           resolveSkillAdjustedMinutes(effect.minutes, skillUse, state.skillProgress),
+          options,
         );
       }
       return;
@@ -1010,7 +1039,7 @@ function awardDefinitionSkillXp(
   skillUse: SkillUse | undefined,
   effects: Effect[],
 ) {
-  if (!skillUse) {
+  if (!skillUse || nextState.isGameOver || nextState.stageClear) {
     return;
   }
   const baseMinutes = authoredAdvanceTimeMinutes(effects);
@@ -1031,6 +1060,7 @@ function awardDefinitionSkillXp(
 }
 
 function applyShelterSleepBonus(state: GameState) {
+  if (state.isGameOver || state.stageClear) return;
   if (!state.flags.shelter_wall_patch) {
     return;
   }
@@ -1237,10 +1267,26 @@ export function performAction(
     }
   }
 
-  syncQuestState(state, previousState.quests);
+  if (!state.isGameOver && !state.stageClear) syncQuestState(state, previousState.quests);
   evaluateSurvivalOutcome(state);
   syncScene(state, preferredSceneId);
   applySystemNote(previousState, state, resolveItemText(fallbackNote, registry));
+}
+
+/** Uses the actual sleep action on a clone; never consumes the live RNG or state. */
+export function forecastShelterSleep(state: GameState) {
+  if (state.isGameOver || state.stageClear) return null;
+  const definition = buildRuntimeRegistry(state).actions.sleep_at_shelter;
+  if (!definition || state.location !== "shelter" || !actionConditionsMet(definition, state)
+    || (definition.dailyLimit && getRemainingDailyUses(state, definition.dailyLimit) <= 0)) return null;
+  const next = structuredClone(state);
+  let conditionLoss = 0;
+  performAction(next, { type: "content_action", actionId: definition.id }, { rng: () => 1, onConditionDamage: amount => { conditionLoss += amount; } });
+  return {
+    hpBefore: state.stats.hp, hpAfter: next.stats.hp, conditionDamage: conditionLoss,
+    infectionBefore: state.conditions.infection.level, infectionAfter: next.conditions.infection.level,
+    isFatal: next.isGameOver, reason: next.gameOverReason,
+  };
 }
 
 export function summarizeState(state: GameState) {

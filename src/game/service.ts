@@ -1,3 +1,5 @@
+import { conditionCards } from "./health-conditions";
+import { forecastShelterSleep } from "./rules";
 import { createHash, randomUUID } from "node:crypto";
 import { GAME_MINUTE_MS, PHASES, SIGNAL_PART_ITEM_IDS, TARGET_RESCUE_DAY, TRAVEL_DURATION_MS, getSkillEntries } from "./base-data";
 import {
@@ -1919,6 +1921,7 @@ export class GameService {
     const snapshot = {
       gameId: session.id,
       state: clientState,
+      conditionCards: conditionCards(session.state),
       currentScene,
       visibleLocations: this.visibleLocationIds(session).map(
         (locationId) => session.world.locationCards[locationId] as LocationCard,
@@ -1954,7 +1957,14 @@ export class GameService {
                 registry,
               ),
             ])
-        .map((choice) => resolveActionChoiceText(choice, registry)),
+        .map((choice) => {
+          const resolved = resolveActionChoiceText(choice, registry);
+          if (!choice.isAvailable || choice.action.type !== "content_action" || choice.action.actionId !== "sleep_at_shelter") return resolved;
+          const forecast = forecastShelterSleep(session.state);
+          if (!forecast) return resolved;
+          const warning = forecast.isFatal ? `⚠ 취침 중 생존 종료 예상: ${forecast.reason} / ` : "";
+          return { ...resolved, showOutcomeHint: true, outcomeHint: `${resolved.outcomeHint} / ${warning}현재 상태 기준: 상태 이상 피해 -${forecast.conditionDamage} 체력 / 체력 ${forecast.hpBefore}→${forecast.hpAfter} / 감염 Lv${forecast.infectionBefore}→Lv${forecast.infectionAfter} / 취침 중 상태 이상 25% 속도` };
+        }),
       mapEntries: this.buildMapEntries(session, registry),
       latestEvent: presentedLatestEvent,
       devLlmTrace: getDevLlmTrace(session.id),

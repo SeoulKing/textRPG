@@ -70,6 +70,7 @@ const EFFECT_TYPES = [
   ["add_item", "아이템 추가"],
   ["remove_item", "아이템 제거"],
   ["change_stat", "능력치 변경"],
+  ["add_condition", "부상·감염 발생"],
   ["change_money", "돈 변경"],
   ["set_flag", "플래그 설정"],
   ["clear_flag", "플래그 해제"],
@@ -482,6 +483,8 @@ function renderItem(item) {
             ["mind", "정신력"],
             ["energy", "기력"],
             ["exhaustionRelief", "탈진 완화"],
+            ["injuryRelief", "부상 치료 단계"],
+            ["infectionRelief", "감염 치료 단계"],
           ].map(([key, label]) => `
             <label class="metric">
               <span>${label}</span>
@@ -537,6 +540,7 @@ function defaultEffect(type = "add_item") {
     add_item: { type, itemId: firstItem, amount: 1 },
     remove_item: { type, itemId: firstItem, amount: 1 },
     change_stat: { type, stat: "energy", value: 1 },
+    add_condition: { type, condition: "injury", chancePercent: 0 },
     change_money: { type, amount: 1000 },
     set_flag: { type, flag: "new_flag" },
     clear_flag: { type, flag: "new_flag" },
@@ -603,6 +607,8 @@ function effectParams(effect, index, arrayName) {
         <select ${attr("itemId")}>${itemOptions(effect.itemId)}</select>
         <input type="number" min="0" ${attr("value", "number")} value="${effect.value ?? 0}" />
       `;
+    case "add_condition":
+      return `<select ${attr("condition")}>${options([["injury", "부상"], ["infection", "감염"]], effect.condition)}</select><input type="number" min="0" max="100" step="any" ${attr("chancePercent")} data-mode="number" value="${effect.chancePercent ?? 0}" aria-label="발생 확률 (%)"> <span>% · 발생 시 +1단계</span>`;
     case "change_stat":
       return `
         <select ${attr("stat")}>${options([["hp", "체력"], ["mind", "정신력"], ["energy", "기력"]], effect.stat)}</select>

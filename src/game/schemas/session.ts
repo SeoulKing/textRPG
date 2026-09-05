@@ -85,6 +85,10 @@ export const SurvivalGoalSchema = z.object({
 });
 
 export const StateSnapshotSchema = z.object({
+  conditionCards: z.array(z.object({
+    kind: z.enum(["injury", "infection"]), label: z.string(), level: z.number().int().min(1).max(4),
+    nextDamageMinutes: z.number().nonnegative(), nextWorseningMinutes: z.number().nonnegative().nullable(),
+  })).default([]),
   gameId: z.string(),
   state: GameStateSchema,
   currentScene: SceneCardSchema,

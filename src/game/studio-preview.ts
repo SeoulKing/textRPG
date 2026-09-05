@@ -1,4 +1,5 @@
 import { REAL_DAY_MS } from "./base-data";
+import { conditionCards } from "./health-conditions";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { buildWorldRegistryFromStudio } from "./data/registry";
@@ -178,6 +179,7 @@ export class StudioPreviewService {
         id:definition.id,label:resolveItemText(definition.label,row.registry),conditions:definition.conditions.filter(condition=>!evaluateCondition(condition,row.state)),
         reason:"hidden" in definition&&definition.hidden?"숨김 설정":"선택 조건 또는 사용 횟수 제한",
       })),
+      conditionCards:conditionCards(row.state),
       inventory:row.state.inventory,day:row.state.day,locationId:row.state.location,stats:row.state.stats,isGameOver:row.state.isGameOver,
       systemNote:row.state.systemNote,systemNoteEntries:row.state.systemNoteEntries,trace:row.trace,origin:row.origin,canUndo:row.history.length>0,
     };

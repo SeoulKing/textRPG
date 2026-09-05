@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HealthConditionKindSchema } from "./health-condition";
 
 export const ConditionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("has_item"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
@@ -46,6 +47,7 @@ export const ConditionSchema = z.discriminatedUnion("type", [
 ]);
 
 const InstantEffectSchemas = [
+  z.object({ type: z.literal("add_condition"), condition: HealthConditionKindSchema, chancePercent: z.number().min(0).max(100).default(0) }),
   z.object({ type: z.literal("change_stat"), stat: z.enum(["hp", "mind", "energy"]), value: z.number().int() }),
   z.object({ type: z.literal("set_flag"), flag: z.string() }),
   z.object({ type: z.literal("clear_flag"), flag: z.string() }),
