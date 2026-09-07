@@ -12,7 +12,7 @@ import { worldOptions } from "./choices";
 import { choiceLabelFields, nextNarrativeChoices, storeChoiceLabels } from "./choice-labels";
 import { recordEvent, resolveWorldActions } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
-import { fallbackNarration, narrateTextWorld, validateRenderedNarration, type TextWorldNarrator } from "./narrator";
+import { narrateTextWorld, renderNarration, type TextWorldNarrator } from "./narrator";
 
 export function textWorldEntryActions(state: GameState): ActionChoice[] {
   if (state.location !== "subway" || state.textWorld?.active || state.subwayExpedition.active ||
@@ -44,7 +44,7 @@ export function textWorldScene(state: GameState, registry = buildRuntimeRegistry
   const world = currentTextWorld(state);
   if (!world?.active) return null;
   return { id: "text-world:" + state.location + ":" + world.sceneRevision, locationId: state.location, title: worldRooms(world)[world.player.zone].name,
-    paragraphs: world.lastParagraphs, choices: textWorldActions(state, registry).map(({ action, ...choice }) => ({ ...choice, serverActionHint: action })),
+    paragraphs: world.lastParagraphs, paragraphSources: world.lastParagraphSources, choices: textWorldActions(state, registry).map(({ action, ...choice }) => ({ ...choice, serverActionHint: action })),
     materialIds: { locationIds: [state.location], personIds: [], itemIds: [] }, source: world.source, generatedAt: new Date(0).toISOString() };
 }
 
@@ -85,16 +85,10 @@ export async function performTextWorldAction(
   if (!world.active) return;
   const context = directNarrative(world);
   context.nextChoices = nextNarrativeChoices(world, worldOptions(world, state));
-  let rendered;
-  try {
-    // The injected boundary receives a detached perception-only object.
-    rendered = await narrator(structuredClone(context), gameId);
-    rendered = validateRenderedNarration(context, rendered) ?? fallbackNarration(context);
-  } catch {
-    rendered = fallbackNarration(context);
-  }
+  const rendered = await renderNarration(context, gameId, narrator);
   storeChoiceLabels(world, context, rendered.choiceLabels);
   world.lastParagraphs = rendered.paragraphs;
+  world.lastParagraphSources = rendered.paragraphSources;
   world.source = rendered.source;
   rememberNarration(world, context, rendered.usedFactIds, rendered.paragraphs);
   if (action.command === "enter") setSystemNote(state, []);

@@ -30,7 +30,7 @@ test('forest entry presents primary work immediately while optional inspection a
  const f=await fixture();assert.equal(f.contexts.length,1);assert.equal(f.world.player.zone,'forest_edge');
  assert(f.options.length>=3&&f.options.length<=5);assert.equal(f.options[0].id,'harvest:chop_wood_at_forest');
  const entry=JSON.stringify(f.contexts[0]);assert.match(entry,/왼쪽/);assert.match(entry,/오른쪽/);assert(!entry.includes('cannedFood'));assert(!entry.includes('forest_bushes'));
- const inventory=structuredClone(f.state.inventory);await f.choose('inspect:forest_timber');assert.deepEqual(f.state.inventory,inventory);
+ const inventory=structuredClone(f.state.inventory);await f.choose('inspect:forest_debris');await f.choose('inspect:forest_timber');assert.deepEqual(f.state.inventory,inventory);
  assert.equal(f.world.player.focusEntityId,'forest_timber');assert(f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));
  assert(f.contexts.at(-1).requiredFacts.some(f=>f.kind==='resource'&&f.data.missingTools.includes('손도끼')));
  const ids=f.options.map(o=>o.id),time=f.state.worldElapsedMs,calls=f.contexts.length;
@@ -39,7 +39,7 @@ test('forest entry presents primary work immediately while optional inspection a
 });
 
 test('tool and manual work preserve native yields, costs, tool wear and one narration per chosen intention',async()=>{
- const f=await fixture('forest',s=>{s.inventory.crudeAxe=1;s.toolDurability.crudeAxe=1});await f.choose('inspect:forest_timber');
+ const f=await fixture('forest',s=>{s.inventory.crudeAxe=1;s.toolDurability.crudeAxe=1});await f.choose('inspect:forest_debris');await f.choose('inspect:forest_timber');
  assert(f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));assert(f.options.some(o=>o.id==='toolwork:chop_wood_with_crude_axe'));
  const start=f.state.worldElapsedMs,calls=f.contexts.length;
  await f.choose('toolwork:chop_wood_with_crude_axe');assert.equal(f.contexts.length,calls+1);assert.equal(f.state.inventory.wood,5);assert.equal(f.state.inventory.crudeAxe??0,0);
@@ -53,7 +53,7 @@ test('tool and manual work preserve native yields, costs, tool wear and one narr
 test('revisions, forged work and finished sites cannot award a second result',async()=>{
  const f=await fixture('forest',s=>{s.contentVersionId=registerContentVersion(finiteRegistry);s.resourceState={forest:{fallen_wood:{remaining:1,updatedAtMinutes:0,recoveryProgressMinutes:0}}}});
  const noAccess=JSON.stringify(f.state),calls=f.contexts.length;await assert.rejects(f.raw({type:'text_world',command:'choose',optionId:'harvest:gather_cordage_at_forest',revision:f.world.revision}),/선택할 수 없는/);assert.equal(JSON.stringify(f.state),noAccess);assert.equal(f.contexts.length,calls);
- await f.choose('inspect:forest_timber');const action={type:'text_world',command:'choose',optionId:'harvest:chop_wood_at_forest',revision:f.world.revision};await f.raw(action);
+ await f.choose('inspect:forest_debris');await f.choose('inspect:forest_timber');const action={type:'text_world',command:'choose',optionId:'harvest:chop_wood_at_forest',revision:f.world.revision};await f.raw(action);
  const snapshot=JSON.stringify(f.state),after=f.contexts.length;await assert.rejects(f.raw(action),/상황이 바뀌/);assert.equal(JSON.stringify(f.state),snapshot);assert.equal(f.contexts.length,after);
  assert(!f.options.some(o=>o.contentActionId));assert.match(f.world.lastParagraphs.join(' '),/남아 있지 않다/);assert(!f.world.lastParagraphs.join(' ').includes('손도끼가 필요하다'));
  f.state.location='shelter';await f.ensure();assert(!f.state.locationTextWorlds.forest.active);advanceGameMinutes(f.state,120);f.state.location='forest';await f.ensure();
@@ -62,16 +62,16 @@ test('revisions, forged work and finished sites cannot award a second result',as
 
 test('an unsuccessful search is explicit and exposes no undiscovered loot table',async t=>{
  t.mock.method(Math,'random',()=>0);
- const f=await fixture();await f.choose('focus:forest_debris');await f.choose('inspect:forest_debris');assert.equal(f.world.player.posture,'crouching');
+ const f=await fixture();await f.choose('inspect:forest_debris');assert.equal(f.world.player.posture,'crouching');
  const inventory=structuredClone(f.state.inventory);await f.choose('harvest:search_forest_resources');assert.deepEqual(f.state.inventory,inventory);
  const c=f.contexts.at(-1);assert(c.requiredFacts.some(f=>f.kind==='result'&&f.data.type==='WORK'&&f.data.after.empty));assert(!c.results.some(e=>e.type==='TAKE'));assert(!JSON.stringify(c).includes('cannedFood'));assert.match(f.world.lastParagraphs.join(' '),/찾지 못한다/);
  assert.equal(f.state.resourceState.forest,undefined);
 });
 
 test('zone movement changes visible targets and retains posture and the last three scenes',async()=>{
- const f=await fixture();await f.choose('focus:forest_debris');await f.choose('inspect:forest_debris');await f.choose('travel:forest_inner');
+ const f=await fixture();await f.choose('inspect:forest_debris');await f.choose('travel:forest_inner');
  assert.equal(f.world.player.posture,'standing');assert.equal(f.world.player.zone,'forest_inner');assert(!f.options.some(o=>/forest_timber|forest_debris/.test(o.id)));
- assert(f.options.some(o=>o.id==='inspect:forest_vines'));await f.choose('inspect:forest_vines');await f.choose('harvest:gather_cordage_at_forest');
+ assert(f.options.some(o=>o.id==='focus:forest_vines'));await f.choose('focus:forest_vines');await f.choose('inspect:forest_vines');await f.choose('harvest:gather_cordage_at_forest');
  assert.equal(f.state.inventory.cordage,2);assert.equal(f.world.recentScenes.length,3);assert.equal(f.contexts.at(-1).recentScenes.length,3);
 });
 
@@ -95,7 +95,7 @@ test('recovering fishing pools becomes actionable on a later visit without gener
 });
 
 test('interrupted unlimited work awards no material and never completes the work',async()=>{
- const f=await fixture();await f.choose('inspect:forest_timber');f.state.stats.hp=1;f.state.conditions.injury={level:1,damageProgress:.99};
+ const f=await fixture();await f.choose('inspect:forest_debris');await f.choose('inspect:forest_timber');f.state.stats.hp=1;f.state.conditions.injury={level:1,damageProgress:.99};
  await f.choose('harvest:chop_wood_at_forest');assert(f.state.isGameOver);assert.equal(f.state.inventory.wood??0,0);assert.equal(f.state.resourceState.forest,undefined);
  assert(f.contexts.at(-1).results.some(e=>e.type==='WORK'&&e.after.interrupted));assert(!f.contexts.at(-1).results.some(e=>e.type==='TAKE'));assert.deepEqual(f.options,[]);
 });
@@ -116,6 +116,7 @@ test('the service rejects legacy action bypass and concurrent replay while prese
  const repo={withGameLock:async(_id,fn)=>fn(),loadGame:async()=>structuredClone(stored),saveGame:async s=>{stored=structuredClone(s)},getTemplate:async()=>undefined,saveTemplate:async()=>{},saveProtagonistTemplate:async()=>{},appendActionLog:async()=>{},appendGenerationLog:async()=>{}};
  const service=new GameService(repo,undefined,undefined,undefined,undefined,async c=>fallbackNarration(c));let snap=await service.getState(stored.id);
  await assert.rejects(service.performAction(stored.id,{type:'content_action',actionId:'chop_wood_at_forest'}),/표시된 선택지/);
+ snap=await service.performAction(stored.id,snap.availableActions.find(a=>a.action.optionId==='inspect:forest_debris').action);
  snap=await service.performAction(stored.id,snap.availableActions.find(a=>a.action.optionId==='inspect:forest_timber').action);
  const action=snap.availableActions.find(a=>a.action.optionId==='harvest:chop_wood_at_forest').action,results=await Promise.allSettled([service.performAction(stored.id,action),service.performAction(stored.id,action)]);
  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(stored.state.inventory.wood,3);
@@ -147,7 +148,7 @@ test('an authored primary-work opt-out keeps observation requirements and surviv
  const registry=structuredClone(worldRegistry);registry.actions.chop_wood_at_forest.resourceUse.directFromEntry=false;
  const f=await fixture('forest',s=>s.contentVersionId=registerContentVersion(registry));
  assert.equal(f.registry.actions.chop_wood_at_forest.resourceUse.directFromEntry,false);assert(!f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));
- await f.choose('inspect:forest_timber');assert(f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));
+ await f.choose('inspect:forest_debris');await f.choose('inspect:forest_timber');assert(f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));
 });
 
 

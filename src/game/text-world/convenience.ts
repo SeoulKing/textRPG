@@ -7,7 +7,7 @@ import { buildRuntimeRegistry } from "../runtime-registry";
 import { getStockMoneyKey, getStockStateKey } from "../state-utils";
 import { recordEvent, resolveWorldActions } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
-import { fallbackNarration, validateRenderedNarration, type TextWorldNarrator } from "./narrator";
+import { renderNarration, type TextWorldNarrator } from "./narrator";
 import { particle } from "./world";
 import { directChoices } from "./choice-director";
 import { focusOptions } from "./focus-options";
@@ -140,11 +140,10 @@ async function render(state: GameState, registry: ContentRegistry, narrator: Tex
   }
   const context: NarrativeContext = directNarrative(world);
   context.nextChoices = nextNarrativeChoices(world, convenienceOptions(state, registry));
-  let rendered;
-  try { rendered = validateRenderedNarration(context, await narrator(structuredClone(context), gameId)) ?? fallbackNarration(context); }
-  catch { rendered = fallbackNarration(context); }
+  const rendered = await renderNarration(context, gameId, narrator);
   storeChoiceLabels(world, context, rendered.choiceLabels);
   world.lastParagraphs = rendered.paragraphs;
+  world.lastParagraphSources = rendered.paragraphSources;
   world.source = rendered.source;
   world.sceneRevision++;
   rememberNarration(world, context, rendered.usedFactIds, rendered.paragraphs);

@@ -91,7 +91,7 @@ test('service conceals hidden state, serializes duplicate choices, and renders o
  const service=new GameService(repository,undefined,undefined,undefined,undefined,async c=>{calls++;return fallbackNarration(c);});
  let snap=await service.getState(stored.id);assert.equal(calls,1);assert.deepEqual(snap.state.locationTextWorlds,{});assert(!JSON.stringify(snap.currentScene).includes('1800'));
  const polled=await service.getState(stored.id);assert.equal(calls,1);assert.deepEqual(polled.availableActions.map(c=>c.action),snap.availableActions.map(c=>c.action));
- snap=await service.performAction(stored.id,snap.availableActions.find(c=>c.action.optionId==='focus:convenience_register').action);
+ snap=await service.performAction(stored.id,snap.availableActions.find(c=>c.action.optionId==='explore:convenience_register').action);
  const take=snap.availableActions.find(c=>c.action.optionId==='collect:convenience_register').action,before=stored.state.money;
  const results=await Promise.allSettled([service.performAction(stored.id,take),service.performAction(stored.id,take)]);
  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(stored.state.money,before+1800);assert.equal(calls,3);

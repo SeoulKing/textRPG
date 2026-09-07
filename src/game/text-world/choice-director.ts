@@ -19,12 +19,15 @@ export function describeChoice(option: ChoiceCandidate, world: TextWorld) {
 function stable(value: unknown): unknown { return Array.isArray(value) ? value.map(stable) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, entry]) => [key, stable(entry)])) : value; }
 function hash(text: string) { let value = 2166136261; for (let i = 0; i < text.length; i++) value = Math.imul(value ^ text.charCodeAt(i), 16777619); return (value >>> 0).toString(16); }
 export function choiceSignature(world: TextWorld, candidates: ChoiceCandidate[], context = interactionContext(world)) {
-  const knowledge = candidates.map(o => {
+  // Entity maps may be reordered by JSONB. Only semantic changes invalidate a displayed frame.
+  const ordered = [...candidates].sort((a, b) => a.id.localeCompare(b.id));
+  const stableContext = { ...context, newlyDiscoveredIds: [...context.newlyDiscoveredIds].sort() };
+  const knowledge = ordered.map(o => {
     const targetId = describeChoice(o, world).targetId;
     const known = world.observations[targetId ?? ""];
-    return [targetId, Boolean(known?.inspected), known?.stages ?? [], Boolean(known?.collected)];
+    return [targetId, Boolean(known?.inspected), [...(known?.stages ?? [])].sort(), Boolean(known?.collected)];
   });
-  return hash(JSON.stringify(stable([context, candidates.map(o => [o.id, o.label, o.actions]), world.player, knowledge])));
+  return hash(JSON.stringify(stable([stableContext, ordered.map(o => [o.id, o.label, o.actions]), world.player, knowledge])));
 }
 /** Select by context roles, with family diversity as a hard constraint. Scoring only ranks within a role. */
 export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state: GameState, candidates: T[]): DirectedChoice<T>[] {
@@ -86,7 +89,7 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     }
     return value;
   };
-  const ranked = [...pool].sort((a, b) => score(b) - score(a));
+  const ranked = [...pool].sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id));
   const selected: DirectedChoice<T>[] = [], families = new Set<ChoiceFamily>();
   const take = (slot: string, accepts: (o: typeof pool[number]) => boolean) => {
     const found = ranked.find(o => !families.has(o.family) && accepts(o) && !selected.some(s => s.id === o.id || o.family === "FOCUS" && s.targetId === o.targetId));

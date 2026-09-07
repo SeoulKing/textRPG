@@ -64,6 +64,8 @@ export const TextWorldSchema = z.object({
   choiceNarratives: z.record(z.string(), z.object({ label: z.string(), choiceLabel: z.string().optional(), text: z.string().min(1).max(160), source: z.enum(["template", "llm"]) })).optional(),
   lastIntent: z.object({ id: z.string(), label: z.string(), thought: z.string().max(60).optional(), importance: z.enum(["major", "minor"]) }),
   lastParagraphs: z.array(z.string()).min(1), source: z.enum(["template", "llm"]), sceneRevision: z.number().int().nonnegative(),
+  lastParagraphSources: z.array(z.enum(["llm", "template"])).max(3).optional(),
+  lastRequest: z.object({ id: z.string().max(100), actionKey: z.string().max(1000), revision: z.number().int().nonnegative() }).optional(),
 });
 export type TextEntity = z.infer<typeof TextEntitySchema>;
 export type TextWorld = z.infer<typeof TextWorldSchema>;

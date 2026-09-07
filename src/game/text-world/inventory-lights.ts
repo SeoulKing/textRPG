@@ -60,6 +60,7 @@ export function performInventoryLightAction(state: GameState, action: Extract<Ga
     const context = directNarrative(world), rendered = fallbackNarration(context);
     world.sceneRevision++;
     world.lastParagraphs = rendered.paragraphs;
+    world.lastParagraphSources = undefined;
     world.source = rendered.source;
     rememberNarration(world, context, rendered.usedFactIds, rendered.paragraphs);
   }

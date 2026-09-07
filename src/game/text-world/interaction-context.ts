@@ -12,7 +12,7 @@ export type InteractionContext = {
 };
 /** Interest is distinct from physical proximity. Only engine/perception facts can establish urgency. */
 export function interactionContext(world: TextWorld, _state?: GameState): InteractionContext {
-  const visible = visibleEntities(world), ids = new Set(visible.map(e => e.id));
+  const visible = visibleEntities(world).sort((a, b) => a.id.localeCompare(b.id)), ids = new Set(visible.map(e => e.id));
   const focused = world.player.focusEntityId === undefined ? world.player.near : world.player.focusEntityId;
   const inventoryLight = (id: string | null | undefined) => {
     const c = world.entities[id ?? ""]?.components;
@@ -33,6 +33,6 @@ export function interactionContext(world: TextWorld, _state?: GameState): Intera
     for (const e of visible) if (world.entities[e.components.position.zone]?.components.container && !world.observations[e.id]?.collected) newlyDiscoveredIds.push(e.id);
   }
   return { mode: threat ? "THREAT" : holdingEntityId ? "MANIPULATE" : focusEntityId ? "FOCUS" : "EXPLORE", focusEntityId, holdingEntityId, threat,
-    newlyDiscoveredIds: [...new Set(newlyDiscoveredIds)].filter(id => ids.has(id)),
+    newlyDiscoveredIds: [...new Set(newlyDiscoveredIds)].filter(id => ids.has(id)).sort(),
     goal: threat?.kind === "darkness" || threat?.kind === "light_expiring" ? "restore_visibility" : threat ? "keep_passage" : newlyDiscoveredIds.length ? "collect_discovery" : "explore" };
 }

@@ -29,6 +29,7 @@ import { GameActionSchema } from "./game/schemas";
 import { FileGameRepository, type GameRepository } from "./game/repository";
 import { PostgresGameRepository } from "./game/postgres-repository";
 import { GameService } from "./game/service";
+import { sendActionStream } from "./action-stream-response";
 import { AuthController } from "./auth";
 import {
   hasGeminiConfig,
@@ -153,11 +154,12 @@ async function bootstrap() {
   app.addHook("onSend", async (request, reply, payload) => {
     const pathname = request.url.split("?", 1)[0];
     const isStaticAsset = pathname.startsWith("/assets/") || pathname.startsWith("/client/") || pathname.startsWith("/vendor/");
+    const isNarrativeStream = String(reply.getHeader("content-type") ?? "").startsWith("application/x-ndjson");
     // Revalidate stable URLs so Studio image replacements appear on the next load.
     // Static files retain their ETag/Last-Modified and can return an empty 304.
     reply.header("Cache-Control", isStaticAsset && reply.statusCode < 400
       ? "public, max-age=0, must-revalidate"
-      : "no-store");
+      : isNarrativeStream ? "no-store, no-transform" : "no-store");
     return payload;
   });
 
@@ -506,8 +508,15 @@ async function bootstrap() {
       };
     }
 
+    const requestId = request.headers["x-action-id"];
+    if (parsed.data.type === "text_world" && request.headers.accept?.includes("application/x-ndjson")) {
+      if (typeof requestId !== "string" || !/^[a-zA-Z0-9-]{16,100}$/.test(requestId)) return reply.code(400).send({ message: "올바른 행동 요청 식별자가 필요합니다." });
+      return sendActionStream(reply, gameService, request.params.gameId, parsed.data, requestId);
+    }
     try {
-      return await gameService.performAction(request.params.gameId, parsed.data);
+      return await gameService.performAction(request.params.gameId, parsed.data, {
+        onTiming: timing => request.log.info({ actionType: parsed.data.type, timing }, "game action latency"),
+      });
     } catch (error) {
       reply.code(400);
       return {
@@ -515,6 +524,15 @@ async function bootstrap() {
         message: error instanceof Error ? error.message : "Unknown error",
       };
     }
+  });
+  app.get("/action-stream-client.mjs", async (_request, reply) => {
+    reply.type("application/javascript; charset=utf-8");
+    return readFile(path.join(webRoot, "action-stream-client.mjs"), "utf8");
+  });
+
+  app.get<{ Params: { gameId: string; requestId: string } }>("/api/games/:gameId/actions/:requestId", async (request, reply) => {
+    const snapshot = await gameService.recoverAction(request.params.gameId, request.params.requestId);
+    return snapshot ?? reply.code(404).send({ message: "완료된 행동 기록이 없습니다." });
   });
 
   const port = Number(process.env.PORT || 3000);

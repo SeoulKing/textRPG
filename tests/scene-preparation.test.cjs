@@ -103,6 +103,9 @@ function actionHarness(withLead = false) {
     beginPostChoiceNarrative:(paragraphs,append,source,keepChoices)=>{events.push('lead:'+source);client.storyLead={paragraphs,append,source,keepChoices};assert.equal(append,true);assert.equal(keepChoices,withLead);return lead.promise},
     dom:{choices:{innerHTML:'choices',classList:{remove(){}}}},
     preloadActionSceneAssets:()=>events.push('predict'), api:()=>{events.push('request');return response.promise;},
+    requestTextWorldAction:(_action,onEvent)=>{events.push('request');client.onStreamEvent=onEvent;return response.promise;},
+    animateStoryText:async(story,_token,_note,options)=>{events.push('paragraph:'+story.paragraphs[0]);client.streamOptions=options;},
+    storySurfaceId:snapshot=>'scene:'+snapshot.currentScene.id,
     preloadNextSceneAssets:async()=>events.push('assets'), prepareScenePresentation:()=>events.push('prepare'),
     shelterStationForAction:()=>null,isMovementAction:()=>false,beginActionTransition:()=>events.push('transition'),
     waitForMilliseconds:()=>transition.promise, needsFreshGame:()=>false, completedQuestChanges:()=>[],
@@ -128,6 +131,38 @@ test('click starts prediction and request immediately; response prepares UI befo
   assert.equal(h.client.actionInFlight,false);
   assert(h.client.lastActionTiming.preparedMs<=h.client.lastActionTiming.presentationReadyMs);
   assert.equal(h.events.filter(e=>e==='render').length,1);
+});
+
+test('streamed paragraphs follow the thought before completion and final snapshot never repeats or scrolls their text',async()=>{
+ const h=actionHarness(true);h.next.currentScene.paragraphs=['첫 문단','결과 문단'];h.next.currentScene.source='llm';
+ const pending=h.context.submitAction({type:'text_world',command:'choose'},null,null,null,null,'안을 봐야겠다.');
+ h.lead.resolve();await flush();
+ h.client.onStreamEvent({type:'paragraph',index:0,text:'첫 문단',source:'llm'});await flush();
+ assert(h.events.includes('paragraph:첫 문단'));assert(!h.events.includes('render'));assert(h.client.actionInFlight);assert.equal(h.client.snapshot,h.previous);
+ assert.equal(h.client.streamOptions.scrollToStart,false);assert.equal(h.client.streamOptions.continueBlock,true);assert.equal(h.client.streamOptions.revealChoices,false);
+ h.response.resolve(h.next);await pending;
+ assert.equal(h.events.filter(e=>e==='paragraph:첫 문단').length,1);assert.equal(h.events.filter(e=>e==='paragraph:결과 문단').length,1);
+ assert.equal(h.client.renderOptions.animateScene,false);assert.equal(h.client.renderOptions.appendScene,false);assert.equal(h.client.renderOptions.scrollSceneToStart,false);assert.equal(h.client.actionInFlight,false);
+});
+
+test('a lost streaming connection reads its receipt without a second POST or generation',async()=>{
+ const requests=[],saved=new Map();const context=functions(['requestTextWorldAction'],{
+  client:{gameId:'g'},crypto:{randomUUID:()=> 'request-0000000001'},PENDING_ACTION_KEY:'pending',
+  window:{sessionStorage:{setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)}},
+  api:async(path,options)=>{requests.push({path,options});if(options?.method==='POST')throw new TypeError('connection lost');return {gameId:'g'}},
+ });
+ assert.equal((await context.requestTextWorldAction({type:'text_world'},()=>{})).gameId,'g');
+ assert.equal(requests.filter(r=>r.options?.method==='POST').length,1);assert.match(requests[1].path,/actions\/request-0000000001$/);assert.equal(saved.size,0);
+});
+
+test('an offline receipt lookup retains the request for recovery after a browser reload',async()=>{
+ const saved=new Map(),requests=[];const context=functions(['requestTextWorldAction'],{
+  client:{gameId:'g'},crypto:{randomUUID:()=> 'request-0000000002'},PENDING_ACTION_KEY:'pending',
+  window:{sessionStorage:{setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)}},
+  api:async(path,options)=>{requests.push({path,options});throw new TypeError('offline')},
+ });
+ await assert.rejects(context.requestTextWorldAction({type:'text_world'},()=>{}),/offline/);
+ assert.equal(requests.filter(r=>r.options?.method==='POST').length,1);assert.equal(JSON.parse(saved.get('pending')).requestId,'request-0000000002');
 });
 test('slow and failed responses do not reveal speculative results or replay the action', async () => {
   const h=actionHarness();

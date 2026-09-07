@@ -1,4 +1,7 @@
+import { readActionStream } from "./action-stream-client.mjs";
+
 const SAVED_GAME_ID_KEY = "ruined-seoul-stage1-manual-save-game-id-v1";
+const PENDING_ACTION_KEY = "textrpg-pending-text-action-v1";
 const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id",
   "ruined-seoul-stage1-game-id-v12",
@@ -723,7 +726,31 @@ async function api(path, options = {}) {
     error.status = response.status;
     throw error;
   }
-  return response.json();
+  return response.headers.get("content-type")?.includes("application/x-ndjson")
+    ? readActionStream(response, options.onEvent, options.headers?.["X-Action-Id"])
+    : response.json();
+}
+
+async function requestTextWorldAction(action, onEvent) {
+  const gameId = client.gameId, requestId = crypto.randomUUID();
+  let settled = false;
+  try { window.sessionStorage.setItem(PENDING_ACTION_KEY, JSON.stringify({ gameId, requestId })); } catch { /* Storage may be disabled. */ }
+  try {
+    const snapshot = await api(`/api/games/${gameId}/actions`, { method: "POST", body: action,
+      headers: { Accept: "application/x-ndjson", "X-Action-Id": requestId }, onEvent });
+    settled = true;
+    return snapshot;
+  } catch (error) {
+    // Read the committed receipt after a lost connection; never execute the action again here.
+    if (!error.status) {
+      try { const snapshot = await api(`/api/games/${gameId}/actions/${requestId}`); settled = true; return snapshot; }
+      catch (recoveryError) { settled = recoveryError.status === 404; }
+    }
+    if (error.status >= 400 && error.status < 500) settled = true;
+    throw error;
+  } finally {
+    if (settled) try { window.sessionStorage.removeItem(PENDING_ACTION_KEY); } catch { /* Storage may be disabled. */ }
+  }
 }
 
 function waitForMilliseconds(durationMs) {
@@ -1648,7 +1675,7 @@ function buildStoryDisplay(snapshot) {
   return {
     headline: "",
     paragraphs: (snapshot.currentScene.paragraphs || []).filter((paragraph) => String(paragraph).trim()),
-    source: snapshot.currentScene.source,
+    source: new Set(snapshot.currentScene.paragraphSources).size > 1 ? "mixed" : snapshot.currentScene.source,
   };
 }
 
@@ -1861,11 +1888,11 @@ function createSceneStoryBlock(append, source, continueBlock = false) {
   dom.sceneText.classList.toggle("has-story-history", hasHistory);
   const block = document.createElement("div");
   block.className = previousBlock ? "scene-story-continuation" : "scene-story-block";
-  if (source === "llm" || source === "template") {
+  if (source === "llm" || source === "template" || source === "mixed") {
     const sourceLabel = document.createElement("div");
     sourceLabel.className = `scene-narrative-source is-${source}`;
-    sourceLabel.textContent = source === "llm" ? "LLM 생성" : "기본 서사";
-    sourceLabel.title = source === "llm"
+    sourceLabel.textContent = source === "mixed" ? "LLM 생성 · 기본 서사 보완" : source === "llm" ? "LLM 생성" : "기본 서사";
+    sourceLabel.title = source === "mixed" ? "생성된 문단을 유지하고 남은 결과를 기본 서사로 이어 썼습니다." : source === "llm"
       ? "LLM이 생성한 서사입니다."
       : "게임에 정의된 기본 서사입니다. 재확인이나 생성 실패 시에도 사용합니다.";
     block.appendChild(sourceLabel);
@@ -3925,14 +3952,40 @@ async function submitAction(
   const timing = { action: action.type, startedAt: performance.now() };
   const mark = (key) => { timing[key] = Math.round(performance.now() - timing.startedAt); };
   client.lastActionTiming = timing;
+  const streamedParagraphs = [];
+  let paragraphQueue = Promise.resolve(), immediateNarrativePromise = Promise.resolve();
+  let previousParagraphSource = null;
+  const onStreamEvent = event => {
+    if (event.type === "complete") { timing.server = event.timing; return; }
+    if (event.type !== "paragraph") return;
+    streamedParagraphs.push(event.text);
+    if (streamedParagraphs.length === 1) mark("firstParagraphReceivedMs");
+    paragraphQueue = paragraphQueue.then(async () => {
+      await immediateNarrativePromise;
+      if (!presentingAction) return;
+      if (event.index === 0) mark("firstParagraphDisplayedMs");
+      clearSceneAnimation();
+      const source = event.source === previousParagraphSource ? null : event.source;
+      previousParagraphSource = event.source;
+      await animateStoryText({ headline: "", paragraphs: [event.text], source }, client.sceneRenderToken, null, {
+        append: true, continueBlock: hasChoiceThought || event.index > 0,
+        scrollToStart: !hasChoiceThought && event.index === 0, revealChoices: false, keepChoices: true,
+      });
+    });
+  };
   try {
     preloadActionSceneAssets(action, previousSnapshot);
-    const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {
+    const requestResultPromise = (action.type === "text_world" ? requestTextWorldAction(action, onStreamEvent) : api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
       body: action,
-    })
+    }))
       .then(async (snapshot) => {
         mark("responseMs");
+        if (streamedParagraphs.length) {
+          const finalParagraphs = snapshot.currentScene.paragraphs;
+          if (streamedParagraphs.some((text, i) => text !== finalParagraphs[i])) throw new Error("표시한 서사와 저장된 결과가 일치하지 않습니다.");
+          for (let i = streamedParagraphs.length; i < finalParagraphs.length; i++) onStreamEvent({ type: "paragraph", index: i, text: finalParagraphs[i], source: snapshot.currentScene.paragraphSources?.[i] ?? snapshot.currentScene.source });
+        }
         const assetsReady = preloadNextSceneAssets(snapshot);
         prepareScenePresentation(snapshot);
         mark("preparedMs");
@@ -3962,7 +4015,7 @@ async function submitAction(
       hasChoiceThought ? null : postChoiceNarrativeSource,
       hasChoiceThought,
     ) : undefined;
-    const immediateNarrativePromise = hasImmediateNarrative
+    immediateNarrativePromise = hasImmediateNarrative
       ? hasChoiceThought ? beginNarrative() : transitionPromise.then(beginNarrative)
       : Promise.resolve();
     const [{ snapshot, error }] = await Promise.all([
@@ -3974,6 +4027,7 @@ async function submitAction(
       throw error;
     }
     await immediateNarrativePromise;
+    await paragraphQueue;
     mark("presentationReadyMs");
     if (needsFreshGame(snapshot)) {
       finishActionTransition();
@@ -4003,17 +4057,18 @@ async function submitAction(
     finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
+    if (streamedParagraphs.length) client.renderedStorySurfaceId = storySurfaceId(snapshot);
     render({
-      animateScene: hasImmediateNarrative
+      animateScene: streamedParagraphs.length ? false : hasImmediateNarrative
         ? true
         : shouldAnimateScene({
             source: "action",
             previousSnapshot,
             nextSnapshot: snapshot,
           }),
-      appendScene: (hasImmediateNarrative && (!hasChoiceThought || !didMove)) || continueLocationStory,
-      scrollSceneToStart: continueLocationStory && !hasChoiceThought,
-      continueActionStory: hasChoiceThought && !didMove,
+      appendScene: !streamedParagraphs.length && ((hasImmediateNarrative && (!hasChoiceThought || !didMove)) || continueLocationStory),
+      scrollSceneToStart: !streamedParagraphs.length && continueLocationStory && !hasChoiceThought,
+      continueActionStory: !streamedParagraphs.length && hasChoiceThought && !didMove,
     });
     mark("renderedMs");
     timing.renderWorkMs = timing.renderedMs - timing.presentationReadyMs;
@@ -4107,6 +4162,22 @@ async function bootstrap() {
     throw new Error("서버 상태가 올바르지 않습니다.");
   }
   await showHomeScreen();
+  let pending;
+  try { pending = JSON.parse(window.sessionStorage.getItem(PENDING_ACTION_KEY) || "null"); } catch { /* No recoverable receipt. */ }
+  if (pending?.gameId && pending?.requestId) {
+    let settled = false;
+    try {
+      const snapshot = await api(`/api/games/${encodeURIComponent(pending.gameId)}/actions/${encodeURIComponent(pending.requestId)}`);
+      settled = true;
+      client.gameId = snapshot.gameId;
+      client.snapshot = snapshot;
+      client.lastFetchedAt = Date.now();
+      client.hasUnsavedProgress = true;
+      showGameScreen();
+      render({ animateScene: false });
+    } catch (error) { settled = error.status === 404; }
+    finally { if (settled) try { window.sessionStorage.removeItem(PENDING_ACTION_KEY); } catch { /* Optional storage. */ } }
+  }
   refreshTransientScrollbars();
   window.setInterval(() => {
     renderStatusBar();

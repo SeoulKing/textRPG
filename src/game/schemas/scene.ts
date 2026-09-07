@@ -24,6 +24,7 @@ export const SceneCardSchema = z.object({
   locationId: z.string(),
   title: z.string(),
   paragraphs: z.array(z.string()).min(1),
+  paragraphSources: z.array(z.enum(["llm", "template"])).optional(),
   introFlag: z.string().optional(),
   choices: z.array(StoryChoiceSchema),
   materialIds: z.object({

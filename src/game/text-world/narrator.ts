@@ -1,12 +1,14 @@
 import { z } from "zod";
-import { EXPLORATION_PROSE_STYLE } from "./narrative-style";
+import { buildNarrationPrompt, compactNarrativeContext, needsGeneratedNarration } from "./narration-prompt";
+import { completedParagraphs } from "../gemini-stream";
+import { currentObservation, markAction, publishParagraph, recordActionTiming } from "../action-observation";
 import { generateGeminiJson, hasGeminiConfig } from "../gemini-client";
 import type { NarrativeContext, WorldEvent, WorldFact } from "../schemas/text-world";
 import { particle } from "./world";
 import { resolveChoiceLabels, type ChoiceLabel } from "./choice-labels";
 import { withoutRepeatedSubwayNarrative } from "../subway-narrative";
 
-export type Narration = { paragraphs: string[]; source: "template" | "llm"; usedFactIds: string[]; choiceLabels?: ChoiceLabel[] };
+export type Narration = { paragraphs: string[]; paragraphSources?: ("llm" | "template")[]; source: "template" | "llm"; usedFactIds: string[]; choiceLabels?: ChoiceLabel[] };
 export type TextWorldNarrator = (context: NarrativeContext, gameId: string) => Promise<Narration>;
 function movedContents(e: WorldEvent) {
   const contents = e.after.containedItems as { name: string; amount: number }[] | undefined;
@@ -174,7 +176,7 @@ export function hasContradictoryAction(context: NarrativeContext, text: string):
     const emptied = context.requiredFacts.some(f => f.kind === "contents" && Array.isArray(f.data.items) && f.data.items.length === 0 && !f.data.previouslyObserved);
     if (emptied && !/비어|비었|비운|비워|비게|아무것도|남은.{0,8}없|남아.{0,5}않|남지.{0,5}않/.test(text)) return true;
     const allowed = JSON.stringify([...context.requiredFacts, ...context.optionalFacts]);
-    if (/포대|자루/.test(text) && !/포대|자루/.test(allowed)) return true;
+    if (["포대", "자루", "봉지"].some(unit => text.includes(unit) && !allowed.includes(unit))) return true;
   }
   const crossed = context.results.some(e => e.type === "MOVE" && e.before.zone !== e.after.zone);
   if (crossed && !/들어(?:선|온|간)|돌아(?:온|간)|걸어|걸음|발(?:을|걸음)|지나|옮|나온|나선/.test(text)) return true;
@@ -209,43 +211,88 @@ export function validateRenderedNarration(context: NarrativeContext, raw: unknow
   const value = raw as Partial<Narration> | null;
   if (!value || !Array.isArray(value.paragraphs) || !Array.isArray(value.usedFactIds) || !["template", "llm"].includes(value.source ?? "")) return null;
   const valid = validateNarration(context, { paragraphs: value.paragraphs.map(text => ({ text, factIds: value.usedFactIds })), choiceLabels: value.choiceLabels });
-  return valid ? { ...valid, source: value.source! } : null;
+  return valid ? { ...valid, source: value.source!, paragraphSources: value.paragraphSources?.length === valid.paragraphs.length && value.paragraphSources.every(s => s === "llm" || s === "template") ? value.paragraphSources : undefined } : null;
 }
-export const narrateTextWorld: TextWorldNarrator = async (context, gameId) => {
-  if (context.intent.id === "overview" || !hasGeminiConfig()) return fallbackNarration(context);
+export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) => {
+  const context = compactNarrativeContext(fullContext);
+  if (!needsGeneratedNarration(context) || !hasGeminiConfig()) {
+    recordActionTiming({ narration: "template", fallbackReason: hasGeminiConfig() ? "routine_action" : "not_configured" });
+    return fallbackNarration({ ...context, paragraphCount: needsGeneratedNarration(context) ? context.paragraphCount : { min: 1, max: 1 } });
+  }
+  const accepted: { text: string; factIds: string[] }[] = [];
+  let invalidPrefix = false;
+  const remainingFallback = () => {
+    const used = new Set(accepted.flatMap(p => p.factIds));
+    const requiredFacts = context.requiredFacts.filter(f => !used.has(f.id));
+    const optionalFacts = context.optionalFacts.filter(f => !used.has(f.id));
+    const results = requiredFacts.filter(f => f.kind === "result").map(f => f.data as WorldEvent);
+    if (!requiredFacts.length && accepted.length >= context.paragraphCount.min) return { paragraphs: [], usedFactIds: [] };
+    return fallbackNarration({ ...context, results, requiredFacts, optionalFacts, paragraphCount: { min: 1, max: 1 } });
+  };
+  const recover = (reason: string): Narration => {
+    recordActionTiming({ narration: accepted.length ? "mixed" : "template", fallbackReason: reason });
+    if (!accepted.length) return fallbackNarration(context);
+    const tail = remainingFallback();
+    return { paragraphs: [...accepted.map(p => p.text), ...tail.paragraphs],
+      paragraphSources: [...accepted.map(() => "llm" as const), ...tail.paragraphs.map(() => "template" as const)],
+      source: tail.paragraphs.length ? "template" : "llm", usedFactIds: [...new Set([...accepted.flatMap(p => p.factIds), ...tail.usedFactIds])],
+      choiceLabels: resolveChoiceLabels(context, []) };
+  };
   try {
-    const result = await generateGeminiJson(
-      EXPLORATION_PROSE_STYLE + " " +
-      "당신은 탐색 게임의 소설 장면을 한국어로 렌더링한다. 현재 시제의 1인칭 체험으로 쓴다. 서술하는 본인은 나다. 나를 당신·너·플레이어·주인공이라 부르거나 밖에서 관찰하지 않는다. 나는·나의도 반복하지 않고, 주어를 생략한 동작과 감각으로 이어 간다. 내 손·내 눈처럼 구분이 필요할 때만 1인칭을 드러낸다. " +
-      "행동 결과를 보고하는 목록이 아니라 직접 겪고 있는 장면을 쓴다. 한 동작 때문에 시야가 바뀌고, 닿은 감촉 때문에 다음 움직임이 이어지도록 쓴다. 불필요한 멈춤·시선 들기·다시 웅크리기를 꾸며 넣지 않는다. 이미 낮춘 자세이면 그 상태에서 이어 간다. 위치의 전체 주소를 매번 반복하지 않는다. intent는 시도한 의도이고 results는 엔진이 실제 수행한 순서다. STOPPED 뒤의 미수행 행동을 성공했다고 쓰지 않는다. requiredFacts의 성공·실패·발견·변화는 모두 전달한다. " +
-      "direction은 시선의 중심과 사건별로 연결할 사실 ID를 정리한 연출 정보다. beats의 순서를 따라 감각과 발견을 실제 원인에 붙인다. 이는 문단 구획이나 별도 문장 목록이 아니며, 여러 beat를 자연스럽게 이어 한 문단에 쓸 수 있다. 결과 ID 하나마다 문장을 하나씩 만들지 않는다. " +
-      "optionalFacts의 감각과 표면 정보는 필요한 것만 고른다. 모든 사실을 나열할 필요는 없다. knownFacts는 과거에 확인한 것으로 현재 볼 수 있다는 뜻이 아니다. " +
-      "recentScenes의 최근 세 장면을 이어 쓴다. 이미 묘사한 상자의 갈라진 뚜껑이나 방 배치를 매 장면 다시 소개하지 않는다. 문단 수를 채우려고 이전 문장을 의역하지 않는다. 수집이라면 물건을 챙기는 순서와 남은 상태를 따라 장면을 진행한다. 재입장 때 이미 확인한 방을 처음 발견한 듯 소개하지 않는다. 위치와 방향은 입구 기준의 고정 배치이며 현재 좌우로 뒤집지 않는다. " +
-      "lighting의 lit은 사물을 구별할 정도라는 뜻이며 환한 조명이나 복도 전체가 밝다는 뜻이 아니다. 어두운 구역에서는 데이터에 있는 광원이 닿는 범위로 표현한다. connection은 문이 직접 연결하는 두 공간이다. 역무실의 대합실 쪽 입구와 복도로 통하는 철문은 서로 다른 출입구다. 입구 기준 좌우를 현재 시선 기준 좌우처럼 쓰지 않는다. 구역이 바뀐 MOVE 결과는 그곳으로 이동했음을 분명히 쓴다. 배경이 보인다는 문장으로 실제 이동을 생략하지 않는다. POSTURE 결과가 없는 장면에서 새로 앉거나 일어서는 동작을 쓰지 않는다. player의 현재 위치·시선·자세·손에 든 도구를 존중하고 직전 동작에서 이어진다. 몸을 낮춘 상태와 손에 든 손전등은 필요한 문장에서 자연스럽게 연결한다. " +
-      "held는 실제 손에 든 물건, carried는 소유하고 지닌 물건, stowed는 챙겨 둔 물건이다. HOLD는 이미 지닌 것을 꺼내 들거나 고쳐 쥐는 행동이며 새 획득이 아니다. TAKE도 before.carried와 before.inventoryRegistered가 둘 다 참이면 이미 챙긴 물건을 용기에서 꺼내 드는 행동이다. inventoryDelta가 실제 인벤토리 변화를 정한다. containedItems는 이미 챙겨 둔 채 함께 옮긴 내용물이며, 그 밖의 숨은 내용물은 추측하지 않는다. STOW는 소유를 유지한 채 챙겨 두는 행동이고 PUT·DROP은 방에 남기는 행동이다. interaction.holding은 지금 조작에 관심을 둔 물건이며 null이어도 다른 물건이나 조명을 손에 들고 있을 수 있다. " +
-      "신체 감각과 관찰에 근거한 짧은 생각은 가능하지만 데이터에 없는 재질·색·소리·냄새·물건·사연·NPC·전투·위험을 만들지 않는다. 감정과 중요한 결정을 대신 정하지 않는다. " +
-      "SERVICE의 paragraphs는 실제 실행된 고유 사건의 기록이고 rewards·stats·moneyDelta는 실제 결과다. 기록에 있는 사람과 처치는 사용할 수 있지만 다른 무작위 결과를 만들지 않는다. 중단된 행동은 이미 실행된 부분까지만 쓴다. " +
-      "recentScenes는 문장 연결용이며 새로운 감각적 사실의 근거로 삼지 않는다. 수납 위치가 데이터에 없으면 가방이나 주머니를 새로 만들어 넣었다고 쓰지 말고 챙기는 동작만 쓴다. 같은 부사를 연달아 반복하지 않는다. " +
-      "선택하지 않은 수집·이동을 쓰지 않는다. 열어 발견했을 뿐이면 챙겼다고 쓰지 않는다. 물건 수량을 보존한다. 단위가 정해지지 않은 쌀을 한 포대나 한 자루로 바꾸지 않는다. 수집 후 내용물이 비었다는 사실이 주어지면 그 빈 상태를 반드시 서술한다. " +
-      "paragraphCount의 문단 수를 지킨다. 중요한 장면은 2~3문단 안에서 움직임·시선·사물·발견을 엮으며 문단별 역할을 고정하지 않는다. 재확인은 짧은 1문단이다. " +
-      "이번 결과 문장은 아직 화면에 표시되지 않았다. 선택한 의도에서 실제 행동과 발견까지 한 장면으로 자연스럽게 서술한다. 행동을 미리 출력했다고 가정하거나 준비 동작을 생략하지 않는다. " +
-      "nextChoices는 서버가 확정한 다음 행동이다. choiceLabels에는 optionId와 자연스러운 버튼 문구 label, 그리고 선택한 줄 아래에 표시할 짧은 속말 thought를 쓴다. thought는 8~30자 정도의 일상적인 1인칭 독백 한 문장이다. 예: 계산대로 다가갈 때 돈이 좀 있을래나. 상황을 보고 생긴 궁금증이나 가벼운 의도만 담는다. defaultThought는 안전한 예시다. hidden contents를 아는 척하거나 수량·새 물건·감정·성공을 단정하지 않는다. 손을 뻗거나 다가가는 행동 묘사로 쓰지 않는다. 주어진 행동·대상·방향·수량과 labelNames의 이름을 보존한다. 새로운 기능이나 선택의 결과, 미리 보여줄 행동 서사는 만들지 않는다. 미래 선택의 결과를 paragraphs에도 넣지 않는다. " +
-      "intent.thought는 클릭할 때 이미 보여 준 속말이며 행동 완료가 아니다. 본문에서 속말을 반복하지 않고 실제 행동과 관찰부터 자연스럽게 이어 쓴다. JSON {paragraphs:[{text,factIds}],choiceLabels:[{optionId,label,thought}]}만 반환한다. factIds에는 해당 문단에서 실제 표현한 사실의 ID만 기록하고 requiredFacts를 빠뜨리지 않는다. " +
-      "본문에 ID, 선택지, 게임 수치, 구조 설명을 쓰지 않는다.",
-      { context }, { responseSchema: NarrationSchema, responseJsonSchema: {
-        type: "object", required: ["paragraphs", "choiceLabels"], properties: { choiceLabels: {
-          type: "array", minItems: context.nextChoices?.length ?? 0, maxItems: context.nextChoices?.length ?? 0,
-          items: { type: "object", required: ["optionId", "label", "thought"], properties: {
-            optionId: { type: "string", ...((context.nextChoices?.length ?? 0) > 0 ? { enum: context.nextChoices!.map(o => o.id) } : {}) }, label: { type: "string" }, thought: { type: "string" },
-          } },
-        }, paragraphs: {
-          type: "array", minItems: context.paragraphCount.min, maxItems: context.paragraphCount.max,
-          items: { type: "object", required: ["text", "factIds"], properties: {
-            text: { type: "string" }, factIds: { type: "array", minItems: 1, items: { type: "string", enum: [...context.requiredFacts, ...context.optionalFacts].map(f => f.id) } },
-          } },
-        } },
-      }, timeoutMs: 20_000, trace: { gameId, scope: context.location.id === "store" ? "card" : "subway", target: "text-world:" + context.location.id + ":narrator" } },
-    );
-    return validateNarration(context, result) ?? fallbackNarration(context);
-  } catch { return fallbackNarration(context); }
+    const result = await generateGeminiJson(buildNarrationPrompt(context), { context }, {
+      // Partial output is usable before the final JSON object and its choice wording exist.
+      onJsonProgress: currentObservation()?.observer.onParagraph ? text => {
+        if (!currentObservation()?.observer.onParagraph || invalidPrefix) return;
+        const paragraphs = completedParagraphs(text);
+        // Reserve one paragraph for any missing facts if the stream fails or is truncated.
+        while (accepted.length < paragraphs.length && accepted.length < context.paragraphCount.max - 1) {
+          const raw = paragraphs[accepted.length];
+          const paragraph = NarrationSchema.shape.paragraphs.element.safeParse(raw);
+          if (!paragraph.success) { invalidPrefix = true; break; }
+          const ids = new Set(paragraph.data.factIds);
+          const localContext = { ...context, paragraphCount: { min: 1, max: 1 },
+            requiredFacts: context.requiredFacts.filter(f => ids.has(f.id)),
+            results: context.requiredFacts.filter(f => f.kind === "result" && ids.has(f.id)).map(f => f.data as WorldEvent) };
+          const valid = validateNarration(localContext, { paragraphs: [paragraph.data] });
+          if (!valid) { invalidPrefix = true; break; }
+          accepted.push({ text: valid.paragraphs[0], factIds: paragraph.data.factIds });
+          // Before publishing, prove a deterministic continuation can still complete this scene.
+          const tail = remainingFallback();
+          const completion = { paragraphs: [...accepted, ...tail.paragraphs.map(text => ({ text, factIds: tail.usedFactIds }))] };
+          if (!validateNarration(context, completion)) { accepted.pop(); invalidPrefix = true; break; }
+          publishParagraph(valid.paragraphs[0], "llm");
+        }
+      } : undefined,
+      responseJsonSchema: {
+        type: "object", required: ["paragraphs", "choiceLabels"], properties: {
+          paragraphs: { type: "array", minItems: context.paragraphCount.min, maxItems: context.paragraphCount.max,
+            items: { type: "object", required: ["text", "factIds"], properties: {
+              text: { type: "string" }, factIds: { type: "array", minItems: 1, items: { type: "string", enum: [...context.requiredFacts, ...context.optionalFacts].map(f => f.id) } },
+            } } },
+          choiceLabels: { type: "array", minItems: context.nextChoices?.length ?? 0, maxItems: context.nextChoices?.length ?? 0,
+            items: { type: "object", required: ["optionId", "label", "thought"], properties: {
+              optionId: { type: "string", ...((context.nextChoices?.length ?? 0) ? { enum: context.nextChoices!.map(o => o.id) } : {}) },
+              label: { type: "string" }, thought: { type: "string" },
+            } } },
+        },
+      },
+      timeoutMs: 20_000, trace: { gameId, scope: context.location.id === "store" ? "card" : "subway", target: "text-world:" + context.location.id + ":narrator" },
+    });
+    const valid = validateNarration(context, result);
+    if (!valid || invalidPrefix || accepted.some((p, i) => p.text !== valid.paragraphs[i])) return recover("invalid_narration");
+    recordActionTiming({ narration: "llm" });
+    return valid;
+  } catch (error) { return recover(error instanceof Error && /timeout|abort/i.test(error.name + error.message) ? "timeout" : "generation_failed"); }
 };
+
+/** All room adapters share final validation and exactly-once paragraph publication. */
+export async function renderNarration(context: NarrativeContext, gameId: string, narrator: TextWorldNarrator) {
+  markAction("rulesMs");
+  const observation = currentObservation(), start = observation?.paragraphs.length ?? 0;
+  let rendered: Narration;
+  try { rendered = validateRenderedNarration(context, await narrator(structuredClone(context), gameId)) ?? fallbackNarration(context); }
+  catch { rendered = fallbackNarration(context); }
+  const emitted = (observation?.paragraphs.length ?? start) - start;
+  for (let i = emitted; i < rendered.paragraphs.length; i++) publishParagraph(rendered.paragraphs[i], rendered.paragraphSources?.[i] ?? rendered.source);
+  return rendered;
+}

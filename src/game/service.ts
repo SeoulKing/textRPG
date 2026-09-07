@@ -3,6 +3,7 @@ import { planActivity } from "./activity";
 import { materialSourceHints } from "./material-guidance";
 import { formatOutcomeHint } from "./outcome-hint";
 import { currentTextWorld, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
+import { currentObservation, markAction, observeAction, recordActionTiming, type ActionObserver } from "./action-observation";
 import { reconcileWorldInventory } from "./text-world/interactions";
 import { ensureConvenienceWorld } from "./text-world/convenience";
 import { ensureLocationWorld, hasLocationWorld } from "./text-world/location-world";
@@ -888,12 +889,32 @@ export class GameService {
     return snapshot;
   }
 
-  async performAction(gameId: string, action: GameAction) {
-    return this.withGameMutation(gameId, () => this.performActionUnlocked(gameId, action));
+  async performAction(gameId: string, action: GameAction, observer: ActionObserver = {}) {
+    return observeAction(observer, () => this.withGameMutation(gameId, () => {
+      markAction("queueMs");
+      return this.performActionUnlocked(gameId, action);
+    }));
+  }
+
+  async recoverAction(gameId: string, requestId: string) {
+    return this.withGameMutation(gameId, async () => {
+      const session = await this.repository.loadGame(gameId);
+      const world = currentTextWorld(session.state);
+      return world?.lastRequest?.id === requestId && world.lastRequest.revision === world.revision ? this.buildSnapshot(session, null) : null;
+    });
   }
 
   private async performActionUnlocked(gameId: string, action: GameAction) {
     const session = await this.repository.loadGame(gameId);
+    markAction("loadMs");
+    const requestId = currentObservation()?.observer.requestId;
+    const actionKey = action.type === "text_world" ? JSON.stringify([action.type, action.command, action.optionId ?? null, action.revision ?? null]) : "";
+    const existingWorld = currentTextWorld(session.state);
+    if (action.type === "text_world" && requestId && existingWorld?.lastRequest?.id === requestId) {
+      if (existingWorld.lastRequest.actionKey !== actionKey || existingWorld.lastRequest.revision !== existingWorld.revision) throw new Error("이미 처리된 요청과 현재 행동이 다릅니다. 장면을 다시 확인해 주세요.");
+      recordActionTiming({ replayed: true });
+      return this.buildSnapshot(session, null);
+    }
     delete session.state.npcDialogue.departure;
     if (session.state.lastActivity && ["text_world", "npc_dialogue", "subway_expedition"].includes(action.type)) delete session.state.lastActivity.paragraphs;
     const previousDay = session.state.day;
@@ -940,9 +961,13 @@ export class GameService {
       syncScene(session.state);
       await this.replanTomorrowIfNeeded(session, previousDay);
       await this.ensureCards(session);
+      const completedWorld = currentTextWorld(session.state);
+      if (requestId && completedWorld) completedWorld.lastRequest = { id: requestId, actionKey, revision: completedWorld.revision };
       await this.repository.appendActionLog({ gameId, action, at: session.updatedAt, location: session.state.location, day: session.state.day });
       const snapshot = this.buildSnapshot(session, null);
+      const saveStarted = performance.now();
       await this.repository.saveGame(session);
+      recordActionTiming({ saveMs: Math.round(performance.now() - saveStarted) });
       return snapshot;
     }
 
