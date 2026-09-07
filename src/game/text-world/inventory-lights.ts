@@ -25,7 +25,7 @@ export function inventoryLightControls(state: GameState) {
 }
 
 /** A desired state plus revision makes delayed/double clicks unable to toggle it back. */
-export function performInventoryLightAction(state: GameState, action: Extract<GameAction, { type: "item_light" }>) {
+export function performInventoryLightAction(state: GameState, action: Extract<GameAction, { type: "item_light" }>, deferNarration=false) {
   if (state.isGameOver || state.stageClear) throw new Error("지금은 아이템을 조작할 수 없습니다.");
   reconcileWorldInventory(state);
   const control = inventoryLightControls(state).find(c => c.worldId === action.worldId && c.entityId === action.entityId);
@@ -56,7 +56,7 @@ export function performInventoryLightAction(state: GameState, action: Extract<Ga
   applySystemNote(before, state);
   setSystemNote(state, [...state.systemNoteEntries.filter(entry => entry.type !== "time"),
     { type: "text", text: control.name + (world.entities[action.entityId].components.light!.on ? " 켜짐" : " 꺼짐") + " · +" + result.elapsedSeconds + "초", tone: "neutral" }]);
-  if (inScene) {
+  if (inScene && !deferNarration) {
     world.lastIntent = { id: "inventory-light:" + action.entityId, label: control.name + (action.on ? " 켜기" : " 끄기"), importance: "minor" };
     const context = directNarrative(world), rendered = fallbackNarration(context);
     world.sceneRevision++;

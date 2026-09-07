@@ -1,3 +1,5 @@
+import { spatialCombatActive, spatialCombatUpgrade, synchronizeCombatPresence } from "./combat-options";
+import { refreshCombatDecision } from "./expedition-combat";
 import { ensureExpeditionFloor } from "./expedition-floor-world";
 import { expeditionFloorReady } from "./expedition-floor-state";
 import { hasSubwayStockBinding, syncSubwayStockWorld } from "./subway-stock";
@@ -37,7 +39,7 @@ export function currentTextWorld(state: GameState) {
 /** A read-only view of everything the player can deliberately try, beyond the director's suggestions. */
 export function explorationInteractions(state: GameState, registry = buildRuntimeRegistry(state)) {
   const world = currentTextWorld(state);
-  if (!world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active) return null;
+  if (!world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active || spatialCombatUpgrade(state)) return null;
   const candidates = state.location === "convenience" ? availableConvenienceOptions(state, registry)
     : (state.location === "subway" || hasLocationWorld(state, registry)) ? availableLocationWorldOptions(state, registry) : availableWorldOptions(world, state);
   const visible = visibleEntities(world).sort((a, b) => a.id.localeCompare(b.id));
@@ -79,7 +81,7 @@ export function textWorldActions(state: GameState, registry: ContentRegistry = b
   return profile?.homeLocationId === state.location && world?.player.focusEntityId === actor!.id ? [buildNpcDialogueStartAction(profile), ...choices.slice(0,4)] : choices;
 }
 export function textWorldScene(state: GameState, registry = buildRuntimeRegistry(state)): SceneCard | null {
-  if (state.npcDialogue.active || state.subwayExpedition.active && !expeditionFloorReady(state) || state.isGameOver || state.stageClear) return null;
+  if (state.npcDialogue.active || state.subwayExpedition.active && !expeditionFloorReady(state) && !spatialCombatActive(state) && !spatialCombatUpgrade(state) || state.isGameOver || state.stageClear) return null;
   const world = currentTextWorld(state);
   if (!world?.active) return null;
   return { id: "text-world:" + state.location + ":" + world.sceneRevision, locationId: state.location, title: worldRooms(world)[world.player.zone].name,
@@ -125,10 +127,14 @@ export function ensureSubwayStockWorld(state: GameState, registry: ContentRegist
 export async function ensureSubwayWorld(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string, returnText?: string, generateArrival = false) {
   if (state.location !== "subway") { if (state.textWorld) state.textWorld.active = false; return; }
   if (state.subwayExpedition.active) {
-    if (!expeditionFloorReady(state)) { if(state.textWorld)state.textWorld.active=false;return; }
-    if (ensureExpeditionFloor(state,registry)) {
+    if(spatialCombatUpgrade(state)){synchronizeCombatPresence(state);return;}
+    const combat=spatialCombatActive(state);
+    if(!combat && !expeditionFloorReady(state)){if(state.textWorld)state.textWorld.active=false;return;}
+    const entered=ensureExpeditionFloor(state,registry,combat);
+    if(combat){synchronizeCombatPresence(state);if(entered)refreshCombatDecision(state,gameId);}
+    if (entered) {
       const w=state.textWorld!;w.events=[];w.lastIntent={id:"enter",label:"통로에서 수색 구역으로 들어선다",importance:"major"};
-      recordEvent(w,{type:"ENTER",targetId:w.player.zone,before:{},after:{zone:w.player.zone,entryText:"주변을 살필 수 있게 되어 수색 구역 입구에 선다."}});
+      recordEvent(w,{type:"ENTER",targetId:w.player.zone,before:{},after:{zone:w.player.zone,entryText:combat ? "계단을 내려와 지하층 통로 앞에 선다." : "주변을 살필 수 있게 되어 수색 구역 입구에 선다."}});
       w.revision++;w.sceneRevision++;
       const context=directNarrative(w);context.nextChoices=nextNarrativeChoices(w,locationWorldOptions(state,registry));
       const rendered=fallbackNarration(context);storeChoiceLabels(w,context,rendered.choiceLabels);

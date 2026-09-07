@@ -7,6 +7,8 @@ import { isHeld, releaseHand } from "./hands";
 import { inventoryTreeAvailable, transferInventoryOwnership } from "./inventory-state";
 export { reconcileWorldInventory } from "./inventory-state";
 
+import { canProvideCover } from "./spatial";
+
 export const interactionTypes = new Set<WorldAction["type"]>(["PUSH", "PUT", "DROP", "WAIT", "HIDE"]);
 export function validateInteraction(world: TextWorld, state: GameState, action: WorldAction): string | null {
   if (action.type === "WAIT") return Number.isInteger(action.durationSeconds ?? 5) && (action.durationSeconds ?? 5) > 0 && (action.durationSeconds ?? 5) <= 60 ? null : "기다릴 시간은 1초부터 60초까지 정할 수 있다.";
@@ -14,7 +16,7 @@ export function validateInteraction(world: TextWorld, state: GameState, action: 
   if (!source || !visibleEntities(world).some(e => e.id === source.id)) return "지금은 그 대상을 확인할 수 없다.";
   if (!canReach(world, source)) return "먼저 손이 닿는 곳까지 다가가야 한다.";
   const c = source.components;
-  if (action.type === "HIDE") return c.physical?.opaque && c.physical.volume >= 5 && c.position.zone === world.player.zone ? null : "몸을 가릴 만큼 큰 사물이 아니다.";
+  if (action.type === "HIDE") return canProvideCover(world,source) ? null : "몸을 가릴 만큼 큰 사물이 아니다.";
   if (action.type === "PUSH") {
     if (!c.physical?.movable || c.position.zone === "player" || ancestors(world, source).length) return "지금 배치된 자리에서는 밀어 옮길 수 없다.";
     if (totalMass(world, source) > (world.player.pushCapacity ?? 40)) return "내용물까지 합친 무게가 무거워 밀어 옮길 수 없다.";

@@ -5,6 +5,7 @@ import { handledEntityId, isHeld } from "./hands";
 import { resolveWorldActions } from "./engine";
 import { visibleEntities, particle } from "./world";
 import { availableToolProfiles, toolTechniques, type ToolTechnique } from "./tool-rules";
+import { canProvideCover } from "./spatial";
 import { buildRuntimeRegistry } from "../runtime-registry";
 
 /** Compose source/target capabilities. No room ID, object ID or bespoke puzzle handler is required. */
@@ -52,7 +53,7 @@ export function interactionOptions(world: TextWorld, state: GameState): WorldOpt
         add("push:" + source.id + ":" + target.id + ":" + relation, particle(source.name, "을", "를") + (releasing ? " 옆으로 밀어 길을 비운다" : " " + target.name + (relation === "blocking" ? " 앞으로 민다" : " 옆으로 민다")), releasing ? "통로 확보" : "사물 배치 변경", [...approach(source.id), { type: "PUSH", target: source.id, destination: target.id, relation }]);
       }
     }
-    if (c.position.relation === "blocking" && c.physical?.opaque && (known?.inspected || known?.collected)) {
+    if (canProvideCover(world,source)) {
       if (world.player.coverId === source.id && world.player.relation === "behind") add("emerge:" + source.id, source.name + " 뒤에서 몸을 일으켜 나온다", "시야 확보", [{ type: "POSTURE", posture: "standing" }, { type: "MOVE", target: source.id }], "minor");
       else add("hide:" + source.id, source.name + " 뒤로 몸을 낮춰 살핀다", "가림과 시야", [...approach(source.id), { type: "HIDE", target: source.id }]);
     }

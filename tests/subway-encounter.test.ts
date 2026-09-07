@@ -852,8 +852,8 @@ test("기존 지하철 저장 데이터에는 encounter 기본값이 추가된�
   assert.deepEqual(parsed.runBuild.pendingUpgradeChoices, []);
 });
 
-test("LLM 생성 실패 후에도 ST 판정과 시간을 보존하고 fallback 선택지로 계속한다", async () => {
-  const state = await stateWithBanditEncounter();
+test("기존 조우의 LLM 생성 실패 후에도 ST 판정과 시간을 보존하고 fallback 선택지로 계속한다", async () => {
+  const state = await stateWithBanditEncounter(false);
   const stored: GameSession = {
     id: "transaction-test",
     createdAt: "2026-07-29T00:00:00.000Z",

@@ -40,5 +40,6 @@ export function buildNarrationPrompt(context: NarrativeContext) {
   if (types.has("LIGHT") || context.player.heldTool || context.location.lighting === "dark") instructions.push("lit은 구별할 정도의 빛이다. 광원이 닿는 범위만 묘사하며 구역 전체가 환하다고 단정하지 않는다.");
   if (types.has("SERVICE")) instructions.push("SERVICE의 paragraphs는 실제 고유 사건 기록이다. 기록의 인물과 처치만 사용하고 rewards·stats·moneyDelta와 다른 결과를 만들지 않는다.");
   if (types.has("STOPPED")) instructions.push("STOPPED에서 중단됐다. 이미 실행된 부분과 실패를 구분하고 그 뒤 미수행 행동을 성공했다고 쓰지 않는다.");
+  if(types.has("COMBAT") || context.results.some(e=>e.type==="ACTOR_MOVE" || e.type==="OPEN"&&e.after.actorName))instructions.push("COMBAT는 서버가 확정한 전투 결과다. damageDealt·damageTaken·resolution과 coverName만으로 적중, 부상, 엄폐 효과와 전투 종료를 판단한다. 엄폐는 반격 가능성을 낮추며 무적이나 은신 성공을 뜻하지 않는다. ACTOR_MOVE와 actorName이 있는 OPEN은 상대의 행동이다. 상대가 문을 열거나 따라오는 장면을 내 행동으로 바꾸지 않는다. 적의 무기·상처 부위·대사·시체의 전리품을 새로 만들지 않는다.");
   return instructions.join(" ");
 }

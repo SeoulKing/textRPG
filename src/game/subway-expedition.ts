@@ -559,7 +559,7 @@ export function completeSubwayFloor(state: GameState) {
   if (!expedition.active || !expedition.currentFloor) {
     throw new Error("진행 중인 지하철 심층 탐험이 없습니다.");
   }
-  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete") {
+  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete" || expedition.spatialMode && ["escaped","failed","player_defeated"].includes(progress.encounter?.resolution ?? "")) {
     throw new Error("핵심 상황을 먼저 해결해야 합니다.");
   }
   progress.phase = "complete";
@@ -658,7 +658,7 @@ export async function descendSubwayFloor(
   if (!expedition.active || !floor) {
     throw new Error("진행 중인 지하철 심층 탐험이 없습니다.");
   }
-  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete") {
+  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete" || expedition.spatialMode && ["escaped","failed","player_defeated"].includes(progress.encounter?.resolution ?? "")) {
     throw new Error("이 층의 핵심 상황이 끝난 뒤 내려갈 수 있습니다.");
   }
 
@@ -951,6 +951,7 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
   }
 
   if (phase === "complete") {
+    if(expedition.spatialMode && ["escaped","failed","player_defeated"].includes(expedition.currentFloorProgress.encounter?.resolution ?? ""))return [returnAction(state)];
     const descendAction: ActionChoice = {
       id: "descend-subway-floor",
       label: "다음 층으로 내려간다",

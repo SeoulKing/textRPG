@@ -38,8 +38,23 @@ function eventText(e: WorldEvent) {
         + (e.after.destroyed ? " 구조가 부서진다." + (e.after.opened ? e.after.portal ? " 막혔던 통로가 열린다." : " 가려져 있던 안쪽이 드러난다." : "") : e.after.technique !== "pry" ? " 아직 구조가 남아 있다." : "")
         + (e.after.toolBroken ? " 사용한 도구가 닳아 더는 쓸 수 없다." : "");
     }
+    case "ITEM_USE": return particle(name,"을","를")+" 사용한다.";
+    case "ACTOR_MOVE": return name+"가 "+String(e.after.destination)+" 쪽으로 다가온다.";
+    case "COMBAT": {
+      let text=e.after.actionText ? String(e.after.actionText)+" " : "";
+      if(e.after.resolution==="victory")text+=name+"가 쓰러져 더는 공격하지 못한다.";
+      else if(e.after.resolution==="talked_down")text+="말을 들은 "+name+"가 싸움을 멈춘다.";
+      else if(e.after.resolution==="escaped")text+="거리를 벌려 위협에서 벗어난다.";
+      else if(e.after.resolution==="player_defeated")text+="더 버티지 못하고 쓰러진다.";
+      else if(Number(e.after.damageDealt)>0)text+=name+"에게 "+e.after.damageDealt+"만큼 피해를 준다.";
+      else if(e.after.success===false)text+="시도가 뜻대로 되지 않는다.";
+      if(Number(e.after.damageTaken)>0)text+=" 반격에 "+e.after.damageTaken+"만큼 피해를 입는다.";
+      else if(e.after.counterAttempted)text+=" 반격에 다치지 않고 버틴다.";
+      if(e.after.coverName)text+=" "+e.after.coverName+" 뒤에 낮춘 몸이 가려진다.";
+      return text.trim() || "상대의 움직임을 경계하며 자리를 지킨다.";
+    }
     case "NPC_REACTION": return name + "의 목소리가 들린다. “" + String(e.after.dialogue) + "”";
-    case "OPEN": return particle(name, "을", "를") + " 연다.";
+    case "OPEN": return (e.after.actorName ? String(e.after.actorName)+"가 " : "")+particle(name, "을", "를") + " 연다.";
     case "REPAIR": return String(e.after.effort) + " " + particle(name, "을", "를") + " 다시 쓸 수 있게 손본다."
       + (e.after.lockBroken ? " 망가진 잠금장치는 그대로다." : "") + (e.after.toolBroken ? " 사용한 도구가 닳아 더는 쓸 수 없다." : "");
     case "CLOSE": return particle(name, "을", "를") + " 닫는다.";
@@ -87,6 +102,7 @@ function factText(f: WorldFact): string {
     const reduction = Math.round((1 - Number(d.durationMultiplier)) * 100);
     return String(d.name) + (reduction > 0 ? "를 사용하면 " + kinds + " 시간이 " + reduction + "% 줄어든다." : "에서 " + kinds + " 작업을 할 수 있다.");
   }
+  if (f.kind === "threat") return particle(String(d.name), "은", "는")+(d.defeated?" 쓰러져 더는 공격하지 못한다.":d.hostile?" 공격할 태세로 움직임을 주시하고 있다.":" 싸움을 멈춘 상태다.");
   if (f.kind === "structure") return d.destroyed ? d.name + "의 구조는 부서진 상태다." : d.lockBroken ? d.name + "의 잠금장치가 망가져 있다." : d.integrity !== d.maxIntegrity ? d.name + "의 " + d.material + " 구조에 손상이 남아 있다." : d.name + "의 구조는 " + d.material + "로 되어 있다.";
   if (f.kind === "layout") return String(d.layout);
   if (f.kind === "surface" || f.kind === "sensory") return String(d.detail);

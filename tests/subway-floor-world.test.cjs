@@ -30,10 +30,10 @@ const {reconcileWorldInventory,transferInventoryOwnership}=require('../.server-d
 const {carriedByPlayer}=require('../.server-dist/game/text-world/spatial');
 async function safeFloor(setup=()=>{}){return fixture(async s=>{await startSubwayExpedition(s,'floor-test');Object.assign(s.subwayExpedition.currentFloorProgress,{eventResolved:true,phase:'complete'});setup(s);});}
 async function peacefulResolution(f){
- for(let i=0;i<8&&!f.snap.exploration;i++){
+ for(let i=0;i<8&&!f.state.subwayExpedition.currentFloorProgress.eventResolved;i++){
   const command=f.rows.find(r=>r.action.command==='acknowledge_encounter'||r.action.command==='choose_upgrade');
   if(command){await f.raw(command.action);continue;}
-  const choice=f.state.subwayExpedition.currentFloorProgress.encounter?.currentScene?.choices.find(c=>c.intent.primary==='persuade');assert(choice,'persuasion must be offered');await f.choose(choice.id);
+  const choice=f.state.subwayExpedition.currentFloorProgress.encounter?.currentScene?.choices.find(c=>c.intent.primary==='persuade');assert(choice,'persuasion must be offered');await f.choose((f.world.active?"combat:":"")+choice.id);
  }
  assert(f.snap.exploration,'resolved encounter must hand back to spatial exploration');
 }

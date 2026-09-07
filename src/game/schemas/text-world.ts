@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const PhysicalSchema = z.object({ mass: z.number().nonnegative(), volume: z.number().positive().default(1), movable: z.boolean().default(false), opaque: z.boolean().default(true), blocksPassage: z.boolean().default(false), supportCapacity: z.number().nonnegative().optional() });
+const PhysicalSchema = z.object({ mass: z.number().nonnegative(), volume: z.number().positive().default(1), movable: z.boolean().default(false), opaque: z.boolean().default(true), blocksPassage: z.boolean().default(false), providesCover: z.boolean().optional(), supportCapacity: z.number().nonnegative().optional() });
 const MaterialCostSchema = z.object({ itemId: z.string(), amount: z.number().int().positive() });
 
 export const TextEntityDetailsSchema = z.object({
@@ -17,6 +17,7 @@ export const TextEntitySchema = z.object({
   origin: z.object({ worldId: z.string(), entityId: z.string() }).optional(),
   details: TextEntityDetailsSchema.optional(),
   components: z.object({
+    combatant: z.object({ encounterId: z.string(), hostile: z.boolean(), hp: z.number().int().nonnegative(), maxHp: z.number().int().positive() }).optional(),
     actor: z.object({ npcId: z.string(), active: z.boolean().optional() }).optional(),
     craftingStorage: z.boolean().optional(),
     workstation: z.object({ kinds: z.array(z.enum(["craft", "cook", "build"])).min(1), durationMultiplier: z.number().min(0.25).max(1) }).optional(),
@@ -55,7 +56,7 @@ export const TextRoomSchema = z.object({
 export type TextRoom = z.infer<typeof TextRoomSchema>;
 const FactSchema = z.object({ id: z.string(), kind: z.string(), targetId: z.string().optional(), data: z.record(z.string(), z.unknown()) });
 export const WorldEventSchema = z.object({
-  type: z.enum(["ENTER", "MOVE", "POSTURE", "INSPECT", "UNLOCK", "OPEN", "CLOSE", "TAKE", "HOLD", "STOW", "LIGHT", "LOOK", "SURVEY", "LEAVE", "STOPPED", "STORY", "PUSH", "PUT", "DROP", "WAIT", "HIDE", "SOUND", "LIGHT_EXPIRED", "AUTO_CLOSE", "DEFOCUS", "FOCUS", "WORK", "SERVICE", "USE_TOOL", "REPAIR", "NPC_REACTION"]),
+  type: z.enum(["ENTER", "MOVE", "POSTURE", "INSPECT", "UNLOCK", "OPEN", "CLOSE", "TAKE", "HOLD", "STOW", "LIGHT", "LOOK", "SURVEY", "LEAVE", "STOPPED", "STORY", "PUSH", "PUT", "DROP", "WAIT", "HIDE", "SOUND", "LIGHT_EXPIRED", "AUTO_CLOSE", "DEFOCUS", "FOCUS", "WORK", "SERVICE", "USE_TOOL", "REPAIR", "NPC_REACTION", "ACTOR_MOVE", "COMBAT", "ITEM_USE"]),
   id: z.string().optional(), actorId: z.string().optional(), causedBy: z.string().optional(),
   origin: z.enum(["player", "simulation"]).optional(), witnessed: z.boolean().optional(),
   at: z.number(), targetId: z.string().optional(),

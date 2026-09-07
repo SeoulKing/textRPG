@@ -156,6 +156,7 @@ export const baseItems = {
   }),
   crudeAxe: defineItem({
     id: "crudeAxe",
+    combat: {"kind":"attack","hitChance":85,"damage":4,"counterChance":60},
     name: "손도끼",
     description: "고철 날과 짧은 목재 손잡이를 천으로 단단히 감아 만든 조잡한 도끼다. 오래 쓰긴 어렵지만 벌목에는 확실히 낫다.",
     kind: "tool",
@@ -167,6 +168,7 @@ export const baseItems = {
   }),
   utilityKnife: defineItem({
     id: "utilityKnife",
+    combat: {"kind":"attack","hitChance":90,"damage":3,"counterChance":50},
     name: "간이 칼",
     description: "얇은 금속 조각을 갈아 만든 작은 칼이다. 덤불과 천을 가르는 데는 충분하지만 날이 금방 무뎌진다.",
     kind: "tool",
@@ -178,6 +180,7 @@ export const baseItems = {
   }),
   subwayBaton: defineItem({
     id: "subwayBaton",
+    combat: {"kind":"attack","hitChance":88,"damage":3,"counterChance":45},
     toolCapabilities: { strike: 4, pry: 3 },
     name: "철제 진압봉",
     description: "지하철 보안함에서 나온 짧은 진압봉이다. 좁은 통로에서도 휘두르기 쉽고 충격이 단단히 실린다.",
@@ -189,6 +192,7 @@ export const baseItems = {
   }),
   makeshiftShield: defineItem({
     id: "makeshiftShield",
+    combat: {"kind":"guard","successChance":100,"damageReduction":0},
     name: "철판 방패",
     description: "개찰구 철판에 손잡이를 단 방패다. 무겁지만 정면에서 들어오는 타격을 확실히 받아 낸다.",
     kind: "tool",
@@ -199,6 +203,8 @@ export const baseItems = {
   }),
   breakerMachete: defineItem({
     id: "breakerMachete",
+    toolCapabilities: { cut: 4, strike: 3 },
+    combat: {"kind":"attack","hitChance":85,"damage":5,"counterChance":45},
     name: "절연 마체테",
     description: "심층 구역의 지배자가 쓰던 두꺼운 마체테다. 절연 손잡이와 무거운 날이 방호구까지 가른다.",
     kind: "tool",

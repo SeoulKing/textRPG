@@ -8,6 +8,8 @@ import { activityConditionState, localWorkEnvironment } from "./work-environment
 import { planActivity } from "./activity";
 import { materialSourceHints } from "./material-guidance";
 import { formatOutcomeHint } from "./outcome-hint";
+import { spatialCombatActive, spatialCombatUpgrade } from "./text-world/combat-options";
+import { performCombatWorldAction, performCombatInventoryAction, renderSpatialCombat } from "./text-world/expedition-combat";
 import { playerItemIds } from "./item-ledgers";
 import { ensureSubwayWorld, subwayJourneyOption, currentTextWorld, explorationInteractions, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
 import { currentObservation, markAction, observeAction, recordActionTiming, type ActionObserver } from "./action-observation";
@@ -372,6 +374,7 @@ export class GameService {
     state: GameSession["state"],
     latestServerResult?: Parameters<SubwayEncounterSceneGenerator>[0]["latestServerResult"],
   ) {
+    if(state.subwayExpedition.spatialMode && state.subwayExpedition.currentFloorProgress.encounter?.kind==="combat"){await renderSpatialCombat(state,this.runtimeRegistry({state}),this.textWorldNarrator,gameId,latestServerResult);return;}
     const input = { gameId, state, latestServerResult };
     let generation: SubwayEncounterGenerationResult;
     const startedAt = Date.now();
@@ -913,7 +916,7 @@ export class GameService {
 
     if (session.state.location === "subway" && isSubwayStockMenuAction(action, registry)) throw new Error("현재 탐색 장면에 표시된 선택지를 골라 주세요.");
 
-    if (session.state.location === "subway" && session.state.textWorld?.active && !(["text_world", "item_light", "travel", "use_item"].includes(action.type)) && !(action.type === "npc_dialogue" && nearbyWorldNpc(session.state.textWorld, action.npcId))) {
+    if (session.state.location === "subway" && session.state.textWorld?.active && !(["text_world", "item_light", "travel", "use_item"].includes(action.type)) && !(action.type === "subway_expedition" && action.command === "choose_upgrade" && spatialCombatUpgrade(session.state)) && !(action.type === "npc_dialogue" && nearbyWorldNpc(session.state.textWorld, action.npcId))) {
       throw new Error("현재 위치에서 가능한 선택지를 골라 주세요.");
     }
 
@@ -922,9 +925,10 @@ export class GameService {
       throw new Error("현재 탐색 장면에 표시된 선택지를 골라 주세요.");
     }
 
-    if (action.type === "item_light") {
+    if (action.type === "item_light" || action.type === "use_item" && spatialCombatActive(session.state)) {
       const workingState = structuredClone(session.state);
-      performInventoryLightAction(workingState, action);
+      if(spatialCombatActive(workingState))await performCombatInventoryAction(workingState,action,registry,this.textWorldNarrator,gameId);
+      else if(action.type==="item_light")performInventoryLightAction(workingState, action);
       session.state = workingState;
       session.updatedAt = nowIso();
       syncQuestState(session.state);
@@ -939,7 +943,8 @@ export class GameService {
 
     if (action.type === "text_world" && !journey) {
       const workingState = structuredClone(session.state);
-      await performTextWorldAction(workingState, action, gameId, this.textWorldNarrator, registry.textRooms, registry);
+      if(spatialCombatActive(workingState))await performCombatWorldAction(workingState,action,registry,this.textWorldNarrator,gameId);
+      else await performTextWorldAction(workingState, action, gameId, this.textWorldNarrator, registry.textRooms, registry);
       session.state = workingState;
       session.updatedAt = nowIso();
       session.world.sceneCards = {};

@@ -1,3 +1,5 @@
+import { combatWorldOptions, spatialCombatActive, spatialCombatUpgrade, type CombatWorldOption } from "./combat-options";
+import { buildSubwayExpeditionActions } from "../subway-expedition";
 import { expeditionRouteOptions } from "./expedition-floor-state";
 import { setSystemNote } from "../system-note";
 import { synchronizeWorldActors } from "./observers";
@@ -11,13 +13,13 @@ import { formatOutcomeHint } from "../outcome-hint";
 import { getRemainingDailyUses } from "../state-utils";
 import { projectResourceSite, resourceAvailability } from "../resources";
 import { applySystemNote, consumeCurrentSceneIntro, performAction, syncScene } from "../rules";
-import { createLocationTextWorld, visibleEntities, worldRooms } from "./world";
+import { createLocationTextWorld, visibleEntities, worldRooms, portalBetween } from "./world";
 import { transferCarriedEntities, materializeOwnedInventory } from "./inventory";
 import { availableWorldOptions } from "./choices";
 import { directChoices } from "./choice-director";
 import { interactionContext } from "./interaction-context";
 import { choiceLabelFields, nextNarrativeChoices, storeChoiceLabels } from "./choice-labels";
-import { recordEvent, resolveWorldActions } from "./engine";
+import { recordEvent, resolveWorldActions, validateWorldAction } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
 import { renderNarration, type TextWorldNarrator } from "./narrator";
 
@@ -57,19 +59,24 @@ export function syncLocationResources(state: GameState, registry: ContentRegistr
   }
 }
 type LocationOption = { id: string; label: string; hint: string; nodeId?: string; contentActionId?: string; subwayCommand?: "ascend" | "descend" | "return";
-  actions?: WorldAction[]; importance: "major" | "minor"; loading: NonNullable<ActionChoice["loading"]>; remainingUses?: number; stockChoiceIds?: string[]; preparation?: WorldAction[] };
+  actions?: WorldAction[]; importance: "major" | "minor"; loading: NonNullable<ActionChoice["loading"]>; remainingUses?: number; stockChoiceIds?: string[]; preparation?: WorldAction[]; combatChoice?: CombatWorldOption["combatChoice"] };
 
 export function availableLocationWorldOptions(state: GameState, registry: ContentRegistry) {
   const world = worldOf(state);
-  if (!world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active) return [];
+  if (!world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active || spatialCombatUpgrade(state)) return [];
   const candidates: LocationOption[] = availableWorldOptions(world, state)
     .filter(option => !option.actions.some(action => action.type === "TAKE" && isBoundStockItem(world, action.target ?? "")))
     .map(option => {
       const search=option.actions.find(a=>a.type==="INSPECT" && a.target && world.entities[a.target]?.components.expeditionCache && !world.observations[a.target]?.inspected);
       const minutes=search ? world.entities[search.target!]!.components.expeditionCache!.searchMinutes : 0;
-      return {...option,hint:option.hint+(minutes ? " · +"+minutes+"분" : ""),loading:ACTIVITY};
+      return {...option,hint:option.hint+(minutes ? " · +"+minutes+"분" : "")+(spatialCombatActive(state)?" · 전투 대응 +5분":""),loading:ACTIVITY};
     });
-  candidates.push(...boundStockOptions(state, registry, world), ...expeditionRouteOptions(state));
+  candidates.push(...boundStockOptions(state, registry, world), ...expeditionRouteOptions(state), ...combatWorldOptions(state));
+  if(spatialCombatActive(state))for(const travel of [...candidates].filter(o=>o.id.startsWith("travel:"))){
+    const destination=travel.actions?.at(-1)?.target,portal=destination ? portalBetween(world,world.player.zone,destination) : undefined;
+    if(!destination || !portal?.components.openable?.isOpen || portal.components.structure?.integrity===0 || validateWorldAction(world,state,{type:"MOVE",target:destination}))continue;
+    candidates.push({id:"separate:"+destination,label:worldRooms(world)[destination].name.split(" · ").at(-1)+"로 건너가 "+portal.name+"을 닫는다",hint:"이동 후 문 닫기 · 전투 대응 +5분",nodeId:portal.id,actions:[...travel.actions!,{type:"CLOSE",target:portal.id}],importance:"major",loading:ACTIVITY});
+  }
   const focus = interactionContext(world, state).focusEntityId;
   for (const entity of visibleEntities(world)) {
     const focused = entity.id === focus && entity.id === world.player.near && world.observations[entity.id]?.inspected;
@@ -108,12 +115,13 @@ export function locationWorldOptions(state: GameState, registry: ContentRegistry
   return world ? directChoices(world, state, availableLocationWorldOptions(state, registry)) : [];
 }
 export function locationWorldActions(state: GameState, registry: ContentRegistry): ActionChoice[] {
+  if(spatialCombatUpgrade(state))return buildSubwayExpeditionActions(state);
   return locationWorldOptions(state, registry).map(option => ({ id: "text-world:" + state.location + ":" + worldOf(state).revision + ":" + option.id,
     ...choiceLabelFields(worldOf(state), option), outcomeHint: option.hint, showOutcomeHint: true, isAvailable: true,
     loading: option.loading, remainingUses: option.remainingUses,
     action: { type: "text_world", command: "choose", optionId: option.id, revision: worldOf(state).revision } }));
 }
-async function render(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string) {
+export async function renderLocationWorld(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string) {
   const world = worldOf(state);
   syncLocationResources(state, registry);
   syncBoundStockNodes(state, registry, world);
@@ -156,7 +164,7 @@ export async function ensureLocationWorld(state: GameState, registry: ContentReg
   consumeCurrentSceneIntro(state);
   syncScene(state);
   world.revision++;
-  await render(state, registry, narrator, gameId);
+  await renderLocationWorld(state, registry, narrator, gameId);
 }
 export async function performLocationWorldAction(state: GameState, action: Extract<GameAction, { type: "text_world" }>, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string) {
   if (action.command === "enter") {
@@ -185,7 +193,7 @@ export async function performLocationWorldAction(state: GameState, action: Extra
         world.revision++;
         syncScene(state);
         applySystemNote(before, state);
-        if (world.active) await render(state, registry, narrator, gameId);
+        if (world.active) await renderLocationWorld(state, registry, narrator, gameId);
         return;
       }
       const event = recordEvent(world, { type: "WORK", targetId: entity.id, before: { siteId: definition.resourceUse!.siteId },
@@ -212,6 +220,17 @@ export async function performLocationWorldAction(state: GameState, action: Extra
   world.revision++;
   syncScene(state);
   applySystemNote(before, state);
+  recordExpeditionLoot(state,before);
+  if (state.location === "subway" && option.actions) {
+    const seconds=world.elapsedSeconds-(before.textWorld?.elapsedSeconds??0),minutes=Math.floor(seconds/60),remainder=seconds%60;
+    setSystemNote(state,[...state.systemNoteEntries.filter(e=>e.type!=="time"),{type:"text",text:"+"+(minutes ? minutes+"분"+(remainder ? " "+remainder+"초" : "") : seconds+"초"),tone:"neutral"}]);
+  }
+  if (world.active) await renderLocationWorld(state, registry, narrator, gameId);
+}
+
+/** Preserve the same first-discovery ledger during both exploration and combat. */
+export function recordExpeditionLoot(state: GameState,before:GameState){
+  const world=worldOf(state);
   if (state.subwayExpedition.active) {
     const p=state.subwayExpedition.currentFloorProgress;
     for (const event of world.events) {
@@ -224,9 +243,4 @@ export async function performLocationWorldAction(state: GameState, action: Extra
     }
 
   }
-  if (state.location === "subway" && option.actions) {
-    const seconds=world.elapsedSeconds-(before.textWorld?.elapsedSeconds??0),minutes=Math.floor(seconds/60),remainder=seconds%60;
-    setSystemNote(state,[...state.systemNoteEntries.filter(e=>e.type!=="time"),{type:"text",text:"+"+(minutes ? minutes+"분"+(remainder ? " "+remainder+"초" : "") : seconds+"초"),tone:"neutral"}]);
-  }
-  if (world.active) await render(state, registry, narrator, gameId);
 }

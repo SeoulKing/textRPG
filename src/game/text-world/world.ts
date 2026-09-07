@@ -17,7 +17,7 @@ export function entityDetails(world: TextWorld, entity: TextEntity) {
   const resolved = authored && entity.description === authored.surface ? { ...original, responses: original.responses ?? authored.responses } : original;
   const p = entity.components.position, parent = world.entities[p.relativeTo ?? p.zone];
   if (!parent || !p.relation) return entity.components.portal ? { ...resolved, placement: entity.components.portal.to === world.player.zone
-    ? worldRooms(world)[entity.components.portal.from].name.split(" · ").at(-1) + "로 통하는 쪽"
+    ? particle(worldRooms(world)[entity.components.portal.from].name.split(" · ").at(-1)!, "으로", "로") + " 통하는 쪽"
     : resolved.placement.split(" / ")[0] } : resolved;
   const relation = { inside: "안", on: "위", beside: "옆", blocking: "앞을 막는 자리" }[p.relation];
   return { ...resolved, anchor: parent.id, placement: parent.name + " " + relation };

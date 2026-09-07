@@ -75,3 +75,9 @@ export function releaseStructureContents(world: TextWorld, target: TextEntity) {
   }
   return releasedIds;
 }
+
+/** Cover requires an intact, opaque object large enough for a crouching person. */
+export function canProvideCover(world: TextWorld, entity: TextEntity) {
+  const c=entity.components;
+  return Boolean(c.physical?.opaque && c.physical.volume>=5 && (c.physical.providesCover ?? (c.physical.movable || c.position.relation==="blocking")) && c.position.zone===world.player.zone && c.structure?.integrity!==0);
+}

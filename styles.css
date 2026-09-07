@@ -3737,3 +3737,5 @@ body::-webkit-scrollbar,
 .exploration-targets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .exploration-placement { margin: 12px 0 8px; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .exploration-actions { visibility: visible; opacity: 1; }
+/* The mobile story choices are fixed; catalogue actions must stay below their target tabs. */
+.panel-content .exploration-actions { position: static; max-height: none; overflow: visible; padding: 0; }

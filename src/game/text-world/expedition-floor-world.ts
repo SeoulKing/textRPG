@@ -23,8 +23,8 @@ function materializeProvisionalItems(state: GameState, registry: ContentRegistry
 }
 
 /** Geometry and senses are authored engine data; generated loot text cannot introduce objects. */
-export function ensureExpeditionFloor(state: GameState, registry: ContentRegistry) {
-  if (!expeditionFloorReady(state)) return false;
+export function ensureExpeditionFloor(state: GameState, registry: ContentRegistry, duringEncounter = false) {
+  if (!expeditionFloorReady(state) && !(duringEncounter && state.subwayExpedition.active && state.subwayExpedition.currentFloor && state.subwayExpedition.spatialMode && !state.isGameOver && !state.stageClear)) return false;
   const e=state.subwayExpedition, floor=e.currentFloor!, p=e.currentFloorProgress, ids=expeditionFloorIds(state);
   const w=state.textWorld ??=createSubwayTextWorld(registry.textRooms);
   if (!w.rooms?.[ids.room]) {

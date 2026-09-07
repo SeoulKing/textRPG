@@ -10,7 +10,7 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
   const facts: WorldFact[] = [], zone = world.player.zone;
   const add = (id: string, kind: string, data: Record<string, unknown>, targetId?: string) => facts.push({ id, kind, data, targetId });
   const lit = illuminated(world, zone);
-  const placement = (e: TextWorld["entities"][string]) => e.components.portal && e.components.portal.to === zone ? worldRooms(world)[e.components.portal.from].name.split(" · ").at(-1) + "로 통하는 쪽" : entityDetails(world, e).placement.split(" / ")[0];
+  const placement = (e: TextWorld["entities"][string]) => e.components.portal && e.components.portal.to === zone ? particle(worldRooms(world)[e.components.portal.from].name.split(" · ").at(-1)!, "으로", "로") + " 통하는 쪽" : entityDetails(world, e).placement.split(" / ")[0];
   add("light:" + zone, "lighting", { lit }, zone);
   if (lit) {
     const placements = visibleEntities(world).filter(e => e.components.position.zone === zone)
@@ -27,6 +27,7 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
   }
   for (const e of visibleEntities(world)) {
     const c = e.components;
+    if(c.combatant)add("threat:"+e.id,"threat",{name:e.name,hostile:c.combatant.hostile,defeated:c.combatant.hp===0},e.id);
     if (world.entities[c.position.zone]?.components.container && !c.container && c.position.relation !== "on") continue;
     const carried = c.position.zone === "player", held = isHeld(world, e.id), near = world.player.near === e.id;
     const discovered = world.events.some(event => Array.isArray(event.after.revealedIds) && event.after.revealedIds.includes(e.id));
@@ -48,7 +49,7 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
     if (lit && (near || held || discovered)) {
       add("surface:" + e.id, "surface", { name: e.name, detail: c.structure?.integrity === 0 ? e.name + "의 구조가 부서져 있다." : c.openable?.locked ? e.description.replace("잠금장치는 없다.", "잠겨 있다.") : e.description }, e.id);
       // Touch is offered only when this turn actually handles the object.
-      if (entityDetails(world, e).touch && world.events.some(event => event.targetId === e.id && ["TAKE", "HOLD", "STOW", "UNLOCK", "OPEN", "CLOSE", "LIGHT"].includes(event.type)))
+      if (entityDetails(world, e).touch && world.events.some(event => event.origin !== "simulation" && event.targetId === e.id && ["TAKE", "HOLD", "STOW", "UNLOCK", "OPEN", "CLOSE", "LIGHT"].includes(event.type)))
         add("touch:" + e.id, "sensory", { name: e.name, detail: entityDetails(world, e).touch }, e.id);
     }
     for (const [i, response] of (entityDetails(world, e).responses ?? []).entries()) {
@@ -89,7 +90,7 @@ export function directNarrative(world: TextWorld): NarrativeContext {
     const stages = fact.targetId ? world.observations[fact.targetId]?.stages ?? [] : [];
     const newlyObserved = stage ? !stages.includes(stage) : !previous;
     const resourceStatusChanged = !previous || (Number(previous.fact.data.remaining) === 0) !== (Number(fact.data.remaining) === 0) || JSON.stringify(previous.fact.data.missingTools) !== JSON.stringify(fact.data.missingTools);
-    const mandatory = (["structure", "facility"].includes(fact.kind) && changed) || (fact.kind === "resource" && (resourceStatusChanged || world.events.some(e => e.targetId === fact.targetId && e.type === "INSPECT"))) || (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
+    const mandatory = (["structure", "facility", "threat"].includes(fact.kind) && changed) || (fact.kind === "resource" && (resourceStatusChanged || world.events.some(e => e.targetId === fact.targetId && e.type === "INSPECT"))) || (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
       (fact.kind === "surface" && world.events.some(e => (newlyObserved && e.targetId === fact.targetId && e.type === "INSPECT") || (e.type === "SURVEY" && fact.targetId === world.player.zone))) ||
       (fact.kind === "lighting" && (changed || recap)) || (fact.kind === "threshold" && world.events.some(e => e.targetId === fact.targetId && e.type === "OPEN")) ||
       (fact.kind === "connection" && (recap || world.events.some(e => e.targetId === fact.targetId || e.type === "MOVE" && e.before.zone !== e.after.zone)));

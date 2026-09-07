@@ -44,15 +44,15 @@ test('a current stair intent starts the existing expedition once, then an offere
  t.mock.method(Math,'random',()=>0);const f=await fixture();await assert.rejects(f.raw({type:'content_action',actionId:'start_subway_expedition'}),/선택지/);
  await f.choose('focus:subway_depth_stairs');const row=f.rows.find(r=>r.action.optionId==='journey:start_subway_expedition');assert(row);assert.equal(f.snap.availableActions[0].action.optionId,row.action.optionId);
  await assert.rejects(f.raw({...row.action,revision:row.action.revision-1}),/바뀌/);const before=f.state.worldElapsedMs,renders=f.renders;
- const request=await f.raw(row.action);assert(f.state.subwayExpedition.active);assert(!f.world.active);assert.equal(f.snap.exploration,null);assert.equal(f.state.worldElapsedMs,before+10*GAME_MINUTE_MS);assert.equal(f.encounters,1);assert.equal(f.renders,renders);
- const after=JSON.stringify(f.state);await f.service.performAction('concourse-test',request.action,{requestId:request.requestId});assert.equal(JSON.stringify(f.state),after);assert.equal(f.encounters,1);assert(await f.service.recoverAction('concourse-test',request.requestId));
+ const request=await f.raw(row.action);assert(f.state.subwayExpedition.active);assert(f.world.active);assert(f.snap.exploration);assert.equal(f.state.worldElapsedMs,before+10*GAME_MINUTE_MS);assert.equal(f.encounters,0);assert.equal(f.renders,renders+1);
+ const after=JSON.stringify(f.state);await f.service.performAction('concourse-test',request.action,{requestId:request.requestId});assert.equal(JSON.stringify(f.state),after);assert.equal(f.encounters,0);assert(await f.service.recoverAction('concourse-test',request.requestId));
  let returned=false;for(let i=0;i<6;i++){
   const home=f.rows.find(r=>r.action.command==='return');if(home){await f.raw(home.action);returned=true;break;}
   const ack=f.rows.find(r=>r.action.command==='acknowledge_encounter');if(ack){await f.raw(ack.action);continue;}
-  const choices=f.state.subwayExpedition.currentFloorProgress.encounter?.currentScene?.choices??[];const retreat=choices.find(c=>c.intent.primary==='retreat');assert(retreat,'template must offer retreat');const row=f.rows.find(r=>r.action.optionId===retreat.id);assert(row);await f.raw(row.action);
+  const choices=f.state.subwayExpedition.currentFloorProgress.encounter?.currentScene?.choices??[];const retreat=choices.find(c=>c.intent.primary==='retreat');assert(retreat,'template must offer retreat');const row=f.rows.find(r=>r.action.optionId==="combat:"+retreat.id);assert(row);await f.raw(row.action);
  }
- assert(returned);assert(!f.state.subwayExpedition.active);assert(f.world.active);assert.equal(f.world.player.zone,'concourse');assert(f.snap.exploration);assert.match(f.snap.currentScene.paragraphs.join(' '),/귀환/);assert.equal(f.renders,renders);
- const count=f.encounters;await f.poll();assert.equal(f.encounters,count);assert.equal(f.renders,renders);
+ assert(returned);assert(!f.state.subwayExpedition.active);assert(f.world.active);assert.equal(f.world.player.zone,'concourse');assert(f.snap.exploration);assert.match(f.snap.currentScene.paragraphs.join(' '),/귀환/);assert.equal(f.renders,renders+2);
+ const count=f.encounters;await f.poll();assert.equal(f.encounters,count);assert.equal(f.renders,renders+2);
 });
 test('legacy inactive office saves resume in the concourse without resetting objects or actor placement',async()=>{
  const f=await fixture(s=>{s.textWorld=createSubwayTextWorld();s.textWorld.active=false;s.textWorld.rooms.concourse.outsideExploration=true;delete s.textWorld.rooms.concourse.regionalExit;s.textWorld.entities.shumi_presence.components.position.zone='office';s.textWorld.entities.crate.components.openable.isOpen=true;s.textWorld.entities.water.components.position.zone='player';s.textWorld.entities.water.inventoryRegistered=true;s.inventory.waterBottle=1;});

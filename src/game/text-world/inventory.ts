@@ -55,11 +55,14 @@ export function materializeOwnedInventory(state: GameState, world: TextWorld, re
   for (const itemId of Object.keys(state.inventory).sort()) {
     const amount = state.inventory[itemId] - (represented[itemId] ?? 0), item = registry.items[itemId] as ItemCard | undefined;
     if (amount <= 0 || !item) continue;
-    let sequence = 0, id = "owned:" + itemId + ":" + world.revision;
-    while (world.entities[id]) id = "owned:" + itemId + ":" + world.revision + ":" + (++sequence);
-    world.entities[id] = { id, name: item.name, description: item.name, inventoryRegistered: true,
-      ...(item.maxDurability ? { toolDurability: state.toolDurability[itemId] ?? item.maxDurability } : {}),
-      components: { position: { zone: "player" }, portable: { itemId, amount } } };
-    world.observations[id] = { stages: ["outline", "surface"], collected: true };
+    // Tools are physical instances: a worn tool and its unused spare must keep different identities.
+    for(let i=0;i<(item.kind==="tool" ? amount : 1);i++){
+      let sequence = 0, id = "owned:" + itemId + ":" + world.revision;
+      while (world.entities[id]) id = "owned:" + itemId + ":" + world.revision + ":" + (++sequence);
+      world.entities[id] = { id, name: item.name, description: item.name, inventoryRegistered: true,
+        ...(item.maxDurability ? { toolDurability: i===0 ? state.toolDurability[itemId] ?? item.maxDurability : item.maxDurability } : {}),
+        components: { position: { zone: "player" }, portable: { itemId, amount:item.kind==="tool"?1:amount }, ...(itemId==="flashlight" ? {light:{on:false}} : {}) } };
+      world.observations[id] = { stages: ["outline", "surface"], collected: true };
+    }
   }
 }

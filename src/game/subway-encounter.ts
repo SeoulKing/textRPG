@@ -1,3 +1,6 @@
+import { combatTool } from "./tool-combat";
+import { buildRuntimeRegistry } from "./runtime-registry";
+import { combatGeometry } from "./text-world/combat-space";
 import { subwayChoiceThoughtFields } from "./subway-choice-thoughts";
 import { applyTreatment, canApplyTreatment } from "./health-conditions";
 import { baseItems } from "./data/items";
@@ -48,10 +51,10 @@ export type SubwayEncounterActionCatalogEntry = {
   mechanicalHint: string;
 };
 
-const itemDefinition = (itemId: string) =>
-  (baseItems as Record<string, ItemDefinition | undefined>)[itemId];
+const itemDefinition = (itemId: string, state?: GameState) =>
+  (state ? buildRuntimeRegistry(state).items[itemId] : (baseItems as Record<string, ItemDefinition | undefined>)[itemId]) as ItemDefinition | undefined;
 
-const itemName = (itemId: string) => itemDefinition(itemId)?.name ?? itemId;
+const itemName = (itemId: string, state?: GameState) => itemDefinition(itemId,state)?.name ?? itemId;
 
 function availableItemAmount(state: GameState, itemId: string) {
   return (
@@ -231,15 +234,14 @@ function baseCombatActionProfile(
       counterChance: encounter.stage === "opening" ? 50 : 70,
     };
   }
-  if (actionToken === "guard" || actionToken === "use_item:makeshiftShield") {
+  const itemProfile=actionToken.startsWith("use_item:") ? combatTool(state,actionToken.slice("use_item:".length))?.combat : undefined;
+  if (actionToken === "guard" || itemProfile?.kind === "guard") {
     const rank = subwaySkillRank(state, "iron_guard");
     return {
       kind: "guard",
       successChance:
-        actionToken === "use_item:makeshiftShield"
-          ? 100
-          : Math.min(100, 80 + rank * 4),
-      damageReduction: rank,
+        Math.min(100, (itemProfile?.kind === "guard" ? itemProfile.successChance : 80) + rank * 4),
+      damageReduction: rank + (itemProfile?.kind === "guard" ? itemProfile.damageReduction : 0),
     };
   }
   if (actionToken === "fight" || actionToken === "close_attack") {
@@ -266,19 +268,7 @@ function baseCombatActionProfile(
       counterChance: 35,
     };
   }
-  const toolProfiles: Record<string, Omit<Extract<CombatActionProfile, { kind: "attack" }>, "kind">> = {
-    utilityKnife: { hitChance: 90, damage: 3, counterChance: 50 },
-    crudeAxe: { hitChance: 85, damage: 4, counterChance: 60 },
-    subwayBaton: { hitChance: 88, damage: 3, counterChance: 45 },
-    breakerMachete: { hitChance: 85, damage: 5, counterChance: 45 },
-  };
-  if (actionToken.startsWith("use_item:")) {
-    const itemId = actionToken.slice("use_item:".length);
-    const profile = toolProfiles[itemId];
-    if (profile) {
-      return { kind: "attack", ...profile };
-    }
-  }
+  if(itemProfile?.kind==="attack")return {...itemProfile};
   return null;
 }
 
@@ -297,22 +287,23 @@ function combatActionProfile(
   };
 }
 
-function combatMechanicalHint(
+export function combatMechanicalHint(
   state: GameState,
   encounter: SubwayEncounterState,
   actionToken: SubwayEncounterActionId,
 ) {
   const profile = combatActionProfile(state, encounter, actionToken);
   if (!profile) return null;
+  const counterChance=(chance:number)=>combatGeometry(state).reachable?combatCounterChance(state.skillProgress,Math.max(0,chance-combatGeometry(state).counterPenalty)):0;
   if (profile.kind === "attack") {
-    const toolPrefix = actionToken.startsWith("use_item:")
-      ? `${itemName(actionToken.slice("use_item:".length))} 내구도 -1 / `
+    const toolPrefix = actionToken.startsWith("use_item:") && itemDefinition(actionToken.slice("use_item:".length),state)?.maxDurability
+      ? `${itemName(actionToken.slice("use_item:".length),state)} 내구도 -1 / `
       : "";
-    return `${toolPrefix}명중 ${profile.hitChance}%: 적 ${profile.damage}피해 / 반격 ${combatCounterChance(state.skillProgress, profile.counterChance)}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
+    return `${toolPrefix}명중 ${profile.hitChance}%: 적 ${profile.damage}피해 / 반격 ${counterChance(profile.counterChance)}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
   }
   if (profile.kind === "guard") {
-    const toolPrefix = actionToken === "use_item:makeshiftShield"
-      ? "철판 방패 내구도 -1 / "
+    const toolPrefix = actionToken.startsWith("use_item:") && itemDefinition(actionToken.slice("use_item:".length),state)?.maxDurability
+      ? `${itemName(actionToken.slice("use_item:".length),state)} 내구도 -1 / `
       : "";
     const reduction = profile.damageReduction > 0
       ? ` / 실패 피해 -${profile.damageReduction}`
@@ -320,9 +311,9 @@ function combatMechanicalHint(
     return `${toolPrefix}방어 성공 ${profile.successChance}%${reduction} / +5분`;
   }
   if (profile.kind === "talk") {
-    return `성공 ${profile.successChance}% / 실패 시 반격 ${combatCounterChance(state.skillProgress, profile.counterChance)}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
+    return `성공 ${profile.successChance}% / 실패 시 반격 ${counterChance(profile.counterChance)}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
   }
-  return `성공 ${profile.successChance}% / 실패 시 반격 ${combatCounterChance(state.skillProgress, profile.counterChance)}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
+  return `성공 ${profile.successChance}% / 실패 시 반격 ${counterChance(profile.counterChance)}%: 나 ${encounter.enemy?.attack ?? 1}피해 / +5분`;
 }
 
 function rollPercent(rng: () => number) {
@@ -440,16 +431,16 @@ export function combatRewardsForFloor(state: GameState) {
 }
 
 function damageTool(state: GameState, itemId: string) {
-  const item = itemDefinition(itemId);
+  const item = itemDefinition(itemId,state);
   const maxDurability = item?.maxDurability ?? 0;
-  if (maxDurability <= 0 || availableItemAmount(state, itemId) <= 0) {
+  if (item?.kind !== "tool" || availableItemAmount(state, itemId) <= 0) {
     throw new Error("현재 사용할 수 없는 도구입니다.");
   }
-  applyEffect({type:"damage_tool",itemId,amount:1},state);
+  if(maxDurability>0)applyEffect({type:"damage_tool",itemId,amount:1},state);
 }
 
 function useRecoveryItem(state: GameState, itemId: string) {
-  const item = itemDefinition(itemId);
+  const item = itemDefinition(itemId,state);
   if (!item || availableItemAmount(state, itemId) <= 0) {
     throw new Error("현재 사용할 수 없는 아이템입니다.");
   }
@@ -471,13 +462,14 @@ function counterDamage(
   chance: number,
   rng: () => number,
 ) {
-  if (!encounter.enemy || encounter.enemy.hp <= 0) {
+  const space=combatGeometry(state);
+  if (!space.reachable || !encounter.enemy || encounter.enemy.hp <= 0) {
     return { roll: null, damage: 0 };
   }
   const roll = rollPercent(rng);
   return {
     roll,
-    damage: roll <= combatCounterChance(state.skillProgress, chance) ? encounter.enemy.attack : 0,
+    damage: roll <= combatCounterChance(state.skillProgress, Math.max(0,chance-space.counterPenalty)) ? encounter.enemy.attack : 0,
   };
 }
 
@@ -838,6 +830,7 @@ export function resolveSubwaySituationChoice(
   choiceId: string,
   expectedTurnNumber: number | undefined,
   rng: () => number = Math.random,
+  spatial?: { choice: SubwayEncounterChoice; responseSpent?: boolean; physical?: boolean; minutes?: number },
 ) {
   syncClock(state);
   const progress = state.subwayExpedition.currentFloorProgress;
@@ -851,7 +844,7 @@ export function resolveSubwaySituationChoice(
   if (expectedTurnNumber !== encounter.turnNumber) {
     throw new Error("이미 지난 상황 선택입니다. 최신 상황에서 다시 선택해 주세요.");
   }
-  const choice = selectedChoice(encounter, choiceId);
+  const choice = spatial?.choice.id === choiceId ? spatial.choice : selectedChoice(encounter, choiceId);
   if (!choice) {
     throw new Error("현재 상황에서 선택할 수 없는 행동입니다.");
   }
@@ -864,7 +857,7 @@ export function resolveSubwaySituationChoice(
   }
   const actionToken =
     choice.legacyActionToken ?? legacyTokenForIntent(intent);
-  const incomingThreat = encounter.pendingThreat;
+  const incomingThreat = spatial?.responseSpent ? null : encounter.pendingThreat;
   encounter.pendingThreat = null;
   const statsBefore = { ...state.stats };
   const itemTotalsBefore = accessibleItemTotals(state);
@@ -874,7 +867,7 @@ export function resolveSubwaySituationChoice(
   let success = true;
   let damageDealt = 0;
   let damageTaken = 0;
-  let minutes = encounter.kind === "combat" ? 5 : 10;
+  let minutes = spatial?.minutes ?? (encounter.kind === "combat" ? 5 : 10);
   let resolution: SubwayEncounterTurnResult["resolution"] = null;
   let stageAfter: SubwayEncounterState["stage"] = encounter.stage;
   let itemToken: string | null = null;
@@ -884,7 +877,10 @@ export function resolveSubwaySituationChoice(
   if (encounter.kind === "combat") {
     const enemy = encounter.enemy;
     if (!enemy) throw new Error("전투 상대 정보가 없습니다.");
-    if (intent.primary === "persuade") {
+    if (spatial?.physical) {
+      if(incomingThreat && !spatial.responseSpent){const counter=counterDamage(state,encounter,60,rng);counterRoll=counter.roll;damageTaken=counter.damage;}
+      stageAfter="active";
+    } else if (intent.primary === "persuade") {
       const profile = combatActionProfile(state, encounter, actionToken);
       const chance = profile?.kind === "talk"
         ? profile.successChance
@@ -948,13 +944,13 @@ export function resolveSubwaySituationChoice(
       }
     } else if (
       intent.primary === "defend" ||
-      actionToken === "use_item:makeshiftShield"
+      combatActionProfile(state,encounter,actionToken)?.kind === "guard"
     ) {
       const profile = combatActionProfile(state, encounter, actionToken);
       if (incomingThreat) combatTurnXp = COMBAT_TURN_XP;
-      if (actionToken === "use_item:makeshiftShield") {
+      if (actionToken.startsWith("use_item:")) {
         itemToken = actionToken;
-        damageTool(state, "makeshiftShield");
+        damageTool(state, actionToken.slice("use_item:".length));
       }
       actionRoll = rollPercent(rng);
       success = actionRoll <= (
@@ -981,10 +977,11 @@ export function resolveSubwaySituationChoice(
       if (intent.primary === "use_item" && intent.itemId) {
         itemToken = actionToken;
         const itemId = intent.itemId;
-        const item = itemDefinition(itemId);
+        const item = itemDefinition(itemId,state);
         if (item?.kind === "tool") {
+          if(initialProfile?.kind!=="attack")throw new Error("이 도구로 할 수 있는 전투 행동이 아닙니다.");
           damageTool(state, itemId);
-          const itemProfile = combatActionProfile(state, encounter, actionToken);
+          const itemProfile = initialProfile;
           hitChance = itemProfile?.kind === "attack" ? itemProfile.hitChance : 85;
           attackDamage = itemProfile?.kind === "attack" ? itemProfile.damage : 1;
           counterChance = itemProfile?.kind === "attack"
@@ -1027,7 +1024,7 @@ export function resolveSubwaySituationChoice(
     success = actionRoll <= nonCombatChance(actionToken, encounter.kind);
     if (intent.primary === "use_item" && intent.itemId) {
       itemToken = actionToken;
-      const item = itemDefinition(intent.itemId);
+      const item = itemDefinition(intent.itemId,state);
       if (item?.kind === "tool") damageTool(state, intent.itemId);
       else minutes = useRecoveryItem(state, intent.itemId);
     }
@@ -1069,7 +1066,7 @@ export function resolveSubwaySituationChoice(
   }
 
   if (damageTaken > 0) changeSurvivalStat(state, "hp", -damageTaken);
-  advanceGameMinutes(state, minutes);
+  if(minutes>0)advanceGameMinutes(state, minutes);
   syncClock(state);
   if (state.isGameOver || state.stats.hp <= 0) {
     stageAfter = "resolved";
@@ -1121,7 +1118,7 @@ export function resolveSubwaySituationChoice(
       return amount === 0 ? [] : [{ itemId, amount }];
     }),
     toolDurabilityChanges: itemToken &&
-      itemDefinition(itemToken.slice("use_item:".length))?.kind === "tool"
+      itemDefinition(itemToken.slice("use_item:".length),state)?.maxDurability
       ? [{ itemId: itemToken.slice("use_item:".length), amount: -1 }]
       : [],
     selectedThought: subwayChoiceThoughtFields(choice).choiceThought,
