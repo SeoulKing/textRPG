@@ -14,6 +14,7 @@ export function defaultChoiceThought(world: TextWorld, option: ThoughtOption): s
   if (kind === "defocus") return "다른 쪽에도 볼 게 남아 있을까.";
   if (kind === "unlock") return "이 열쇠가 맞겠지.";
   if (kind === "tool") return "이 도구로 길을 낼 수 있을까.";
+  if (kind === "repair") return "손보면 다시 쓸 수 있겠지.";
   if (kind === "enter") return "안쪽에는 뭐가 남아 있을까.";
   if (["collect", "take"].includes(kind) && /꺼내|다시 집어/.test(option.label)) return "다시 꺼내 볼까.";
   if (["collect", "take"].includes(kind)) return "챙겨 두면 쓸 일이 있겠지.";

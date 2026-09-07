@@ -3,9 +3,10 @@ import type { TextEntity, TextWorld, WorldAction } from "../schemas/text-world";
 import { baseItems } from "../data/items";
 import { buildRuntimeRegistry } from "../runtime-registry";
 import { applyEffect, changeSurvivalStat } from "../state-utils";
-import { carriedByPlayer, rootZone } from "./spatial";
+import { carriedByPlayer, rootZone, releaseStructureContents } from "./spatial";
 import { normalizeHands } from "./hands";
 import { inventoryRegistered, reconcileWorldInventory } from "./inventory-state";
+
 
 export type ToolTechnique = "pry" | "cut" | "strike";
 export const toolTechniques = {
@@ -61,16 +62,23 @@ export function applyToolUse(world: TextWorld, state: GameState, action: WorldAc
   else structure.integrity = Math.max(0, structure.integrity - (tool.toolCapabilities![technique]! - structure.resistance + 1));
   const destroyed = structure.integrity === 0, opened = destroyed || technique === "pry";
   if (opened && target.components.openable) {
+    if (destroyed && (target.components.openable.keyId || target.components.openable.locked)) target.components.openable.lockBroken = true;
     Object.assign(target.components.openable, { locked: false, isOpen: true });
     if (destroyed) delete target.components.openable.remainingOpenSeconds;
     else if (target.components.openable.autoCloseSeconds) target.components.openable.remainingOpenSeconds = target.components.openable.autoCloseSeconds;
     if (world.observations[target.id]) delete world.observations[target.id].blocked;
   }
-  if (destroyed && target.components.physical) Object.assign(target.components.physical, { opaque: false, blocksPassage: false, movable: false, supportCapacity: undefined });
-  const revealedIds: string[] = [], salvage = [];
+  if (destroyed) {
+    structure.breakCount = (structure.breakCount ?? 0) + 1;
+    if (target.components.physical) {
+      structure.intactPhysical ??= structuredClone(target.components.physical);
+      Object.assign(target.components.physical, { opaque: false, blocksPassage: false, movable: false, supportCapacity: undefined });
+    }
+  }
+  const revealedIds: string[] = destroyed ? releaseStructureContents(world, target) : [], salvage = [];
   if (destroyed) for (const drop of structure.salvage) {
     const item = buildRuntimeRegistry(state).items[drop.itemId] as Pick<ItemCard, "name" | "description">;
-    const id = "salvage:" + target.id + ":" + drop.itemId;
+    const id = "salvage:" + target.id + ":" + drop.itemId + (structure.breakCount! > 1 ? ":" + structure.breakCount : "");
     if (world.entities[id]) continue;
     world.entities[id] = { id, name: item.name, description: item.description, inventoryRegistered: false,
       details: { anchor: target.details?.anchor ?? target.id, placement: target.name + "의 부서진 자리", outline: item.name, surface: item.description },

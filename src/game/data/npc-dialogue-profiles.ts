@@ -1,7 +1,10 @@
 export type NpcDialogueProfile = {
   id: string;
   name: string;
-  age: number;
+  age?: number;
+  acceptedGifts?: string[];
+  initialInventory?: Record<string, number>;
+  trades?: { id: string; minAffinity: number; give: { itemId: string; amount: number }; receive: { itemId: string; amount: number } }[];
   identity: string;
   homeLocationId: string;
   personality: string[];
@@ -14,6 +17,9 @@ export type NpcDialogueProfile = {
 export const npcDialogueProfiles: Record<string, NpcDialogueProfile> = {
   shumi: {
     id: "shumi",
+    acceptedGifts: ["waterBottle", "cannedFood"],
+    initialInventory: { radioBattery: 1 },
+    trades: [{ id: "spare_battery", minAffinity: 2, give: { itemId: "scrapMetal", amount: 2 }, receive: { itemId: "radioBattery", amount: 1 } }],
     name: "슈미",
     age: 19,
     identity: "지하철역 대합실에서 지내는 19살 여성 생존자",

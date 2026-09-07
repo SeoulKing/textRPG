@@ -1,3 +1,7 @@
+import { buildNpcDialogueStartAction } from "../npc-dialogue";
+import { runtimeSocialProfile } from "../npc-social";
+import { upgradeSubwayResidents } from "./definitions";
+import { synchronizeWorldActors, nearbyWorldNpc } from "./observers";
 import type { TextRoom } from "../schemas/text-world";
 import type { ActionChoice, ContentRegistry, GameAction, GameState, SceneCard } from "../schemas";
 import { availableConvenienceOptions, convenienceActions, performConvenienceAction } from "./convenience";
@@ -50,10 +54,16 @@ export function explorationInteractions(state: GameState, registry = buildRuntim
     if (target) target.actions.push(choice);
     else generalActions.push(choice);
   }
+  for (const target of targets) {
+    const actor = world.entities[target.id];
+    if (!actor.components.actor || !nearbyWorldNpc(world, actor.components.actor.npcId)) continue;
+    const profile = runtimeSocialProfile(actor.components.actor.npcId, registry);
+    if (profile?.homeLocationId === state.location) target.actions.unshift(buildNpcDialogueStartAction(profile));
+  }
   return { revision: world.revision, roomName: worldRooms(world)[world.player.zone].name, targets, generalActions };
 }
 
-export function textWorldActions(state: GameState, registry = buildRuntimeRegistry(state)): ActionChoice[] {
+function coreTextWorldActions(state: GameState, registry = buildRuntimeRegistry(state)): ActionChoice[] {
   if (state.location === "convenience") return convenienceActions(state, registry);
   if (hasLocationWorld(state, registry)) return locationWorldActions(state, registry);
   const world = state.textWorld;
@@ -67,7 +77,14 @@ export function textWorldActions(state: GameState, registry = buildRuntimeRegist
   }));
 }
 
+export function textWorldActions(state: GameState, registry: ContentRegistry = buildRuntimeRegistry(state)): ActionChoice[] {
+  if (state.npcDialogue.active) return [];
+  const choices = coreTextWorldActions(state, registry), world = currentTextWorld(state), actor = nearbyWorldNpc(world, world?.entities[world.player.focusEntityId ?? ""]?.components.actor?.npcId);
+  const profile = actor && runtimeSocialProfile(actor.components.actor!.npcId, registry);
+  return profile?.homeLocationId === state.location && world?.player.focusEntityId === actor!.id ? [buildNpcDialogueStartAction(profile), ...choices.slice(0,4)] : choices;
+}
 export function textWorldScene(state: GameState, registry = buildRuntimeRegistry(state)): SceneCard | null {
+  if (state.npcDialogue.active) return null;
   const world = currentTextWorld(state);
   if (!world?.active) return null;
   return { id: "text-world:" + state.location + ":" + world.sceneRevision, locationId: state.location, title: worldRooms(world)[world.player.zone].name,
@@ -87,6 +104,8 @@ export async function performTextWorldAction(
   if (action.command === "enter") {
     if (!textWorldEntryActions(state).length) throw new Error("현재 탐색이나 행동을 먼저 마쳐 주세요.");
     state.textWorld ??= createSubwayTextWorld(rooms);
+    upgradeSubwayResidents(state.textWorld);
+    synchronizeWorldActors(state.textWorld, state, registry);
     state.textWorld.active = true;
     transferCarriedEntities(state, state.textWorld);
     state.textWorld.events = [];

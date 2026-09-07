@@ -35,6 +35,7 @@ export function buildNarrationPrompt(context: NarrativeContext) {
     "held는 손에 든 물건, carried는 소유해 지닌 물건, stowed는 챙겨 둔 물건이다. HOLD와 before.carried·inventoryRegistered가 모두 참인 TAKE는 새 획득이 아니다. STOW는 소유를 유지하고 PUT·DROP은 방에 남긴다. 실제 증감은 inventoryDelta이며 containedItems는 함께 옮긴 소유 물건이다. 수량·단위를 보존하고 쌀을 임의로 포대나 자루로 만들지 않는다. 수집 후 빈 내용물이 주어지면 그 빈 상태도 쓴다.");
   if (types.has("OPEN") || types.has("INSPECT")) instructions.push("열거나 살펴 발견했을 뿐이면 물건을 챙겼다고 쓰지 않는다. 아직 열지 않은 내부를 묘사하지 않는다.");
   if (types.has("USE_TOOL")) instructions.push("USE_TOOL의 integrity가 남아 있으면 부분 손상이며 파괴나 통과를 완료했다고 쓰지 않는다. destroyed·opened·lockBroken을 구별한다. salvage는 부서진 자리에서 드러난 재료이며 별도로 TAKE하기 전에는 획득이 아니다. 도구가 망가졌으면 그 사실을 전달한다.");
+  if (types.has("REPAIR")) instructions.push("REPAIR는 materials를 실제 소모해 사물의 구조를 복원한 행동이다. effort를 움직임의 근거로 사용한다. 내용물·잠금장치를 되살리거나 문을 저절로 닫았다고 쓰지 않는다. toolBroken과 남아 있는 lockBroken은 전달한다.");
   if (types.has("LIGHT") || context.player.heldTool || context.location.lighting === "dark") instructions.push("lit은 구별할 정도의 빛이다. 광원이 닿는 범위만 묘사하며 구역 전체가 환하다고 단정하지 않는다.");
   if (types.has("SERVICE")) instructions.push("SERVICE의 paragraphs는 실제 고유 사건 기록이다. 기록의 인물과 처치만 사용하고 rewards·stats·moneyDelta와 다른 결과를 만들지 않는다.");
   if (types.has("STOPPED")) instructions.push("STOPPED에서 중단됐다. 이미 실행된 부분과 실패를 구분하고 그 뒤 미수행 행동을 성공했다고 쓰지 않는다.");

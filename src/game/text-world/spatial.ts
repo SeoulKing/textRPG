@@ -65,3 +65,13 @@ export function relocateEntity(world: TextWorld, entity: TextEntity, position: T
   entity.components.position = { ...position };
   if (destination?.components.container && position.relation !== "on" && !destination.components.container.items.includes(entity.id)) destination.components.container.items.push(entity.id);
 }
+
+/** A destroyed surface can neither contain nor support its former contents. */
+export function releaseStructureContents(world: TextWorld, target: TextEntity) {
+  const releasedIds = [];
+  for (const child of childrenOf(world, target.id)) {
+    relocateEntity(world, child, { zone: rootZone(world, target), relativeTo: target.id, relation: "beside" });
+    releasedIds.push(child.id);
+  }
+  return releasedIds;
+}

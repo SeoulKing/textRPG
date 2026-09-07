@@ -1,9 +1,9 @@
-import { ancestors, carriedByPlayer, occludedByContainer, occludedByCover, sealedFromReach, passageBlockers, rootZone } from "./spatial";
+import { ancestors, carriedByPlayer, occludedByContainer, occludedByCover, sealedFromReach, passageBlockers, rootZone, releaseStructureContents } from "./spatial";
 import { TextWorldSchema, type TextEntity, type TextWorld, type TextRoom } from "../schemas/text-world";
 import { inventoryRegistered } from "./inventory-state";
 import { isHeld, normalizeHands } from "./hands";
 
-import { defaultTextRooms, details, subwayZones, upgradeOfficeDoor, upgradeWorldPhysics } from "./definitions";
+import { defaultTextRooms, details, subwayZones, upgradeSubwayResidents, upgradeOfficeDoor, upgradeWorldPhysics } from "./definitions";
 export { details, subwayZones } from "./definitions";
 
 export function worldRooms(world: TextWorld) {
@@ -57,7 +57,10 @@ export function migrateTextWorld(raw: unknown): TextWorld | null {
     const world = TextWorldSchema.parse(raw);
     const entities = Object.values(world.entities);
     upgradeWorldPhysics(entities);
+
     if (upgradeOfficeDoor(entities)) world.entities = Object.fromEntries(entities.map(e => [e.id, e]));
+    upgradeSubwayResidents(world);
+    for (const entity of entities) if (entity.components.structure?.integrity === 0) releaseStructureContents(world, entity);
     normalizeHands(world);
     return world;
   }
@@ -107,6 +110,7 @@ export function carriesLight(world: TextWorld) {
 }
 export function visibleEntities(world: TextWorld) {
   return Object.values(world.entities).filter(e => {
+    if (e.components.actor?.active === false) return false;
     if (e.components.position.zone === "player") return true;
     if (e.components.discovery && !world.observations[e.components.discovery.inspectTargetId]?.inspected) return false;
     const parent = world.entities[e.components.position.zone];
@@ -123,7 +127,7 @@ export function canReach(world: TextWorld, entity: TextEntity) {
   const same = zoneOf(world, entity) === world.player.zone || Boolean(entity.components.portal && [entity.components.portal.from, entity.components.portal.to].includes(world.player.zone));
   const discoveredHere = entity.components.discovery?.inspectTargetId === world.player.near
     && world.observations[world.player.near!]?.inspected && entityDetails(world, entity).anchor === world.player.position;
-  return same && (carriedByPlayer(world, entity) || world.player.near === entity.id || discoveredHere || parents.some(parent => parent.id === world.player.near));
+  return same && (carriedByPlayer(world, entity) || world.player.near === entity.id || discoveredHere || entity.components.position.relation === "beside" && entity.components.position.relativeTo === world.player.near || parents.some(parent => parent.id === world.player.near));
 }
 export function particle(name: string, consonant: string, vowel: string) {
   const code = name.charCodeAt(name.length - 1) - 0xac00;

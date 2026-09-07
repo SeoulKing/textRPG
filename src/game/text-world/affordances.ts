@@ -1,10 +1,11 @@
-import type { GameState } from "../schemas";
+import type { GameState, ItemCard } from "../schemas";
 import type { TextWorld, WorldAction } from "../schemas/text-world";
 import type { WorldOption } from "./choices";
 import { handledEntityId, isHeld } from "./hands";
 import { resolveWorldActions } from "./engine";
 import { visibleEntities, particle } from "./world";
 import { availableToolProfiles, toolTechniques, type ToolTechnique } from "./tool-rules";
+import { buildRuntimeRegistry } from "../runtime-registry";
 
 /** Compose source/target capabilities. No room ID, object ID or bespoke puzzle handler is required. */
 export function interactionOptions(world: TextWorld, state: GameState): WorldOption[] {
@@ -22,6 +23,14 @@ export function interactionOptions(world: TextWorld, state: GameState): WorldOpt
   };
   for (const source of visible) {
     const c = source.components, known = world.observations[source.id];
+    if (c.structure?.repair && c.structure.integrity < c.structure.maxIntegrity && known?.stages.includes("surface")) {
+      const recipe = c.structure.repair, registry = buildRuntimeRegistry(state);
+      const requirements = recipe.materials.map(cost => `${(registry.items[cost.itemId] as ItemCard | undefined)?.name ?? cost.itemId} ${cost.amount}`).join(" · ");
+      const methods = recipe.tool ? tools.filter(tool => (tool.toolCapabilities?.[recipe.tool!.capability] ?? 0) >= recipe.tool!.power) : [undefined];
+      for (const tool of methods) add("repair:" + source.id + (tool ? ":" + tool.id : ""), particle(source.name, "을", "를") + " 수리한다",
+        requirements + ` · 조작 ${recipe.seconds}초 · 기력 ${recipe.energy}` + (tool?.maxDurability ? ` · ${tool.name} 내구도 1` : ""),
+        [...approach(source.id), { type: "REPAIR", target: source.id, ...(tool ? { toolItemId: tool.id } : {}) }]);
+    }
     if (c.structure?.integrity && known?.stages.includes("surface")) for (const tool of tools) {
       for (const technique of Object.keys(tool.toolCapabilities ?? {}) as ToolTechnique[]) {
         const method = toolTechniques[technique];

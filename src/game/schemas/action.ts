@@ -37,7 +37,8 @@ export const GameActionSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("npc_dialogue"),
-    command: z.enum(["start", "choose", "leave"]),
+    command: z.enum(["start", "choose", "leave", "give", "trade"]),
+    itemId: z.string().optional(), offerId: z.string().optional(),
     npcId: z.string().min(1).max(80),
     choiceId: z.string().min(1).max(160).optional(),
     turnNumber: z.number().int().nonnegative().optional(),

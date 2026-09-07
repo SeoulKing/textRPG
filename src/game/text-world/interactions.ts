@@ -33,6 +33,7 @@ export function validateInteraction(world: TextWorld, state: GameState, action: 
     return null;
   }
   if (!canReach(world, destination)) return "물건을 놓을 곳까지 먼저 다가가야 한다.";
+  if (destination.components.structure?.integrity === 0) return "부서진 구조는 물건을 담거나 받칠 수 없다.";
   if (action.relation === "inside") {
     const container = destination.components.container;
     if (!container || destination.components.openable?.isOpen === false) return "열린 보관 공간이 필요하다.";

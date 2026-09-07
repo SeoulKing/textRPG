@@ -139,7 +139,7 @@ test('published content accepts nested light/container components and rejects cy
  const {defaultTextRooms}=require('../.server-dist/game/text-world/definitions');const {textRoomIssues}=require('../.server-dist/game/text-world/validation');
  const rooms=defaultTextRooms(),office=rooms.find(r=>r.id==='office'),crate=office.entities.find(e=>e.id==='crate'),lamp=office.entities.find(e=>e.id==='lamp');
  lamp.components.position={zone:'crate',relation:'inside'};crate.components.container.items.push('lamp');crate.components.portable={itemId:null,amount:1};
- const ids=new Set(rooms.flatMap(r=>r.entities).flatMap(e=>[e.components.portable?.itemId,...(e.components.structure?.salvage??[]).map(drop=>drop.itemId)]).filter(Boolean));
+ const ids=new Set(rooms.flatMap(r=>r.entities).flatMap(e=>[e.components.portable?.itemId,...(e.components.structure?.salvage??[]).map(drop=>drop.itemId),...(e.components.structure?.repair?.materials??[]).map(cost=>cost.itemId)]).filter(Boolean));
  assert.deepEqual(textRoomIssues(rooms,ids),[]);
  crate.components.position={zone:'lamp',relation:'inside'};lamp.components.container={items:['crate']};assert(textRoomIssues(rooms,ids).some(i=>i.message.includes('순환')));
 });

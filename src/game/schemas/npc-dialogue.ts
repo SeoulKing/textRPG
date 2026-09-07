@@ -23,6 +23,7 @@ export const NpcDialogueSceneSchema = z.object({
   source: z.enum(["llm", "mixed", "template"]),
   replySource: z.enum(["llm", "template"]).optional(),
   generatedAt: z.string(),
+  outcomeParagraph: z.string().optional(),
 }).strict();
 
 export const NpcDialogueExchangeSchema = z.object({
@@ -32,7 +33,17 @@ export const NpcDialogueExchangeSchema = z.object({
   at: z.string(),
 }).strict();
 
+export const NpcObservationSchema = z.object({
+  id: z.string(), worldId: z.string(), sequence: z.number().int().nonnegative(), atMs: z.number().nonnegative(),
+  sense: z.enum(["seen", "heard", "exchange"]), eventType: z.string(), actorKnown: z.boolean(),
+  summary: z.string(), targetId: z.string().optional(), targetName: z.string().optional(),
+}).strict();
 export const NpcConversationMemorySchema = z.object({
+  affinity: z.number().int().min(-10).max(10).default(0),
+  observations: z.array(NpcObservationSchema).max(24).default([]),
+  observedSequences: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  inventory: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  inventoryInitialized: z.boolean().default(false),
   visitCount: z.number().int().nonnegative().default(0),
   exchanges: z.array(NpcDialogueExchangeSchema).max(20).default([]),
 }).strict();
@@ -44,6 +55,7 @@ export const NpcDialogueActiveSchema = z.object({
 }).strict();
 
 export const NpcDialogueStateSchema = z.object({
+  lastRequest: z.object({ id: z.string(), actionKey: z.string(), npcId: z.string(), turnNumber: z.number().int() }).optional(),
   departure: z.object({ npcId: z.string(), locationId: z.string(), paragraphs: z.array(z.string()).min(1), generatedAt: z.string() }).optional(),
   active: NpcDialogueActiveSchema.nullable().default(null),
   conversations: z.record(

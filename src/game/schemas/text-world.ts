@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+const PhysicalSchema = z.object({ mass: z.number().nonnegative(), volume: z.number().positive().default(1), movable: z.boolean().default(false), opaque: z.boolean().default(true), blocksPassage: z.boolean().default(false), supportCapacity: z.number().nonnegative().optional() });
+const MaterialCostSchema = z.object({ itemId: z.string(), amount: z.number().int().positive() });
+
 export const TextEntityDetailsSchema = z.object({
   anchor: z.string(), placement: z.string(), outline: z.string(), surface: z.string(),
   touch: z.string().optional(), interior: z.string().optional(),
@@ -12,12 +15,17 @@ export const TextEntitySchema = z.object({
   origin: z.object({ worldId: z.string(), entityId: z.string() }).optional(),
   details: TextEntityDetailsSchema.optional(),
   components: z.object({
+    actor: z.object({ npcId: z.string(), active: z.boolean().optional() }).optional(),
+    ownership: z.object({ npcId: z.string() }).optional(),
     stockNode: z.object({ nodeId: z.string().min(1) }).optional(),
     interactionPoint: z.object({ actions: z.array(z.object({ actionId: z.string().min(1), role: z.enum(["work", "care"]) })).min(1) }).optional(),
     resourceSite: z.object({ siteId: z.string().min(1), unlimited: z.boolean().optional(), remaining: z.number().int().nonnegative().optional(), capacity: z.number().int().positive().optional(), recoveryMinutes: z.number().positive().optional(), missingTools: z.array(z.string()).optional() }).optional(),
     position: z.object({ zone: z.string(), relativeTo: z.string().optional(), relation: z.enum(["beside", "blocking", "on", "inside"]).optional() }),
-    physical: z.object({ mass: z.number().nonnegative(), volume: z.number().positive().default(1), movable: z.boolean().default(false), opaque: z.boolean().default(true), blocksPassage: z.boolean().default(false), supportCapacity: z.number().nonnegative().optional() }).optional(),
-    structure: z.object({ material: z.enum(["wood", "metal", "fabric", "stone"]), integrity: z.number().int().nonnegative(), maxIntegrity: z.number().int().positive(), resistance: z.number().int().positive(), salvage: z.array(z.object({ itemId: z.string(), amount: z.number().int().positive() })).default([]) }).optional(),
+    physical: PhysicalSchema.optional(),
+    structure: z.object({ material: z.enum(["wood", "metal", "fabric", "stone"]), integrity: z.number().int().nonnegative(), maxIntegrity: z.number().int().positive(), resistance: z.number().int().positive(), salvage: z.array(MaterialCostSchema).default([]),
+      breakCount: z.number().int().nonnegative().optional(), intactPhysical: PhysicalSchema.optional(),
+      repair: z.object({ materials: z.array(MaterialCostSchema).min(1), seconds: z.number().int().positive(), energy: z.number().int().positive(), effort: z.string().min(1), sound: z.object({ description: z.string().min(1), intensity: z.number().min(0).max(1) }).optional(), tool: z.object({ capability: z.enum(["pry", "cut", "strike"]), power: z.number().int().positive() }).optional() }).optional(),
+    }).optional(),
     openable: z.object({ isOpen: z.boolean(), locked: z.boolean(), keyId: z.string().optional(), lockBroken: z.boolean().optional(), autoCloseSeconds: z.number().int().positive().optional(), remainingOpenSeconds: z.number().int().nonnegative().optional() }).optional(),
     discovery: z.object({ inspectTargetId: z.string() }).optional(),
     container: z.object({ items: z.array(z.string()), capacity: z.number().positive().optional(), depletionBehavior: z.enum(["remain", "disappear"]).optional() }).optional(),
@@ -28,6 +36,7 @@ export const TextEntitySchema = z.object({
 });
 export const TextRoomSchema = z.object({
   id: z.string().min(1), name: z.string(), locationId: z.string().min(1),
+  outsideExploration: z.boolean().optional(),
   light: z.boolean(), layout: z.string(), surface: z.string(),
   entryText: z.string().optional(), entryAnchor: z.string().optional(),
   neighbors: z.array(z.string()),
@@ -37,7 +46,7 @@ export const TextRoomSchema = z.object({
 export type TextRoom = z.infer<typeof TextRoomSchema>;
 const FactSchema = z.object({ id: z.string(), kind: z.string(), targetId: z.string().optional(), data: z.record(z.string(), z.unknown()) });
 export const WorldEventSchema = z.object({
-  type: z.enum(["ENTER", "MOVE", "POSTURE", "INSPECT", "UNLOCK", "OPEN", "CLOSE", "TAKE", "HOLD", "STOW", "LIGHT", "LOOK", "SURVEY", "LEAVE", "STOPPED", "STORY", "PUSH", "PUT", "DROP", "WAIT", "HIDE", "SOUND", "LIGHT_EXPIRED", "AUTO_CLOSE", "DEFOCUS", "FOCUS", "WORK", "SERVICE", "USE_TOOL"]),
+  type: z.enum(["ENTER", "MOVE", "POSTURE", "INSPECT", "UNLOCK", "OPEN", "CLOSE", "TAKE", "HOLD", "STOW", "LIGHT", "LOOK", "SURVEY", "LEAVE", "STOPPED", "STORY", "PUSH", "PUT", "DROP", "WAIT", "HIDE", "SOUND", "LIGHT_EXPIRED", "AUTO_CLOSE", "DEFOCUS", "FOCUS", "WORK", "SERVICE", "USE_TOOL", "REPAIR", "NPC_REACTION"]),
   id: z.string().optional(), actorId: z.string().optional(), causedBy: z.string().optional(),
   origin: z.enum(["player", "simulation"]).optional(), witnessed: z.boolean().optional(),
   at: z.number(), targetId: z.string().optional(),
@@ -72,7 +81,7 @@ export const TextWorldSchema = z.object({
 export type TextEntity = z.infer<typeof TextEntitySchema>;
 export type TextWorld = z.infer<typeof TextWorldSchema>;
 export type WorldEvent = z.infer<typeof WorldEventSchema>;
-export type WorldAction = { type: "MOVE" | "POSTURE" | "INSPECT" | "UNLOCK" | "OPEN" | "CLOSE" | "TAKE" | "HOLD" | "STOW" | "LIGHT" | "LOOK" | "SURVEY" | "LEAVE" | "PUSH" | "PUT" | "DROP" | "WAIT" | "HIDE" | "DEFOCUS" | "FOCUS" | "USE_TOOL"; target?: string; toolItemId?: string; technique?: "pry" | "cut" | "strike"; destination?: string; relation?: "beside" | "blocking" | "on" | "inside" | "behind" | "under"; durationSeconds?: number; posture?: "standing" | "crouching" };
+export type WorldAction = { type: "MOVE" | "POSTURE" | "INSPECT" | "UNLOCK" | "OPEN" | "CLOSE" | "TAKE" | "HOLD" | "STOW" | "LIGHT" | "LOOK" | "SURVEY" | "LEAVE" | "PUSH" | "PUT" | "DROP" | "WAIT" | "HIDE" | "DEFOCUS" | "FOCUS" | "USE_TOOL" | "REPAIR"; target?: string; toolItemId?: string; technique?: "pry" | "cut" | "strike"; destination?: string; relation?: "beside" | "blocking" | "on" | "inside" | "behind" | "under"; durationSeconds?: number; posture?: "standing" | "crouching" };
 export type WorldFact = z.infer<typeof FactSchema>;
 export type NarrativeContext = {
   voice: { person: "first"; selfReference: "나"; tense: "present"; omitSubject: true };

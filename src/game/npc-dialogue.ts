@@ -1,3 +1,5 @@
+import { npcSocialActions } from "./npc-social";
+import type { ContentRegistry } from "./schemas";
 import { defaultDialogueThought } from "./npc-dialogue-pipeline";
 import { validChoiceThought } from "./text-world/choice-thoughts";
 import { particle } from "./text-world/world";
@@ -61,6 +63,7 @@ export function applyNpcDialogueGeneration(
   const exchanges = [...memory.exchanges, result.exchange]
     .slice(-MAX_STORED_EXCHANGES);
   state.npcDialogue.conversations[npcId] = {
+    ...memory,
     visitCount: memory.visitCount + (options.newVisit ? 1 : 0),
     exchanges,
   };
@@ -101,6 +104,7 @@ export function buildNpcDialogueScene(
     locationId: state.location,
     title: `${profile.name}와의 대화`,
     paragraphs: [
+      ...(scene.outcomeParagraph ? [scene.outcomeParagraph] : []),
       scene.situation,
       `“${scene.dialogue.replace(/^[“"]|[”"]$/g, "")}”`,
     ],
@@ -115,7 +119,7 @@ export function buildNpcDialogueScene(
   };
 }
 
-export function buildNpcDialogueActions(state: GameState): ActionChoice[] {
+export function buildNpcDialogueActions(state: GameState, registry?: ContentRegistry): ActionChoice[] {
   const active = state.npcDialogue.active;
   if (!active) return [];
   const generated = active.currentScene.choices.map((choice) => ({
@@ -137,6 +141,7 @@ export function buildNpcDialogueActions(state: GameState): ActionChoice[] {
   }));
   return [
     ...generated,
+    ...npcSocialActions(state, registry).slice(0, 1),
     {
       id: `npc-dialogue:${active.npcId}:leave`,
       label: "대화를 마친다",

@@ -51,7 +51,7 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
       if (world.events.some(event => event.targetId === e.id && event.type === response.when))
         add("response:" + e.id + ":" + i, "sensory", { name: e.name, detail: response.detail, action: response.when }, e.id);
     }
-    if (lit && (near || carriedByPlayer(world, e)) && (!c.openable || c.openable.isOpen || c.physical?.opaque === false) && c.container) {
+    if (c.structure?.integrity !== 0 && lit && (near || carriedByPlayer(world, e)) && (!c.openable || c.openable.isOpen || c.physical?.opaque === false) && c.container) {
       const items = visibleEntities(world).filter(item => c.container!.items.includes(item.id));
       add("contents:" + e.id, "contents", { name: e.name, items: items.map(item => ({ id: item.id, name: item.name, amount: item.components.portable?.amount ?? 1, unit: item.components.portable?.unit, detail: item.description })) }, e.id);
       if (entityDetails(world, e).interior) add("interior:" + e.id, "sensory", { name: e.name, detail: entityDetails(world, e).interior }, e.id);

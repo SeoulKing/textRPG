@@ -38,7 +38,10 @@ function eventText(e: WorldEvent) {
         + (e.after.destroyed ? " 구조가 부서진다." + (e.after.opened ? e.after.portal ? " 막혔던 통로가 열린다." : " 가려져 있던 안쪽이 드러난다." : "") : e.after.technique !== "pry" ? " 아직 구조가 남아 있다." : "")
         + (e.after.toolBroken ? " 사용한 도구가 닳아 더는 쓸 수 없다." : "");
     }
+    case "NPC_REACTION": return name + "의 목소리가 들린다. “" + String(e.after.dialogue) + "”";
     case "OPEN": return particle(name, "을", "를") + " 연다.";
+    case "REPAIR": return String(e.after.effort) + " " + particle(name, "을", "를") + " 다시 쓸 수 있게 손본다."
+      + (e.after.lockBroken ? " 망가진 잠금장치는 그대로다." : "") + (e.after.toolBroken ? " 사용한 도구가 닳아 더는 쓸 수 없다." : "");
     case "CLOSE": return particle(name, "을", "를") + " 닫는다.";
     case "TAKE": if (e.before.carried && e.before.inventoryRegistered) return particle(name, "을", "를") + (e.before.relation === "on" ? " 다시 집어 든다." : " 꺼내 손에 든다.") + movedContents(e);
       return e.after.money ? "서랍에 남은 돈 " + e.after.amount + "원을 챙긴다." : particle(name, "을", "를") + (Number(e.after.amount) > 1 ? " " + e.after.amount + "개" : "") + (e.after.held || e.after.zone === "player" && e.after.itemId === null ? " 집어 들어 손에 쥔다." : " 챙긴다.") + movedContents(e);

@@ -69,6 +69,7 @@ export function availableWorldOptions(world: TextWorld, state: GameState): World
   }
   options.push(...interactionOptions(world, state));
   for (const next of adjacentZones(world.player.zone, world)) {
+    if (worldRooms(world)[next]?.outsideExploration) continue;
     const portal = portalBetween(world, world.player.zone, next);
     if (portal && passageBlockers(world, portal.id).length) continue;
     if (portal?.components.openable?.locked) {

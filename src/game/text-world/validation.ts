@@ -32,6 +32,12 @@ export function textRoomIssues(rooms: TextRoom[], itemIds: Set<string>) {
         if (c.structure.integrity === 0 && (c.openable && !c.openable.isOpen || c.physical?.blocksPassage)) add(room.id, label + ": 부서진 구조가 문이나 통로를 막을 수 없습니다.");
         if (new Set(c.structure.salvage.map(s => s.itemId)).size !== c.structure.salvage.length) add(room.id, label + ": 해체 재료는 아이템별로 한 번만 정의해 주세요.");
         for (const drop of c.structure.salvage) if (!itemIds.has(drop.itemId)) add(room.id, label + ": 해체 재료 아이템을 찾을 수 없습니다.");
+        const repair = c.structure.repair;
+        if (repair) {
+          if (c.structure.integrity === 0 && c.physical && !c.structure.intactPhysical) add(room.id, label + ": 부서진 사물을 수리하려면 원래 물성 정보가 필요합니다.");
+          if (new Set(repair.materials.map(cost => cost.itemId)).size !== repair.materials.length) add(room.id, label + ": 수리 재료는 아이템별로 한 번만 정의해 주세요.");
+          for (const cost of repair.materials) if (!itemIds.has(cost.itemId)) add(room.id, label + ": 수리 재료 아이템을 찾을 수 없습니다.");
+        }
       }
       if (c.openable?.keyId && !entities.get(c.openable.keyId)?.components.portable) add(room.id, label + ": 잠금 해제에 사용할 열쇠 엔티티를 확인해 주세요.");
       if (c.discovery) {
