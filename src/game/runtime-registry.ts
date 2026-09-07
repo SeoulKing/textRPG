@@ -1,3 +1,5 @@
+import { withSubwayStockRooms } from "./text-world/subway-stock-definitions";
+import { withDefaultCivicRooms } from "./text-world/civic-definitions";
 import { withDefaultShelterRooms } from "./text-world/shelter-definitions";
 import { withQuestGuidanceDefaults } from "./quest-guidance";
 import { withDefaultHospitalRooms } from "./text-world/hospital-definitions";
@@ -95,7 +97,7 @@ export function buildRuntimeRegistry(
         : stateOrDynamic;
 
   const base = stateOrDynamic && "dynamicContent" in stateOrDynamic ? (versionRegistry(stateOrDynamic.contentVersionId) ?? worldRegistry) : worldRegistry;
-  return withDefaultShelterRooms(withDefaultHospitalRooms(withQuestGuidanceDefaults(omitRetiredActions(withActivityCatalogDefaults(withResourceCatalogDefaults(applySurvivalCatalogUpdates({
+  return withSubwayStockRooms(withDefaultCivicRooms(withDefaultShelterRooms(withDefaultHospitalRooms(withQuestGuidanceDefaults(omitRetiredActions(withActivityCatalogDefaults(withResourceCatalogDefaults(applySurvivalCatalogUpdates({
     textRooms: base.textRooms,
     items: { ironDoorKey: baseItems.ironDoorKey, flashlight: baseItems.flashlight, ...base.items, ...dynamicContent.items },
     people: { ...base.people, ...dynamicContent.people },
@@ -106,7 +108,7 @@ export function buildRuntimeRegistry(
     choices: { ...base.choices, ...dynamicContent.choices },
     events: { ...base.events, ...dynamicContent.events },
     scenes: { ...base.scenes, ...dynamicContent.scenes },
-  }, worldRegistry), worldRegistry), worldRegistry)), worldRegistry)));
+  }, worldRegistry), worldRegistry), worldRegistry)), worldRegistry)))));
 }
 
 function expandedFrontierSlots(state: Pick<GameState, "frontierState"> | null | undefined, locationId: string) {

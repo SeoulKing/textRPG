@@ -3887,9 +3887,13 @@ function renderExplorationPanel() {
     button.disabled = client.actionInFlight || choice.isAvailable === false;
     button.addEventListener("click", () => {
       if (client.actionInFlight) return;
+      const pendingChoice = button.cloneNode(true);
+      dom.choices.replaceChildren(pendingChoice);
+      dom.choices.classList.add("revealed");
       client.isPanelOpen = false;
       renderPanel();
-      submitAction(choice.action, null, choice.loading, null, "template", choice.choiceThought);
+      syncMobileChoiceZoneHeight();
+      submitAction(choice.action, pendingChoice, choice.loading, null, "template", choice.choiceThought);
     });
     list.appendChild(fragment);
   });

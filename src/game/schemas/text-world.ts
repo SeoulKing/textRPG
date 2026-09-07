@@ -21,7 +21,7 @@ export const TextEntitySchema = z.object({
     workstation: z.object({ kinds: z.array(z.enum(["craft", "cook", "build"])).min(1), durationMultiplier: z.number().min(0.25).max(1) }).optional(),
     ownership: z.object({ npcId: z.string() }).optional(),
     stockNode: z.object({ nodeId: z.string().min(1) }).optional(),
-    interactionPoint: z.object({ actions: z.array(z.object({ actionId: z.string().min(1), role: z.enum(["work", "care"]) })).min(1) }).optional(),
+    interactionPoint: z.object({ requiresInspection: z.boolean().optional(), actions: z.array(z.object({ actionId: z.string().min(1), role: z.enum(["work", "care", "trade", "information", "delivery"]) })).min(1) }).optional(),
     resourceSite: z.object({ siteId: z.string().min(1), unlimited: z.boolean().optional(), remaining: z.number().int().nonnegative().optional(), capacity: z.number().int().positive().optional(), recoveryMinutes: z.number().positive().optional(), missingTools: z.array(z.string()).optional() }).optional(),
     position: z.object({ zone: z.string(), relativeTo: z.string().optional(), relation: z.enum(["beside", "blocking", "on", "inside"]).optional() }),
     physical: PhysicalSchema.optional(),

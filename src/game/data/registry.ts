@@ -1,6 +1,8 @@
 import { validateQuestGuidance } from "../quest-guidance";
 import { withActivityDocumentDefaults } from "../activity-catalog-updates";
 import { planActivity } from "../activity";
+import { withSubwayStockDocumentDefaults } from "../text-world/subway-stock-definitions";
+import { withCivicDocumentDefaults } from "../text-world/civic-definitions";
 import { withHospitalDocumentDefaults } from "../text-world/hospital-definitions";
 import { withResourceDocumentDefaults } from "../resource-catalog-updates";
 import { ResourceSiteDefinitionSchema } from "../schemas/content";
@@ -344,11 +346,11 @@ export function getEffectiveContentStudioDocument(stored = loadStoredContentStud
       scenes: Object.values(builtInWorldRegistry.scenes).filter(scene => scene.locationId === location.id && !assigned.has(scene.id)).map(scene => ({ ...scene, choices: scene.choiceIds.map(id => builtInWorldRegistry.choices[id]) })),
     }));
   }
-  return withHospitalDocumentDefaults(withActivityDocumentDefaults(withResourceDocumentDefaults(parseContentStudioDocument({ ...doc,
+  return withSubwayStockDocumentDefaults(withCivicDocumentDefaults(withHospitalDocumentDefaults(withActivityDocumentDefaults(withResourceDocumentDefaults(parseContentStudioDocument({ ...doc,
     locations: Object.values({ ...Object.fromEntries(Object.values(builtInWorldRegistry.locations).map(l => [l.id, StudioLocationSchema.parse(l)])), ...asRecord(doc.locations) }),
     people: Object.values({ ...Object.fromEntries(Object.values(basePeople).map(p => [p.id, StudioPersonSchema.parse(p)])), ...asRecord(doc.people) }),
     stories: Object.values({ ...asRecord(nativeStories), ...asRecord(doc.stories) }),
-  }), builtInWorldRegistry), builtInWorldRegistry));
+  }), builtInWorldRegistry), builtInWorldRegistry))));
 }
 
 function repairQuestionMarkText(

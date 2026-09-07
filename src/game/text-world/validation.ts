@@ -44,7 +44,7 @@ export function textRoomIssues(rooms: TextRoom[], itemIds: Set<string>) {
         const target = entities.get(c.discovery.inspectTargetId);
         if (!c.portable || !target || target.id === entity.id || target.components.position.zone !== room.id || target.components.discovery) add(room.id, label + ": 먼저 자세히 살필 대상을 같은 방의 사물로 설정해 주세요.");
       }
-      if (c.stockNode && (!c.container || c.portable || c.resourceSite || c.physical?.movable)) add(room.id, label + ": 재고 노드는 고정 보관함에 연결해 주세요.");
+      if (c.stockNode && (!c.container || c.portable || c.resourceSite)) add(room.id, label + ": 재고 노드는 휴대할 수 없는 보관함에 연결해 주세요.");
       if (c.interactionPoint && new Set(c.interactionPoint.actions.map(a => a.actionId)).size !== c.interactionPoint.actions.length) add(room.id, label + ": 연결된 행동이 중복되었습니다.");
       if (c.craftingStorage && (!c.container || c.stockNode || c.portable)) add(room.id, label + ": 작업 재료 보관은 일반 고정 보관함에만 설정해 주세요.");
       if (c.workstation && (c.portable || new Set(c.workstation.kinds).size !== c.workstation.kinds.length)) add(room.id, label + ": 작업대는 휴대할 수 없으며 작업 종류가 중복되면 안 됩니다.");

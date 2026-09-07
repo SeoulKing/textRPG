@@ -1,3 +1,4 @@
+import { isSubwayStockMenuAction } from "./text-world/subway-stock";
 import { nearbyWorldNpc, residentAtConversationLocation } from "./text-world/observers";
 import { runtimeSocialProfile, performNpcSocialAction } from "./npc-social";
 import { questProgressFields } from "./quest-guidance";
@@ -5,7 +6,7 @@ import { activityConditionState, localWorkEnvironment } from "./work-environment
 import { planActivity } from "./activity";
 import { materialSourceHints } from "./material-guidance";
 import { formatOutcomeHint } from "./outcome-hint";
-import { currentTextWorld, explorationInteractions, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
+import { ensureSubwayStockWorld, currentTextWorld, explorationInteractions, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
 import { currentObservation, markAction, observeAction, recordActionTiming, type ActionObserver } from "./action-observation";
 import { reconcileWorldInventory } from "./text-world/interactions";
 import { ensureConvenienceWorld } from "./text-world/convenience";
@@ -904,6 +905,8 @@ export class GameService {
       throw new Error("현재 대화를 먼저 마쳐야 합니다.");
     }
 
+    if (session.state.location === "subway" && isSubwayStockMenuAction(action, registry)) throw new Error("현재 탐색 장면에 표시된 선택지를 골라 주세요.");
+
     if (session.state.location === "subway" && session.state.textWorld?.active && action.type !== "text_world" && action.type !== "item_light" && !(action.type === "npc_dialogue" && nearbyWorldNpc(session.state.textWorld, action.npcId))) {
       throw new Error("역무실 탐색을 마치고 대합실로 돌아온 뒤 다른 행동을 할 수 있습니다.");
     }
@@ -1396,6 +1399,7 @@ export class GameService {
   private async ensureCards(session: GameSession) {
     const registry = this.runtimeRegistry(session);
     reconcileWorldInventory(session.state);
+    ensureSubwayStockWorld(session.state, registry);
     await ensureConvenienceWorld(session.state, registry, this.textWorldNarrator, session.id);
     await ensureLocationWorld(session.state, registry, this.textWorldNarrator, session.id);
     const visibleLocationIds = this.visibleLocationIds(session);
@@ -2037,6 +2041,7 @@ export class GameService {
                 registry,
               ),
             ])
+        .filter(choice => !(session.state.location === "subway" && isSubwayStockMenuAction(choice.action, registry)))
         .map((choice) => {
           const resolved = resolveActionChoiceText(choice, registry);
           if (!choice.isAvailable || choice.action.type !== "content_action" || choice.action.actionId !== "sleep_at_shelter") return resolved;

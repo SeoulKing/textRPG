@@ -8,7 +8,7 @@ async function game(){
  let stored,snapshot;const history=[];
  const repo={withGameLock:async(_id,fn)=>fn(),loadGame:async()=>structuredClone(stored),saveGame:async s=>{stored=JSON.parse(JSON.stringify(s));stored.state=GameStateSchema.parse(stored.state)},getTemplate:async()=>undefined,saveTemplate:async()=>{},saveProtagonistTemplate:async()=>{},appendGenerationLog:async()=>{},appendActionLog:async()=>{}};
  const service=new GameService(repo,undefined,undefined,undefined,undefined,async c=>fallbackNarration(c));snapshot=await service.createGame();
- const offered=id=>snapshot.availableActions.find(c=>[c.id,c.action.optionId,c.action.actionId,c.action.choiceId].includes(id)&&c.isAvailable);
+ const offered=id=>[...snapshot.availableActions,...(snapshot.exploration?.generalActions??[]),...(snapshot.exploration?.targets??[]).flatMap(t=>t.actions)].find(c=>[c.id,c.action.optionId,c.action.actionId,c.action.choiceId,c.action.optionId?.replace(/^(trade|work|delivery|information):/,'')].includes(id)&&c.isAvailable);
  async function choose(id){if(id.startsWith('explore:')&&!offered(id)&&offered('defocus'))await choose('defocus');const selected=offered(id),action=id.startsWith('travel:')?{type:'travel',targetId:id.slice(7)}:id.startsWith('use:')?{type:'use_item',itemId:id.slice(4)}:selected?.action;
   assert(action,'Not offered '+id+' at '+snapshot.state.location+': '+snapshot.availableActions.map(c=>`${c.action.optionId||c.action.actionId||c.action.choiceId} (${c.isAvailable})`).join(', '));
   const before=snapshot.state; snapshot=await service.performAction(stored.id,action);const after=snapshot.state;
@@ -16,7 +16,7 @@ async function game(){
  }
  return {get state(){return snapshot.state},get snapshot(){return snapshot},offered,choose,history,sequence:async ids=>{for(const id of ids)await choose(id)},reload:async()=>{snapshot=await service.getState(stored.id)}};
 }
-const radioRoute=['opening_commit','accept_first_canned_food_quest','travel:convenience','travel:hospital','explore:hospital_cabinet','collect:hospital_cabinet','travel:convenience','travel:shelter','travel:subway','go_to_subway_signal_box','collect_radio_antenna_from_subway','collect_scrap_from_subway','leave_subway_signal_box','travel:checkpoint','go_to_checkpoint_radio_truck','collect_radio_transmitter_from_checkpoint','collect_ration_ticket_from_checkpoint','leave_checkpoint_radio_truck','travel:subway','travel:shelter','open_shelter_crafting','assemble_rescue_radio','leave_shelter_crafting'];
+const radioRoute=['opening_commit','accept_first_canned_food_quest','travel:convenience','travel:hospital','explore:hospital_cabinet','collect:hospital_cabinet','travel:convenience','travel:shelter','travel:subway','text-world:enter','explore:subway_signal_box','collect:subway_signal_box','leave','travel:checkpoint','explore:checkpoint_radio_truck','collect:checkpoint_radio_truck','travel:subway','travel:shelter','open_shelter_crafting','assemble_rescue_radio','leave_shelter_crafting'];
 async function passEvening(g){while(!g.state.isGameOver&&!g.state.stageClear&&!g.offered('sleep_at_shelter'))await g.choose(g.offered('rest_until_evening_at_shelter')?'rest_until_evening_at_shelter':'rest_light_at_shelter');if(!g.state.isGameOver&&!g.state.stageClear)await g.choose('sleep_at_shelter')}
 
 test('preparing the radio and repeating rest without eating cannot survive ten days',async()=>{
@@ -28,7 +28,7 @@ test('preparing the radio and repeating rest without eating cannot survive ten d
 for(const fishRoll of [0,.99])test(`exploration, cooking and a paid fallback survive ten days with fishing roll ${fishRoll}`,async t=>{
  t.mock.method(Math,'random',()=>fishRoll);
  const g=await game();await g.sequence(radioRoute);
- await g.sequence(['travel:convenience','explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_shelf','collect:convenience_shelf','defocus','explore:convenience_register','collect:convenience_register','explore:convenience_supply_pile','collect:convenience_supply_pile','travel:kitchen','deliver_canned_food_to_old_cook','go_to_kitchen_scrap_heap','collect_scrap_from_kitchen_heap','collect_cloth_from_kitchen_heap','collect_cordage_from_kitchen_heap','leave_kitchen_scrap_heap','go_to_kitchen_ingredient_crate','collect_rice_from_kitchen_crate','collect_vegetables_from_kitchen_crate','collect_water_from_kitchen_crate','leave_kitchen_ingredient_crate','exchange_ration_ticket_at_kitchen','travel:forest','harvest:chop_wood_at_forest','harvest:chop_wood_at_forest','travel:shelter','open_shelter_crafting_repeat','craft_shelter_brazier','craft_dented_pot','craft_firewood','leave_shelter_crafting','open_shelter_cooking']);
+ await g.sequence(['travel:convenience','explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_shelf','collect:convenience_shelf','defocus','explore:convenience_register','collect:convenience_register','explore:convenience_supply_pile','collect:convenience_supply_pile','travel:kitchen','inspect:kitchen_old_cook','deliver_canned_food_to_old_cook','explore:kitchen_scrap_heap','collect:kitchen_scrap_heap','explore:kitchen_ingredient_crate','collect:kitchen_ingredient_crate','inspect:kitchen_serving_counter','exchange_ration_ticket_at_kitchen','travel:forest','harvest:chop_wood_at_forest','harvest:chop_wood_at_forest','travel:shelter','open_shelter_crafting_repeat','craft_shelter_brazier','craft_dented_pot','craft_firewood','leave_shelter_crafting','open_shelter_cooking']);
  while(g.offered('cook_at_shelter'))await g.choose('cook_at_shelter');
  while(g.offered('cook_rice_porridge'))await g.choose('cook_rice_porridge');
  await g.choose('leave_shelter_cooking');
@@ -50,7 +50,7 @@ for(const fishRoll of [0,.99])test(`exploration, cooking and a paid fallback sur
   }
   // Keep a meal that can reduce accumulated exhaustion, even after several empty fishing trips.
   if(!(g.state.inventory.hotMeal>0)&&!(g.state.inventory.cannedFood>0)){
-   await g.choose('travel:kitchen');if(g.state.money<(g.state.day===1?4500:5200))await g.choose('help_kitchen_queue');
+   await g.choose('travel:kitchen');await approach('kitchen_serving_counter');if(g.state.money<(g.state.day===1?4500:5200))await g.choose('help_kitchen_queue');
    await g.choose(g.state.day===1?'buy_meal_at_kitchen':'buy_crowded_meal_at_kitchen');await g.choose('travel:shelter');
   }
   while(!g.state.isGameOver&&!g.state.stageClear&&!g.offered('sleep_at_shelter')){

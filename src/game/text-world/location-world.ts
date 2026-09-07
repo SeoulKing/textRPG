@@ -1,3 +1,4 @@
+import { setSystemNote } from "../system-note";
 import { synchronizeWorldActors } from "./observers";
 import { performPointAction } from "./interaction-points";
 import { boundStockOptions, collectBoundStock, isBoundStockItem, rememberBoundStockDiscovery, syncBoundStockNodes, type BoundStockOption } from "./stock-nodes";
@@ -20,7 +21,7 @@ import { directNarrative, rememberNarration } from "./perception";
 import { renderNarration, type TextWorldNarrator } from "./narrator";
 
 const ACTIVITY = { durationMs: 500, transitionType: "activity" as const };
-const worldOf = (state: GameState) => state.locationTextWorlds[state.location];
+const worldOf = (state: GameState) => state.location === "subway" ? state.textWorld! : state.locationTextWorlds[state.location];
 export function hasLocationWorld(state: GameState, registry: ContentRegistry) {
   return !["subway", "convenience"].includes(state.location) && Boolean(registry.textRooms?.some(room => room.locationId === state.location));
 }
@@ -67,7 +68,8 @@ export function availableLocationWorldOptions(state: GameState, registry: Conten
   const focus = interactionContext(world, state).focusEntityId;
   for (const entity of visibleEntities(world)) {
     const focused = entity.id === focus && entity.id === world.player.near && world.observations[entity.id]?.inspected;
-    for (const binding of focused ? entity.components.interactionPoint?.actions ?? [] : []) {
+    const pointReady = entity.id === focus && entity.id === world.player.near && (focused || entity.components.interactionPoint?.requiresInspection === false);
+    for (const binding of pointReady ? entity.components.interactionPoint?.actions ?? [] : []) {
       const action = registry.actions[binding.actionId];
       if (!action || !action.locationIds.includes(state.location) || !actionConditionsMet(action, state) || action.dailyLimit && getRemainingDailyUses(state, action.dailyLimit) <= 0) continue;
       candidates.push({ id: binding.role + ":" + action.id, nodeId: entity.id, contentActionId: action.id,
@@ -204,5 +206,6 @@ export async function performLocationWorldAction(state: GameState, action: Extra
   world.revision++;
   syncScene(state);
   applySystemNote(before, state);
+  if (state.location === "subway" && option.actions) setSystemNote(state, [...state.systemNoteEntries.filter(e => e.type !== "time"), { type: "text", text: "+" + (world.elapsedSeconds - (before.textWorld?.elapsedSeconds ?? 0)) + "초", tone: "neutral" }]);
   if (world.active) await render(state, registry, narrator, gameId);
 }

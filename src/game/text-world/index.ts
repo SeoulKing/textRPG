@@ -1,3 +1,4 @@
+import { hasSubwayStockBinding, syncSubwayStockWorld } from "./subway-stock";
 import { buildNpcDialogueStartAction } from "../npc-dialogue";
 import { runtimeSocialProfile } from "../npc-social";
 import { upgradeSubwayResidents } from "./definitions";
@@ -5,19 +6,18 @@ import { synchronizeWorldActors, nearbyWorldNpc } from "./observers";
 import type { TextRoom } from "../schemas/text-world";
 import type { ActionChoice, ContentRegistry, GameAction, GameState, SceneCard } from "../schemas";
 import { availableConvenienceOptions, convenienceActions, performConvenienceAction } from "./convenience";
-import { availableLocationWorldOptions, hasLocationWorld, locationWorldActions, locationWorldEntryActions, performLocationWorldAction } from "./location-world";
+import { availableLocationWorldOptions, hasLocationWorld, locationWorldOptions, locationWorldActions, locationWorldEntryActions, performLocationWorldAction } from "./location-world";
 import { buildRuntimeRegistry } from "../runtime-registry";
-import { applySystemNote } from "../rules";
+import { syncScene } from "../rules";
 import { setSystemNote } from "../system-note";
 import { createSubwayTextWorld, entityDetails, visibleEntities, worldRooms } from "./world";
 import { transferCarriedEntities } from "./inventory";
-import { reconcileWorldInventory } from "./interactions";
-import { availableWorldOptions, worldOptions } from "./choices";
+import { availableWorldOptions } from "./choices";
 import { describeChoice } from "./choice-director";
 import { choiceLabelFields, nextNarrativeChoices, storeChoiceLabels } from "./choice-labels";
-import { recordEvent, resolveWorldActions } from "./engine";
+import { recordEvent } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
-import { narrateTextWorld, renderNarration, type TextWorldNarrator } from "./narrator";
+import { fallbackNarration, narrateTextWorld, renderNarration, type TextWorldNarrator } from "./narrator";
 
 export function textWorldEntryActions(state: GameState, registry: ContentRegistry = buildRuntimeRegistry(state)): ActionChoice[] {
   if (state.location !== "subway") return locationWorldEntryActions(state, registry);
@@ -37,7 +37,7 @@ export function explorationInteractions(state: GameState, registry = buildRuntim
   const world = currentTextWorld(state);
   if (!world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active) return null;
   const candidates = state.location === "convenience" ? availableConvenienceOptions(state, registry)
-    : hasLocationWorld(state, registry) ? availableLocationWorldOptions(state, registry) : availableWorldOptions(world, state);
+    : (state.location === "subway" || hasLocationWorld(state, registry)) ? availableLocationWorldOptions(state, registry) : availableWorldOptions(world, state);
   const visible = visibleEntities(world).sort((a, b) => a.id.localeCompare(b.id));
   const targets = visible.map(entity => ({ id: entity.id, name: entity.name,
     placement: entity.components.position.zone === "player" ? "지니고 있는 물건" : entityDetails(world, entity).placement,
@@ -66,16 +66,8 @@ export function explorationInteractions(state: GameState, registry = buildRuntim
 
 function coreTextWorldActions(state: GameState, registry = buildRuntimeRegistry(state)): ActionChoice[] {
   if (state.location === "convenience") return convenienceActions(state, registry);
-  if (hasLocationWorld(state, registry)) return locationWorldActions(state, registry);
-  const world = state.textWorld;
-  if (!world?.active) return [];
-  return worldOptions(world, state).map(option => ({
-    id: "text-world:" + world.revision + ":" + option.id,
-    outcomeHint: option.hint, showOutcomeHint: Boolean(option.hint), isAvailable: true,
-    loading: { durationMs: 500, transitionType: "activity" },
-    ...choiceLabelFields(world, option),
-    action: { type: "text_world", command: "choose", optionId: option.id, revision: world.revision },
-  }));
+  if (state.location === "subway" || hasLocationWorld(state, registry)) return locationWorldActions(state, registry);
+  return [];
 }
 
 export function textWorldActions(state: GameState, registry: ContentRegistry = buildRuntimeRegistry(state)): ActionChoice[] {
@@ -93,6 +85,40 @@ export function textWorldScene(state: GameState, registry = buildRuntimeRegistry
     materialIds: { locationIds: [state.location], personIds: [], itemIds: [] }, source: world.source, generatedAt: new Date(0).toISOString() };
 }
 
+/** Old stock-menu saves resume in place without a new generation or replenishing stock. */
+export function ensureSubwayStockWorld(state: GameState, registry: ContentRegistry) {
+  if (state.location !== "subway" || !hasSubwayStockBinding(registry) || state.subwayExpedition.active || state.npcDialogue.active || state.isGameOver || state.stageClear) return;
+  const resume = state.activeStockNodeId === "subway_signal_box";
+  if (!state.textWorld && !resume) return;
+  if (resume && !state.discoveredStockNodeIds.includes("subway_signal_box")) state.discoveredStockNodeIds.push("subway_signal_box");
+  const world = state.textWorld ??= createSubwayTextWorld(registry.textRooms);
+  const added = syncSubwayStockWorld(state, registry);
+  if (!resume) { if (added) world.revision++; return; }
+  const host = Object.values(world.entities).find(e => e.components.stockNode?.nodeId === "subway_signal_box" && worldRooms(world)[e.components.position.zone]);
+  if (!host) return;
+  upgradeSubwayResidents(world);
+  synchronizeWorldActors(world, state, registry);
+  world.active = true;
+  transferCarriedEntities(state, world);
+  world.events = [];
+  world.player = { ...world.player, zone: host.components.position.zone, near: host.id, position: host.details?.anchor ?? host.id,
+    facing: host.id, posture: host.details?.posture ?? "standing", relation: "near", coverId: null, focusEntityId: host.id, manipulating: false };
+  world.lastIntent = { id: "resume", label: "확인하던 신호함 앞에서 탐색을 이어간다", importance: "minor" };
+  recordEvent(world, { type: "ENTER", targetId: world.player.zone, before: {}, after: { zone: world.player.zone, entryText: "확인하던 신호함 앞에서 탐색을 이어간다." } });
+  state.activeStockNodeId = null;
+  syncScene(state);
+  world.revision++;
+  world.sceneRevision++;
+  const context = directNarrative(world);
+  context.nextChoices = nextNarrativeChoices(world, locationWorldOptions(state, registry));
+  const rendered = fallbackNarration(context);
+  storeChoiceLabels(world, context, rendered.choiceLabels);
+  world.lastParagraphs = rendered.paragraphs;
+  world.lastParagraphSources = rendered.paragraphSources;
+  world.source = rendered.source;
+  rememberNarration(world, context, rendered.usedFactIds, rendered.paragraphs);
+}
+
 export async function performTextWorldAction(
   state: GameState, action: Extract<GameAction, { type: "text_world" }>, gameId: string,
   narrator: TextWorldNarrator = narrateTextWorld, rooms?: TextRoom[], registry: ContentRegistry = buildRuntimeRegistry(state),
@@ -101,10 +127,10 @@ export async function performTextWorldAction(
   if (hasLocationWorld(state, registry)) return performLocationWorldAction(state, action, registry, narrator, gameId);
   if (state.location !== "subway" || state.subwayExpedition.active || state.npcDialogue.active ||
     state.isGameOver || state.stageClear) throw new Error("지금은 역무실을 탐색할 수 없습니다.");
-  const before = structuredClone(state);
   if (action.command === "enter") {
     if (!textWorldEntryActions(state).length) throw new Error("현재 탐색이나 행동을 먼저 마쳐 주세요.");
-    state.textWorld ??= createSubwayTextWorld(rooms);
+    state.textWorld ??= createSubwayTextWorld(rooms ?? registry.textRooms);
+    syncSubwayStockWorld(state, registry);
     upgradeSubwayResidents(state.textWorld);
     synchronizeWorldActors(state.textWorld, state, registry);
     state.textWorld.active = true;
@@ -114,24 +140,14 @@ export async function performTextWorldAction(
     state.textWorld.lastIntent = { id: "enter", label: "역무실로 들어선다", importance: "major" };
     recordEvent(state.textWorld, { type: "ENTER", targetId: "office", before: { zone: "concourse" }, after: { zone: "office" } });
   } else {
-    const world = state.textWorld;
-    if (!world?.active) throw new Error("먼저 역무실 탐색을 시작해 주세요.");
-    if (action.revision !== world.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
-    reconcileWorldInventory(state);
-    const option = availableWorldOptions(world, state).find(choice => choice.id === action.optionId);
-    if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
-    world.events = [];
-    world.lastIntent = { id: option.id, label: option.label, thought: choiceLabelFields(world, option).choiceThought, importance: option.importance };
-    const result = resolveWorldActions(world, state, option.actions);
-    applySystemNote(before, state);
-    setSystemNote(state, [...state.systemNoteEntries.filter(entry => entry.type !== "time"), { type: "text", text: "+" + result.elapsedSeconds + "초", tone: "neutral" }]);
+    return performLocationWorldAction(state, action, registry, narrator, gameId);
   }
   const world = state.textWorld!;
   world.revision++;
   world.sceneRevision++;
   if (!world.active) return;
   const context = directNarrative(world);
-  context.nextChoices = nextNarrativeChoices(world, worldOptions(world, state));
+  context.nextChoices = nextNarrativeChoices(world, locationWorldOptions(state, registry));
   const rendered = await renderNarration(context, gameId, narrator);
   storeChoiceLabels(world, context, rendered.choiceLabels);
   world.lastParagraphs = rendered.paragraphs;

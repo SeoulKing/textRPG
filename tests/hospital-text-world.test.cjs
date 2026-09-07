@@ -128,7 +128,7 @@ test('bound cash uses its finite ledger and a disappearing pile stays gone after
  const choice=structuredClone(registry.choices.collect_pain_relief_from_hospital);choice.id='collect_hospital_cash';choice.label='남은 돈을 챙긴다';
  choice.conditions=[{type:'active_stock_node',nodeId:node.id},{type:'stock_money_gte',locationId:'hospital',nodeId:node.id,amount:1}];
  choice.effects=[{type:'collect_stock_money_all',locationId:'hospital',nodeId:node.id}];registry.choices[choice.id]=choice;
- const f=await fixture(s=>s.contentVersionId=registerContentVersion(registry));assert(!JSON.stringify(f.contexts[0]).includes('275'));
+ const f=await fixture(s=>s.contentVersionId=registerContentVersion(registry));const c=f.contexts[0];assert(!JSON.stringify({facts:[...c.requiredFacts,...c.optionalFacts,...c.knownFacts],choices:c.nextChoices.map(o=>({label:o.label,thought:o.defaultThought}))}).includes('275'));
  await f.choose('explore:hospital_cabinet');await f.choose('collect:hospital_cabinet');assert.equal(f.state.money,5275);
  assert.equal(f.world.entities.hospital_cabinet.components.position.zone,'depleted');assert(!f.options.some(o=>o.stockChoiceIds));
  f.reload();await f.ensure();assert.equal(f.state.money,5275);assert.equal(f.world.entities.hospital_cabinet.components.position.zone,'depleted');

@@ -80,7 +80,13 @@ function factText(f: WorldFact): string {
     return status + (tools?.length ? " 다른 작업 방법에는 " + particle(tools.join(", "), "이", "가") + " 필요하다." : "");
   }
   if (f.kind === "connection") return d.name + "은 " + d.from + "과 " + d.to + " 사이를 잇는다.";
-  if (f.kind === "facility") return d.storage ? String(d.name) + "에 넣어 둔 재료는 뚜껑을 열어 두면 이곳에서 작업할 때 쓸 수 있다." : String(d.name) + (d.available ? "에 재료를 받치고 작업하면 제작 시간이 " + Math.round((1 - Number(d.durationMultiplier)) * 100) + "% 줄어든다." : "는 구조를 복원해야 작업에 쓸 수 있다.");
+  if (f.kind === "facility") {
+    if (d.storage) return String(d.name) + "에 넣어 둔 재료는 뚜껑을 열어 두면 이곳에서 작업할 때 쓸 수 있다.";
+    if (!d.available) return String(d.name) + "는 구조를 복원해야 작업에 쓸 수 있다.";
+    const kinds = (d.kinds as string[] ?? []).map(kind => ({ craft: "제작", cook: "요리", build: "건설" } as Record<string, string>)[kind] ?? "작업").join("·");
+    const reduction = Math.round((1 - Number(d.durationMultiplier)) * 100);
+    return String(d.name) + (reduction > 0 ? "를 사용하면 " + kinds + " 시간이 " + reduction + "% 줄어든다." : "에서 " + kinds + " 작업을 할 수 있다.");
+  }
   if (f.kind === "structure") return d.destroyed ? d.name + "의 구조는 부서진 상태다." : d.lockBroken ? d.name + "의 잠금장치가 망가져 있다." : d.integrity !== d.maxIntegrity ? d.name + "의 " + d.material + " 구조에 손상이 남아 있다." : d.name + "의 구조는 " + d.material + "로 되어 있다.";
   if (f.kind === "layout") return String(d.layout);
   if (f.kind === "surface" || f.kind === "sensory") return String(d.detail);
@@ -185,6 +191,10 @@ export function fallbackNarration(context: NarrativeContext): Narration {
 }
 export const NarrationSchema = z.object({ paragraphs: z.array(z.object({ text: z.string().min(1).max(1100), factIds: z.array(z.string()).min(1) })).min(1).max(3), choiceLabels: z.unknown().optional() });
 export function hasContradictoryAction(context: NarrativeContext, text: string): boolean {
+  // These surface qualities were invented in a real repair response. Material or
+  // earlier narration alone is not evidence for a current tactile observation.
+  const evidence = JSON.stringify([...context.requiredFacts, ...context.optionalFacts].map(f => f.data));
+  if ([/거칠|거친|까칠/, /매끄럽|매끄러|매끈/].some(quality => quality.test(text) && !quality.test(evidence))) return true;
   if (context.location.id === "store") {
     const emptied = context.requiredFacts.some(f => f.kind === "contents" && Array.isArray(f.data.items) && f.data.items.length === 0 && !f.data.previouslyObserved);
     if (emptied && !/비어|비었|비운|비워|비게|아무것도|남은.{0,8}없|남아.{0,5}않|남지.{0,5}않/.test(text)) return true;
@@ -206,6 +216,16 @@ export function hasContradictoryAction(context: NarrativeContext, text: string):
   }
   return false;
 }
+function missingFacilityEffect(context: NarrativeContext, paragraphs: { text: string; factIds: string[] }[]) {
+  return context.requiredFacts.filter(f => f.kind === "facility" && !f.data.storage && f.data.available && Number(f.data.durationMultiplier) < 1).some(f => {
+    const text = paragraphs.filter(p => p.factIds.includes(f.id)).map(p => p.text).join(" ");
+    const work = /제작|만들|요리|조리|건설|짓|작업/.test(text);
+    const faster = /시간.{0,20}(줄|덜|짧|단축|절약)|덜 (걸|들)|빨리|빠르게|빨라|빨랐|빠르/.test(text);
+    const percentages = [...text.matchAll(/(\d+(?:\.\d+)?)\s*(?:%|퍼센트)/g)].map(match => Number(match[1]));
+    const expected = Math.round((1 - Number(f.data.durationMultiplier)) * 100);
+    return !work || !faster || (percentages.length > 0 && !percentages.includes(expected));
+  });
+}
 export function validateNarration(context: NarrativeContext, raw: unknown): Narration | null {
   const parsed = NarrationSchema.safeParse(raw);
   if (!parsed.success) return null;
@@ -226,7 +246,7 @@ export function validateNarration(context: NarrativeContext, raw: unknown): Narr
   const used = new Set(paragraphs.flatMap(p => p.factIds));
   if (paragraphs.length < context.paragraphCount.min || paragraphs.length > context.paragraphCount.max ||
     paragraphs.some(p => !p.text.trim() || p.factIds.some(id => !allowed.has(id)) || /(?:result|entity|contents|layout|surface|touch|interior|threshold|light|ambient|connection):[\w-]+/.test(p.text)) ||
-    context.requiredFacts.some(f => !used.has(f.id)) || hasContradictoryAction(context, paragraphs.map(p => p.text).join(" ")) || paragraphs.some(p => /당신(?:은|이|을|의)|너는|네가|플레이어(?:는|가)|주인공(?:은|이)/.test(p.text))) return null;
+    context.requiredFacts.some(f => !used.has(f.id)) || missingFacilityEffect(context, paragraphs) || hasContradictoryAction(context, paragraphs.map(p => p.text).join(" ")) || paragraphs.some(p => /당신(?:은|이|을|의)|너는|네가|플레이어(?:는|가)|주인공(?:은|이)/.test(p.text))) return null;
   return { paragraphs: paragraphs.map(p => p.text.replace(/마저\s+마저/g, "마저")), source: "llm", usedFactIds: [...used], choiceLabels: resolveChoiceLabels(context, parsed.data.choiceLabels) };
 }
 export function validateRenderedNarration(context: NarrativeContext, raw: unknown): Narration | null {
