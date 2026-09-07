@@ -44,6 +44,7 @@ export const TextWorldSchema = z.object({
   knowledge: z.record(z.string(), z.object({ fact: FactSchema, signature: z.string(), observedAt: z.number() })),
   narrated: z.record(z.string(), z.string()), events: z.array(WorldEventSchema).max(30),
   recentScenes: z.array(z.object({ zone: z.string(), intent: z.string(), paragraphs: z.array(z.string()) })).max(3),
+  choiceNarratives: z.record(z.string(), z.object({ label: z.string(), text: z.string().min(1).max(160), source: z.enum(["template", "llm"]) })).optional(),
   lastIntent: z.object({ id: z.string(), label: z.string(), importance: z.enum(["major", "minor"]) }),
   lastParagraphs: z.array(z.string()).min(1), source: z.enum(["template", "llm"]), sceneRevision: z.number().int().nonnegative(),
 });
@@ -63,4 +64,6 @@ export type NarrativeContext = {
   knownFacts: WorldFact[];
   recentScenes: TextWorld["recentScenes"];
   paragraphCount: { min: number; max: number };
+  nextChoices?: { id: string; label: string; actionLead: string }[];
+  alreadyDisplayed?: string[];
 };

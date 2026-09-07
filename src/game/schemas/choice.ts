@@ -28,6 +28,8 @@ export const CraftingRecipeSchema = z.object({
 });
 
 export const StoryChoiceSchema = z.object({
+  postChoiceNarrative: z.array(z.string().min(1).max(600)).min(1).max(2).optional(),
+  postChoiceNarrativeSource: z.enum(["template", "llm"]).optional(),
   id: z.string(),
   label: z.string(),
   outcomeHint: z.string(),
@@ -48,6 +50,7 @@ export const StoryChoiceSchema = z.object({
 });
 
 export const ActionChoiceSchema = z.object({
+  postChoiceNarrativeSource: z.enum(["template", "llm"]).optional(),
   id: z.string(),
   label: z.string(),
   outcomeHint: z.string(),

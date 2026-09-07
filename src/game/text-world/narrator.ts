@@ -2,8 +2,10 @@ import { z } from "zod";
 import { generateGeminiJson, hasGeminiConfig } from "../gemini-client";
 import type { NarrativeContext, WorldEvent, WorldFact } from "../schemas/text-world";
 import { particle } from "./world";
+import { resolveChoiceNarratives, type ChoiceNarrative } from "./choice-narrative";
+import { withoutRepeatedSubwayNarrative } from "../subway-narrative";
 
-export type Narration = { paragraphs: string[]; source: "template" | "llm"; usedFactIds: string[] };
+export type Narration = { paragraphs: string[]; source: "template" | "llm"; usedFactIds: string[]; choiceNarratives?: ChoiceNarrative[] };
 export type TextWorldNarrator = (context: NarrativeContext, gameId: string) => Promise<Narration>;
 function eventText(e: WorldEvent) {
   const name = String(e.after.name ?? "").split(" · ").at(-1)!;
@@ -50,7 +52,7 @@ export function fallbackNarration(context: NarrativeContext): Narration {
       if (f.kind === "layout" || f.kind === "result" || f.kind === "lighting" && context.location.lighting === "lit") continue;
       parts.push(factText(f));
     }
-    return { paragraphs: [parts.join(" ")], source: "template", usedFactIds: context.requiredFacts.map(f => f.id) };
+    return { paragraphs: [parts.join(" ")], source: "template", usedFactIds: context.requiredFacts.map(f => f.id), choiceNarratives: resolveChoiceNarratives(context, []) };
   }
   const used = new Set<string>();
   const beats: string[] = [];
@@ -101,9 +103,9 @@ export function fallbackNarration(context: NarrativeContext): Narration {
   // Break at whole causal beats, never between a result and the discovery it exposes.
   const split = Math.max(1, Math.ceil(beats.length / 2));
   const paragraphs = context.paragraphCount.min === 1 ? [beats.join(" ")] : [beats.slice(0, split).join(" "), beats.slice(split).join(" ")];
-  return { paragraphs, source: "template", usedFactIds: [...used] };
+  return { paragraphs, source: "template", usedFactIds: [...used], choiceNarratives: resolveChoiceNarratives(context, []) };
 }
-export const NarrationSchema = z.object({ paragraphs: z.array(z.object({ text: z.string().min(1).max(1100), factIds: z.array(z.string()).min(1) })).min(1).max(3) });
+export const NarrationSchema = z.object({ paragraphs: z.array(z.object({ text: z.string().min(1).max(1100), factIds: z.array(z.string()).min(1) })).min(1).max(3), choiceNarratives: z.unknown().optional() });
 export function hasContradictoryAction(context: NarrativeContext, text: string): boolean {
   if (context.location.id === "store") {
     const emptied = context.requiredFacts.some(f => f.kind === "contents" && Array.isArray(f.data.items) && f.data.items.length === 0 && !f.data.previouslyObserved);
@@ -129,18 +131,21 @@ export function hasContradictoryAction(context: NarrativeContext, text: string):
 export function validateNarration(context: NarrativeContext, raw: unknown): Narration | null {
   const parsed = NarrationSchema.safeParse(raw);
   if (!parsed.success) return null;
-  const { paragraphs } = parsed.data;
+  const paragraphs = parsed.data.paragraphs.flatMap(p => {
+    const text = withoutRepeatedSubwayNarrative([p.text], context.alreadyDisplayed).join(" ");
+    return text ? [{ ...p, text }] : [];
+  });
   const allowed = new Set([...context.requiredFacts, ...context.optionalFacts].map(f => f.id));
   const used = new Set(paragraphs.flatMap(p => p.factIds));
   if (paragraphs.length < context.paragraphCount.min || paragraphs.length > context.paragraphCount.max ||
     paragraphs.some(p => !p.text.trim() || p.factIds.some(id => !allowed.has(id)) || /(?:result|entity|contents|layout|surface|touch|interior|threshold|light|ambient|connection):[\w-]+/.test(p.text)) ||
     context.requiredFacts.some(f => !used.has(f.id)) || hasContradictoryAction(context, paragraphs.map(p => p.text).join(" ")) || paragraphs.some(p => /당신(?:은|이|을|의)|너는|네가|플레이어(?:는|가)|주인공(?:은|이)/.test(p.text))) return null;
-  return { paragraphs: paragraphs.map(p => p.text.replace(/마저\s+마저/g, "마저")), source: "llm", usedFactIds: [...used] };
+  return { paragraphs: paragraphs.map(p => p.text.replace(/마저\s+마저/g, "마저")), source: "llm", usedFactIds: [...used], choiceNarratives: resolveChoiceNarratives(context, parsed.data.choiceNarratives) };
 }
 export function validateRenderedNarration(context: NarrativeContext, raw: unknown): Narration | null {
   const value = raw as Partial<Narration> | null;
   if (!value || !Array.isArray(value.paragraphs) || !Array.isArray(value.usedFactIds) || !["template", "llm"].includes(value.source ?? "")) return null;
-  const valid = validateNarration(context, { paragraphs: value.paragraphs.map(text => ({ text, factIds: value.usedFactIds })) });
+  const valid = validateNarration(context, { paragraphs: value.paragraphs.map(text => ({ text, factIds: value.usedFactIds })), choiceNarratives: value.choiceNarratives });
   return valid ? { ...valid, source: value.source! } : null;
 }
 export const narrateTextWorld: TextWorldNarrator = async (context, gameId) => {
@@ -156,10 +161,17 @@ export const narrateTextWorld: TextWorldNarrator = async (context, gameId) => {
       "recentScenes는 문장 연결용이며 새로운 감각적 사실의 근거로 삼지 않는다. 수납 위치가 데이터에 없으면 가방이나 주머니를 새로 만들어 넣었다고 쓰지 말고 챙기는 동작만 쓴다. 같은 부사를 연달아 반복하지 않는다. " +
       "선택하지 않은 수집·이동을 쓰지 않는다. 열어 발견했을 뿐이면 챙겼다고 쓰지 않는다. 물건 수량을 보존한다. 단위가 정해지지 않은 쌀을 한 포대나 한 자루로 바꾸지 않는다. 수집 후 내용물이 비었다는 사실이 주어지면 그 빈 상태를 반드시 서술한다. " +
       "paragraphCount의 문단 수를 지킨다. 중요한 장면은 2~3문단 안에서 움직임·시선·사물·발견을 엮으며 문단별 역할을 고정하지 않는다. 재확인은 짧은 1문단이다. " +
-      "JSON {paragraphs:[{text,factIds}]}만 반환한다. 각 문단의 factIds에는 실제 표현한 requiredFacts/optionalFacts ID만 넣는다. requiredFacts ID를 빠뜨리지 않는다. " +
+      "alreadyDisplayed는 이번 선택 직후 이미 화면에 출력한 행동 시작 문장이다. 이를 반복·인용·의역하지 않고 바로 그 다음 결과부터 쓴다. 아직 결과가 나기 전의 준비 동작이므로 실제 results의 이동·개방·수집 성공이나 실패를 생략하지 않는다. " +
+      "nextChoices는 이 장면 다음에 고를 수 있는 서버 확정 선택지다. 각 선택지에 대해 클릭 즉시 보여줄 짧은 한 문장(30~65자)을 choiceNarratives에 미리 쓴다. optionId를 그대로 보존한다. actionLead는 안전한 기본 동작 예시다. 이를 참고해 현재 시선과 움직임에 자연스럽게 연결한다. 그 선택을 시작하려는 의도·손 뻗기·시선만 쓴다. 이동 완료, 자세 변경, 발견, 문 개방, 잠금 해제, 수집 성공·실패, 숨은 내용물, 새 사물·감각은 미리 단정하지 않는다. 미래 선택의 결과는 paragraphs에도 넣지 않는다. " +
+      "JSON {paragraphs:[{text,factIds}],choiceNarratives:[{optionId,text}]}만 반환한다. 각 문단의 factIds에는 실제 표현한 requiredFacts/optionalFacts ID만 넣는다. requiredFacts ID를 빠뜨리지 않는다. " +
       "본문에 ID, 선택지, 게임 수치, 구조 설명을 쓰지 않는다.",
       { context }, { responseSchema: NarrationSchema, responseJsonSchema: {
-        type: "object", required: ["paragraphs"], properties: { paragraphs: {
+        type: "object", required: ["paragraphs", "choiceNarratives"], properties: { choiceNarratives: {
+          type: "array", minItems: context.nextChoices?.length ?? 0, maxItems: context.nextChoices?.length ?? 0,
+          items: { type: "object", required: ["optionId", "text"], properties: {
+            optionId: { type: "string", ...((context.nextChoices?.length ?? 0) > 0 ? { enum: context.nextChoices!.map(o => o.id) } : {}) }, text: { type: "string" },
+          } },
+        }, paragraphs: {
           type: "array", minItems: context.paragraphCount.min, maxItems: context.paragraphCount.max,
           items: { type: "object", required: ["text", "factIds"], properties: {
             text: { type: "string" }, factIds: { type: "array", minItems: 1, items: { type: "string", enum: [...context.requiredFacts, ...context.optionalFacts].map(f => f.id) } },

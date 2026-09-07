@@ -563,6 +563,10 @@ export class GameService {
     };
   }
 
+  private backgroundGenerationEnabled() {
+    return process.env.ENABLE_LLM_BACKGROUND_GENERATION === "true";
+  }
+
   private ensurePreparedSubwayTemplate(session: GameSession) {
     const context = this.subwayPreparationContext(session.state);
     const expedition = session.state.subwayExpedition;
@@ -577,8 +581,8 @@ export class GameService {
       return changed;
     }
     if (this.isMatchingPreparedSubwayFloor(session, context)) {
-      const expectedStatus = expedition.active ? "generating" : "ready";
-      if (expedition.nextFloorStatus === "idle") {
+      const expectedStatus = expedition.active && this.backgroundGenerationEnabled() && !expedition.preparedNextFloor?.llmAttempted ? "generating" : "ready";
+      if (expedition.nextFloorStatus === "idle" || !this.backgroundGenerationEnabled() && expedition.nextFloorStatus !== "ready") {
         expedition.nextFloorStatus = expectedStatus;
         expedition.nextFloorError = "";
         return true;
@@ -611,7 +615,7 @@ export class GameService {
       targetDepth: context.targetDepth,
       llmAttempted: false,
     };
-    expedition.nextFloorStatus = expedition.active ? "generating" : "ready";
+    expedition.nextFloorStatus = expedition.active && this.backgroundGenerationEnabled() ? "generating" : "ready";
     expedition.nextFloorError = "";
     return true;
   }
@@ -638,6 +642,8 @@ export class GameService {
   }
 
   private scheduleSubwayNextFloor(session: GameSession) {
+    // Spending a request on an unchosen floor must be an explicit opt-in.
+    if (!this.backgroundGenerationEnabled()) return;
     const context = this.subwayPreparationContext(session.state);
     if (!context) {
       return;
@@ -2299,6 +2305,7 @@ export class GameService {
   }
 
   private async preGenerateNarrativeBeats(gameId: string) {
+    if (!this.backgroundGenerationEnabled()) return;
     const preparation = await this.withGameMutation(gameId, async () => {
       const session = await this.repository.loadGame(gameId);
       const registry = this.runtimeRegistry(session);

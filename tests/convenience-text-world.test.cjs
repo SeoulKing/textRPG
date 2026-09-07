@@ -18,7 +18,8 @@ function session(s) {return {id:'store-test',createdAt:new Date().toISOString(),
 
 test('convenience enters text rendering directly, hides stock until inspection, and separates discovery from collection',async()=>{
  const s=initial();const before=structuredClone(s.inventory);let contexts=[];const n=async c=>{contexts.push(c);return fallbackNarration(c);};await enter(s,n);
- assert.equal(textWorldScene(s).locationId,'convenience');assert.equal(textWorldActions(s).length,5);
+ assert.equal(textWorldScene(s).locationId,'convenience');assert.equal(textWorldActions(s).length,4);
+ assert(textWorldActions(s).every(c=>c.action.optionId.startsWith('explore:')));
  assert(!JSON.stringify(contexts[0]).includes('통조림'));assert(!JSON.stringify(contexts[0]).includes('1800'));
  assert(textWorldActions(s).every(c=>!c.action.optionId.includes('overview')));
  await choose(s,'explore:convenience_food_crate',n);
@@ -55,7 +56,7 @@ test('partial old saves and published stock definitions survive load, depletion,
  s.stockState['convenience:convenience_shelf:cannedFood']=1;s.activeStockNodeId='convenience_shelf';s.discoveredStockNodeIds.push('convenience_shelf');
  s=normalizeGameSession(JSON.parse(JSON.stringify(session(s)))).state;await enter(s);assert.equal(world(s).player.near,'convenience_shelf');assert(action(s,'collect:convenience_shelf'));
  const before=s.inventory.cannedFood??0;await choose(s,'collect:convenience_shelf');assert.equal(s.inventory.cannedFood,before+1);assert(s.flags.first_canned_food_collected);
- await choose(s,'travel:shelter');await enter(s);s.location='subway';await performTextWorldAction(s,{type:'text_world',command:'enter'},'store-test',narrator);await choose(s,'explore:crate');await choose(s,'collect:crate');await choose(s,'leave');
+ performAction(s,{type:'travel',targetId:'shelter'});await enter(s);s.location='subway';await performTextWorldAction(s,{type:'text_world',command:'enter'},'store-test',narrator);await choose(s,'explore:crate');await choose(s,'collect:crate');await choose(s,'leave');
  s=normalizeGameSession(JSON.parse(JSON.stringify(session(s)))).state;s.location='convenience';await enter(s);
  assert.equal(s.inventory.cannedFood,before+1);assert(!textWorldActions(s).some(c=>c.action.optionId.includes('shelf')));assert.equal(s.textWorld.observations.crate.collected,true);
  await choose(s,'explore:convenience_supply_pile');await choose(s,'collect:convenience_supply_pile');assert.equal(world(s).entities.convenience_supply_pile.components.position.zone,'depleted');
@@ -85,10 +86,12 @@ test('service conceals hidden state, serializes duplicate choices, and renders o
  const take=snap.availableActions.find(c=>c.action.optionId==='collect:convenience_register').action,before=stored.state.money;
  const results=await Promise.allSettled([service.performAction(stored.id,take),service.performAction(stored.id,take)]);
  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(stored.state.money,before+1800);assert.equal(calls,3);
+ snap=await service.performAction(stored.id,{type:'travel',targetId:'shelter'});
+ assert.equal(snap.state.location,'shelter');assert.equal(world(stored.state).active,false);
 });
 
-test('both text locations offer the existing 500ms activity delay; regional travel retains 1000ms',async()=>{
- const s=initial();await enter(s);assert(textWorldActions(s).every(c=>c.loading.durationMs===(c.action.optionId.startsWith('travel:')?1000:500)));
+test('both text locations retain the existing 500ms activity delay without ordinary region choices',async()=>{
+ const s=initial();await enter(s);assert(textWorldActions(s).every(c=>c.loading.durationMs===500&&!c.action.optionId.startsWith('travel:')));
  s.location='subway';assert.equal(textWorldEntryActions(s)[0].loading.durationMs,500);await performTextWorldAction(s,{type:'text_world',command:'enter'},'store-test',narrator);
  assert(textWorldActions(s).every(c=>c.loading.durationMs===500&&c.loading.transitionType==='activity'));
 });
@@ -101,5 +104,6 @@ test('observed store narration omissions and invented bulk packaging are rejecte
  assert(hasContradictoryAction(context,'빵과 물병, 쌀을 챙긴다.'));
  assert(!hasContradictoryAction(context,'몸을 낮춘 채 빵과 물병, 쌀을 챙긴다. 보관함 안은 이제 비어 있다.'));
  assert.match(world(s).lastParagraphs.join(' '),/비어/);
- assert(textWorldActions(s).some(c=>c.label==='작은 병원으로 이동한다'));
+ assert.equal(textWorldActions(s).length,3);
+ assert(!textWorldActions(s).some(c=>c.action.optionId.startsWith('travel:')));
 });

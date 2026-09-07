@@ -89,25 +89,28 @@ test('a stalled image cannot hold the result indefinitely and can appear when re
   assert.equal(h.dom.sceneArt.hidden,false);
 });
 
-function actionHarness() {
-  const response = deferred(), transition = deferred();
+function actionHarness(withLead = false) {
+  const response = deferred(), transition = deferred(), lead = deferred();
   const events=[];
   const previous = {state:{location:'shelter'},currentScene:{id:'old'}};
-  const next = {state:{location:'forest'},currentScene:{id:'next'}};
+  const next = {state:{location:withLead?'shelter':'forest'},currentScene:{id:'next'}};
   const client={gameId:'test',snapshot:previous,actionInFlight:false};
   const noop=()=>{};
   const context=functions(['submitAction'],{
     client, performance:{now:()=>events.length*10},
-    normalizePostChoiceNarrative:()=>[], actionTransitionDurationMs:()=>1000,
+    normalizePostChoiceNarrative:value=>value??[], actionTransitionDurationMs:()=>withLead?500:1000,
+    captureSceneHistory:()=>({history:true}),restoreSceneHistory:()=>events.push('restore'),
+    beginPostChoiceNarrative:(paragraphs,append,source,keepChoices)=>{events.push('lead:'+source);assert.equal(append,true);assert.equal(keepChoices,withLead);return lead.promise},
+    dom:{choices:{innerHTML:'choices',classList:{remove(){}}}},
     preloadActionSceneAssets:()=>events.push('predict'), api:()=>{events.push('request');return response.promise;},
     preloadNextSceneAssets:async()=>events.push('assets'), prepareScenePresentation:()=>events.push('prepare'),
     shelterStationForAction:()=>null,isMovementAction:()=>false,beginActionTransition:()=>events.push('transition'),
     waitForMilliseconds:()=>transition.promise, needsFreshGame:()=>false, completedQuestChanges:()=>[],
-    shouldContinueLocationStory:()=>false,shouldAnimateScene:()=>true, finishActionTransition:noop,
-    render:()=>events.push('render'),renderGameOverScreen:noop,showQuestCompletionBurst:noop,clearSceneAnimation:noop,
+    shouldContinueLocationStory:()=>withLead,shouldAnimateScene:()=>true, finishActionTransition:noop,
+    render:options=>{events.push('render');client.renderOptions=options;},renderGameOverScreen:noop,showQuestCompletionBurst:noop,clearSceneAnimation:noop,
     window:{scrollTo:noop,alert:()=>events.push('error')},
   });
-  return {context,client,previous,next,response,transition,events};
+  return {context,client,previous,next,response,transition,lead,events};
 }
 test('click starts prediction and request immediately; response prepares UI before transition ends', async () => {
   const h=actionHarness();
@@ -213,4 +216,32 @@ test('state refresh persists the current protagonist in its session without shar
   assert.equal(refreshed.protagonist.condition.money,123);
   assert.deepEqual(stored.world.protagonistCard,refreshed.protagonist);
   assert.equal(saves,2);
+});
+
+
+test('text exploration starts typing at click with the request and preserves the minimum wait, even for fast responses',async()=>{
+ const h=actionHarness(true),action={type:'text_world',command:'choose',optionId:'explore:crate',revision:1};
+ const pending=h.context.submitAction(action,null,{durationMs:500},['상자를 살피려고 시선을 모은다.'],'llm');
+ assert.deepEqual(h.events,['predict','request','transition','lead:llm']);
+ assert.equal(h.context.dom.choices.innerHTML,'choices');
+ await h.context.submitAction(action);assert.equal(h.events.filter(e=>e==='request').length,1);
+ h.response.resolve(h.next);h.lead.resolve();await flush();assert(!h.events.includes('render'));
+ h.transition.resolve();await pending;
+ assert.equal(h.client.snapshot,h.next);assert.equal(h.client.renderOptions.appendScene,true);
+ assert.equal(h.client.renderOptions.scrollSceneToStart,false);assert.equal(h.context.dom.choices.innerHTML,'');
+});
+test('ready results wait for the lead to finish; a finished lead waits for a slow response',async()=>{
+ for(const slow of ['lead','response']){
+  const h=actionHarness(true),pending=h.context.submitAction({type:'text_world'},null,{durationMs:500},['행동을 준비한다.']);
+  h.transition.resolve();if(slow==='lead')h.response.resolve(h.next);else h.lead.resolve();
+  await flush();assert(!h.events.includes('render'));assert.equal(h.client.snapshot,h.previous);
+  if(slow==='lead')h.lead.resolve();else h.response.resolve(h.next);await pending;
+  assert.equal(h.client.snapshot,h.next);assert.equal(h.events.filter(e=>e==='render').length,1);
+ }
+});
+test('failed actions restore prior reading history, cancel typing, and never replay a lead after failure',async()=>{
+ const h=actionHarness(true),pending=h.context.submitAction({type:'text_world'},null,{durationMs:500},['상자를 살피려고 손을 뻗는다.']);
+ h.response.reject(new Error('stale revision'));h.transition.resolve();await pending;
+ assert(h.events.includes('restore'));assert.equal(h.client.snapshot,h.previous);assert.equal(h.client.actionInFlight,false);
+ h.lead.resolve();await flush();assert.equal(h.events.filter(e=>e==='lead:template').length,1);assert.equal(h.events.filter(e=>e==='render').length,1);
 });

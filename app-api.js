@@ -1655,15 +1655,33 @@ function normalizePostChoiceNarrative(value) {
     .slice(0, 2);
 }
 
-function beginPostChoiceNarrative(paragraphs, append = false) {
+function beginPostChoiceNarrative(paragraphs, append = false, source = "template", keepChoices = false) {
   clearSceneAnimation();
-  const story = { headline: "", paragraphs, source: "template" };
+  const story = { headline: "", paragraphs, source };
   const token = client.sceneRenderToken;
   return animateStoryText(story, token, null, {
     append,
     scrollToStart: append,
     revealChoices: false,
+    keepChoices,
   });
+}
+
+function captureSceneHistory() {
+  return {
+    blocks: [...dom.sceneText.children], systemNote: dom.systemNote,
+    noteKey: client.renderedSystemNoteKey,
+    hasHistory: dom.sceneText.classList.contains("has-story-history"),
+  };
+}
+
+function restoreSceneHistory(saved) {
+  dom.sceneText.replaceChildren(...saved.blocks);
+  dom.sceneText.classList.toggle("has-story-history", saved.hasHistory);
+  dom.systemNote = saved.systemNote;
+  dom.systemNote.id = "system-note";
+  dom.systemNote.setAttribute("role", "status");
+  client.renderedSystemNoteKey = saved.noteKey;
 }
 
 function currentSceneDefinitionId(snapshot = client.snapshot) {
@@ -1754,7 +1772,7 @@ function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}:${JSON.stringify(choice.postChoiceNarrative || null)}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}:${JSON.stringify(choice.postChoiceNarrative || null)}:${choice.postChoiceNarrativeSource ?? ""}`)
     .join("|");
 }
 
@@ -1916,8 +1934,10 @@ async function animateStoryText(
   client.activeStoryAnimationOptions = { append, revealChoices, block, scrollToStart: options.scrollToStart === true };
   client.isSceneTyping = true;
   dom.sceneFrame.classList.add("is-story-typing");
-  dom.choices.innerHTML = "";
-  dom.choices.classList.remove("revealed");
+  if (!options.keepChoices) {
+    dom.choices.innerHTML = "";
+    dom.choices.classList.remove("revealed");
+  }
   if (options.scrollToStart) {
     scrollSceneStoryToStart(block);
   }
@@ -2150,6 +2170,7 @@ function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {
         craftButton,
         choice.loading,
         choice.postChoiceNarrative,
+        choice.postChoiceNarrativeSource,
       );
     });
     return craftButton;
@@ -2216,6 +2237,7 @@ function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {
       button,
       choice.loading,
       choice.postChoiceNarrative,
+      choice.postChoiceNarrativeSource,
     ));
     if (isRecipeMenuExit) {
       recipeMenuExitButton = button;
@@ -2639,6 +2661,7 @@ function buildChoicePresentation(snapshot) {
       button,
       choice.loading,
       choice.postChoiceNarrative,
+      choice.postChoiceNarrativeSource,
     ));
     element.appendChild(fragment);
   });
@@ -3835,6 +3858,7 @@ async function submitAction(
   triggerElement = null,
   loading = null,
   postChoiceNarrative = null,
+  postChoiceNarrativeSource = "template",
 ) {
   if (!client.gameId || client.actionInFlight) {
     return;
@@ -3847,6 +3871,9 @@ async function submitAction(
   client.pendingAction = action;
   const immediateNarrative = normalizePostChoiceNarrative(postChoiceNarrative);
   const hasImmediateNarrative = immediateNarrative.length > 0;
+  const instantActionLead = hasImmediateNarrative && action.type === "text_world";
+  const savedHistory = instantActionLead ? captureSceneHistory() : null;
+  let presentingAction = true;
   const transitionDurationMs = hasImmediateNarrative && !loading
     ? 0
     : actionTransitionDurationMs(action, loading);
@@ -3884,12 +3911,23 @@ async function submitAction(
       beginActionTransition(action, triggerElement, transitionDurationMs, loading);
     }
     const transitionPromise = waitForMilliseconds(transitionDurationMs);
+    const beginNarrative = () => presentingAction ? beginPostChoiceNarrative(
+      immediateNarrative,
+      !isMovementAction(action, loading) && !previousSnapshot.state.subwayExpedition?.active,
+      postChoiceNarrativeSource,
+      instantActionLead,
+    ) : undefined;
     const immediateNarrativePromise = hasImmediateNarrative
-      ? transitionPromise.then(() => beginPostChoiceNarrative(
-          immediateNarrative,
-          !isMovementAction(action, loading) && !previousSnapshot.state.subwayExpedition?.active,
-        ))
+      ? instantActionLead ? beginNarrative() : transitionPromise.then(beginNarrative)
       : Promise.resolve();
+    if (instantActionLead) {
+      // Keep the existing choice fill visible for its authored duration while the lead types.
+      void transitionPromise.then(() => {
+        if (!presentingAction) return;
+        dom.choices.innerHTML = "";
+        dom.choices.classList.remove("revealed");
+      });
+    }
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
       transitionPromise,
@@ -3936,8 +3974,8 @@ async function submitAction(
             previousSnapshot,
             nextSnapshot: snapshot,
           }),
-      appendScene: hasImmediateNarrative || continueLocationStory,
-      scrollSceneToStart: continueLocationStory,
+      appendScene: (hasImmediateNarrative && (!instantActionLead || !didMove)) || continueLocationStory,
+      scrollSceneToStart: continueLocationStory && !instantActionLead,
     });
     mark("renderedMs");
     timing.renderWorkMs = timing.renderedMs - timing.presentationReadyMs;
@@ -3946,14 +3984,17 @@ async function submitAction(
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   } catch (error) {
+    presentingAction = false;
     window.alert(error instanceof Error ? error.message : "액션 처리에 실패했습니다.");
     clearSceneAnimation();
-    client.renderedStorySurfaceId = "";
+    if (savedHistory) restoreSceneHistory(savedHistory);
+    else client.renderedStorySurfaceId = "";
     finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
     render({ animateScene: false });
   } finally {
+    presentingAction = false;
     finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;

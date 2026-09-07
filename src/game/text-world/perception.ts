@@ -91,5 +91,5 @@ export function directNarrative(world: TextWorld): NarrativeContext {
 }
 export function rememberNarration(world: TextWorld, context: NarrativeContext, usedFactIds: string[], paragraphs: string[]) {
   for (const fact of [...context.requiredFacts, ...context.optionalFacts]) if (usedFactIds.includes(fact.id) && world.knowledge[fact.id]) world.narrated[fact.id] = world.knowledge[fact.id].signature;
-  world.recentScenes = [...world.recentScenes, { zone: world.player.zone, intent: context.intent.label, paragraphs }].slice(-3);
+  world.recentScenes = [...world.recentScenes, { zone: world.player.zone, intent: context.intent.label, paragraphs: [...(context.alreadyDisplayed ?? []), ...paragraphs] }].slice(-3);
 }

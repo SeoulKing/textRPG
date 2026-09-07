@@ -3,13 +3,14 @@ import type { NarrativeContext, TextEntity, TextWorld, WorldAction } from "../sc
 import { choiceConditionsMet, resolveInteractionLoading } from "../content-engine";
 import { GAME_MINUTE_MS } from "../base-data";
 import { resolveItemText } from "../item-text";
-import { applySystemNote, consumeCurrentSceneIntro, performAction, resolveTravelPath, syncScene } from "../rules";
+import { applySystemNote, consumeCurrentSceneIntro, performAction, syncScene } from "../rules";
 import { buildRuntimeRegistry } from "../runtime-registry";
 import { getStockMoneyKey, getStockStateKey } from "../state-utils";
 import { recordEvent, resolveWorldActions } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
 import { fallbackNarration, validateRenderedNarration, type TextWorldNarrator } from "./narrator";
 import { particle } from "./world";
+import { choiceNarrative, choiceNarrativeFields, nextNarrativeChoices, storeChoiceNarratives } from "./choice-narrative";
 
 const LOCATION = "convenience";
 const ZONE = "store";
@@ -70,7 +71,7 @@ function collectingChoices(state: GameState, registry: ContentRegistry, nodeId: 
     "nodeId" in effect && effect.nodeId === nodeId && "locationId" in effect && effect.locationId === LOCATION) && choiceConditionsMet(choice, focused));
 }
 function portalPending(state: GameState) { return Boolean(state.flags.magic_city_entrance_discovered && !state.flags.magic_city_portal_discovery_seen); }
-type StoreOption = { id: string; label: string; hint: string; nodeId?: string; choiceId?: string; destination?: string; loading: NonNullable<ActionChoice["loading"]> };
+type StoreOption = { id: string; label: string; hint: string; nodeId?: string; choiceId?: string; loading: NonNullable<ActionChoice["loading"]> };
 export function convenienceOptions(state: GameState, registry = buildRuntimeRegistry(state)): StoreOption[] {
   const world = worldOf(state);
   if (state.location !== LOCATION || !world?.active || state.isGameOver || state.stageClear) return [];
@@ -93,17 +94,12 @@ export function convenienceOptions(state: GameState, registry = buildRuntimeRegi
     const choice = registry.choices[id];
     return choice && choiceConditionsMet(choice, state) ? [{ id: "story:" + id, choiceId: id, label: resolveItemText(choice.label, registry), hint: "발견한 길", loading: resolveInteractionLoading(choice) ?? ACTIVITY }] : [];
   }) : [];
-  const routes = registry.locations[LOCATION].neighbors.filter(id => resolveTravelPath(state, id, registry)?.length === 2).map(destination => ({
-    id: "travel:" + destination, destination, label: particle(registry.locations[destination].name, "으로", "로") + (destination === "shelter" ? " 돌아간다" : " 이동한다"), hint: "지역 이동",
-    loading: { durationMs: 1000, transitionType: "region_travel" as const },
-  }));
-  const exit = routes.find(route => route.destination === "shelter") ?? routes[0];
-  const primary = [...story, ...collect, ...explore].slice(0, 5 - (exit ? 1 : 0));
-  const spare = routes.filter(route => route !== exit && !(portalPending(state) && route.destination === "magic_city_entrance")).slice(0, 5 - primary.length - (exit ? 1 : 0));
-  return [...primary, ...spare, ...(exit ? [exit] : [])];
+  // Ordinary region travel belongs to the existing map menu.
+  return [...story, ...collect, ...explore].slice(0, 5);
 }
 export function convenienceActions(state: GameState, registry = buildRuntimeRegistry(state)): ActionChoice[] {
   return convenienceOptions(state, registry).map(option => ({ id: "text-world:convenience:" + worldOf(state).revision + ":" + option.id,
+    ...choiceNarrativeFields(worldOf(state), option),
     label: option.label, outcomeHint: option.hint, showOutcomeHint: true, isAvailable: true, loading: option.loading,
     action: { type: "text_world", command: "choose", optionId: option.id, revision: worldOf(state).revision } }));
 }
@@ -117,7 +113,7 @@ function approach(world: TextWorld, nodeId: string): WorldAction[] {
   } else if (world.player.posture !== (crouch ? "crouching" : "standing")) actions.push({ type: "POSTURE", posture: crouch ? "crouching" : "standing" });
   return actions;
 }
-async function render(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string) {
+async function render(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string, alreadyDisplayed: string[] = []) {
   const world = worldOf(state);
   if (portalPending(state) && !world.knowledge["story:portal"]) {
     const scene = registry.scenes.convenience_portal_discovery;
@@ -128,9 +124,12 @@ async function render(state: GameState, registry: ContentRegistry, narrator: Tex
     }
   }
   const context: NarrativeContext = directNarrative(world);
+  context.alreadyDisplayed = alreadyDisplayed;
+  context.nextChoices = nextNarrativeChoices(world, convenienceOptions(state, registry));
   let rendered;
   try { rendered = validateRenderedNarration(context, await narrator(structuredClone(context), gameId)) ?? fallbackNarration(context); }
   catch { rendered = fallbackNarration(context); }
+  storeChoiceNarratives(world, context, rendered.choiceNarratives);
   world.lastParagraphs = rendered.paragraphs;
   world.source = rendered.source;
   world.sceneRevision++;
@@ -164,13 +163,11 @@ export async function performConvenienceAction(state: GameState, action: Extract
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
   const option = convenienceOptions(state, registry).find(o => o.id === action.optionId);
   if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
+  const alreadyDisplayed = [choiceNarrative(world, option).text];
   const before = structuredClone(state), started = state.worldElapsedMs;
   world.events = [];
   world.lastIntent = { id: option.id, label: option.label, importance: "major" };
-  if (option.destination) {
-    performAction(state, { type: "travel", targetId: option.destination });
-    world.active = false;
-  } else if (option.choiceId) {
+  if (option.choiceId) {
     const choice = registry.choices[option.choiceId];
     performAction(state, { type: "content_choice", choiceId: choice.id });
     if (state.location !== LOCATION) world.active = false;
@@ -214,5 +211,5 @@ export async function performConvenienceAction(state: GameState, action: Extract
   syncConvenienceEntities(state, registry);
   syncScene(state);
   applySystemNote(before, state);
-  if (world.active) await render(state, registry, narrator, gameId);
+  if (world.active) await render(state, registry, narrator, gameId, alreadyDisplayed);
 }

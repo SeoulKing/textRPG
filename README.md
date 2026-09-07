@@ -78,6 +78,7 @@ Gemini is not required for the authored surface survival loop. The experimental 
 Optional settings:
 
 - `ENABLE_LLM_WORLD_PLANNER=true`
+- `ENABLE_LLM_BACKGROUND_GENERATION=true` opts into speculative story/floor generation (default: off). With it off, local floor templates remain ready and Gemini still narrates player-selected exploration and encounters.
 - `ENABLE_LLM_SUBWAY_EXPEDITION=false` to use built-in fallback floors after the mandatory bandit encounter
 - `GEMINI_MODEL`
 - `GEMINI_API_URL`
