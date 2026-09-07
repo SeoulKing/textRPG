@@ -32,9 +32,9 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
       if (entityDetails(world, e).touch && world.events.some(event => event.targetId === e.id && ["TAKE", "UNLOCK", "OPEN", "CLOSE", "LIGHT"].includes(event.type)))
         add("touch:" + e.id, "sensory", { name: e.name, detail: entityDetails(world, e).touch }, e.id);
     }
-    if (lit && near && c.openable?.isOpen && c.container) {
+    if (lit && near && (!c.openable || c.openable.isOpen) && c.container) {
       const items = visibleEntities(world).filter(item => c.container!.items.includes(item.id));
-      add("contents:" + e.id, "contents", { name: e.name, items: items.map(item => ({ id: item.id, name: item.name, amount: item.components.portable!.amount, detail: item.description })) }, e.id);
+      add("contents:" + e.id, "contents", { name: e.name, items: items.map(item => ({ id: item.id, name: item.name, amount: item.components.portable!.amount, unit: item.components.portable!.unit, detail: item.description })) }, e.id);
       if (entityDetails(world, e).interior) add("interior:" + e.id, "sensory", { name: e.name, detail: entityDetails(world, e).interior }, e.id);
     }
   }

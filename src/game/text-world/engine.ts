@@ -34,7 +34,7 @@ export function validateWorldAction(world: TextWorld, state: GameState, action: 
     case "INSPECT": return null;
   }
 }
-export function resolveWorldActions(world: TextWorld, state: GameState, actions: WorldAction[]) {
+export function resolveWorldActions(world: TextWorld, state: GameState, actions: WorldAction[], options: { advanceTime?: boolean } = {}) {
   let elapsedSeconds = 0;
   for (const action of actions) {
     const failure = validateWorldAction(world, state, action);
@@ -109,7 +109,9 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
       case "LEAVE": before = { zone: world.player.zone }; world.active = false; after = { zone: "concourse" }; break;
     }
     recordEvent(world, { type: action.type, targetId: action.target, before, after });
-    const elapsed = seconds[action.type]; world.elapsedSeconds += elapsed; elapsedSeconds += elapsed; advanceGameSeconds(state, elapsed);
+    const elapsed = options.advanceTime === false ? 0 : seconds[action.type];
+    world.elapsedSeconds += elapsed; elapsedSeconds += elapsed;
+    if (elapsed) advanceGameSeconds(state, elapsed);
     if (state.isGameOver || state.stageClear) return { elapsedSeconds, interrupted: true, discovery: false };
     // Revealing an unopened interior is a decision boundary, even for a future longer plan.
     const discovery = (action.type === "INSPECT" && Array.isArray(after.revealedIds) && after.revealedIds.length > 0) || (action.type === "OPEN" || action.type === "LIGHT") && visibleEntities(world).some(item => {

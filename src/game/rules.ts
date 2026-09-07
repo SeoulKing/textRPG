@@ -701,6 +701,7 @@ export function createInitialGameState(): GameState {
   const registry = buildRuntimeRegistry();
   const state: GameState = {
     textWorld: null,
+    locationTextWorlds: {},
     saveVersion: SAVE_VERSION,
     conditions: normalizeHealthConditions(undefined),
     contentVersionId: currentContentVersionId(),

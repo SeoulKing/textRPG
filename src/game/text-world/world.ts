@@ -75,7 +75,7 @@ export function visibleEntities(world: TextWorld) {
     if (e.components.position.zone === "player") return true;
     if (e.components.discovery && !world.observations[e.components.discovery.inspectTargetId]?.inspected) return false;
     const parent = world.entities[e.components.position.zone];
-    if (parent && !parent.components.openable?.isOpen) return false;
+    if (parent?.components.openable && !parent.components.openable.isOpen) return false;
     if (e.components.portal && [e.components.portal.from, e.components.portal.to].includes(world.player.zone)) return true;
     if (zoneOf(world, e) !== world.player.zone || !illuminated(world, world.player.zone)) return false;
     return !parent || world.player.near === parent.id;
@@ -85,7 +85,7 @@ export function canReach(world: TextWorld, entity: TextEntity) {
   if (entity.components.position.zone === "player") return true;
   const parent = world.entities[entity.components.position.zone];
   const same = zoneOf(world, entity) === world.player.zone || Boolean(entity.components.portal && [entity.components.portal.from, entity.components.portal.to].includes(world.player.zone));
-  return same && (world.player.near === entity.id || (parent?.id === world.player.near && parent.components.openable?.isOpen === true));
+  return same && (world.player.near === entity.id || (parent?.id === world.player.near && (!parent.components.openable || parent.components.openable.isOpen)));
 }
 export function particle(name: string, consonant: string, vowel: string) {
   const code = name.charCodeAt(name.length - 1) - 0xac00;

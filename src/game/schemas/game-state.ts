@@ -62,6 +62,7 @@ export const GameStateSchema = z.object({
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
   subwayExpedition: SubwayExpeditionStateSchema,
   textWorld: TextWorldSchema.nullable().default(null),
+  locationTextWorlds: z.record(z.string(), TextWorldSchema).default({}),
   npcDialogue: NpcDialogueStateSchema,
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),
