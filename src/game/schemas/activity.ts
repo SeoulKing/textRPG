@@ -26,6 +26,8 @@ export const ActivityResultSchema = z.object({
   plannedMinutes: z.number().positive(),
   elapsedMinutes: z.number().nonnegative(),
   consumedItems: z.record(z.string(), z.number().int().positive()),
+  storedConsumedItems: z.record(z.string(), z.number().int().positive()).optional(),
+  workstation: z.object({ id: z.string(), name: z.string(), durationMultiplier: z.number().positive().max(1) }).optional(),
   producedItems: z.record(z.string(), z.number().int().positive()),
   moneySpent: z.number().int().nonnegative(),
   reason: z.string().optional(),

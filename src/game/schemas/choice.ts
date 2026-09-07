@@ -14,6 +14,7 @@ export const CraftingRecipeRequirementSchema = z.object({
   sourceHints: z.array(z.string()).max(2).optional(),
   requiredAmount: z.number().int().positive(),
   ownedAmount: z.number().int().nonnegative(),
+  storedAmount: z.number().int().nonnegative().optional(),
   met: z.boolean(),
 });
 

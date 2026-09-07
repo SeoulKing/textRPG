@@ -1,3 +1,4 @@
+import { synchronizeWorldActors } from "./observers";
 import { performPointAction } from "./interaction-points";
 import { boundStockOptions, collectBoundStock, isBoundStockItem, rememberBoundStockDiscovery, syncBoundStockNodes, type BoundStockOption } from "./stock-nodes";
 import type { ActionChoice, ActionDefinition, ContentRegistry, GameAction, GameState } from "../schemas";
@@ -9,7 +10,7 @@ import { getRemainingDailyUses } from "../state-utils";
 import { projectResourceSite, resourceAvailability } from "../resources";
 import { applySystemNote, consumeCurrentSceneIntro, performAction, syncScene } from "../rules";
 import { createLocationTextWorld, visibleEntities, worldRooms } from "./world";
-import { transferCarriedEntities } from "./inventory";
+import { transferCarriedEntities, materializeOwnedInventory } from "./inventory";
 import { availableWorldOptions } from "./choices";
 import { directChoices } from "./choice-director";
 import { interactionContext } from "./interaction-context";
@@ -22,6 +23,13 @@ const ACTIVITY = { durationMs: 500, transitionType: "activity" as const };
 const worldOf = (state: GameState) => state.locationTextWorlds[state.location];
 export function hasLocationWorld(state: GameState, registry: ContentRegistry) {
   return !["subway", "convenience"].includes(state.location) && Boolean(registry.textRooms?.some(room => room.locationId === state.location));
+}
+export function locationWorldEntryActions(state: GameState, registry: ContentRegistry): ActionChoice[] {
+  const entry = registry.textRooms?.find(room => room.locationId === state.location)?.optionalEntry;
+  if (state.sceneId.startsWith("prologue_") || state.flags.shelter_crafting_open || state.flags.shelter_cooking_open) return [];
+  if (!entry || worldOf(state)?.active || state.npcDialogue.active || state.subwayExpedition.active || state.isGameOver || state.stageClear || (entry.requiredFlag && !state.flags[entry.requiredFlag])) return [];
+  return [{ id: "text-world:" + state.location + ":enter", label: entry.label, outcomeHint: "보관과 작업 환경", showOutcomeHint: true, isAvailable: true,
+    choiceThought: "모아 온 물건을 어디에 둘까.", choiceThoughtSource: "template", loading: ACTIVITY, action: { type: "text_world", command: "enter" } }];
 }
 function siteActions(state: GameState, registry: ContentRegistry, siteId: string) {
   return Object.values(registry.actions).filter(action => action.locationIds.includes(state.location) && action.resourceUse?.siteId === siteId);
@@ -114,19 +122,22 @@ async function render(state: GameState, registry: ContentRegistry, narrator: Tex
   rememberNarration(world, context, rendered.usedFactIds, rendered.paragraphs);
 }
 /** Arrival generates one scene; an active saved scene and ordinary polls never regenerate it. */
-export async function ensureLocationWorld(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string) {
+export async function ensureLocationWorld(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string, explicitEntry = false) {
   for (const [location, world] of Object.entries(state.locationTextWorlds)) {
-    if (location !== "convenience" && (location !== state.location || state.npcDialogue.active)) world.active = false;
+    if (location !== "convenience" && location !== state.location) world.active = false;
   }
   if (!hasLocationWorld(state, registry) || state.npcDialogue.active || state.isGameOver || state.stageClear) return;
   const rooms = registry.textRooms!.filter(room => room.locationId === state.location);
+  if (rooms[0]?.optionalEntry && !worldOf(state)?.active && !explicitEntry) return;
   const legacyFocus = state.activeStockNodeId;
   const world = state.locationTextWorlds[state.location] ??= createLocationTextWorld(rooms);
   syncLocationResources(state, registry);
   syncBoundStockNodes(state, registry, world);
+  synchronizeWorldActors(world, state, registry);
   if (world.active) return;
   world.active = true;
   transferCarriedEntities(state, world);
+  if (rooms[0]?.optionalEntry) materializeOwnedInventory(state, world, registry);
   const resume = Object.values(world.entities).find(e => e.components.stockNode?.nodeId === legacyFocus && worldRooms(world)[e.components.position.zone]);
   const entry = worldRooms(world)[resume?.components.position.zone ?? rooms[0].id] ?? Object.values(worldRooms(world))[0];
   world.events = [];
@@ -141,6 +152,10 @@ export async function ensureLocationWorld(state: GameState, registry: ContentReg
   await render(state, registry, narrator, gameId);
 }
 export async function performLocationWorldAction(state: GameState, action: Extract<GameAction, { type: "text_world" }>, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string) {
+  if (action.command === "enter") {
+    if (!locationWorldEntryActions(state, registry).length) throw new Error("현재 탐색을 시작할 수 없습니다.");
+    return ensureLocationWorld(state, registry, narrator, gameId, true);
+  }
   const world = worldOf(state);
   if (!world?.active || action.command !== "choose") throw new Error("먼저 탐색할 장소에 들어가 주세요.");
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");

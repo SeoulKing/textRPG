@@ -2,6 +2,7 @@
  * GameState helpers.
  */
 
+import { toolInstances, setToolInstanceDurability, damageToolInstance } from "./tool-instances";
 import { PHASES, REAL_DAY_MS } from "./base-data";
 import { addHealthCondition, checkHealthFailure } from "./health-conditions";
 import { getGameClockShiftedMinutes, appendLogEntry } from "./game-log";
@@ -214,7 +215,7 @@ function ensureToolDurability(state: GameState, itemId: string) {
     return 0;
   }
 
-  const current = state.toolDurability[itemId];
+  const current = toolInstances(state, itemId)[0]?.entity.toolDurability ?? state.toolDurability[itemId];
   if (Number.isInteger(current) && current > 0) {
     return Math.min(current, maxDurability);
   }
@@ -230,7 +231,7 @@ function setToolDurability(state: GameState, itemId: string, value: number) {
     delete state.toolDurability[itemId];
     return;
   }
-  state.toolDurability[itemId] = Math.min(value, maxDurability);
+  setToolInstanceDurability(state, itemId, Math.min(value, maxDurability), toolDisplayName(state, itemId));
 }
 
 function damageTool(state: GameState, itemId: string, amount: number) {
@@ -242,13 +243,14 @@ function damageTool(state: GameState, itemId: string, amount: number) {
 
   const current = ensureToolDurability(state, itemId);
   const next = current - Math.max(1, amount);
+  damageToolInstance(state, itemId, next);
   if (next > 0) {
     state.toolDurability[itemId] = next;
     return;
   }
 
-  delete state.inventory[itemId];
-  delete state.toolDurability[itemId];
+  if (count > 1) { state.inventory[itemId] = count - 1;state.toolDurability[itemId] = toolInstances(state,itemId)[0]?.entity.toolDurability ?? toolMaxDurability(state,itemId); }
+  else { delete state.inventory[itemId];delete state.toolDurability[itemId]; }
   appendLogEntry(state, `${toolDisplayName(state, itemId)}이(가) 망가졌다.`);
 }
 

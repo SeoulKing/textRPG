@@ -17,6 +17,8 @@ export function interactionOptions(world: TextWorld, state: GameState): WorldOpt
   const add = (id: string, label: string, hint: string, actions: WorldAction[], importance: "major" | "minor" = "major") => {
     const projected = structuredClone(world), projectedState = structuredClone(state);
     projected.events = [];
+    if (state.location === "subway") projectedState.textWorld = projected;
+    else projectedState.locationTextWorlds[state.location] = projected;
     const outcome = resolveWorldActions(projected, projectedState, actions, { advanceTime: false });
     // Tool work may reveal contents; that is its final decision boundary, not a failure.
     if (!outcome.interrupted && (!outcome.discovery || actions.at(-1)?.type === "USE_TOOL")) offered.push({ id, label, hint, actions, importance });

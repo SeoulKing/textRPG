@@ -25,7 +25,11 @@ export function workActivityParagraphs(
     const inputsUsed = Object.keys(result.consumedItems).length > 0 || result.moneySpent > 0;
     return [label + " 작업을 시작하지만 끝내기 전에 멈춘다." + (inputsUsed ? " 이미 투입한 재료와 비용은 사용한 상태로 남는다." : "") + " 완성품이나 설비는 만들어지지 않는다."];
   }
-  const paragraphs = executedParagraphs.map(text => resolveItemText(text, registry)
+  const preparation = [
+    Object.entries(result.storedConsumedItems ?? {}).length ? "열린 보관함에서 " + Object.entries(result.storedConsumedItems!).map(([id, amount])=>resolveItemText("{{item:" + id + "}}", registry) + " " + amount + "개").join(", ") + "를 가져와 재료로 쓴다." : "",
+    result.workstation ? result.workstation.name + "에 재료를 받쳐 놓고 작업을 이어간다." : "",
+  ].filter(Boolean).join(" ");
+  const paragraphs = [preparation, ...executedParagraphs].map(text => resolveItemText(text, registry)
     .replace(/(^|[.!?]\s+)당신은\s*/g, "$1").trim()).filter(Boolean);
   if (!paragraphs.length) return [label + " 작업을 마친다."];
   return paragraphs.length <= 3 ? paragraphs : [...paragraphs.slice(0, 2), paragraphs.slice(2).join(" ")];

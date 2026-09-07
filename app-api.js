@@ -2136,7 +2136,7 @@ function craftingRecipeMetaHtml(recipe, { showEffect = true } = {}) {
         <span class="crafting-recipe-token-list">
           ${requirements.map((entry) => `
             <span class="crafting-recipe-token ${entry.met ? "is-met" : "is-missing"}">
-              ${escapeHtml(entry.name)} (${entry.ownedAmount}/${entry.requiredAmount})
+              ${escapeHtml(entry.name)} (${entry.ownedAmount}/${entry.requiredAmount})${entry.storedAmount ? ` · 보관함 ${entry.storedAmount}` : ""}
             </span>
           `).join("")}
         </span>
@@ -2182,7 +2182,7 @@ function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {
       ? `<span class="crafting-recipe-effect">${escapeHtml(selectedChoice.craftingRecipe.effect)}</span>`
       : `
         <span class="crafting-recipe-state ${selectedChoice.isAvailable ? "is-met" : "is-missing"}">
-          ${selectedChoice.isAvailable ? "제작 가능" : "재료 부족"}
+          ${escapeHtml(selectedChoice.statusLabel || (selectedChoice.isAvailable ? "제작 가능" : "조건 미충족"))}
         </span>
       `;
     detail.innerHTML = `

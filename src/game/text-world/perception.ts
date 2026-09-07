@@ -36,6 +36,10 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
       name: e.name, material: { wood: "나무", metal: "금속", fabric: "천", stone: "돌" }[c.structure.material], integrity: c.structure.integrity, maxIntegrity: c.structure.maxIntegrity,
       destroyed: c.structure.integrity === 0, lockBroken: c.openable?.lockBroken,
     }, e.id);
+    if (lit && (near || world.observations[e.id]?.stages.includes("surface")) && (c.workstation || c.craftingStorage)) add("facility:" + e.id, "facility", {
+      name: e.name, storage: Boolean(c.craftingStorage), available: c.structure?.integrity !== 0,
+      kinds: c.workstation?.kinds, durationMultiplier: c.workstation?.durationMultiplier,
+    }, e.id);
     if (c.resourceSite && near && world.observations[e.id]?.inspected) add("resource:" + e.id, "resource", {
       name: e.name, unlimited: c.resourceSite.unlimited, remaining: c.resourceSite.remaining, capacity: c.resourceSite.capacity,
       recoveryMinutes: c.resourceSite.recoveryMinutes, missingTools: c.resourceSite.missingTools ?? [],
@@ -85,7 +89,7 @@ export function directNarrative(world: TextWorld): NarrativeContext {
     const stages = fact.targetId ? world.observations[fact.targetId]?.stages ?? [] : [];
     const newlyObserved = stage ? !stages.includes(stage) : !previous;
     const resourceStatusChanged = !previous || (Number(previous.fact.data.remaining) === 0) !== (Number(fact.data.remaining) === 0) || JSON.stringify(previous.fact.data.missingTools) !== JSON.stringify(fact.data.missingTools);
-    const mandatory = (fact.kind === "structure" && changed) || (fact.kind === "resource" && (resourceStatusChanged || world.events.some(e => e.targetId === fact.targetId && e.type === "INSPECT"))) || (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
+    const mandatory = (["structure", "facility"].includes(fact.kind) && changed) || (fact.kind === "resource" && (resourceStatusChanged || world.events.some(e => e.targetId === fact.targetId && e.type === "INSPECT"))) || (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
       (fact.kind === "surface" && world.events.some(e => (newlyObserved && e.targetId === fact.targetId && e.type === "INSPECT") || (e.type === "SURVEY" && fact.targetId === world.player.zone))) ||
       (fact.kind === "lighting" && (changed || recap)) || (fact.kind === "threshold" && world.events.some(e => e.targetId === fact.targetId && e.type === "OPEN")) ||
       (fact.kind === "connection" && (recap || world.events.some(e => e.targetId === fact.targetId || e.type === "MOVE" && e.before.zone !== e.after.zone)));

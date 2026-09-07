@@ -78,3 +78,32 @@ test('an authored resident can be approached and spoken to inside exploration, t
  await assert.rejects(()=>service.performAction(saved.id,{type:'npc_dialogue',command:'start',npcId:'shumi'}),/현재 위치/);
  assert.equal(calls,1);
 });
+
+for (const location of ['forest','convenience','shelter']) test('dialogue preserves the actual exploration viewpoint in '+location,async t=>{
+ t.mock.method(global,'fetch',async()=>{throw Error('No external calls')});
+ const {createInitialGameState}=require('../.server-dist/game/rules');
+ const {createLocationTextWorld}=require('../.server-dist/game/text-world/world');
+ const {ensureConvenienceWorld}=require('../.server-dist/game/text-world/convenience');
+ const {ensureLocationWorld}=require('../.server-dist/game/text-world/location-world');
+ const {worldRegistry}=require('../.server-dist/game/data/registry');
+ const state=createInitialGameState();state.location=location;state.flags.opening_seen=true;state.flags.prologue_old_woman_seen=true;state.sceneId=location+'_repeat_intro';
+ state.dynamicContent.people.shumi={...structuredClone(worldRegistry.people.shumi),locationId:location};
+ const registry=buildRuntimeRegistry(state),narrator=async c=>fallbackNarration(c);
+ if(location==='convenience')await ensureConvenienceWorld(state,registry,narrator,'region-talk');
+ else await ensureLocationWorld(state,registry,narrator,'region-talk',true);
+ const world=state.locationTextWorlds[location],zone=world.player.zone;
+ world.entities.visitor={id:'visitor',name:'슈미',description:'라디오를 지닌 슈미가 보인다.',details:{anchor:'wall',placement:'벽 옆',outline:'슈미',surface:'라디오를 지니고 있다.'},components:{position:{zone},actor:{npcId:'shumi',active:true}}};
+ world.player={...world.player,near:'visitor',position:'wall',facing:'visitor',focusEntityId:'visitor',posture:'crouching'};world.observations.visitor={stages:['outline','surface'],collected:false,inspected:true};
+ let saved={id:'region-talk-'+location,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),state,world:{locationCards:{},personCards:{},itemCards:{},eventCards:{},sceneCards:{},protagonistCard:null}},npcCalls=0,worldCalls=0;
+ const repo={withGameLock:async(_id,f)=>f(),loadGame:async()=>normalizeGameSession(sorted(structuredClone(saved))),saveGame:async s=>{saved=JSON.parse(JSON.stringify(s))},getTemplate:async()=>undefined,saveTemplate:async()=>{},saveProtagonistTemplate:async()=>{},appendGenerationLog:async()=>{},appendActionLog:async()=>{}};
+ const fallback=createNpcDialogueGenerator(undefined,()=>false);
+ const service=new GameService(repo,undefined,undefined,undefined,async input=>{npcCalls++;return fallback(input)},async c=>{worldCalls++;return fallbackNarration(c)});
+ let snap=await service.getState(saved.id);const before=structuredClone(saved.state.locationTextWorlds[location].player);
+ const talk=snap.availableActions.find(row=>row.action.type==='npc_dialogue');assert(talk,'nearby resident is offered');
+ snap=await service.performAction(saved.id,talk.action);assert.equal(npcCalls,1);assert.equal(snap.exploration,null);assert.match(snap.currentScene.id,/npc-dialogue/);
+ assert(saved.state.locationTextWorlds[location].active,'conversation only changes the presentation layer');
+ snap=await service.getState(saved.id);assert.equal(npcCalls,1);assert.equal(worldCalls,0);
+ snap=await service.performAction(saved.id,{type:'npc_dialogue',command:'leave',npcId:'shumi'});
+ assert(snap.exploration);assert.deepEqual(saved.state.locationTextWorlds[location].player,before);assert.equal(worldCalls,0,'returning from dialogue does not pay for another arrival narration');
+ assert.match(snap.currentScene.paragraphs.join(' '),/대화|말|인사|관심|주변/);
+});

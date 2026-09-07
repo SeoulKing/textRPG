@@ -67,7 +67,7 @@ function eventText(e: WorldEvent) {
     case "DEFOCUS": return name + "에서 시선을 떼고 주변으로 관심을 옮긴다.";
     case "LOOK": return "지금 있는 자리에서 방의 배치와 확인한 상태를 짚어 본다.";
     case "SURVEY": return "손전등 빛을 벽에서 바닥으로 옮기며 통로를 살핀다.";
-    case "LEAVE": return "역무실 입구를 지나 대합실로 돌아간다.";
+    case "LEAVE": return String(e.after.exitText ?? "역무실 입구를 지나 대합실로 돌아간다.");
     case "STOPPED": return e.reason + " 그 지점에서 움직임을 멈춘다.";
   }
 }
@@ -80,6 +80,7 @@ function factText(f: WorldFact): string {
     return status + (tools?.length ? " 다른 작업 방법에는 " + particle(tools.join(", "), "이", "가") + " 필요하다." : "");
   }
   if (f.kind === "connection") return d.name + "은 " + d.from + "과 " + d.to + " 사이를 잇는다.";
+  if (f.kind === "facility") return d.storage ? String(d.name) + "에 넣어 둔 재료는 뚜껑을 열어 두면 이곳에서 작업할 때 쓸 수 있다." : String(d.name) + (d.available ? "에 재료를 받치고 작업하면 제작 시간이 " + Math.round((1 - Number(d.durationMultiplier)) * 100) + "% 줄어든다." : "는 구조를 복원해야 작업에 쓸 수 있다.");
   if (f.kind === "structure") return d.destroyed ? d.name + "의 구조는 부서진 상태다." : d.lockBroken ? d.name + "의 잠금장치가 망가져 있다." : d.integrity !== d.maxIntegrity ? d.name + "의 " + d.material + " 구조에 손상이 남아 있다." : d.name + "의 구조는 " + d.material + "로 되어 있다.";
   if (f.kind === "layout") return String(d.layout);
   if (f.kind === "surface" || f.kind === "sensory") return String(d.detail);

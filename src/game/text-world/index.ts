@@ -5,7 +5,7 @@ import { synchronizeWorldActors, nearbyWorldNpc } from "./observers";
 import type { TextRoom } from "../schemas/text-world";
 import type { ActionChoice, ContentRegistry, GameAction, GameState, SceneCard } from "../schemas";
 import { availableConvenienceOptions, convenienceActions, performConvenienceAction } from "./convenience";
-import { availableLocationWorldOptions, hasLocationWorld, locationWorldActions, performLocationWorldAction } from "./location-world";
+import { availableLocationWorldOptions, hasLocationWorld, locationWorldActions, locationWorldEntryActions, performLocationWorldAction } from "./location-world";
 import { buildRuntimeRegistry } from "../runtime-registry";
 import { applySystemNote } from "../rules";
 import { setSystemNote } from "../system-note";
@@ -19,7 +19,8 @@ import { recordEvent, resolveWorldActions } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
 import { narrateTextWorld, renderNarration, type TextWorldNarrator } from "./narrator";
 
-export function textWorldEntryActions(state: GameState): ActionChoice[] {
+export function textWorldEntryActions(state: GameState, registry: ContentRegistry = buildRuntimeRegistry(state)): ActionChoice[] {
+  if (state.location !== "subway") return locationWorldEntryActions(state, registry);
   if (state.location !== "subway" || state.textWorld?.active || state.subwayExpedition.active ||
     state.npcDialogue.active || state.activeStockNodeId || state.isGameOver || state.stageClear) return [];
   return [{ id: "text-world:enter", label: "옆쪽 역무실을 둘러본다", outcomeHint: "탐색과 물건 수집", showOutcomeHint: true,

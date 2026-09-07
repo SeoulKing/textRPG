@@ -1,3 +1,4 @@
+import { toolInstances } from "../tool-instances";
 import type { GameState } from "../schemas";
 import type { TextEntity, TextWorld } from "../schemas/text-world";
 import { normalizeHands } from "./hands";
@@ -28,12 +29,21 @@ export function transferInventoryOwnership(world: TextWorld, state: GameState, e
   const tree = entityTree(world, entity);
   for (const member of tree) member.inventoryRegistered ??= inventoryRegistered(world, member);
   const before = registeredAmounts(world, tree);
+  for (const member of tree) {
+    const itemId = member.components.portable?.itemId;
+    if (itemId && carriedByPlayer(world,member) && member.inventoryRegistered && state.toolDurability[itemId] !== undefined) member.toolDurability ??= state.toolDurability[itemId];
+  }
   if (register) entity.inventoryRegistered = true;
   relocateEntity(world, entity, position);
   const after = registeredAmounts(world, tree);
   const inventoryDelta = Object.fromEntries([...new Set([...Object.keys(before), ...Object.keys(after)])]
     .map(id => [id, (after[id] ?? 0) - (before[id] ?? 0)] as const).filter(([, amount]) => amount !== 0));
   for (const [id, amount] of Object.entries(inventoryDelta)) state.inventory[id] = (state.inventory[id] ?? 0) + amount;
+  for (const itemId of Object.keys(inventoryDelta)) {
+    const instance=toolInstances(state,itemId)[0]?.entity;
+    if (!(state.inventory[itemId]>0)) delete state.toolDurability[itemId];
+    else if(instance?.toolDurability !== undefined) state.toolDurability[itemId]=instance.toolDurability;
+  }
   const containedItems = tree.filter(member => member !== entity && member.inventoryRegistered && member.components.portable).map(member => ({ id: member.id, name: member.name, amount: member.components.portable!.amount, itemId: member.components.portable!.itemId }));
   return { inventoryDelta, containedItems };
 }

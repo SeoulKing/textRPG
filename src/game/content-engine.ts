@@ -1,3 +1,4 @@
+import { activityConditionState, activityDisplayEffects } from "./work-environment";
 import { activityThoughtFields } from "./activity-narrative";
 import { restChoiceHint } from "./rest";
 import type {
@@ -55,7 +56,7 @@ export function buildStoryChoiceFromChoice(
   choice: ChoiceDefinition,
   state: GameState,
 ): StoryChoice {
-  const standardizedHint = formatOutcomeHint(choice.effects, state, choice.skillUse);
+  const standardizedHint = formatOutcomeHint(activityDisplayEffects(choice, state), state, choice.skillUse);
   return {
     id: choice.id,
     label: choice.label,
@@ -77,7 +78,8 @@ export function buildStoryChoiceFromChoice(
 }
 
 export function actionConditionsMet(action: ActionDefinition, state: GameState) {
-  return action.conditions.every((condition) => evaluateCondition(condition, state)) && activityInputsAvailable(action, state);
+  const availableState = activityConditionState(action, state);
+  return action.conditions.every((condition) => evaluateCondition(condition, availableState)) && activityInputsAvailable(action, state);
 }
 
 export function canPresentAction(action: ActionDefinition, state: GameState) {
@@ -85,7 +87,8 @@ export function canPresentAction(action: ActionDefinition, state: GameState) {
 }
 
 export function choiceConditionsMet(choice: ChoiceDefinition, state: GameState) {
-  return choice.conditions.every((condition) => evaluateCondition(condition, state)) && activityInputsAvailable(choice, state);
+  const availableState = activityConditionState(choice, state);
+  return choice.conditions.every((condition) => evaluateCondition(condition, availableState)) && activityInputsAvailable(choice, state);
 }
 
 export function canPresentChoice(choice: ChoiceDefinition, state: GameState) {

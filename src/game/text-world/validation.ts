@@ -46,6 +46,8 @@ export function textRoomIssues(rooms: TextRoom[], itemIds: Set<string>) {
       }
       if (c.stockNode && (!c.container || c.portable || c.resourceSite || c.physical?.movable)) add(room.id, label + ": 재고 노드는 고정 보관함에 연결해 주세요.");
       if (c.interactionPoint && new Set(c.interactionPoint.actions.map(a => a.actionId)).size !== c.interactionPoint.actions.length) add(room.id, label + ": 연결된 행동이 중복되었습니다.");
+      if (c.craftingStorage && (!c.container || c.stockNode || c.portable)) add(room.id, label + ": 작업 재료 보관은 일반 고정 보관함에만 설정해 주세요.");
+      if (c.workstation && (c.portable || new Set(c.workstation.kinds).size !== c.workstation.kinds.length)) add(room.id, label + ": 작업대는 휴대할 수 없으며 작업 종류가 중복되면 안 됩니다.");
       if (c.container) {
         if (c.portal) add(room.id, label + ": 문은 보관함으로 사용할 수 없습니다.");
         if (new Set(c.container.items).size !== c.container.items.length) add(room.id, `${label}: 내용물이 중복되어 있습니다.`);

@@ -1,6 +1,7 @@
 import { nearbyWorldNpc, residentAtConversationLocation } from "./text-world/observers";
 import { runtimeSocialProfile, performNpcSocialAction } from "./npc-social";
 import { questProgressFields } from "./quest-guidance";
+import { activityConditionState, localWorkEnvironment } from "./work-environment";
 import { planActivity } from "./activity";
 import { materialSourceHints } from "./material-guidance";
 import { formatOutcomeHint } from "./outcome-hint";
@@ -1868,11 +1869,13 @@ export class GameService {
     for (const id of activity?.tools ?? []) requiredItems.set(id, Math.max(1, requiredItems.get(id) ?? 0));
     for (const condition of choice.conditions ?? []) if (condition.type === "has_item")
       requiredItems.set(condition.itemId, Math.max(condition.amount, requiredItems.get(condition.itemId) ?? 0));
+    const materialInventory = definition ? activityConditionState(definition, session.state).inventory : session.state.inventory;
     const requirements = [...requiredItems].map(([itemId, requiredAmount]) => {
-      const ownedAmount = session.state.inventory[itemId] ?? 0;
+      const ownedAmount = materialInventory[itemId] ?? 0;
+      const storedAmount = Math.max(0, ownedAmount - (session.state.inventory[itemId] ?? 0));
       return { itemId, name: this.itemDisplayName(registry, itemId), requiredAmount,
         sourceHints: ownedAmount < requiredAmount ? materialSourceHints(session.state, registry, itemId, RECIPE_MENU_SCENE_IDS) : [],
-        ownedAmount, met: ownedAmount >= requiredAmount };
+        ownedAmount, storedAmount, met: ownedAmount >= requiredAmount };
     });
 
     const prerequisites = (CRAFTING_RECIPE_PREREQUISITES[choice.id] ?? []).map((prerequisite) => ({
@@ -1880,13 +1883,14 @@ export class GameService {
       met: Boolean(session.state.flags[prerequisite.flag]),
     }));
 
+    const station = localWorkEnvironment(session.state, definition?.activity?.kind).station;
     return {
       actionLabel: definition?.activity?.kind === "cook" || choice.id.startsWith("cook_")
         ? "요리"
         : choice.id.startsWith("brew_")
           ? "연금"
           : "제작",
-      effect,
+      effect: effect + (station ? " / " + station.name + "에서 작업 시간 " + Math.round((1 - station.durationMultiplier) * 100) + "% 단축" : ""),
       prerequisites,
       requirements,
     };
@@ -1918,7 +1922,12 @@ export class GameService {
       const craftingRecipe = storyChoice
         ? this.buildCraftingRecipe(session, storyChoice, registry)
         : undefined;
-      return craftingRecipe ? { ...action, craftingRecipe } : action;
+      if (!craftingRecipe) return action;
+      const definition = registry.choices[action.id] ?? registry.actions[action.id];
+      const owned = definition?.conditions.some(condition => condition.type === "not_has_item" && (session.state.inventory[condition.itemId] ?? 0) >= condition.amount);
+      const built = definition?.conditions.some(condition => condition.type === "flag_not" && session.state.flags[condition.flag]);
+      const statusLabel = action.isAvailable ? "제작 가능" : owned ? "이미 보유" : built ? "이미 완성" : craftingRecipe.requirements.some(item=>!item.met) ? "재료 부족" : "조건 미충족";
+      return { ...action, craftingRecipe, statusLabel };
     });
   }
 
@@ -2019,7 +2028,7 @@ export class GameService {
         : expeditionScene
           ? buildSubwayExpeditionActions(session.state)
           : [
-              ...textWorldEntryActions(session.state),
+              ...textWorldEntryActions(session.state, registry),
               ...this.npcDialogueStartActions(session, registry),
               ...this.buildAvailableActions(
                 session,

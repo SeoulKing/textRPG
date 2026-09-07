@@ -47,7 +47,7 @@ export function materializeTool(world: TextWorld, state: GameState, itemId: stri
   if (!item) throw new Error("가지고 있는 도구가 아닙니다.");
   let id = "tool:" + itemId, suffix = 1;
   while (world.entities[id]) id = "tool:" + itemId + ":" + suffix++;
-  const entity: TextEntity = { id, name: item.name, description: item.description, inventoryRegistered: true,
+  const entity: TextEntity = { id, name: item.name, description: item.description, inventoryRegistered: true, toolDurability: state.toolDurability[itemId] ?? item.maxDurability,
     components: { position: { zone: "player" }, portable: { itemId, amount: 1 } } };
   world.entities[id] = entity;
   world.observations[id] = { stages: ["outline", "surface"], collected: true };

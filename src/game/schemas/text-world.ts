@@ -12,10 +12,13 @@ export const TextEntityDetailsSchema = z.object({
 export const TextEntitySchema = z.object({
   id: z.string(), name: z.string(), description: z.string(),
   inventoryRegistered: z.boolean().optional(),
+  toolDurability: z.number().int().nonnegative().optional(),
   origin: z.object({ worldId: z.string(), entityId: z.string() }).optional(),
   details: TextEntityDetailsSchema.optional(),
   components: z.object({
     actor: z.object({ npcId: z.string(), active: z.boolean().optional() }).optional(),
+    craftingStorage: z.boolean().optional(),
+    workstation: z.object({ kinds: z.array(z.enum(["craft", "cook", "build"])).min(1), durationMultiplier: z.number().min(0.25).max(1) }).optional(),
     ownership: z.object({ npcId: z.string() }).optional(),
     stockNode: z.object({ nodeId: z.string().min(1) }).optional(),
     interactionPoint: z.object({ actions: z.array(z.object({ actionId: z.string().min(1), role: z.enum(["work", "care"]) })).min(1) }).optional(),
@@ -37,6 +40,7 @@ export const TextEntitySchema = z.object({
 export const TextRoomSchema = z.object({
   id: z.string().min(1), name: z.string(), locationId: z.string().min(1),
   outsideExploration: z.boolean().optional(),
+  optionalEntry: z.object({ label: z.string().min(1), exitLabel: z.string().min(1), exitText: z.string().min(1), requiredFlag: z.string().optional() }).optional(),
   light: z.boolean(), layout: z.string(), surface: z.string(),
   entryText: z.string().optional(), entryAnchor: z.string().optional(),
   neighbors: z.array(z.string()),

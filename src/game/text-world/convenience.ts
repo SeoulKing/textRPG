@@ -155,7 +155,8 @@ async function render(state: GameState, registry: ContentRegistry, narrator: Tex
 /** Called on arrival, load, and restore. Polls reuse the stored scene without another LLM call. */
 export async function ensureConvenienceWorld(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string) {
   const previous = worldOf(state);
-  if (state.location !== LOCATION || state.npcDialogue.active) { if (previous) previous.active = false; return; }
+  if (state.location !== LOCATION) { if (previous) previous.active = false; return; }
+  if (state.npcDialogue.active) return;
   if (state.isGameOver || state.stageClear) return;
   const legacyFocus = state.activeStockNodeId;
   const world = state.locationTextWorlds[LOCATION] ??= createWorld();

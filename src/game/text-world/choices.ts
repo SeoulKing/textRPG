@@ -96,6 +96,8 @@ export function availableWorldOptions(world: TextWorld, state: GameState): World
   // Keep a real exit in view; offer only available intentions without recap filler.
   const tail: WorldOption[] = [];
   if (world.player.zone === "office") tail.push({ id: "leave", label: "대합실로 돌아간다", hint: "탐색 마치기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
+  const exit = worldRooms(world)[world.player.zone]?.optionalEntry;
+  if (exit) tail.push({ id: "leave", label: exit.exitLabel, hint: "살림 자리에서 나가기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
   return [...options, ...focusOptions(world), ...tail];
 }
 

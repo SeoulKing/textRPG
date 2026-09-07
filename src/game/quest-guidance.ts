@@ -1,5 +1,6 @@
 import type { ContentRegistry, GameState, QuestDefinition } from "./schemas";
 import { evaluateCondition } from "./state-utils";
+import { activityConditionState } from "./work-environment";
 import { activityInputsAvailable } from "./activity";
 import { resolveItemText } from "./item-text";
 import { materialSourceHints } from "./material-guidance";
@@ -47,13 +48,14 @@ export function questProgressFields(state: GameState, quest: QuestDefinition, re
     quest.objectives.forEach(objective => { if (objective.type === "obtain_item") need(objective.itemId, objective.amount); });
   }
   const status = state.quests[quest.id] ?? "inactive", completed = status === "completed";
+  const workState = definition ? activityConditionState(definition, { ...state, location: quest.guidance?.completion.locationId ?? state.location }) : state;
   const requirements = [...required].map(([itemId, amount]) => {
-    const ownedAmount = completed ? amount : state.inventory[itemId] ?? 0;
+    const ownedAmount = completed ? amount : workState.inventory[itemId] ?? 0;
     return { itemId, name: String((registry.items[itemId] as { name?: string } | undefined)?.name ?? itemId), amount, ownedAmount, met: ownedAmount >= amount,
       sourceHints: status === "active" && ownedAmount < amount ? materialSourceHints(state, registry, itemId, recipeSceneIds) : [] };
   });
   if (status !== "active" || !quest.guidance || !definition) return { requirements };
-  const localState = { ...state, location: quest.guidance.completion.locationId };
+  const localState = workState;
   const materialsReady = requirements.every(item => item.met);
   const ready = materialsReady && definition.conditions.every(condition => evaluateCondition(condition, localState)) && activityInputsAvailable(definition, localState);
   const text = ready ? quest.guidance.ready : materialsReady

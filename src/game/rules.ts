@@ -1,6 +1,8 @@
 import { workActivityParagraphs } from "./activity-narrative";
 import { plannedRestMinutes, restDanger, restInterruption, restParagraphs } from "./rest";
 import { advanceSurvivalPressure, millisecondsToSurvivalPressure, relieveExhaustion } from "./survival-pressure";
+import { physicalToolWear } from "./tool-instances";
+import { consumeWorkInputs } from "./work-environment";
 import { planActivity } from "./activity";
 import { reconcileWorldInventory } from "./text-world/interactions";
 import { consumeResourceUse, resourceAvailability } from "./resources";
@@ -313,7 +315,8 @@ function summarizeSystemNoteEntries(
     if (typeof previousDurability !== "number") {
       return;
     }
-    if ((nextState.inventory[itemId] ?? 0) <= 0) {
+    const physicalWear = physicalToolWear(previousState, nextState, itemId);
+    if (physicalWear?.broken || !physicalWear && (nextState.inventory[itemId] ?? 0) <= 0) {
       entries.push({
         type: "text",
         text: `${itemName(nextState, itemId)} 파손`,
@@ -321,13 +324,14 @@ function summarizeSystemNoteEntries(
       });
       return;
     }
-    if (typeof nextDurability === "number" && nextDurability < previousDurability) {
+    const wear = physicalWear?.spent ?? (typeof nextDurability === "number" ? Math.max(0, previousDurability - nextDurability) : 0);
+    if (wear > 0) {
       entries.push({
         type: "delta",
         subject: "durability",
         label: itemName(nextState, itemId),
         itemId,
-        amount: -(previousDurability - nextDurability),
+        amount: -wear,
       });
     }
   });
@@ -1051,9 +1055,10 @@ function applyWorkDefinition(state: GameState, definition: ActionDefinition | Ch
   const plan = planActivity(definition);
   if (!plan) { applyDefinitionEffects(state, definition.effects, definition.skillUse, options); return; }
   const startedAt = (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS;
-  const minutes = resolveSkillAdjustedMinutes(plan.minutes, definition.skillUse, state.skillProgress);
+  const supplies = consumeWorkInputs(state, definition, plan.inputs, plan.itemCosts);
+  const minutes = resolveSkillAdjustedMinutes(plan.minutes * (supplies.station?.durationMultiplier ?? 1), definition.skillUse, state.skillProgress);
   const revision = state.activityRevision++;
-  applyDefinitionEffects(state, plan.inputs, undefined, options);
+  applyDefinitionEffects(state, supplies.inputs, undefined, options);
   reconcileWorldInventory(state);
   advanceGameMinutes(state, minutes, options);
   const completed = !state.isGameOver && !state.stageClear;
@@ -1071,7 +1076,7 @@ function applyWorkDefinition(state: GameState, definition: ActionDefinition | Ch
   const elapsedMinutes = Math.max(0, (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS - startedAt);
   state.lastActivity = { revision, definitionId: definition.id, kind: definition.activity!.kind,
     status: completed ? "completed" : "interrupted", startedAtMinutes: startedAt, plannedMinutes: minutes, elapsedMinutes,
-    consumedItems: { ...plan.itemCosts }, producedItems, moneySpent: plan.moneyCost,
+    consumedItems: { ...plan.itemCosts }, storedConsumedItems: supplies.storedItems, ...(supplies.station ? { workstation: supplies.station } : {}), producedItems, moneySpent: plan.moneyCost,
     ...(!completed ? { reason: state.gameOverReason || "작업을 끝내기 전에 상황이 종료되었다." } : {}) };
   state.lastActivity.paragraphs = workActivityParagraphs(definition, state.lastActivity, completionParagraphs, buildRuntimeRegistry(state));
   state.lastActivity.generatedAt = new Date().toISOString();

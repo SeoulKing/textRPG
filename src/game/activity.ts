@@ -1,3 +1,4 @@
+import { activityConditionState } from "./work-environment";
 import type { ActionDefinition, ChoiceDefinition, Effect, GameState } from "./schemas";
 import { RestActivityDefinitionSchema, type RestActivityDefinition } from "./schemas/activity";
 import { plannedRestMinutes, restDanger } from "./rest";
@@ -36,7 +37,8 @@ export function planActivity(definition: WorkDefinition): ActivityPlan | null {
 export function activityInputsAvailable(definition: WorkDefinition, state: GameState) {
   const plan = planActivity(definition);
   if (plan?.rest) return plannedRestMinutes(state, plan.rest) > 0 && !restDanger(state);
-  return !plan || Object.entries(plan.itemCosts).every(([id, amount]) => (state.inventory[id] ?? 0) >= amount)
+  const materials = activityConditionState(definition, state).inventory;
+  return !plan || Object.entries(plan.itemCosts).every(([id, amount]) => (materials[id] ?? 0) >= amount)
     && plan.tools.every(id => (state.inventory[id] ?? 0) > 0 && state.toolDurability[id] !== 0)
     && state.money >= plan.moneyCost;
 }

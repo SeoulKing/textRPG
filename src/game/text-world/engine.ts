@@ -20,7 +20,7 @@ export function validateWorldAction(world: TextWorld, state: GameState, action: 
   if (action.type === "DEFOCUS") return ((world.player.focusEntityId === undefined ? world.player.near : world.player.focusEntityId) || world.player.manipulating) ? null : "이미 주변을 살피고 있다.";
   if (action.type === "LOOK") return null;
   if (action.type === "POSTURE") return action.posture ? null : "바꿀 자세가 정해지지 않았다.";
-  if (action.type === "LEAVE") return world.player.zone === "office" ? null : "먼저 역무실로 돌아가야 한다.";
+  if (action.type === "LEAVE") return world.player.zone === "office" || worldRooms(world)[world.player.zone]?.optionalEntry ? null : "먼저 탐색 입구로 돌아가야 한다.";
   if (action.type === "SURVEY") return illuminated(world, world.player.zone) ? null : "빛이 없어 안쪽을 살필 수 없다.";
   if (action.type === "MOVE" && action.target && worldRooms(world)[action.target]) {
     if (worldRooms(world)[action.target].outsideExploration) return "탐색을 마치고 바깥 구역으로 나가야 한다.";
@@ -55,7 +55,6 @@ export function validateWorldAction(world: TextWorld, state: GameState, action: 
 export function resolveWorldActions(world: TextWorld, state: GameState, actions: WorldAction[], options: { advanceTime?: boolean } = {}) {
   let elapsedSeconds = 0;
   normalizeHands(world);
-  synchronizeWorldActors(world, state);
   for (const action of actions) {
     const handlingAttention = world.player.focusEntityId;
     let failure = validateWorldAction(world, state, action);
@@ -88,6 +87,7 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
       }
       return { elapsedSeconds, interrupted: true, discovery: false };
     }
+    synchronizeWorldActors(world, state);
     const visibleBefore = new Set(visibleEntities(world).map(e => e.id));
     const e = action.target ? world.entities[action.target] : undefined;
     const c = e?.components;
@@ -179,8 +179,9 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
         if (world.player.focusEntityId === e!.id) { world.player.focusEntityId = null; world.player.facing = "far-end"; }
         after = { held: false, stowed: true, on: c!.light?.on, zone: "player", name: e!.name }; break;
       case "LIGHT": before = { on: c!.light!.on }; c!.light!.on = !c!.light!.on; after = { on: c!.light!.on, name: e!.name }; break;
-      case "LEAVE": before = { zone: world.player.zone }; world.active = false; after = { zone: "concourse" }; break;
+      case "LEAVE": before = { zone: world.player.zone }; world.active = false; after = { zone: worldRooms(world)[world.player.zone]?.optionalEntry ? state.location : "concourse", exitText: worldRooms(world)[world.player.zone]?.optionalEntry?.exitText }; break;
     }
+    if (["HOLD", "TAKE"].includes(action.type) && e?.components.portable?.itemId && e.toolDurability !== undefined) state.toolDurability[e.components.portable.itemId] = e.toolDurability;
     const event = recordEvent(world, { type: action.type, targetId: action.target, before: { ...before, ...(ownerNpcId ? { ownerNpcId } : {}) }, after });
     if (action.type === "PUSH") emitMovementSound(world, action.target!, event.id);
     if (actionSound) {
