@@ -1,3 +1,4 @@
+import { textRoomIssues } from "./text-world/validation";
 import { z } from "zod";
 import type { Effect } from "./schemas/condition-effect";
 import { getEffectiveContentStudioDocument, buildWorldRegistryFromStudio, validateRegistry } from "./data/registry";
@@ -18,6 +19,7 @@ export function inspectStudio(input: unknown) {
   const scenes = new Map(document.stories.flatMap(s => s.scenes.map(scene => [scene.id, { story: s, scene }] as const)));
   const choices = new Set(document.stories.flatMap(s => s.scenes.flatMap(scene => scene.choices.map(c => c.id))));
   const items = new Set(document.items.map(i => i.id));
+  for (const issue of textRoomIssues(document.textRooms, items)) issues.push({ ...issue, tab: "textRooms", severity: "error" });
   const coordinates = new Map<string, string>();
   const issue = (target: Omit<StudioIssue, "message" | "severity">, message: string, severity: StudioIssue["severity"] = "error") => issues.push({ ...target, message, severity });
   for (const location of document.locations) {

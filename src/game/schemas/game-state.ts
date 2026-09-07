@@ -8,6 +8,7 @@ import { SkillProgressStateSchema } from "./skill-progression";
 import { SystemNoteEntriesSchema } from "./system-note";
 import { NpcDialogueStateSchema } from "./npc-dialogue";
 import { HealthConditionsSchema } from "./health-condition";
+import { TextWorldSchema } from "./text-world";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -60,6 +61,7 @@ export const GameStateSchema = z.object({
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
   subwayExpedition: SubwayExpeditionStateSchema,
+  textWorld: TextWorldSchema.nullable().default(null),
   npcDialogue: NpcDialogueStateSchema,
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),

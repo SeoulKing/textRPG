@@ -6,6 +6,7 @@ import { ChoiceDefinitionSchema } from "./choice";
 import { EventDefinitionSchema } from "./event";
 import { SceneDefinitionSchema } from "./scene";
 import { MonsterDefinitionSchema } from "./monster";
+import { TextRoomSchema } from "./text-world";
 
 export const LinkDefinitionSchema = z.object({
   note: z.string(),
@@ -54,6 +55,7 @@ export const LocationDefinitionSchema = z.object({
 });
 
 export const ContentRegistrySchema = z.object({
+  textRooms: z.array(TextRoomSchema).optional(),
   locations: z.record(z.string(), LocationDefinitionSchema),
   items: z.record(z.string(), z.unknown()),
   people: z.record(z.string(), z.unknown()),

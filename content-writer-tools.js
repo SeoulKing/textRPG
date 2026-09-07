@@ -69,7 +69,7 @@ const StudioWriterTools = (() => {
           type: !old ? '추가' : !next ? '삭제' : '수정', before: old, after: next });
       }
     };
-    for (const [key, label] of [['stories','이야기'],['locations','지역'],['people','인물'],['items','아이템'],['recipes','레시피']]) compare(label, before[key] ?? [], after[key] ?? []);
+    for (const [key, label] of [['textRooms','방·엔티티'],['stories','이야기'],['locations','지역'],['people','인물'],['items','아이템'],['recipes','레시피']]) compare(label, before[key] ?? [], after[key] ?? []);
     const choices = doc => [...doc.stories.flatMap(s => [...s.scenes.flatMap(sc => sc.choices), ...(s.actions ?? [])]), ...(doc.recipes ?? []), ...(doc.locations ?? []).flatMap(l => l.interactionChoices ?? [])];
     compare('선택지', choices(before), choices(after));
     if (stable(before.layout) !== stable(after.layout)) result.push({ kind:'배치', id:'layout', name:'전체 흐름도 배치', type:'수정', before:before.layout, after:after.layout });

@@ -46,6 +46,7 @@ const state = {
 };
 
 const TAB_META = {
+  textRooms: { eyebrow: "ROOMS", title: "방·엔티티", singular: "엔티티" },
   items: { eyebrow: "ITEMS", title: "아이템", singular: "아이템" },
   recipes: { eyebrow: "RECIPES", title: "레시피", singular: "레시피" },
   stories: { eyebrow: "STORIES", title: "이벤트", singular: "이벤트" },
@@ -285,12 +286,13 @@ function showToast(message, error = false) {
 }
 
 function entityName(entity) {
-  if (["items", "locations", "people"].includes(state.tab)) return entity.name;
+  if (["items", "locations", "people", "textRooms"].includes(state.tab)) return entity.name;
   if (state.tab === "recipes") return resolveItemTextPreview(entity.label);
   return entity.title;
 }
 
 function entityBadges(entity) {
+  if (state.tab === "textRooms") return [`<span class="badge">엔티티 ${entity.entities.length}개</span>`];
   if (state.tab === "locations") return [`<span class="badge">연결 ${entity.neighbors.length}</span>`];
   if (state.tab === "people") return [`<span class="badge">${escapeHtml(entity.role)}</span>`];
   if (state.tab === "items") {
@@ -312,6 +314,7 @@ function entityBadges(entity) {
 }
 
 function renderCounts() {
+  document.querySelector("#roomCount").textContent = state.document.textRooms.length;
   document.querySelector("#locationCount").textContent = state.document.locations.length;
   document.querySelector("#personCount").textContent = state.document.people.length;
   state.catalogs.locations = state.document.locations;
@@ -355,6 +358,7 @@ function renderList() {
 
 function renderShell() {
   const meta = TAB_META[state.tab];
+  ui.addButton.hidden = state.tab === "textRooms";
   ui.listEyebrow.textContent = meta.eyebrow;
   ui.listTitle.textContent = meta.title;
   ui.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === state.tab));
@@ -1029,10 +1033,12 @@ function renderEditor() {
   if (state.tab === "stories") renderStory(entity);
   if (state.tab === "locations") renderLocation(entity);
   if (state.tab === "people") renderPerson(entity);
+  if (state.tab === "textRooms") renderTextRoom(entity);
   ui.editorPanel.querySelectorAll('[data-field="id"]').forEach(input => { input.readOnly = true; input.closest("label").hidden = true; });
 }
 
 function addEntity() {
+  if (state.tab === "textRooms") return addRoomEntity();
   if (["stories", "locations", "people"].includes(state.tab)) return writerAddEntity();
   if (state.tab === "items") {
     const id = makeId("item");
@@ -1111,6 +1117,8 @@ async function load() {
       return false;
     }
     state.document = payload.document;
+    const roomId = new URLSearchParams(location.search).get("room");
+    if (roomId && state.document.textRooms.some(room => room.id === roomId)) { state.tab = "textRooms"; state.selectedId = roomId; }
     state.catalogs = payload.catalogs;
     state.selectedId ??= state.document.stories.find(s => !s.native)?.id ?? state.document.stories[0]?.id;
     if (typeof writerLoaded === "function") writerLoaded();
@@ -1135,7 +1143,7 @@ async function load() {
 ui.tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     state.tab = tab.dataset.tab;
-    state.selectedId = null;
+    state.selectedId = state.tab === "textRooms" ? state.document.textRooms[0]?.id ?? null : null;
     state.selectedSceneId = null;
     state.selectedChoiceId = null;
     state.query = "";

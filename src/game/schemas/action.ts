@@ -4,6 +4,12 @@ import { EffectSchema } from "./condition-effect";
 import { SkillUseSchema } from "./skill-progression";
 
 export const GameActionSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("text_world"),
+    command: z.enum(["enter", "choose"]),
+    optionId: z.string().min(1).max(100).optional(),
+    revision: z.number().int().nonnegative().optional(),
+  }),
   z.object({ type: z.literal("travel"), targetId: z.string() }),
   z.object({ type: z.literal("use_item"), itemId: z.string() }),
   z.object({ type: z.literal("content_action"), actionId: z.string() }),

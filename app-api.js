@@ -1602,6 +1602,10 @@ function storyAnimationSurfaceId(snapshot) {
   if (isEventStoryActive(snapshot)) {
     return `event:${snapshot.latestEvent.id}`;
   }
+  // 텍스트 탐색은 기본 sceneId를 유지하므로 결과 장면의 revision으로 구분한다.
+  if (currentSceneId(snapshot).startsWith("text-world:")) {
+    return `scene:${currentSceneId(snapshot)}`;
+  }
   if (snapshot.state?.npcDialogue?.active) {
     return `dialogue:${currentSceneId(snapshot)}`;
   }
@@ -1631,11 +1635,13 @@ function buildStoryDisplay(snapshot) {
     return {
       headline: ev.title || "",
       paragraphs: splitSummaryToParagraphs(ev.summary),
+      source: ev.source,
     };
   }
   return {
     headline: "",
     paragraphs: (snapshot.currentScene.paragraphs || []).filter((paragraph) => String(paragraph).trim()),
+    source: snapshot.currentScene.source,
   };
 }
 
@@ -1651,7 +1657,7 @@ function normalizePostChoiceNarrative(value) {
 
 function beginPostChoiceNarrative(paragraphs, append = false) {
   clearSceneAnimation();
-  const story = { headline: "", paragraphs };
+  const story = { headline: "", paragraphs, source: "template" };
   const token = client.sceneRenderToken;
   return animateStoryText(story, token, null, {
     append,
@@ -1816,7 +1822,7 @@ function syncMobileChoiceZoneHeight() {
   });
 }
 
-function createSceneStoryBlock(append) {
+function createSceneStoryBlock(append, source) {
   const hasHistory = append && dom.sceneText.childElementCount > 0;
   if (!append) {
     dom.sceneText.replaceChildren();
@@ -1825,6 +1831,15 @@ function createSceneStoryBlock(append) {
   dom.sceneText.classList.toggle("has-story-history", hasHistory);
   const block = document.createElement("div");
   block.className = "scene-story-block";
+  if (source === "llm" || source === "template") {
+    const sourceLabel = document.createElement("div");
+    sourceLabel.className = `scene-narrative-source is-${source}`;
+    sourceLabel.textContent = source === "llm" ? "LLM 생성" : "기본 서사";
+    sourceLabel.title = source === "llm"
+      ? "LLM이 생성한 서사입니다."
+      : "게임에 정의된 기본 서사입니다. 재확인이나 생성 실패 시에도 사용합니다.";
+    block.appendChild(sourceLabel);
+  }
   // Reading space belongs to the outer block; prose and all results share natural height.
   const content = document.createElement("div");
   content.className = "scene-story-content";
@@ -1894,7 +1909,7 @@ async function animateStoryText(
 ) {
   const append = options.append === true;
   const revealChoices = options.revealChoices !== false;
-  const block = createSceneStoryBlock(append);
+  const block = createSceneStoryBlock(append, story.source);
   const prose = block.querySelector(".scene-prose");
   client.activeAnimatedStory = story;
   client.activeAnimatedSystemNote = systemNotePayload;
@@ -2724,7 +2739,7 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
       : "";
     const storyHtml =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
-    const block = createSceneStoryBlock(appendStory);
+    const block = createSceneStoryBlock(appendStory, story.source);
     block.querySelector(".scene-prose").innerHTML = storyHtml;
     if (scrollToStart) {
       scrollSceneStoryToStart(block);

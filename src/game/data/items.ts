@@ -5,6 +5,10 @@
 import { defineItem } from "./item-helpers";
 
 export const baseItems = {
+  ironDoorKey: defineItem({
+    id: "ironDoorKey", name: "철문 열쇠", description: "역무실 바닥에서 찾은 작은 금속 열쇠. 정비 복도로 통하는 철문의 잠금을 푼다.",
+    kind: "material", rarity: "common", price: 0, tags: ["열쇠", "탐색"],
+  }),
   bandage: defineItem({
     id: "bandage", name: "붕대", description: "상처를 감싸 부상을 1단계 치료한다. 체력은 회복하지 않는다.",
     kind: "medicine", rarity: "common", price: 1800, tags: ["약품", "부상 치료"],

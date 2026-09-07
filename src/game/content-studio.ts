@@ -2,6 +2,8 @@ import path from "node:path";
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { RETIRED_ACTION_IDS } from "./content-retirements";
+import { TextRoomSchema } from "./schemas/text-world";
+import { defaultTextRooms, upgradeOfficeDoor } from "./text-world/definitions";
 import {
   ChoiceDefinitionSchema,
   ConditionSchema,
@@ -70,6 +72,7 @@ export const ContentStudioDocumentSchema = z.object({
   version: z.union([z.literal(1), z.literal(2)]).transform(() => 2 as const),
   locations: z.array(StudioLocationSchema).default([]),
   people: z.array(StudioPersonSchema).default([]),
+  textRooms: z.array(TextRoomSchema).default(defaultTextRooms),
   layout: z.record(z.string(), z.object({ x: z.number(), y: z.number() })).default({}),
   items: z.array(StudioItemSchema).default([]),
   recipes: z.array(StudioRecipeSchema).default([]),
@@ -228,7 +231,10 @@ export function assertUniqueStudioIds(document: ContentStudioDocument) {
 }
 
 export function parseContentStudioDocument(input: unknown) {
-  return assertUniqueStudioIds(ContentStudioDocumentSchema.parse(input));
+  const document = ContentStudioDocumentSchema.parse(input);
+  const office = document.textRooms.find(room => room.id === "office");
+  if (office) upgradeOfficeDoor(office.entities);
+  return assertUniqueStudioIds(document);
 }
 
 export function loadStoredContentStudioDocument(): ContentStudioDocument {

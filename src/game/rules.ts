@@ -680,6 +680,11 @@ export function advanceGameMinutes(state: GameState, minutes: number, options: {
   advanceGameTime(state, GAME_MINUTE_MS * Math.max(1, minutes), options);
 }
 
+/** Short exploration actions share the survival clock without a one-minute minimum. */
+export function advanceGameSeconds(state: GameState, seconds: number) {
+  advanceGameTime(state, GAME_MINUTE_MS * Math.max(0, seconds) / 60);
+}
+
 function advanceTravelTime(state: GameState) {
   advanceGameTime(state, TRAVEL_DURATION_MS);
 }
@@ -695,6 +700,7 @@ export function createInitialGameState(): GameState {
   const now = Date.now();
   const registry = buildRuntimeRegistry();
   const state: GameState = {
+    textWorld: null,
     saveVersion: SAVE_VERSION,
     conditions: normalizeHealthConditions(undefined),
     contentVersionId: currentContentVersionId(),
@@ -1258,6 +1264,8 @@ export function performAction(
     }
     case "subway_expedition":
       throw new Error("지하철 심층 탐험 행동은 게임 서비스에서 처리해야 합니다.");
+    case "text_world":
+      throw new Error("텍스트 월드 행동은 게임 서비스에서 처리해야 합니다.");
     case "npc_dialogue":
       throw new Error("NPC 대화 행동은 게임 서비스에서 처리해야 합니다.");
     default: {

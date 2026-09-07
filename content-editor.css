@@ -1703,3 +1703,27 @@ button:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-vi
   .item-editor .form-section { padding:14px; }
   .item-editor .field-grid { gap:10px; }
 }
+
+/* Room entity editing keeps the selected object beside its placement list. */
+.room-editor { max-width: 1080px; }
+.room-settings { margin-bottom: 18px; }
+.room-settings > summary { cursor: pointer; padding: 14px 0; }
+.room-entity-workspace { display: grid; grid-template-columns: minmax(155px, .7fr) minmax(0, 2fr); gap: 24px; align-items: start; }
+.room-entity-list { display: grid; gap: 4px; min-width: 0; }
+.room-entity-row { display: grid; gap: 5px; padding: 12px; text-align: left; color: inherit; font: inherit; background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; overflow-wrap: anywhere; }
+.room-entity-row small { color: #7b7f7c; }
+.room-entity-row.active { border-color: #799780; background: #eef3ed; }
+.room-entity-row.is-contained { margin-left: 18px; }
+.room-entity-row:focus-visible { outline: 2px solid #527b5c; outline-offset: 2px; }
+#roomEntityDetail { min-width: 0; }
+.room-component { margin-top: 22px; padding-top: 16px; border-top: 1px solid #e1e4df; }
+.room-component h4 { margin: 0 0 12px; }
+.room-component .check-field { display: flex; margin: 10px 0; }
+@media (max-width: 1100px) {
+  .room-entity-workspace { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .room-entity-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .room-entity-row.is-contained { margin-left: 0; }
+}
+@media (max-width: 420px) {
+  .room-editor .section-title { flex-wrap: wrap; gap: 10px; }
+}

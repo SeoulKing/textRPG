@@ -21,10 +21,40 @@ function loadFunctions(names, globals = {}) {
 const decision = loadFunctions([
   'currentSceneId', 'isEventStoryActive', 'storySurfaceId',
   'splitSummaryToParagraphs', 'buildStoryDisplay', 'shouldContinueLocationStory',
+  'storyAnimationSurfaceId', 'currentSceneDefinitionId', 'currentSceneIntroFlag',
+  'hasConsumedIntroFlag', 'shouldAnimateScene',
 ]);
 function snapshot(location = 'convenience', scene = 'overview', paragraphs = ['장소의 서사']) {
   return { gameId: 'test-game', state: { location }, currentScene: { id: scene, paragraphs } };
 }
+
+test('text exploration entry, actions and exit animate even with an unchanged base scene', () => {
+  const concourse = snapshot('subway', 'subway-concourse');
+  concourse.state.sceneId = 'subway-concourse';
+  let previous = concourse;
+  for (const [revision, paragraph] of ['역무실에 들어선다.', '상자를 연다.', '물건을 챙긴다.', '복도로 나선다.'].entries()) {
+    const next = snapshot('subway', `text-world:${revision + 1}`, [paragraph]);
+    next.state.sceneId = concourse.state.sceneId;
+    assert.equal(decision.shouldAnimateScene({ source: 'action', previousSnapshot: previous, nextSnapshot: next }), true);
+    assert.equal(decision.shouldContinueLocationStory(previous, next), true);
+    previous = next;
+  }
+  assert.equal(decision.shouldAnimateScene({ source: 'action', previousSnapshot: previous, nextSnapshot: concourse }), true);
+});
+
+test('text exploration restoration and unchanged snapshots do not replay typing', () => {
+  const current = snapshot('subway', 'text-world:5', ['확인한 방 안이다.']);
+  current.state.sceneId = 'subway-concourse';
+  const next = { ...current, currentScene: { ...current.currentScene, id: 'text-world:6' } };
+  for (const source of ['bootstrap', 'backgroundSync']) {
+    assert.equal(decision.shouldAnimateScene({ source, previousSnapshot: current, nextSnapshot: next }), false);
+  }
+  assert.equal(decision.shouldAnimateScene({ source: 'action', previousSnapshot: current, nextSnapshot: structuredClone(current) }), false);
+  const ordinary = snapshot();
+  ordinary.state.sceneId = 'convenience-overview';
+  assert.equal(decision.shouldAnimateScene({ source: 'action', previousSnapshot: ordinary,
+    nextSnapshot: { ...ordinary, currentScene: { ...ordinary.currentScene, id: 'refreshed-card' } } }), false);
+});
 
 test('moving to an object, collecting, and stepping back continue the same location', () => {
   const overview = snapshot();
@@ -52,6 +82,15 @@ test('unchanged snapshots do not duplicate prose, but changed prose and events c
   assert.equal(decision.shouldContinueLocationStory(previous, snapshot('convenience', 'overview', ['새 반응'])), true);
   const event = { ...snapshot(), latestEvent: { id: 'encounter', title: '인기척', summary: '누군가 다가온다.', choices: [{}] } };
   assert.equal(decision.shouldContinueLocationStory(previous, event), true);
+});
+
+test('narrative provenance follows the displayed event or scene, without guessing missing sources', () => {
+  const current = snapshot('subway', 'text-world:2');
+  current.currentScene.source = 'llm';
+  assert.equal(decision.buildStoryDisplay(current).source, 'llm');
+  const event = { ...current, latestEvent: { id: 'event', summary: '기본 이벤트', choices: [{}], source: 'template' } };
+  assert.equal(decision.buildStoryDisplay(event).source, 'template');
+  assert.equal(decision.buildStoryDisplay(snapshot()).source, undefined);
 });
 
 test('skipping typing replaces only the partial current block, without duplicating history', () => {
@@ -146,6 +185,20 @@ function noteHistoryFixture() {
   ], { client, dom, document: { createElement: element } });
   return { ctx, dom, client };
 }
+
+test('each appended narrative retains its own source label outside the replaceable prose', () => {
+  const { ctx, dom } = noteHistoryFixture();
+  const first = ctx.createSceneStoryBlock(false, 'llm');
+  const second = ctx.createSceneStoryBlock(true, 'template');
+  assert.equal(first.children[0].textContent, 'LLM 생성');
+  assert.equal(second.children[0].textContent, '기본 서사');
+  assert.equal(first.children[1].children[0].className, 'scene-prose');
+  assert.equal(second.children[1].children[0].className, 'scene-prose');
+  ctx.renderSystemNote('+1 물병', 'pickup');
+  assert.equal(dom.systemNote.parentElement, second.children[1]);
+  assert.equal(first.children[0].textContent, 'LLM 생성');
+  assert.equal(dom.sceneText.childElementCount, 2);
+});
 
 test('each narrative keeps its note through an empty typing block and later results', () => {
   const { ctx, dom } = noteHistoryFixture();

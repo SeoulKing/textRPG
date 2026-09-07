@@ -1,3 +1,5 @@
+import { performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
+import { narrateTextWorld, type TextWorldNarrator } from "./text-world/narrator";
 import { conditionCards } from "./health-conditions";
 import { forecastShelterSleep } from "./rules";
 import { createHash, randomUUID } from "node:crypto";
@@ -357,6 +359,7 @@ export class GameService {
       generateSubwayEncounterScene,
     private readonly npcDialogueGenerator: NpcDialogueGenerator =
       generateNpcDialogue,
+    private readonly textWorldNarrator: TextWorldNarrator = narrateTextWorld,
   ) {}
 
   private async generateAndApplySubwayEncounter(
@@ -475,7 +478,7 @@ export class GameService {
   }
 
   private subwayPreparationContext(state: GameSession["state"]) {
-    if (state.location !== "subway" || state.isGameOver || state.stageClear) {
+    if (state.location !== "subway" || state.textWorld?.active || state.isGameOver || state.stageClear) {
       return null;
     }
     const expedition = state.subwayExpedition;
@@ -885,6 +888,25 @@ export class GameService {
       action.type !== "npc_dialogue"
     ) {
       throw new Error("현재 대화를 먼저 마쳐야 합니다.");
+    }
+
+    if (session.state.textWorld?.active && action.type !== "text_world") {
+      throw new Error("역무실 탐색을 마치고 대합실로 돌아온 뒤 다른 행동을 할 수 있습니다.");
+    }
+
+    if (action.type === "text_world") {
+      const workingState = structuredClone(session.state);
+      await performTextWorldAction(workingState, action, gameId, this.textWorldNarrator, registry.textRooms);
+      session.state = workingState;
+      session.updatedAt = nowIso();
+      session.world.sceneCards = {};
+      syncQuestState(session.state);
+      syncScene(session.state);
+      await this.ensureCards(session);
+      await this.repository.appendActionLog({ gameId, action, at: session.updatedAt, location: session.state.location, day: session.state.day });
+      const snapshot = this.buildSnapshot(session, null);
+      await this.repository.saveGame(session);
+      return snapshot;
     }
 
     if (action.type === "npc_dialogue") {
@@ -1866,6 +1888,7 @@ export class GameService {
 
   private buildSnapshot(session: GameSession, latestEvent: EventCard | null, registry = this.runtimeRegistry(session)): StateSnapshot {
     const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true }, registry);
+    const explorationScene = textWorldScene(session.state);
     const expeditionScene = buildSubwayExpeditionScene(session.state);
     const activeDialogueProfile = runtimeNpcDialogueProfile(
       session.state.npcDialogue.active?.npcId ?? "", registry,
@@ -1874,7 +1897,9 @@ export class GameService {
       session.state,
       activeDialogueProfile,
     );
-    const currentScene = dialogueScene
+    const currentScene = explorationScene
+      ? resolveSceneCardText(explorationScene, registry)
+      : dialogueScene
       ? resolveSceneCardText(dialogueScene, registry)
       : expeditionScene
         ? resolveSceneCardText(expeditionScene, registry)
@@ -1892,6 +1917,8 @@ export class GameService {
         ? latestEvent.choices
         : locationChoices;
     const clientState = structuredClone(session.state);
+    // The browser receives rendered observations and offered actions, never hidden entities or contents.
+    clientState.textWorld = null;
     clientState.npcDialogue.conversations = {};
     clientState.subwayExpedition.preparedNextFloor = null;
     clientState.subwayExpedition.runPlan = null;
@@ -1941,11 +1968,14 @@ export class GameService {
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
       skillProgress: buildSkillProgressCards(session.state.skillProgress, registry.actions.fish_at_river?.effects.find(effect => effect.type === "random_outcome")?.outcomes),
-      availableActions: (dialogueScene
+      availableActions: (explorationScene
+        ? textWorldActions(session.state)
+        : dialogueScene
         ? buildNpcDialogueActions(session.state)
         : expeditionScene
           ? buildSubwayExpeditionActions(session.state)
           : [
+              ...textWorldEntryActions(session.state),
               ...this.npcDialogueStartActions(session, registry),
               ...this.buildAvailableActions(
                 session,

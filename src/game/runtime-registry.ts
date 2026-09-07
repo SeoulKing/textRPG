@@ -1,3 +1,4 @@
+import { baseItems } from "./data/items";
 import { omitRetiredActions } from "./content-retirements";
 import { applySurvivalCatalogUpdates } from "./survival-catalog-updates";
 import { versionRegistry } from "./content-versions";
@@ -90,7 +91,8 @@ export function buildRuntimeRegistry(
 
   const base = stateOrDynamic && "dynamicContent" in stateOrDynamic ? (versionRegistry(stateOrDynamic.contentVersionId) ?? worldRegistry) : worldRegistry;
   return omitRetiredActions(applySurvivalCatalogUpdates({
-    items: { ...base.items, ...dynamicContent.items },
+    textRooms: base.textRooms,
+    items: { ironDoorKey: baseItems.ironDoorKey, ...base.items, ...dynamicContent.items },
     people: { ...base.people, ...dynamicContent.people },
     locations: { ...base.locations, ...dynamicContent.locations },
     quests: { ...base.quests, ...dynamicContent.quests },

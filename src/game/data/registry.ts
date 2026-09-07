@@ -1,3 +1,4 @@
+import { textRoomIssues } from "../text-world/validation";
 /**
  * Central content registry and static validation helpers.
  */
@@ -432,7 +433,7 @@ export function buildWorldRegistryFromStudio(
   const choices = structuredClone(builtInWorldRegistry.choices);
   const scenes = structuredClone(builtInWorldRegistry.scenes);
 
-  const registry: ContentRegistry = { ...structuredClone(builtInWorldRegistry), locations, actions, choices, scenes, items: asRecord(document.items), people: asRecord(document.people) };
+  const registry: ContentRegistry = { ...structuredClone(builtInWorldRegistry), locations, actions, choices, scenes, items: asRecord(document.items), people: asRecord(document.people), textRooms: structuredClone(document.textRooms) };
   for (const location of Object.values(locations)) {
     location.residentIds = document.people.filter(person => person.locationId === location.id).map(person => person.id);
   }
@@ -755,6 +756,8 @@ function validateChoice(registry: ContentRegistry, choice: ChoiceDefinition) {
 }
 
 export function validateRegistry(registry: ContentRegistry) {
+  const roomErrors = textRoomIssues(registry.textRooms ?? [], new Set(Object.keys(registry.items)));
+  if (registry.textRooms && roomErrors.length) throw new Error(roomErrors.map(issue => issue.message).join("\n"));
   const seenStockNodeIds = new Set<string>();
   const globalInteractionIds = new Set<string>();
 

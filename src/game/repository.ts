@@ -1,3 +1,4 @@
+import { migrateTextWorld } from "./text-world/world";
 import { normalizeHealthConditions } from "./health-conditions";
 import { legacyContentVersionId, versionRegistry } from "./content-versions";
 import { copyFile, mkdir, readFile, rename, unlink, writeFile, appendFile } from "node:fs/promises";
@@ -431,6 +432,7 @@ function pruneState(state: unknown): GameState {
     frontierState,
     narrativeState,
     subwayExpedition,
+    textWorld: migrateTextWorld(rawState.textWorld),
     npcDialogue,
     flags: nextFlags,
     quests: nextQuests,

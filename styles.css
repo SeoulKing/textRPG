@@ -832,6 +832,19 @@ body::-webkit-scrollbar,
   display: none;
 }
 
+.scene-narrative-source {
+  margin-bottom: 8px;
+  color: #6b7280;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.scene-narrative-source.is-llm {
+  color: #2f6f5f;
+}
+
 .system-note[hidden],
 .scene-prose:empty {
   display: none;
