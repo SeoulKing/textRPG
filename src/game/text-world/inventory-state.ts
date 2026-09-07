@@ -40,8 +40,18 @@ export function transferInventoryOwnership(world: TextWorld, state: GameState, e
 
 /** Reconcile registered carried stacks without flattening their containment or revealing uncollected contents. */
 export function reconcileWorldInventory(state: GameState) {
-  const budget = { ...state.inventory };
   const worlds = [state.textWorld, ...Object.values(state.locationTextWorlds)].filter((w): w is TextWorld => Boolean(w));
+  // Older office lights had no inventory item. Register only those already collected,
+  // once, before reconciliation can mistake the new item for a consumed object.
+  for (const world of worlds) for (const entity of Object.values(world.entities)) {
+    const portable = entity.components.portable;
+    if (entity.components.light && portable?.itemId === null && (entity.origin?.entityId ?? entity.id) === "lamp") {
+      portable.itemId = "flashlight";
+      if (inventoryRegistered(world, entity) && (carriedByPlayer(world, entity) || entity.components.position.zone === "collected"))
+        state.inventory.flashlight = (state.inventory.flashlight ?? 0) + portable.amount;
+    }
+  }
+  const budget = { ...state.inventory };
   for (const world of worlds) {
     const entities = Object.values(world.entities);
     for (const entity of entities) entity.inventoryRegistered ??= inventoryRegistered(world, entity);

@@ -39,7 +39,7 @@ export function defaultTextRooms(): TextRoom[] {
     entity("crate", "나무 상자", "office", { physical: { mass: 12, volume: 8, movable: true, opaque: true, blocksPassage: true, supportCapacity: 5 }, openable: { isOpen: false, locked: false }, container: { items: ["water", "scrap"] } }),
     entity("door", "철문", "office", { openable: { isOpen: false, locked: true, keyId: "doorKey" }, portal: { from: "office", to: "corridor" } }),
     ...officePuzzleEntities(),
-    entity("lamp", "손전등", "office", { portable: { itemId: null, amount: 1 }, light: { on: false } }),
+    entity("lamp", "손전등", "office", { portable: { itemId: "flashlight", amount: 1 }, light: { on: false } }),
     entity("water", "미개봉 물병", "crate", { portable: { itemId: "waterBottle", amount: 1 } }),
     entity("scrap", "고철 조각", "crate", { portable: { itemId: "scrapMetal", amount: 2 } }),
     entity("cache", "공구 보관함", "storage", { openable: { isOpen: false, locked: false }, container: { items: ["food"] } }),

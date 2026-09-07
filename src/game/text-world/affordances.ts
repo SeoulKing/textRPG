@@ -36,7 +36,7 @@ export function interactionOptions(world: TextWorld, state: GameState): WorldOpt
       const type = c.openable.isOpen ? "CLOSE" : "OPEN";
       add("lid:" + source.id, particle(source.name, "을", "를") + (type === "CLOSE" ? " 닫는다" : " 다시 연다"), "내부 가림 변경", [...approach(source.id), { type, target: source.id }], "minor");
     }
-    if (c.portable && c.position.zone === "player") {
+    if (c.portable && c.position.zone === "player" && !(c.light && c.portable.itemId)) {
       if (handledEntityId(world) !== source.id) add("hold:" + source.id, particle(source.name, "을", "를") + (isHeld(world, source.id) ? " 손에 고쳐 쥔다" : " 꺼내 손에 든다"), "휴대 물건 조작", [{ type: "HOLD", target: source.id }], "minor");
       if (!isHeld(world, source.id)) continue;
       add("stow:" + source.id, particle(source.name, "을", "를") + (c.light?.on ? " 끄고 챙겨 둔다" : " 챙겨 둔다"), "소지품 유지 · 손 비우기", [{ type: "STOW", target: source.id }], "minor");

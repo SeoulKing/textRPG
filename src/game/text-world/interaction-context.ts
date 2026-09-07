@@ -14,8 +14,13 @@ export type InteractionContext = {
 export function interactionContext(world: TextWorld, _state?: GameState): InteractionContext {
   const visible = visibleEntities(world), ids = new Set(visible.map(e => e.id));
   const focused = world.player.focusEntityId === undefined ? world.player.near : world.player.focusEntityId;
-  const focusEntityId = focused && ids.has(focused) ? focused : null;
-  const holdingEntityId = handledEntityId(world);
+  const inventoryLight = (id: string | null | undefined) => {
+    const c = world.entities[id ?? ""]?.components;
+    return Boolean(c?.light && c.portable?.itemId && c.position.zone === "player");
+  };
+  const focusEntityId = focused && ids.has(focused) && !inventoryLight(focused) ? focused : null;
+  const handled = handledEntityId(world);
+  const holdingEntityId = inventoryLight(handled) ? null : handled;
   const expiring = visible.filter(e => e.components.light?.on && e.components.light.fuelSeconds !== undefined && e.components.light.fuelSeconds <= 10);
   const withoutExpiring = { ...world, entities: { ...world.entities } };
   for (const e of expiring) withoutExpiring.entities[e.id] = { ...e, components: { ...e.components, light: { ...e.components.light!, on: false } } };

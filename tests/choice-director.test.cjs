@@ -37,7 +37,8 @@ test('placement resumes only after explicitly handling an item at a compatible s
  // Carrying light does not turn observation of another object into item manipulation.
  resolveWorldActions(w,s,[{type:'MOVE',target:'lamp'},{type:'TAKE',target:'lamp'},{type:'MOVE',target:'crate'}]);
  assert.equal(interactionContext(w).mode,'FOCUS');assert(!worldOptions(w,s).some(o=>o.family==='PLACE_OBJECT'));
- await choose(s,'hold:lamp');assert.equal(interactionContext(w).mode,'MANIPULATE');assert(worldOptions(w,s).some(o=>o.family==='PLACE_OBJECT'&&o.actions.at(-1).target==='lamp'));
+ assert(!worldOptions(w,s).some(o=>/^(light|equip|hold|stow|put|drop):lamp/.test(o.id)));
+ await choose(s,'hold:water');assert.equal(interactionContext(w).mode,'MANIPULATE');assert(worldOptions(w,s).some(o=>o.family==='PLACE_OBJECT'&&o.actions.at(-1).target==='water'));
 });
 
 test('real perceived urgency prioritizes responding and retreating and suppresses ordinary item placement',async()=>{

@@ -1,3 +1,4 @@
+const {inventoryLightControls,performInventoryLightAction}=require('../.server-dist/game/text-world/inventory-lights');
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createInitialGameState}=require('../.server-dist/game/rules');
 const {GameStateSchema}=require('../.server-dist/game/schemas');
@@ -46,8 +47,8 @@ test('storing a light turns it off; restoring visibility uses an actual hold and
  const f=fixture();f.w.player.near='lamp';act(f,{type:'TAKE',target:'lamp'},{type:'LIGHT',target:'lamp'});f.w.rooms.office.light=false;
  const inventory={...f.s.inventory};assert(illuminated(f.w,'office'));assert.equal(act(f,{type:'STOW',target:'lamp'}).elapsedSeconds,3);assert(!illuminated(f.w,'office'));assert.equal(f.w.player.heldToolId,null);
  const prose=fallbackNarration(directNarrative(f.w)).paragraphs.join(' ');assert.match(prose,/끄고 챙겨 둔다/);
- const choices=worldOptions(f.w,f.s),equip=choices.find(o=>o.id==='equip:lamp');assert(equip);assert(!choices.some(o=>o.id==='hold:lamp'));assert.deepEqual(equip.actions.map(a=>a.type),['HOLD','LIGHT']);
- act(f,...equip.actions);assert(illuminated(f.w,'office'));assert.equal(f.w.player.heldToolId,'lamp');assert.equal(f.w.player.heldItemId,null);assert.deepEqual(f.s.inventory,inventory);assert(!f.w.events.some(e=>e.type==='TAKE'));
+ const choices=worldOptions(f.w,f.s);assert(!choices.some(o=>/^(equip|hold):lamp$/.test(o.id)));
+ performInventoryLightAction(f.s,{type:'item_light',...inventoryLightControls(f.s)[0],on:true});assert(illuminated(f.w,'office'));assert.equal(f.w.player.heldToolId,'lamp');assert.equal(f.w.player.heldItemId,null);assert.deepEqual(f.s.inventory,inventory);assert(!f.w.events.some(e=>e.type==='TAKE'));
 });
 
 test('a light and one item remain distinct; storing or consuming one does not make the other a manipulation choice',()=>{

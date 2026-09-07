@@ -3717,3 +3717,6 @@ body::-webkit-scrollbar,
 .quest-next-step { display: grid; gap: 5px; padding: 10px 12px; border-left: 3px solid var(--accent-strong); background: rgba(31, 41, 55, .035); overflow-wrap: anywhere; }
 .quest-next-step strong { font-size: .8rem; color: var(--accent-strong); }
 .quest-source-hints { grid-column: 2 / -1; color: var(--muted); font-size: .78rem; line-height: 1.55; overflow-wrap: anywhere; }
+
+.inventory-light-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.inventory-light-control > span { font-size: .82rem; color: var(--muted); overflow-wrap: anywhere; }

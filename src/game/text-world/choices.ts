@@ -37,13 +37,16 @@ export function availableWorldOptions(world: TextWorld, state: GameState): World
         [...approach(e.id, "crouching"), { type: "INSPECT", target: e.id }, ...(c.openable?.isOpen === false ? [{ type: "OPEN" as const, target: e.id }] : [])], "내부 탐색");
     }
   }
-  const lamp = visible.find(e => e.components.light);
   for (const light of visible.filter(e => e.components.light)) {
     const held = light.components.position.zone === "player";
+    if (held && light.components.portable?.itemId) continue;
     if (held && !isHeld(world, light.id)) {
       if (light.components.light!.fuelSeconds === 0) continue;
       add("equip:" + light.id, particle(light.name, "을", "를") + " 꺼내 들고" + (light.components.light!.on ? " 비춘다" : " 켠다"),
         [{ type: inventoryRegistered(world, light) ? "HOLD" : "TAKE", target: light.id }, ...(!light.components.light!.on ? [{ type: "LIGHT" as const, target: light.id }] : [])], "조명 휴대");
+    } else if (!held && light.components.portable?.itemId) {
+      add("equip:" + light.id, particle(light.name, "을", "를") + " 챙긴다",
+        [...approach(light.id), { type: "INSPECT", target: light.id }, { type: "TAKE", target: light.id }], "물건 수집");
     } else if (!held && light.components.portable) {
       add("equip:" + light.id, entityDetails(world, light).placement + "의 " + particle(light.name, "을", "를") + " 집어 들어 켠다",
         [...approach(light.id), { type: "INSPECT", target: light.id }, { type: "TAKE", target: light.id }, ...(!light.components.light!.on ? [{ type: "LIGHT" as const, target: light.id }] : [])], "조명 휴대");
@@ -77,7 +80,7 @@ export function availableWorldOptions(world: TextWorld, state: GameState): World
       }
       continue;
     }
-    const carriedLamp = visible.find(e => e.components.light && e.components.light.fuelSeconds !== 0 && e.components.position.zone === "player");
+    const carriedLamp = visible.find(e => e.components.light && e.components.light.fuelSeconds !== 0 && !e.components.portable?.itemId && e.components.position.zone === "player");
     const prepareLight = !worldRooms(world)[next].light && !illuminated(world, next) && !carriesLight(world) ? carriedLamp : undefined;
     const accessible = Boolean(prepareLight) || worldRooms(world)[next].light || carriesLight(world) || illuminated(world, next) || world.visitedZones.includes(next);
     if (portal?.components.openable && !portal.components.openable.isOpen && !accessible) {
@@ -91,9 +94,6 @@ export function availableWorldOptions(world: TextWorld, state: GameState): World
   // Keep a real exit in view; offer only available intentions without recap filler.
   const tail: WorldOption[] = [];
   if (world.player.zone === "office") tail.push({ id: "leave", label: "대합실로 돌아간다", hint: "탐색 마치기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
-  if (lamp?.components.position.zone === "player" && lamp.components.light?.on && !options.some(o => o.id === "light:" + lamp.id)) {
-    add("light:" + lamp.id, (isHeld(world, lamp.id) ? "손에 든 " : "지닌 ") + particle(lamp.name, "을", "를") + " 끈다", [{ type: "LIGHT", target: lamp.id }], "조명 끄기", "minor");
-  }
   return [...options, ...focusOptions(world), ...tail];
 }
 

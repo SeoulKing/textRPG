@@ -834,7 +834,7 @@ function actionTransitionDurationMs(action, loading = null) {
   if (action?.type === "text_world" || action?.type === "npc_dialogue") {
     return Number.isFinite(loading?.durationMs) ? Math.max(0, loading.durationMs) : ACTION_TRANSITION_ACTION_MS;
   }
-  if (action?.type === "use_item") {
+  if (action?.type === "use_item" || action?.type === "item_light") {
     return ACTION_TRANSITION_ACTION_MS;
   }
   if (action?.type === "subway_expedition" && ["search_loot", "encounter_choice"].includes(action.command)) {
@@ -862,7 +862,7 @@ function actionTransitionMessage(action, loading = null) {
       ? `${destination.name} 쪽으로 이동하는 중…`
       : "이동하는 중…";
   }
-  if (action.type === "use_item") {
+  if (action.type === "use_item" || action.type === "item_light") {
     return "아이템을 사용하는 중…";
   }
   if (action.type === "subway_expedition") {
@@ -927,7 +927,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     && anchor instanceof HTMLElement
     ? anchor.querySelector(".crafting-choice-select")
     : null;
-  const visualTarget = action?.type === "use_item"
+  const visualTarget = ["use_item", "item_light"].includes(action?.type)
     && anchor instanceof HTMLElement
     && anchor.matches(".inventory-detail-slot, .inventory-card")
     ? anchor
@@ -3252,6 +3252,7 @@ function renderInventoryPanel() {
       name: item.name,
       lines: detailLines,
       itemId: item.id,
+      lights: (snapshot.inventoryLights || []).filter(light => light.itemId === item.id),
       isUsable: ["food", "drink", "medicine"].includes(item.kind) && canUseTreatmentItem(item, snapshot.state),
     });
   });
@@ -3294,6 +3295,13 @@ function renderInventoryPanel() {
       });
     });
 
+    dom.panelContent.querySelectorAll("[data-inventory-light]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const light = (snapshot.inventoryLights || [])[Number(button.dataset.inventoryLight)];
+        if (light) submitAction({ type: "item_light", worldId: light.worldId, entityId: light.entityId, revision: light.revision, on: !light.on }, button);
+      });
+    });
     dom.panelContent.querySelectorAll("[data-use-item]").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -3365,6 +3373,15 @@ function renderInventoryPanel() {
             `).join("")}
           </div>
         </div>
+        ${(detail?.lights || []).map(light => `
+          <div class="inventory-light-control">
+            <span>${light.on ? "켜짐" : "꺼짐"}${light.reason ? " · " + escapeHtml(light.reason) : ""}</span>
+            <button class="inline-action inventory-use-action" type="button"
+              data-inventory-light="${(snapshot.inventoryLights || []).indexOf(light)}"
+              aria-label="${escapeHtml(light.name)} ${light.on ? "끄기" : "켜기"}"
+              ${!light.on && !light.canTurnOn ? "disabled" : ""}>${light.on ? "끄기" : "켜기"}</button>
+          </div>
+        `).join("")}
         ${detail?.isUsable ? `
           <button
             class="inline-action inventory-use-action"
@@ -3914,7 +3931,7 @@ async function submitAction(
   client.actionInFlight = true;
   client.pendingAction = action;
   // Old saves may contain retired leads. Only actual results enter the reading history.
-  const continuousNarrative = ["text_world", "npc_dialogue", "subway_expedition"].includes(action.type)
+  const continuousNarrative = ["text_world", "npc_dialogue", "subway_expedition", "item_light"].includes(action.type)
     || Number.isInteger(action.activityRevision);
   const immediateNarrative = continuousNarrative ? [] : normalizePostChoiceNarrative(postChoiceNarrative);
   const hasImmediateNarrative = immediateNarrative.length > 0;

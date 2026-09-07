@@ -1,3 +1,5 @@
+const {inventoryLightControls,performInventoryLightAction}=require('../.server-dist/game/text-world/inventory-lights');
+function switchLight(s,on){const c=inventoryLightControls(s)[0];performInventoryLightAction(s,{type:'item_light',...c,on});}
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createInitialGameState } = require('../.server-dist/game/rules');
@@ -23,12 +25,13 @@ function storedRecap(state) {
   return fallbackNarration(directNarrative(world)).paragraphs;
 }
 async function choose(state,id) {
+  if(id==='light:lamp'){switchLight(state,!inventoryLightControls(state)[0].on);return;}
   // Follow the visible focus-exit flow when the requested intention belongs to the room.
   if (!textWorldActions(state).some(c=>c.action.optionId===id) && textWorldActions(state).some(c=>c.action.optionId==='defocus'))
     await performTextWorldAction(state,action(state,'defocus'),'test',narrator);
   await performTextWorldAction(state,action(state,id),'test',narrator);
   if (!state.textWorld.active || state.isGameOver || state.stageClear) return;
-  const choices=textWorldActions(state); assert(choices.length>=2 && choices.length<=5,choices.map(c=>c.label).join(','));
+  const choices=textWorldActions(state); assert(choices.length>=1 && choices.length<=5,choices.map(c=>c.label).join(','));
   assert(!choices.some(c=>['overview','more','back'].includes(c.action.optionId)));
 }
 function session(state) { return {id:'text-world-test',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),state,
@@ -89,7 +92,7 @@ test('discovery stops a plan before automatic collection, including illumination
 });
 
 test('flashlight travels with the player; corridor, storage and returns share staged discovery',async()=>{
-  const s=initial(); await enter(s); await unlockDoor(s); await choose(s,'equip:lamp');
+  const s=initial(); await enter(s); await unlockDoor(s); await choose(s,'equip:lamp');switchLight(s,true);
   assert.equal(s.textWorld.player.heldToolId,'lamp'); assert.equal(s.textWorld.player.position,'right-wall');
   assert(!perceiveWorld(s.textWorld).find(f=>f.kind==='layout').data.layout.includes('손전등이 놓여 있다'));
   await choose(s,'travel:corridor'); assert(!visibleEntities(s.textWorld).some(e=>e.id==='cache'));
@@ -97,6 +100,7 @@ test('flashlight travels with the player; corridor, storage and returns share st
   await choose(s,'travel:storage'); assert(visibleEntities(s.textWorld).some(e=>e.id==='cache')); assert(!visibleEntities(s.textWorld).some(e=>e.id==='food'));
   await choose(s,'explore:cache'); const before=s.inventory.cannedFood??0; await choose(s,'collect:cache'); assert.equal(s.inventory.cannedFood,before+1);
   await choose(s,'light:lamp'); assert(!visibleEntities(s.textWorld).some(e=>e.id==='cache'));
+  switchLight(s,true);
   await choose(s,'travel:corridor'); await choose(s,'travel:office');
   assert.equal(s.textWorld.player.posture,'standing'); assert.equal(s.textWorld.player.heldToolId,'lamp'); assert(s.textWorld.entities.door.components.openable.isOpen);
 });
@@ -201,25 +205,26 @@ test('first-person boundary rejects addressed-player prose and malformed narrato
 });
 
 test('switching on light after a dark arrival requires the newly revealed layout; surveying must report its findings',async()=>{
-  const s=initial();await enter(s);await unlockDoor(s);await choose(s,'equip:lamp');await choose(s,'travel:corridor');
+  const s=initial();await enter(s);await unlockDoor(s);await choose(s,'equip:lamp');switchLight(s,true);await choose(s,'travel:corridor');
   await choose(s,'travel:storage');await choose(s,'light:lamp');
   const w=s.textWorld; delete w.knowledge['layout:storage']; let context;
-  await performTextWorldAction(s,action(s,'light:lamp'),'test',async c=>{context=structuredClone(c);return fallbackNarration(c);});
-  assert(context.requiredFacts.some(f=>f.kind==='layout'));assert.equal(context.paragraphCount.min,2);
+  switchLight(s,true);
+  assert(w.knowledge['layout:storage']);assert.match(w.lastParagraphs.join(' '),/선반/);
   await performTextWorldAction(s,action(s,'survey:storage'),'test',async c=>{context=structuredClone(c);return fallbackNarration(c);});
   assert(context.requiredFacts.some(f=>f.kind==='surface'&&f.targetId==='storage'));
   assert.match(w.lastParagraphs.join(' '),/선반|바닥/);
 });
 
-test('meaningful travel can prepare a carried light without another menu or a separate light click',async()=>{
-  const s=initial();await enter(s);await unlockDoor(s);await choose(s,'equip:lamp');await choose(s,'light:lamp');
+test('a collected light stays off until enabled from inventory before entering an unvisited dark room',async()=>{
+  const s=initial();await enter(s);await unlockDoor(s);await choose(s,'equip:lamp');switchLight(s,true);await choose(s,'light:lamp');
+  assert(!textWorldActions(s).some(c=>c.action.optionId==='travel:corridor'));switchLight(s,true);
   const id=action(s,'travel:corridor');await performTextWorldAction(s,id,'test',narrator);
   assert.equal(s.textWorld.player.zone,'corridor');assert.equal(s.textWorld.entities.lamp.components.light.on,true);
-  assert.deepEqual(s.textWorld.events.map(e=>e.type),['LIGHT','MOVE']);
+  assert.deepEqual(s.textWorld.events.map(e=>e.type),['MOVE']);
 });
 
 test('authored footsteps follow movement and never play during still collection; custom crowded rooms still cap choices and preserve return',async()=>{
-  const s=initial();await enter(s);await unlockDoor(s);await choose(s,'equip:lamp');let c;
+  const s=initial();await enter(s);await unlockDoor(s);await choose(s,'equip:lamp');switchLight(s,true);let c;
   await performTextWorldAction(s,action(s,'travel:corridor'),'test',async context=>{c=structuredClone(context);return fallbackNarration(context);});
   assert(c.optionalFacts.some(f=>f.id.startsWith('ambient:corridor')));
   await choose(s,'travel:storage');
@@ -243,7 +248,7 @@ test('rendering guards distinguish retained posture from invented posture and ke
   let c=directNarrative(s.textWorld);
   assert(hasContradictoryAction(c,'상자 앞에 쪼그리고 앉는다.'));
   assert(!hasContradictoryAction(c,'쪼그리고 앉은 채 물병을 챙긴다.'));
-  await unlockDoor(s);await choose(s,'equip:lamp');await choose(s,'travel:corridor');await choose(s,'travel:office');
+  await unlockDoor(s);await choose(s,'equip:lamp');switchLight(s,true);await choose(s,'travel:corridor');await choose(s,'travel:office');
   c=directNarrative(s.textWorld);
   assert(hasContradictoryAction(c,'대합실로 통하는 철문이 있는 역무실로 돌아온다.'));
   assert(!hasContradictoryAction(c,'철문을 지나 역무실로 돌아와 대합실로 통하는 입구를 바라본다.'));
@@ -254,7 +259,7 @@ test('rendering guards distinguish retained posture from invented posture and ke
 
 test('a changed room or inventory cannot be represented by scenery alone, even when fact IDs claim coverage',async()=>{
  const {hasContradictoryAction}=require('../.server-dist/game/text-world/narrator');
- const s=initial();await enter(s);await unlockDoor(s);await choose(s,'equip:lamp');await choose(s,'travel:corridor');await choose(s,'travel:office');
+ const s=initial();await enter(s);await unlockDoor(s);await choose(s,'equip:lamp');switchLight(s,true);await choose(s,'travel:corridor');await choose(s,'travel:office');
  const context=directNarrative(s.textWorld);
  const prose='손에 든 손전등의 빛줄기에 역무실 입구 맞은편에 열려 있는 철문과 정비 복도로 이어지는 어두운 통로가 비친다.';
  assert(hasContradictoryAction(context,prose));
@@ -284,7 +289,7 @@ test('the locked office door requires discovering and collecting its floor key b
  assert.equal(s.inventory.ironDoorKey,before+1);assert(!w.observations.door.blocked);
  assert.deepEqual(w.events.slice(-2).map(e=>e.type),['UNLOCK','OPEN']);
  assert.match(w.lastParagraphs.join(' '),/잠금/);
- await choose(s,'equip:lamp');await choose(s,'travel:corridor');await choose(s,'travel:office');
+ await choose(s,'equip:lamp');switchLight(s,true);await choose(s,'travel:corridor');await choose(s,'travel:office');
  assert(!textWorldActions(s).some(c=>['inspect:floor','take:doorKey','unlock:door'].includes(c.action.optionId)));
 });
 

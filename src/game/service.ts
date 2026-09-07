@@ -6,6 +6,7 @@ import { currentTextWorld, performTextWorldAction, textWorldActions, textWorldEn
 import { reconcileWorldInventory } from "./text-world/interactions";
 import { ensureConvenienceWorld } from "./text-world/convenience";
 import { ensureLocationWorld, hasLocationWorld } from "./text-world/location-world";
+import { inventoryLightControls, performInventoryLightAction } from "./text-world/inventory-lights";
 import { narrateTextWorld, type TextWorldNarrator } from "./text-world/narrator";
 import { conditionCards } from "./health-conditions";
 import { forecastShelterSleep } from "./rules";
@@ -905,13 +906,28 @@ export class GameService {
       throw new Error("현재 대화를 먼저 마쳐야 합니다.");
     }
 
-    if (session.state.location === "subway" && session.state.textWorld?.active && action.type !== "text_world") {
+    if (session.state.location === "subway" && session.state.textWorld?.active && action.type !== "text_world" && action.type !== "item_light") {
       throw new Error("역무실 탐색을 마치고 대합실로 돌아온 뒤 다른 행동을 할 수 있습니다.");
     }
 
     if (currentTextWorld(session.state)?.active && hasLocationWorld(session.state, registry) &&
       (action.type === "content_action" || action.type === "content_choice")) {
       throw new Error("현재 탐색 장면에 표시된 선택지를 골라 주세요.");
+    }
+
+    if (action.type === "item_light") {
+      const workingState = structuredClone(session.state);
+      performInventoryLightAction(workingState, action);
+      session.state = workingState;
+      session.updatedAt = nowIso();
+      syncQuestState(session.state);
+      syncScene(session.state);
+      await this.replanTomorrowIfNeeded(session, previousDay);
+      await this.ensureCards(session);
+      await this.repository.appendActionLog({ gameId, action, at: session.updatedAt, location: session.state.location, day: session.state.day });
+      const snapshot = this.buildSnapshot(session, null);
+      await this.repository.saveGame(session);
+      return snapshot;
     }
 
     if (action.type === "text_world") {
@@ -1236,6 +1252,7 @@ export class GameService {
     const result = {
       gameId,
       inventoryCards: Object.keys(session.state.inventory).map((itemId) => session.world.itemCards[itemId]),
+      inventoryLights: inventoryLightControls(session.state),
       money: session.state.money,
     };
     this.scheduleSubwayNextFloor(session);
@@ -1960,6 +1977,7 @@ export class GameService {
       inventoryCards: Object.keys(session.state.inventory).map(
         (itemId) => syncItemCardWithRuntimeDefinition(session.world.itemCards[itemId] as ItemCard, itemId, registry),
       ),
+      inventoryLights: inventoryLightControls(session.state),
       itemCatalog: this.buildItemCatalog(registry),
       protagonist: session.world.protagonistCard as ProtagonistCard,
       storyMaterials,

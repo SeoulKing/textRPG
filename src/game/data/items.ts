@@ -5,6 +5,10 @@
 import { defineItem } from "./item-helpers";
 
 export const baseItems = {
+  flashlight: defineItem({
+    id: "flashlight", name: "손전등", description: "어두운 곳을 비추는 휴대용 손전등. 아이템에서 켜거나 끌 수 있다.",
+    kind: "tool", rarity: "common", price: 0, tags: ["조명", "탐색"],
+  }),
   ironDoorKey: defineItem({
     id: "ironDoorKey", name: "철문 열쇠", description: "역무실 바닥에서 찾은 작은 금속 열쇠. 정비 복도로 통하는 철문의 잠금을 푼다.",
     kind: "material", rarity: "common", price: 0, tags: ["열쇠", "탐색"],

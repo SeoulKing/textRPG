@@ -13,6 +13,7 @@ export const GameActionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("travel"), targetId: z.string() }),
   z.object({ type: z.literal("use_item"), itemId: z.string() }),
+  z.object({ type: z.literal("item_light"), worldId: z.string(), entityId: z.string(), revision: z.number().int().nonnegative(), on: z.boolean() }),
   z.object({ type: z.literal("content_action"), actionId: z.string(), activityRevision: z.number().int().nonnegative().optional() }),
   z.object({ type: z.literal("content_choice"), choiceId: z.string(), activityRevision: z.number().int().nonnegative().optional() }),
   z.object({

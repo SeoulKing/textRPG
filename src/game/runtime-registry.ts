@@ -96,7 +96,7 @@ export function buildRuntimeRegistry(
   const base = stateOrDynamic && "dynamicContent" in stateOrDynamic ? (versionRegistry(stateOrDynamic.contentVersionId) ?? worldRegistry) : worldRegistry;
   return withDefaultHospitalRooms(withQuestGuidanceDefaults(omitRetiredActions(withActivityCatalogDefaults(withResourceCatalogDefaults(applySurvivalCatalogUpdates({
     textRooms: base.textRooms,
-    items: { ironDoorKey: baseItems.ironDoorKey, ...base.items, ...dynamicContent.items },
+    items: { ironDoorKey: baseItems.ironDoorKey, flashlight: baseItems.flashlight, ...base.items, ...dynamicContent.items },
     people: { ...base.people, ...dynamicContent.people },
     locations: { ...base.locations, ...dynamicContent.locations },
     quests: { ...base.quests, ...dynamicContent.quests },
