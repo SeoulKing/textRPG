@@ -12,10 +12,15 @@ export function worldRooms(world: TextWorld) {
 }
 export function entityDetails(world: TextWorld, entity: TextEntity) {
   const original = entity.details ?? details[entity.id] ?? { anchor: entity.id, placement: worldRooms(world)[zoneOf(world, entity)]?.name ?? "주변", outline: entity.name, surface: entity.description };
+  // Older saves inherit newly authored responses only for unchanged original objects.
+  const authored = details[entity.id];
+  const resolved = authored && entity.description === authored.surface ? { ...original, responses: original.responses ?? authored.responses } : original;
   const p = entity.components.position, parent = world.entities[p.relativeTo ?? p.zone];
-  if (!parent || !p.relation) return original;
+  if (!parent || !p.relation) return entity.components.portal ? { ...resolved, placement: entity.components.portal.to === world.player.zone
+    ? worldRooms(world)[entity.components.portal.from].name.split(" · ").at(-1) + "로 통하는 쪽"
+    : resolved.placement.split(" / ")[0] } : resolved;
   const relation = { inside: "안", on: "위", beside: "옆", blocking: "앞을 막는 자리" }[p.relation];
-  return { ...original, anchor: parent.id, placement: parent.name + " " + relation };
+  return { ...resolved, anchor: parent.id, placement: parent.name + " " + relation };
 }
 export function createSubwayTextWorld(rooms: TextRoom[] = defaultTextRooms()): TextWorld {
   rooms = rooms.filter(room => room.locationId === "subway");
@@ -116,7 +121,9 @@ export function canReach(world: TextWorld, entity: TextEntity) {
   if (sealedFromReach(world, entity) || occludedByCover(world, entity)) return false;
   const parents = ancestors(world, entity);
   const same = zoneOf(world, entity) === world.player.zone || Boolean(entity.components.portal && [entity.components.portal.from, entity.components.portal.to].includes(world.player.zone));
-  return same && (carriedByPlayer(world, entity) || world.player.near === entity.id || parents.some(parent => parent.id === world.player.near));
+  const discoveredHere = entity.components.discovery?.inspectTargetId === world.player.near
+    && world.observations[world.player.near!]?.inspected && entityDetails(world, entity).anchor === world.player.position;
+  return same && (carriedByPlayer(world, entity) || world.player.near === entity.id || discoveredHere || parents.some(parent => parent.id === world.player.near));
 }
 export function particle(name: string, consonant: string, vowel: string) {
   const code = name.charCodeAt(name.length - 1) - 0xac00;

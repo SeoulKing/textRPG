@@ -1,14 +1,15 @@
 import type { TextRoom } from "../schemas/text-world";
 import type { ActionChoice, ContentRegistry, GameAction, GameState, SceneCard } from "../schemas";
-import { convenienceActions, performConvenienceAction } from "./convenience";
-import { hasLocationWorld, locationWorldActions, performLocationWorldAction } from "./location-world";
+import { availableConvenienceOptions, convenienceActions, performConvenienceAction } from "./convenience";
+import { availableLocationWorldOptions, hasLocationWorld, locationWorldActions, performLocationWorldAction } from "./location-world";
 import { buildRuntimeRegistry } from "../runtime-registry";
 import { applySystemNote } from "../rules";
 import { setSystemNote } from "../system-note";
-import { createSubwayTextWorld, worldRooms } from "./world";
+import { createSubwayTextWorld, entityDetails, visibleEntities, worldRooms } from "./world";
 import { transferCarriedEntities } from "./inventory";
 import { reconcileWorldInventory } from "./interactions";
-import { worldOptions } from "./choices";
+import { availableWorldOptions, worldOptions } from "./choices";
+import { describeChoice } from "./choice-director";
 import { choiceLabelFields, nextNarrativeChoices, storeChoiceLabels } from "./choice-labels";
 import { recordEvent, resolveWorldActions } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
@@ -24,6 +25,32 @@ export function textWorldEntryActions(state: GameState): ActionChoice[] {
 
 export function currentTextWorld(state: GameState) {
   return state.location === "subway" ? state.textWorld : state.locationTextWorlds[state.location] ?? null;
+}
+
+/** A read-only view of everything the player can deliberately try, beyond the director's suggestions. */
+export function explorationInteractions(state: GameState, registry = buildRuntimeRegistry(state)) {
+  const world = currentTextWorld(state);
+  if (!world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active) return null;
+  const candidates = state.location === "convenience" ? availableConvenienceOptions(state, registry)
+    : hasLocationWorld(state, registry) ? availableLocationWorldOptions(state, registry) : availableWorldOptions(world, state);
+  const visible = visibleEntities(world).sort((a, b) => a.id.localeCompare(b.id));
+  const targets = visible.map(entity => ({ id: entity.id, name: entity.name,
+    placement: entity.components.position.zone === "player" ? "지니고 있는 물건" : entityDetails(world, entity).placement,
+    observed: Boolean(world.observations[entity.id]?.inspected || world.observations[entity.id]?.stages.includes("interior")),
+    actions: [] as ActionChoice[] }));
+  const generalActions: ActionChoice[] = [];
+  for (const option of [...candidates].sort((a, b) => a.id.localeCompare(b.id))) {
+    const described = describeChoice(option, world), last = option.actions?.at(-1);
+    const targetId = last?.type === "PUT" ? last.destination : described.targetId;
+    const choice: ActionChoice = { id: "interaction:" + world.revision + ":" + option.id,
+      ...choiceLabelFields(world, { ...option, ...described }), outcomeHint: option.hint, showOutcomeHint: true, isAvailable: true,
+      loading: "loading" in option ? option.loading : { durationMs: 500, transitionType: "activity" },
+      action: { type: "text_world", command: "choose", optionId: option.id, revision: world.revision } };
+    const target = targets.find(t => t.id === targetId);
+    if (target) target.actions.push(choice);
+    else generalActions.push(choice);
+  }
+  return { revision: world.revision, roomName: worldRooms(world)[world.player.zone].name, targets, generalActions };
 }
 
 export function textWorldActions(state: GameState, registry = buildRuntimeRegistry(state)): ActionChoice[] {
@@ -71,7 +98,7 @@ export async function performTextWorldAction(
     if (!world?.active) throw new Error("먼저 역무실 탐색을 시작해 주세요.");
     if (action.revision !== world.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
     reconcileWorldInventory(state);
-    const option = worldOptions(world, state).find(choice => choice.id === action.optionId);
+    const option = availableWorldOptions(world, state).find(choice => choice.id === action.optionId);
     if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
     world.events = [];
     world.lastIntent = { id: option.id, label: option.label, thought: choiceLabelFields(world, option).choiceThought, importance: option.importance };

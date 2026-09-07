@@ -5,12 +5,13 @@ import { handledEntityId, heldInSlot, holdEntity, isHeld, normalizeHands, releas
 import { inventoryRegistered, inventoryTreeAvailable, transferInventoryOwnership } from "./inventory-state";
 import { carriedByPlayer, passageBlockers } from "./spatial";
 import { recordEvent } from "./events";
+import { applyToolUse, materializeTool, toolTechniques, validateToolUse } from "./tool-rules";
 import { advanceWorldSimulation, emitMovementSound } from "./simulation";
 import { applyInteraction, interactionTypes, validateInteraction } from "./interactions";
 export { recordEvent } from "./events";
 import { adjacentZones, hasDoorKey, canReach, carriesLight, entityDetails, illuminated, pathOpen, worldRooms, visibleEntities, portalBetween } from "./world";
 
-const seconds: Record<WorldAction["type"], number> = { LOOK: 3, INSPECT: 5, MOVE: 5, POSTURE: 1, UNLOCK: 3, OPEN: 2, CLOSE: 2, TAKE: 3, HOLD: 2, STOW: 2, LIGHT: 1, SURVEY: 5, LEAVE: 5, PUSH: 8, PUT: 3, DROP: 2, WAIT: 5, HIDE: 2, DEFOCUS: 2, FOCUS: 1 };
+const seconds: Record<WorldAction["type"], number> = { LOOK: 3, INSPECT: 5, MOVE: 5, POSTURE: 1, UNLOCK: 3, OPEN: 2, CLOSE: 2, TAKE: 3, HOLD: 2, STOW: 2, LIGHT: 1, SURVEY: 5, LEAVE: 5, PUSH: 8, PUT: 3, DROP: 2, WAIT: 5, HIDE: 2, DEFOCUS: 2, FOCUS: 1, USE_TOOL: 20 };
 export function validateWorldAction(world: TextWorld, state: GameState, action: WorldAction): string | null {
   if (state.isGameOver || state.stageClear || !world.active) return "지금은 행동할 수 없다.";
   if (interactionTypes.has(action.type)) return validateInteraction(world, state, action);
@@ -33,7 +34,8 @@ export function validateWorldAction(world: TextWorld, state: GameState, action: 
   switch (action.type) {
     case "UNLOCK": return !c.openable?.locked ? "잠겨 있지 않다." : !hasDoorKey(world, state, entity) ? "이 잠금장치에 맞는 열쇠를 가지고 있지 않다." : null;
     case "OPEN": return !c.openable ? "열 수 있는 구조가 아니다." : c.openable.locked ? "잠겨 있어 열리지 않는다." : c.openable.isOpen ? "이미 열려 있다." : null;
-    case "CLOSE": return !c.openable?.isOpen ? "열려 있지 않다." : passageBlockers(world, entity.id).length ? "문 앞의 사물이 닫히는 길을 막고 있다." : null;
+    case "CLOSE": return c.structure?.integrity === 0 ? "구조가 부서져 다시 닫을 수 없다." : !c.openable?.isOpen ? "열려 있지 않다." : passageBlockers(world, entity.id).length ? "문 앞의 사물이 닫히는 길을 막고 있다." : null;
+    case "USE_TOOL": return validateToolUse(world, state, action);
     case "TAKE": return !c.portable || c.position.zone === "player" && inventoryRegistered(world, entity) ? "집어 들 수 있는 물건이 아니다." : !inventoryTreeAvailable(world, state, entity) ? "지금 지닌 수량이 부족하다." : null;
     case "HOLD": case "STOW": {
       if (!c.portable || c.position.zone !== "player") return "먼저 지니고 있는 물건이어야 한다.";
@@ -52,6 +54,15 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
   for (const action of actions) {
     const handlingAttention = world.player.focusEntityId;
     let failure = validateWorldAction(world, state, action);
+    if (!failure && action.type === "USE_TOOL") {
+      const tool = materializeTool(world, state, action.toolItemId!);
+      if (!isHeld(world, tool.id)) {
+        const preparation = resolveWorldActions(world, state, [{ type: "HOLD", target: tool.id }], options);
+        elapsedSeconds += preparation.elapsedSeconds;
+        if (preparation.interrupted) return { elapsedSeconds, interrupted: true, discovery: false };
+      }
+      failure = validateWorldAction(world, state, action);
+    }
     if (!failure && (action.type === "TAKE" || action.type === "HOLD")) {
       const previous = heldInSlot(world, world.entities[action.target!]);
       if (previous && previous !== action.target) {
@@ -76,6 +87,7 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
     const e = action.target ? world.entities[action.target] : undefined;
     const c = e?.components;
     let before: Record<string, unknown> = {}, after: Record<string, unknown> = {};
+    let actionSound: ReturnType<typeof applyToolUse>["sound"] | undefined;
     if (["MOVE", "FOCUS", "INSPECT", "DEFOCUS"].includes(action.type)) world.player.placementTargetId = null;
     switch (action.type) {
       case "PUSH": case "PUT": case "DROP": case "WAIT": case "HIDE": {
@@ -97,6 +109,10 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
         if (world.observations[e!.id]) delete world.observations[e!.id].blocked;
         after = { locked: false, name: e!.name, keyId: c!.openable!.keyId, keyName: world.entities[c!.openable!.keyId!]?.name };
         break;
+      }
+      case "USE_TOOL": {
+        const result = applyToolUse(world, state, action); before = result.before; after = result.after; actionSound = result.sound;
+        world.player.focusEntityId = e!.id; world.player.facing = e!.id; break;
       }
       case "SURVEY": {
         world.player.facing = "far-end";
@@ -155,12 +171,16 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
     }
     const event = recordEvent(world, { type: action.type, targetId: action.target, before, after });
     if (action.type === "PUSH") emitMovementSound(world, action.target!, event.id);
-    const elapsed = options.advanceTime === false ? 0 : action.type === "WAIT" ? action.durationSeconds ?? 5 : seconds[action.type] + (action.type === "STOW" && before.on ? 1 : 0);
+    if (actionSound) {
+      const soundEvent = recordEvent(world, { type: "SOUND", origin: "simulation", actorId: action.target, targetId: action.target, causedBy: event.id, witnessed: false, before: {}, after: {} });
+      world.simulation!.sounds.push({ id: soundEvent.id!, ...actionSound });
+    }
+    const elapsed = options.advanceTime === false ? 0 : action.type === "WAIT" ? action.durationSeconds ?? 5 : action.type === "USE_TOOL" ? toolTechniques[action.technique!].seconds : seconds[action.type] + (action.type === "STOW" && before.on ? 1 : 0);
     if (elapsed) elapsedSeconds += advanceGameSeconds(state, elapsed, { actionWorld: world, causedBy: event.id });
     else advanceWorldSimulation(world, 0, event.id);
     if (state.isGameOver || state.stageClear) return { elapsedSeconds, interrupted: true, discovery: false };
     // Revealing an unopened interior is a decision boundary, even for a future longer plan.
-    const discovery = (action.type === "INSPECT" && Array.isArray(after.revealedIds) && after.revealedIds.length > 0) || ["OPEN", "LIGHT", "PUT", "DROP", "WAIT"].includes(action.type) && visibleEntities(world).some(item => {
+    const discovery = (["INSPECT", "USE_TOOL"].includes(action.type) && Array.isArray(after.revealedIds) && after.revealedIds.length > 0) || ["OPEN", "LIGHT", "PUT", "DROP", "WAIT", "USE_TOOL"].includes(action.type) && visibleEntities(world).some(item => {
       const parent = world.entities[item.components.position.zone];
       return !visibleBefore.has(item.id) && parent?.components.container && !world.observations[parent.id]?.stages.includes("interior");
     });

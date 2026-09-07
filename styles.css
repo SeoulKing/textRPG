@@ -3705,3 +3705,35 @@ body::-webkit-scrollbar,
 
 .inventory-light-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .inventory-light-control > span { font-size: .82rem; color: var(--muted); overflow-wrap: anywhere; }
+
+.exploration-toggle {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: right;
+  cursor: pointer;
+}
+.exploration-toggle[hidden] { display: none; }
+.exploration-toggle:disabled { opacity: .55; cursor: default; }
+.exploration-targets { display: flex; flex-wrap: wrap; gap: 6px; }
+.exploration-targets button {
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.exploration-targets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.exploration-placement { margin: 12px 0 8px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.exploration-actions { visibility: visible; opacity: 1; }

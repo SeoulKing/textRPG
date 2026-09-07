@@ -163,6 +163,7 @@ export const baseItems = {
     price: 0,
     tags: ["도구", "벌목", "제작"],
     maxDurability: 8,
+    toolCapabilities: { cut: 3, strike: 3, pry: 1 },
   }),
   utilityKnife: defineItem({
     id: "utilityKnife",
@@ -173,9 +174,11 @@ export const baseItems = {
     price: 0,
     tags: ["도구", "수색", "제작"],
     maxDurability: 10,
+    toolCapabilities: { cut: 1 },
   }),
   subwayBaton: defineItem({
     id: "subwayBaton",
+    toolCapabilities: { strike: 4, pry: 3 },
     name: "철제 진압봉",
     description: "지하철 보안함에서 나온 짧은 진압봉이다. 좁은 통로에서도 휘두르기 쉽고 충격이 단단히 실린다.",
     kind: "tool",

@@ -81,7 +81,7 @@ function collectingChoices(state: GameState, registry: ContentRegistry, nodeId: 
 }
 function portalPending(state: GameState) { return Boolean(state.flags.magic_city_entrance_discovered && !state.flags.magic_city_portal_discovery_seen); }
 type StoreOption = { id: string; label: string; hint: string; nodeId?: string; choiceId?: string; loading: NonNullable<ActionChoice["loading"]>; actions?: WorldAction[]; importance?: "major" | "minor" };
-export function convenienceOptions(state: GameState, registry = buildRuntimeRegistry(state)): StoreOption[] {
+export function availableConvenienceOptions(state: GameState, registry = buildRuntimeRegistry(state)): StoreOption[] {
   const world = worldOf(state);
   if (state.location !== LOCATION || !world?.active || state.isGameOver || state.stageClear) return [];
   const explore: StoreOption[] = [], collect: StoreOption[] = [];
@@ -111,7 +111,11 @@ export function convenienceOptions(state: GameState, registry = buildRuntimeRegi
     if (!entity.components.portable || entity.components.position.zone === "player" && inventoryRegistered(world, entity) || stockIds.has(entity.id)) continue;
     physical.unshift({ id: "take:" + entity.id, label: particle(entity.name, "을", "를") + " 챙긴다", hint: "놓아둔 물건 수집", loading: ACTIVITY, actions: [...approach(world, entity.id), { type: "TAKE", target: entity.id }] });
   }
-  return directChoices(world, state, [...story, ...collect, ...explore, ...physical, ...focusOptions(world).map(o => ({ ...o, loading: ACTIVITY }))]);
+  return [...story, ...collect, ...explore, ...physical, ...focusOptions(world).map(o => ({ ...o, loading: ACTIVITY }))];
+}
+export function convenienceOptions(state: GameState, registry = buildRuntimeRegistry(state)) {
+  const world = worldOf(state);
+  return world ? directChoices(world, state, availableConvenienceOptions(state, registry)) : [];
 }
 export function convenienceActions(state: GameState, registry = buildRuntimeRegistry(state)): ActionChoice[] {
   return convenienceOptions(state, registry).map(option => ({ id: "text-world:convenience:" + worldOf(state).revision + ":" + option.id,
@@ -175,7 +179,7 @@ export async function performConvenienceAction(state: GameState, action: Extract
   const world = worldOf(state);
   if (!world?.active || action.command !== "choose" || state.location !== LOCATION) throw new Error("먼저 편의점에 들어가 주세요.");
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
-  const option = convenienceOptions(state, registry).find(o => o.id === action.optionId);
+  const option = availableConvenienceOptions(state, registry).find(o => o.id === action.optionId);
   if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
   const before = structuredClone(state);
   world.events = [];

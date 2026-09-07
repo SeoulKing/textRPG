@@ -2,7 +2,7 @@ import { questProgressFields } from "./quest-guidance";
 import { planActivity } from "./activity";
 import { materialSourceHints } from "./material-guidance";
 import { formatOutcomeHint } from "./outcome-hint";
-import { currentTextWorld, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
+import { currentTextWorld, explorationInteractions, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
 import { currentObservation, markAction, observeAction, recordActionTiming, type ActionObserver } from "./action-observation";
 import { reconcileWorldInventory } from "./text-world/interactions";
 import { ensureConvenienceWorld } from "./text-world/convenience";
@@ -2004,6 +2004,7 @@ export class GameService {
       ),
       inventoryLights: inventoryLightControls(session.state),
       itemCatalog: this.buildItemCatalog(registry),
+      exploration: explorationInteractions(session.state, registry),
       protagonist: session.world.protagonistCard as ProtagonistCard,
       storyMaterials,
       quests: getQuestDefinitions(registry).map((quest) => ({

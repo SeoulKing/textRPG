@@ -33,6 +33,7 @@ export const ItemCardSchema = z.object({
   effects: ItemEffectsSchema,
   useMinutes: z.number().int().min(0).max(24 * 60).optional(),
   maxDurability: z.number().int().positive().optional(),
+  toolCapabilities: z.object({ pry: z.number().int().positive().optional(), cut: z.number().int().positive().optional(), strike: z.number().int().positive().optional() }).optional(),
   source: z.enum(["template", "llm"]),
   generatedAt: z.string(),
 });

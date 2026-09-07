@@ -12,8 +12,8 @@ export function describeChoice(option: ChoiceCandidate, world: TextWorld) {
   const targetId = option.nodeId ?? (kind === "collect" ? option.id.slice(8) : meaningful?.target ?? last?.target);
   const family: ChoiceFamily = ["hold", "stow"].includes(kind) ? "HANDLE" : ["harvest", "work"].includes(kind) ? "WORK" : kind === "care" ? "CARE" : kind === "toolwork" ? "TOOL" : kind === "story" ? "STORY" : kind === "focus" ? "FOCUS" : kind === "defocus" ? "DEFOCUS" : ["leave", "emerge"].includes(kind) || option.hint === "귀환" ? "RETREAT" : kind === "travel" ? "TRAVEL"
     : ["put", "drop"].includes(kind) ? "PLACE_OBJECT" : kind === "push" ? "MOVE_OBJECT" : kind === "hide" ? "COVER" : kind === "wait" ? "WAIT"
-    : ["collect", "take"].includes(kind) ? "COLLECT" : ["equip", "light"].includes(kind) ? "TOOL" : ["open", "unlock"].includes(kind) ? "ACCESS"
-    : kind === "lid" || kind === "explore" && world.entities[targetId ?? ""]?.components.openable ? "OPEN_CONTAINER" : "INSPECT";
+    : ["collect", "take"].includes(kind) ? "COLLECT" : ["equip", "light", "tool"].includes(kind) ? "TOOL" : ["open", "unlock"].includes(kind) ? "ACCESS"
+    : kind === "close" ? "ACCESS" : kind === "lid" || kind === "explore" && world.entities[targetId ?? ""]?.components.openable ? "OPEN_CONTAINER" : "INSPECT";
   return { family, targetId };
 }
 function stable(value: unknown): unknown { return Array.isArray(value) ? value.map(stable) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, entry]) => [key, stable(entry)])) : value; }
@@ -34,9 +34,10 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
   const context = interactionContext(world, state), previous = world.choiceHistory?.at(-1);
   const pool = candidates.map(option => ({ ...option, ...describeChoice(option, world) })).filter(option => {
     const last = option.actions?.at(-1);
+    if (option.id.startsWith("close:")) return false; // Deliberate door control remains in the object catalogue.
     if (context.mode === "EXPLORE" && option.id.startsWith("lid:")) return false;
     if (option.family === "PLACE_OBJECT") {
-      if (context.mode === "MANIPULATE") return last?.target === context.holdingEntityId;
+      if (context.mode === "MANIPULATE") return last?.target === context.holdingEntityId && (last.type === "DROP" || last.destination === (world.player.placementTargetId ?? context.focusEntityId ?? world.player.near));
       const destination = world.entities[last?.destination ?? ""];
       return context.mode === "FOCUS" && last?.type === "PUT" && last.destination === context.focusEntityId
         && Boolean(destination && carriedByPlayer(world, destination)) && Boolean(last.target && isHeld(world, last.target));
@@ -55,8 +56,15 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     if (context.mode === "THREAT" && !["TRAVEL", "RETREAT", "ACCESS", "TOOL", "COVER", "INSPECT", "MOVE_OBJECT"].includes(option.family)) return false;
     return true;
   });
+  const unlocks = (o: typeof pool[number]) => Boolean(o.actions?.some(a => a.type === "UNLOCK"));
+  const blockedFocus = Boolean(context.focusEntityId && world.observations[context.focusEntityId]?.blocked
+    && world.entities[context.focusEntityId]?.components.openable?.locked);
+  const unexploredSurface = (o: typeof pool[number]) => o.family === "INSPECT" && !world.observations[o.targetId ?? ""]?.inspected;
   const signature = choiceSignature(world, pool, context);
-  if (previous?.signature === signature && previous.shownIds.every(id => pool.some(o => o.id === id)))
+  const retained = pool.filter(o => previous?.shownIds.includes(o.id));
+  const preservesProgress = (!pool.some(unlocks) || retained.some(unlocks))
+    && (!blockedFocus || !pool.some(unexploredSurface) || retained.some(unexploredSurface));
+  if (preservesProgress && previous?.signature === signature && previous.shownIds.every(id => pool.some(o => o.id === id)))
     return previous.shownIds.map(id => ({ ...pool.find(o => o.id === id)!, slot: "retained", selectionSignature: signature }));
   const lastFamily = world.choiceHistory?.at(-2)?.families ?? [];
   const score = (o: typeof pool[number]) => {
@@ -70,8 +78,8 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     if (lastFamily.includes(o.family)) value -= 5;
     if (o.actions?.some(a => a.target && context.newlyDiscoveredIds.includes(a.target))) value += 30;
     if (o.actions?.some(a => a.type === "TAKE" || a.type === "UNLOCK")) value += 40;
-    // A key just handled gives its matching lock priority over unrelated tool use.
-    if (o.actions?.some(a => a.type === "UNLOCK" && world.entities[a.target ?? ""]?.components.openable?.keyId === world.entities[context.holdingEntityId ?? ""]?.components.portable?.itemId)) value += 100;
+    // The affordance has already verified the matching key. Entity IDs and inventory item IDs differ.
+    if (unlocks(o)) value += 120;
     if (o.family === "MOVE_OBJECT" && o.actions?.at(-1)?.relation === "beside" && world.entities[o.targetId ?? ""]?.components.position.relation === "blocking") value += 180;
     if (o.id.startsWith("emerge:")) value += 250;
     if (o.family === "OPEN_CONTAINER" && o.actions?.at(-1)?.type === "CLOSE" && world.events.some(e => e.type === "OPEN" && e.targetId === o.targetId)) value -= 90;
@@ -107,15 +115,19 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     take("retreat", inFamily("RETREAT", "TRAVEL"));
   } else if (context.mode === "EXPLORE") {
     take("work", inFamily("WORK"));
-    take("progress", inFamily("COLLECT", "ACCESS"));
+    take("progress", pool.some(unlocks) ? unlocks : inFamily("COLLECT", "ACCESS"));
     take("object", inFamily(pool.some(o => o.family === "OPEN_CONTAINER") ? "OPEN_CONTAINER" : "TOOL"));
     take("information", inFamily("INSPECT"));
     take("destination", inFamily(pool.some(o => o.family === "TRAVEL") ? "TRAVEL" : pool.some(o => o.family === "RETREAT") ? "RETREAT" : "FOCUS"));
     if (selected.length < 5) take("special", inFamily("TOOL", "RETREAT", "HANDLE"));
   } else {
-    take("primary", o => (context.mode === "MANIPULATE" ? ["WORK", "COLLECT", "ACCESS", "TOOL"] : ["WORK", "CARE", "COLLECT", "ACCESS", "TOOL", "OPEN_CONTAINER"]).includes(o.family) && (o.targetId === context.focusEntityId || o.family === "COLLECT" || o.family === "TOOL" || Boolean(o.actions?.some(a => a.type === "UNLOCK"))));
+    take("primary", pool.some(unlocks) ? unlocks : o => (context.mode === "MANIPULATE" ? ["WORK", "COLLECT", "ACCESS", "TOOL"] : ["WORK", "CARE", "COLLECT", "ACCESS", "TOOL", "OPEN_CONTAINER"]).includes(o.family) && (o.targetId === context.focusEntityId || o.family === "COLLECT" || o.family === "TOOL"));
     const information = pool.filter(o => o.family === "INSPECT" || o.family === "OPEN_CONTAINER" && o.actions?.at(-1)?.type !== "CLOSE");
-    take("information", information.length ? o => information.includes(o) : inFamily("FOCUS"));
+    // A known obstruction should lead back to unexamined surroundings without a menu escape.
+    // This uses visible inspection candidates, never the hidden reward or its location.
+    const surroundings = information.filter(unexploredSurface);
+    const freshCollection = (o: typeof pool[number]) => o.family === "COLLECT" && (o.targetId === context.focusEntityId || Boolean(o.actions?.some(a => a.target && context.newlyDiscoveredIds.includes(a.target))));
+    take("information", pool.some(unlocks) && pool.some(freshCollection) ? freshCollection : blockedFocus && surroundings.length ? o => surroundings.includes(o) : information.length ? o => information.includes(o) : inFamily("FOCUS"));
     take("situational", context.mode === "MANIPULATE" ? inFamily(pool.some(o => o.family === "PLACE_OBJECT") ? "PLACE_OBJECT" : "TOOL") : pool.some(o => o.family === "PLACE_OBJECT") ? inFamily("PLACE_OBJECT") : inFamily("CARE", "MOVE_OBJECT", "TOOL", "OPEN_CONTAINER", "HANDLE"));
     take("release", context.mode === "MANIPULATE" ? inFamily("HANDLE", "DEFOCUS") : inFamily("DEFOCUS"));
     if (selected.length < 5) take("route", inFamily(pool.some(o => o.family === "TRAVEL") ? "TRAVEL" : pool.some(o => o.family === "RETREAT") ? "RETREAT" : "ACCESS"));

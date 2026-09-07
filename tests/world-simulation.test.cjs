@@ -33,7 +33,7 @@ test('mass includes contents and capacity failures do not mutate inventory or co
  assert(act(f,{type:'PUT',target:'lamp',destination:'crate',relation:'inside'}).interrupted);assert.equal(w.entities.lamp.components.position.zone,'player');
 });
 test('a placed light is occluded by every opaque closed ancestor; a transparent container still transmits light',()=>{
- const f=fixture(),w=f.world;w.rooms.office.light=false;w.entities.lamp.components.position={zone:'player'};w.entities.lamp.components.light.on=true;w.player.heldToolId='lamp';
+ const f=fixture(),w=f.world;act(f,{type:'MOVE',target:'lamp'},{type:'TAKE',target:'lamp'},{type:'MOVE',target:'crate'});w.rooms.office.light=false;w.entities.lamp.components.light.on=true;
  assert(illuminated(w,'office'));assert(!act(f,{type:'PUT',target:'lamp',destination:'crate',relation:'inside'}).interrupted);
  assert.equal(w.player.heldToolId,null);assert(illuminated(w,'office'));
  act(f,{type:'CLOSE',target:'crate'});assert(!illuminated(w,'office'));assert(!visibleEntities(w).some(e=>e.id==='lamp'));
@@ -44,7 +44,7 @@ test('a placed light is occluded by every opaque closed ancestor; a transparent 
  assert.throws(()=>relocateEntity(w,w.entities.crate,{zone:'pouch',relation:'inside'}),/자신의 안쪽/);
 });
 test('support differs from containment: closing a lid does not hide a lamp placed on top',()=>{
- const f=fixture(),w=f.world;w.rooms.office.light=false;w.entities.lamp.components.position={zone:'player'};w.entities.lamp.components.light.on=true;w.player.heldToolId='lamp';
+ const f=fixture(),w=f.world;act(f,{type:'MOVE',target:'lamp'},{type:'TAKE',target:'lamp'},{type:'MOVE',target:'crate'});w.rooms.office.light=false;w.entities.lamp.components.light.on=true;
  assert(!act(f,{type:'PUT',target:'lamp',destination:'crate',relation:'on'}).interrupted);act(f,{type:'CLOSE',target:'crate'});
  assert(illuminated(w,'office'));assert(visibleEntities(w).some(e=>e.id==='lamp'));assert(!w.entities.crate.components.container.items.includes('lamp'));
 });
@@ -139,7 +139,7 @@ test('published content accepts nested light/container components and rejects cy
  const {defaultTextRooms}=require('../.server-dist/game/text-world/definitions');const {textRoomIssues}=require('../.server-dist/game/text-world/validation');
  const rooms=defaultTextRooms(),office=rooms.find(r=>r.id==='office'),crate=office.entities.find(e=>e.id==='crate'),lamp=office.entities.find(e=>e.id==='lamp');
  lamp.components.position={zone:'crate',relation:'inside'};crate.components.container.items.push('lamp');crate.components.portable={itemId:null,amount:1};
- const ids=new Set(rooms.flatMap(r=>r.entities).map(e=>e.components.portable?.itemId).filter(Boolean));
+ const ids=new Set(rooms.flatMap(r=>r.entities).flatMap(e=>[e.components.portable?.itemId,...(e.components.structure?.salvage??[]).map(drop=>drop.itemId)]).filter(Boolean));
  assert.deepEqual(textRoomIssues(rooms,ids),[]);
  crate.components.position={zone:'lamp',relation:'inside'};lamp.components.container={items:['crate']};assert(textRoomIssues(rooms,ids).some(i=>i.message.includes('순환')));
 });

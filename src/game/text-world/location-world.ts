@@ -49,7 +49,7 @@ export function syncLocationResources(state: GameState, registry: ContentRegistr
 type LocationOption = { id: string; label: string; hint: string; nodeId?: string; contentActionId?: string;
   actions?: WorldAction[]; importance: "major" | "minor"; loading: NonNullable<ActionChoice["loading"]>; remainingUses?: number; stockChoiceIds?: string[]; preparation?: WorldAction[] };
 
-export function locationWorldOptions(state: GameState, registry: ContentRegistry) {
+export function availableLocationWorldOptions(state: GameState, registry: ContentRegistry) {
   const world = worldOf(state);
   if (!world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active) return [];
   const candidates: LocationOption[] = availableWorldOptions(world, state)
@@ -86,7 +86,11 @@ export function locationWorldOptions(state: GameState, registry: ContentRegistry
         remainingUses: resource.remainingUses, importance: "major", loading: resolveInteractionLoading(action) ?? ACTIVITY });
     }
   }
-  return directChoices(world, state, candidates);
+  return candidates;
+}
+export function locationWorldOptions(state: GameState, registry: ContentRegistry) {
+  const world = worldOf(state);
+  return world ? directChoices(world, state, availableLocationWorldOptions(state, registry)) : [];
 }
 export function locationWorldActions(state: GameState, registry: ContentRegistry): ActionChoice[] {
   return locationWorldOptions(state, registry).map(option => ({ id: "text-world:" + state.location + ":" + worldOf(state).revision + ":" + option.id,
@@ -140,7 +144,7 @@ export async function performLocationWorldAction(state: GameState, action: Extra
   const world = worldOf(state);
   if (!world?.active || action.command !== "choose") throw new Error("먼저 탐색할 장소에 들어가 주세요.");
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
-  const option = locationWorldOptions(state, registry).find(option => option.id === action.optionId);
+  const option = availableLocationWorldOptions(state, registry).find(option => option.id === action.optionId);
   if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
   const before = structuredClone(state);
   world.events = [];

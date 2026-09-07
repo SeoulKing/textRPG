@@ -100,6 +100,11 @@ export const StateSnapshotSchema = z.object({
     itemId: z.string(), name: z.string(), worldId: z.string(), entityId: z.string(),
     revision: z.number().int().nonnegative(), on: z.boolean(), canTurnOn: z.boolean(), reason: z.string().optional(),
   })).default([]),
+  exploration: z.object({
+    revision: z.number().int().nonnegative(), roomName: z.string(),
+    targets: z.array(z.object({ id: z.string(), name: z.string(), placement: z.string(), observed: z.boolean(), actions: z.array(ActionChoiceSchema) })),
+    generalActions: z.array(ActionChoiceSchema),
+  }).nullable().default(null),
   itemCatalog: z.array(ItemCardSchema).default([]),
   protagonist: ProtagonistCardSchema,
   storyMaterials: StoryMaterialsSchema,

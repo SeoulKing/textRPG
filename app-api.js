@@ -195,6 +195,7 @@ function alignHexMapViewport(boardLayout, mapScale, currentLocationId) {
 }
 
 const PANEL_CONFIG = {
+  exploration: { title: "주변과 물건" },
   map: {
     title: "이동",
   },
@@ -295,6 +296,7 @@ const dom = {
   systemNote: document.querySelector("#system-note"),
   questCompletion: null,
   choices: document.querySelector("#choices"),
+  explorationToggle: document.querySelector("#exploration-toggle"),
   choiceTemplate: document.querySelector("#choice-template"),
   gameOverScreen: null,
   panelShell: document.querySelector(".panel-shell"),
@@ -355,6 +357,7 @@ const sceneDirector = {
 const client = {
   isHomeVisible: true,
   activePanel: "map",
+  explorationTargetId: null,
   isPanelOpen: false,
   snapshot: null,
   gameId: "",
@@ -937,6 +940,7 @@ function pendingActionControls() {
     "[data-use-item]",
     "[data-hex-location]",
     ".dock-button",
+    "#exploration-toggle",
   ].join(",")));
 }
 
@@ -2715,6 +2719,7 @@ function buildChoicePresentation(snapshot) {
 
 function renderChoices() {
   const snapshot = client.snapshot;
+  if (dom.explorationToggle) dom.explorationToggle.disabled = client.actionInFlight || client.isSceneTyping;
   dom.choices.replaceChildren();
   dom.choices.classList.remove("revealed", "is-crafting-menu", "is-cooking-menu");
   dom.sceneFrame.classList.remove("is-cooking-menu");
@@ -3864,7 +3869,43 @@ function renderMenuPanel() {
   `;
 }
 
+function renderExplorationPanel() {
+  const exploration = client.snapshot?.exploration;
+  if (!exploration) { dom.panelContent.innerHTML = '<p class="empty-state">지금은 살펴볼 공간이 없습니다.</p>'; return; }
+  const targets = [{ id: "", name: "통로와 주변", placement: exploration.roomName, actions: exploration.generalActions }, ...exploration.targets];
+  const selected = targets.find(t => t.id === client.explorationTargetId) || targets.find(t => t.actions.length) || targets[0];
+  client.explorationTargetId = selected.id;
+  dom.panelContent.innerHTML = `<div class="exploration-targets" aria-label="살펴볼 대상">${targets.map((target, index) => `<button type="button" data-exploration-target="${index}" aria-pressed="${target.id === selected.id}" ${client.actionInFlight ? "disabled" : ""}>${escapeHtml(target.name)}</button>`).join("")}</div>
+    <p class="exploration-placement">${escapeHtml(selected.placement)}</p><div class="choice-list exploration-actions"></div>`;
+  const list = dom.panelContent.querySelector(".exploration-actions");
+  if (!selected.actions.length) list.innerHTML = '<p class="empty-state">지금 이 대상에 할 수 있는 별도 행동은 없습니다.</p>';
+  selected.actions.forEach(choice => {
+    const fragment = dom.choiceTemplate.content.cloneNode(true), button = fragment.querySelector("button");
+    fragment.querySelector(".choice-label").textContent = choice.label;
+    fragment.querySelector(".choice-meta").textContent = choice.outcomeHint || "";
+    for (const selector of [".choice-status", ".choice-remaining"]) fragment.querySelector(selector).hidden = true;
+    button.disabled = client.actionInFlight || choice.isAvailable === false;
+    button.addEventListener("click", () => {
+      if (client.actionInFlight) return;
+      client.isPanelOpen = false;
+      renderPanel();
+      submitAction(choice.action, null, choice.loading, null, "template", choice.choiceThought);
+    });
+    list.appendChild(fragment);
+  });
+  dom.panelContent.querySelectorAll("[data-exploration-target]").forEach(button => button.addEventListener("click", () => {
+    if (client.actionInFlight) return;
+    client.explorationTargetId = targets[Number(button.dataset.explorationTarget)].id;
+    renderExplorationPanel();
+  }));
+}
+
 function renderPanel() {
+  if (dom.explorationToggle) {
+    dom.explorationToggle.hidden = !client.snapshot?.exploration;
+    dom.explorationToggle.disabled = client.actionInFlight || client.isSceneTyping;
+    dom.explorationToggle.setAttribute("aria-expanded", String(client.isPanelOpen && client.activePanel === "exploration"));
+  }
   if (client.isPanelOpen) {
     const config = PANEL_CONFIG[client.activePanel];
     dom.panelTitle.textContent = config.title;
@@ -3872,7 +3913,9 @@ function renderPanel() {
       "inventory-panel-content",
       client.activePanel === "inventory",
     );
-    if (client.activePanel === "map") {
+    if (client.activePanel === "exploration") {
+      renderExplorationPanel();
+    } else if (client.activePanel === "map") {
       renderMapPanel();
     } else if (client.activePanel === "inventory") {
       renderInventoryPanel();
@@ -4235,7 +4278,7 @@ document.addEventListener("click", (event) => {
   const startedInDock = eventPath.some((node) =>
     node instanceof Element && node.classList.contains("utility-dock")
   ) || clickedElement?.closest(".utility-dock");
-  if (startedInPanel || startedInDock) {
+  if (startedInPanel || startedInDock || eventPath.includes(dom.explorationToggle)) {
     return;
   }
   client.isPanelOpen = false;
@@ -4368,6 +4411,13 @@ dom.homeLogout.addEventListener("click", async () => {
   } finally {
     client.actionInFlight = false;
   }
+});
+
+dom.explorationToggle.addEventListener("click", () => {
+  if (client.actionInFlight || client.isSceneTyping || !client.snapshot?.exploration) return;
+  client.isPanelOpen = !(client.isPanelOpen && client.activePanel === "exploration");
+  client.activePanel = "exploration";
+  renderPanel();
 });
 
 dom.panelContent.addEventListener("click", (event) => {

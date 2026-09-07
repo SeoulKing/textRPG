@@ -30,18 +30,26 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
     if (world.entities[c.position.zone]?.components.container && !c.container && c.position.relation !== "on") continue;
     const carried = c.position.zone === "player", held = isHeld(world, e.id), near = world.player.near === e.id;
     const discovered = world.events.some(event => Array.isArray(event.after.revealedIds) && event.after.revealedIds.includes(e.id));
-    add("entity:" + e.id, "entity", { name: e.name, placement: held ? "손에 들고 있음" : carried ? "지니고 있음" : placement(e),
+    add("entity:" + e.id, "entity", { name: e.name, outline: entityDetails(world, e).outline, placement: held ? "손에 들고 있음" : carried ? "지니고 있음" : placement(e),
       isOpen: c.openable?.isOpen, locked: near ? c.openable?.locked : undefined, discovered, on: c.light?.on, held, carried, stowed: carried && !held }, e.id);
+    if (c.structure && lit && (near || world.observations[e.id]?.stages.includes("surface"))) add("structure:" + e.id, "structure", {
+      name: e.name, material: { wood: "나무", metal: "금속", fabric: "천", stone: "돌" }[c.structure.material], integrity: c.structure.integrity, maxIntegrity: c.structure.maxIntegrity,
+      destroyed: c.structure.integrity === 0, lockBroken: c.openable?.lockBroken,
+    }, e.id);
     if (c.resourceSite && near && world.observations[e.id]?.inspected) add("resource:" + e.id, "resource", {
       name: e.name, unlimited: c.resourceSite.unlimited, remaining: c.resourceSite.remaining, capacity: c.resourceSite.capacity,
       recoveryMinutes: c.resourceSite.recoveryMinutes, missingTools: c.resourceSite.missingTools ?? [],
     }, e.id);
     if (c.portal) add("connection:" + e.id, "connection", { name: e.name, from: worldRooms(world)[c.portal.from].name.split(" · ").at(-1), to: worldRooms(world)[c.portal.to].name.split(" · ").at(-1) }, e.id);
     if (lit && (near || held || discovered)) {
-      add("surface:" + e.id, "surface", { name: e.name, detail: c.openable?.locked ? e.description.replace("잠금장치는 없다.", "잠겨 있다.") : e.description }, e.id);
+      add("surface:" + e.id, "surface", { name: e.name, detail: c.structure?.integrity === 0 ? e.name + "의 구조가 부서져 있다." : c.openable?.locked ? e.description.replace("잠금장치는 없다.", "잠겨 있다.") : e.description }, e.id);
       // Touch is offered only when this turn actually handles the object.
       if (entityDetails(world, e).touch && world.events.some(event => event.targetId === e.id && ["TAKE", "HOLD", "STOW", "UNLOCK", "OPEN", "CLOSE", "LIGHT"].includes(event.type)))
         add("touch:" + e.id, "sensory", { name: e.name, detail: entityDetails(world, e).touch }, e.id);
+    }
+    for (const [i, response] of (entityDetails(world, e).responses ?? []).entries()) {
+      if (world.events.some(event => event.targetId === e.id && event.type === response.when))
+        add("response:" + e.id + ":" + i, "sensory", { name: e.name, detail: response.detail, action: response.when }, e.id);
     }
     if (lit && (near || carriedByPlayer(world, e)) && (!c.openable || c.openable.isOpen || c.physical?.opaque === false) && c.container) {
       const items = visibleEntities(world).filter(item => c.container!.items.includes(item.id));
@@ -77,7 +85,7 @@ export function directNarrative(world: TextWorld): NarrativeContext {
     const stages = fact.targetId ? world.observations[fact.targetId]?.stages ?? [] : [];
     const newlyObserved = stage ? !stages.includes(stage) : !previous;
     const resourceStatusChanged = !previous || (Number(previous.fact.data.remaining) === 0) !== (Number(fact.data.remaining) === 0) || JSON.stringify(previous.fact.data.missingTools) !== JSON.stringify(fact.data.missingTools);
-    const mandatory = (fact.kind === "resource" && (resourceStatusChanged || world.events.some(e => e.targetId === fact.targetId && e.type === "INSPECT"))) || (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
+    const mandatory = (fact.kind === "structure" && changed) || (fact.kind === "resource" && (resourceStatusChanged || world.events.some(e => e.targetId === fact.targetId && e.type === "INSPECT"))) || (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
       (fact.kind === "surface" && world.events.some(e => (newlyObserved && e.targetId === fact.targetId && e.type === "INSPECT") || (e.type === "SURVEY" && fact.targetId === world.player.zone))) ||
       (fact.kind === "lighting" && (changed || recap)) || (fact.kind === "threshold" && world.events.some(e => e.targetId === fact.targetId && e.type === "OPEN")) ||
       (fact.kind === "connection" && (recap || world.events.some(e => e.targetId === fact.targetId || e.type === "MOVE" && e.before.zone !== e.after.zone)));

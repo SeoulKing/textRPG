@@ -21,7 +21,7 @@ export function resolveChoiceLabels(context: NarrativeContext, raw: unknown): Ch
     const parsed = matching.length === 1 ? LabelSchema.safeParse(matching[0]) : null;
     const label = parsed?.success ? parsed.data.label : undefined;
     const verb = option.family === "HANDLE" ? option.id.startsWith("stow:") ? /챙겨|보관/ : /꺼내|고쳐|쥐|쥔|든다/ : /^(harvest|toolwork):/.test(option.id) ? /벌목|모으|모은|구하|구한|수색|뒤지|뒤진|꼬|잘라|낚|손질|작업/ : option.id.startsWith("defocus") ? /시선|관심/ : option.family === "PLACE_OBJECT" ? /넣|놓|내려|담/ : option.family === "MOVE_OBJECT" ? /밀|옮/ : option.family === "COLLECT" ? /챙|집|쥐|거두|수거|꺼내/ : option.family === "TOOL" ? /켜|켠|끄|끈|비추|비춘|집어/ : option.family === "OPEN_CONTAINER" || option.family === "ACCESS" ? /열|닫|살피|살펴|확인|잠금/ : /살피|살펴|시선|관심|다가|이동|돌아|향|나온|나서|기다|숨|낮춰/;
-    const validLabel = label && !/[\n\r.!?]|당신|플레이어|주인공|발견했다|획득했다|성공|실패|(?:result|entity|contents):/.test(label) && verb.test(label)
+    const validLabel = label && !/[\n\r.!?]|당신|플레이어|주인공|발견했다|획득했다|성공|실패|(?:result|entity|contents):/.test(label) && (option.id.startsWith("tool:") ? /열|벌려|자르|잘라|부수|충격/.test(label) : verb.test(label))
       && (option.labelNames ?? []).every(name => label.includes(name))
       && (!option.label.includes("꺼내 손에") || label.includes("꺼내"))
       && (option.family !== "HANDLE" || !/내려놓|바닥|위에 놓|안에 넣|버린/.test(label))

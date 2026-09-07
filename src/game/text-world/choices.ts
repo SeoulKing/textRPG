@@ -6,7 +6,7 @@ import { isHeld } from "./hands";
 import { carriedByPlayer, passageBlockers } from "./spatial";
 import type { GameState } from "../schemas";
 import type { TextWorld, WorldAction } from "../schemas/text-world";
-import { adjacentZones, hasDoorKey, carriesLight, illuminated, particle, portalBetween, worldRooms, visibleEntities, entityDetails } from "./world";
+import { adjacentZones, hasDoorKey, carriesLight, canReach, illuminated, particle, portalBetween, worldRooms, visibleEntities, entityDetails } from "./world";
 
 export type WorldOption = { id: string; label: string; hint: string; actions: WorldAction[]; importance: "major" | "minor" };
 export function availableWorldOptions(world: TextWorld, state: GameState): WorldOption[] {
@@ -14,7 +14,8 @@ export function availableWorldOptions(world: TextWorld, state: GameState): World
   const options: WorldOption[] = [];
   const add = (id: string, label: string, actions: WorldAction[], hint: string, importance: WorldOption["importance"] = "major") => options.push({ id, label, actions, hint, importance });
   const posture = (value: "standing" | "crouching"): WorldAction[] => world.player.posture === value ? [] : [{ type: "POSTURE", posture: value }];
-  const approach = (id: string, value: "standing" | "crouching" = "standing"): WorldAction[] => world.entities[id]?.components.position.zone === "player" ? [] : [
+  const approach = (id: string, value: "standing" | "crouching" = "standing"): WorldAction[] => world.entities[id]?.components.position.zone === "player"
+    || world.entities[id]?.components.discovery && canReach(world, world.entities[id]) ? [] : [
     ...(world.player.near === id ? [] : [...posture("standing"), { type: "MOVE" as const, target: id }]),
     ...(world.player.near !== id && value === "crouching" ? [{ type: "POSTURE" as const, posture: value }] : world.player.near === id ? posture(value) : []),
   ];

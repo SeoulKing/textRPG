@@ -12,7 +12,7 @@ export function directScene(context: NarrativeContext, narrated: Record<string, 
   const last = substantive.at(-1) ?? results.at(-1);
   const event = last?.data as WorldEvent | undefined;
   const focus = event?.type === "TAKE" ? String(event.before.zone ?? "") : last?.targetId ?? context.player.facing ?? undefined;
-  const score = (fact: WorldFact) => (fact.targetId === focus ? 40 : 0) + (fact.id.startsWith("touch:") ? 35 : fact.kind === "sound" ? 30 : fact.kind === "sensory" ? 20 : 5) - (narrated[fact.id] === JSON.stringify(fact.data) ? 35 : 0);
+  const score = (fact: WorldFact) => (fact.targetId === focus ? 40 : 0) + (fact.id.startsWith("response:") ? 40 : fact.id.startsWith("touch:") ? 35 : fact.kind === "sound" ? 30 : fact.kind === "sensory" ? 20 : 5) - (narrated[fact.id] === JSON.stringify(fact.data) ? 35 : 0);
   const optionalFacts = [...context.optionalFacts].sort((a, b) => score(b) - score(a)).filter(f => score(f) > 0).slice(0, 6);
   const beats: NarrativeDirection["beats"] = [];
   for (const fact of results) {
@@ -29,7 +29,7 @@ export function directScene(context: NarrativeContext, narrated: Record<string, 
     else if (detail.kind === "entity" && detail.data.discovered) responsible = results.find(f => ((f.data.after as Record<string, unknown>)?.revealedIds as string[] | undefined)?.includes(detail.targetId!));
     else if (detail.kind === "layout") responsible = [...results].reverse().find(f => ["ENTER", "MOVE", "LIGHT"].includes(typeOf(f)));
     else if (detail.kind === "lighting") responsible = [...results].reverse().find(f => ["LIGHT", "LIGHT_EXPIRED", "STOW", "HOLD", "CLOSE", "AUTO_CLOSE", "OPEN", "PUT", "DROP", "MOVE"].includes(typeOf(f)));
-    else responsible = results.find(f => f.targetId === detail.targetId && (detail.id.startsWith("touch:") ? ["TAKE", "HOLD", "STOW", "OPEN", "CLOSE", "LIGHT", "UNLOCK", "PUSH", "PUT", "DROP"].includes(typeOf(f)) : typeOf(f) === "INSPECT"));
+    else responsible = results.find(f => f.targetId === detail.targetId && (detail.data.action ? typeOf(f) === detail.data.action : detail.id.startsWith("touch:") ? ["TAKE", "HOLD", "STOW", "OPEN", "CLOSE", "LIGHT", "UNLOCK", "PUSH", "PUT", "DROP"].includes(typeOf(f)) : typeOf(f) === "INSPECT"));
     const beat = responsible ? beats.find(b => b.resultFactIds.includes(responsible!.id))! : beats.at(-1)!;
     beat.detailFactIds.push(detail.id);
   }

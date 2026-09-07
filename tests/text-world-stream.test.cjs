@@ -125,3 +125,39 @@ test('a disconnected stream consumer cannot cancel execution or prevent the comm
  const f=fixture(),snap=await entered(f);const result=await f.service.performAction('stream-test',chosen(snap,'explore:crate'),{requestId:'disconnected-0001',onParagraph:()=>{throw Error('socket closed')}});
  assert.deepEqual((await f.makeService().recoverAction('stream-test','disconnected-0001')).currentScene,result.currentScene);
 });
+
+for (const failTail of [false,true]) test('an entry paragraph covering all required facts streams with a grounded optional continuation: '+failTail,{timeout:3000},async t=>{
+ const f=fixture();await entered(f);const context=structuredClone(f.context),gate=deferred(),first=deferred(),events=[];
+ const prose=fallbackNarration({...context,optionalFacts:[],paragraphCount:{min:1,max:1}});
+ const p={text:prose.paragraphs[0],factIds:prose.usedFactIds};
+ const q={text:'오른쪽 벽에는 작은 손전등이 보인다.',factIds:['entity:lamp']};
+ assert(validateNarration(context,{paragraphs:[p,q]}));
+ t.mock.method(global,'fetch',async()=>new Response(new ReadableStream({async start(c){const enc=new TextEncoder(),emit=text=>c.enqueue(enc.encode('data: '+JSON.stringify({candidates:[{content:{parts:[{text}]}}]})+'\n\n'));
+ emit('{"paragraphs":['+JSON.stringify(p)+',');await gate.promise;if(failTail){c.error(Error('lost tail'));return;}emit(JSON.stringify(q)+'],"choiceLabels":[]}');c.close();
+ }}),{headers:{'content-type':'text/event-stream'}}));
+ const pending=observeAction({onParagraph:e=>{events.push(e);first.resolve()}},()=>renderNarration(context,'entry-all-facts',narrateTextWorld));
+ try {await first.promise;assert.equal(events[0].source,'llm');assert.equal(events[0].text,p.text);}finally{gate.resolve();}
+ const result=await pending;assert.equal(result.paragraphs[0],p.text);assert.equal(result.paragraphs.length,2);
+ assert(validateNarration(context,{paragraphs:result.paragraphs.map(text=>({text,factIds:result.usedFactIds}))}));
+ if(!failTail)assert.equal(result.source,'llm');else assert.deepEqual(result.paragraphSources,['llm','template']);
+});
+
+test('a prefix without a safe fallback is deferred, while the valid complete scene remains LLM prose',{timeout:3000},async t=>{
+ const f=fixture();await entered(f);const context={...f.context,optionalFacts:[]};const prose=fallbackNarration({...context,paragraphCount:{min:1,max:1}});
+ const p={text:prose.paragraphs[0],factIds:prose.usedFactIds};const q={text:'역무실의 배치가 눈에 들어온다.',factIds:['layout:office']};
+ const gate=deferred(),started=deferred(),events=[];
+ t.mock.method(global,'fetch',async()=>new Response(new ReadableStream({async start(c){const enc=new TextEncoder(),emit=text=>c.enqueue(enc.encode('data: '+JSON.stringify({candidates:[{content:{parts:[{text}]}}]})+'\n\n'));
+ emit('{"paragraphs":['+JSON.stringify(p)+',');started.resolve();await gate.promise;emit(JSON.stringify(q)+'],"choiceLabels":[]}');c.close();
+ }}),{headers:{'content-type':'text/event-stream'}}));
+ const pending=observeAction({onParagraph:e=>events.push(e)},()=>renderNarration(context,'deferred-entry',narrateTextWorld));
+ await started.promise;await tick();assert.equal(events.length,0);gate.resolve();const result=await pending;
+ assert.equal(result.source,'llm');assert.deepEqual(result.paragraphs,[p.text,q.text]);
+});
+
+test('an inferred wall hook is removed while an authored attachment is preserved',async()=>{
+ const f=fixture();await entered(f);const c=structuredClone(f.context),text='오른쪽 벽에는 작은 손전등이 걸려 있다.';
+ const raw={paragraphs:[{text:'대합실에서 역무실 안으로 들어선다.',factIds:c.requiredFacts.map(f=>f.id)},{text,factIds:['entity:lamp']}]};
+ assert.equal(validateNarration(c,raw).paragraphs[1],'오른쪽 벽에는 작은 손전등이 보인다.');
+ c.optionalFacts.find(f=>f.id==='entity:lamp').data.outline='벽에 걸려 있는 작은 손전등';
+ assert.equal(validateNarration(c,raw).paragraphs[1],text);
+});

@@ -32,6 +32,12 @@ function eventText(e: WorldEvent) {
     case "POSTURE": return e.after.posture === "crouching" ? "무릎을 굽혀 몸을 낮춘다." : "몸을 일으켜 선다.";
     case "INSPECT": return particle(name, "을", "를") + " 가까이서 살핀다.";
     case "UNLOCK": return particle(String(e.after.keyName), "을", "를") + " 자물쇠에 끼워 돌려 " + name + "의 잠금을 푼다.";
+    case "USE_TOOL": {
+      const method = e.after.technique === "pry" ? "의 잠금장치를 비틀어 연다." : e.after.technique === "cut" ? "의 구조에 날을 대어 자른다." : "에 충격을 가한다.";
+      return particle(String(e.after.toolName), "으로", "로") + " " + name + method
+        + (e.after.destroyed ? " 구조가 부서진다." + (e.after.opened ? e.after.portal ? " 막혔던 통로가 열린다." : " 가려져 있던 안쪽이 드러난다." : "") : e.after.technique !== "pry" ? " 아직 구조가 남아 있다." : "")
+        + (e.after.toolBroken ? " 사용한 도구가 닳아 더는 쓸 수 없다." : "");
+    }
     case "OPEN": return particle(name, "을", "를") + " 연다.";
     case "CLOSE": return particle(name, "을", "를") + " 닫는다.";
     case "TAKE": if (e.before.carried && e.before.inventoryRegistered) return particle(name, "을", "를") + (e.before.relation === "on" ? " 다시 집어 든다." : " 꺼내 손에 든다.") + movedContents(e);
@@ -71,6 +77,7 @@ function factText(f: WorldFact): string {
     return status + (tools?.length ? " 다른 작업 방법에는 " + particle(tools.join(", "), "이", "가") + " 필요하다." : "");
   }
   if (f.kind === "connection") return d.name + "은 " + d.from + "과 " + d.to + " 사이를 잇는다.";
+  if (f.kind === "structure") return d.destroyed ? d.name + "의 구조는 부서진 상태다." : d.lockBroken ? d.name + "의 잠금장치가 망가져 있다." : d.integrity !== d.maxIntegrity ? d.name + "의 " + d.material + " 구조에 손상이 남아 있다." : d.name + "의 구조는 " + d.material + "로 되어 있다.";
   if (f.kind === "layout") return String(d.layout);
   if (f.kind === "surface" || f.kind === "sensory") return String(d.detail);
   if (f.kind === "sound") return (d.direction ? d.direction + "에서 " : "") + d.description + (d.intensity === "muffled" ? " 소리는 희미하게 전해진다." : "");
@@ -142,6 +149,8 @@ export function fallbackNarration(context: NarrativeContext): Narration {
         text = e.type === "OPEN" && detail.includes("가장자리") ? detail + " 그 가장자리를 짚고 " + particle(String(e.after.name), "을", "를") + " 연다." : detail + " " + text;
       }
     }
+    const response = all.find(f => f.id.startsWith("response:") && f.targetId === e.targetId && f.data.action === e.type && !used.has(f.id));
+    if (response) text += " " + use(response);
     if (e.type === "OPEN" || e.type === "INSPECT") {
       const openedLater = e.type === "INSPECT" && results.slice(i + 1).some(f => f.data.type === "OPEN" && f.targetId === e.targetId);
       const contents = openedLater ? undefined : find("contents", e.targetId);
@@ -197,7 +206,16 @@ export function validateNarration(context: NarrativeContext, raw: unknown): Narr
   const parsed = NarrationSchema.safeParse(raw);
   if (!parsed.success) return null;
   const paragraphs = parsed.data.paragraphs.flatMap(p => {
-    const text = withoutRepeatedSubwayNarrative([p.text], context.alreadyDisplayed).join(" ");
+    let text = withoutRepeatedSubwayNarrative([p.text], context.alreadyDisplayed).join(" ");
+    // A wall location does not imply a hook. Preserve the observed location while
+    // removing the unsupported attachment inferred in actual generated prose.
+    const facts = [...context.requiredFacts, ...context.optionalFacts];
+    for (const entity of facts.filter(f => f.kind === "entity" && !f.data.carried)) {
+      const evidence = JSON.stringify(facts.filter(f => f.targetId === entity.targetId).map(f => f.data));
+      if (/걸려|매달려/.test(evidence)) continue;
+      const name = String(entity.data.name).replace(/[.*+?^${}()|[\]\\]/g, char => "\\" + char);
+      text = text.replace(new RegExp("(" + name + "(?:이|가))\\s*(?:걸려|매달려)\\s*있다", "g"), "$1 보인다");
+    }
     return text ? [{ ...p, text }] : [];
   });
   const allowed = new Set([...context.requiredFacts, ...context.optionalFacts].map(f => f.id));
@@ -223,10 +241,13 @@ export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) =
   let invalidPrefix = false;
   const remainingFallback = () => {
     const used = new Set(accepted.flatMap(p => p.factIds));
-    const requiredFacts = context.requiredFacts.filter(f => !used.has(f.id));
+    let requiredFacts = context.requiredFacts.filter(f => !used.has(f.id));
     const optionalFacts = context.optionalFacts.filter(f => !used.has(f.id));
-    const results = requiredFacts.filter(f => f.kind === "result").map(f => f.data as WorldEvent);
     if (!requiredFacts.length && accepted.length >= context.paragraphCount.min) return { paragraphs: [], usedFactIds: [] };
+    // The first paragraph can cover every mandatory fact. A fallback still needs an
+    // observed fact for the remaining paragraph, not an untagged posture filler.
+    if (!requiredFacts.length) requiredFacts = optionalFacts.filter(f => ["sensory", "surface", "entity", "connection"].includes(f.kind)).slice(0, 1);
+    const results = requiredFacts.filter(f => f.kind === "result").map(f => f.data as WorldEvent);
     return fallbackNarration({ ...context, results, requiredFacts, optionalFacts, paragraphCount: { min: 1, max: 1 } });
   };
   const recover = (reason: string): Narration => {
@@ -259,7 +280,7 @@ export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) =
           // Before publishing, prove a deterministic continuation can still complete this scene.
           const tail = remainingFallback();
           const completion = { paragraphs: [...accepted, ...tail.paragraphs.map(text => ({ text, factIds: tail.usedFactIds }))] };
-          if (!validateNarration(context, completion)) { accepted.pop(); invalidPrefix = true; break; }
+          if (!validateNarration(context, completion)) { accepted.pop(); break; }
           publishParagraph(valid.paragraphs[0], "llm");
         }
       } : undefined,
@@ -279,7 +300,7 @@ export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) =
       timeoutMs: 20_000, trace: { gameId, scope: context.location.id === "store" ? "card" : "subway", target: "text-world:" + context.location.id + ":narrator" },
     });
     const valid = validateNarration(context, result);
-    if (!valid || invalidPrefix || accepted.some((p, i) => p.text !== valid.paragraphs[i])) return recover("invalid_narration");
+    if (!valid || accepted.some((p, i) => p.text !== valid.paragraphs[i])) return recover("invalid_narration");
     recordActionTiming({ narration: "llm" });
     return valid;
   } catch (error) { return recover(error instanceof Error && /timeout|abort/i.test(error.name + error.message) ? "timeout" : "generation_failed"); }

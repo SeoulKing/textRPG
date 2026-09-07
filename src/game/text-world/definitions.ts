@@ -12,12 +12,15 @@ export const subwayZones: Record<string, { name: string; light: boolean; layout:
     layout: "복도에서 들어오는 창고 입구 양옆에 빈 선반이 있다.",
     surface: "선반의 칸은 비어 있고, 방 안쪽까지 바닥이 드러나 있다." },
 };
-export const details: Record<string, { anchor: string; placement: string; outline: string; surface: string; touch?: string; interior?: string; movementSound?: string }> = {
+export const details: Record<string, NonNullable<TextEntity["details"]>> = {
   crate: { anchor: "left-wall", placement: "역무실 입구 기준 왼쪽 벽 아래", outline: "낮은 나무 상자", surface: "뚜껑 한쪽이 갈라져 있고 잠금장치는 없다.", touch: "뚜껑 가장자리의 나뭇결이 거칠다.", interior: "나무로 된 바닥과 안쪽 면이 드러난다.", movementSound: "나무 밑면이 바닥을 긁는 소리가 난다." },
   lamp: { anchor: "right-wall", placement: "역무실 입구 기준 오른쪽 벽", outline: "작은 손전등", surface: "몸통 옆에 엄지로 누르는 스위치가 있다.", touch: "금속 몸통이 손바닥에 차갑게 닿는다." },
-  door: { anchor: "far-door", placement: "역무실 입구 맞은편 / 복도의 역무실 쪽 끝", outline: "철문", surface: "경첩에 녹이 슬어 있다.", touch: "손잡이가 단단하고 차갑다." },
+  door: { anchor: "far-door", placement: "역무실 입구 맞은편 / 복도의 역무실 쪽 끝", outline: "철문", surface: "경첩에 녹이 슬어 있다.", touch: "손잡이가 단단하고 차갑다.", responses: [
+    { when: "UNLOCK", detail: "열쇠를 돌리자 잠금장치 안에서 작게 딸깍하는 소리가 난다." },
+    { when: "OPEN", detail: "문이 벌어지는 동안 녹슨 경첩이 낮게 삐걱거린다." },
+  ] },
   floor: { anchor: "floor", placement: "입구와 철문 사이", outline: "먼지가 내려앉은 바닥", surface: "바닥의 이음새에 먼지가 얇게 쌓여 있다.", touch: "바닥이 손끝에 단단하고 차갑게 닿는다." },
-  doorKey: { anchor: "floor", placement: "철문 앞 바닥의 이음새", outline: "작은 금속 열쇠", surface: "납작한 손잡이와 톱니가 있는 작은 금속 열쇠다.", touch: "얇은 금속이 손가락 사이에 차갑게 닿는다." },
+  doorKey: { anchor: "floor", placement: "철문 앞 바닥의 이음새", outline: "작은 금속 열쇠", surface: "납작한 손잡이와 톱니가 있는 작은 금속 열쇠다.", touch: "얇은 금속이 손가락 사이에 차갑게 닿는다.", posture: "crouching" },
   cache: { anchor: "far-wall", placement: "창고 입구 맞은편 벽 아래", outline: "낮은 철제 공구 보관함", surface: "바닥에 고정되어 있고 잠금장치는 없다.", touch: "뚜껑 테두리가 매끈하고 차갑다.", interior: "철제 바닥과 안쪽 면이 드러난다." },
   water: { anchor: "crate", placement: "나무 상자 안", outline: "미개봉 물병", surface: "마개가 봉인되어 있다." },
   scrap: { anchor: "crate", placement: "나무 상자 안", outline: "고철 조각 두 개", surface: "작은 금속 조각이 나란히 놓여 있다." },
@@ -30,6 +33,9 @@ export function upgradeWorldPhysics(entities: TextEntity[]) {
     crate.components.physical = { mass: 12, volume: 8, movable: true, opaque: true, blocksPassage: true, supportCapacity: 5 };
     if (crate.details && !crate.details.movementSound) crate.details.movementSound = details.crate.movementSound;
   }
+  if (crate && crate.description === details.crate.surface) crate.components.structure ??= { material: "wood", integrity: 4, maxIntegrity: 4, resistance: 1, salvage: [{ itemId: "woodPlank", amount: 1 }] };
+  const door = entities.find(e => e.id === "door" && e.components.portal && e.description === details.door.surface);
+  if (door) door.components.structure ??= { material: "metal", integrity: 6, maxIntegrity: 6, resistance: 3, salvage: [] };
 }
 export function defaultTextRooms(): TextRoom[] {
   const entity = (id: string, name: string, zone: string, extra: Omit<TextEntity["components"], "position"> = {}): TextEntity => ({
@@ -45,6 +51,7 @@ export function defaultTextRooms(): TextRoom[] {
     entity("cache", "공구 보관함", "storage", { openable: { isOpen: false, locked: false }, container: { items: ["food"] } }),
     entity("food", "캔 음식", "cache", { portable: { itemId: "cannedFood", amount: 1 } }),
   ];
+  upgradeWorldPhysics(entities);
   return Object.entries(subwayZones).map(([id, room]) => ({
     sensory: id === "office" ? [{ when: "ENTER", detail: "대합실에서 들어오는 빛이 입구 쪽 바닥에 길게 걸쳐 있다." }]
       : id === "corridor" ? [{ when: "MOVE", detail: "단단한 바닥을 딛는 발소리가 좁은 벽 사이에서 짧게 되돌아온다." }]

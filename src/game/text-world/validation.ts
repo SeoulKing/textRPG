@@ -27,6 +27,12 @@ export function textRoomIssues(rooms: TextRoom[], itemIds: Set<string>) {
       if (rootOf(entity.id) !== room.id || parent && (c.position.relation === "on" ? parent.components.physical?.supportCapacity === undefined : !parent.components.container?.items.includes(entity.id))) add(room.id, label + ": 배치할 방이나 보관함을 확인해 주세요. 순환 배치는 사용할 수 없습니다.");
       if (c.position.relativeTo && (!entities.has(c.position.relativeTo) || rootOf(c.position.relativeTo) !== room.id || c.position.relativeTo === entity.id)) add(room.id, label + ": 상대 배치 대상은 같은 방의 다른 사물이어야 합니다.");
       if (c.openable?.locked && c.openable.isOpen) add(room.id, `${label}: 잠긴 물체는 닫힌 상태로 설정해 주세요.`);
+      if (c.structure) {
+        if (c.structure.integrity > c.structure.maxIntegrity) add(room.id, label + ": 남은 구조 내구도가 최대치를 넘을 수 없습니다.");
+        if (c.structure.integrity === 0 && (c.openable && !c.openable.isOpen || c.physical?.blocksPassage)) add(room.id, label + ": 부서진 구조가 문이나 통로를 막을 수 없습니다.");
+        if (new Set(c.structure.salvage.map(s => s.itemId)).size !== c.structure.salvage.length) add(room.id, label + ": 해체 재료는 아이템별로 한 번만 정의해 주세요.");
+        for (const drop of c.structure.salvage) if (!itemIds.has(drop.itemId)) add(room.id, label + ": 해체 재료 아이템을 찾을 수 없습니다.");
+      }
       if (c.openable?.keyId && !entities.get(c.openable.keyId)?.components.portable) add(room.id, label + ": 잠금 해제에 사용할 열쇠 엔티티를 확인해 주세요.");
       if (c.discovery) {
         const target = entities.get(c.discovery.inspectTargetId);
