@@ -1,3 +1,4 @@
+import { playerItemAmount } from "../item-ledgers";
 import { toolInstances } from "../tool-instances";
 import type { GameState } from "../schemas";
 import type { TextEntity, TextWorld } from "../schemas/text-world";
@@ -21,7 +22,9 @@ export function registeredAmounts(world: TextWorld, entities: TextEntity[]) {
   return amounts;
 }
 export function inventoryTreeAvailable(world: TextWorld, state: GameState, entity: TextEntity) {
-  return Object.entries(registeredAmounts(world, entityTree(world, entity))).every(([id, amount]) => (state.inventory[id] ?? 0) >= amount);
+  const tree = entityTree(world, entity);
+  return [false, true].every(provisional => Object.entries(registeredAmounts(world, tree.filter(e => Boolean(e.expeditionLoot) === provisional)))
+    .every(([id, amount]) => ((provisional ? state.subwayExpedition.carriedLoot : state.inventory)[id] ?? 0) >= amount));
 }
 
 /** Apply the ownership difference once, including previously collected contents of a portable container. */
@@ -29,6 +32,7 @@ export function transferInventoryOwnership(world: TextWorld, state: GameState, e
   const tree = entityTree(world, entity);
   for (const member of tree) member.inventoryRegistered ??= inventoryRegistered(world, member);
   const before = registeredAmounts(world, tree);
+  const beforeLoot = registeredAmounts(world, tree.filter(e => e.expeditionLoot));
   for (const member of tree) {
     const itemId = member.components.portable?.itemId;
     if (itemId && carriedByPlayer(world,member) && member.inventoryRegistered && state.toolDurability[itemId] !== undefined) member.toolDurability ??= state.toolDurability[itemId];
@@ -38,10 +42,16 @@ export function transferInventoryOwnership(world: TextWorld, state: GameState, e
   const after = registeredAmounts(world, tree);
   const inventoryDelta = Object.fromEntries([...new Set([...Object.keys(before), ...Object.keys(after)])]
     .map(id => [id, (after[id] ?? 0) - (before[id] ?? 0)] as const).filter(([, amount]) => amount !== 0));
-  for (const [id, amount] of Object.entries(inventoryDelta)) state.inventory[id] = (state.inventory[id] ?? 0) + amount;
+  const afterLoot = registeredAmounts(world, tree.filter(e => e.expeditionLoot));
+  for (const id of new Set([...Object.keys(before), ...Object.keys(after), ...Object.keys(beforeLoot), ...Object.keys(afterLoot)])) {
+    const lootDelta = (afterLoot[id] ?? 0) - (beforeLoot[id] ?? 0);
+    if (lootDelta) { state.subwayExpedition.carriedLoot[id] = (state.subwayExpedition.carriedLoot[id] ?? 0) + lootDelta; if (!state.subwayExpedition.carriedLoot[id]) delete state.subwayExpedition.carriedLoot[id]; }
+    const ownedDelta = (inventoryDelta[id] ?? 0) - lootDelta;
+    if (ownedDelta) state.inventory[id] = (state.inventory[id] ?? 0) + ownedDelta;
+  }
   for (const itemId of Object.keys(inventoryDelta)) {
     const instance=toolInstances(state,itemId)[0]?.entity;
-    if (!(state.inventory[itemId]>0)) delete state.toolDurability[itemId];
+    if (!(playerItemAmount(state,itemId)>0)) delete state.toolDurability[itemId];
     else if(instance?.toolDurability !== undefined) state.toolDurability[itemId]=instance.toolDurability;
   }
   const containedItems = tree.filter(member => member !== entity && member.inventoryRegistered && member.components.portable).map(member => ({ id: member.id, name: member.name, amount: member.components.portable!.amount, itemId: member.components.portable!.itemId }));
@@ -61,7 +71,7 @@ export function reconcileWorldInventory(state: GameState) {
         state.inventory.flashlight = (state.inventory.flashlight ?? 0) + portable.amount;
     }
   }
-  const budget = { ...state.inventory };
+  const budget = { ...state.inventory }, lootBudget = { ...state.subwayExpedition.carriedLoot };
   for (const world of worlds) {
     const entities = Object.values(world.entities);
     for (const entity of entities) entity.inventoryRegistered ??= inventoryRegistered(world, entity);
@@ -69,8 +79,10 @@ export function reconcileWorldInventory(state: GameState) {
     const accounted = entities.filter(entity => entity.inventoryRegistered && entity.components.portable?.itemId && (carriedByPlayer(world, entity) || entity.components.position.zone === "collected"));
     for (const entity of accounted) {
       const portable = entity.components.portable!, id = portable.itemId!;
-      const owned = Math.min(portable.amount, budget[id] ?? 0);
-      budget[id] = Math.max(0, (budget[id] ?? 0) - owned);
+      const account = entity.expeditionLoot ? lootBudget : budget;
+      const validRun = !entity.expeditionLoot || state.subwayExpedition.active && entity.expeditionLoot.runNumber === state.subwayExpedition.runNumber;
+      const owned = validRun ? Math.min(portable.amount, account[id] ?? 0) : 0;
+      account[id] = Math.max(0, (account[id] ?? 0) - owned);
       if (!owned) {
         for (const child of childrenOf(world, entity.id)) relocateEntity(world, child, { zone: "player" });
         relocateEntity(world, entity, { zone: "consumed" });

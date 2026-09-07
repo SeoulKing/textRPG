@@ -49,7 +49,7 @@ export function transferCarriedEntities(state: GameState, destination: TextWorld
 /** Give already-owned, nonphysical recipe outputs a world identity without awarding inventory. */
 export function materializeOwnedInventory(state: GameState, world: TextWorld, registry: ContentRegistry) {
   const represented: Record<string, number> = {};
-  for (const entity of Object.values(world.entities)) if (entity.inventoryRegistered && entity.components.portable?.itemId && carriedByPlayer(world, entity)) {
+  for (const entity of Object.values(world.entities)) if (entity.inventoryRegistered && !entity.expeditionLoot && entity.components.portable?.itemId && carriedByPlayer(world, entity)) {
     const item = entity.components.portable;represented[item.itemId!] = (represented[item.itemId!] ?? 0) + item.amount;
   }
   for (const itemId of Object.keys(state.inventory).sort()) {

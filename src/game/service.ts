@@ -8,6 +8,7 @@ import { activityConditionState, localWorkEnvironment } from "./work-environment
 import { planActivity } from "./activity";
 import { materialSourceHints } from "./material-guidance";
 import { formatOutcomeHint } from "./outcome-hint";
+import { playerItemIds } from "./item-ledgers";
 import { ensureSubwayWorld, subwayJourneyOption, currentTextWorld, explorationInteractions, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
 import { currentObservation, markAction, observeAction, recordActionTiming, type ActionObserver } from "./action-observation";
 import { reconcileWorldInventory } from "./text-world/interactions";
@@ -84,6 +85,7 @@ import {
 } from "./subway-encounter-generator";
 import {
   acknowledgeSubwayResult,
+  ascendSubwayFloor,
   buildSubwayExpeditionActions,
   buildSubwayExpeditionScene,
   completeSubwayFloor,
@@ -458,7 +460,7 @@ export class GameService {
   }
 
   private subwayPreparationContext(state: GameSession["state"]) {
-    if (state.location !== "subway" || state.textWorld?.active && state.textWorld.player.zone !== "concourse" || state.isGameOver || state.stageClear) {
+    if (state.location !== "subway" || !state.subwayExpedition.active && state.textWorld?.active && state.textWorld.player.zone !== "concourse" || state.isGameOver || state.stageClear) {
       return null;
     }
     const expedition = state.subwayExpedition;
@@ -474,6 +476,7 @@ export class GameService {
     if (!currentFloor) {
       return null;
     }
+    if (expedition.exploredFloors[String(currentFloor.depth + 1)]) return null;
     const progress = expedition.currentFloorProgress;
     if (!progress.eventResolved && !progress.encounter?.resolution) {
       return null;
@@ -1073,7 +1076,7 @@ export class GameService {
     if (
       session.state.subwayExpedition.active &&
       action.type !== "subway_expedition" &&
-      action.type !== "use_item"
+      action.type !== "use_item" && !journey
     ) {
       throw new Error("심층 탐험 중에는 현재 경로를 선택하거나 지상으로 귀환해야 합니다.");
     }
@@ -1084,7 +1087,7 @@ export class GameService {
     ) {
       const subwayAction = action.type === "subway_expedition"
         ? action
-        : { type: "subway_expedition" as const, command: "start" as const };
+        : { type: "subway_expedition" as const, command: journey?.subwayCommand ?? "start" as const };
       if (subwayAction.command === "start") {
         if (session.state.textWorld?.active && !journey) throw new Error("지하층 계단 앞에 표시된 선택지를 골라 주세요.");
         this.ensurePreparedSubwayTemplate(session);
@@ -1152,26 +1155,20 @@ export class GameService {
         searchSubwayLootSpot(session.state, subwayAction.lootSpotId);
       } else if (subwayAction.command === "finish_floor") {
         completeSubwayFloor(session.state);
+      } else if (subwayAction.command === "ascend") {
+        ascendSubwayFloor(session.state);
       } else if (subwayAction.command === "descend") {
+        const visited=session.state.subwayExpedition.exploredFloors[String(session.state.subwayExpedition.depth+1)];
         this.ensurePreparedSubwayTemplate(session);
         const prepared = this.takePreparedSubwayFloor(session);
-        if (!prepared) {
+        if (!prepared && !visited) {
           throw new Error("준비된 다음 지하층을 불러오지 못했습니다.");
         }
         const workingState = structuredClone(session.state);
-        await descendSubwayFloor(workingState, gameId, prepared.floor);
-        beginSubwaySituation(workingState);
-        await this.generateAndApplySubwayEncounter(gameId, workingState);
+        await descendSubwayFloor(workingState, gameId, prepared?.floor);
+        if(workingState.subwayExpedition.active && !workingState.subwayExpedition.currentFloorProgress.eventResolved){beginSubwaySituation(workingState);await this.generateAndApplySubwayEncounter(gameId, workingState);}
         session.state = workingState;
-        await this.repository.appendGenerationLog({
-          gameId,
-          kind: "subwayFloorPregeneratedCacheHit",
-          id: prepared.floor.id,
-          depth: prepared.floor.depth,
-          source: prepared.floor.source,
-          storage: "persistent",
-          at: nowIso(),
-        });
+        if(prepared) await this.repository.appendGenerationLog({gameId,kind:"subwayFloorPregeneratedCacheHit",id:prepared.floor.id,depth:prepared.floor.depth,source:prepared.floor.source,storage:"persistent",at:nowIso()});
       } else if (subwayAction.command === "return") {
         returnFromSubwayExpedition(session.state);
         await ensureSubwayWorld(session.state, registry, this.textWorldNarrator, gameId, session.state.subwayExpedition.lastOutcome);
@@ -1290,7 +1287,7 @@ export class GameService {
     await this.repository.saveGame(session);
     const result = {
       gameId,
-      inventoryCards: Object.keys(session.state.inventory).map((itemId) => session.world.itemCards[itemId]),
+      inventoryCards: playerItemIds(session.state).map((itemId) => session.world.itemCards[itemId]),
       inventoryLights: inventoryLightControls(session.state),
       money: session.state.money,
     };
@@ -1428,7 +1425,7 @@ export class GameService {
       await this.ensurePersonCard(session, personId, registry);
     }
 
-    const itemIds = new Set<string>(Object.keys(session.state.inventory));
+    const itemIds = new Set<string>(playerItemIds(session.state));
     visibleLocationIds.forEach((locationId) => {
       registry.locations[locationId]?.obtainableItemIds.forEach((itemId) => itemIds.add(itemId));
     });
@@ -1991,6 +1988,7 @@ export class GameService {
     clientState.locationTextWorlds = {};
     clientState.npcDialogue.conversations = {};
     delete clientState.npcDialogue.lastRequest;
+    clientState.subwayExpedition.exploredFloors = {};
     clientState.subwayExpedition.preparedNextFloor = null;
     clientState.subwayExpedition.runPlan = null;
     clientState.subwayExpedition.storyMemory = {
@@ -2008,7 +2006,7 @@ export class GameService {
       delete option.outcomes;
     });
     clientState.subwayExpedition.currentFloor?.lootSpots.forEach((spot) => {
-      if (!clientState.subwayExpedition.currentFloorProgress.searchedLootSpotIds.includes(spot.id)) {
+      if (clientState.subwayExpedition.spatialMode || !clientState.subwayExpedition.currentFloorProgress.searchedLootSpotIds.includes(spot.id)) {
         spot.contents = [];
         delete spot.resultParagraphs;
       }
@@ -2024,7 +2022,7 @@ export class GameService {
       visiblePeople: this.visiblePersonIds(session, registry).map(
         (personId) => session.world.personCards[personId] as PersonCard,
       ),
-      inventoryCards: Object.keys(session.state.inventory).map(
+      inventoryCards: playerItemIds(session.state).map(
         (itemId) => syncItemCardWithRuntimeDefinition(session.world.itemCards[itemId] as ItemCard, itemId, registry),
       ),
       inventoryLights: inventoryLightControls(session.state),

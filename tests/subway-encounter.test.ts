@@ -112,13 +112,14 @@ function setActiveScene(state: GameState) {
   });
 }
 
-async function stateWithBanditEncounter() {
+async function stateWithBanditEncounter(spatialMode = true) {
   const state = createInitialGameState();
   state.location = "subway";
   state.flags.known_subway = true;
   state.flags.visited_subway = true;
   state.stats.energy = 15;
   await startSubwayExpedition(state, "encounter-test");
+  state.subwayExpedition.spatialMode = spatialMode;
   beginSubwayBanditEncounter(state);
   setOpeningScene(state);
   return state;
@@ -129,8 +130,8 @@ function sequenceRng(values: number[]) {
   return () => values[index++] ?? values.at(-1) ?? 0;
 }
 
-test("지하 1층 강도는 서버 판정으로 피해를 받고 고정 보상을 남긴다", async () => {
-  const state = await stateWithBanditEncounter();
+test("기존 저장의 지하 1층 강도는 서버 판정과 이미 약속한 자동 보상을 유지한다", async () => {
+  const state = await stateWithBanditEncounter(false);
   const startedAt = state.worldElapsedMs;
 
   const opening = resolveSubwayBanditChoice(
@@ -290,8 +291,8 @@ test("지하철 상황 선택지에는 보유 아이템 사용을 제시하지 �
   );
 });
 
-test("깊은 층도 전투로 고정하고 서버가 확정한 층 전리품을 승리 시 자동 지급한다", async () => {
-  const state = await stateWithBanditEncounter();
+test("기존 저장의 깊은 층은 확정한 전리품을 승리 시 한 번 지급한다", async () => {
+  const state = await stateWithBanditEncounter(false);
   state.subwayExpedition.depth = 2;
   state.subwayExpedition.currentFloor!.depth = 2;
   state.subwayExpedition.currentFloor!.situationKind = "hazard";
@@ -924,4 +925,9 @@ test("LLM 생성 실패 후에도 ST 판정과 시간을 보존하고 fallback �
     true,
   );
   assert.deepEqual(stored, before);
+});
+
+test("새 공간 탐사의 승리는 통로를 확보하며 전리품을 자동 수집하지 않는다",async()=>{
+ const state=await stateWithBanditEncounter();resolveSubwayBanditChoice(state,"fight",0,sequenceRng([0,0.99]));setActiveScene(state);const result=resolveSubwayBanditChoice(state,"close_attack",1,sequenceRng([0]));
+ assert.equal(result.resolution,"victory");assert.deepEqual(state.subwayExpedition.carriedLoot,{});assert.deepEqual(state.subwayExpedition.currentFloorProgress.floorLoot,{});assert.deepEqual(state.subwayExpedition.currentFloorProgress.encounter!.rewardItems,[]);
 });

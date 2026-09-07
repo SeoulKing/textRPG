@@ -259,6 +259,8 @@ export const SubwayPreparedNextFloorSchema = z.object({
 }).strict();
 
 export const SubwayExpeditionStateSchema = z.object({
+  spatialMode: z.boolean().default(false),
+  exploredFloors: z.record(z.string(), z.object({ floor: SubwayExpeditionFloorSchema, progress: SubwayFloorProgressSchema })).default({}),
   active: z.boolean().default(false),
   runNumber: z.number().int().nonnegative().default(0),
   depth: z.number().int().nonnegative().default(0),
@@ -276,6 +278,7 @@ export const SubwayExpeditionStateSchema = z.object({
   history: z.array(SubwayExpeditionHistoryEntrySchema).default([]),
   lastOutcome: z.string().default(""),
 }).default({
+  spatialMode: false, exploredFloors: {},
   active: false,
   runNumber: 0,
   depth: 0,

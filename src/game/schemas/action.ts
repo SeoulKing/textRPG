@@ -29,6 +29,7 @@ export const GameActionSchema = z.discriminatedUnion("type", [
       "search_loot",
       "finish_floor",
       "descend",
+      "ascend",
       "return",
     ]),
     optionId: z.string().optional(),

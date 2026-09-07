@@ -11,7 +11,7 @@ export function toolInstances(state: GameState, itemId: string) {
 export function setToolInstanceDurability(state: GameState, itemId: string, value: number, name: string) {
   const existing = toolInstances(state, itemId);
   for (const {entity} of existing) entity.toolDurability ??= state.toolDurability[itemId] ?? value;
-  const missing = (state.inventory[itemId] ?? 0) - existing.reduce((n,{entity})=>n+entity.components.portable!.amount,0);
+  const missing = (state.inventory[itemId] ?? 0) - existing.filter(({entity})=>!entity.expeditionLoot).reduce((n,{entity})=>n+entity.components.portable!.amount,0);
   const world = state.location === "subway" ? state.textWorld : state.locationTextWorlds[state.location];
   if (missing > 0 && world) {
     for (let i=0;i<missing;i++) {

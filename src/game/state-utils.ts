@@ -1,3 +1,4 @@
+import { itemLedger, playerItemAmount } from "./item-ledgers";
 /**
  * GameState helpers.
  */
@@ -210,7 +211,7 @@ function toolMaxDurability(state: GameState, itemId: string) {
 function ensureToolDurability(state: GameState, itemId: string) {
   state.toolDurability ??= {};
   const maxDurability = toolMaxDurability(state, itemId);
-  if (maxDurability <= 0 || (state.inventory[itemId] ?? 0) <= 0) {
+  if (maxDurability <= 0 || playerItemAmount(state,itemId) <= 0) {
     delete state.toolDurability[itemId];
     return 0;
   }
@@ -235,7 +236,9 @@ function setToolDurability(state: GameState, itemId: string, value: number) {
 }
 
 function damageTool(state: GameState, itemId: string, amount: number) {
-  const count = state.inventory[itemId] ?? 0;
+  const count = playerItemAmount(state, itemId);
+  const instance = toolInstances(state,itemId)[0]?.entity;
+  const ledger = instance ? itemLedger(state,instance) : state.inventory[itemId] > 0 ? state.inventory : state.subwayExpedition.carriedLoot;
   if (count <= 0) {
     appendLogEntry(state, `${toolDisplayName(state, itemId)}이(가) 없어 내구도를 소모하지 못했다.`);
     return;
@@ -249,8 +252,10 @@ function damageTool(state: GameState, itemId: string, amount: number) {
     return;
   }
 
-  if (count > 1) { state.inventory[itemId] = count - 1;state.toolDurability[itemId] = toolInstances(state,itemId)[0]?.entity.toolDurability ?? toolMaxDurability(state,itemId); }
-  else { delete state.inventory[itemId];delete state.toolDurability[itemId]; }
+  ledger[itemId] = Math.max(0,(ledger[itemId] ?? 0)-1);
+  if (!ledger[itemId]) delete ledger[itemId];
+  if (count > 1) state.toolDurability[itemId] = toolInstances(state,itemId)[0]?.entity.toolDurability ?? toolMaxDurability(state,itemId);
+  else delete state.toolDurability[itemId];
   appendLogEntry(state, `${toolDisplayName(state, itemId)}이(가) 망가졌다.`);
 }
 

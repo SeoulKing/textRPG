@@ -1,3 +1,4 @@
+import { playerItemAmount, playerItemIds } from "../item-ledgers";
 import type { GameState, ItemCard } from "../schemas";
 import type { TextEntity, TextWorld, WorldAction } from "../schemas/text-world";
 import { baseItems } from "../data/items";
@@ -18,11 +19,11 @@ export const toolTechniques = {
 type ToolProfile = Pick<ItemCard, "id" | "name" | "description" | "kind" | "maxDurability" | "toolCapabilities">;
 export function toolProfile(state: GameState, itemId: string): ToolProfile | undefined {
   const item = buildRuntimeRegistry(state).items[itemId] as ToolProfile | undefined;
-  if (!item || item.kind !== "tool" || !(state.inventory[itemId] > 0)) return;
+  if (!item || item.kind !== "tool" || !(playerItemAmount(state, itemId) > 0)) return;
   return { ...item, toolCapabilities: item.toolCapabilities ?? (baseItems[itemId as keyof typeof baseItems] as ToolProfile | undefined)?.toolCapabilities };
 }
 export function availableToolProfiles(state: GameState) {
-  return Object.keys(state.inventory).sort().map(id => toolProfile(state, id)).filter((item): item is ToolProfile => Boolean(item?.toolCapabilities));
+  return playerItemIds(state).map(id => toolProfile(state, id)).filter((item): item is ToolProfile => Boolean(item?.toolCapabilities));
 }
 export function validateToolUse(world: TextWorld, state: GameState, action: WorldAction): string | null {
   const target = world.entities[action.target ?? ""], structure = target?.components.structure;
@@ -49,6 +50,7 @@ export function materializeTool(world: TextWorld, state: GameState, itemId: stri
   while (world.entities[id]) id = "tool:" + itemId + ":" + suffix++;
   const entity: TextEntity = { id, name: item.name, description: item.description, inventoryRegistered: true, toolDurability: state.toolDurability[itemId] ?? item.maxDurability,
     components: { position: { zone: "player" }, portable: { itemId, amount: 1 } } };
+  if (!(state.inventory[itemId] > 0)) entity.expeditionLoot = {runNumber:state.subwayExpedition.runNumber,floorId:state.subwayExpedition.currentFloor!.id};
   world.entities[id] = entity;
   world.observations[id] = { stages: ["outline", "surface"], collected: true };
   return entity;
@@ -91,7 +93,7 @@ export function applyToolUse(world: TextWorld, state: GameState, action: WorldAc
   if (tool.maxDurability) applyEffect({ type: "damage_tool", itemId: tool.id, amount: method.wear }, state);
   reconcileWorldInventory(state);
   // Projections have an independent world object, so reconcile its consumed tool too.
-  if (!(state.inventory[tool.id] > 0)) for (const entity of Object.values(world.entities)) {
+  if (!(playerItemAmount(state, tool.id) > 0)) for (const entity of Object.values(world.entities)) {
     if (entity.components.portable?.itemId === tool.id && carriedByPlayer(world, entity)) entity.components.position = { zone: "consumed" };
   }
   normalizeHands(world);

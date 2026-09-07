@@ -1,3 +1,5 @@
+import { ensureExpeditionFloor } from "./expedition-floor-world";
+import { expeditionFloorReady } from "./expedition-floor-state";
 import { hasSubwayStockBinding, syncSubwayStockWorld } from "./subway-stock";
 import { buildNpcDialogueStartAction } from "../npc-dialogue";
 import { runtimeSocialProfile } from "../npc-social";
@@ -77,7 +79,7 @@ export function textWorldActions(state: GameState, registry: ContentRegistry = b
   return profile?.homeLocationId === state.location && world?.player.focusEntityId === actor!.id ? [buildNpcDialogueStartAction(profile), ...choices.slice(0,4)] : choices;
 }
 export function textWorldScene(state: GameState, registry = buildRuntimeRegistry(state)): SceneCard | null {
-  if (state.npcDialogue.active || state.subwayExpedition.active || state.isGameOver || state.stageClear) return null;
+  if (state.npcDialogue.active || state.subwayExpedition.active && !expeditionFloorReady(state) || state.isGameOver || state.stageClear) return null;
   const world = currentTextWorld(state);
   if (!world?.active) return null;
   return { id: "text-world:" + state.location + ":" + world.sceneRevision, locationId: state.location, title: worldRooms(world)[world.player.zone].name,
@@ -122,7 +124,19 @@ export function ensureSubwayStockWorld(state: GameState, registry: ContentRegist
 /** Enter the station through the same spatial scene as its office; polling keeps the current scene. */
 export async function ensureSubwayWorld(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string, returnText?: string, generateArrival = false) {
   if (state.location !== "subway") { if (state.textWorld) state.textWorld.active = false; return; }
-  if (state.subwayExpedition.active) { if (state.textWorld) state.textWorld.active = false; return; }
+  if (state.subwayExpedition.active) {
+    if (!expeditionFloorReady(state)) { if(state.textWorld)state.textWorld.active=false;return; }
+    if (ensureExpeditionFloor(state,registry)) {
+      const w=state.textWorld!;w.events=[];w.lastIntent={id:"enter",label:"통로에서 수색 구역으로 들어선다",importance:"major"};
+      recordEvent(w,{type:"ENTER",targetId:w.player.zone,before:{},after:{zone:w.player.zone,entryText:"주변을 살필 수 있게 되어 수색 구역 입구에 선다."}});
+      w.revision++;w.sceneRevision++;
+      const context=directNarrative(w);context.nextChoices=nextNarrativeChoices(w,locationWorldOptions(state,registry));
+      const rendered=fallbackNarration(context);storeChoiceLabels(w,context,rendered.choiceLabels);
+      w.lastParagraphs=rendered.paragraphs;w.lastParagraphSources=rendered.paragraphSources;w.source=rendered.source;
+      rememberNarration(w,context,rendered.usedFactIds,rendered.paragraphs);
+    }
+    return;
+  }
   if (state.npcDialogue.active || state.isGameOver || state.stageClear) return;
   ensureSubwayStockWorld(state, registry);
   if (state.textWorld?.active) return;
@@ -152,7 +166,7 @@ export async function ensureSubwayWorld(state: GameState, registry: ContentRegis
 /** Only an offered, current spatial intent may hand execution over to the expedition engine. */
 export function subwayJourneyOption(state: GameState, action: GameAction, registry: ContentRegistry) {
   if (state.location !== "subway" || action.type !== "text_world" || action.command !== "choose") return null;
-  const option = availableLocationWorldOptions(state, registry).find(o => o.id === action.optionId && o.contentActionId && registry.actions[o.contentActionId]?.tags.includes("subway-expedition-start"));
+  const option = availableLocationWorldOptions(state, registry).find(o => o.id === action.optionId && (o.subwayCommand || o.contentActionId && registry.actions[o.contentActionId]?.tags.includes("subway-expedition-start")));
   if (!option) return null;
   if (state.textWorld?.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
   return option;
@@ -164,7 +178,7 @@ export async function performTextWorldAction(
 ) {
   if (state.location === "convenience") return performConvenienceAction(state, action, registry, narrator, gameId);
   if (hasLocationWorld(state, registry)) return performLocationWorldAction(state, action, registry, narrator, gameId);
-  if (state.location !== "subway" || state.subwayExpedition.active || state.npcDialogue.active ||
+  if (state.location !== "subway" || state.subwayExpedition.active && !expeditionFloorReady(state) || state.npcDialogue.active ||
     state.isGameOver || state.stageClear) throw new Error("지금은 역무실을 탐색할 수 없습니다.");
   if (action.command === "enter") {
     if (!textWorldEntryActions(state).length) throw new Error("현재 탐색이나 행동을 먼저 마쳐 주세요.");

@@ -1,3 +1,4 @@
+import { playerItemAmount, playerItemIds } from "./item-ledgers";
 import { worldDeparturePlan } from "./text-world/departure";
 import { resolveWorldActions } from "./text-world/engine";
 import { workActivityParagraphs } from "./activity-narrative";
@@ -318,7 +319,7 @@ function summarizeSystemNoteEntries(
       return;
     }
     const physicalWear = physicalToolWear(previousState, nextState, itemId);
-    if (physicalWear?.broken || !physicalWear && (nextState.inventory[itemId] ?? 0) <= 0) {
+    if (physicalWear?.broken || !physicalWear && playerItemAmount(nextState,itemId) <= 0) {
       entries.push({
         type: "text",
         text: `${itemName(nextState, itemId)} 파손`,
@@ -339,11 +340,11 @@ function summarizeSystemNoteEntries(
   });
 
   const itemIds = new Set<string>([
-    ...Object.keys(previousState.inventory || {}),
-    ...Object.keys(nextState.inventory || {}),
+    ...playerItemIds(previousState),
+    ...playerItemIds(nextState),
   ]);
   itemIds.forEach((itemId) => {
-    const delta = (nextState.inventory[itemId] ?? 0) - (previousState.inventory[itemId] ?? 0);
+    const delta = playerItemAmount(nextState,itemId) - playerItemAmount(previousState,itemId);
     if (delta !== 0) {
       entries.push({
         type: "delta",
@@ -760,6 +761,7 @@ export function createInitialGameState(): GameState {
       anchors: {},
     },
     subwayExpedition: {
+      spatialMode: false, exploredFloors: {},
       active: false,
       runNumber: 0,
       depth: 0,
@@ -929,7 +931,8 @@ function useItem(state: GameState, itemId: string) {
     effects: { hp: number; mind: number; energy: number; exhaustionRelief: number; injuryRelief?: number; infectionRelief?: number };
     useMinutes?: number;
   } | undefined;
-  const count = state.inventory[itemId] || 0;
+  const ledger=state.subwayExpedition.active && state.subwayExpedition.carriedLoot[itemId]>0 ? state.subwayExpedition.carriedLoot : state.inventory;
+  const count = ledger[itemId] || 0;
   if (!item || count <= 0) {
     throw new Error("지금은 그 아이템을 사용할 수 없다.");
   }
@@ -939,10 +942,8 @@ function useItem(state: GameState, itemId: string) {
 
   if (!canApplyTreatment(state, item.effects)) throw new Error("치료할 부상 또는 감염이 없습니다.");
   consumeCurrentSceneIntro(state);
-  state.inventory[itemId] = count - 1;
-  if (state.inventory[itemId] <= 0) {
-    delete state.inventory[itemId];
-  }
+  ledger[itemId] = count - 1;
+  if (ledger[itemId] <= 0) delete ledger[itemId];
 
   applyTreatment(state, item.effects);
   adjustStat(state, "hp", item.effects.hp);

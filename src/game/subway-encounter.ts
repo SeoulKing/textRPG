@@ -22,7 +22,7 @@ import {
   prepareSubwayUpgradeChoices,
   subwaySkillRank,
 } from "./subway-roguelike";
-import { appendLogEntry, changeSurvivalStat } from "./state-utils";
+import { applyEffect, appendLogEntry, changeSurvivalStat } from "./state-utils";
 import { setSystemNote } from "./system-note";
 import {
   addSkillXp,
@@ -410,7 +410,7 @@ function addEncounterReward(state: GameState, encounter: SubwayEncounterState) {
   encounter.rewardGranted = true;
 }
 
-function combatRewardsForFloor(state: GameState) {
+export function combatRewardsForFloor(state: GameState) {
   const floor = state.subwayExpedition.currentFloor;
   if (!floor) return [];
   if (floor.depth === 1) {
@@ -445,18 +445,7 @@ function damageTool(state: GameState, itemId: string) {
   if (maxDurability <= 0 || availableItemAmount(state, itemId) <= 0) {
     throw new Error("현재 사용할 수 없는 도구입니다.");
   }
-  const current = state.toolDurability[itemId] ?? maxDurability;
-  const next = current - 1;
-  if (next > 0) {
-    state.toolDurability[itemId] = next;
-    return;
-  }
-  consumeAccessibleItem(state, itemId);
-  if (availableItemAmount(state, itemId) > 0) {
-    state.toolDurability[itemId] = maxDurability;
-    return;
-  }
-  delete state.toolDurability[itemId];
+  applyEffect({type:"damage_tool",itemId,amount:1},state);
 }
 
 function useRecoveryItem(state: GameState, itemId: string) {
@@ -678,7 +667,7 @@ export function createSubwaySituation(state: GameState) {
     failureCount: 0,
     currentScene: null,
     history: [],
-    rewardItems: combatRewardsForFloor(state),
+    rewardItems: state.subwayExpedition.spatialMode ? [] : combatRewardsForFloor(state),
     rewardGranted: false,
   });
 }

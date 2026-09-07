@@ -12,6 +12,7 @@ export const TextEntityDetailsSchema = z.object({
 export const TextEntitySchema = z.object({
   id: z.string(), name: z.string(), description: z.string(),
   inventoryRegistered: z.boolean().optional(),
+  expeditionLoot: z.object({ runNumber: z.number().int().nonnegative(), floorId: z.string() }).optional(),
   toolDurability: z.number().int().nonnegative().optional(),
   origin: z.object({ worldId: z.string(), entityId: z.string() }).optional(),
   details: TextEntityDetailsSchema.optional(),
@@ -20,6 +21,8 @@ export const TextEntitySchema = z.object({
     craftingStorage: z.boolean().optional(),
     workstation: z.object({ kinds: z.array(z.enum(["craft", "cook", "build"])).min(1), durationMultiplier: z.number().min(0.25).max(1) }).optional(),
     ownership: z.object({ npcId: z.string() }).optional(),
+    expeditionCache: z.object({ floorId: z.string(), lootSpotId: z.string(), searchMinutes: z.number().positive() }).optional(),
+    expeditionRoute: z.object({ command: z.enum(["descend", "ascend", "return"]), floorId: z.string() }).optional(),
     stockNode: z.object({ nodeId: z.string().min(1) }).optional(),
     interactionPoint: z.object({ requiresInspection: z.boolean().optional(), actions: z.array(z.object({ actionId: z.string().min(1), role: z.enum(["work", "care", "trade", "information", "delivery", "journey"]) })).min(1) }).optional(),
     resourceSite: z.object({ siteId: z.string().min(1), unlimited: z.boolean().optional(), remaining: z.number().int().nonnegative().optional(), capacity: z.number().int().positive().optional(), recoveryMinutes: z.number().positive().optional(), missingTools: z.array(z.string()).optional() }).optional(),

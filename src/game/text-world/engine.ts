@@ -1,3 +1,4 @@
+import { itemLedger } from "../item-ledgers";
 import type { GameState } from "../schemas";
 import type { TextWorld, WorldAction, WorldEvent } from "../schemas/text-world";
 import { advanceGameSeconds } from "../rules";
@@ -44,7 +45,7 @@ export function validateWorldAction(world: TextWorld, state: GameState, action: 
     case "HOLD": case "STOW": {
       if (!c.portable || c.position.zone !== "player") return "먼저 지니고 있는 물건이어야 한다.";
       if (!inventoryRegistered(world, entity)) return "먼저 확인한 물건을 챙겨야 한다.";
-      if (c.portable.itemId && (state.inventory[c.portable.itemId] ?? 0) < c.portable.amount) return "지금 지닌 수량이 부족하다.";
+      if (c.portable.itemId && (itemLedger(state, entity)[c.portable.itemId] ?? 0) < c.portable.amount) return "지금 지닌 수량이 부족하다.";
       return action.type === "HOLD" ? handledEntityId(world) === entity.id ? "이미 그 물건을 다루고 있다." : null : !isHeld(world, entity.id) ? "이미 챙겨 둔 물건이다." : null;
     }
     case "LIGHT": return c.position.zone === "player" && !isHeld(world, entity.id) ? "조명을 먼저 손에 꺼내 들어야 한다." : !c.light ? "불을 켤 수 있는 물건이 아니다." : !c.light.on && c.light.fuelSeconds === 0 ? "조명의 에너지가 다해 켤 수 없다." : null;
@@ -112,8 +113,9 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
         world.player.facing = e!.id; world.player.focusEntityId = e!.id; world.player.manipulating = false;
         world.observations[e!.id] ??= { stages: [], collected: false };
         const firstInspection = !world.observations[e!.id].inspected;
+        before = { firstInspection };
         world.observations[e!.id].inspected = true;
-        after = { stage: "surface", name: e!.name, revealedIds: firstInspection ? Object.values(world.entities).filter(item => item.components.discovery?.inspectTargetId === e!.id).map(item => item.id) : [] };
+        after = { stage: "surface", name: e!.name, revealedIds: firstInspection ? visibleEntities(world).filter(item => item.components.discovery?.inspectTargetId === e!.id).map(item => item.id) : [] };
         break;
       }
       case "UNLOCK": {
@@ -190,7 +192,7 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
       world.simulation!.sounds.push({ id: soundEvent.id!, ...actionSound });
     }
     for (const stimulus of [event, ...world.events.filter(e => e.type === "SOUND" && e.causedBy === event.id)]) observeWorldEvent(world, state, stimulus);
-    const elapsed = options.advanceTime === false ? 0 : action.type === "WAIT" ? action.durationSeconds ?? 5 : action.type === "REPAIR" ? c!.structure!.repair!.seconds : action.type === "USE_TOOL" ? toolTechniques[action.technique!].seconds : seconds[action.type] + (action.type === "STOW" && before.on ? 1 : 0);
+    const elapsed = options.advanceTime === false ? 0 : action.type === "WAIT" ? action.durationSeconds ?? 5 : action.type === "REPAIR" ? c!.structure!.repair!.seconds : action.type === "USE_TOOL" ? toolTechniques[action.technique!].seconds : (action.type === "INSPECT" && before.firstInspection && c?.expeditionCache ? c.expeditionCache.searchMinutes * 60 : seconds[action.type]) + (action.type === "STOW" && before.on ? 1 : 0);
     if (elapsed) elapsedSeconds += advanceGameSeconds(state, elapsed, { actionWorld: world, causedBy: event.id });
     else advanceWorldSimulation(world, 0, event.id);
     if (state.isGameOver || state.stageClear) return { elapsedSeconds, interrupted: true, discovery: false };

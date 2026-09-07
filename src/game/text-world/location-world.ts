@@ -1,3 +1,4 @@
+import { expeditionRouteOptions } from "./expedition-floor-state";
 import { setSystemNote } from "../system-note";
 import { synchronizeWorldActors } from "./observers";
 import { performPointAction } from "./interaction-points";
@@ -55,7 +56,7 @@ export function syncLocationResources(state: GameState, registry: ContentRegistr
       recoveryMinutes: site.unlimited ? undefined : site.recoveryMinutes, missingTools: projected.remaining > 0 ? [...new Set(missingTools)] : [] };
   }
 }
-type LocationOption = { id: string; label: string; hint: string; nodeId?: string; contentActionId?: string;
+type LocationOption = { id: string; label: string; hint: string; nodeId?: string; contentActionId?: string; subwayCommand?: "ascend" | "descend" | "return";
   actions?: WorldAction[]; importance: "major" | "minor"; loading: NonNullable<ActionChoice["loading"]>; remainingUses?: number; stockChoiceIds?: string[]; preparation?: WorldAction[] };
 
 export function availableLocationWorldOptions(state: GameState, registry: ContentRegistry) {
@@ -63,8 +64,12 @@ export function availableLocationWorldOptions(state: GameState, registry: Conten
   if (!world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active) return [];
   const candidates: LocationOption[] = availableWorldOptions(world, state)
     .filter(option => !option.actions.some(action => action.type === "TAKE" && isBoundStockItem(world, action.target ?? "")))
-    .map(option => ({ ...option, loading: ACTIVITY }));
-  candidates.push(...boundStockOptions(state, registry, world));
+    .map(option => {
+      const search=option.actions.find(a=>a.type==="INSPECT" && a.target && world.entities[a.target]?.components.expeditionCache && !world.observations[a.target]?.inspected);
+      const minutes=search ? world.entities[search.target!]!.components.expeditionCache!.searchMinutes : 0;
+      return {...option,hint:option.hint+(minutes ? " · +"+minutes+"분" : ""),loading:ACTIVITY};
+    });
+  candidates.push(...boundStockOptions(state, registry, world), ...expeditionRouteOptions(state));
   const focus = interactionContext(world, state).focusEntityId;
   for (const entity of visibleEntities(world)) {
     const focused = entity.id === focus && entity.id === world.player.near && world.observations[entity.id]?.inspected;
@@ -163,7 +168,7 @@ export async function performLocationWorldAction(state: GameState, action: Extra
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
   const option = availableLocationWorldOptions(state, registry).find(option => option.id === action.optionId);
   if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
-  if (option.contentActionId && registry.actions[option.contentActionId]?.tags.includes("subway-expedition-start")) throw new Error("심층 탐험 진입은 게임 서비스에서 처리해야 합니다.");
+  if (option.subwayCommand || option.contentActionId && registry.actions[option.contentActionId]?.tags.includes("subway-expedition-start")) throw new Error("심층 탐험 진입은 게임 서비스에서 처리해야 합니다.");
   const before = structuredClone(state);
   world.events = [];
   world.lastIntent = { id: option.id, label: option.label, thought: choiceLabelFields(world, option).choiceThought, importance: option.importance };
@@ -207,6 +212,21 @@ export async function performLocationWorldAction(state: GameState, action: Extra
   world.revision++;
   syncScene(state);
   applySystemNote(before, state);
-  if (state.location === "subway" && option.actions) setSystemNote(state, [...state.systemNoteEntries.filter(e => e.type !== "time"), { type: "text", text: "+" + (world.elapsedSeconds - (before.textWorld?.elapsedSeconds ?? 0)) + "초", tone: "neutral" }]);
+  if (state.subwayExpedition.active) {
+    const p=state.subwayExpedition.currentFloorProgress;
+    for (const event of world.events) {
+      const cache=world.entities[event.targetId ?? ""]?.components.expeditionCache;
+      if (event.type === "INSPECT" && cache && !p.searchedLootSpotIds.includes(cache.lootSpotId)) p.searchedLootSpotIds.push(cache.lootSpotId);
+      const entity=world.entities[event.targetId ?? ""];
+      if (event.type === "TAKE" && entity?.expeditionLoot && !before.textWorld?.entities[entity.id]?.inventoryRegistered) {
+        const item=entity.components.portable!;if(item.itemId)p.floorLoot[item.itemId]=(p.floorLoot[item.itemId]??0)+item.amount;
+      }
+    }
+
+  }
+  if (state.location === "subway" && option.actions) {
+    const seconds=world.elapsedSeconds-(before.textWorld?.elapsedSeconds??0),minutes=Math.floor(seconds/60),remainder=seconds%60;
+    setSystemNote(state,[...state.systemNoteEntries.filter(e=>e.type!=="time"),{type:"text",text:"+"+(minutes ? minutes+"분"+(remainder ? " "+remainder+"초" : "") : seconds+"초"),tone:"neutral"}]);
+  }
   if (world.active) await render(state, registry, narrator, gameId);
 }

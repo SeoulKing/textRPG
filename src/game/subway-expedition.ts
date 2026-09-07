@@ -1,3 +1,5 @@
+import { carriedByPlayer } from "./text-world/spatial";
+import { reconcileWorldInventory } from "./text-world/inventory-state";
 import { baseItems } from "./data/items";
 import { itemTextReference } from "./item-text";
 import { advanceGameMinutes, syncClock } from "./rules";
@@ -424,6 +426,7 @@ export async function startSubwayExpedition(
     preparedRunPlan ?? buildTemplateSubwayRunPlan({ runNumber }),
   );
   state.subwayExpedition = {
+    spatialMode: true, exploredFloors: {},
     active: true,
     runNumber,
     depth: 1,
@@ -659,6 +662,8 @@ export async function descendSubwayFloor(
     throw new Error("이 층의 핵심 상황이 끝난 뒤 내려갈 수 있습니다.");
   }
 
+  expedition.exploredFloors[String(floor.depth)]={floor:structuredClone(floor),progress:structuredClone(progress)};
+  if(state.textWorld)state.textWorld.active=false;
   const settlement = currentFloorSettlement(state);
   const floorLootEntries = Object.entries(progress.floorLoot)
     .filter(([, amount]) => amount > 0);
@@ -685,6 +690,8 @@ export async function descendSubwayFloor(
     nextDepth,
   );
   expedition.lastOutcome = `지하 ${floor.depth}층 정산: ${settlement.loot}`;
+  const visited=expedition.exploredFloors[String(nextDepth)];
+  if(visited){expedition.currentFloor=structuredClone(visited.floor);expedition.currentFloorProgress=structuredClone(visited.progress);expedition.preparedNextFloor=null;expedition.nextFloorStatus="idle";expedition.nextFloorError="";setSystemNote(state,[{type:"time",minutes:15},{type:"text",text:"지하 "+nextDepth+"층으로 돌아왔다.",tone:"neutral"}]);return;}
   resetFloorProgress(state);
   const cachedNextFloor = expedition.preparedNextFloor;
   expedition.preparedNextFloor = null;
@@ -718,7 +725,7 @@ export async function descendSubwayFloor(
   mergeFloorMemory(expedition.storyMemory, nextFloor);
   setSystemNote(state, [
     { type: "text", text: `지하 ${floor.depth}층 정산`, tone: "neutral" },
-    ...floorLootEntries.map(([itemId, amount]) => ({
+    ...(expedition.spatialMode ? [] : floorLootEntries).map(([itemId, amount]) => ({
       type: "delta" as const,
       subject: "item" as const,
       label: itemName(itemId),
@@ -729,6 +736,18 @@ export async function descendSubwayFloor(
     { type: "text", text: `지하 ${nextDepth}층 진입`, tone: "neutral" },
   ]);
   addLog(state, `지하 ${floor.depth}층 탐색을 마쳤다. ${settlement.loot}`);
+}
+
+export function ascendSubwayFloor(state: GameState) {
+  const e=state.subwayExpedition,previous=e.exploredFloors[String(e.depth-1)];
+  if(!e.active || !e.currentFloor || !previous || !e.currentFloorProgress.eventResolved || currentFloorPhase(e.currentFloorProgress)!=="complete")throw new Error("돌아갈 수 있는 이전 층이 없습니다.");
+  e.exploredFloors[String(e.depth)]={floor:structuredClone(e.currentFloor),progress:structuredClone(e.currentFloorProgress)};
+  if(state.textWorld)state.textWorld.active=false;
+  advanceGameMinutes(state,15);syncClock(state);
+  if(state.isGameOver || state.stageClear || state.stats.hp<=0){cleanupFailedExpedition(state);return;}
+  e.depth--;e.currentFloor=structuredClone(previous.floor);e.currentFloorProgress=structuredClone(previous.progress);
+  e.preparedNextFloor=null;e.nextFloorStatus="idle";e.nextFloorError="";
+  setSystemNote(state,[{type:"time",minutes:15},{type:"text",text:"지하 "+e.depth+"층으로 돌아왔다.",tone:"neutral"}]);
 }
 
 export function returnFromSubwayExpedition(state: GameState) {
@@ -745,12 +764,15 @@ export function returnFromSubwayExpedition(state: GameState) {
 
   const lootEntries = Object.entries(expedition.carriedLoot).filter(([, amount]) => amount > 0);
   if (!state.isGameOver && !state.stageClear && state.stats.hp > 0) {
+    reconcileWorldInventory(state);
+    if(state.textWorld)for(const entity of Object.values(state.textWorld.entities))if(entity.expeditionLoot && carriedByPlayer(state.textWorld,entity))delete entity.expeditionLoot;
     lootEntries.forEach(([itemId, amount]) => {
       state.inventory[itemId] = (state.inventory[itemId] ?? 0) + amount;
     });
   }
 
   const lootSummary = carriedLootSummary(state);
+  if(state.textWorld)state.textWorld.active=false;
   expedition.active = false;
   expedition.depth = 0;
   expedition.currentFloor = null;

@@ -1,3 +1,4 @@
+import { itemLedger } from "../item-ledgers";
 import type { GameAction, GameState } from "../schemas";
 import type { TextWorld } from "../schemas/text-world";
 import { applySystemNote } from "../rules";
@@ -16,7 +17,7 @@ function lightWorlds(state: GameState): [string, TextWorld][] {
 export function inventoryLightControls(state: GameState) {
   return lightWorlds(state).flatMap(([worldId, world]) => Object.values(world.entities).flatMap(entity => {
     const { light, portable, position } = entity.components;
-    if (!light || !portable?.itemId || !inventoryRegistered(world, entity) || !carriedByPlayer(world, entity) || (state.inventory[portable.itemId] ?? 0) < portable.amount) return [];
+    if (!light || !portable?.itemId || !inventoryRegistered(world, entity) || !carriedByPlayer(world, entity) || (itemLedger(state,entity)[portable.itemId] ?? 0) < portable.amount) return [];
     const reason = position.zone !== "player" ? "보관한 용기에서 먼저 꺼내 주세요." : light.fuelSeconds === 0 ? "전원이 소진되었습니다." : undefined;
     return [{ worldId, entityId: entity.id, itemId: portable.itemId, name: entity.name, revision: world.revision,
       on: light.on, canTurnOn: !reason, reason }];

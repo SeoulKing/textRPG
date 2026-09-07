@@ -3247,6 +3247,8 @@ function renderInventoryPanel() {
 
   itemCards.forEach((item) => {
     const detailLines = [{ text: item.description }];
+    const provisional = snapshot.state.subwayExpedition?.active ? snapshot.state.subwayExpedition.carriedLoot[item.id] || 0 : 0;
+    if (provisional) detailLines.push({ text: `${provisional}개는 이번 탐사에서 챙긴 물건입니다. 귀환하면 계속 보관할 수 있습니다.` });
     if (!canUseTreatmentItem(item, snapshot.state)) detailLines.push({ text: "치료할 부상 또는 감염이 없습니다." });
     const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
       ? itemEffectHintHtml(item.effects, item.useMinutes)
@@ -3335,7 +3337,7 @@ function renderInventoryPanel() {
   `;
 
   const renderedItemCards = itemCards.map((item) => {
-    const count = snapshot.state.inventory[item.id] || 0;
+    const count = (snapshot.state.inventory[item.id] || 0) + (snapshot.state.subwayExpedition?.active ? snapshot.state.subwayExpedition.carriedLoot[item.id] || 0 : 0);
     const isActive = client.activeInventoryDetailKey === item.id;
     return `
       <article
