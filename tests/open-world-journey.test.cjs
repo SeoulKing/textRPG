@@ -26,7 +26,7 @@ test('one fresh journey keeps NPC memory, traded stock, shelter materials and a 
   return {action,requestId};
  }
  async function social(command){const row=snap.availableActions.find(r=>r.action.command===command);assert(row,command);return choose(row.id);}
- for(const id of ['opening_commit','travel:convenience','explore:convenience_supply_pile','collect:convenience_supply_pile','explore:convenience_shelf','collect:convenience_shelf','travel:subway','text-world:enter','explore:crate','collect:crate','push:crate:door:beside','leave','npc-dialogue:shumi:start'])await choose(id);
+ for(const id of ['opening_commit','travel:convenience','explore:convenience_supply_pile','collect:convenience_supply_pile','explore:convenience_shelf','collect:convenience_shelf','travel:subway','travel:office','explore:crate','collect:crate','push:crate:door:beside','leave','focus:shumi_presence','npc-dialogue:shumi:start'])await choose(id);
  assert(npcInputs[0].memory.observations.some(o=>o.sense==='heard'&&!o.actorKnown));
  await social('give');await social('give');await social('trade');await social('leave');
  assert.equal(saved.state.npcDialogue.conversations.shumi.inventory.radioBattery,0);assert.equal(snap.state.inventory.radioBattery,1);
@@ -53,7 +53,7 @@ test('one fresh journey keeps NPC memory, traded stock, shelter materials and a 
  const shelf=saved.state.locationTextWorlds.shelter,knife=Object.values(shelf.entities).find(e=>e.components.portable?.itemId==='utilityKnife'&&carriedByPlayer(shelf,e));assert.equal(knife.toolDurability,9);
  await choose('hold:'+knife.id);const putKnife=rows(snap).find(r=>r.action.optionId?.startsWith('put:')&&r.action.optionId.includes('shelter_storage'));assert(putKnife);await choose(putKnife.action.optionId);
  assert.equal(saved.state.locationTextWorlds.shelter.entities[knife.id].toolDurability,9);assert.equal(snap.state.inventory.utilityKnife??0,0);assert(!snap.state.systemNote.includes('파손'));
- await choose('leave');await choose('travel:subway');await choose('npc-dialogue:shumi:start');
+ await choose('leave');await choose('travel:subway');await choose('focus:shumi_presence');await choose('npc-dialogue:shumi:start');
  assert.deepEqual(saved.state.npcDialogue.conversations.shumi.observations,memoryAfterTrade);assert.equal(saved.state.npcDialogue.conversations.shumi.inventory.radioBattery,0);
  assert(!snap.availableActions.some(r=>r.action.command==='trade'));await social('leave');
  await choose('travel:shelter');await choose('text-world:shelter:enter');

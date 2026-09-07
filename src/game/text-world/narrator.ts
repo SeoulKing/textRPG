@@ -28,7 +28,7 @@ function eventText(e: WorldEvent) {
   const name = String(e.after.name ?? "").split(" · ").at(-1)!;
   switch (e.type) {
     case "ENTER": return e.after.entryText ? String(e.after.entryText) : "대합실에서 역무실 입구로 발을 들인다.";
-    case "MOVE": return e.before.zone !== e.after.zone ? name + (e.after.position === "far-door" ? "의 철문 안쪽으로 돌아온다." : e.after.position === "storage-end" ? "의 창고 쪽 끝으로 나온다." : " 입구까지 걸음을 옮긴다.") : (e.after.placement ?? "주변") + "의 " + particle(name, "으로", "로") + " 다가간다.";
+    case "MOVE": return e.after.arrivalText ? String(e.after.arrivalText) : e.before.zone !== e.after.zone ? name + (e.after.position === "far-door" ? "의 철문 안쪽으로 돌아온다." : e.after.position === "storage-end" ? "의 창고 쪽 끝으로 나온다." : " 입구까지 걸음을 옮긴다.") : (e.after.placement ?? "주변") + "의 " + particle(name, "으로", "로") + " 다가간다.";
     case "POSTURE": return e.after.posture === "crouching" ? "무릎을 굽혀 몸을 낮춘다." : "몸을 일으켜 선다.";
     case "INSPECT": return particle(name, "을", "를") + " 가까이서 살핀다.";
     case "UNLOCK": return particle(String(e.after.keyName), "을", "를") + " 자물쇠에 끼워 돌려 " + name + "의 잠금을 푼다.";

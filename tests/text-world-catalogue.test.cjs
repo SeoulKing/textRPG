@@ -13,13 +13,13 @@ function fixture(location='subway',seed){
  return {get saved(){return saved},get calls(){return calls},get:()=>service.getState(saved.id),choose:a=>service.performAction(saved.id,a)};
 }
 const rows=snap=>[...(snap.exploration?.generalActions||[]),...(snap.exploration?.targets||[]).flatMap(t=>t.actions)];
-async function start(f){let s=await f.get();if(!s.exploration)s=await f.choose({type:'text_world',command:'enter'});return s;}
+async function start(f){let s=await f.get();if(!s.exploration)s=await f.choose({type:'text_world',command:'enter'});const office=s.availableActions.find(c=>c.action.optionId==='travel:office');if(office)s=await f.choose(office.action);return s;}
 async function choose(f,snap,id){const row=rows(snap).find(c=>c.action.optionId===id);assert(row,'missing catalogue intention: '+id);return f.choose(row.action);}
 test.beforeEach(t=>t.mock.method(global,'fetch',async()=>{throw Error('No external generation in catalogue tests')}));
 
 test('catalogue reveals only visible targets, lists suggestions as a subset, and querying is free',async()=>{
  const f=fixture(),snap=await start(f),before=structuredClone(f.saved),calls=f.calls;
- assert.deepEqual(snap.exploration.targets.map(t=>t.id).sort(),['crate','door','floor','lamp']);
+ assert.deepEqual(snap.exploration.targets.map(t=>t.id).sort(),['crate','door','floor','lamp','subway_signal_box']);
  for(const hidden of ['doorKey','water','scrap','food','cache'])assert(!snap.exploration.targets.some(t=>t.id===hidden));
  assert(!JSON.stringify(snap.exploration).includes('ironDoorKey'));assert.equal(snap.state.textWorld,null);
  assert(rows(snap).length>snap.availableActions.length);assert(snap.availableActions.every(c=>rows(snap).some(r=>r.action.optionId===c.action.optionId)));

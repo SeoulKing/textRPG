@@ -10,7 +10,7 @@ export type DirectedChoice<T> = T & { family: ChoiceFamily; targetId?: string; s
 export function describeChoice(option: ChoiceCandidate, world: TextWorld) {
   const prefix = option.id.split(":")[0], kind = prefix === "repair" ? "care" : prefix, last = option.actions?.at(-1), meaningful = option.actions?.find(a => !["POSTURE", "MOVE"].includes(a.type));
   const targetId = option.nodeId ?? (kind === "collect" ? option.id.slice(8) : meaningful?.target ?? last?.target);
-  const family: ChoiceFamily = ["hold", "stow"].includes(kind) ? "HANDLE" : ["harvest", "work"].includes(kind) ? "WORK" : kind === "care" ? "CARE" : kind === "toolwork" ? "TOOL" : kind === "trade" ? "TRADE" : ["story", "delivery"].includes(kind) ? "STORY" : kind === "focus" ? "FOCUS" : kind === "defocus" ? "DEFOCUS" : ["leave", "emerge"].includes(kind) || option.hint === "귀환" ? "RETREAT" : kind === "travel" ? "TRAVEL"
+  const family: ChoiceFamily = ["hold", "stow"].includes(kind) ? "HANDLE" : ["harvest", "work"].includes(kind) ? "WORK" : kind === "care" ? "CARE" : kind === "toolwork" ? "TOOL" : kind === "trade" ? "TRADE" : ["story", "delivery"].includes(kind) ? "STORY" : kind === "focus" ? "FOCUS" : kind === "defocus" ? "DEFOCUS" : ["leave", "emerge"].includes(kind) || option.hint === "귀환" ? "RETREAT" : ["travel", "journey"].includes(kind) ? "TRAVEL"
     : ["put", "drop"].includes(kind) ? "PLACE_OBJECT" : kind === "push" ? "MOVE_OBJECT" : kind === "hide" ? "COVER" : kind === "wait" ? "WAIT"
     : ["collect", "take"].includes(kind) ? "COLLECT" : ["equip", "light", "tool"].includes(kind) ? "TOOL" : ["open", "unlock"].includes(kind) ? "ACCESS"
     : kind === "close" ? "ACCESS" : kind === "lid" || kind === "explore" && world.entities[targetId ?? ""]?.components.openable ? "OPEN_CONTAINER" : "INSPECT";
@@ -122,7 +122,7 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     take("destination", inFamily(pool.some(o => o.family === "TRAVEL") ? "TRAVEL" : pool.some(o => o.family === "RETREAT") ? "RETREAT" : "FOCUS"));
     if (selected.length < 5) take("special", inFamily("TOOL", "RETREAT", "HANDLE"));
   } else {
-    take("primary", pool.some(unlocks) ? unlocks : o => (context.mode === "MANIPULATE" ? ["WORK", "COLLECT", "ACCESS", "TOOL"] : ["WORK", "CARE", "TRADE", "COLLECT", "ACCESS", "TOOL", "OPEN_CONTAINER"]).includes(o.family) && (o.targetId === context.focusEntityId || o.family === "COLLECT" || o.family === "TOOL"));
+    take("primary", pool.some(unlocks) ? unlocks : o => (context.mode === "MANIPULATE" ? ["WORK", "COLLECT", "ACCESS", "TOOL"] : ["WORK", "CARE", "TRADE", "TRAVEL", "COLLECT", "ACCESS", "TOOL", "OPEN_CONTAINER"]).includes(o.family) && (o.targetId === context.focusEntityId || o.family === "COLLECT" || o.family === "TOOL"));
     const information = pool.filter(o => o.family === "INSPECT" || o.family === "OPEN_CONTAINER" && o.actions?.at(-1)?.type !== "CLOSE");
     // A known obstruction should lead back to unexamined surroundings without a menu escape.
     // This uses visible inspection candidates, never the hidden reward or its location.

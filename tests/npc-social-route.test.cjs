@@ -19,7 +19,7 @@ test('a fresh survivor makes audible changes, talks, gives real goods and unlock
  let snap=await service.createGame();
  async function choose(id) {
   const selected=rows(snap).find(row=>row.id===id||row.action.optionId===id||row.action.choiceId===id||row.action.actionId===id);
-  const action=id.startsWith('travel:')?{type:'travel',targetId:id.slice(7)}:selected?.action;
+  const action=selected?.action??(id.startsWith('travel:')?{type:'travel',targetId:id.slice(7)}:undefined);
   assert(action,'Not offered: '+id+'; '+rows(snap).map(row=>row.action.optionId||row.id));
   return perform(action);
  }
@@ -27,7 +27,7 @@ test('a fresh survivor makes audible changes, talks, gives real goods and unlock
   const requestId='social-route-'+(++request);snap=await service.performAction(saved.id,action,{requestId});
   assert(!snap.state.isGameOver);assert(snap.availableActions.length<=5);return {action,requestId};
  }
- for(const id of ['opening_commit','travel:convenience','explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_supply_pile','collect:convenience_supply_pile','travel:subway','text-world:enter','explore:crate','collect:crate','push:crate:door:beside','leave','npc-dialogue:shumi:start'])await choose(id);
+ for(const id of ['opening_commit','travel:convenience','explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_supply_pile','collect:convenience_supply_pile','travel:subway','travel:office','explore:crate','collect:crate','push:crate:door:beside','leave','focus:shumi_presence','npc-dialogue:shumi:start'])await choose(id);
  assert.match(snap.currentScene.paragraphs.join(' '),/소리가 들린/);
  assert(requests[0].payload.worldExperience.observations.every(o=>o.sense==='heard'&&!o.actorKnown));
  assert.deepEqual(requests[0].payload.worldContext.player.recentLog,[]);assert.equal(requests[0].payload.worldContext.player.condition,undefined);
@@ -63,7 +63,7 @@ test('an authored resident can be approached and spoken to inside exploration, t
  const service=new GameService(repo,undefined,undefined,undefined,async input=>{calls++;return fallback(input)},async c=>fallbackNarration(c));
  let snap=await service.getState(saved.id);
  assert(!rows(snap).some(row=>row.action.type==='npc_dialogue'));
- await assert.rejects(()=>service.performAction(saved.id,{type:'npc_dialogue',command:'start',npcId:'shumi'}),/현재 위치|대합실/);
+ await assert.rejects(()=>service.performAction(saved.id,{type:'npc_dialogue',command:'start',npcId:'shumi'}),/현재 위치|대합실|현재 공간/);
  const approach=rows(snap).find(row=>row.action.optionId==='focus:shumi_presence');assert(approach);
  snap=await service.performAction(saved.id,approach.action);
  const talk=snap.availableActions.find(row=>row.action.type==='npc_dialogue'&&row.action.command==='start');assert(talk);

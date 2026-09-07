@@ -8,7 +8,7 @@ export { details, subwayZones } from "./definitions";
 
 export function worldRooms(world: TextWorld) {
   const defaults = Object.fromEntries(defaultTextRooms().map(({ entities, ...room }) => [room.id, room]));
-  return world.rooms ? Object.fromEntries(Object.entries(world.rooms).map(([id, room]) => [id, { ...room, sensory: room.sensory ?? defaults[id]?.sensory }])) : defaults;
+  return world.rooms ? Object.fromEntries(Object.entries(world.rooms).map(([id, room]) => [id, { ...room, sensory: room.sensory ?? defaults[id]?.sensory, arrivals: room.arrivals ?? defaults[id]?.arrivals }])) : defaults;
 }
 export function entityDetails(world: TextWorld, entity: TextEntity) {
   const original = entity.details ?? details[entity.id] ?? { anchor: entity.id, placement: worldRooms(world)[zoneOf(world, entity)]?.name ?? "주변", outline: entity.name, surface: entity.description };
@@ -27,12 +27,14 @@ export function createSubwayTextWorld(rooms: TextRoom[] = defaultTextRooms()): T
   const entities = rooms.flatMap(room => structuredClone(room.entities));
   upgradeOfficeDoor(entities);
   upgradeWorldPhysics(entities);
-  return { version: 2, active: true, revision: 0, elapsedSeconds: 0,
+  const world: TextWorld = { version: 2, active: true, revision: 0, elapsedSeconds: 0,
     player: { zone: "office", near: null, position: "entrance", facing: null, posture: "standing", heldToolId: null },
     rooms: Object.fromEntries(rooms.map(({ entities, ...room }) => [room.id, structuredClone(room)])),
     entities: Object.fromEntries(entities.map(e => [e.id, e])), observations: {}, visitedZones: [], knowledge: {}, narrated: {}, events: [], recentScenes: [],
     lastIntent: { id: "enter", label: "역무실에 들어선다", importance: "major" },
     lastParagraphs: [rooms.find(room => room.id === "office")!.layout], source: "template", sceneRevision: 0 };
+  upgradeSubwayResidents(world);
+  return world;
 }
 
 /** Instantiate only the supplied location. Content IDs and initial entry come from its room graph. */

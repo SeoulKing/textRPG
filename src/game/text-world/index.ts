@@ -77,7 +77,7 @@ export function textWorldActions(state: GameState, registry: ContentRegistry = b
   return profile?.homeLocationId === state.location && world?.player.focusEntityId === actor!.id ? [buildNpcDialogueStartAction(profile), ...choices.slice(0,4)] : choices;
 }
 export function textWorldScene(state: GameState, registry = buildRuntimeRegistry(state)): SceneCard | null {
-  if (state.npcDialogue.active) return null;
+  if (state.npcDialogue.active || state.subwayExpedition.active || state.isGameOver || state.stageClear) return null;
   const world = currentTextWorld(state);
   if (!world?.active) return null;
   return { id: "text-world:" + state.location + ":" + world.sceneRevision, locationId: state.location, title: worldRooms(world)[world.player.zone].name,
@@ -117,6 +117,45 @@ export function ensureSubwayStockWorld(state: GameState, registry: ContentRegist
   world.lastParagraphSources = rendered.paragraphSources;
   world.source = rendered.source;
   rememberNarration(world, context, rendered.usedFactIds, rendered.paragraphs);
+}
+
+/** Enter the station through the same spatial scene as its office; polling keeps the current scene. */
+export async function ensureSubwayWorld(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string, returnText?: string, generateArrival = false) {
+  if (state.location !== "subway") { if (state.textWorld) state.textWorld.active = false; return; }
+  if (state.subwayExpedition.active) { if (state.textWorld) state.textWorld.active = false; return; }
+  if (state.npcDialogue.active || state.isGameOver || state.stageClear) return;
+  ensureSubwayStockWorld(state, registry);
+  if (state.textWorld?.active) return;
+  const world = state.textWorld ??= createSubwayTextWorld(registry.textRooms);
+  upgradeSubwayResidents(world);
+  synchronizeWorldActors(world, state, registry);
+  syncSubwayStockWorld(state, registry);
+  world.active = true;
+  transferCarriedEntities(state, world);
+  world.events = [];
+  world.player = { ...world.player, zone: "concourse", near: null, position: "entrance", facing: null, posture: "standing", relation: "near", coverId: null, focusEntityId: null, manipulating: false };
+  const entryText = returnText ?? "지상 계단을 내려와 대합실에 들어선다.";
+  world.lastIntent = { id: returnText ? "return" : "enter", label: returnText ? "지하층에서 대합실로 돌아온다" : "대합실로 들어선다", importance: "major" };
+  recordEvent(world, { type: "ENTER", targetId: "concourse", before: {}, after: { zone: "concourse", entryText } });
+  world.revision++;
+  world.sceneRevision++;
+  const context = directNarrative(world);
+  context.nextChoices = nextNarrativeChoices(world, locationWorldOptions(state, registry));
+  const rendered = generateArrival && !returnText ? await renderNarration(context, gameId, narrator) : fallbackNarration(context);
+  storeChoiceLabels(world, context, rendered.choiceLabels);
+  world.lastParagraphs = rendered.paragraphs;
+  world.lastParagraphSources = rendered.paragraphSources;
+  world.source = rendered.source;
+  rememberNarration(world, context, rendered.usedFactIds, rendered.paragraphs);
+}
+
+/** Only an offered, current spatial intent may hand execution over to the expedition engine. */
+export function subwayJourneyOption(state: GameState, action: GameAction, registry: ContentRegistry) {
+  if (state.location !== "subway" || action.type !== "text_world" || action.command !== "choose") return null;
+  const option = availableLocationWorldOptions(state, registry).find(o => o.id === action.optionId && o.contentActionId && registry.actions[o.contentActionId]?.tags.includes("subway-expedition-start"));
+  if (!option) return null;
+  if (state.textWorld?.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
+  return option;
 }
 
 export async function performTextWorldAction(

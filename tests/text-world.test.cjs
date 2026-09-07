@@ -60,7 +60,7 @@ test('group collection counts actual actions, survives normalization and rejects
   assert(s.systemNoteEntries.some(e=>e.type==='delta'&&e.subject==='item'&&e.itemId==='waterBottle'&&e.amount===1));
   const collected=structuredClone(s); await assert.rejects(performTextWorldAction(s,take,'test',narrator),/상황이 바뀌/); assert.deepEqual(s,collected);
   s=normalizeGameSession(JSON.parse(JSON.stringify(session(s)))).state;
-  await choose(s,'leave'); await enter(s);
+  await choose(s,'leave'); await choose(s,'travel:office');
   assert(!textWorldActions(s).some(c=>/collect:crate|explore:crate/.test(c.action.optionId)));
   assert.equal(s.inventory.waterBottle,water+1); assert.equal(s.textWorld.entities.crate.components.container.items.length,0);
   assert(s.textWorld.entities.crate); assert(GameStateSchema.safeParse(s).success);
@@ -173,8 +173,8 @@ test('GameService hides world internals, serializes duplicate grouped collection
   const before=stored.state.inventory.waterBottle??0;
   const results=await Promise.allSettled([service.performAction(stored.id,take),service.performAction(stored.id,take)]);
   assert.equal(results.filter(r=>r.status==='fulfilled').length,1); assert.equal(stored.state.inventory.waterBottle,before+1); assert.equal(calls,3);
-  await assert.rejects(service.performAction(stored.id,{type:'travel',targetId:'shelter'}),/탐색을 마치/);
   await assert.rejects(service.performAction(stored.id,{type:'text_world',command:'choose',optionId:'take:food',revision:stored.state.textWorld.revision}),/선택할 수 없는/);
+  await service.performAction(stored.id,{type:'travel',targetId:'shelter'});assert.equal(stored.state.location,'shelter');assert.equal(stored.state.textWorld.player.zone,'concourse');assert(!stored.state.textWorld.active);
 });
 
 test('reachable exploration states offer 2–5 useful intentions without recaps and retain a real route out',async()=>{

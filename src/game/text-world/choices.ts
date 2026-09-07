@@ -89,13 +89,13 @@ export function availableWorldOptions(world: TextWorld, state: GameState): World
       add("open:" + portal.id, particle(portal.name, "을", "를") + " 열어 길을 확인한다", [...approach(portal.id), { type: "INSPECT", target: portal.id }, { type: "OPEN", target: portal.id }], "복도 입구 확인");
     } else if (accessible) {
       const opening = portal?.components.openable && !portal.components.openable.isOpen;
-      add("travel:" + next, (prepareLight ? particle(prepareLight.name, "을", "를") + (isHeld(world, prepareLight.id) ? " 켜고 " : " 꺼내 켜고 ") : "") + (opening ? particle(portal!.name, "을", "를") + " 열고 " : "") + (worldRooms(world)[next].name.split(" · ").at(-1)) + (next === "office" ? "로 돌아간다" : "로 이동한다"),
-        [...posture("standing"), ...(prepareLight ? [...(!isHeld(world, prepareLight.id) ? [{ type: inventoryRegistered(world, prepareLight) ? "HOLD" as const : "TAKE" as const, target: prepareLight.id }] : []), ...(!prepareLight.components.light!.on ? [{ type: "LIGHT" as const, target: prepareLight.id }] : [])] : []), ...(opening ? [...(world.player.near === portal.id ? [] : [{ type: "MOVE" as const, target: portal.id }]), { type: "OPEN" as const, target: portal.id }] : []), { type: "MOVE", target: next }], next === "office" || next === "corridor" && world.player.zone === "storage" ? "귀환" : "구역 이동", world.visitedZones.includes(next) && !opening ? "minor" : "major");
+      add(next === "concourse" && world.player.zone === "office" ? "leave" : "travel:" + next, (prepareLight ? particle(prepareLight.name, "을", "를") + (isHeld(world, prepareLight.id) ? " 켜고 " : " 꺼내 켜고 ") : "") + (opening ? particle(portal!.name, "을", "를") + " 열고 " : "") + (worldRooms(world)[next].name.split(" · ").at(-1)) + (world.visitedZones.includes(next) ? "로 돌아간다" : "로 이동한다"),
+        [...posture("standing"), ...(prepareLight ? [...(!isHeld(world, prepareLight.id) ? [{ type: inventoryRegistered(world, prepareLight) ? "HOLD" as const : "TAKE" as const, target: prepareLight.id }] : []), ...(!prepareLight.components.light!.on ? [{ type: "LIGHT" as const, target: prepareLight.id }] : [])] : []), ...(opening ? [...(world.player.near === portal.id ? [] : [{ type: "MOVE" as const, target: portal.id }]), { type: "OPEN" as const, target: portal.id }] : []), { type: "MOVE", target: next }], world.visitedZones.includes(next) && (next === "office" || next === "corridor" && world.player.zone === "storage") ? "귀환" : "구역 이동", world.visitedZones.includes(next) && !opening ? "minor" : "major");
     }
   }
   // Keep a real exit in view; offer only available intentions without recap filler.
   const tail: WorldOption[] = [];
-  if (world.player.zone === "office") tail.push({ id: "leave", label: "대합실로 돌아간다", hint: "탐색 마치기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
+  if (world.player.zone === "office" && worldRooms(world).concourse?.outsideExploration) tail.push({ id: "leave", label: "대합실로 돌아간다", hint: "탐색 마치기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
   const exit = worldRooms(world)[world.player.zone]?.optionalEntry;
   if (exit) tail.push({ id: "leave", label: exit.exitLabel, hint: "살림 자리에서 나가기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
   return [...options, ...focusOptions(world), ...tail];

@@ -27,7 +27,7 @@ test('concourse polling, map, inventory, saving and restoring never spend a Gemi
  await f.service.saveManualGame(f.stored.id);await f.service.restoreManualGame(f.stored.id);
  await Promise.all([...f.service.subwayFloorGenerationTasks.values()]);
  assert.equal(f.narrations,0);
- snapshot=await f.service.performAction(f.stored.id,{type:'text_world',command:'enter'});
+ snapshot=await f.service.performAction(f.stored.id,snapshot.availableActions.find(c=>c.action.optionId==='travel:office').action);
  assert.equal(f.narrations,1);await f.service.getState(f.stored.id);assert.equal(f.narrations,1);
  assert(snapshot.availableActions.some(c=>c.action.optionId==='explore:crate'));
 }));

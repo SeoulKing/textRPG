@@ -1,3 +1,5 @@
+import { worldDeparturePlan } from "./text-world/departure";
+import { resolveWorldActions } from "./text-world/engine";
 import { workActivityParagraphs } from "./activity-narrative";
 import { plannedRestMinutes, restDanger, restInterruption, restParagraphs } from "./rest";
 import { advanceSurvivalPressure, millisecondsToSurvivalPressure, relieveExhaustion } from "./survival-pressure";
@@ -893,6 +895,7 @@ export function resolveTravelPath(state: GameState, targetId: string, registry =
 function resolveTravelRequirement(state: GameState, targetId: string) {
   const registry = buildRuntimeRegistry(state);
   const path = resolveTravelPath(state, targetId, registry);
+  if (worldDeparturePlan(state) === null) return { allowed: false, reason: "지상 출구까지의 통로가 막혀 있습니다. 먼저 문과 통로를 확인해 주세요.", path: null };
   if (path && path.length > 1) {
     return { allowed: true, reason: "", path };
   }
@@ -1286,6 +1289,16 @@ export function performAction(
       if (!allowed || !path || path.length < 2) {
         throw new Error(reason);
       }
+      const departure = worldDeparturePlan(state)!;
+      const departureWorld = state.location === "subway" ? state.textWorld : state.locationTextWorlds[state.location];
+      if (departureWorld?.active && departure.length) {
+        departureWorld.events = [];
+        departureWorld.lastIntent = { id: "depart", label: "지상 출구로 향한다", importance: "minor" };
+        const result = resolveWorldActions(departureWorld, state, departure);
+        departureWorld.revision++;
+        if (result.interrupted || result.discovery) break;
+      }
+      if (departureWorld) departureWorld.active = false;
       closeShelterSubmenus(state);
       const routeTargets = path.slice(1);
       const destinationId = routeTargets[routeTargets.length - 1];

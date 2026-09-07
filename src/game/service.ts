@@ -1,3 +1,5 @@
+import { recordEvent } from "./text-world/events";
+import { worldDeparturePlan } from "./text-world/departure";
 import { isSubwayStockMenuAction } from "./text-world/subway-stock";
 import { nearbyWorldNpc, residentAtConversationLocation } from "./text-world/observers";
 import { runtimeSocialProfile, performNpcSocialAction } from "./npc-social";
@@ -6,7 +8,7 @@ import { activityConditionState, localWorkEnvironment } from "./work-environment
 import { planActivity } from "./activity";
 import { materialSourceHints } from "./material-guidance";
 import { formatOutcomeHint } from "./outcome-hint";
-import { ensureSubwayStockWorld, currentTextWorld, explorationInteractions, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
+import { ensureSubwayWorld, subwayJourneyOption, currentTextWorld, explorationInteractions, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
 import { currentObservation, markAction, observeAction, recordActionTiming, type ActionObserver } from "./action-observation";
 import { reconcileWorldInventory } from "./text-world/interactions";
 import { ensureConvenienceWorld } from "./text-world/convenience";
@@ -456,7 +458,7 @@ export class GameService {
   }
 
   private subwayPreparationContext(state: GameSession["state"]) {
-    if (state.location !== "subway" || state.textWorld?.active || state.isGameOver || state.stageClear) {
+    if (state.location !== "subway" || state.textWorld?.active && state.textWorld.player.zone !== "concourse" || state.isGameOver || state.stageClear) {
       return null;
     }
     const expedition = state.subwayExpedition;
@@ -897,6 +899,7 @@ export class GameService {
     if (session.state.lastActivity && ["text_world", "npc_dialogue", "subway_expedition"].includes(action.type)) delete session.state.lastActivity.paragraphs;
     const previousDay = session.state.day;
     const registry = this.runtimeRegistry(session);
+    const journey = subwayJourneyOption(session.state, action, registry);
 
     if (
       session.state.npcDialogue.active &&
@@ -907,8 +910,8 @@ export class GameService {
 
     if (session.state.location === "subway" && isSubwayStockMenuAction(action, registry)) throw new Error("현재 탐색 장면에 표시된 선택지를 골라 주세요.");
 
-    if (session.state.location === "subway" && session.state.textWorld?.active && action.type !== "text_world" && action.type !== "item_light" && !(action.type === "npc_dialogue" && nearbyWorldNpc(session.state.textWorld, action.npcId))) {
-      throw new Error("역무실 탐색을 마치고 대합실로 돌아온 뒤 다른 행동을 할 수 있습니다.");
+    if (session.state.location === "subway" && session.state.textWorld?.active && !(["text_world", "item_light", "travel", "use_item"].includes(action.type)) && !(action.type === "npc_dialogue" && nearbyWorldNpc(session.state.textWorld, action.npcId))) {
+      throw new Error("현재 위치에서 가능한 선택지를 골라 주세요.");
     }
 
     if (currentTextWorld(session.state)?.active && hasLocationWorld(session.state, registry) &&
@@ -931,7 +934,7 @@ export class GameService {
       return snapshot;
     }
 
-    if (action.type === "text_world") {
+    if (action.type === "text_world" && !journey) {
       const workingState = structuredClone(session.state);
       await performTextWorldAction(workingState, action, gameId, this.textWorldNarrator, registry.textRooms, registry);
       session.state = workingState;
@@ -1076,19 +1079,28 @@ export class GameService {
     }
 
     if (
-      action.type === "subway_expedition" ||
+      journey || action.type === "subway_expedition" ||
       (action.type === "content_action" && action.actionId === "start_subway_expedition")
     ) {
       const subwayAction = action.type === "subway_expedition"
         ? action
         : { type: "subway_expedition" as const, command: "start" as const };
       if (subwayAction.command === "start") {
+        if (session.state.textWorld?.active && !journey) throw new Error("지하층 계단 앞에 표시된 선택지를 골라 주세요.");
         this.ensurePreparedSubwayTemplate(session);
         const prepared = this.takePreparedSubwayFloor(session);
         if (!prepared) {
           throw new Error("준비된 지하 1층을 불러오지 못했습니다.");
         }
         const workingState = structuredClone(session.state);
+        if (workingState.textWorld) {
+          const world = workingState.textWorld;
+          world.events = [];
+          world.lastIntent = { id: journey?.id ?? "journey", label: journey?.label ?? "지하층으로 내려간다", importance: "major" };
+          recordEvent(world, { type: "LEAVE", targetId: journey?.nodeId, before: { zone: world.player.zone }, after: { zone: "subway-depth", name: "지하 1층" } });
+          world.active = false;
+          world.revision++;
+        }
         await startSubwayExpedition(
           workingState,
           gameId,
@@ -1162,6 +1174,7 @@ export class GameService {
         });
       } else if (subwayAction.command === "return") {
         returnFromSubwayExpedition(session.state);
+        await ensureSubwayWorld(session.state, registry, this.textWorldNarrator, gameId, session.state.subwayExpedition.lastOutcome);
       }
       session.updatedAt = nowIso();
       session.world.sceneCards = {};
@@ -1176,6 +1189,7 @@ export class GameService {
         day: session.state.day,
       });
       this.ensurePreparedSubwayTemplate(session);
+      if (journey && requestId && session.state.textWorld) session.state.textWorld.lastRequest = { id: requestId, actionKey, revision: session.state.textWorld.revision };
       const snapshot = this.buildSnapshot(session, null);
       await this.repository.saveGame(session);
       this.scheduleSubwayNextFloor(session);
@@ -1212,6 +1226,7 @@ export class GameService {
 
     await this.replanTomorrowIfNeeded(session, previousDay);
     const nextRegistry = this.runtimeRegistry(session);
+    if (action.type === "travel" && session.state.location === "subway") await ensureSubwayWorld(session.state, nextRegistry, this.textWorldNarrator, session.id, undefined, true);
 
     let latestEvent: EventCard | null = null;
     if (followUpEventId) {
@@ -1399,7 +1414,7 @@ export class GameService {
   private async ensureCards(session: GameSession) {
     const registry = this.runtimeRegistry(session);
     reconcileWorldInventory(session.state);
-    ensureSubwayStockWorld(session.state, registry);
+    await ensureSubwayWorld(session.state, registry, this.textWorldNarrator, session.id);
     await ensureConvenienceWorld(session.state, registry, this.textWorldNarrator, session.id);
     await ensureLocationWorld(session.state, registry, this.textWorldNarrator, session.id);
     const visibleLocationIds = this.visibleLocationIds(session);
@@ -1779,6 +1794,7 @@ export class GameService {
     const allLocationIds = Object.keys(registry.locations);
     const currentLocation = this.currentLocation(session, registry);
     const currentLinks = currentLocation.links;
+    const blockedDeparture = worldDeparturePlan(session.state) === null;
     return allLocationIds.map((locationId) => {
       const targetLocation = getRuntimeLocationDefinition(session.state, registry, locationId);
       const link = currentLinks[locationId];
@@ -1799,7 +1815,7 @@ export class GameService {
           : Boolean(link)
       );
       const hasRoute = Boolean(link);
-      const isReachable = !isCurrent && routeDistance > 0;
+      const isReachable = !isCurrent && !blockedDeparture && routeDistance > 0;
       const incomingRoutes = Object.keys(registry.locations)
         .filter((sourceId) => Boolean(getRuntimeLocationDefinition(session.state, registry, sourceId).links[locationId]))
         .map((sourceId) => ({
@@ -1815,7 +1831,7 @@ export class GameService {
         (route) => route.link.requiredFlag && !session.state.flags[route.link.requiredFlag],
       );
       const isControlled = !isCurrent && !isReachable && !hasUnlockedKnownRoute && Boolean(blockedRoute);
-      const reason = !hasRoute && isAdjacent
+      const reason = blockedDeparture && !isCurrent ? "지상 출구까지의 통로가 막혀 있습니다. 먼저 문과 통로를 확인해 주세요." : !hasRoute && isAdjacent
         ? "인접하지만 아직 확인된 이동 경로가 없다."
         : blockedRoute
           ? (blockedRoute.link.blockedReason || "That route is still blocked.")

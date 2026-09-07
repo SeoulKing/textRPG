@@ -142,12 +142,13 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
           const from = world.player.zone;
           world.player.zone = action.target; world.player.focusEntityId = null; world.player.manipulating = false;
           world.player.near = portalBetween(world, from, action.target)?.id ?? null;
-          world.player.position = action.target === "office" ? "far-door" : action.target === "corridor" ? from === "office" ? "office-end" : "storage-end" : "entrance";
-          world.player.facing = action.target === "office" ? "entrance" : action.target === "corridor" ? from === "office" ? "storage-end" : "office-end" : "far-wall";
+          const arrival = worldRooms(world)[action.target].arrivals?.[from];
+          world.player.position = arrival?.position ?? "entrance";
+          world.player.facing = arrival?.facing ?? "far-end";
         } else {
           world.player.near = e!.id; world.player.focusEntityId = e!.id; world.player.manipulating = false; world.player.position = e!.id === "door" && world.player.zone === "corridor" ? "office-end" : entityDetails(world, e!).anchor ?? e!.id; world.player.facing = e!.id;
         }
-        after = { ...world.player, name: e?.name ?? worldRooms(world)[world.player.zone].name, placement: e ? entityDetails(world, e).placement : undefined }; break;
+        after = { ...world.player, name: e?.name ?? worldRooms(world)[world.player.zone].name, placement: e ? entityDetails(world, e).placement : undefined, arrivalText: !e ? worldRooms(world)[world.player.zone].arrivals?.[String(before.zone)]?.text : undefined }; break;
       case "OPEN": case "CLOSE":
         before = { isOpen: c!.openable!.isOpen }; c!.openable!.isOpen = action.type === "OPEN";
         if (action.type === "OPEN" && c!.openable!.autoCloseSeconds !== undefined) c!.openable!.remainingOpenSeconds = c!.openable!.autoCloseSeconds;

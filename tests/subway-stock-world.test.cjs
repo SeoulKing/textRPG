@@ -29,7 +29,7 @@ test('signal box discovery and collection remain separate and preserve every nat
  for(const field of ['inventory','stats','stockState','skillProgress','worldElapsedMs'])assert.deepEqual(f.state[field],reference[field],field);
  const after=JSON.stringify(f.state);await assert.rejects(f.raw(a),/바뀌/);assert.equal(JSON.stringify(f.state),after);
  f.reload();f.ensure();assert(!f.options.some(o=>o.id===option.id));assert.equal(f.state.inventory.radioAntenna,1);
- await f.choose('leave');await f.enter();assert(!f.options.some(o=>o.id===option.id));assert.equal(f.state.inventory.radioAntenna,1);
+ await f.choose('leave');await f.choose('travel:office');assert(!f.options.some(o=>o.id===option.id));assert.equal(f.state.inventory.radioAntenna,1);
 });
 test('legacy partial stock resumes in the canonical office and polling never generates or replenishes',()=>{
  const f=fixture(s=>{s.activeStockNodeId='subway_signal_box';s.inventory.radioAntenna=1;s.stockState[getStockStateKey('subway','subway_signal_box','radioAntenna')]=0;});
@@ -56,10 +56,10 @@ test('service hides and rejects legacy stock commands while concourse routes rem
  const sorted=v=>Array.isArray(v)?v.map(sorted):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().reverse().map(k=>[k,sorted(v[k])])):v;
  const repo={withGameLock:async(_id,f)=>f(),loadGame:async()=>normalizeGameSession(sorted(structuredClone(saved))),saveGame:async s=>{saved=JSON.parse(JSON.stringify(s))},getTemplate:async()=>undefined,saveTemplate:async()=>{},saveProtagonistTemplate:async()=>{},appendGenerationLog:async()=>{},appendActionLog:async()=>{}};
  const service=new GameService(repo,undefined,undefined,undefined,undefined,async c=>{renders++;return fallbackNarration(c)});
- let snap=await service.getState(saved.id);assert(!snap.availableActions.some(c=>c.action.actionId==='go_to_subway_signal_box'));assert(snap.availableActions.some(c=>c.action.actionId==='start_subway_expedition'));
+ let snap=await service.getState(saved.id);assert(!snap.availableActions.some(c=>c.action.actionId==='go_to_subway_signal_box'));assert(snap.exploration.targets.some(t=>t.id==='subway_depth_stairs'));
  await assert.rejects(service.performAction(saved.id,{type:'content_action',actionId:'go_to_subway_signal_box'}),/표시된 선택/);
  const choose=async id=>{const rows=[...snap.availableActions,...(snap.exploration?.generalActions??[]),...(snap.exploration?.targets??[]).flatMap(t=>t.actions)];const row=rows.find(r=>r.action.optionId===id||r.action.command===id);assert(row,'missing '+id);snap=await service.performAction(saved.id,row.action);};
- await choose('enter');await choose('explore:subway_signal_box');await choose('collect:subway_signal_box');const count=renders,ids=snap.availableActions.map(c=>c.id);
+ await choose('travel:office');await choose('explore:subway_signal_box');await choose('collect:subway_signal_box');const count=renders,ids=snap.availableActions.map(c=>c.id);
  snap=await service.getState(saved.id);assert.deepEqual(snap.availableActions.map(c=>c.id),ids);assert.equal(renders,count);assert.equal(snap.state.inventory.radioAntenna,1);
- await choose('leave');assert(snap.availableActions.some(c=>c.action.actionId==='start_subway_expedition'));assert(snap.availableActions.some(c=>c.action.type==='npc_dialogue'));
+ await choose('leave');assert(snap.exploration.targets.some(t=>t.id==='subway_depth_stairs'));await choose('focus:shumi_presence');assert(snap.availableActions.some(c=>c.action.type==='npc_dialogue'));
 });

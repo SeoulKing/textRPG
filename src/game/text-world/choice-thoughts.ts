@@ -9,6 +9,7 @@ export function defaultChoiceThought(world: TextWorld, option: ThoughtOption): s
   if (["harvest", "toolwork"].includes(kind)) return /낚/.test(option.label) ? "이번에는 입질이 있을까." : /덩굴|끈/.test(option.label) ? "단단한 것만 골라 보자." : "여기서 쓸 만한 걸 더 구할 수 있을까.";
   if (kind === "trade") return "지금 쓸 몫을 마련해 둘까.";
   if (kind === "delivery") return "부탁받은 것을 건네 두자.";
+  if (kind === "journey") return "내려가기 전에 챙길 건 다 챙겼나.";
   if (kind === "information") return "기록에 단서가 있을까.";
   if (kind === "care") return "지금 상처부터 돌봐 두는 게 좋겠지.";
   if (kind === "work") return "여기서 도울 일이 있을까.";

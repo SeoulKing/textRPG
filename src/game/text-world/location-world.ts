@@ -163,6 +163,7 @@ export async function performLocationWorldAction(state: GameState, action: Extra
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
   const option = availableLocationWorldOptions(state, registry).find(option => option.id === action.optionId);
   if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
+  if (option.contentActionId && registry.actions[option.contentActionId]?.tags.includes("subway-expedition-start")) throw new Error("심층 탐험 진입은 게임 서비스에서 처리해야 합니다.");
   const before = structuredClone(state);
   world.events = [];
   world.lastIntent = { id: option.id, label: option.label, thought: choiceLabelFields(world, option).choiceThought, importance: option.importance };

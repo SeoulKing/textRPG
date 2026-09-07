@@ -17,6 +17,7 @@ export function textRoomIssues(rooms: TextRoom[], itemIds: Set<string>) {
   const portals = new Set<string>();
   for (const room of rooms) {
     if (!room.name.trim()) add(room.id, "방 이름을 입력해 주세요.");
+    for (const from of Object.keys(room.arrivals ?? {})) if (!room.neighbors.includes(from)) add(room.id, "도착 위치의 출발 방은 연결된 이웃 방이어야 합니다.");
     for (const next of room.neighbors) if (!roomIds.has(next) || next === room.id || (!rooms.find(r => r.id === next)?.neighbors.includes(room.id) || rooms.find(r => r.id === next)?.locationId !== room.locationId)) add(room.id, "연결된 방은 서로 왕복할 수 있어야 합니다.");
     for (const entity of room.entities) {
       const c = entity.components, parent = entities.get(c.position.zone);

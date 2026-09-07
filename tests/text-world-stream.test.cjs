@@ -18,7 +18,7 @@ function fixture(location='subway',seed){
  const service=makeService();
  return {service,makeService,repo,get saved(){return saved},get writes(){return writes},get logs(){return logs},get context(){return context},set narrator(n){narrator=n}};
 }
-async function entered(f){let snap=await f.service.getState('stream-test');if(snap.state.location==='subway')snap=await f.service.performAction('stream-test',{type:'text_world',command:'enter'});return snap;}
+async function entered(f){let snap=await f.service.getState('stream-test');if(snap.state.location==='subway')snap=await f.service.performAction('stream-test',chosen(snap,'travel:office'));return snap;}
 function chosen(snap,id){const row=snap.availableActions.find(c=>c.action.optionId===id);assert(row,id);return row.action;}
 function draft(c){
  const results=c.requiredFacts.filter(f=>f.kind==='result'),others=c.requiredFacts.filter(f=>f.kind!=='result');

@@ -15,7 +15,7 @@ test('a fresh survivor collects, crafts, harvests with and carries a tool into a
  let snap=await service.createGame();
  async function choose(id) {
   const selected=rows(snap).find(row=>row.id===id||row.action.optionId===id||row.action.actionId===id||row.action.choiceId===id);
-  const action=id.startsWith('travel:')?{type:'travel',targetId:id.slice(7)}:selected?.action;
+  const action=selected?.action??(id.startsWith('travel:')?{type:'travel',targetId:id.slice(7)}:undefined);
   assert(action,'Missing: '+id+'; offered: '+rows(snap).map(row=>row.action.optionId||row.action.actionId||row.action.choiceId).join(','));
   if(selected)assert(selected.isAvailable);
   snap=await service.performAction(saved.id,action,{requestId:'crafted-route-'+(++request)});
@@ -26,7 +26,7 @@ test('a fresh survivor collects, crafts, harvests with and carries a tool into a
  assert.deepEqual({wood:snap.state.inventory.woodPlank,metal:snap.state.inventory.scrapMetal,cloth:snap.state.inventory.clothScrap,cord:snap.state.inventory.cordage},{wood:2,metal:1,cloth:3,cord:2});
  await choose('travel:forest');await choose('toolwork:chop_wood_with_crude_axe');
  assert.equal(snap.state.inventory.wood,5);assert.equal(snap.state.toolDurability.crudeAxe,7);
- await choose('travel:shelter');await choose('travel:subway');await choose('text-world:enter');
+ await choose('travel:shelter');await choose('travel:subway');await choose('travel:office');
  await choose('focus:crate');await choose('tool:crudeAxe:crate:cut');
  assert.equal(saved.state.textWorld.entities.crate.components.structure.integrity,1);assert.equal(snap.state.toolDurability.crudeAxe,6);
  const inventory={...snap.state.inventory};
@@ -36,7 +36,7 @@ test('a fresh survivor collects, crafts, harvests with and carries a tool into a
  await service.performAction(saved.id,selected.action,{requestId:'crafted-route-'+request});
  assert.deepEqual(saved.state.inventory,after,'duplicate receipt does not spend another repair kit');
  await assert.rejects(()=>service.performAction(saved.id,selected.action,{requestId:'stale-repair'}),/상황이 바뀌|선택할 수/);
- await choose('leave');await choose('travel:shelter');await choose('travel:subway');await choose('text-world:enter');
+ await choose('leave');await choose('travel:shelter');await choose('travel:subway');await choose('travel:office');
  assert.deepEqual(saved.state.textWorld.entities.crate.components.structure,repaired);assert.deepEqual(snap.state.inventory,after);
  assert.equal(Object.values(saved.state.textWorld.entities).filter(e=>e.components.portable?.itemId==='crudeAxe'&&e.components.position.zone==='player').length,1);
  assert.equal(snap.state.toolDurability.crudeAxe,6);t.diagnostic('Completed '+request+' real game actions without injecting resources or time.');
