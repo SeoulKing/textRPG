@@ -38,10 +38,10 @@ function copyResolvedScene(state: GameState) {
     encounter.currentScene.source = world.source;
   }
 }
-function respond(state: GameState, gameId: string, choice: SubwayEncounterChoice, physical: boolean, minutes?: number) {
+function respond(state: GameState, gameId: string, choice: SubwayEncounterChoice, physical: boolean, minutes?: number, before?: GameState) {
   if (state.isGameOver || state.stageClear) return;
   const encounter = state.subwayExpedition.currentFloorProgress.encounter!;
-  const responseSpent = advanceCombatOpponent(state);
+  const responseSpent = advanceCombatOpponent(state, before);
   const result = resolveSubwaySituationChoice(state, choice.id, encounter.turnNumber, Math.random, { choice, responseSpent, physical, minutes });
   recordEvent(state.textWorld!, combatResultEvent(state, result, physical ? undefined : choice.label + "."));
   refreshCombatDecision(state, gameId, result);
@@ -75,7 +75,7 @@ export async function performCombatWorldAction(state: GameState, action: Extract
   // A stopped preparation never executes the promised attack. Time already spent still gives the opponent a response.
   if (!execution.interrupted || execution.elapsedSeconds > 0) {
     const choice = !execution.interrupted ? option.combatChoice : undefined;
-    respond(state, gameId, choice ?? physicalChoice(option.id, option.label, option.hint), !choice);
+    respond(state, gameId, choice ?? physicalChoice(option.id, option.label, option.hint), !choice, undefined, before);
   }
   await finish(state, before, registry, narrator, gameId);
 }
@@ -99,6 +99,6 @@ export async function performCombatInventoryAction(state: GameState, action: Ext
   }
   world.lastIntent = { id: "combat-inventory:" + (action.type === "item_light" ? action.entityId : action.itemId), label, importance: "major" };
   // Consumables have already paid their authored use time; do not charge it again for the response.
-  respond(state, gameId, physicalChoice(world.lastIntent.id, label, "주변의 위협에 대응"), true, action.type === "use_item" ? 0 : undefined);
+  respond(state, gameId, physicalChoice(world.lastIntent.id, label, "주변의 위협에 대응"), true, action.type === "use_item" ? 0 : undefined, before);
   await finish(state, before, registry, narrator, gameId);
 }

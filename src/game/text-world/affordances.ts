@@ -1,3 +1,5 @@
+import { throwLanding, throwProfile } from "./throwing";
+import { worldRooms } from "./world";
 import type { GameState, ItemCard } from "../schemas";
 import type { TextWorld, WorldAction } from "../schemas/text-world";
 import type { WorldOption } from "./choices";
@@ -22,7 +24,7 @@ export function interactionOptions(world: TextWorld, state: GameState): WorldOpt
     else projectedState.locationTextWorlds[state.location] = projected;
     const outcome = resolveWorldActions(projected, projectedState, actions, { advanceTime: false });
     // Tool work may reveal contents; that is its final decision boundary, not a failure.
-    if (!outcome.interrupted && (!outcome.discovery || actions.at(-1)?.type === "USE_TOOL")) offered.push({ id, label, hint, actions, importance });
+    if (!outcome.interrupted && (!outcome.discovery || ["USE_TOOL", "THROW"].includes(actions.at(-1)?.type ?? ""))) offered.push({ id, label, hint, actions, importance });
   };
   for (const source of visible) {
     const c = source.components, known = world.observations[source.id];
@@ -64,6 +66,10 @@ export function interactionOptions(world: TextWorld, state: GameState): WorldOpt
     if (c.portable && c.position.zone === "player" && !(c.light && c.portable.itemId)) {
       if (handledEntityId(world) !== source.id) add("hold:" + source.id, particle(source.name, "을", "를") + (isHeld(world, source.id) ? " 손에 고쳐 쥔다" : " 꺼내 손에 든다"), "휴대 물건 조작", [{ type: "HOLD", target: source.id }], "minor");
       if (!isHeld(world, source.id)) continue;
+      if (throwProfile(state, source)) for (const destination of [...visible.map(e=>e.id), world.player.zone, ...worldRooms(world)[world.player.zone].neighbors]) {
+        const landing=throwLanding(world,destination);
+        if(landing) add("throw:"+source.id+":"+destination, source.name+" 한 개를 "+landing.name+"으로 던진다", "한 개 투척 · 충돌 소음 · 3초", [{type:"THROW",target:source.id,destination}]);
+      }
       add("stow:" + source.id, particle(source.name, "을", "를") + (c.light?.on ? " 끄고 챙겨 둔다" : " 챙겨 둔다"), "소지품 유지 · 손 비우기", [{ type: "STOW", target: source.id }], "minor");
       // The catalogue exposes every compatible destination; the director recommends the current focus.
       for (const target of visible.filter(e => e.id !== source.id && (e.components.container || e.components.physical?.supportCapacity !== undefined))) {
@@ -75,6 +81,6 @@ export function interactionOptions(world: TextWorld, state: GameState): WorldOpt
     }
   }
   const pending = visible.some(e => e.components.openable?.isOpen && e.components.openable.remainingOpenSeconds !== undefined || e.components.light?.on && e.components.light.fuelSeconds !== undefined);
-  if (pending) add("wait", "잠시 기다리며 주변의 변화를 살핀다", "5초 경과", [{ type: "WAIT", durationSeconds: 5 }], "minor");
+  if (pending || Object.values(world.entities).some(e=>e.components.combatant?.hostile && world.knowledge["threat:"+e.id])) add("wait", "잠시 기다리며 주변의 변화를 살핀다", "5초 경과", [{ type: "WAIT", durationSeconds: 5 }], "minor");
   return offered;
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ThrowableSchema } from "./item";
 
 const PhysicalSchema = z.object({ mass: z.number().nonnegative(), volume: z.number().positive().default(1), movable: z.boolean().default(false), opaque: z.boolean().default(true), blocksPassage: z.boolean().default(false), providesCover: z.boolean().optional(), supportCapacity: z.number().nonnegative().optional() });
 const MaterialCostSchema = z.object({ itemId: z.string(), amount: z.number().int().positive() });
@@ -17,7 +18,8 @@ export const TextEntitySchema = z.object({
   origin: z.object({ worldId: z.string(), entityId: z.string() }).optional(),
   details: TextEntityDetailsSchema.optional(),
   components: z.object({
-    combatant: z.object({ encounterId: z.string(), hostile: z.boolean(), hp: z.number().int().nonnegative(), maxHp: z.number().int().positive() }).optional(),
+    throwable: ThrowableSchema.optional(),
+    combatant: z.object({ awareness: z.object({ lastKnownPlayerZone: z.string().optional(), lastHeardSequence: z.number().int().nonnegative().optional(), investigation: z.object({ zone: z.string(), targetId: z.string().optional() }).optional() }).optional(), encounterId: z.string(), hostile: z.boolean(), hp: z.number().int().nonnegative(), maxHp: z.number().int().positive() }).optional(),
     actor: z.object({ npcId: z.string(), active: z.boolean().optional() }).optional(),
     craftingStorage: z.boolean().optional(),
     workstation: z.object({ kinds: z.array(z.enum(["craft", "cook", "build"])).min(1), durationMultiplier: z.number().min(0.25).max(1) }).optional(),
@@ -56,7 +58,7 @@ export const TextRoomSchema = z.object({
 export type TextRoom = z.infer<typeof TextRoomSchema>;
 const FactSchema = z.object({ id: z.string(), kind: z.string(), targetId: z.string().optional(), data: z.record(z.string(), z.unknown()) });
 export const WorldEventSchema = z.object({
-  type: z.enum(["ENTER", "MOVE", "POSTURE", "INSPECT", "UNLOCK", "OPEN", "CLOSE", "TAKE", "HOLD", "STOW", "LIGHT", "LOOK", "SURVEY", "LEAVE", "STOPPED", "STORY", "PUSH", "PUT", "DROP", "WAIT", "HIDE", "SOUND", "LIGHT_EXPIRED", "AUTO_CLOSE", "DEFOCUS", "FOCUS", "WORK", "SERVICE", "USE_TOOL", "REPAIR", "NPC_REACTION", "ACTOR_MOVE", "COMBAT", "ITEM_USE"]),
+  type: z.enum(["ENTER", "MOVE", "POSTURE", "INSPECT", "UNLOCK", "OPEN", "CLOSE", "TAKE", "HOLD", "STOW", "LIGHT", "LOOK", "SURVEY", "LEAVE", "STOPPED", "STORY", "PUSH", "PUT", "DROP", "WAIT", "HIDE", "SOUND", "LIGHT_EXPIRED", "AUTO_CLOSE", "DEFOCUS", "FOCUS", "WORK", "SERVICE", "USE_TOOL", "REPAIR", "NPC_REACTION", "ACTOR_MOVE", "COMBAT", "ITEM_USE", "THROW"]),
   id: z.string().optional(), actorId: z.string().optional(), causedBy: z.string().optional(),
   origin: z.enum(["player", "simulation"]).optional(), witnessed: z.boolean().optional(),
   at: z.number(), targetId: z.string().optional(),
@@ -91,7 +93,7 @@ export const TextWorldSchema = z.object({
 export type TextEntity = z.infer<typeof TextEntitySchema>;
 export type TextWorld = z.infer<typeof TextWorldSchema>;
 export type WorldEvent = z.infer<typeof WorldEventSchema>;
-export type WorldAction = { type: "MOVE" | "POSTURE" | "INSPECT" | "UNLOCK" | "OPEN" | "CLOSE" | "TAKE" | "HOLD" | "STOW" | "LIGHT" | "LOOK" | "SURVEY" | "LEAVE" | "PUSH" | "PUT" | "DROP" | "WAIT" | "HIDE" | "DEFOCUS" | "FOCUS" | "USE_TOOL" | "REPAIR"; target?: string; toolItemId?: string; technique?: "pry" | "cut" | "strike"; destination?: string; relation?: "beside" | "blocking" | "on" | "inside" | "behind" | "under"; durationSeconds?: number; posture?: "standing" | "crouching" };
+export type WorldAction = { type: "MOVE" | "POSTURE" | "INSPECT" | "UNLOCK" | "OPEN" | "CLOSE" | "TAKE" | "HOLD" | "STOW" | "LIGHT" | "LOOK" | "SURVEY" | "LEAVE" | "PUSH" | "PUT" | "DROP" | "WAIT" | "HIDE" | "DEFOCUS" | "FOCUS" | "USE_TOOL" | "REPAIR" | "THROW"; target?: string; toolItemId?: string; technique?: "pry" | "cut" | "strike"; destination?: string; relation?: "beside" | "blocking" | "on" | "inside" | "behind" | "under"; durationSeconds?: number; posture?: "standing" | "crouching" };
 export type WorldFact = z.infer<typeof FactSchema>;
 export type NarrativeContext = {
   voice: { person: "first"; selfReference: "나"; tense: "present"; omitSubject: true };

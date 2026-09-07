@@ -56,6 +56,7 @@ export const baseItems = {
   }),
   waterBottle: defineItem({
     id: "waterBottle",
+    throwable: {"unitMass":0.5,"sound":{"description":"물병이 바닥에 부딪히는 둔탁한 소리","intensity":0.8}},
     name: "물병",
     description: "목을 축이고 정신을 조금 붙잡을 수 있다.",
     kind: "drink",
@@ -129,6 +130,7 @@ export const baseItems = {
   }),
   scrapMetal: defineItem({
     id: "scrapMetal",
+    throwable: {"unitMass":0.2,"sound":{"description":"고철이 바닥에 부딪히는 금속성 소리","intensity":0.9}},
     name: "고철 조각",
     description: "휘어진 철판과 금속 부품을 모아 묶은 것이다. 간이 제작과 수리에 두루 쓰인다.",
     kind: "material",

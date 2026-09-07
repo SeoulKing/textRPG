@@ -21,7 +21,7 @@ export function synchronizeCombatPresence(state: GameState) {
   const ids=expeditionFloorIds(state),id=ids.prefix+"_opponent",hostile=encounter.stage!=="resolved"&&enemy.hp>0;
   let entity=w.entities[id];
   if(!entity){entity={id,name:enemy.name,description:enemy.description,details:{anchor:ids.door,placement:"맞은편 철문 앞",outline:enemy.name,surface:enemy.description},components:{position:{zone:ids.room}}};w.entities[id]=entity;}
-  entity.components.combatant={encounterId:encounter.id,hostile,hp:enemy.hp,maxHp:enemy.maxHp};
+  entity.components.combatant={awareness:entity.components.combatant?.awareness ?? {lastKnownPlayerZone:entity.components.position.zone},encounterId:encounter.id,hostile,hp:enemy.hp,maxHp:enemy.maxHp};
   if(!hostile){entity.description=enemy.name+(enemy.hp===0?"가 쓰러져 더는 공격하지 못한다.":"는 싸움을 멈췄다.");if(entity.details)entity.details.surface=entity.description;}
 }
 export type CombatWorldOption = {id:string;label:string;hint:string;nodeId:string;actions:WorldAction[];combatChoice:SubwayEncounterChoice;importance:"major";loading:{durationMs:number;transitionType:"activity"}};

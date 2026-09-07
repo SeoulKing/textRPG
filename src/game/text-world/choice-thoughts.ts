@@ -9,6 +9,7 @@ export function defaultChoiceThought(world: TextWorld, option: ThoughtOption): s
   if (["harvest", "toolwork"].includes(kind)) return /낚/.test(option.label) ? "이번에는 입질이 있을까." : /덩굴|끈/.test(option.label) ? "단단한 것만 골라 보자." : "여기서 쓸 만한 걸 더 구할 수 있을까.";
   if(kind==="separate")return "문을 사이에 두면 틈이 생길까.";
   if(kind==="combat")return option.family==="NEGOTIATE" ? "말이 통할 여지는 있을까." : option.family==="RETREAT" ? "지금 틈을 타서 빠져나가자." : option.family==="COVER" ? "다가오는 움직임부터 막아 보자." : "빈틈을 먼저 잡아 보자.";
+  if (kind === "throw") return "소리가 나면 그쪽을 돌아볼까.";
   if (kind === "trade") return "지금 쓸 몫을 마련해 둘까.";
   if (kind === "delivery") return "부탁받은 것을 건네 두자.";
   if (kind === "journey") return option.id === "journey:ascend" ? "위층으로 돌아가 볼까." : option.id === "journey:return" ? "이만 들고 돌아가자." : "내려가기 전에 챙길 건 다 챙겼나.";

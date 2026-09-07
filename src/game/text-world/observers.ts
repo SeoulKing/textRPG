@@ -20,7 +20,7 @@ export function propertyOwner(world: TextWorld, entity: TextEntity | undefined) 
   return entity && [entity, ...ancestors(world, entity)].find(e => e.components.ownership)?.components.ownership?.npcId;
 }
 const observedVerbs: Record<string, string> = {
-  OPEN: "열었다", CLOSE: "닫았다", UNLOCK: "잠금을 풀었다", TAKE: "챙겼다", PUT: "옮겨 놓았다", DROP: "내려놓았다", PUSH: "밀어 옮겼다", REPAIR: "수리했다",
+  THROW: "던졌다", OPEN: "열었다", CLOSE: "닫았다", UNLOCK: "잠금을 풀었다", TAKE: "챙겼다", PUT: "옮겨 놓았다", DROP: "내려놓았다", PUSH: "밀어 옮겼다", REPAIR: "수리했다",
 };
 /** Each observer keeps only what its own viewpoint can establish, never the player's private log. */
 export function observeWorldEvent(world: TextWorld, state: GameState, event: WorldEvent) {
@@ -42,7 +42,7 @@ export function observeWorldEvent(world: TextWorld, state: GameState, event: Wor
     } else if (event.origin !== "simulation" && (observedVerbs[event.type] || event.type === "USE_TOOL")) {
       const target = world.entities[event.targetId ?? ""], cover = world.entities[world.player.coverId ?? ""];
       const concealed = world.player.relation === "behind" && world.player.posture === "crouching" && cover?.components.physical?.opaque;
-      const targetVisible = target && visibleEntities(view).some(e=>e.id===target.id) && (!carriedByPlayer(world,target) || isHeld(world,target.id));
+      const targetVisible = target && (event.type === "THROW" && event.before.launchZone === zone || visibleEntities(view).some(e=>e.id===target.id)) && (!carriedByPlayer(world,target) || isHeld(world,target.id));
       if (zone === world.player.zone && illuminated(view, zone) && !concealed && targetVisible) {
         const result = event.type === "USE_TOOL" ? event.after.destroyed ? "구조를 부쉈다" : event.after.technique === "pry" ? "잠금장치를 비틀어 열었다" : "구조에 손상을 냈다" : observedVerbs[event.type];
         observation = { ...identity, sense: "seen", actorKnown: true, targetId: target.id, targetName: target.name, summary: "플레이어가 " + target.name + "에 손을 대어 " + result + "." };

@@ -1,3 +1,4 @@
+import { validateThrow, applyThrow } from "./throwing";
 import { itemLedger } from "../item-ledgers";
 import type { GameState } from "../schemas";
 import type { TextWorld, WorldAction, WorldEvent } from "../schemas/text-world";
@@ -14,9 +15,10 @@ import { applyInteraction, interactionTypes, validateInteraction } from "./inter
 export { recordEvent } from "./events";
 import { adjacentZones, hasDoorKey, canReach, carriesLight, entityDetails, illuminated, pathOpen, worldRooms, visibleEntities, portalBetween } from "./world";
 
-const seconds: Record<WorldAction["type"], number> = { LOOK: 3, INSPECT: 5, MOVE: 5, POSTURE: 1, UNLOCK: 3, OPEN: 2, CLOSE: 2, TAKE: 3, HOLD: 2, STOW: 2, LIGHT: 1, SURVEY: 5, LEAVE: 5, PUSH: 8, PUT: 3, DROP: 2, WAIT: 5, HIDE: 2, DEFOCUS: 2, FOCUS: 1, USE_TOOL: 20, REPAIR: 30 };
+const seconds: Record<WorldAction["type"], number> = { LOOK: 3, INSPECT: 5, MOVE: 5, POSTURE: 1, UNLOCK: 3, OPEN: 2, CLOSE: 2, TAKE: 3, HOLD: 2, STOW: 2, LIGHT: 1, SURVEY: 5, LEAVE: 5, PUSH: 8, PUT: 3, DROP: 2, WAIT: 5, HIDE: 2, DEFOCUS: 2, FOCUS: 1, USE_TOOL: 20, REPAIR: 30, THROW: 3 };
 export function validateWorldAction(world: TextWorld, state: GameState, action: WorldAction): string | null {
   if (state.isGameOver || state.stageClear || !world.active) return "지금은 행동할 수 없다.";
+  if (action.type === "THROW") return validateThrow(world, state, action);
   if (interactionTypes.has(action.type)) return validateInteraction(world, state, action);
   if (action.type === "DEFOCUS") return ((world.player.focusEntityId === undefined ? world.player.near : world.player.focusEntityId) || world.player.manipulating) ? null : "이미 주변을 살피고 있다.";
   if (action.type === "LOOK") return null;
@@ -103,6 +105,7 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
         if (recipe.sound) actionSound = { sourceId: e!.id, zone: rootZone(world, e!), ...recipe.sound, remainingSeconds: recipe.seconds + 12 };
         world.player.focusEntityId = e!.id; world.player.facing = e!.id; break;
       }
+      case "THROW": { const result = applyThrow(world, state, action); before = result.before; after = result.after; actionSound = result.sound; break; }
       case "PUSH": case "PUT": case "DROP": case "WAIT": case "HIDE": {
         const result = applyInteraction(world, state, action); before = result.before; after = result.after; break;
       }
@@ -197,7 +200,7 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
     else advanceWorldSimulation(world, 0, event.id);
     if (state.isGameOver || state.stageClear) return { elapsedSeconds, interrupted: true, discovery: false };
     // Revealing an unopened interior is a decision boundary, even for a future longer plan.
-    const discovery = (["INSPECT", "USE_TOOL"].includes(action.type) && Array.isArray(after.revealedIds) && after.revealedIds.length > 0) || ["OPEN", "LIGHT", "PUT", "DROP", "WAIT", "USE_TOOL"].includes(action.type) && visibleEntities(world).some(item => {
+    const discovery = (["INSPECT", "USE_TOOL"].includes(action.type) && Array.isArray(after.revealedIds) && after.revealedIds.length > 0) || ["OPEN", "LIGHT", "PUT", "DROP", "THROW", "WAIT", "USE_TOOL"].includes(action.type) && visibleEntities(world).some(item => {
       const parent = world.entities[item.components.position.zone];
       return !visibleBefore.has(item.id) && parent?.components.container && !world.observations[parent.id]?.stages.includes("interior");
     });

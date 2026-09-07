@@ -49,12 +49,12 @@ test('witnessed damage to owned property affects only its owner; cover and darkn
  }
 });
 
-test('old rooms acquire the external observer once while preserving items and explicit closed boundaries',()=>{
+test('old rooms acquire the explored concourse and observer once while preserving carried items',()=>{
  const f=fixture();delete f.world.rooms.concourse;delete f.world.entities.shumi_presence;
  f.world.rooms.office.neighbors=f.world.rooms.office.neighbors.filter(id=>id!=='concourse');
  f.world.entities.water.components.position={zone:'player'};f.world.entities.water.inventoryRegistered=true;f.state.inventory.waterBottle=1;
  const upgraded=migrateTextWorld(JSON.parse(JSON.stringify(f.world)));
- assert(upgraded.rooms.concourse.outsideExploration);assert.equal(upgraded.entities.water.components.position.zone,'player');
+ assert(!upgraded.rooms.concourse.outsideExploration);assert(upgraded.rooms.concourse.regionalExit);assert(upgraded.rooms.office.neighbors.includes("concourse"));assert.equal(upgraded.entities.water.components.position.zone,'player');
  assert.equal(Object.values(migrateTextWorld(upgraded).entities).filter(e=>e.components.actor?.npcId==='shumi').length,1);
  assert.deepEqual(f.state.inventory,{crudeAxe:1,waterBottle:1});
 });

@@ -22,6 +22,8 @@ export const ItemEffectsSchema = z.preprocess((raw) => {
   infectionRelief: z.number().int().min(0).max(3).default(0),
 }));
 
+export const ThrowableSchema = z.object({ unitMass: z.number().positive(), sound: z.object({ description: z.string().min(1), intensity: z.number().min(0).max(1) }) });
+
 export const ItemCombatSchema = z.discriminatedUnion("kind", [
   z.object({kind:z.literal("attack"),hitChance:z.number().min(0).max(100),damage:z.number().int().positive(),counterChance:z.number().min(0).max(100)}),
   z.object({kind:z.literal("guard"),successChance:z.number().min(0).max(100),damageReduction:z.number().int().nonnegative()}),
@@ -41,6 +43,7 @@ export const ItemCardSchema = z.object({
   useMinutes: z.number().int().min(0).max(24 * 60).optional(),
   maxDurability: z.number().int().positive().optional(),
   combat: ItemCombatSchema.optional(),
+  throwable: ThrowableSchema.optional(),
   toolCapabilities: z.object({ pry: z.number().int().positive().optional(), cut: z.number().int().positive().optional(), strike: z.number().int().positive().optional() }).optional(),
   source: z.enum(["template", "llm"]),
   generatedAt: z.string(),

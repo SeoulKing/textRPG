@@ -1,18 +1,19 @@
 import type { GameState } from "../schemas";
 import type { TextWorld, WorldAction } from "../schemas/text-world";
+import { worldRooms } from "./world";
 import { carriedByPlayer } from "./spatial";
 import { isHeld } from "./hands";
 import { interactionContext, type InteractionContext } from "./interaction-context";
 
 export type ChoiceCandidate = { id: string; label: string; hint: string; actions?: WorldAction[]; nodeId?: string; combatChoice?: { intent: { primary: string; target?: string } } };
-export type ChoiceFamily = "TRAVEL" | "RETREAT" | "FOCUS" | "INSPECT" | "OPEN_CONTAINER" | "ACCESS" | "COLLECT" | "TOOL" | "PLACE_OBJECT" | "MOVE_OBJECT" | "COVER" | "DEFOCUS" | "STORY" | "WAIT" | "WORK" | "HANDLE" | "CARE" | "TRADE" | "ATTACK" | "NEGOTIATE";
+export type ChoiceFamily = "DISTRACT" | "TRAVEL" | "RETREAT" | "FOCUS" | "INSPECT" | "OPEN_CONTAINER" | "ACCESS" | "COLLECT" | "TOOL" | "PLACE_OBJECT" | "MOVE_OBJECT" | "COVER" | "DEFOCUS" | "STORY" | "WAIT" | "WORK" | "HANDLE" | "CARE" | "TRADE" | "ATTACK" | "NEGOTIATE";
 export type DirectedChoice<T> = T & { family: ChoiceFamily; targetId?: string; slot: string; selectionSignature: string };
 export function describeChoice(option: ChoiceCandidate, world: TextWorld) {
   const prefix = option.id.split(":")[0], kind = prefix === "repair" ? "care" : prefix, last = option.actions?.at(-1), meaningful = option.actions?.find(a => !["POSTURE", "MOVE"].includes(a.type));
   const targetId = option.nodeId ?? (kind === "collect" ? option.id.slice(8) : meaningful?.target ?? last?.target);
   const combat=option.combatChoice?.intent.primary;
   const family: ChoiceFamily = combat ? combat==="persuade"?"NEGOTIATE":combat==="retreat"?"RETREAT":(["defend","evade"].includes(combat) || combat==="use_item"&&option.combatChoice?.intent.target==="self")?"COVER":"ATTACK" : option.id.startsWith("separate:") ? "RETREAT" : option.id === "journey:return" ? "RETREAT" : ["hold", "stow"].includes(kind) ? "HANDLE" : ["harvest", "work"].includes(kind) ? "WORK" : kind === "care" ? "CARE" : kind === "toolwork" ? "TOOL" : kind === "trade" ? "TRADE" : ["story", "delivery"].includes(kind) ? "STORY" : kind === "focus" ? "FOCUS" : kind === "defocus" ? "DEFOCUS" : ["leave", "emerge"].includes(kind) || option.hint === "귀환" ? "RETREAT" : ["travel", "journey"].includes(kind) ? "TRAVEL"
-    : ["put", "drop"].includes(kind) ? "PLACE_OBJECT" : kind === "push" ? "MOVE_OBJECT" : kind === "hide" ? "COVER" : kind === "wait" ? "WAIT"
+    : kind === "throw" ? "DISTRACT" : ["put", "drop"].includes(kind) ? "PLACE_OBJECT" : kind === "push" ? "MOVE_OBJECT" : kind === "hide" ? "COVER" : kind === "wait" ? "WAIT"
     : ["collect", "take"].includes(kind) ? "COLLECT" : ["equip", "light", "tool"].includes(kind) ? "TOOL" : ["open", "unlock"].includes(kind) ? "ACCESS"
     : kind === "close" ? "ACCESS" : kind === "lid" || kind === "explore" && world.entities[targetId ?? ""]?.components.openable ? "OPEN_CONTAINER" : "INSPECT";
   return { family, targetId };
@@ -52,9 +53,10 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
       return Boolean(target && (target.components.container && target.components.openable?.isOpen !== false || target.components.physical?.supportCapacity !== undefined));
     }
     if (option.family === "MOVE_OBJECT" && last?.relation === "blocking") return context.threat?.kind === "hostile" || context.threat?.kind === "door_closing" && last.destination === context.threat.sourceId;
+    if (option.family === "DISTRACT" && !["MANIPULATE", "THREAT"].includes(context.mode)) return false;
     if (option.family === "COVER") return context.mode === "THREAT";
     if (context.mode === "THREAT" && option.family === "TOOL" && last?.type === "LIGHT" && world.entities[last.target!]?.components.light?.on && !option.actions?.some(a => a.type === "TAKE")) return false;
-    if (context.mode === "THREAT" && !["TRAVEL", "RETREAT", "ACCESS", "TOOL", "COVER", "INSPECT", "MOVE_OBJECT", "ATTACK", "NEGOTIATE", ...(context.threat?.kind === "hostile" ? ["COLLECT"] : [])].includes(option.family)) return false;
+    if (context.mode === "THREAT" && !["TRAVEL", "RETREAT", "ACCESS", "TOOL", "COVER", "INSPECT", "MOVE_OBJECT", "ATTACK", "NEGOTIATE", ...(context.threat?.kind === "hostile" ? ["COLLECT", "DISTRACT", "WAIT"] : [])].includes(option.family)) return false;
     return true;
   });
   const unlocks = (o: typeof pool[number]) => Boolean(o.actions?.some(a => a.type === "UNLOCK"));
@@ -72,6 +74,12 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     const focused = o.targetId === context.focusEntityId;
     let value = o.family === "HANDLE" ? 105 : o.family === "WORK" ? 125 : o.family === "COLLECT" ? 130 : o.family === "TOOL" ? 95 : o.family === "ACCESS" ? 85 : o.family === "INSPECT" || o.family === "OPEN_CONTAINER" ? 80 : o.family === "FOCUS" ? 45 : 35;
     if (focused) value += 60;
+    if (o.family === "DISTRACT") {
+      value += context.threat?.kind === "hostile" ? 110 : 35;
+      const destination=o.actions?.at(-1)?.destination;
+      if(destination && worldRooms(world)[destination] && destination!==world.player.zone)value+=60;
+      if(destination===world.player.coverId)value-=100;
+    }
     if(o.combatChoice?.intent.primary==="use_item")value+=110;
     if (o.family === "HANDLE" && o.actions?.at(-1)?.type === "HOLD" && o.targetId && isHeld(world, o.targetId)) value += 30;
     if (!previous?.shownIds.includes(o.id)) value += 30;
@@ -118,7 +126,7 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     take("defend", inFamily("COVER", "ACCESS", "MOVE_OBJECT"));
     take("negotiate", inFamily("NEGOTIATE"));
     take("retreat", inFamily("RETREAT", "TRAVEL"));
-    take("opportunity", o=>inFamily("COLLECT", "TOOL", "ACCESS")(o) || unexploredSurface(o));
+    take("opportunity", o=>inFamily("DISTRACT", "COLLECT", "TOOL", "ACCESS", "WAIT")(o) || unexploredSurface(o));
   } else if (context.mode === "THREAT") {
     take("respond", inFamily("TOOL", "ACCESS", "MOVE_OBJECT"));
     take("defend", inFamily("COVER", "MOVE_OBJECT", "ACCESS"));

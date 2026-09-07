@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { buildNarrationPrompt, compactNarrativeContext, needsGeneratedNarration } from "./narration-prompt";
+import { appendDevLlmTraceForGame } from "../dev-llm-trace";
 import { completedParagraphs } from "../gemini-stream";
 import { currentObservation, markAction, publishParagraph, recordActionTiming } from "../action-observation";
-import { generateGeminiJson, hasGeminiConfig } from "../gemini-client";
+import { generateGeminiJson, geminiModel, hasGeminiConfig } from "../gemini-client";
 import type { NarrativeContext, WorldEvent, WorldFact } from "../schemas/text-world";
 import { particle } from "./world";
 import { resolveChoiceLabels, type ChoiceLabel } from "./choice-labels";
@@ -38,8 +39,9 @@ function eventText(e: WorldEvent) {
         + (e.after.destroyed ? " 구조가 부서진다." + (e.after.opened ? e.after.portal ? " 막혔던 통로가 열린다." : " 가려져 있던 안쪽이 드러난다." : "") : e.after.technique !== "pry" ? " 아직 구조가 남아 있다." : "")
         + (e.after.toolBroken ? " 사용한 도구가 닳아 더는 쓸 수 없다." : "");
     }
+    case "THROW": return name+" 한 개를 "+String(e.after.destinationName)+"으로 던진다. "+String(e.after.soundDescription)+"가 난다.";
     case "ITEM_USE": return particle(name,"을","를")+" 사용한다.";
-    case "ACTOR_MOVE": return name+"가 "+String(e.after.destination)+" 쪽으로 다가온다.";
+    case "ACTOR_MOVE": return name+"가 "+(e.after.reason === "sound" ? "소리가 난 " : "")+String(e.after.destination)+" 쪽으로 움직인다.";
     case "COMBAT": {
       let text=e.after.actionText ? String(e.after.actionText)+" " : "";
       if(e.after.resolution==="victory")text+=name+"가 쓰러져 더는 공격하지 못한다.";
@@ -206,31 +208,47 @@ export function fallbackNarration(context: NarrativeContext): Narration {
   return { paragraphs, source: "template", usedFactIds: [...used], choiceLabels: resolveChoiceLabels(context, []) };
 }
 export const NarrationSchema = z.object({ paragraphs: z.array(z.object({ text: z.string().min(1).max(1100), factIds: z.array(z.string()).min(1) })).min(1).max(3), choiceLabels: z.unknown().optional() });
-export function hasContradictoryAction(context: NarrativeContext, text: string): boolean {
+function contradictionReason(context: NarrativeContext, text: string): string | null {
   // These surface qualities were invented in a real repair response. Material or
   // earlier narration alone is not evidence for a current tactile observation.
   const evidence = JSON.stringify([...context.requiredFacts, ...context.optionalFacts].map(f => f.data));
-  if ([/거칠|거친|까칠/, /매끄럽|매끄러|매끈/].some(quality => quality.test(text) && !quality.test(evidence))) return true;
+  if ([/거칠|거친|까칠/, /매끄럽|매끄러|매끈/].some(quality => quality.test(text) && !quality.test(evidence))) return "unsupported_texture";
+  const bright = /환한|환하게|환하다|환해|환히|눈부신|눈부시|대낮처럼/;
+  if (bright.test(text) && !bright.test(evidence)) return "unsupported_brightness";
+  // A completed CLOSE followed by OPEN cannot be rewritten as a failed attempt to close.
+  const attemptedClose = /닫으려|닫기\s*전|닫지\s*못/;
+  const completedClose = /(?:닫|덮)(?:았|었|자|은|고|는다|혔|힌|혀)/;
+  if (context.results.some(e => e.type === "CLOSE") && attemptedClose.test(text) && !completedClose.test(text)) return "unfinished_close";
+  for (const event of context.results.filter(e => e.type === "OPEN" && e.after.actorName)) {
+    const actor = String(event.after.actorName);
+    const followed = text.split(/[.!?\n]/).some(sentence => sentence.includes(actor) && /(?:뒤따라|따라|쫓아)(?:온|오는|와|온다)/.test(sentence));
+    if (followed && !context.results.some(e => e.type === "ACTOR_MOVE" && e.actorId === event.actorId)) return "unperformed_actor_move";
+  }
+  const reachingThrough = /(?:문틈|틈새|틈)\s*너머(?:로)?[^.!?]{0,20}손을?\s*(?:뻗|내밀)/;
+  if (context.results.some(e => e.type === "OPEN" && e.before.isOpen === false) && reachingThrough.test(text) && !reachingThrough.test(evidence)) return "unsupported_reach";
   if (context.location.id === "store") {
     const emptied = context.requiredFacts.some(f => f.kind === "contents" && Array.isArray(f.data.items) && f.data.items.length === 0 && !f.data.previouslyObserved);
-    if (emptied && !/비어|비었|비운|비워|비게|아무것도|남은.{0,8}없|남아.{0,5}않|남지.{0,5}않/.test(text)) return true;
+    if (emptied && !/비어|비었|비운|비워|비게|아무것도|남은.{0,8}없|남아.{0,5}않|남지.{0,5}않/.test(text)) return "missing_empty_container";
     const allowed = JSON.stringify([...context.requiredFacts, ...context.optionalFacts]);
-    if (["포대", "자루", "봉지"].some(unit => text.includes(unit) && !allowed.includes(unit))) return true;
+    if (["포대", "자루", "봉지"].some(unit => text.includes(unit) && !allowed.includes(unit))) return "invented_container";
   }
   const crossed = context.results.some(e => e.type === "MOVE" && e.before.zone !== e.after.zone);
-  if (crossed && !/들어(?:선|온|간)|돌아(?:온|간)|걸어|걸음|발(?:을|걸음)|지나|옮|나온|나선/.test(text)) return true;
-  if (context.results.some(e => e.type === "TAKE") && !/챙|집어|쥐|거둬|가져|수거/.test(text)) return true;
+  if (crossed && !/들어(?:선|온|간)|돌아(?:온|간)|걸어|걸음|발(?:을|걸음)|지나|옮|나온|나선/.test(text)) return "unreported_crossing";
+  if (context.results.some(e => e.type === "TAKE") && !/챙|집어|쥐|거둬|가져|수거/.test(text)) return "unreported_take";
   const crouched = context.results.some(e => (e.type === "POSTURE" || e.type === "HIDE") && e.after.posture === "crouching");
   const stood = context.results.some(e => e.type === "POSTURE" && e.after.posture === "standing");
-  if (!crouched && /(?:쪼그|쭈그|쭈구)(?:려|리고) 앉는다|몸을 낮춘다|무릎을 굽힌다/.test(text)) return true;
-  if (!stood && /몸을 일으(?:켜|킨다)|몸을 일으켜 세운다|자리에서 일어선다/.test(text)) return true;
+  if (!crouched && /(?:쪼그|쭈그|쭈구)(?:려|리고) 앉는다|몸을 낮춘다|무릎을 굽힌다/.test(text)) return "unperformed_crouch";
+  if (!stood && /몸을 일으(?:켜|킨다)|몸을 일으켜 세운다|자리에서 일어선다/.test(text)) return "unperformed_stand";
   const connections = [...context.requiredFacts, ...context.optionalFacts].filter(f => f.kind === "connection");
   for (const f of connections) {
     // The concourse is outside the room network. A room-to-room door cannot become its exit.
     const name = String(f.data.name).replace(/[.*+?^${}()|[\]\\]/g, char => "\\" + char);
-    if (f.data.from !== "대합실" && f.data.to !== "대합실" && new RegExp("대합실(?:로|에)\\s*(?:곧장\\s*|바로\\s*)?(?:통하는|이어지는|연결된)\\s*" + name).test(text)) return true;
+    if (f.data.from !== "대합실" && f.data.to !== "대합실" && new RegExp("대합실(?:로|에)\\s*(?:곧장\\s*|바로\\s*)?(?:통하는|이어지는|연결된)\\s*" + name).test(text)) return "wrong_exit";
   }
-  return false;
+  return null;
+}
+export function hasContradictoryAction(context: NarrativeContext, text: string): boolean {
+  return contradictionReason(context, text) !== null;
 }
 function missingFacilityEffect(context: NarrativeContext, paragraphs: { text: string; factIds: string[] }[]) {
   return context.requiredFacts.filter(f => f.kind === "facility" && !f.data.storage && f.data.available && Number(f.data.durationMultiplier) < 1).some(f => {
@@ -242,9 +260,15 @@ function missingFacilityEffect(context: NarrativeContext, paragraphs: { text: st
     return !work || !faster || (percentages.length > 0 && !percentages.includes(expected));
   });
 }
-export function validateNarration(context: NarrativeContext, raw: unknown): Narration | null {
+export type NarrationValidationIssue = {
+  code: "invalid_schema" | "paragraph_count" | "unknown_fact_ids" | "missing_required_facts" | "invalid_text" | "missing_facility_effect" | "contradictory_action" | "wrong_viewpoint" | "published_prefix_changed";
+  factIds?: string[];
+  detail?: string;
+};
+/** A deterministic check reports exactly what failed; it does not claim full semantic verification. */
+export function inspectNarration(context: NarrativeContext, raw: unknown): { narration: Narration | null; issues: NarrationValidationIssue[] } {
   const parsed = NarrationSchema.safeParse(raw);
-  if (!parsed.success) return null;
+  if (!parsed.success) return { narration: null, issues: [{ code: "invalid_schema" }] };
   const paragraphs = parsed.data.paragraphs.flatMap(p => {
     let text = withoutRepeatedSubwayNarrative([p.text], context.alreadyDisplayed).join(" ");
     // A wall location does not imply a hook. Preserve the observed location while
@@ -260,10 +284,22 @@ export function validateNarration(context: NarrativeContext, raw: unknown): Narr
   });
   const allowed = new Set([...context.requiredFacts, ...context.optionalFacts].map(f => f.id));
   const used = new Set(paragraphs.flatMap(p => p.factIds));
-  if (paragraphs.length < context.paragraphCount.min || paragraphs.length > context.paragraphCount.max ||
-    paragraphs.some(p => !p.text.trim() || p.factIds.some(id => !allowed.has(id)) || /(?:result|entity|contents|layout|surface|touch|interior|threshold|light|ambient|connection):[\w-]+/.test(p.text)) ||
-    context.requiredFacts.some(f => !used.has(f.id)) || missingFacilityEffect(context, paragraphs) || hasContradictoryAction(context, paragraphs.map(p => p.text).join(" ")) || paragraphs.some(p => /당신(?:은|이|을|의)|너는|네가|플레이어(?:는|가)|주인공(?:은|이)/.test(p.text))) return null;
-  return { paragraphs: paragraphs.map(p => p.text.replace(/마저\s+마저/g, "마저")), source: "llm", usedFactIds: [...used], choiceLabels: resolveChoiceLabels(context, parsed.data.choiceLabels) };
+  const issues: NarrationValidationIssue[] = [];
+  const unknownIds = [...used].filter(id => !allowed.has(id));
+  const missingIds = context.requiredFacts.filter(f => !used.has(f.id)).map(f => f.id);
+  if (paragraphs.length < context.paragraphCount.min || paragraphs.length > context.paragraphCount.max) issues.push({ code: "paragraph_count" });
+  if (unknownIds.length) issues.push({ code: "unknown_fact_ids", factIds: unknownIds });
+  if (missingIds.length) issues.push({ code: "missing_required_facts", factIds: missingIds });
+  if (paragraphs.some(p => !p.text.trim() || /(?:result|entity|contents|layout|surface|touch|interior|threshold|light|ambient|connection):[\w-]+/.test(p.text))) issues.push({ code: "invalid_text" });
+  if (missingFacilityEffect(context, paragraphs)) issues.push({ code: "missing_facility_effect" });
+  const contradiction = contradictionReason(context, paragraphs.map(p => p.text).join(" "));
+  if (contradiction) issues.push({ code: "contradictory_action", detail: contradiction });
+  if (paragraphs.some(p => /당신(?:은|이|을|의)|너는|네가|플레이어(?:는|가)|주인공(?:은|이)/.test(p.text))) issues.push({ code: "wrong_viewpoint" });
+  if (issues.length) return { narration: null, issues };
+  return { narration: { paragraphs: paragraphs.map(p => p.text.replace(/마저\s+마저/g, "마저")), source: "llm", usedFactIds: [...used], choiceLabels: resolveChoiceLabels(context, parsed.data.choiceLabels) }, issues };
+}
+export function validateNarration(context: NarrativeContext, raw: unknown): Narration | null {
+  return inspectNarration(context, raw).narration;
 }
 export function validateRenderedNarration(context: NarrativeContext, raw: unknown): Narration | null {
   const value = raw as Partial<Narration> | null;
@@ -327,8 +363,8 @@ export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) =
       responseJsonSchema: {
         type: "object", required: ["paragraphs", "choiceLabels"], properties: {
           paragraphs: { type: "array", minItems: context.paragraphCount.min, maxItems: context.paragraphCount.max,
-            items: { type: "object", required: ["text", "factIds"], properties: {
-              text: { type: "string" }, factIds: { type: "array", minItems: 1, items: { type: "string", enum: [...context.requiredFacts, ...context.optionalFacts].map(f => f.id) } },
+            items: { type: "object", required: ["factIds", "text"], properties: {
+              factIds: { type: "array", minItems: 1, items: { type: "string", enum: [...context.requiredFacts, ...context.optionalFacts].map(f => f.id) } }, text: { type: "string" },
             } } },
           choiceLabels: { type: "array", minItems: context.nextChoices?.length ?? 0, maxItems: context.nextChoices?.length ?? 0,
             items: { type: "object", required: ["optionId", "label", "thought"], properties: {
@@ -339,8 +375,18 @@ export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) =
       },
       timeoutMs: 20_000, trace: { gameId, scope: context.location.id === "store" ? "card" : "subway", target: "text-world:" + context.location.id + ":narrator" },
     });
-    const valid = validateNarration(context, result);
-    if (!valid || accepted.some((p, i) => p.text !== valid.paragraphs[i])) return recover("invalid_narration");
+    const inspection = inspectNarration(context, result), valid = inspection.narration;
+    if (!valid || accepted.some((p, i) => p.text !== valid.paragraphs[i])) {
+      const issues = valid ? [{ code: "published_prefix_changed" as const }] : inspection.issues;
+      appendDevLlmTraceForGame(gameId, {
+        scope: context.location.id === "store" ? "card" : "subway", target: "text-world:" + context.location.id + ":validation",
+        stage: "draft_validation", model: currentObservation()?.timing.model ?? geminiModel(), status: "fallback",
+        request: JSON.stringify({ requiredFactIds: context.requiredFacts.map(f => f.id), optionalFactIds: context.optionalFacts.map(f => f.id) }),
+        response: JSON.stringify(result), errorReason: JSON.stringify(issues),
+        message: "서술 검사 실패. 이미 전달한 유효 문단은 유지하고 필요한 사실을 기본 서술로 보완합니다.",
+      });
+      return recover("invalid_narration");
+    }
     recordActionTiming({ narration: "llm" });
     return valid;
   } catch (error) { return recover(error instanceof Error && /timeout|abort/i.test(error.name + error.message) ? "timeout" : "generation_failed"); }
