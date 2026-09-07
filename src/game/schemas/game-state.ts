@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ActivityResultSchema } from "./activity";
 import { PlayerSchema } from "./player";
 import { WorldStateSchema } from "./world-state";
 import { QuestStateSchema } from "./quest";
@@ -24,6 +25,7 @@ export const GameStateSchema = z.object({
   day: z.number().int().positive(),
   phaseIndex: z.number().int().nonnegative(),
   worldElapsedMs: z.number().int().nonnegative(),
+  clockRemainderMs: z.number().min(-0.5).max(0.5).optional(),
   lastRealTimestamp: z.number().int().nonnegative(),
   autoEnergyElapsedMs: z.number().int().nonnegative(),
   exhaustionElapsedMs: z.number().int().nonnegative(),
@@ -41,6 +43,13 @@ export const GameStateSchema = z.object({
   inventory: z.record(z.string(), z.number().int().nonnegative()),
   toolDurability: z.record(z.string(), z.number().int().nonnegative()).default({}),
   stockState: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  activityRevision: z.number().int().nonnegative().default(0),
+  lastActivity: ActivityResultSchema.nullable().default(null),
+  resourceState: z.record(z.string(), z.record(z.string(), z.object({
+    remaining: z.number().int().nonnegative(),
+    updatedAtMinutes: z.number().nonnegative(),
+    recoveryProgressMinutes: z.number().nonnegative(),
+  }))).default({}),
   discoveredStockNodeIds: z.array(z.string()).default([]),
   activeStockNodeId: z.string().nullable().default(null),
   dynamicContent: DynamicWorldRegistrySchema.default({

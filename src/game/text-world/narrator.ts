@@ -3,11 +3,25 @@ import { EXPLORATION_PROSE_STYLE } from "./narrative-style";
 import { generateGeminiJson, hasGeminiConfig } from "../gemini-client";
 import type { NarrativeContext, WorldEvent, WorldFact } from "../schemas/text-world";
 import { particle } from "./world";
-import { resolveChoiceNarratives, type ChoiceNarrative } from "./choice-narrative";
+import { resolveChoiceLabels, type ChoiceLabel } from "./choice-labels";
 import { withoutRepeatedSubwayNarrative } from "../subway-narrative";
 
-export type Narration = { paragraphs: string[]; source: "template" | "llm"; usedFactIds: string[]; choiceNarratives?: ChoiceNarrative[] };
+export type Narration = { paragraphs: string[]; source: "template" | "llm"; usedFactIds: string[]; choiceLabels?: ChoiceLabel[] };
 export type TextWorldNarrator = (context: NarrativeContext, gameId: string) => Promise<Narration>;
+function movedContents(e: WorldEvent) {
+  const contents = e.after.containedItems as { name: string; amount: number }[] | undefined;
+  return contents?.length ? " " + contents.map(item => item.name + (item.amount > 1 ? " " + item.amount + "개" : "")).join(", ") + "도 함께 옮긴다." : "";
+}
+function serviceParagraphs(e: WorldEvent) {
+  const paragraphs = [...((e.after.paragraphs ?? []) as string[])];
+  const rewards = (e.after.rewards ?? []) as { name: string; amount: number }[];
+  if (rewards.length) {
+    const receipt = particle(rewards.map(item => item.name + (item.amount > 1 ? " " + item.amount + "개" : "")).join(", "), "을", "를") + " 챙겨 둔다.";
+    if (paragraphs.length) paragraphs[paragraphs.length - 1] += " " + receipt;
+    else paragraphs.push(receipt);
+  }
+  return paragraphs.length ? paragraphs : [e.after.interrupted ? "행동을 이어가던 도중 멈춘다." : String(e.after.label) + "."];
+}
 function eventText(e: WorldEvent) {
   const name = String(e.after.name ?? "").split(" · ").at(-1)!;
   switch (e.type) {
@@ -18,15 +32,24 @@ function eventText(e: WorldEvent) {
     case "UNLOCK": return particle(String(e.after.keyName), "을", "를") + " 자물쇠에 끼워 돌려 " + name + "의 잠금을 푼다.";
     case "OPEN": return particle(name, "을", "를") + " 연다.";
     case "CLOSE": return particle(name, "을", "를") + " 닫는다.";
-    case "TAKE": return e.after.money ? "서랍에 남은 돈 " + e.after.amount + "원을 챙긴다." : particle(name, "을", "를") + (Number(e.after.amount) > 1 ? " " + e.after.amount + "개" : "") + (e.after.held || e.after.zone === "player" && e.after.itemId === null ? " 집어 들어 손에 쥔다." : " 챙긴다.");
+    case "TAKE": if (e.before.carried && e.before.inventoryRegistered) return particle(name, "을", "를") + (e.before.relation === "on" ? " 다시 집어 든다." : " 꺼내 손에 든다.") + movedContents(e);
+      return e.after.money ? "서랍에 남은 돈 " + e.after.amount + "원을 챙긴다." : particle(name, "을", "를") + (Number(e.after.amount) > 1 ? " " + e.after.amount + "개" : "") + (e.after.held || e.after.zone === "player" && e.after.itemId === null ? " 집어 들어 손에 쥔다." : " 챙긴다.") + movedContents(e);
+    case "HOLD": return particle(name, "을", "를") + (e.before.held ? " 손에 고쳐 쥔다." : " 꺼내 손에 든다.");
+    case "STOW": return particle(name, "을", "를") + (e.before.on ? " 끄고 챙겨 둔다." : " 챙겨 둔다.");
     case "PUSH": return particle(name, "을", "를") + " 밀어 " + e.after.destinationName + (e.after.relation === "blocking" ? " 앞을 막는다." : " 옆으로 옮긴다.");
-    case "PUT": return particle(name, "을", "를") + " " + e.after.destinationName + (e.after.relation === "inside" ? " 안에 넣는다." : " 위에 내려놓는다.");
-    case "DROP": return particle(name, "을", "를") + " 지금 자리 옆에 내려놓는다.";
+    case "PUT": return particle(name, "을", "를") + " " + e.after.destinationName + (e.after.relation === "inside" ? " 안에 넣는다." : " 위에 내려놓는다.") + movedContents(e);
+    case "DROP": return particle(name, "을", "를") + " 지금 자리 옆에 내려놓는다." + movedContents(e);
     case "WAIT": return "움직임을 멈추고 잠시 주변의 변화를 기다린다.";
     case "HIDE": return name + " 뒤로 몸을 옮겨 낮춘다.";
     case "AUTO_CLOSE": return name + "이 저절로 닫힌다.";
     case "LIGHT_EXPIRED": return name + "의 불이 꺼진다.";
     case "SOUND": return String(e.after.description ?? "");
+    case "WORK": {
+      const tools = (e.after.tools ?? []) as { name: string; before: number; after: number }[];
+      const wear = tools.map(tool => tool.after === 0 ? particle(tool.name, "이", "가") + " 닳아 더는 사용할 수 없다." : particle(tool.name, "은", "는") + " 작업한 만큼 닳아 있다.").join(" ");
+      return (e.after.interrupted ? name + "에서 작업을 이어가던 도중 멈춘다." : String(e.after.effort) + (e.after.empty ? " 시간을 들였지만 챙길 만한 물건은 찾지 못한다." : "")) + (wear ? " " + wear : "");
+    }
+    case "SERVICE": return serviceParagraphs(e).join(" ");
     case "STORY": return String(e.after.text ?? "");
     case "LIGHT": return name + "의 스위치를 눌러 불을 " + (e.after.on ? "켠다." : "끈다.");
     case "FOCUS": return name + " 쪽으로 시선을 모은다.";
@@ -40,6 +63,11 @@ function eventText(e: WorldEvent) {
 function factText(f: WorldFact): string {
   const d = f.data;
   if (f.kind === "result") return eventText(d as WorldEvent);
+  if (f.kind === "resource") {
+    const status = Number(d.remaining) === 0 ? String(d.name) + (d.recoveryMinutes ? "은 잠시 쉬어 두어야 다시 작업할 수 있다." : "에서는 더 챙길 만한 것이 남아 있지 않다.") : String(d.name) + "에는 아직 작업할 부분이 남아 있다.";
+    const tools = d.missingTools as string[];
+    return status + (tools?.length ? " 다른 작업 방법에는 " + particle(tools.join(", "), "이", "가") + " 필요하다." : "");
+  }
   if (f.kind === "connection") return d.name + "은 " + d.from + "과 " + d.to + " 사이를 잇는다.";
   if (f.kind === "layout") return String(d.layout);
   if (f.kind === "surface" || f.kind === "sensory") return String(d.detail);
@@ -65,7 +93,7 @@ export function fallbackNarration(context: NarrativeContext): Narration {
       if (f.kind === "layout" || f.kind === "result" || f.kind === "lighting" && context.location.lighting === "lit") continue;
       parts.push(factText(f));
     }
-    return { paragraphs: [parts.join(" ")], source: "template", usedFactIds: context.requiredFacts.map(f => f.id), choiceNarratives: resolveChoiceNarratives(context, []) };
+    return { paragraphs: [parts.join(" ")], source: "template", usedFactIds: context.requiredFacts.map(f => f.id), choiceLabels: resolveChoiceLabels(context, []) };
   }
   const used = new Set<string>();
   const beats: string[] = [];
@@ -76,6 +104,9 @@ export function fallbackNarration(context: NarrativeContext): Narration {
     const fact = results[i];
     if (used.has(fact.id)) continue;
     const e = fact.data as WorldEvent, next = results[i + 1], after = next?.data as WorldEvent | undefined;
+    if (e.type === "SERVICE") {
+      used.add(fact.id); beats.push(...serviceParagraphs(e)); continue;
+    }
     let text = use(fact);
     if (e.type === "TAKE" && e.after.itemId) {
       const group = [fact];
@@ -87,7 +118,7 @@ export function fallbackNarration(context: NarrativeContext): Narration {
       if (group.length > 1) {
         for (const member of group) used.add(member.id);
         const names = group.map(member => { const data = (member.data as WorldEvent).after; return data.name + (Number(data.amount) > 1 ? " " + data.amount + "개" : ""); }).join(", ");
-        text = particle(names, "을", "를") + " 차례로 챙긴다.";
+        text = particle(names, "을", "를") + (group.every(member => { const event = member.data as WorldEvent; return event.before.carried && event.before.inventoryRegistered; }) ? " 차례로 꺼내 든다." : " 차례로 챙긴다.");
         i += group.length - 1;
       }
     }
@@ -102,7 +133,7 @@ export function fallbackNarration(context: NarrativeContext): Narration {
       const surface = find("surface", e.targetId);
       if (surface) text = (context.results.some(result => result.type === "MOVE" && result.targetId === e.targetId) ? "가까워진 자리에서 보니 " : "시선을 모아 살펴보니 ") + use(surface);
     }
-    if (["UNLOCK", "OPEN", "CLOSE", "TAKE", "LIGHT"].includes(e.type)) {
+    if (["UNLOCK", "OPEN", "CLOSE", "TAKE", "HOLD", "STOW", "LIGHT"].includes(e.type)) {
       const touch = all.find(f => f.id.startsWith("touch:") && f.targetId === e.targetId && !used.has(f.id));
       if (touch) {
         const detail = use(touch);
@@ -135,9 +166,9 @@ export function fallbackNarration(context: NarrativeContext): Narration {
   // Break at whole causal beats, never between a result and the discovery it exposes.
   const split = Math.max(1, Math.ceil(beats.length / 2));
   const paragraphs = context.paragraphCount.min === 1 ? [beats.join(" ")] : [beats.slice(0, split).join(" "), beats.slice(split).join(" ")];
-  return { paragraphs, source: "template", usedFactIds: [...used], choiceNarratives: resolveChoiceNarratives(context, []) };
+  return { paragraphs, source: "template", usedFactIds: [...used], choiceLabels: resolveChoiceLabels(context, []) };
 }
-export const NarrationSchema = z.object({ paragraphs: z.array(z.object({ text: z.string().min(1).max(1100), factIds: z.array(z.string()).min(1) })).min(1).max(3), choiceNarratives: z.unknown().optional() });
+export const NarrationSchema = z.object({ paragraphs: z.array(z.object({ text: z.string().min(1).max(1100), factIds: z.array(z.string()).min(1) })).min(1).max(3), choiceLabels: z.unknown().optional() });
 export function hasContradictoryAction(context: NarrativeContext, text: string): boolean {
   if (context.location.id === "store") {
     const emptied = context.requiredFacts.some(f => f.kind === "contents" && Array.isArray(f.data.items) && f.data.items.length === 0 && !f.data.previouslyObserved);
@@ -172,12 +203,12 @@ export function validateNarration(context: NarrativeContext, raw: unknown): Narr
   if (paragraphs.length < context.paragraphCount.min || paragraphs.length > context.paragraphCount.max ||
     paragraphs.some(p => !p.text.trim() || p.factIds.some(id => !allowed.has(id)) || /(?:result|entity|contents|layout|surface|touch|interior|threshold|light|ambient|connection):[\w-]+/.test(p.text)) ||
     context.requiredFacts.some(f => !used.has(f.id)) || hasContradictoryAction(context, paragraphs.map(p => p.text).join(" ")) || paragraphs.some(p => /당신(?:은|이|을|의)|너는|네가|플레이어(?:는|가)|주인공(?:은|이)/.test(p.text))) return null;
-  return { paragraphs: paragraphs.map(p => p.text.replace(/마저\s+마저/g, "마저")), source: "llm", usedFactIds: [...used], choiceNarratives: resolveChoiceNarratives(context, parsed.data.choiceNarratives) };
+  return { paragraphs: paragraphs.map(p => p.text.replace(/마저\s+마저/g, "마저")), source: "llm", usedFactIds: [...used], choiceLabels: resolveChoiceLabels(context, parsed.data.choiceLabels) };
 }
 export function validateRenderedNarration(context: NarrativeContext, raw: unknown): Narration | null {
   const value = raw as Partial<Narration> | null;
   if (!value || !Array.isArray(value.paragraphs) || !Array.isArray(value.usedFactIds) || !["template", "llm"].includes(value.source ?? "")) return null;
-  const valid = validateNarration(context, { paragraphs: value.paragraphs.map(text => ({ text, factIds: value.usedFactIds })), choiceNarratives: value.choiceNarratives });
+  const valid = validateNarration(context, { paragraphs: value.paragraphs.map(text => ({ text, factIds: value.usedFactIds })), choiceLabels: value.choiceLabels });
   return valid ? { ...valid, source: value.source! } : null;
 }
 export const narrateTextWorld: TextWorldNarrator = async (context, gameId) => {
@@ -191,19 +222,21 @@ export const narrateTextWorld: TextWorldNarrator = async (context, gameId) => {
       "optionalFacts의 감각과 표면 정보는 필요한 것만 고른다. 모든 사실을 나열할 필요는 없다. knownFacts는 과거에 확인한 것으로 현재 볼 수 있다는 뜻이 아니다. " +
       "recentScenes의 최근 세 장면을 이어 쓴다. 이미 묘사한 상자의 갈라진 뚜껑이나 방 배치를 매 장면 다시 소개하지 않는다. 문단 수를 채우려고 이전 문장을 의역하지 않는다. 수집이라면 물건을 챙기는 순서와 남은 상태를 따라 장면을 진행한다. 재입장 때 이미 확인한 방을 처음 발견한 듯 소개하지 않는다. 위치와 방향은 입구 기준의 고정 배치이며 현재 좌우로 뒤집지 않는다. " +
       "lighting의 lit은 사물을 구별할 정도라는 뜻이며 환한 조명이나 복도 전체가 밝다는 뜻이 아니다. 어두운 구역에서는 데이터에 있는 광원이 닿는 범위로 표현한다. connection은 문이 직접 연결하는 두 공간이다. 역무실의 대합실 쪽 입구와 복도로 통하는 철문은 서로 다른 출입구다. 입구 기준 좌우를 현재 시선 기준 좌우처럼 쓰지 않는다. 구역이 바뀐 MOVE 결과는 그곳으로 이동했음을 분명히 쓴다. 배경이 보인다는 문장으로 실제 이동을 생략하지 않는다. POSTURE 결과가 없는 장면에서 새로 앉거나 일어서는 동작을 쓰지 않는다. player의 현재 위치·시선·자세·손에 든 도구를 존중하고 직전 동작에서 이어진다. 몸을 낮춘 상태와 손에 든 손전등은 필요한 문장에서 자연스럽게 연결한다. " +
+      "held는 실제 손에 든 물건, carried는 소유하고 지닌 물건, stowed는 챙겨 둔 물건이다. HOLD는 이미 지닌 것을 꺼내 들거나 고쳐 쥐는 행동이며 새 획득이 아니다. TAKE도 before.carried와 before.inventoryRegistered가 둘 다 참이면 이미 챙긴 물건을 용기에서 꺼내 드는 행동이다. inventoryDelta가 실제 인벤토리 변화를 정한다. containedItems는 이미 챙겨 둔 채 함께 옮긴 내용물이며, 그 밖의 숨은 내용물은 추측하지 않는다. STOW는 소유를 유지한 채 챙겨 두는 행동이고 PUT·DROP은 방에 남기는 행동이다. interaction.holding은 지금 조작에 관심을 둔 물건이며 null이어도 다른 물건이나 조명을 손에 들고 있을 수 있다. " +
       "신체 감각과 관찰에 근거한 짧은 생각은 가능하지만 데이터에 없는 재질·색·소리·냄새·물건·사연·NPC·전투·위험을 만들지 않는다. 감정과 중요한 결정을 대신 정하지 않는다. " +
+      "SERVICE의 paragraphs는 실제 실행된 고유 사건의 기록이고 rewards·stats·moneyDelta는 실제 결과다. 기록에 있는 사람과 처치는 사용할 수 있지만 다른 무작위 결과를 만들지 않는다. 중단된 행동은 이미 실행된 부분까지만 쓴다. " +
       "recentScenes는 문장 연결용이며 새로운 감각적 사실의 근거로 삼지 않는다. 수납 위치가 데이터에 없으면 가방이나 주머니를 새로 만들어 넣었다고 쓰지 말고 챙기는 동작만 쓴다. 같은 부사를 연달아 반복하지 않는다. " +
       "선택하지 않은 수집·이동을 쓰지 않는다. 열어 발견했을 뿐이면 챙겼다고 쓰지 않는다. 물건 수량을 보존한다. 단위가 정해지지 않은 쌀을 한 포대나 한 자루로 바꾸지 않는다. 수집 후 내용물이 비었다는 사실이 주어지면 그 빈 상태를 반드시 서술한다. " +
       "paragraphCount의 문단 수를 지킨다. 중요한 장면은 2~3문단 안에서 움직임·시선·사물·발견을 엮으며 문단별 역할을 고정하지 않는다. 재확인은 짧은 1문단이다. " +
-      "alreadyDisplayed는 이번 선택 직후 이미 화면에 출력한 행동 시작 문장이다. 이를 반복·인용·의역하지 않고 바로 그 다음 결과부터 쓴다. 아직 결과가 나기 전의 준비 동작이므로 실제 results의 이동·개방·수집 성공이나 실패를 생략하지 않는다. " +
-      "nextChoices는 이 장면 다음에 고를 수 있는 서버 확정 선택지다. 각 선택지에 대해 버튼 문구 label과 클릭 즉시 보여줄 짧은 한 문장 text(30~65자)를 choiceNarratives에 미리 쓴다. label은 주어진 행동·대상·방향·수량을 그대로 두고 한국어 생각이나 의도처럼 자연스럽게 다듬는다. labelNames의 대상 이름을 보존하고 현재 맥락에 없는 선택지나 기능을 만들지 않는다. family는 의미 중복을 제거한 엔진 분류이며 변경하거나 추가하지 않는다. optionId를 그대로 보존한다. actionLead는 안전한 기본 동작 예시다. 이를 참고해 현재 시선과 움직임에 자연스럽게 연결한다. 그 선택을 시작하려는 의도·손 뻗기·시선만 쓴다. 이동 완료, 자세 변경, 발견, 문 개방, 잠금 해제, 수집 성공·실패, 숨은 내용물, 새 사물·감각은 미리 단정하지 않는다. 미래 선택의 결과는 paragraphs에도 넣지 않는다. " +
-      "JSON {paragraphs:[{text,factIds}],choiceNarratives:[{optionId,label,text}]}만 반환한다. 각 문단의 factIds에는 실제 표현한 requiredFacts/optionalFacts ID만 넣는다. requiredFacts ID를 빠뜨리지 않는다. " +
+      "이번 결과 문장은 아직 화면에 표시되지 않았다. 선택한 의도에서 실제 행동과 발견까지 한 장면으로 자연스럽게 서술한다. 행동을 미리 출력했다고 가정하거나 준비 동작을 생략하지 않는다. " +
+      "nextChoices는 서버가 확정한 다음 행동이다. choiceLabels에는 optionId와 자연스러운 버튼 문구 label, 그리고 선택한 줄 아래에 표시할 짧은 속말 thought를 쓴다. thought는 8~30자 정도의 일상적인 1인칭 독백 한 문장이다. 예: 계산대로 다가갈 때 돈이 좀 있을래나. 상황을 보고 생긴 궁금증이나 가벼운 의도만 담는다. defaultThought는 안전한 예시다. hidden contents를 아는 척하거나 수량·새 물건·감정·성공을 단정하지 않는다. 손을 뻗거나 다가가는 행동 묘사로 쓰지 않는다. 주어진 행동·대상·방향·수량과 labelNames의 이름을 보존한다. 새로운 기능이나 선택의 결과, 미리 보여줄 행동 서사는 만들지 않는다. 미래 선택의 결과를 paragraphs에도 넣지 않는다. " +
+      "intent.thought는 클릭할 때 이미 보여 준 속말이며 행동 완료가 아니다. 본문에서 속말을 반복하지 않고 실제 행동과 관찰부터 자연스럽게 이어 쓴다. JSON {paragraphs:[{text,factIds}],choiceLabels:[{optionId,label,thought}]}만 반환한다. factIds에는 해당 문단에서 실제 표현한 사실의 ID만 기록하고 requiredFacts를 빠뜨리지 않는다. " +
       "본문에 ID, 선택지, 게임 수치, 구조 설명을 쓰지 않는다.",
       { context }, { responseSchema: NarrationSchema, responseJsonSchema: {
-        type: "object", required: ["paragraphs", "choiceNarratives"], properties: { choiceNarratives: {
+        type: "object", required: ["paragraphs", "choiceLabels"], properties: { choiceLabels: {
           type: "array", minItems: context.nextChoices?.length ?? 0, maxItems: context.nextChoices?.length ?? 0,
-          items: { type: "object", required: ["optionId", "label", "text"], properties: {
-            optionId: { type: "string", ...((context.nextChoices?.length ?? 0) > 0 ? { enum: context.nextChoices!.map(o => o.id) } : {}) }, label: { type: "string" }, text: { type: "string" },
+          items: { type: "object", required: ["optionId", "label", "thought"], properties: {
+            optionId: { type: "string", ...((context.nextChoices?.length ?? 0) > 0 ? { enum: context.nextChoices!.map(o => o.id) } : {}) }, label: { type: "string" }, thought: { type: "string" },
           } },
         }, paragraphs: {
           type: "array", minItems: context.paragraphCount.min, maxItems: context.paragraphCount.max,

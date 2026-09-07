@@ -5,6 +5,7 @@ import { forestResultSceneTags } from "./result-scene-tags";
 export const forestChoices: ActionDefinition[] = [
   interactionFor("forest", {
     id: "chop_wood_at_forest",
+    resourceUse: { siteId: "fallen_wood", cost: 1, effort: "단단한 나뭇가지를 골라 부러진 부분을 떼어 낸다." },
     skillUse: { skillId: "collection" },
     label: "벌목하기",
     type: "search",
@@ -21,6 +22,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "chop_wood_with_crude_axe",
+    resourceUse: { siteId: "fallen_wood", cost: 1, effort: "손도끼로 쓰러진 나무의 마른 부분을 쳐 낸다." },
     skillUse: { skillId: "collection" },
     label: "{{item:crudeAxe|으로로}} 벌목한다",
     type: "search",
@@ -39,6 +41,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "search_forest_resources",
+    resourceUse: { siteId: "forest_debris", cost: 1, effort: "낙엽을 걷어 내며 잔해 사이를 차례로 뒤진다." },
     skillUse: { skillId: "exploration" },
     label: "수색하기",
     type: "search",
@@ -101,6 +104,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "gather_cordage_at_forest",
+    resourceUse: { siteId: "vines", cost: 1, effort: "질긴 덩굴을 골라 길이를 맞추고 단단하게 꼰다." },
     skillUse: { skillId: "collection" },
     label: "덩굴을 꼬아 끈을 만든다",
     type: "search",
@@ -117,6 +121,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "cut_vines_with_utility_knife",
+    resourceUse: { siteId: "vines", cost: 1, effort: "간이 칼로 질긴 줄기를 잘라 길이가 맞는 것끼리 꼰다." },
     skillUse: { skillId: "collection" },
     label: "{{item:utilityKnife|으로로}} 덩굴을 잘라낸다",
     type: "search",
@@ -135,6 +140,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "search_bushes_with_utility_knife",
+    resourceUse: { siteId: "bushes", cost: 1, effort: "간이 칼로 엉킨 줄기를 걷어 내며 덤불 안쪽을 살핀다." },
     skillUse: { skillId: "exploration" },
     label: "{{item:utilityKnife|으로로}} 덤불을 뒤진다",
     type: "search",
@@ -210,6 +216,28 @@ export const forestLocation = defineLocation({
   traits: ["woodcutting", "foraging", "repeatable resources"],
   obtainableItemIds: ["wood", "woodPlank", "cannedFood", "scrapMetal", "clothScrap", "cordage", "vegetables", "staleBread"],
   neighbors: ["shelter", "convenience", "kitchen", "river"],
+  resourceSites: [
+    {
+      "id": "fallen_wood",
+      "name": "쓰러진 나무",
+      "capacity": 12
+    },
+    {
+      "id": "vines",
+      "name": "질긴 덩굴",
+      "capacity": 8
+    },
+    {
+      "id": "forest_debris",
+      "name": "숲에 남은 잔해",
+      "capacity": 6
+    },
+    {
+      "id": "bushes",
+      "name": "길가의 덤불",
+      "capacity": 8
+    }
+  ],
   interactionChoices: forestChoices,
   links: {
     shelter: { note: "언덕길을 거슬러 임시 거처의 천막 불빛 쪽으로 돌아간다." },

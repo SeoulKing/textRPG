@@ -1,3 +1,4 @@
+import { subwayChoiceThoughtFields } from "./subway-choice-thoughts";
 import { applyTreatment, canApplyTreatment } from "./health-conditions";
 import { baseItems } from "./data/items";
 import { advanceGameMinutes, syncClock } from "./rules";
@@ -1134,7 +1135,8 @@ export function resolveSubwaySituationChoice(
       itemDefinition(itemToken.slice("use_item:".length))?.kind === "tool"
       ? [{ itemId: itemToken.slice("use_item:".length), amount: -1 }]
       : [],
-    postChoiceNarrative: choice.postChoiceNarrative ?? [],
+    selectedThought: subwayChoiceThoughtFields(choice).choiceThought,
+    postChoiceNarrative: [],
     stageAfter,
     resolution,
     summary: resultSummary(

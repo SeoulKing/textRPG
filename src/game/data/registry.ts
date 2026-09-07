@@ -1,3 +1,9 @@
+import { validateQuestGuidance } from "../quest-guidance";
+import { withActivityDocumentDefaults } from "../activity-catalog-updates";
+import { planActivity } from "../activity";
+import { withHospitalDocumentDefaults } from "../text-world/hospital-definitions";
+import { withResourceDocumentDefaults } from "../resource-catalog-updates";
+import { ResourceSiteDefinitionSchema } from "../schemas/content";
 import { textRoomIssues } from "../text-world/validation";
 /**
  * Central content registry and static validation helpers.
@@ -338,11 +344,11 @@ export function getEffectiveContentStudioDocument(stored = loadStoredContentStud
       scenes: Object.values(builtInWorldRegistry.scenes).filter(scene => scene.locationId === location.id && !assigned.has(scene.id)).map(scene => ({ ...scene, choices: scene.choiceIds.map(id => builtInWorldRegistry.choices[id]) })),
     }));
   }
-  return parseContentStudioDocument({ ...doc,
+  return withHospitalDocumentDefaults(withActivityDocumentDefaults(withResourceDocumentDefaults(parseContentStudioDocument({ ...doc,
     locations: Object.values({ ...Object.fromEntries(Object.values(builtInWorldRegistry.locations).map(l => [l.id, StudioLocationSchema.parse(l)])), ...asRecord(doc.locations) }),
     people: Object.values({ ...Object.fromEntries(Object.values(basePeople).map(p => [p.id, StudioPersonSchema.parse(p)])), ...asRecord(doc.people) }),
     stories: Object.values({ ...asRecord(nativeStories), ...asRecord(doc.stories) }),
-  });
+  }), builtInWorldRegistry), builtInWorldRegistry));
 }
 
 function repairQuestionMarkText(
@@ -727,6 +733,15 @@ function validateSkillUseDefinition(definition: SkillUseDefinition, source: stri
 }
 
 function validateAction(registry: ContentRegistry, action: ActionDefinition) {
+  planActivity(action);
+  if (action.resourceUse) {
+    const use = action.resourceUse;
+    if (!Number.isInteger(use.cost) || use.cost <= 0 || !action.locationIds.length) throw new Error(`action:${action.id} invalid resource cost or location.`);
+    for (const locationId of action.locationIds) {
+      const site = registry.locations[locationId]?.resourceSites?.find(site => site.id === use.siteId);
+      if (!site || use.cost > site.capacity) throw new Error(`action:${action.id} references unavailable resource site '${use.siteId}'.`);
+    }
+  }
   validateItemTextReferences(action.label, registry, `action:${action.id}:label`);
   validateItemTextReferences(action.outcomeHint, registry, `action:${action.id}:outcomeHint`);
   validateItemTextReferences(action.failureNote, registry, `action:${action.id}:failureNote`);
@@ -743,6 +758,7 @@ function validateAction(registry: ContentRegistry, action: ActionDefinition) {
 }
 
 function validateChoice(registry: ContentRegistry, choice: ChoiceDefinition) {
+  planActivity(choice);
   validateItemTextReferences(choice.label, registry, `choice:${choice.id}:label`);
   validateItemTextReferences(choice.outcomeHint, registry, `choice:${choice.id}:outcomeHint`);
   validateItemTextReferences(choice.failureNote, registry, `choice:${choice.id}:failureNote`);
@@ -758,10 +774,26 @@ function validateChoice(registry: ContentRegistry, choice: ChoiceDefinition) {
 export function validateRegistry(registry: ContentRegistry) {
   const roomErrors = textRoomIssues(registry.textRooms ?? [], new Set(Object.keys(registry.items)));
   if (registry.textRooms && roomErrors.length) throw new Error(roomErrors.map(issue => issue.message).join("\n"));
+  for (const room of registry.textRooms ?? []) {
+    assertKnownLocation(registry, room.locationId, `textRoom:${room.id}`);
+    for (const entity of room.entities) {
+      const stock = entity.components.stockNode;
+      if (stock && !registry.locations[room.locationId].stockNodes.some(node => node.id === stock.nodeId)) throw new Error("textRoom:" + room.id + " unavailable stock node " + stock.nodeId);
+      for (const binding of entity.components.interactionPoint?.actions ?? []) if (!registry.actions[binding.actionId]?.locationIds.includes(room.locationId)) throw new Error("textRoom:" + room.id + " unavailable interaction action " + binding.actionId);
+      const site = entity.components.resourceSite;
+      if (site && !registry.locations[room.locationId].resourceSites?.some(s => s.id === site.siteId))
+        throw new Error(`textRoom:${room.id} unavailable resource site '${site.siteId}'.`);
+    }
+  }
   const seenStockNodeIds = new Set<string>();
   const globalInteractionIds = new Set<string>();
 
   for (const location of Object.values(registry.locations)) {
+    const resourceIds = new Set<string>();
+    for (const site of location.resourceSites ?? []) {
+      if (!ResourceSiteDefinitionSchema.safeParse(site).success || resourceIds.has(site.id)) throw new Error(`location:${location.id} invalid or duplicate resource site '${site.id}'.`);
+      resourceIds.add(site.id);
+    }
     location.neighbors.forEach((neighborId) => assertKnownLocation(registry, neighborId, `location:${location.id}`));
     Object.keys(location.links).forEach((neighborId) => assertKnownLocation(registry, neighborId, `location:${location.id}`));
     const seenIds = new Set<string>();
@@ -807,6 +839,11 @@ export function validateRegistry(registry: ContentRegistry) {
   Object.values(registry.choices).forEach((choice) => validateChoice(registry, choice));
   Object.values(registry.quests).forEach((questDefinition) => {
     const quest = questDefinition as QuestDefinition;
+    validateQuestGuidance(quest, registry);
+    if (quest.guidance) {
+      validateItemTextReferences(quest.guidance.gathering, registry, `quest:${quest.id}:guidance`);
+      validateItemTextReferences(quest.guidance.ready, registry, `quest:${quest.id}:guidance`);
+    }
     quest.objectives.forEach((objective: Objective) => {
       switch (objective.type) {
         case "obtain_item":

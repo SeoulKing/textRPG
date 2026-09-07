@@ -1,3 +1,6 @@
+import { defaultDialogueThought } from "./npc-dialogue-pipeline";
+import { validChoiceThought } from "./text-world/choice-thoughts";
+import { particle } from "./text-world/world";
 import type { NpcDialogueProfile } from "./data/npc-dialogue-profiles";
 import type { NpcDialogueGenerationResult } from "./npc-dialogue-pipeline";
 import {
@@ -61,6 +64,7 @@ export function applyNpcDialogueGeneration(
     visitCount: memory.visitCount + (options.newVisit ? 1 : 0),
     exchanges,
   };
+  delete state.npcDialogue.departure;
   state.npcDialogue.active = {
     npcId,
     turnNumber: result.scene.turnNumber,
@@ -69,12 +73,14 @@ export function applyNpcDialogueGeneration(
   state.npcDialogue = NpcDialogueStateSchema.parse(state.npcDialogue);
 }
 
-export function leaveNpcDialogue(state: GameState, npcId: string) {
+export function leaveNpcDialogue(state: GameState, npcId: string, name = npcId) {
   const active = state.npcDialogue.active;
   if (!active || active.npcId !== npcId) {
     throw new Error("현재 이 인물과 대화하고 있지 않습니다.");
   }
   state.npcDialogue.active = null;
+  state.npcDialogue.departure = { npcId, locationId: state.location,
+    paragraphs: ["짧게 인사를 건네고 " + particle(name, "과", "와") + "의 대화를 마친다."], generatedAt: new Date().toISOString() };
 }
 
 export function buildNpcDialogueScene(
@@ -82,6 +88,10 @@ export function buildNpcDialogueScene(
   profile: NpcDialogueProfile | null,
 ): SceneCard | null {
   const active = state.npcDialogue.active;
+  const departure = state.npcDialogue.departure;
+  if (!active && departure?.locationId === state.location) return { id: "npc-dialogue:" + departure.npcId + ":departure:" + departure.generatedAt,
+    locationId: state.location, title: "대화를 마치고", paragraphs: departure.paragraphs, choices: [],
+    materialIds: { locationIds: [state.location], personIds: [departure.npcId], itemIds: [] }, source: "template", generatedAt: departure.generatedAt };
   if (!active || !profile || active.npcId !== profile.id) {
     return null;
   }
@@ -100,7 +110,7 @@ export function buildNpcDialogueScene(
       personIds: [profile.id],
       itemIds: [],
     },
-    source: scene.source === "template" ? "template" : "llm",
+    source: scene.replySource ?? (scene.source === "template" ? "template" : "llm"),
     generatedAt: scene.generatedAt,
   };
 }
@@ -113,8 +123,9 @@ export function buildNpcDialogueActions(state: GameState): ActionChoice[] {
     label: choice.label,
     outcomeHint: "",
     showOutcomeHint: false,
-    loading: {},
-    postChoiceNarrative: choice.postChoiceNarrative,
+    loading: { durationMs: 500, transitionType: "activity" as const },
+    choiceThought: validChoiceThought(choice.thought) ? choice.thought : defaultDialogueThought(choice.label),
+    choiceThoughtSource: validChoiceThought(choice.thought) ? choice.thoughtSource ?? "template" : "template",
     action: {
       type: "npc_dialogue" as const,
       command: "choose" as const,
@@ -131,9 +142,9 @@ export function buildNpcDialogueActions(state: GameState): ActionChoice[] {
       label: "대화를 마친다",
       outcomeHint: "",
       showOutcomeHint: false,
-      postChoiceNarrative: [
-        "당신은 짧게 인사를 건네고 슈미와의 대화를 마쳤다.",
-      ],
+      loading: { durationMs: 500, transitionType: "activity" },
+      choiceThought: "이쯤에서 얘기를 마쳐도 되겠지.",
+      choiceThoughtSource: "template",
       action: {
         type: "npc_dialogue",
         command: "leave",
@@ -152,8 +163,9 @@ export function buildNpcDialogueStartAction(
     label: `${profile.name}와 대화하기`,
     outcomeHint: "",
     showOutcomeHint: false,
-    loading: {},
-    postChoiceNarrative: [...profile.openingApproachNarrative],
+    loading: { durationMs: 500, transitionType: "activity" },
+    choiceThought: "잠깐 말을 걸어 볼까.",
+    choiceThoughtSource: "template",
     action: {
       type: "npc_dialogue",
       command: "start",

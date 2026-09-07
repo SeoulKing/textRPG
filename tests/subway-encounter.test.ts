@@ -144,7 +144,8 @@ test("지하 1층 강도는 서버 판정으로 피해를 받고 고정 보상�
   assert.equal(opening.damageDealt, 2);
   assert.equal(opening.damageTaken, 0);
   assert.equal(opening.enemyHpAfter, 2);
-  assert.deepEqual(opening.postChoiceNarrative, ["fight 행동을 시작한다."]);
+  assert.deepEqual(opening.postChoiceNarrative, []);
+  assert.equal(opening.selectedThought, "어느 쪽에 빈틈이 있을까.");
   assert.equal(state.subwayExpedition.currentFloorProgress.encounter?.turnNumber, 1);
 
   setActiveScene(state);
@@ -221,7 +222,7 @@ test("대화 성공은 보상 없이 강도 조우를 해결한다", async () =>
   assert.equal(state.subwayExpedition.carriedLoot.painRelief ?? 0, 0);
 });
 
-test("장면 선택지는 짧은 행동과 선택후 서사만 표시 데이터로 제공한다", async () => {
+test("장면 선택지는 짧은 행동과 속말을 제공하고 구버전 선행 서사를 숨긴다", async () => {
   const state = await stateWithBanditEncounter();
 
   const actions = buildSubwayExpeditionActions(state);
@@ -235,7 +236,8 @@ test("장면 선택지는 짧은 행동과 선택후 서사만 표시 데이터�
     "",
   );
   assert.equal(attack?.showOutcomeHint, true);
-  assert.deepEqual(attack?.postChoiceNarrative, ["fight 행동을 시작한다."]);
+  assert.equal(attack?.postChoiceNarrative, undefined);
+  assert.equal(attack?.choiceThought, "어느 쪽에 빈틈이 있을까.");
 });
 
 test("지하철 상황 선택지에는 보유 아이템 사용을 제시하지 않는다", async () => {
@@ -587,7 +589,7 @@ test("지하철 opening은 묘사 역할 한 번만 호출하고 서버 선택�
   );
   assert.ok(
     generation.scene.choices.every((choice) =>
-      choice.postChoiceNarrative.length === 2
+      !choice.postChoiceNarrative && Boolean(choice.thought)
     ),
   );
   assert.equal(generation.scene.source, "mixed");
@@ -776,7 +778,8 @@ test("LLM 초안의 사건·인물·선택지는 무시하고 서버 전투 상�
     "무기를 내리라고 설득한다",
   );
   assert.equal(generation.scene.choices[2]?.intent.primary, "retreat");
-  assert.equal(generation.scene.choices[2]?.postChoiceNarrative.length, 2);
+  assert.equal(generation.scene.choices[2]?.postChoiceNarrative, undefined);
+  assert.equal(generation.scene.choices[2]?.thought, "지금은 물러나는 게 좋겠지.");
   assert.equal(generation.diagnostics.droppedChoiceCount, 0);
 
   setSubwayEncounterGeneration(state, generation);

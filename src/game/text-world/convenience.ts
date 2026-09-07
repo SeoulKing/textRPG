@@ -1,7 +1,6 @@
 import type { ActionChoice, ContentRegistry, GameAction, GameState } from "../schemas";
 import type { NarrativeContext, TextEntity, TextWorld, WorldAction } from "../schemas/text-world";
 import { choiceConditionsMet, resolveInteractionLoading } from "../content-engine";
-import { GAME_MINUTE_MS } from "../base-data";
 import { resolveItemText } from "../item-text";
 import { applySystemNote, consumeCurrentSceneIntro, performAction, syncScene } from "../rules";
 import { buildRuntimeRegistry } from "../runtime-registry";
@@ -13,10 +12,10 @@ import { particle } from "./world";
 import { directChoices } from "./choice-director";
 import { focusOptions } from "./focus-options";
 import { interactionOptions } from "./affordances";
+import { inventoryRegistered } from "./inventory-state";
 import { transferCarriedEntities } from "./inventory";
-import { advanceWorldSimulation } from "./simulation";
 import { visibleEntities } from "./world";
-import { choiceNarrative, choiceNarrativeFields, nextNarrativeChoices, storeChoiceNarratives } from "./choice-narrative";
+import { choiceLabelFields, nextNarrativeChoices, storeChoiceLabels } from "./choice-labels";
 
 const LOCATION = "convenience";
 const ZONE = "store";
@@ -109,14 +108,14 @@ export function convenienceOptions(state: GameState, registry = buildRuntimeRegi
   // Reclaim placed objects through the engine; registered stock still uses its original rewards and costs.
   const stockIds = new Set(registry.locations[LOCATION].stockNodes.flatMap(node => nodeItems(state, registry, node.id).map(item => item.id)));
   for (const entity of visibleEntities(world)) {
-    if (!entity.components.portable || entity.components.position.zone === "player" || stockIds.has(entity.id)) continue;
+    if (!entity.components.portable || entity.components.position.zone === "player" && inventoryRegistered(world, entity) || stockIds.has(entity.id)) continue;
     physical.unshift({ id: "take:" + entity.id, label: particle(entity.name, "을", "를") + " 챙긴다", hint: "놓아둔 물건 수집", loading: ACTIVITY, actions: [...approach(world, entity.id), { type: "TAKE", target: entity.id }] });
   }
   return directChoices(world, state, [...story, ...collect, ...explore, ...physical, ...focusOptions(world).map(o => ({ ...o, loading: ACTIVITY }))]);
 }
 export function convenienceActions(state: GameState, registry = buildRuntimeRegistry(state)): ActionChoice[] {
   return convenienceOptions(state, registry).map(option => ({ id: "text-world:convenience:" + worldOf(state).revision + ":" + option.id,
-    ...choiceNarrativeFields(worldOf(state), option), outcomeHint: option.hint, showOutcomeHint: true, isAvailable: true, loading: option.loading,
+    ...choiceLabelFields(worldOf(state), option), outcomeHint: option.hint, showOutcomeHint: true, isAvailable: true, loading: option.loading,
     action: { type: "text_world", command: "choose", optionId: option.id, revision: worldOf(state).revision } }));
 }
 function approach(world: TextWorld, nodeId: string): WorldAction[] {
@@ -129,7 +128,7 @@ function approach(world: TextWorld, nodeId: string): WorldAction[] {
   } else if (world.player.posture !== (crouch ? "crouching" : "standing")) actions.push({ type: "POSTURE", posture: crouch ? "crouching" : "standing" });
   return actions;
 }
-async function render(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string, alreadyDisplayed: string[] = []) {
+async function render(state: GameState, registry: ContentRegistry, narrator: TextWorldNarrator, gameId: string) {
   const world = worldOf(state);
   if (portalPending(state) && !world.knowledge["story:portal"]) {
     const scene = registry.scenes.convenience_portal_discovery;
@@ -140,12 +139,11 @@ async function render(state: GameState, registry: ContentRegistry, narrator: Tex
     }
   }
   const context: NarrativeContext = directNarrative(world);
-  context.alreadyDisplayed = alreadyDisplayed;
   context.nextChoices = nextNarrativeChoices(world, convenienceOptions(state, registry));
   let rendered;
   try { rendered = validateRenderedNarration(context, await narrator(structuredClone(context), gameId)) ?? fallbackNarration(context); }
   catch { rendered = fallbackNarration(context); }
-  storeChoiceNarratives(world, context, rendered.choiceNarratives);
+  storeChoiceLabels(world, context, rendered.choiceLabels);
   world.lastParagraphs = rendered.paragraphs;
   world.source = rendered.source;
   world.sceneRevision++;
@@ -180,10 +178,9 @@ export async function performConvenienceAction(state: GameState, action: Extract
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
   const option = convenienceOptions(state, registry).find(o => o.id === action.optionId);
   if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
-  const alreadyDisplayed = [choiceNarrative(world, option).text];
-  const before = structuredClone(state), started = state.worldElapsedMs;
+  const before = structuredClone(state);
   world.events = [];
-  world.lastIntent = { id: option.id, label: option.label, importance: option.importance ?? "major" };
+  world.lastIntent = { id: option.id, label: option.label, thought: choiceLabelFields(world, option).choiceThought, importance: option.importance ?? "major" };
   if (option.actions) {
     const result = resolveWorldActions(world, state, option.actions);
     const target = option.actions.at(-1)?.target;
@@ -228,10 +225,9 @@ export async function performConvenienceAction(state: GameState, action: Extract
               if (!item.money) {
                 const id = "stock-carry:" + item.id + ":" + world.revision + ":" + world.events.length;
                 world.entities[id] = { id, name: item.name, description: item.name, components: { position: { zone: "player" }, portable: { itemId: item.itemId, amount } } };
-                world.player.heldItemId = id; world.player.manipulating = true;
                 world.observations[id] = { stages: ["outline", "surface"], collected: true };
               }
-              recordEvent(world, { type: "TAKE", targetId: item.id, before: { zone: nodeId }, after: { zone: "player", name: item.name, amount, itemId: item.money ? null : item.itemId, money: item.money } });
+              recordEvent(world, { type: "TAKE", targetId: item.id, before: { zone: nodeId }, after: { zone: "player", name: item.name, amount, itemId: item.money ? null : item.itemId, money: item.money, held: false, stowed: !item.money } });
             }
           }
           if (state.location !== LOCATION) { world.active = false; break; }
@@ -241,10 +237,9 @@ export async function performConvenienceAction(state: GameState, action: Extract
       }
     }
   }
-  if (!option.actions) advanceWorldSimulation(world, Math.max(0, Math.round((state.worldElapsedMs - started) / GAME_MINUTE_MS * 60)), world.events.at(-1)?.id);
   world.revision++;
   syncConvenienceEntities(state, registry);
   syncScene(state);
   applySystemNote(before, state);
-  if (world.active) await render(state, registry, narrator, gameId, alreadyDisplayed);
+  if (world.active) await render(state, registry, narrator, gameId);
 }

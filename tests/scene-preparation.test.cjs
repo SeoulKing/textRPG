@@ -104,9 +104,9 @@ function actionHarness(withLead = false) {
     dom:{choices:{innerHTML:'choices',classList:{remove(){}}}},
     preloadActionSceneAssets:()=>events.push('predict'), api:()=>{events.push('request');return response.promise;},
     preloadNextSceneAssets:async()=>events.push('assets'), prepareScenePresentation:()=>events.push('prepare'),
-    shelterStationForAction:()=>null,isMovementAction:()=>false,beginActionTransition:()=>events.push('transition'),
+    shelterStationForAction:()=>null,isMovementAction:()=>false,beginActionTransition:(_a,_trigger,_duration,_loading,thought)=>{events.push('transition');client.waitingThought=thought},
     waitForMilliseconds:()=>transition.promise, needsFreshGame:()=>false, completedQuestChanges:()=>[],
-    shouldContinueLocationStory:()=>withLead,shouldAnimateScene:()=>true, finishActionTransition:noop,
+    shouldContinueLocationStory:()=>withLead,shouldAnimateScene:()=>true, finishActionTransition:noop,markActionAwaitingResponse:()=>events.push("awaiting"),
     render:options=>{events.push('render');client.renderOptions=options;},renderGameOverScreen:noop,showQuestCompletionBurst:noop,clearSceneAnimation:noop,
     window:{scrollTo:noop,alert:()=>events.push('error')},
   });
@@ -219,30 +219,54 @@ test('state refresh persists the current protagonist in its session without shar
 });
 
 
-test('text exploration starts typing at click with the request and preserves the minimum wait, even for fast responses',async()=>{
- const h=actionHarness(true),action={type:'text_world',command:'choose',optionId:'explore:crate',revision:1};
- const pending=h.context.submitAction(action,null,{durationMs:500},['상자를 살피려고 시선을 모은다.'],'llm');
- assert.deepEqual(h.events,['predict','request','transition','lead:llm']);
- assert.equal(h.context.dom.choices.innerHTML,'choices');
+for(const actionType of ['text_world','npc_dialogue','subway_expedition']) {
+test(actionType+': exploration keeps the current scene and chosen row until one complete result is ready',async()=>{
+ const h=actionHarness(true),action={type:actionType,command:'choose',optionId:'explore:crate',revision:1};
+ const pending=h.context.submitAction(action,null,{durationMs:500},['이전 저장의 선행 서사.'],'llm','돈이 좀 있을래나.');
+ assert.deepEqual(h.events,['predict','request','transition']);assert.equal(h.context.dom.choices.innerHTML,'choices');assert.equal(h.client.waitingThought,'돈이 좀 있을래나.');
  await h.context.submitAction(action);assert.equal(h.events.filter(e=>e==='request').length,1);
- h.response.resolve(h.next);h.lead.resolve();await flush();assert(!h.events.includes('render'));
+ h.response.resolve(h.next);await flush();assert(!h.events.includes('render'));
  h.transition.resolve();await pending;
- assert.equal(h.client.snapshot,h.next);assert.equal(h.client.renderOptions.appendScene,true);
- assert.equal(h.client.renderOptions.continueActionStory,true);
- assert.equal(h.client.renderOptions.scrollSceneToStart,false);assert.equal(h.context.dom.choices.innerHTML,'');
+ assert.equal(h.client.snapshot,h.next);assert.equal(h.client.renderOptions.appendScene,true);assert.equal(h.client.renderOptions.scrollSceneToStart,true);
+ assert(!h.events.some(e=>e.startsWith('lead:')));assert.equal(h.context.dom.choices.innerHTML,'choices');
 });
-test('ready results wait for the lead to finish; a finished lead waits for a slow response',async()=>{
- for(const slow of ['lead','response']){
-  const h=actionHarness(true),pending=h.context.submitAction({type:'text_world'},null,{durationMs:500},['행동을 준비한다.']);
-  h.transition.resolve();if(slow==='lead')h.response.resolve(h.next);else h.lead.resolve();
-  await flush();assert(!h.events.includes('render'));assert.equal(h.client.snapshot,h.previous);
-  if(slow==='lead')h.lead.resolve();else h.response.resolve(h.next);await pending;
-  assert.equal(h.client.snapshot,h.next);assert.equal(h.events.filter(e=>e==='render').length,1);
- }
+test(actionType+': a slow response keeps readable history and a pending selection without speculative prose',async()=>{
+ const h=actionHarness(true),pending=h.context.submitAction({type:actionType},null,{durationMs:500},['이전 선행 서사.']);
+ h.transition.resolve();await flush();assert(h.events.includes('awaiting'));assert(!h.events.includes('render'));assert.equal(h.client.snapshot,h.previous);
+ h.response.resolve(h.next);await pending;assert.equal(h.events.filter(e=>e==='render').length,1);assert(!h.events.some(e=>e.startsWith('lead:')));
 });
-test('failed actions restore prior reading history, cancel typing, and never replay a lead after failure',async()=>{
- const h=actionHarness(true),pending=h.context.submitAction({type:'text_world'},null,{durationMs:500},['상자를 살피려고 손을 뻗는다.']);
+test(actionType+': a failed action retains reading history, clears the pending lock and never retries automatically',async()=>{
+ const h=actionHarness(true),pending=h.context.submitAction({type:actionType},null,{durationMs:500},['이전 선행 서사.']);
  h.response.reject(new Error('stale revision'));h.transition.resolve();await pending;
  assert(h.events.includes('restore'));assert.equal(h.client.snapshot,h.previous);assert.equal(h.client.actionInFlight,false);
- h.lead.resolve();await flush();assert.equal(h.events.filter(e=>e==='lead:template').length,1);assert.equal(h.events.filter(e=>e==='render').length,1);
+ assert(!h.events.some(e=>e.startsWith('lead:')));assert.equal(h.events.filter(e=>e==='request').length,1);
+});
+
+
+}
+
+test('a new activity revision refreshes otherwise identical recipe buttons',()=>{
+ const h=functions(['availableActionsSignature'],{});
+ const first={availableActions:[{id:'make_item',label:'제작',outcomeHint:'10분',isAvailable:true,action:{type:'content_choice',choiceId:'make_item',activityRevision:0}}]};
+ const next=structuredClone(first);next.availableActions[0].action.activityRevision=1;
+ assert.notEqual(h.availableActionsSignature(first),h.availableActionsSignature(next));
+ assert.equal(h.availableActionsSignature(next),h.availableActionsSignature(structuredClone(next)));
+});
+
+test('subway reading continues within one floor, while another floor or expedition starts a fresh scene',()=>{
+ const h=functions(['shouldContinueLocationStory'],{storySurfaceId:s=>s.currentScene.id,buildStoryDisplay:s=>s.currentScene});
+ const first={gameId:'game',currentScene:{id:'scene-0'},state:{location:'subway',subwayExpedition:{active:true,runNumber:1,currentFloor:{id:'floor-1'}}}};
+ const next=structuredClone(first);next.currentScene.id='scene-1';assert.equal(h.shouldContinueLocationStory(first,next),true);
+ const otherFloor=structuredClone(next);otherFloor.state.subwayExpedition.currentFloor.id='floor-2';assert.equal(h.shouldContinueLocationStory(first,otherFloor),false);
+ const otherRun=structuredClone(next);otherRun.state.subwayExpedition.runNumber=2;assert.equal(h.shouldContinueLocationStory(first,otherRun),false);
+ const finished=structuredClone(next);finished.state.subwayExpedition.active=false;assert.equal(h.shouldContinueLocationStory(first,finished),false);
+ assert.equal(h.shouldContinueLocationStory(first,first),false);
+});
+
+test('work with an activity revision preserves history and shows its thought while waiting for the complete result',async()=>{
+ const h=actionHarness(true),action={type:'content_choice',choiceId:'craft_firewood',activityRevision:0};
+ const pending=h.context.submitAction(action,null,{durationMs:500},['구버전 미리 쓴 작업 문단.'],'template','이걸 만들어 두면 쓸 일이 있겠지.');
+ assert.equal(h.client.waitingThought,'이걸 만들어 두면 쓸 일이 있겠지.');assert.equal(h.client.snapshot,h.previous);
+ h.transition.resolve();await flush();assert(h.events.includes('awaiting'));assert(!h.events.some(e=>e.startsWith('lead:')));
+ h.response.resolve(h.next);await pending;assert.equal(h.client.renderOptions.appendScene,true);assert.equal(h.client.renderOptions.scrollSceneToStart,true);assert.equal(h.events.filter(e=>e==='request').length,1);
 });

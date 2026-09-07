@@ -6,7 +6,7 @@ const {availableWorldOptions,worldOptions}=require('../.server-dist/game/text-wo
 const {interactionContext}=require('../.server-dist/game/text-world/interaction-context');
 const {directChoices}=require('../.server-dist/game/text-world/choice-director');
 const {fallbackNarration}=require('../.server-dist/game/text-world/narrator');
-const {resolveChoiceNarratives}=require('../.server-dist/game/text-world/choice-narrative');
+const {resolveChoiceLabels}=require('../.server-dist/game/text-world/choice-labels');
 const {resolveWorldActions}=require('../.server-dist/game/text-world/engine');
 const narrator=async c=>fallbackNarration(c);
 async function start(){const s=createInitialGameState();s.location='subway';await performTextWorldAction(s,{type:'text_world',command:'enter'},'choice-test',narrator);return s;}
@@ -28,15 +28,16 @@ test('explicit focus exit keeps physical position and survives save without rest
  const restored=GameStateSchema.parse(JSON.parse(JSON.stringify(s)));assert.equal(interactionContext(restored.textWorld).focusEntityId,null);assert.equal(interactionContext(restored.textWorld).mode,'EXPLORE');
 });
 
-test('only the currently handled item offers placement, including after focusing a compatible surface',async()=>{
+test('placement resumes only after explicitly handling an item at a compatible surface',async()=>{
  const s=await start(),w=s.textWorld;assert(!availableWorldOptions(w,s).some(o=>/^(put|drop):/.test(o.id)));
  await choose(s,'explore:crate');await choose(s,'collect:crate');const held=interactionContext(w).holdingEntityId;assert.equal(held,'scrap');assert.equal(interactionContext(w).mode,'MANIPULATE');
  assert(worldOptions(w,s).filter(o=>o.family==='PLACE_OBJECT').every(o=>o.actions.at(-1).target===held));
  const before={...s.inventory};const place=worldOptions(w,s).find(o=>o.family==='PLACE_OBJECT');await choose(s,place.id);assert.equal(s.inventory.scrapMetal,(before.scrapMetal??0)-2);
  assert.equal(interactionContext(w).holdingEntityId,null);
- // A carried light remains manipulable when attention shifts to a different compatible object.
- w.entities.lamp.components.position={zone:'player'};w.player.heldToolId='lamp';w.player.heldItemId=null;w.player.focusEntityId='crate';w.player.manipulating=false;
- assert.equal(interactionContext(w).mode,'MANIPULATE');assert(worldOptions(w,s).some(o=>o.family==='PLACE_OBJECT'));
+ // Carrying light does not turn observation of another object into item manipulation.
+ resolveWorldActions(w,s,[{type:'MOVE',target:'lamp'},{type:'TAKE',target:'lamp'},{type:'MOVE',target:'crate'}]);
+ assert.equal(interactionContext(w).mode,'FOCUS');assert(!worldOptions(w,s).some(o=>o.family==='PLACE_OBJECT'));
+ await choose(s,'hold:lamp');assert.equal(interactionContext(w).mode,'MANIPULATE');assert(worldOptions(w,s).some(o=>o.family==='PLACE_OBJECT'&&o.actions.at(-1).target==='lamp'));
 });
 
 test('real perceived urgency prioritizes responding and retreating and suppresses ordinary item placement',async()=>{
@@ -64,7 +65,19 @@ test('selection labels can change wording, but action IDs and invalid target/dir
  const s=await start();let context;
  await choose(s,'explore:crate',async c=>{context=c;return fallbackNarration(c);});
  const take=context.nextChoices.find(o=>o.id==='collect:crate');assert(take);
- const good=resolveChoiceNarratives(context,[{optionId:take.id,text:take.actionLead,label:'미개봉 물병과 고철 조각을 집어 챙긴다'}]);assert.equal(good.find(o=>o.optionId===take.id).label,'미개봉 물병과 고철 조각을 집어 챙긴다');
- const wrong=resolveChoiceNarratives(context,[{optionId:take.id,text:take.actionLead,label:'금반지를 집어 챙긴다'}]);assert.equal(wrong.find(o=>o.optionId===take.id).label,undefined);
- assert.equal(resolveChoiceNarratives(context,[{optionId:'unknown',text:take.actionLead,label:take.label}]).some(o=>o.optionId==='unknown'),false);
+ const good=resolveChoiceLabels(context,[{optionId:take.id,label:'미개봉 물병과 고철 조각을 집어 챙긴다'}]);assert.equal(good.find(o=>o.optionId===take.id).label,'미개봉 물병과 고철 조각을 집어 챙긴다');
+ const wrong=resolveChoiceLabels(context,[{optionId:take.id,label:'금반지를 집어 챙긴다'}]);assert.equal(wrong.find(o=>o.optionId===take.id).label,take.label);
+ assert.equal(resolveChoiceLabels(context,[{optionId:'unknown',label:take.label}]).some(o=>o.optionId==='unknown'),false);
+});
+
+test('attention shifts prefer an unexamined object over a known empty container, including after a saved choice',async()=>{
+ const s=await start(),w=s.textWorld;
+ w.entities.unexamined=structuredClone(w.entities.crate);w.entities.unexamined.id='unexamined';w.entities.unexamined.name='자재 더미';
+ w.player.focusEntityId=null;w.player.manipulating=false;w.player.heldItemId=null;
+ const candidates=[{id:'focus:crate',label:'상자로 다가간다',hint:'관심 대상 변경',actions:[{type:'MOVE',target:'crate'}]},{id:'focus:unexamined',label:'자재 더미로 다가간다',hint:'관심 대상 변경',actions:[{type:'MOVE',target:'unexamined'}]}];
+ const initial=directChoices(w,s,candidates);assert.equal(initial[0].id,'focus:crate');
+ w.choiceHistory=[{revision:w.revision,signature:initial[0].selectionSignature,shownIds:initial.map(o=>o.id),chosenId:'defocus',families:['FOCUS']}];
+ w.observations.crate={stages:['outline','surface','interior'],inspected:true,collected:true};w.entities.crate.components.container.items=[];
+ const next=directChoices(w,s,candidates);assert.equal(next[0].id,'focus:unexamined');
+ assert.deepEqual(directChoices(w,s,candidates).map(o=>o.id),next.map(o=>o.id));
 });

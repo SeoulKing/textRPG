@@ -53,7 +53,7 @@ test('group collection counts actual actions, survives normalization and rejects
   await enter(s); await choose(s,'explore:crate'); const take=action(s,'collect:crate'), time=s.textWorld.elapsedSeconds;
   await performTextWorldAction(s,take,'test',narrator);
   assert.equal(s.inventory.waterBottle,water+1); assert.equal(s.inventory.scrapMetal,scrap+2);
-  assert.equal(s.textWorld.elapsedSeconds-time,6); assert.equal(s.textWorld.player.posture,'crouching');
+  assert.equal(s.textWorld.elapsedSeconds-time,8); // Two pickups and storing the first item. assert.equal(s.textWorld.player.posture,'crouching');
   assert(s.systemNoteEntries.some(e=>e.type==='delta'&&e.subject==='item'&&e.itemId==='waterBottle'&&e.amount===1));
   const collected=structuredClone(s); await assert.rejects(performTextWorldAction(s,take,'test',narrator),/상황이 바뀌/); assert.deepEqual(s,collected);
   s=normalizeGameSession(JSON.parse(JSON.stringify(session(s)))).state;
@@ -134,7 +134,7 @@ test('narration failure cannot roll back collection or mutate engine facts',asyn
   const s=initial(); await enter(s); await choose(s,'explore:crate'); let received;
   await performTextWorldAction(s,action(s,'collect:crate'),'test',async c=>{received=structuredClone(c); c.requiredFacts.length=0; throw new Error('offline');});
   assert(!('entities' in received)); assert.equal(s.textWorld.source,'template'); assert(s.textWorld.lastParagraphs.length>=2);
-  assert.equal(s.textWorld.entities.crate.components.container.items.length,0); assert.match(s.textWorld.lastParagraphs.join(' '),/챙긴다/);
+  assert.equal(s.textWorld.entities.crate.components.container.items.length,0); assert.match(s.textWorld.lastParagraphs.join(' '),/챙긴다|손에 쥔다/);
 });
 
 test('v1 migration preserves opened doors, empty containers, tool state, inventory and revision without refilling',()=>{

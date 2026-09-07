@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ActivityDefinitionSchema } from "./activity";
 import { ConditionSchema } from "./condition-effect";
 import { EffectSchema } from "./condition-effect";
 import { SkillUseSchema } from "./skill-progression";
@@ -12,8 +13,8 @@ export const GameActionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("travel"), targetId: z.string() }),
   z.object({ type: z.literal("use_item"), itemId: z.string() }),
-  z.object({ type: z.literal("content_action"), actionId: z.string() }),
-  z.object({ type: z.literal("content_choice"), choiceId: z.string() }),
+  z.object({ type: z.literal("content_action"), actionId: z.string(), activityRevision: z.number().int().nonnegative().optional() }),
+  z.object({ type: z.literal("content_choice"), choiceId: z.string(), activityRevision: z.number().int().nonnegative().optional() }),
   z.object({
     type: z.literal("subway_expedition"),
     command: z.enum([
@@ -73,6 +74,8 @@ export const ActionDefinitionSchema = z.object({
   nextEventId: z.string().optional(),
   nextSceneId: z.string().optional(),
   dailyLimit: DailyLimitSchema.optional(),
+  activity: ActivityDefinitionSchema.nullable().optional(),
+  resourceUse: z.object({ siteId: z.string().min(1), cost: z.number().int().positive(), effort: z.string().min(1).optional() }).nullable().optional(),
   tags: z.array(z.string()).default([]),
   riskHint: z.enum(["low", "medium", "high"]).optional(),
   skillUse: SkillUseSchema.optional(),

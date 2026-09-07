@@ -1,5 +1,7 @@
 import { ancestors, carriedByPlayer, occludedByContainer, occludedByCover, sealedFromReach, passageBlockers, rootZone } from "./spatial";
 import { TextWorldSchema, type TextEntity, type TextWorld, type TextRoom } from "../schemas/text-world";
+import { inventoryRegistered } from "./inventory-state";
+import { isHeld, normalizeHands } from "./hands";
 
 import { defaultTextRooms, details, subwayZones, upgradeOfficeDoor, upgradeWorldPhysics } from "./definitions";
 export { details, subwayZones } from "./definitions";
@@ -16,6 +18,7 @@ export function entityDetails(world: TextWorld, entity: TextEntity) {
   return { ...original, anchor: parent.id, placement: parent.name + " " + relation };
 }
 export function createSubwayTextWorld(rooms: TextRoom[] = defaultTextRooms()): TextWorld {
+  rooms = rooms.filter(room => room.locationId === "subway");
   const entities = rooms.flatMap(room => structuredClone(room.entities));
   upgradeOfficeDoor(entities);
   upgradeWorldPhysics(entities);
@@ -27,6 +30,20 @@ export function createSubwayTextWorld(rooms: TextRoom[] = defaultTextRooms()): T
     lastParagraphs: [rooms.find(room => room.id === "office")!.layout], source: "template", sceneRevision: 0 };
 }
 
+/** Instantiate only the supplied location. Content IDs and initial entry come from its room graph. */
+export function createLocationTextWorld(rooms: TextRoom[]): TextWorld {
+  const entry = rooms[0];
+  if (!entry) throw new Error("탐색 구역이 정의되지 않았습니다.");
+  return { version: 2, active: false, revision: 0, elapsedSeconds: 0,
+    player: { zone: entry.id, near: null, position: "entrance", facing: null, posture: "standing", heldToolId: null, heldItemId: null, focusEntityId: null, manipulating: false },
+    rooms: Object.fromEntries(rooms.map(({ entities, ...room }) => [room.id, structuredClone(room)])),
+    entities: Object.fromEntries(rooms.flatMap(room => room.entities).map(entity => [entity.id, structuredClone(entity)])),
+    observations: {}, visitedZones: [], knowledge: {}, narrated: {}, events: [], recentScenes: [],
+    lastIntent: { id: "enter", label: entry.name + "에 들어선다", importance: "major" },
+    lastParagraphs: [entry.layout], source: "template", sceneRevision: 0,
+  };
+}
+
 // Never replace a previously created world with fresh resources on a parse error.
 export function migrateTextWorld(raw: unknown): TextWorld | null {
   if (raw == null) return null;
@@ -36,6 +53,7 @@ export function migrateTextWorld(raw: unknown): TextWorld | null {
     const entities = Object.values(world.entities);
     upgradeWorldPhysics(entities);
     if (upgradeOfficeDoor(entities)) world.entities = Object.fromEntries(entities.map(e => [e.id, e]));
+    normalizeHands(world);
     return world;
   }
   const observations: TextWorld["observations"] = {};
@@ -80,7 +98,7 @@ export function illuminated(world: TextWorld, zone: string) {
   });
 }
 export function carriesLight(world: TextWorld) {
-  return Object.values(world.entities).some(e => e.components.position.zone === "player" && e.components.light?.on && e.components.light.fuelSeconds !== 0);
+  return Object.values(world.entities).some(e => isHeld(world, e.id) && e.components.light?.on && e.components.light.fuelSeconds !== 0);
 }
 export function visibleEntities(world: TextWorld) {
   return Object.values(world.entities).filter(e => {
@@ -102,13 +120,14 @@ export function canReach(world: TextWorld, entity: TextEntity) {
 }
 export function particle(name: string, consonant: string, vowel: string) {
   const code = name.charCodeAt(name.length - 1) - 0xac00;
-  return name + (code >= 0 && code <= 11171 && code % 28 !== 0 ? consonant : vowel);
+  const finalIndex = code >= 0 && code <= 11171 ? code % 28 : 0;
+  return name + (finalIndex !== 0 && !(consonant === "으로" && finalIndex === 8) ? consonant : vowel);
 }
 
 
 export function hasDoorKey(world: TextWorld, state: { inventory: Record<string, number> }, entity: TextEntity) {
   const keyId = entity.components.openable?.keyId;
-  const key = world.entities[keyId ?? ""] ?? Object.values(world.entities).find(e => e.origin?.entityId === keyId && e.components.position.zone === "player");
+  const key = world.entities[keyId ?? ""] ?? Object.values(world.entities).find(e => e.origin?.entityId === keyId && carriedByPlayer(world, e));
   const portable = key?.components.portable;
-  return Boolean(portable && (portable.itemId ? (state.inventory[portable.itemId] ?? 0) > 0 : key.components.position.zone === "player"));
+  return Boolean(portable && (portable.itemId ? (state.inventory[portable.itemId] ?? 0) > 0 : carriedByPlayer(world, key) && inventoryRegistered(world, key)));
 }

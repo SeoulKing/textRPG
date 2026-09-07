@@ -2,6 +2,7 @@ import type { GameState } from "../schemas";
 import type { TextWorld } from "../schemas/text-world";
 import { illuminated, visibleEntities } from "./world";
 import { passageBlockers } from "./spatial";
+import { handledEntityId } from "./hands";
 
 export type InteractionMode = "EXPLORE" | "FOCUS" | "MANIPULATE" | "THREAT";
 export type InteractionContext = {
@@ -14,8 +15,7 @@ export function interactionContext(world: TextWorld, _state?: GameState): Intera
   const visible = visibleEntities(world), ids = new Set(visible.map(e => e.id));
   const focused = world.player.focusEntityId === undefined ? world.player.near : world.player.focusEntityId;
   const focusEntityId = focused && ids.has(focused) ? focused : null;
-  const held = world.player.heldItemId ?? world.player.heldToolId;
-  const holdingEntityId = held && world.entities[held]?.components.position.zone === "player" ? held : null;
+  const holdingEntityId = handledEntityId(world);
   const expiring = visible.filter(e => e.components.light?.on && e.components.light.fuelSeconds !== undefined && e.components.light.fuelSeconds <= 10);
   const withoutExpiring = { ...world, entities: { ...world.entities } };
   for (const e of expiring) withoutExpiring.entities[e.id] = { ...e, components: { ...e.components, light: { ...e.components.light!, on: false } } };
@@ -27,7 +27,7 @@ export function interactionContext(world: TextWorld, _state?: GameState): Intera
   if (world.events.some(e => ["OPEN", "INSPECT", "LIGHT"].includes(e.type))) {
     for (const e of visible) if (world.entities[e.components.position.zone]?.components.container && !world.observations[e.id]?.collected) newlyDiscoveredIds.push(e.id);
   }
-  return { mode: threat ? "THREAT" : holdingEntityId && (world.player.manipulating || focusEntityId) ? "MANIPULATE" : focusEntityId ? "FOCUS" : "EXPLORE", focusEntityId, holdingEntityId, threat,
+  return { mode: threat ? "THREAT" : holdingEntityId ? "MANIPULATE" : focusEntityId ? "FOCUS" : "EXPLORE", focusEntityId, holdingEntityId, threat,
     newlyDiscoveredIds: [...new Set(newlyDiscoveredIds)].filter(id => ids.has(id)),
     goal: threat?.kind === "darkness" || threat?.kind === "light_expiring" ? "restore_visibility" : threat ? "keep_passage" : newlyDiscoveredIds.length ? "collect_discovery" : "explore" };
 }

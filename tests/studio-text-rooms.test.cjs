@@ -20,7 +20,7 @@ const tools = require('../content-writer-tools.js');
 const fresh = () => getEffectiveContentStudioDocument(parseContentStudioDocument({ version: 2 }));
 const narrator = async context => fallbackNarration(context);
 async function choose(state,id) {
- if(!textWorldActions(state).some(c=>c.action.optionId===id)) { const release=textWorldActions(state).find(c=>c.action.optionId==="defocus"); if(release) await performTextWorldAction(state,release.action,"room-test",narrator); }
+ if(!textWorldActions(state).some(c=>c.action.optionId===id)) { const release=textWorldActions(state).find(c=>c.action.optionId==="defocus") ?? textWorldActions(state).find(c=>c.action.optionId.startsWith("stow:")); if(release) await performTextWorldAction(state,release.action,"room-test",narrator); }
  const action = textWorldActions(state).find(c=>c.action.optionId===id)?.action;
  assert(action, 'missing '+id);
  await performTextWorldAction(state,action,'room-test',narrator);

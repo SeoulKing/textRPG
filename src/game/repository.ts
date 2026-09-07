@@ -1,3 +1,5 @@
+import { EXHAUSTION_TICK_MS } from "./base-data";
+import { MAX_EXHAUSTION_LEVEL } from "./survival-pressure";
 import { migrateTextWorld } from "./text-world/world";
 import { normalizeHealthConditions } from "./health-conditions";
 import { legacyContentVersionId, versionRegistry } from "./content-versions";
@@ -416,9 +418,10 @@ function pruneState(state: unknown): GameState {
     day: nextDay,
     phaseIndex: normalizeInt(rawState.phaseIndex, 0, 0, 4),
     worldElapsedMs: nextWorldElapsedMs,
+    clockRemainderMs: typeof rawState.clockRemainderMs === "number" && Number.isFinite(rawState.clockRemainderMs) && Math.abs(rawState.clockRemainderMs) <= 0.5 ? rawState.clockRemainderMs : 0,
     lastRealTimestamp: normalizeInt(rawState.lastRealTimestamp, Date.now(), 0),
     autoEnergyElapsedMs: normalizeInt(rawState.autoEnergyElapsedMs ?? rawState[legacyAutoEnergyElapsedKey], 0, 0),
-    exhaustionElapsedMs: normalizeInt(rawState.exhaustionElapsedMs ?? rawState[legacyExhaustionElapsedKey], 0, 0),
+    exhaustionElapsedMs: normalizeInt(rawState.exhaustionElapsedMs ?? rawState[legacyExhaustionElapsedKey], 0, 0, EXHAUSTION_TICK_MS - 1),
     isGameOver: typeof rawState.isGameOver === "boolean" ? rawState.isGameOver : false,
     gameOverReason: typeof rawState.gameOverReason === "string" ? rawState.gameOverReason : "",
     stageClear: typeof rawState.stageClear === "boolean" ? rawState.stageClear : false,
@@ -439,11 +442,16 @@ function pruneState(state: unknown): GameState {
     flags: nextFlags,
     quests: nextQuests,
     lastSleepEnergy: normalizeInt(rawState.lastSleepEnergy ?? rawState[legacyLastSleepEnergyKey], 8, 0, 15),
-    exhaustionLevel: normalizeInt(rawState.exhaustionLevel ?? rawState[legacyExhaustionLevelKey], 0, 0),
+    // Older rules allowed unbounded exhaustion without failure. Keep living saves playable.
+    exhaustionLevel: normalizeInt(rawState.exhaustionLevel ?? rawState[legacyExhaustionLevelKey], 0, 0,
+      normalizeInt(rawState.saveVersion, 0, 0) < 21 && !rawState.isGameOver && !rawState.stageClear ? MAX_EXHAUSTION_LEVEL - 1 : MAX_EXHAUSTION_LEVEL),
     log: normalizeLogEntries(rawState.log, nextDay, nextWorldElapsedMs),
     systemNote: typeof rawState.systemNote === "string" ? rawState.systemNote : "",
     systemNoteEntries: SystemNoteEntriesSchema.catch([]).parse(rawState.systemNoteEntries),
     stockState: nextStockState,
+    resourceState: GameStateSchema.shape.resourceState.parse(rawState.resourceState),
+    activityRevision: GameStateSchema.shape.activityRevision.parse(rawState.activityRevision),
+    lastActivity: GameStateSchema.shape.lastActivity.parse(rawState.lastActivity),
     discoveredStockNodeIds: activeStockNodeId && !discoveredStockNodeIds.includes(activeStockNodeId)
       ? [...discoveredStockNodeIds, activeStockNodeId]
       : discoveredStockNodeIds,

@@ -1,13 +1,18 @@
+import { workActivityParagraphs } from "./activity-narrative";
+import { plannedRestMinutes, restDanger, restInterruption, restParagraphs } from "./rest";
+import { advanceSurvivalPressure, millisecondsToSurvivalPressure, relieveExhaustion } from "./survival-pressure";
+import { planActivity } from "./activity";
+import { reconcileWorldInventory } from "./text-world/interactions";
+import { consumeResourceUse, resourceAvailability } from "./resources";
+import { advancePersistentWorlds, type WorldTimeCause } from "./world-time";
 import { currentContentVersionId } from "./content-versions";
 import { advanceConditions, minutesToConditionEvent, normalizeHealthConditions, checkHealthFailure, applyTreatment, canApplyTreatment, CONDITION_LABELS, SLEEP_CONDITION_RATE } from "./health-conditions";
 import {
-  AUTO_ENERGY_TICK_MS,
   GAME_MINUTE_MS,
   PHASE_DURATION_MS,
   PHASES,
   REAL_DAY_MS,
   SAVE_VERSION,
-  EXHAUSTION_TICK_MS,
   TARGET_RESCUE_DAY,
   TRAVEL_DURATION_MS,
 } from "./base-data";
@@ -26,6 +31,7 @@ import {
   getStockStateKey,
   isStockNodeGone,
   isTimeEffect,
+  type ApplyEffectOptions,
 } from "./state-utils";
 import type {
   ActionDefinition,
@@ -63,8 +69,8 @@ function hasItemAmount(state: GameState, itemId: string, amount = 1) {
 }
 
 function setClockFromElapsed(state: GameState) {
-  const totalElapsed = Math.max(0, state.worldElapsedMs || 0);
-  state.worldElapsedMs = totalElapsed;
+  const totalElapsed = Math.max(0, (state.worldElapsedMs || 0) + (state.clockRemainderMs ?? 0));
+  state.worldElapsedMs = Math.max(0, state.worldElapsedMs || 0);
   state.day = Math.floor(totalElapsed / REAL_DAY_MS) + 1;
   state.phaseIndex = Math.min(
     PHASES.length - 1,
@@ -156,10 +162,6 @@ export function refreshLocationKnowledge(state: GameState) {
   markLocationKnown(state, state.location);
   state.flags[`visited_${state.location}`] = true;
   normalizeExplorationKnowledge(state);
-}
-
-function relieveExhaustion(state: GameState, amount = 1) {
-  state.exhaustionLevel = Math.max(0, state.exhaustionLevel - amount);
 }
 
 function triggerGameOver(state: GameState, reason: string) {
@@ -254,6 +256,10 @@ function summarizeSystemNoteEntries(
     const before = previousState.conditions[kind].level;
     const after = nextState.conditions[kind].level;
     if (before !== after) entries.push({ type: "text", text: `${CONDITION_LABELS[kind]} Lv${before} → Lv${after}`, tone: after > before ? "negative" : "positive" });
+  }
+
+  if (previousState.exhaustionLevel !== nextState.exhaustionLevel) {
+    entries.push({ type: "text", text: `탈진 Lv${previousState.exhaustionLevel} → Lv${nextState.exhaustionLevel}`, tone: nextState.exhaustionLevel > previousState.exhaustionLevel ? "negative" : "positive" });
   }
 
   const elapsedMinutes = elapsedTimeMinutes(
@@ -593,8 +599,6 @@ function applyDayTransition(state: GameState, previousDay: number) {
     return;
   }
 
-  state.autoEnergyElapsedMs = 0;
-  state.exhaustionElapsedMs = 0;
   delete state.flags.rain_bucket_drawn_today;
   state.flags[`day${state.day}_mealSecured`] = false;
   state.flags[`day${state.day}_waterSecured`] = false;
@@ -604,67 +608,54 @@ function applyDayTransition(state: GameState, previousDay: number) {
   addLog(state, `${state.day}일차가 시작되었다.`);
 }
 
-function applySurvivalPressureForElapsed(
-  state: GameState,
-  elapsed: number,
-  energyDrainMultiplier = 1,
-) {
-  state.autoEnergyElapsedMs += elapsed * Math.max(0, energyDrainMultiplier);
-  while (state.autoEnergyElapsedMs >= AUTO_ENERGY_TICK_MS) {
-    state.autoEnergyElapsedMs -= AUTO_ENERGY_TICK_MS;
-    adjustStat(state, "energy", -1);
-  }
-
-  if (state.stats.energy === 0) {
-    state.exhaustionElapsedMs += elapsed;
-    while (state.exhaustionElapsedMs >= EXHAUSTION_TICK_MS) {
-      state.exhaustionElapsedMs -= EXHAUSTION_TICK_MS;
-      state.exhaustionLevel += 1;
-    }
-  } else {
-    state.exhaustionElapsedMs = 0;
-  }
-}
-
 function advanceGameTime(
   state: GameState,
   elapsed: number,
-  options: { energyDrainMultiplier?: number; conditionRate?: number; onConditionDamage?: (amount: number) => void } = {},
+  options: WorldTimeCause & { energyDrainMultiplier?: number; conditionRate?: number; onConditionDamage?: (amount: number) => void; shouldStop?: () => boolean } = {},
 ) {
   if (state.isGameOver || state.stageClear) {
-    return;
+    return 0;
   }
 
   const safeElapsed = Math.max(0, elapsed);
   if (safeElapsed === 0) {
-    return;
+    return 0;
   }
 
   checkHealthFailure(state);
+  state.worldElapsedMs += state.clockRemainderMs ?? 0;
+  state.clockRemainderMs = 0;
   const conditionRate = options.conditionRate ?? 1;
   const energyRate = options.energyDrainMultiplier ?? 1;
-  let remaining = safeElapsed;
+  let remaining = safeElapsed, advanced = 0;
   while (remaining > 1e-7 && !state.isGameOver && !state.stageClear) {
     const previousDay = state.day;
     const untilDaybreak = REAL_DAY_MS - state.worldElapsedMs % REAL_DAY_MS;
-    const untilEnergy = energyRate > 0 ? Math.max(0, AUTO_ENERGY_TICK_MS - state.autoEnergyElapsedMs) / energyRate : Infinity;
+    const untilPressure = millisecondsToSurvivalPressure(state, energyRate);
     const untilCondition = minutesToConditionEvent(state) * GAME_MINUTE_MS / conditionRate;
-    const step = Math.min(remaining, untilDaybreak, untilEnergy, untilCondition);
+    const step = Math.min(remaining, untilDaybreak, untilPressure, untilCondition);
     state.worldElapsedMs += step;
+    advanced += step;
+    advancePersistentWorlds(state, step / GAME_MINUTE_MS * 60, options);
     setClockFromElapsed(state);
-    applySurvivalPressureForElapsed(state, step, energyRate);
-    const damage = advanceConditions(state, step / GAME_MINUTE_MS * conditionRate);
+    advanceSurvivalPressure(state, step, () => adjustStat(state, "energy", -1), energyRate);
+    checkHealthFailure(state);
+    const damage = state.isGameOver ? 0 : advanceConditions(state, step / GAME_MINUTE_MS * conditionRate);
     if (damage > 0) options.onConditionDamage?.(damage);
     if (!state.isGameOver) applyDayTransition(state, previousDay);
     evaluateSurvivalOutcome(state);
     remaining -= step;
+    if (options.shouldStop?.()) break;
   }
   // The world clock is stored in milliseconds; fractional event boundaries can
   // arise when a partially progressed condition changes level.
-  state.worldElapsedMs = Math.round(state.worldElapsedMs);
+  const roundedClock = Math.round(state.worldElapsedMs);
+  state.clockRemainderMs = Math.round((state.worldElapsedMs - roundedClock) * 1e9) / 1e9;
+  state.worldElapsedMs = roundedClock;
   state.autoEnergyElapsedMs = Math.round(state.autoEnergyElapsedMs);
   state.exhaustionElapsedMs = Math.round(state.exhaustionElapsedMs);
   refreshLocationKnowledge(state);
+  return advanced;
 }
 
 export function advanceGameMinutes(state: GameState, minutes: number, options: { onConditionDamage?: (amount: number) => void } = {}) {
@@ -681,8 +672,9 @@ export function advanceGameMinutes(state: GameState, minutes: number, options: {
 }
 
 /** Short exploration actions share the survival clock without a one-minute minimum. */
-export function advanceGameSeconds(state: GameState, seconds: number) {
-  advanceGameTime(state, GAME_MINUTE_MS * Math.max(0, seconds) / 60);
+export function advanceGameSeconds(state: GameState, seconds: number, cause: WorldTimeCause = {}) {
+  const elapsed = advanceGameTime(state, GAME_MINUTE_MS * Math.max(0, seconds) / 60, cause);
+  return Math.round(elapsed / GAME_MINUTE_MS * 60 * 1e6) / 1e6;
 }
 
 function advanceTravelTime(state: GameState) {
@@ -731,6 +723,9 @@ export function createInitialGameState(): GameState {
     },
     toolDurability: {},
     stockState: {},
+    resourceState: {},
+    activityRevision: 0,
+    lastActivity: null,
     discoveredStockNodeIds: [],
     activeStockNodeId: null,
     dynamicContent: {
@@ -994,6 +989,7 @@ type ExecutionResult = {
 export type PerformActionOptions = {
   rng?: () => number;
   onConditionDamage?: (amount: number) => void;
+  onNarrative?: ApplyEffectOptions["onNarrative"];
 };
 
 function applyDefinitionEffects(
@@ -1016,8 +1012,70 @@ function applyDefinitionEffects(
       }
       return;
     }
-    applyEffect(effect, state, { skillUse, rng: options.rng });
+    applyEffect(effect, state, { skillUse, rng: options.rng, onNarrative: options.onNarrative });
   });
+}
+
+/** A long rest uses real clock boundaries and grants recovery only for finished intervals. */
+function applyRestActivity(state: GameState, definition: ActionDefinition | ChoiceDefinition, options: PerformActionOptions) {
+  const rest = definition.activity;
+  if (rest?.kind !== "rest") return;
+  const plannedMinutes = plannedRestMinutes(state, rest);
+  if (plannedMinutes <= 0 || restDanger(state)) throw new Error(restDanger(state) || "지금은 이 시간까지 쉴 수 없습니다.");
+  const before = structuredClone(state), startedAtMinutes = (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS;
+  const revision = state.activityRevision++;
+  let remaining = plannedMinutes, reason: string | null = null;
+  while (remaining > 1e-7 && !reason) {
+    const interval = Math.min(remaining, rest.recovery.intervalMinutes);
+    const advanced = advanceGameTime(state, interval * GAME_MINUTE_MS, { ...options, shouldStop: () => Boolean(restInterruption(before, state)) }) / GAME_MINUTE_MS;
+    remaining = Math.max(0, remaining - advanced);
+    reason = restInterruption(before, state);
+    if (reason) break;
+    if (advanced >= rest.recovery.intervalMinutes - 1e-7) {
+      adjustStat(state, "hp", rest.recovery.hp);
+      adjustStat(state, "mind", rest.recovery.mind);
+    }
+  }
+  const elapsedMinutes = Math.max(0, (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS - startedAtMinutes);
+  const paragraphs = restParagraphs(rest, elapsedMinutes, reason ?? undefined);
+  state.lastActivity = { revision, definitionId: definition.id, kind: "rest", status: reason ? "interrupted" : "completed",
+    startedAtMinutes, plannedMinutes, elapsedMinutes, consumedItems: {}, producedItems: {}, moneySpent: 0,
+    ...(reason ? { reason } : {}), paragraphs, generatedAt: new Date().toISOString() };
+  if (!reason) applyDefinitionEffects(state, definition.effects, undefined, options);
+  addLog(state, paragraphs.join(" "));
+}
+
+/** Long work pays its inputs once, advances the shared world clock, and only then completes. */
+function applyWorkDefinition(state: GameState, definition: ActionDefinition | ChoiceDefinition, options: PerformActionOptions) {
+  if (definition.activity?.kind === "rest") { applyRestActivity(state, definition, options); return; }
+  const plan = planActivity(definition);
+  if (!plan) { applyDefinitionEffects(state, definition.effects, definition.skillUse, options); return; }
+  const startedAt = (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS;
+  const minutes = resolveSkillAdjustedMinutes(plan.minutes, definition.skillUse, state.skillProgress);
+  const revision = state.activityRevision++;
+  applyDefinitionEffects(state, plan.inputs, undefined, options);
+  reconcileWorldInventory(state);
+  advanceGameMinutes(state, minutes, options);
+  const completed = !state.isGameOver && !state.stageClear;
+  const beforeCompletion = { ...state.inventory };
+  const completionParagraphs: string[] = [];
+  if (completed) applyDefinitionEffects(state, plan.completion, definition.skillUse, { ...options, onNarrative: result => {
+    if (result.type === "text") completionParagraphs.push(result.text);
+    else completionParagraphs.push(...(buildRuntimeRegistry(state).scenes[result.sceneId]?.paragraphs ?? []));
+    options.onNarrative?.(result);
+  } });
+  const producedItems = Object.fromEntries(Object.entries(state.inventory).flatMap(([id, amount]) => {
+    const delta = amount - (beforeCompletion[id] ?? 0);
+    return delta > 0 ? [[id, delta]] : [];
+  }));
+  const elapsedMinutes = Math.max(0, (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS - startedAt);
+  state.lastActivity = { revision, definitionId: definition.id, kind: definition.activity!.kind,
+    status: completed ? "completed" : "interrupted", startedAtMinutes: startedAt, plannedMinutes: minutes, elapsedMinutes,
+    consumedItems: { ...plan.itemCosts }, producedItems, moneySpent: plan.moneyCost,
+    ...(!completed ? { reason: state.gameOverReason || "작업을 끝내기 전에 상황이 종료되었다." } : {}) };
+  state.lastActivity.paragraphs = workActivityParagraphs(definition, state.lastActivity, completionParagraphs, buildRuntimeRegistry(state));
+  state.lastActivity.generatedAt = new Date().toISOString();
+  if (!completed) addLog(state, resolveItemText(definition.label, buildRuntimeRegistry(state)) + " 작업을 끝내지 못했다. 완성품이나 설비는 만들어지지 않았다.");
 }
 
 function authoredAdvanceTimeMinutes(effects: Effect[]) {
@@ -1152,15 +1210,18 @@ function executeActionDefinition(
     };
   }
 
+  const resources = resourceAvailability(state, action, buildRuntimeRegistry(state));
+  if (resources && resources.remainingUses === 0) throw new Error(resources.exhaustedHint);
   consumeCurrentSceneIntro(state);
-  if (action.id === "cook_at_shelter") {
+  if (action.id === "cook_at_shelter" && !action.activity) {
     return executeShelterCookingAction(state, action, options);
   }
   const previousState = structuredClone(state);
+  if (resources) consumeResourceUse(state, action, resources);
   if (action.dailyLimit) {
     consumeDailyUse(state, action.dailyLimit);
   }
-  applyDefinitionEffects(state, action.effects, action.skillUse, options);
+  applyWorkDefinition(state, action, options);
   awardDefinitionSkillXp(previousState, state, action.skillUse, action.effects);
   if (action.id === "sleep_at_shelter") {
     applyShelterSleepBonus(state);
@@ -1191,7 +1252,7 @@ function executeSceneChoiceDefinition(
   if (choice.tags?.includes("studio-authored") && !resolveSceneDefinition(state, buildRuntimeRegistry(state)).choiceIds.includes(choice.id)) throw new Error("현재 장면에서 선택할 수 없습니다.");
   consumeCurrentSceneIntro(state);
   const previousState = structuredClone(state);
-  applyDefinitionEffects(state, choice.effects, choice.skillUse, options);
+  applyWorkDefinition(state, choice, options);
   awardDefinitionSkillXp(previousState, state, choice.skillUse, choice.effects);
   return {
     preferredSceneId: choice.nextSceneId,
@@ -1204,6 +1265,7 @@ export function performAction(
   action: GameAction,
   options: PerformActionOptions = {},
 ) {
+  if (state.isGameOver || state.stageClear) throw new Error(state.gameOverReason || "이미 종료된 상황입니다.");
   const previousState = structuredClone(state);
   syncClock(state);
   if (state.isGameOver) {
@@ -1278,6 +1340,10 @@ export function performAction(
   if (!state.isGameOver && !state.stageClear) syncQuestState(state, previousState.quests);
   evaluateSurvivalOutcome(state);
   syncScene(state, preferredSceneId);
+  if (preferredSceneId && state.sceneId === preferredSceneId && !state.isGameOver && !state.stageClear)
+    options.onNarrative?.({ type: "scene", sceneId: preferredSceneId });
+  if (state.lastActivity && state.lastActivity.revision === previousState.lastActivity?.revision
+    && (state.location !== previousState.location || state.sceneId !== previousState.sceneId)) delete state.lastActivity.paragraphs;
   applySystemNote(previousState, state, resolveItemText(fallbackNote, registry));
 }
 
@@ -1292,7 +1358,9 @@ export function forecastShelterSleep(state: GameState) {
   performAction(next, { type: "content_action", actionId: definition.id }, { rng: () => 1, onConditionDamage: amount => { conditionLoss += amount; } });
   return {
     hpBefore: state.stats.hp, hpAfter: next.stats.hp, conditionDamage: conditionLoss,
+    energyBefore: state.stats.energy, energyAfter: next.stats.energy,
     infectionBefore: state.conditions.infection.level, infectionAfter: next.conditions.infection.level,
+    exhaustionBefore: state.exhaustionLevel, exhaustionAfter: next.exhaustionLevel,
     isFatal: next.isGameOver, reason: next.gameOverReason,
   };
 }

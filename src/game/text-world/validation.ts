@@ -6,17 +6,18 @@ export function textRoomIssues(rooms: TextRoom[], itemIds: Set<string>) {
   const roomIds = new Set(rooms.map(room => room.id));
   const all = rooms.flatMap(room => room.entities);
   const entities = new Map(all.map(entity => [entity.id, entity]));
-  if (rooms.length !== 3 || !["office", "corridor", "storage"].every(id => roomIds.has(id))) add("office", "역무실·정비 복도·정비 창고의 방 구성을 유지해 주세요.");
+  if (rooms.some(room => room.locationId === "subway") && !["office", "corridor", "storage"].every(id => roomIds.has(id))) add("office", "역무실·정비 복도·정비 창고의 방 구성을 유지해 주세요.");
   const rootOf = (id: string) => {
     const seen = new Set<string>(); let at = entities.get(id);
     while (at) { if (seen.has(at.id)) return null; seen.add(at.id); const owner: string = at.components.position.zone; if (roomIds.has(owner)) return owner; at = entities.get(owner); }
     return null;
   };
+  if (roomIds.size !== rooms.length) add("", "탐색 구역 ID가 중복되었습니다.");
   const ids = new Set<string>();
   const portals = new Set<string>();
   for (const room of rooms) {
     if (!room.name.trim()) add(room.id, "방 이름을 입력해 주세요.");
-    for (const next of room.neighbors) if (!roomIds.has(next) || next === room.id || !rooms.find(r => r.id === next)?.neighbors.includes(room.id)) add(room.id, "연결된 방은 서로 왕복할 수 있어야 합니다.");
+    for (const next of room.neighbors) if (!roomIds.has(next) || next === room.id || (!rooms.find(r => r.id === next)?.neighbors.includes(room.id) || rooms.find(r => r.id === next)?.locationId !== room.locationId)) add(room.id, "연결된 방은 서로 왕복할 수 있어야 합니다.");
     for (const entity of room.entities) {
       const c = entity.components, parent = entities.get(c.position.zone);
       const label = entity.name || entity.id;
@@ -31,6 +32,8 @@ export function textRoomIssues(rooms: TextRoom[], itemIds: Set<string>) {
         const target = entities.get(c.discovery.inspectTargetId);
         if (!c.portable || !target || target.id === entity.id || target.components.position.zone !== room.id || target.components.discovery) add(room.id, label + ": 먼저 자세히 살필 대상을 같은 방의 사물로 설정해 주세요.");
       }
+      if (c.stockNode && (!c.container || c.portable || c.resourceSite || c.physical?.movable)) add(room.id, label + ": 재고 노드는 고정 보관함에 연결해 주세요.");
+      if (c.interactionPoint && new Set(c.interactionPoint.actions.map(a => a.actionId)).size !== c.interactionPoint.actions.length) add(room.id, label + ": 연결된 행동이 중복되었습니다.");
       if (c.container) {
         if (c.portal) add(room.id, label + ": 문은 보관함으로 사용할 수 없습니다.");
         if (new Set(c.container.items).size !== c.container.items.length) add(room.id, `${label}: 내용물이 중복되어 있습니다.`);

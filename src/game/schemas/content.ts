@@ -33,6 +33,14 @@ export const StockNodeDefinitionSchema = z.object({
   items: z.array(StockNodeItemDefinitionSchema).default([]),
 });
 
+export const ResourceSiteDefinitionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  capacity: z.number().int().positive(),
+  // One work opportunity recovers each interval. Omission means finite material.
+  recoveryMinutes: z.number().positive().optional(),
+});
+
 export const LocationDefinitionSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -51,6 +59,7 @@ export const LocationDefinitionSchema = z.object({
   eventIds: z.array(z.string()).default([]),
   links: z.record(z.string(), LinkDefinitionSchema),
   stockNodes: z.array(StockNodeDefinitionSchema).default([]),
+  resourceSites: z.array(ResourceSiteDefinitionSchema).optional(),
   monsters: z.array(MonsterDefinitionSchema).default([]),
 });
 
@@ -71,4 +80,5 @@ export type LinkDefinition = z.infer<typeof LinkDefinitionSchema>;
 export type StockNodeItemDefinition = z.infer<typeof StockNodeItemDefinitionSchema>;
 export type StockNodeDefinition = z.infer<typeof StockNodeDefinitionSchema>;
 export type LocationDefinition = z.infer<typeof LocationDefinitionSchema>;
+export type ResourceSiteDefinition = z.infer<typeof ResourceSiteDefinitionSchema>;
 export type ContentRegistry = z.infer<typeof ContentRegistrySchema>;

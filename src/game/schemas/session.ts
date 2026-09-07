@@ -87,8 +87,8 @@ export const SurvivalGoalSchema = z.object({
 
 export const StateSnapshotSchema = z.object({
   conditionCards: z.array(z.object({
-    kind: z.enum(["injury", "infection"]), label: z.string(), level: z.number().int().min(1).max(4),
-    nextDamageMinutes: z.number().nonnegative(), nextWorseningMinutes: z.number().nonnegative().nullable(),
+    kind: z.enum(["injury", "infection", "exhaustion"]), label: z.string(), level: z.number().int().min(1).max(4),
+    nextDamageMinutes: z.number().nonnegative().nullable(), nextWorseningMinutes: z.number().nonnegative().nullable(),
   })).default([]),
   gameId: z.string(),
   state: GameStateSchema,
@@ -105,6 +105,7 @@ export const StateSnapshotSchema = z.object({
       name: z.string(),
       summary: z.string(),
       status: QuestStateSchema,
+      nextStep: z.string().optional(),
       requirements: z.array(
         z.object({
           itemId: z.string(),
@@ -112,6 +113,7 @@ export const StateSnapshotSchema = z.object({
           amount: z.number().int().positive(),
           ownedAmount: z.number().int().nonnegative(),
           met: z.boolean(),
+          sourceHints: z.array(z.string()).default([]),
         })
       ).default([]),
     })

@@ -1,3 +1,7 @@
+import { withQuestGuidanceDefaults } from "./quest-guidance";
+import { withDefaultHospitalRooms } from "./text-world/hospital-definitions";
+import { withActivityCatalogDefaults } from "./activity-catalog-updates";
+import { withResourceCatalogDefaults } from "./resource-catalog-updates";
 import { baseItems } from "./data/items";
 import { omitRetiredActions } from "./content-retirements";
 import { applySurvivalCatalogUpdates } from "./survival-catalog-updates";
@@ -90,7 +94,7 @@ export function buildRuntimeRegistry(
         : stateOrDynamic;
 
   const base = stateOrDynamic && "dynamicContent" in stateOrDynamic ? (versionRegistry(stateOrDynamic.contentVersionId) ?? worldRegistry) : worldRegistry;
-  return omitRetiredActions(applySurvivalCatalogUpdates({
+  return withDefaultHospitalRooms(withQuestGuidanceDefaults(omitRetiredActions(withActivityCatalogDefaults(withResourceCatalogDefaults(applySurvivalCatalogUpdates({
     textRooms: base.textRooms,
     items: { ironDoorKey: baseItems.ironDoorKey, ...base.items, ...dynamicContent.items },
     people: { ...base.people, ...dynamicContent.people },
@@ -101,7 +105,7 @@ export function buildRuntimeRegistry(
     choices: { ...base.choices, ...dynamicContent.choices },
     events: { ...base.events, ...dynamicContent.events },
     scenes: { ...base.scenes, ...dynamicContent.scenes },
-  }, worldRegistry));
+  }, worldRegistry), worldRegistry), worldRegistry)), worldRegistry));
 }
 
 function expandedFrontierSlots(state: Pick<GameState, "frontierState"> | null | undefined, locationId: string) {

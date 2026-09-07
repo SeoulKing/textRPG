@@ -5,6 +5,7 @@ import { riverResultSceneTags } from "./result-scene-tags";
 export const riverChoices: ActionDefinition[] = [
   interactionFor("river", {
     id: "fish_at_river",
+    resourceUse: { siteId: "fishing_pools", cost: 1, effort: "강둑에 고정된 낚싯줄을 풀어 물속으로 내리고 입질을 기다린다." },
     skillUse: { skillId: "fishing" },
     label: "낚시하기",
     type: "search",
@@ -59,6 +60,14 @@ export const riverLocation = defineLocation({
   traits: ["fishing", "repeatable food", "waterside"],
   obtainableItemIds: ["riverFish"],
   neighbors: ["convenience", "hospital", "forest"],
+  resourceSites: [
+    {
+      "id": "fishing_pools",
+      "name": "낚시 자리",
+      "capacity": 4,
+      "recoveryMinutes": 360
+    }
+  ],
   interactionChoices: riverChoices,
   links: {
     convenience: { note: "콘크리트 둑길을 올라 편의점 폐허로 돌아간다." },

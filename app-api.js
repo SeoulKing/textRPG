@@ -240,7 +240,7 @@ const STATUS_DETAILS = {
   energy: {
     title: "기력",
     max: 15,
-    note: "시간이 지나면 줄어들고 음식으로 회복 가능",
+    note: "시간이 지나면 줄어들고 음식으로 회복합니다. 기력 0으로 보낸 시간이 12시간 쌓이면 탈진 +1단계, Lv4에서는 생존이 끝납니다. 기력을 회복하면 진행이 멈춥니다.",
   },
 };
 
@@ -383,6 +383,7 @@ const client = {
   pendingActionElement: null,
   pendingActionSceneElement: null,
   pendingActionStatusElement: null,
+  pendingThoughtElement: null,
   pendingActionProgressElement: null,
   pendingActionDisabledControls: [],
   actionTransitionMessage: "",
@@ -830,10 +831,14 @@ function actionTransitionDurationMs(action, loading = null) {
   if (isMovementAction(action, loading)) {
     return ACTION_TRANSITION_MOVEMENT_MS;
   }
+  if (action?.type === "text_world" || action?.type === "npc_dialogue") {
+    return Number.isFinite(loading?.durationMs) ? Math.max(0, loading.durationMs) : ACTION_TRANSITION_ACTION_MS;
+  }
   if (action?.type === "use_item") {
     return ACTION_TRANSITION_ACTION_MS;
   }
-  if (action?.type === "subway_expedition" && action.command === "search_loot") {
+  if (action?.type === "subway_expedition" && ["search_loot", "encounter_choice"].includes(action.command)) {
+    if (Number.isFinite(loading?.durationMs)) return Math.max(0, loading.durationMs);
     return ACTION_TRANSITION_ACTION_MS;
   }
   if (!loading) {
@@ -908,7 +913,7 @@ function pendingActionControls() {
   ].join(",")));
 }
 
-function beginActionTransition(action, triggerElement, durationMs, loading = null) {
+function beginActionTransition(action, triggerElement, durationMs, loading = null, choiceThought = null) {
   const control = triggerElement instanceof Element
     ? triggerElement.closest("button, [role='button']")
     : null;
@@ -1004,16 +1009,40 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     progressTrack.appendChild(progressFill);
     visualTarget.appendChild(progressTrack);
     visualTarget.classList.add("is-action-pending");
+    visualTarget.setAttribute("aria-busy", "true");
+    if (action?.type === "text_world" || (typeof choiceThought === "string" && choiceThought.trim())) {
+      const waiting = document.createElement("span");
+      waiting.className = "choice-wait-status";
+      waiting.setAttribute("role", "status");
+      waiting.textContent = "진행 중";
+      visualTarget.appendChild(waiting);
+      client.pendingActionStatusElement = waiting;
+      if (typeof choiceThought === "string" && choiceThought.trim()) {
+        const thought = document.createElement("span");
+        thought.className = "choice-wait-thought";
+        thought.textContent = `‘${choiceThought.trim()}’`;
+        visualTarget.appendChild(thought);
+        client.pendingThoughtElement = thought;
+      }
+    }
     visualTarget.classList.toggle("is-choice-surface-pending", usesInlineSurfaceFill);
     client.pendingActionProgressElement = progressTrack;
   }
 }
 
+function markActionAwaitingResponse() {
+  client.pendingActionElement?.classList.add("is-awaiting-result");
+}
+
 function finishActionTransition() {
+  client.pendingThoughtElement?.remove();
+  client.pendingThoughtElement = null;
   client.pendingActionStatusElement?.remove();
   client.pendingActionProgressElement?.remove();
   client.pendingActionSceneElement?.remove();
   client.pendingActionElement?.classList.remove("is-action-pending");
+  client.pendingActionElement?.classList.remove("is-awaiting-result");
+  client.pendingActionElement?.removeAttribute("aria-busy");
   client.pendingActionElement?.classList.remove("is-choice-surface-pending");
   dom.sceneFrame.classList.remove("is-action-in-progress");
   dom.sceneFrame.removeAttribute("aria-busy");
@@ -1759,10 +1788,14 @@ function shouldContinueLocationStory(previousSnapshot, nextSnapshot) {
   if (!previousSnapshot?.currentScene || !nextSnapshot?.currentScene
     || !previousSnapshot.gameId || previousSnapshot.gameId !== nextSnapshot.gameId
     || !previousSnapshot.state?.location
-    || previousSnapshot.state.location !== nextSnapshot.state?.location
-    || previousSnapshot.state.subwayExpedition?.active
-    || nextSnapshot.state.subwayExpedition?.active) {
+    || previousSnapshot.state.location !== nextSnapshot.state?.location) {
     return false;
+  }
+  const before = previousSnapshot.state.subwayExpedition;
+  const after = nextSnapshot.state.subwayExpedition;
+  if (before?.active || after?.active) {
+    if (!before?.active || !after?.active || before.runNumber !== after.runNumber
+      || !before.currentFloor?.id || before.currentFloor.id !== after.currentFloor?.id) return false;
   }
   return storySurfaceId(previousSnapshot) !== storySurfaceId(nextSnapshot)
     || JSON.stringify(buildStoryDisplay(previousSnapshot)) !== JSON.stringify(buildStoryDisplay(nextSnapshot));
@@ -1772,7 +1805,7 @@ function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}:${JSON.stringify(choice.postChoiceNarrative || null)}:${choice.postChoiceNarrativeSource ?? ""}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}:${JSON.stringify(choice.postChoiceNarrative || null)}:${choice.postChoiceNarrativeSource ?? ""}:${choice.choiceThought ?? ""}:${choice.action?.activityRevision ?? choice.serverActionHint?.activityRevision ?? ""}`)
     .join("|");
 }
 
@@ -2044,7 +2077,7 @@ function itemEffectHintHtml(effects = {}, useMinutes = 0) {
     const signedValue = value > 0 ? `+${value}` : String(value);
     return [`<span class="${className}">${signedValue} ${label}</span>`];
   });
-  for (const [key, label] of [["injuryRelief", "부상"], ["infectionRelief", "감염"]]) {
+  for (const [key, label] of [["injuryRelief", "부상"], ["infectionRelief", "감염"], ["exhaustionRelief", "탈진"]]) {
     if (effects[key] > 0) effectParts.push(`<span class="item-hp-hint">${label} -${effects[key]}단계</span>`);
   }
   if (effects.infectionRelief > 0) effectParts.push('<span class="item-time-hint">다음 감염 악화까지 6시간</span>');
@@ -2101,6 +2134,8 @@ function craftingRecipeMetaHtml(recipe, { showEffect = true } = {}) {
       </span>
     `
     : "";
+  const sourceRows = requirements.filter(entry => !entry.met && entry.sourceHints?.length);
+  const sourceHtml = sourceRows.length ? `<span class="crafting-recipe-row is-sources"><span class="crafting-recipe-label">준비 방법</span><span class="crafting-recipe-source-list">${sourceRows.map(entry => `<span>${escapeHtml(entry.name)}: ${entry.sourceHints.map(escapeHtml).join(" / ")}</span>`).join("")}</span></span>` : "";
   const effectHtml = showEffect
     ? `
       <span class="crafting-recipe-row is-effect">
@@ -2115,6 +2150,7 @@ function craftingRecipeMetaHtml(recipe, { showEffect = true } = {}) {
       ${effectHtml}
       ${prerequisiteHtml}
       ${requirementsHtml}
+      ${sourceHtml}
     </span>
   `;
 }
@@ -2158,6 +2194,7 @@ function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {
       menuFooter ? "is-recipe-menu-submit" : "",
     ].filter(Boolean).join(" ");
     craftButton.type = "button";
+    craftButton.disabled = choice.isAvailable === false;
     craftButton.textContent = menuFooter
       ? isCookingMenu ? "요리하기" : "제작하기"
       : choice.craftingRecipe.actionLabel || "제작";
@@ -2170,6 +2207,7 @@ function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {
         choice.loading,
         choice.postChoiceNarrative,
         choice.postChoiceNarrativeSource,
+        choice.choiceThought,
       );
     });
     return craftButton;
@@ -2237,6 +2275,7 @@ function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {
       choice.loading,
       choice.postChoiceNarrative,
       choice.postChoiceNarrativeSource,
+      choice.choiceThought,
     ));
     if (isRecipeMenuExit) {
       recipeMenuExitButton = button;
@@ -2661,6 +2700,7 @@ function buildChoicePresentation(snapshot) {
       choice.loading,
       choice.postChoiceNarrative,
       choice.postChoiceNarrativeSource,
+      choice.choiceThought,
     ));
     element.appendChild(fragment);
   });
@@ -3454,15 +3494,15 @@ function renderSkillsPanel() {
 function healthConditionDetailsMarkup() {
   const conditions = client.snapshot?.conditionCards || [];
   if (!conditions.length) return "";
-  return `<section class="condition-details" aria-label="부상과 감염 상세">${conditions.map(condition => `
+  return `<section class="condition-details" aria-label="상태 이상 상세">${conditions.map(condition => `
     <article class="condition-detail-card ${condition.level >= 3 ? "is-critical" : ""}">
       <strong>${condition.label} Lv${condition.level}</strong>
       ${condition.level >= 4 ? '<p>Lv4 도달 · 생존 종료</p>' : `
-      <p>다음 체력 −1까지 ${formatMinutesLabel(condition.nextDamageMinutes)}</p>
+      ${condition.kind === "exhaustion" ? `<p>${condition.nextWorseningMinutes === null ? "기력이 남아 있어 탈진 진행이 멈춰 있습니다." : "기력 0으로 보낸 시간이 쌓이고 있습니다."}</p>` : `<p>다음 체력 −1까지 ${formatMinutesLabel(condition.nextDamageMinutes)}</p>`}
       ${condition.nextWorseningMinutes === null ? '' : `<p>다음 악화까지 ${formatMinutesLabel(condition.nextWorseningMinutes)}</p>`}
-      <p>${condition.kind === "injury" ? "붕대" : "항생제"} 1개로 1단계 치료</p>
+      <p>${condition.kind === "exhaustion" ? "음식의 탈진 회복 효과로 누적된 피로를 줄일 수 있습니다. 휴식만으로는 낫지 않습니다." : `${condition.kind === "injury" ? "붕대" : "항생제"} 1개로 1단계 치료`}</p>
       ${condition.level === 3 ? '<p class="condition-warning">한 단계 더 쌓이면 체력과 관계없이 생존 종료됩니다.</p>' : ''}`}
-    </article>`).join("")}<p class="status-detail-note">게임 시간이 흐를 때 진행됩니다. 취침 중에는 피해와 감염 악화가 25% 속도로 진행됩니다.</p></section>`;
+    </article>`).join("")}<p class="status-detail-note">게임 시간이 흐를 때 진행됩니다. 취침 중 부상·감염은 25% 속도로 진행됩니다. 탈진은 기력 0으로 보낸 시간이 그대로 쌓입니다.</p></section>`;
 }
 
 function statusDetailMarkup() {
@@ -3558,8 +3598,9 @@ function questRequirementsMarkup(quest) {
       ${requirements.map((requirement) => `
         <div class="quest-requirement ${requirement.met ? "is-met" : ""}">
           <span class="quest-requirement-check" aria-hidden="true">${requirement.met ? "✓" : ""}</span>
-          <span class="quest-requirement-name">${requirement.name}</span>
+          <span class="quest-requirement-name">${escapeHtml(requirement.name)}</span>
           <span class="quest-requirement-count">${Math.min(requirement.ownedAmount, requirement.amount)} / ${requirement.amount}</span>
+          ${!requirement.met && requirement.sourceHints?.length ? `<span class="quest-source-hints">${requirement.sourceHints.map(hint => escapeHtml(hint)).join("<br>")}</span>` : ""}
         </div>
       `).join("")}
     </div>
@@ -3571,13 +3612,14 @@ function questCardMarkup(quest) {
   return `
     <article class="quest-card ${isCompleted ? "is-completed" : ""}">
       <div class="quest-card-head">
-        <h3>${quest.name}</h3>
+        <h3>${escapeHtml(quest.name)}</h3>
         <div class="quest-card-actions">
           <span class="tag">${questStatusLabel(quest.status)}</span>
         </div>
       </div>
       <div class="quest-card-body">
-        <p>${quest.summary}</p>
+        <p>${escapeHtml(quest.summary)}</p>
+        ${!isCompleted && quest.nextStep ? `<p class="quest-next-step"><strong>다음 단계</strong><span>${escapeHtml(quest.nextStep)}</span></p>` : ""}
         ${questRequirementsMarkup(quest)}
       </div>
     </article>
@@ -3860,6 +3902,7 @@ async function submitAction(
   loading = null,
   postChoiceNarrative = null,
   postChoiceNarrativeSource = "template",
+  choiceThought = null,
 ) {
   if (!client.gameId || client.actionInFlight) {
     return;
@@ -3870,10 +3913,12 @@ async function submitAction(
   }
   client.actionInFlight = true;
   client.pendingAction = action;
-  const immediateNarrative = normalizePostChoiceNarrative(postChoiceNarrative);
+  // Old saves may contain retired leads. Only actual results enter the reading history.
+  const continuousNarrative = ["text_world", "npc_dialogue", "subway_expedition"].includes(action.type)
+    || Number.isInteger(action.activityRevision);
+  const immediateNarrative = continuousNarrative ? [] : normalizePostChoiceNarrative(postChoiceNarrative);
   const hasImmediateNarrative = immediateNarrative.length > 0;
-  const instantActionLead = hasImmediateNarrative && action.type === "text_world";
-  const savedHistory = instantActionLead ? captureSceneHistory() : null;
+  const savedHistory = continuousNarrative ? captureSceneHistory() : null;
   let presentingAction = true;
   const transitionDurationMs = hasImmediateNarrative && !loading
     ? 0
@@ -3909,26 +3954,20 @@ async function submitAction(
       resetSceneScrollOnMobile();
     }
     if (shouldShowTransition) {
-      beginActionTransition(action, triggerElement, transitionDurationMs, loading);
+      beginActionTransition(action, triggerElement, transitionDurationMs, loading, choiceThought);
     }
     const transitionPromise = waitForMilliseconds(transitionDurationMs);
     const beginNarrative = () => presentingAction ? beginPostChoiceNarrative(
       immediateNarrative,
       !isMovementAction(action, loading) && !previousSnapshot.state.subwayExpedition?.active,
       postChoiceNarrativeSource,
-      instantActionLead,
+      false,
     ) : undefined;
     const immediateNarrativePromise = hasImmediateNarrative
-      ? instantActionLead ? beginNarrative() : transitionPromise.then(beginNarrative)
-      : Promise.resolve();
-    if (instantActionLead) {
-      // Keep the existing choice fill visible for its authored duration while the lead types.
-      void transitionPromise.then(() => {
-        if (!presentingAction) return;
-        dom.choices.innerHTML = "";
-        dom.choices.classList.remove("revealed");
-      });
-    }
+      ? transitionPromise.then(beginNarrative) : Promise.resolve();
+    void transitionPromise.then(() => {
+      if (presentingAction && !hasImmediateNarrative) markActionAwaitingResponse();
+    });
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
       transitionPromise,
@@ -3975,9 +4014,8 @@ async function submitAction(
             previousSnapshot,
             nextSnapshot: snapshot,
           }),
-      appendScene: (hasImmediateNarrative && (!instantActionLead || !didMove)) || continueLocationStory,
-      scrollSceneToStart: continueLocationStory && !instantActionLead,
-      continueActionStory: instantActionLead && !didMove,
+      appendScene: hasImmediateNarrative || continueLocationStory,
+      scrollSceneToStart: continueLocationStory,
     });
     mark("renderedMs");
     timing.renderWorkMs = timing.renderedMs - timing.presentationReadyMs;

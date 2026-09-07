@@ -3,6 +3,17 @@ import { defineLocation, interactionFor } from "../../location-helpers";
 
 export const shelterChoices: ActionDefinition[] = [
   interactionFor("shelter", {
+    id: "rest_until_evening_at_shelter",
+    label: "저녁까지 쉰다",
+    type: "rest",
+    activity: { kind: "rest", startsAtHour: 6, untilHour: 18, recovery: { intervalMinutes: 15, hp: 1, mind: 1 } },
+    outcomeHint: "18:00까지 휴식 / 기력과 상태 이상은 계속 진행 / 몸 상태가 악화되면 멈춤",
+    showOutcomeHint: true,
+    effects: [],
+    tags: ["rest", "recovery", "wait"],
+    riskHint: "low",
+  }),
+  interactionFor("shelter", {
     id: "rest_light_at_shelter",
     label: "휴식하기",
     type: "rest",

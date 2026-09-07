@@ -13,7 +13,7 @@ import {
   subwayRunBuildSummary,
   subwaySkillDefinition,
 } from "./subway-roguelike";
-import { withoutRepeatedSubwayNarrative } from "./subway-narrative";
+import { subwayChoiceThoughtFields } from "./subway-choice-thoughts";
 import type {
   ActionChoice,
   GameState,
@@ -825,7 +825,7 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
       label: choice.label,
       outcomeHint: choice.effectDescription,
       showOutcomeHint: true,
-      postChoiceNarrative: choice.postChoiceNarrative,
+      ...subwayChoiceThoughtFields(choice),
       action: {
         type: "subway_expedition" as const,
         command: "encounter_choice" as const,
@@ -963,6 +963,9 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
     label: choice.label,
     outcomeHint: choice.outcomeHint,
     showOutcomeHint: choice.showOutcomeHint,
+    choiceThought: choice.choiceThought,
+    choiceThoughtSource: choice.choiceThoughtSource,
+    loading: choice.loading,
     serverActionHint: choice.action,
     isAvailable: choice.isAvailable,
   }));
@@ -989,12 +992,6 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
     encounter &&
     encounterScene
   ) {
-    const latestEncounterResult =
-      encounter.history[encounter.history.length - 1]?.result;
-    const freshEncounterParagraphs = withoutRepeatedSubwayNarrative(
-      encounterScene.paragraphs,
-      latestEncounterResult?.postChoiceNarrative ?? [],
-    );
     const upgradePrompt = phase === "upgrade"
       ? [
           `전투를 통해 몸에 밴 요령 하나를 이번 원정의 기술로 굳힐 수 있다. ${subwayRunBuildSummary(state)}.`,
@@ -1006,9 +1003,7 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
       locationId: "subway",
       title: `지하 ${floor.depth}층 · ${encounterScene.title}`,
       paragraphs: [
-        ...(freshEncounterParagraphs.length > 0
-          ? freshEncounterParagraphs
-          : latestEncounterResult ? [latestEncounterResult.summary] : encounterScene.paragraphs),
+        ...encounterScene.paragraphs,
         ...upgradePrompt,
       ],
       choices,

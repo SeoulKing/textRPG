@@ -380,6 +380,7 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
 export type ApplyEffectOptions = {
   skillUse?: SkillUse;
   rng?: () => number;
+  onNarrative?: (result: { type: "text"; text: string } | { type: "scene"; sceneId: string }) => void;
 };
 
 export function applyEffect(
@@ -444,11 +445,15 @@ export function applyEffect(
     case "complete_quest":
       state.quests[effect.questId] = "completed";
       break;
-    case "log":
-      appendLogEntry(state, resolveItemText(effect.message, buildRuntimeRegistry(state)));
+    case "log": {
+      const text = resolveItemText(effect.message, buildRuntimeRegistry(state));
+      appendLogEntry(state, text);
+      options.onNarrative?.({ type: "text", text });
       break;
+    }
     case "set_scene":
       state.sceneId = effect.sceneId;
+      options.onNarrative?.({ type: "scene", sceneId: state.sceneId });
       break;
     case "set_random_scene": {
       const registry = buildRuntimeRegistry(state);
@@ -468,6 +473,7 @@ export function applyEffect(
           : 0;
         const index = Math.floor(normalizedRoll * candidates.length);
         state.sceneId = candidates[Math.min(index, candidates.length - 1)].id;
+        options.onNarrative?.({ type: "scene", sceneId: state.sceneId });
         if (effect.avoidRepeat) {
           for (const key of Object.keys(state.flags)) if (key.startsWith(poolKey)) delete state.flags[key];
           state.flags[poolKey + state.sceneId] = true;

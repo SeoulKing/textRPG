@@ -3,7 +3,10 @@ import { z } from "zod";
 export const NpcDialoguePlayerChoiceSchema = z.object({
   id: z.string().min(1).max(160),
   label: z.string().min(1).max(120),
-  postChoiceNarrative: z.array(z.string().min(1).max(600)).min(1).max(2),
+  thought: z.string().max(60).optional(),
+  thoughtSource: z.enum(["template", "llm"]).optional(),
+  // Read old conversation saves; new choices never generate or present this field.
+  postChoiceNarrative: z.array(z.string().min(1).max(600)).min(1).max(2).optional(),
 }).strict();
 
 export const NpcDialogueReplySchema = z.object({
@@ -18,6 +21,7 @@ export const NpcDialogueSceneSchema = z.object({
   dialogue: z.string().min(1).max(600),
   choices: z.array(NpcDialoguePlayerChoiceSchema).length(3),
   source: z.enum(["llm", "mixed", "template"]),
+  replySource: z.enum(["llm", "template"]).optional(),
   generatedAt: z.string(),
 }).strict();
 
@@ -40,6 +44,7 @@ export const NpcDialogueActiveSchema = z.object({
 }).strict();
 
 export const NpcDialogueStateSchema = z.object({
+  departure: z.object({ npcId: z.string(), locationId: z.string(), paragraphs: z.array(z.string()).min(1), generatedAt: z.string() }).optional(),
   active: NpcDialogueActiveSchema.nullable().default(null),
   conversations: z.record(
     z.string(),

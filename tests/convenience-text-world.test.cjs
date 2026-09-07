@@ -90,7 +90,7 @@ test('service conceals hidden state, serializes duplicate choices, and renders o
  const repository={withGameLock:async(_id,op)=>op(),loadGame:async()=>structuredClone(stored),saveGame:async s=>{stored=structuredClone(s);},getTemplate:async()=>undefined,saveTemplate:async()=>{},saveProtagonistTemplate:async()=>{},appendGenerationLog:async()=>{},appendActionLog:async()=>{}};
  const service=new GameService(repository,undefined,undefined,undefined,undefined,async c=>{calls++;return fallbackNarration(c);});
  let snap=await service.getState(stored.id);assert.equal(calls,1);assert.deepEqual(snap.state.locationTextWorlds,{});assert(!JSON.stringify(snap.currentScene).includes('1800'));
- await service.getState(stored.id);assert.equal(calls,1);
+ const polled=await service.getState(stored.id);assert.equal(calls,1);assert.deepEqual(polled.availableActions.map(c=>c.action),snap.availableActions.map(c=>c.action));
  snap=await service.performAction(stored.id,snap.availableActions.find(c=>c.action.optionId==='focus:convenience_register').action);
  const take=snap.availableActions.find(c=>c.action.optionId==='collect:convenience_register').action,before=stored.state.money;
  const results=await Promise.allSettled([service.performAction(stored.id,take),service.performAction(stored.id,take)]);
@@ -124,8 +124,8 @@ test('placed store goods survive registry synchronization and reclaiming does no
  const s=initial();await enter(s);await choose(s,'explore:convenience_food_crate');await choose(s,'collect:convenience_food_crate');
  const w=world(s),goods=Object.values(w.entities).find(e=>e.components.position.zone==='player'&&e.components.portable?.itemId==='waterBottle');assert(goods);
  const before={...s.inventory},stock={...s.stockState},skill=structuredClone(s.skillProgress);
- // Other unexplored targets retain priority; the same validated engine pair is used by the offered action.
- assert(!resolveWorldActions(w,s,[{type:'PUT',target:goods.id,destination:'convenience_food_crate',relation:'inside'}]).interrupted);
+ // Collected stock is stored; take it in hand before placing it through the same engine rules.
+ assert(!resolveWorldActions(w,s,[{type:'HOLD',target:goods.id},{type:'PUT',target:goods.id,destination:'convenience_food_crate',relation:'inside'}]).interrupted);
  syncConvenienceEntities(s);assert.equal(w.entities[goods.id].components.position.zone,'convenience_food_crate');assert(w.entities.convenience_food_crate.components.container.items.includes(goods.id));
  await choose(s,'take:'+goods.id);assert.deepEqual(s.inventory,before);assert.deepEqual(s.stockState,stock);assert.deepEqual(s.skillProgress,skill);
  const oldRevision=w.revision;await assert.rejects(performTextWorldAction(s,{type:'text_world',command:'choose',optionId:'take:'+goods.id,revision:oldRevision-1},'store-test',narrator),/상황이 바뀌/);

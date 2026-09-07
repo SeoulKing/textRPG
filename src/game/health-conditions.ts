@@ -1,3 +1,4 @@
+import { exhaustionCard, MAX_EXHAUSTION_LEVEL } from "./survival-pressure";
 import type { GameState, ItemCard } from "./schemas";
 import { HealthConditionsSchema, type HealthConditionKind } from "./schemas/health-condition";
 import { setSystemNote } from "./system-note";
@@ -21,6 +22,7 @@ export function normalizeHealthConditions(raw: unknown) {
 }
 
 export function healthFailureReason(state: GameState) {
+  if (state.exhaustionLevel >= MAX_EXHAUSTION_LEVEL) return "탈진이 Lv4에 도달해 더는 버틸 수 없었다. 음식을 확보해야 한다.";
   for (const kind of KINDS) {
     if (state.conditions[kind].level >= 4) return `${CONDITION_LABELS[kind]}이 Lv4에 도달해 더는 버틸 수 없었다.`;
   }
@@ -110,12 +112,13 @@ export function advanceConditions(state: GameState, minutes: number) {
 }
 
 export function conditionCards(state: GameState) {
-  return KINDS.filter(kind => state.conditions[kind].level > 0).map(kind => {
+  const exhausted = exhaustionCard(state);
+  return [...(exhausted ? [exhausted] : []), ...KINDS.filter(kind => state.conditions[kind].level > 0).map(kind => {
     const condition = state.conditions[kind];
     return {
       kind, label: CONDITION_LABELS[kind], level: condition.level,
       nextDamageMinutes: Math.max(0, Math.ceil((1 - condition.damageProgress) * CONDITION_BASE_MINUTES[kind] / condition.level - EPSILON)),
       nextWorseningMinutes: kind === "infection" ? Math.max(0, Math.ceil(INFECTION_WORSENING_MINUTES - state.conditions.infection.worseningElapsedMinutes)) : null,
     };
-  });
+  })];
 }

@@ -1,12 +1,7 @@
-import { z } from "zod";
 import { baseItems } from "./data/items";
 import { appendDevLlmTraceForGame } from "./dev-llm-trace";
 import { geminiModel } from "./gemini-client";
 import {
-  SubwayChoiceIntentSchema,
-  SubwayChoicePrimaryIntentSchema,
-  SubwayChoiceStyleSchema,
-  SubwaySituationKindSchema,
   type GameState,
   type SubwayChoiceIntent,
   type SubwayEncounterActor,
@@ -19,14 +14,15 @@ import {
   type SubwaySituationKind,
 } from "./schemas";
 import { subwaySituationActionCatalog } from "./subway-encounter";
-import { withoutRepeatedSubwayNarrative } from "./subway-narrative";
+import { defaultSubwayChoiceThought } from "./subway-choice-thoughts";
+import { validChoiceThought } from "./text-world/choice-thoughts";
 import {
   generateSubwayRoleJson,
   hasSubwayRoleConfig,
   type SubwayRoleClient,
 } from "./subway-role-pipeline";
 
-export const SUBWAY_ENCOUNTER_PROMPT_VERSION = "subway-server-combat-narrative-v5";
+export const SUBWAY_ENCOUNTER_PROMPT_VERSION = "subway-scene-and-thoughts-v6";
 
 export type SubwayEncounterGenerationInput = {
   gameId: string;
@@ -47,20 +43,6 @@ export type SubwayEncounterSceneGenerator = (
   input: SubwayEncounterGenerationInput,
 ) => Promise<SubwayEncounterGenerationResult>;
 
-const RawChoiceEffectSchema = z.object({
-  type: SubwayChoicePrimaryIntentSchema.optional(),
-  action: SubwayChoicePrimaryIntentSchema.optional(),
-  description: z.string().max(300).optional(),
-  approach: SubwayChoiceStyleSchema.optional(),
-  itemId: z.string().min(1).max(80).optional(),
-}).passthrough();
-
-const RawThreatSchema = z.object({
-  kind: z.enum(["attack", "pressure", "hazard", "escape"]),
-  target: z.enum(["player", "environment", "exit"]),
-  method: z.string().min(1).max(240),
-}).passthrough();
-
 function asRecord(raw: unknown): Record<string, unknown> {
   return raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
 }
@@ -73,13 +55,6 @@ function asStrings(raw: unknown, max: number, maxLength: number) {
     .filter(Boolean)
     .map((value) => value.slice(0, maxLength))
     .slice(0, max);
-}
-
-function highestLikelihood(
-  likelihoods: { combat: number; social: number; hazard: number },
-): SubwaySituationKind {
-  return (Object.entries(likelihoods) as Array<[SubwaySituationKind, number]>)
-    .sort((left, right) => right[1] - left[1])[0]?.[0] ?? "hazard";
 }
 
 function defaultActor(
@@ -99,186 +74,6 @@ function defaultActor(
       : "낯선 사람에게서 자신과 동료를 보호하려 한다.",
     relationship: 0,
   };
-}
-
-function defaultChoiceSpecs(kind: SubwaySituationKind, opening: boolean): Array<{
-  label: string;
-  intent: SubwayChoiceIntent;
-}> {
-  if (kind === "combat") {
-    return opening
-      ? [
-          { label: "기습한다", intent: { primary: "attack", style: "forceful", target: "enemy" } },
-          { label: "말을 건다", intent: { primary: "persuade", style: "empathetic", target: "actor" } },
-          { label: "물러난다", intent: { primary: "retreat", style: "quick", target: "exit" } },
-        ]
-      : [
-          { label: "공격한다", intent: { primary: "attack", style: "forceful", target: "enemy" } },
-          { label: "공격을 막는다", intent: { primary: "defend", style: "careful", target: "self" } },
-          { label: "옆으로 피한다", intent: { primary: "evade", style: "quick", target: "environment" } },
-        ];
-  }
-  if (kind === "social") {
-    return [
-      { label: "차분히 설득한다", intent: { primary: "persuade", style: "empathetic", target: "actor" } },
-      { label: "의도를 살핀다", intent: { primary: "observe", style: "careful", target: "actor" } },
-      { label: "대화에서 물러난다", intent: { primary: "retreat", style: "quick", target: "exit" } },
-    ];
-  }
-  return [
-    { label: "주변을 살핀다", intent: { primary: "observe", style: "careful", target: "environment" } },
-    { label: "조심스럽게 건넌다", intent: { primary: "interact", style: "careful", target: "environment" } },
-    { label: "진입로로 물러난다", intent: { primary: "retreat", style: "quick", target: "exit" } },
-  ];
-}
-
-type AllowedChoiceIntent = {
-  id: string;
-  instruction: string;
-  intent: SubwayChoiceIntent;
-};
-
-function allowedChoiceIntents(
-  input: SubwayEncounterGenerationInput,
-  kind: SubwaySituationKind,
-): AllowedChoiceIntent[] {
-  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
-  let options: AllowedChoiceIntent[];
-  if (kind === "combat" && encounter.stage === "opening") {
-    options = [
-      {
-        id: "attack",
-        instruction: "상대가 대비하기 전에 먼저 공격한다.",
-        intent: { primary: "attack", style: "forceful", target: "enemy" },
-      },
-      {
-        id: "persuade",
-        instruction: "상대에게 침착하게 말을 걸어 물러나게 한다.",
-        intent: { primary: "persuade", style: "empathetic", target: "actor" },
-      },
-      {
-        id: "retreat",
-        instruction: "진입로 쪽으로 물러나 상황에서 벗어난다.",
-        intent: { primary: "retreat", style: "quick", target: "exit" },
-      },
-    ];
-  } else if (kind === "combat") {
-    options = [
-      {
-        id: "attack_forceful",
-        instruction: "가까이 붙어 힘으로 공격한다.",
-        intent: { primary: "attack", style: "forceful", target: "enemy" },
-      },
-      {
-        id: "attack_quick",
-        instruction: "주변 물건이나 빈틈을 이용해 빠르게 공격한다.",
-        intent: { primary: "attack", style: "quick", target: "enemy" },
-      },
-      {
-        id: "defend",
-        instruction: "상대의 다음 공격을 막아 낸다.",
-        intent: { primary: "defend", style: "careful", target: "self" },
-      },
-      {
-        id: "persuade",
-        instruction: "싸움을 멈추도록 상대를 설득한다.",
-        intent: { primary: "persuade", style: "empathetic", target: "actor" },
-      },
-      {
-        id: "retreat",
-        instruction: "거리를 벌리고 진입로 쪽으로 도망친다.",
-        intent: { primary: "retreat", style: "quick", target: "exit" },
-      },
-    ];
-  } else if (kind === "social") {
-    options = [
-      {
-        id: "persuade",
-        instruction: "상대의 말을 듣고 현실적인 합의점을 제시한다.",
-        intent: { primary: "persuade", style: "empathetic", target: "actor" },
-      },
-      {
-        id: "observe",
-        instruction: "상대의 말투와 행동을 관찰해 의도를 알아낸다.",
-        intent: { primary: "observe", style: "careful", target: "actor" },
-      },
-      {
-        id: "pressure",
-        instruction: "강하게 압박해 상대가 물러나게 한다.",
-        intent: { primary: "interact", style: "forceful", target: "actor" },
-      },
-      {
-        id: "retreat",
-        instruction: "대화를 포기하고 안전한 길로 물러난다.",
-        intent: { primary: "retreat", style: "quick", target: "exit" },
-      },
-    ];
-  } else {
-    options = [
-      {
-        id: "observe",
-        instruction: "주변 흔적과 구조를 살펴 위험의 규칙을 찾는다.",
-        intent: { primary: "observe", style: "careful", target: "environment" },
-      },
-      {
-        id: "interact_careful",
-        instruction: "안전한 발판과 손잡이를 확인하며 조심스럽게 통과한다.",
-        intent: { primary: "interact", style: "careful", target: "environment" },
-      },
-      {
-        id: "interact_forceful",
-        instruction: "위험 구간을 힘과 속도로 밀어붙여 돌파한다.",
-        intent: { primary: "interact", style: "forceful", target: "environment" },
-      },
-      {
-        id: "retreat",
-        instruction: "현재 경로를 포기하고 진입 지점으로 물러난다.",
-        intent: { primary: "retreat", style: "quick", target: "exit" },
-      },
-    ];
-  }
-
-  return options;
-}
-
-function adaptChoiceWriterOutput(
-  raw: unknown,
-  allowedIntents: AllowedChoiceIntent[],
-) {
-  const source = asRecord(raw);
-  const choices = Array.isArray(source.choices) ? source.choices : [];
-  const allowed = new Map(allowedIntents.map((entry) => [entry.id, entry]));
-  const usedIntentIds = new Set<string>();
-  return choices.slice(0, 6).flatMap((candidate) => {
-    const choice = asRecord(candidate);
-    const intentId = typeof choice.intentId === "string"
-      ? choice.intentId.trim()
-      : "";
-    const selected = allowed.get(intentId);
-    if (!selected || usedIntentIds.has(intentId)) {
-      return [];
-    }
-    usedIntentIds.add(intentId);
-    return [{
-      label: choice.label,
-      effect: {
-        type: selected.intent.primary,
-        approach: selected.intent.style,
-        itemId: selected.intent.itemId,
-        description: choice.effectDescription,
-      },
-      intent: selected.intent,
-      postChoiceScene: choice.postChoiceScene,
-    }];
-  }).slice(0, 3);
-}
-
-function defaultPostChoice(label: string) {
-  const action = label.replace(/[.。]$/, "");
-  return [
-    `나는 망설임을 접고 ${action} 쪽으로 움직였다.`,
-    "주변의 소리와 시선이 한순간 그 움직임을 따라붙었다.",
-  ];
 }
 
 function serverIntentForAction(
@@ -354,50 +149,9 @@ function serverChoiceLabel(
   }
 }
 
-function serverPostChoiceNarrative(
-  actionToken: string,
-  label: string,
-) {
-  if (actionToken.startsWith("use_item:")) {
-    return [
-      `나는 시선을 상대에게 둔 채 ${label.replace(/[.。]$/, "")}.`,
-      "손안의 물건을 고쳐 쥐는 동안 발밑의 진동과 상대의 숨소리가 한층 선명해졌다.",
-    ];
-  }
-  switch (actionToken) {
-    case "fight":
-    case "close_attack":
-      return [
-        "나는 호흡을 짧게 끊고 상대의 빈틈을 향해 몸을 밀어 넣었다.",
-        "신발 밑에서 모래가 밀리며 둘 사이의 거리가 단숨에 사라졌다.",
-      ];
-    case "throw_improvised":
-      return [
-        "나는 발치의 단단한 조각을 움켜쥐고 상대의 움직임을 따라 팔을 휘둘렀다.",
-        "날아간 물체가 어둠을 가르는 동안 상대의 어깨와 시선이 동시에 흔들렸다.",
-      ];
-    case "guard":
-      return [
-        "나는 무게중심을 낮추고 팔과 어깨로 급소를 가렸다.",
-        "퇴로를 등지지 않은 채 상대의 손목과 무기 끝이 움직이는 순간을 기다렸다.",
-      ];
-    case "talk":
-      return [
-        "나는 공격할 듯 굳어 있던 자세를 풀지 않은 채 낮은 목소리로 말을 건넸다.",
-        "쇳소리와 거친 숨 사이로 짧은 문장이 파고들자 상대의 시선이 미세하게 움직였다.",
-      ];
-    case "flee":
-      return [
-        "나는 상대에게 등을 완전히 보이지 않은 채 계단 쪽으로 발을 옮겼다.",
-        "거리를 재며 물러나는 동안 깨진 타일과 난간의 위치를 빠르게 눈에 담았다.",
-      ];
-    default:
-      return defaultPostChoice(label);
-  }
-}
-
 function serverEncounterChoices(
   input: SubwayEncounterGenerationInput,
+  rawThoughts: unknown = [],
 ): SubwayEncounterChoice[] {
   const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
   if (encounter.stage === "resolved") return [];
@@ -406,16 +160,16 @@ function serverEncounterChoices(
     .slice(0, 20)
     .map((entry, index) => {
       const label = serverChoiceLabel(entry.actionToken, opening);
+      const id = `${encounter.id}:${encounter.turnNumber}:server:${index + 1}:` + entry.actionToken.replace(":", "-");
+      const matches = Array.isArray(rawThoughts) ? rawThoughts.filter(raw => asRecord(raw).optionId === id) : [];
+      const thought = matches.length === 1 ? asRecord(matches[0]).thought : undefined;
+      const valid = validChoiceThought(thought);
       return {
-        id:
-          `${encounter.id}:${encounter.turnNumber}:server:${index + 1}:` +
-          entry.actionToken.replace(":", "-"),
+        id,
         label,
         effectDescription: entry.mechanicalHint,
-        postChoiceNarrative: serverPostChoiceNarrative(
-          entry.actionToken,
-          label,
-        ),
+        thought: valid ? thought : defaultSubwayChoiceThought(serverIntentForAction(entry.actionToken)),
+        thoughtSource: valid ? "llm" : "template",
         intent: serverIntentForAction(entry.actionToken),
         legacyActionToken: entry.actionToken,
       };
@@ -455,223 +209,6 @@ function serverPendingThreat(
         : kind === "social"
           ? "social_pressure"
           : "environmental_hazard",
-  };
-}
-
-function inferPrimaryIntent(
-  text: string,
-  fallback: SubwayChoiceIntent["primary"],
-) {
-  const rules: Array<[RegExp, SubwayChoiceIntent["primary"]]> = [
-    [/(?:후퇴|물러|도망|달아|빠져나|떠난)/i, "retreat"],
-    [/(?:설득|대화|말을|타협|달래|진정|호소)/i, "persuade"],
-    [/(?:방어|막아|막는|받아내|버틴|웅크)/i, "defend"],
-    [/(?:회피|피하|옆으로|몸을 날려)/i, "evade"],
-    [/(?:관찰|살핀|주시|듣는다|흔적|확인)/i, "observe"],
-    [/(?:공격|기습|휘두르|찌르|때리|돌진|덮친|맞서)/i, "attack"],
-    [/(?:사용|꺼내|마신|먹는|도구)/i, "use_item"],
-  ];
-  return rules.find(([pattern]) => pattern.test(text))?.[1] ?? fallback;
-}
-
-function inferStyle(
-  text: string,
-  primary: SubwayChoiceIntent["primary"],
-): SubwayChoiceIntent["style"] {
-  if (/(?:속이|유인|함정|기만|주의를 돌|허를 찌)/i.test(text)) return "cunning";
-  if (/(?:재빨리|순식간|빠르게|달려|급히)/i.test(text)) return "quick";
-  if (/(?:달래|공감|사정을|진심|안심)/i.test(text)) return "empathetic";
-  if (/(?:조심|천천히|신중|살피며)/i.test(text)) return "careful";
-  if (primary === "persuade") return "empathetic";
-  if (primary === "retreat" || primary === "evade") return "quick";
-  if (primary === "attack") return "forceful";
-  return "careful";
-}
-
-function targetForPrimary(
-  primary: SubwayChoiceIntent["primary"],
-  kind: SubwaySituationKind,
-): SubwayChoiceIntent["target"] {
-  if (primary === "attack") return "enemy";
-  if (primary === "persuade") return "actor";
-  if (primary === "defend" || primary === "use_item") return "self";
-  if (primary === "retreat") return "exit";
-  if (primary === "observe" && kind === "social") return "actor";
-  return "environment";
-}
-
-function compileChoices(
-  raw: unknown,
-  input: SubwayEncounterGenerationInput,
-  kind: SubwaySituationKind,
-) {
-  const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
-  if (encounter.stage === "resolved") {
-    return { choices: [] as SubwayEncounterChoice[], repaired: 0, dropped: 0 };
-  }
-
-  const source = Array.isArray(raw) ? raw.slice(0, 4) : [];
-  const choices: SubwayEncounterChoice[] = [];
-  const seenLabels = new Set<string>();
-  let repaired = Array.isArray(raw) ? 0 : 1;
-  let dropped = 0;
-  const defaults = defaultChoiceSpecs(kind, encounter.stage === "opening");
-
-  source.forEach((candidate, index) => {
-    const choice = asRecord(candidate);
-    if (typeof choice.label !== "string" || !choice.label.trim()) {
-      dropped += 1;
-      return;
-    }
-    const normalizedLabel = choice.label.trim().slice(0, 80);
-    if (seenLabels.has(normalizedLabel)) {
-      dropped += 1;
-      return;
-    }
-    const effect = RawChoiceEffectSchema.safeParse(choice.effect);
-    const legacyIntent = SubwayChoiceIntentSchema.safeParse(choice.intent);
-    const effectDescription = effect.success
-      ? effect.data.description?.trim().slice(0, 300) ?? ""
-      : typeof choice.effect === "string"
-        ? choice.effect.trim().slice(0, 300)
-        : "";
-    const fallbackIntent = defaults[index % defaults.length]!.intent;
-    const intentText = `${normalizedLabel} ${effectDescription}`;
-    const primary = effect.success
-      ? effect.data.type ?? effect.data.action ??
-        (legacyIntent.success
-          ? legacyIntent.data.primary
-          : inferPrimaryIntent(intentText, fallbackIntent.primary))
-      : legacyIntent.success
-        ? legacyIntent.data.primary
-        : inferPrimaryIntent(intentText, fallbackIntent.primary);
-    const itemId = effect.success
-      ? effect.data.itemId
-      : legacyIntent.success
-        ? legacyIntent.data.itemId
-        : undefined;
-    if (
-      primary === "use_item" &&
-      (!itemId || (input.state.inventory[itemId] ?? 0) <= 0)
-    ) {
-      dropped += 1;
-      return;
-    }
-    const style = effect.success
-      ? effect.data.approach ??
-        (legacyIntent.success
-          ? legacyIntent.data.style
-          : inferStyle(intentText, primary))
-      : legacyIntent.success
-        ? legacyIntent.data.style
-        : inferStyle(intentText, primary);
-    const intent: SubwayChoiceIntent = {
-      primary,
-      style,
-      target: legacyIntent.success
-        ? legacyIntent.data.target
-        : targetForPrimary(primary, kind),
-      ...(legacyIntent.success && legacyIntent.data.secondary
-        ? { secondary: legacyIntent.data.secondary }
-        : {}),
-      ...(primary === "use_item" && itemId ? { itemId } : {}),
-    };
-    if (!effect.success || (!effect.data.type && !effect.data.action)) {
-      repaired += 1;
-    }
-    seenLabels.add(normalizedLabel);
-    let narrative = asStrings(
-      choice.postChoiceScene ??
-        choice.postChoiceNarrative ??
-        choice.afterScene,
-      2,
-      600,
-    );
-    if (narrative.length === 0) {
-      narrative = defaultPostChoice(normalizedLabel);
-      repaired += 1;
-    }
-    choices.push({
-      id: `${encounter.id}:${encounter.turnNumber}:choice:${index + 1}`,
-      label: normalizedLabel,
-      effectDescription,
-      postChoiceNarrative: narrative,
-      intent,
-    });
-  });
-
-  if (choices.length < 2) {
-    for (const fallback of defaults) {
-      if (choices.length >= 3) break;
-      if (seenLabels.has(fallback.label)) continue;
-      const index = choices.length + 1;
-      choices.push({
-        id: `${encounter.id}:${encounter.turnNumber}:fallback:${index}`,
-        label: fallback.label,
-        effectDescription: "",
-        postChoiceNarrative: defaultPostChoice(fallback.label),
-        intent: fallback.intent,
-      });
-      seenLabels.add(fallback.label);
-      repaired += 1;
-    }
-  }
-
-  return { choices, repaired, dropped };
-}
-
-function compileThreat(
-  raw: unknown,
-  kind: SubwaySituationKind,
-  encounterId: string,
-  turnNumber: number,
-  resolved: boolean,
-) {
-  if (resolved) return { threat: null, repaired: 0 };
-  const freeformMethod = typeof raw === "string"
-    ? raw.trim().slice(0, 240)
-    : "";
-  const parsed = RawThreatSchema.safeParse(raw);
-  const allowedKind = kind === "combat"
-    ? "attack"
-    : kind === "social"
-      ? "pressure"
-      : "hazard";
-  if (freeformMethod || (parsed.success && parsed.data.kind === allowedKind)) {
-    return {
-      threat: {
-        id: `${encounterId}:threat:${turnNumber}`,
-        kind: allowedKind,
-        target: parsed.success
-          ? parsed.data.target
-          : kind === "combat" ? "player" : "environment",
-        method: freeformMethod || (parsed.success ? parsed.data.method : ""),
-        profile: kind === "combat"
-          ? "standard_attack"
-          : kind === "social"
-            ? "social_pressure"
-            : "environmental_hazard",
-      } satisfies SubwayPendingThreat,
-      repaired: 0,
-    };
-  }
-  return {
-    threat: {
-      id: `${encounterId}:threat:${turnNumber}`,
-      kind: allowedKind,
-      target: kind === "combat" ? "player" : "environment",
-      method: kind === "combat"
-        ? "상대가 무기를 고쳐 쥐고 다음 빈틈을 노린다."
-        : kind === "social"
-          ? "상대의 경계가 높아지며 대화의 주도권을 빼앗으려 한다."
-          : "불안정한 구조물이 흔들리며 다음 움직임을 재촉한다.",
-      profile: kind === "combat"
-        ? "standard_attack"
-        : kind === "social"
-          ? "social_pressure"
-          : "environmental_hazard",
-    } satisfies SubwayPendingThreat,
-    repaired: 1,
   };
 }
 
@@ -727,20 +264,7 @@ function compileGeneration(
     repaired += 1;
   }
 
-  const originalParagraphCount = paragraphs.length;
-  paragraphs = withoutRepeatedSubwayNarrative(
-    paragraphs,
-    input.latestServerResult?.postChoiceNarrative ?? [],
-  );
-  if (paragraphs.length < originalParagraphCount) {
-    repaired += originalParagraphCount - paragraphs.length;
-  }
-  if (paragraphs.length === 0 && input.latestServerResult) {
-    paragraphs = [input.latestServerResult.summary];
-    repaired += 1;
-  }
-
-  const choices = serverEncounterChoices(input);
+  const choices = serverEncounterChoices(input, requestError ? [] : data.choiceThoughts);
   const pendingThreat = serverPendingThreat(
     encounter,
     encounter.stage === "resolved",
@@ -780,7 +304,6 @@ function compactHistory(state: GameState) {
     selectedIntent: entry.result.selectedIntent,
     selectedLabel: entry.result.selectedLabel,
     selectedEffect: entry.result.selectedEffectDescription,
-    postChoiceScene: entry.result.postChoiceNarrative,
     authoritativeSummary: entry.result.summary,
   }));
 }
@@ -855,7 +378,7 @@ function authoritativeResultPayload(input: SubwayEncounterGenerationInput) {
     selectedLabel: result.selectedLabel,
     selectedIntent: result.selectedIntent,
     selectedEffect: result.selectedEffectDescription,
-    postChoiceScene: result.postChoiceNarrative,
+    selectedThought: result.selectedThought,
     success: result.success,
     rolls: result.rolls,
     damageDealt: result.damageDealt,
@@ -989,6 +512,7 @@ export function createSubwayEncounterSceneGenerator(
                   paragraphs: encounter.currentScene.paragraphs,
                 }
               : null,
+            nextChoices: serverEncounterChoices(input).map(choice => ({ optionId: choice.id, label: choice.label, intent: choice.intent, defaultThought: choice.thought })),
             authoritativeResult: authoritativeResultPayload(input),
             recentAuthoritativeHistory: compactHistory(input.state),
           },
@@ -1007,6 +531,7 @@ export function createSubwayEncounterSceneGenerator(
       actor: authoritativeActor(input),
       title: narrative.title,
       narrative: narrative.narrative,
+      choiceThoughts: asRecord(narrativeRaw).choiceThoughts,
     };
     const requestError = roleErrors.length > 0 ? roleErrors.join(" | ") : null;
     const result = compileGeneration(

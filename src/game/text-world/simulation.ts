@@ -4,7 +4,7 @@ import { passageBlockers, rootZone } from "./spatial";
 import { visibleEntities, worldRooms } from "./world";
 
 /** Virtual time only: deterministic and independent of response latency or browser polling. */
-export function advanceWorldSimulation(world: TextWorld, seconds: number, causedBy?: string) {
+export function advanceWorldSimulation(world: TextWorld, seconds: number, causedBy?: string, options: { witnessed?: boolean } = {}) {
   if (!Number.isSafeInteger(seconds) || seconds < 0) throw new Error("세계 시간은 유한한 양수여야 합니다.");
   world.simulation ??= { nextEventId: 0, sounds: [] };
   let remaining = seconds;
@@ -16,7 +16,7 @@ export function advanceWorldSimulation(world: TextWorld, seconds: number, caused
       return [c.light?.on ? c.light.fuelSeconds : undefined, c.openable?.isOpen ? c.openable.remainingOpenSeconds : undefined].filter((n): n is number => n !== undefined && n > 0);
     });
     const step = Math.min(remaining, ...boundaries);
-    const beforeVisible = new Set(visibleEntities(world).map(e => e.id));
+    const beforeVisible = new Set(options.witnessed === false ? [] : visibleEntities(world).map(e => e.id));
     world.elapsedSeconds += step; remaining -= step;
     world.simulation.sounds = world.simulation.sounds.map(sound => ({ ...sound, remainingSeconds: Math.max(0, sound.remainingSeconds - step) })).filter(sound => sound.remainingSeconds > 0);
     for (const e of ordered) {

@@ -1,3 +1,4 @@
+import { correctGatheringScene } from "./gathering-prose";
 import { RETIRED_ACTION_IDS } from "./content-retirements";
 import type { ContentRegistry } from "./schemas/content";
 
@@ -25,6 +26,8 @@ function replaceItemReferences<T>(value: T, from: string, to: string, field = ""
 
 /** Upgrade the explicitly changed survival catalog while leaving the archived version intact. */
 export function applySurvivalCatalogUpdates(registry: ContentRegistry, current: ContentRegistry): ContentRegistry {
+  const correctedScenes = Object.fromEntries(Object.entries(registry.scenes).map(([id, scene]) => [id, correctGatheringScene(scene)]));
+  if (Object.keys(correctedScenes).some(id => correctedScenes[id] !== registry.scenes[id])) registry = { ...registry, scenes: correctedScenes };
   const hasRetiredFood = [...retiredFoodIds].some(id => registry.items[id]);
   const needsWoodProcessing = !registry.items.firewood && Boolean(current.items.firewood);
   const hasRetiredRecipes = ["cook_greens_soup", "cook_forest_stew"].some(id => registry.choices[id] || registry.actions[id]);

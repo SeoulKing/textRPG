@@ -1,6 +1,11 @@
+import { questProgressFields } from "./quest-guidance";
+import { planActivity } from "./activity";
+import { materialSourceHints } from "./material-guidance";
+import { formatOutcomeHint } from "./outcome-hint";
 import { currentTextWorld, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
 import { reconcileWorldInventory } from "./text-world/interactions";
 import { ensureConvenienceWorld } from "./text-world/convenience";
+import { ensureLocationWorld, hasLocationWorld } from "./text-world/location-world";
 import { narrateTextWorld, type TextWorldNarrator } from "./text-world/narrator";
 import { conditionCards } from "./health-conditions";
 import { forecastShelterSleep } from "./rules";
@@ -433,7 +438,7 @@ export class GameService {
           energy: session.state.stats.energy,
         },
         recentLog: session.state.log
-          .slice(-6)
+          .slice(0, 6)
           .map((entry) => entry.message),
       },
     };
@@ -888,6 +893,8 @@ export class GameService {
 
   private async performActionUnlocked(gameId: string, action: GameAction) {
     const session = await this.repository.loadGame(gameId);
+    delete session.state.npcDialogue.departure;
+    if (session.state.lastActivity && ["text_world", "npc_dialogue", "subway_expedition"].includes(action.type)) delete session.state.lastActivity.paragraphs;
     const previousDay = session.state.day;
     const registry = this.runtimeRegistry(session);
 
@@ -900,6 +907,11 @@ export class GameService {
 
     if (session.state.location === "subway" && session.state.textWorld?.active && action.type !== "text_world") {
       throw new Error("역무실 탐색을 마치고 대합실로 돌아온 뒤 다른 행동을 할 수 있습니다.");
+    }
+
+    if (currentTextWorld(session.state)?.active && hasLocationWorld(session.state, registry) &&
+      (action.type === "content_action" || action.type === "content_choice")) {
+      throw new Error("현재 탐색 장면에 표시된 선택지를 골라 주세요.");
     }
 
     if (action.type === "text_world") {
@@ -979,7 +991,7 @@ export class GameService {
           newVisit: false,
         });
       } else {
-        leaveNpcDialogue(workingState, profile.id);
+        leaveNpcDialogue(workingState, profile.id, profile.name);
       }
       if (action.command === "start" || action.command === "leave") {
         consumeCurrentSceneIntro(workingState);
@@ -1131,6 +1143,7 @@ export class GameService {
     }
 
     if (this.isFrontierAction(action, registry)) {
+      if (session.state.lastActivity) delete session.state.lastActivity.paragraphs;
       const snapshot = await this.expandFrontier(session, action, registry);
       await this.repository.saveGame(session);
       void this.preGenerateNarrativeBeats(gameId).catch(() => undefined);
@@ -1138,12 +1151,20 @@ export class GameService {
     }
 
     if (this.isNarrativeContinuation(action, registry)) {
+      if (session.state.lastActivity) delete session.state.lastActivity.paragraphs;
       const snapshot = await this.performNarrativeContinuation(session, action, registry);
       await this.repository.saveGame(session);
       void this.preGenerateNarrativeBeats(gameId).catch(() => undefined);
       return snapshot;
     }
 
+    const activityDefinition = action.type === "content_choice" ? registry.choices[action.choiceId] : action.type === "content_action" ? registry.actions[action.actionId] : undefined;
+    if (activityDefinition?.activity && (action.type === "content_choice" || action.type === "content_action")) {
+      if (action.activityRevision !== session.state.activityRevision) throw new Error("작업 상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
+      const frame = resolveStoryFrame(session.state, registry);
+      if (!frame.choices.some(choice => choice.id === activityDefinition.id && choice.isAvailable))
+        throw new Error("현재 장면에서는 이 작업을 시작할 수 없습니다.");
+    }
     const followUpEventId = this.followUpEventId(action, registry);
     performAction(session.state, action);
     session.updatedAt = nowIso();
@@ -1338,6 +1359,7 @@ export class GameService {
     const registry = this.runtimeRegistry(session);
     reconcileWorldInventory(session.state);
     await ensureConvenienceWorld(session.state, registry, this.textWorldNarrator, session.id);
+    await ensureLocationWorld(session.state, registry, this.textWorldNarrator, session.id);
     const visibleLocationIds = this.visibleLocationIds(session);
     const allMapLocationIds = Object.keys(registry.locations);
     for (const locationId of new Set([...visibleLocationIds, ...allMapLocationIds])) {
@@ -1787,40 +1809,6 @@ export class GameService {
     };
   }
 
-  private buildQuestRequirements(session: GameSession, quest: QuestDefinition, registry = this.runtimeRegistry(session)) {
-    const requirementMap = new Map<string, number>();
-    const addRequirement = (itemId: string, amount = 1) => {
-      requirementMap.set(itemId, Math.max(requirementMap.get(itemId) ?? 0, amount));
-    };
-
-    quest.requiredItems.forEach((requirement) => {
-      addRequirement(requirement.itemId, requirement.amount);
-    });
-    quest.objectives.forEach((objective) => {
-      if (objective.type === "obtain_item") {
-        addRequirement(objective.itemId, objective.amount);
-      }
-    });
-
-    if (requirementMap.size === 0) {
-      return [];
-    }
-
-    const isCompleted = session.state.quests[quest.id] === "completed";
-
-    return Array.from(requirementMap.entries()).map(([itemId, amount]) => {
-      const actualAmount = session.state.inventory[itemId] ?? 0;
-      const ownedAmount = isCompleted ? amount : actualAmount;
-      return {
-        itemId,
-        name: String((registry.items[itemId] as { name?: string } | undefined)?.name ?? itemId),
-        amount,
-        ownedAmount,
-        met: ownedAmount >= amount,
-      };
-    });
-  }
-
   private itemDisplayName(registry: ContentRegistry, itemId: string) {
     return String((registry.items[itemId] as { name?: string } | undefined)?.name ?? itemId);
   }
@@ -1830,24 +1818,24 @@ export class GameService {
     choice: StoryChoice,
     registry: ContentRegistry,
   ): CraftingRecipe | undefined {
-    const effect = CRAFTING_RECIPE_EFFECTS[choice.id];
+    const definition = choice.serverActionHint.type === "content_choice" ? registry.choices[choice.serverActionHint.choiceId] : choice.serverActionHint.type === "content_action" ? registry.actions[choice.serverActionHint.actionId] : undefined;
+    if (definition?.activity?.kind === "rest") return undefined;
+    const activity = definition ? planActivity(definition) : null;
+    const producesSomething = choice.effects?.some(effect => effect.type === "add_item");
+    const effect = CRAFTING_RECIPE_EFFECTS[choice.id] ?? (activity ? definition!.outcomeHint : producesSomething ? formatOutcomeHint(choice.effects ?? [], session.state) : undefined);
     if (!effect) {
       return undefined;
     }
 
-    const requirements = (choice.conditions ?? []).flatMap((condition) => {
-      if (condition.type !== "has_item") {
-        return [];
-      }
-
-      const ownedAmount = session.state.inventory[condition.itemId] ?? 0;
-      return [{
-        itemId: condition.itemId,
-        name: this.itemDisplayName(registry, condition.itemId),
-        requiredAmount: condition.amount,
-        ownedAmount,
-        met: ownedAmount >= condition.amount,
-      }];
+    const requiredItems = new Map<string, number>(Object.entries(activity?.itemCosts ?? {}));
+    for (const id of activity?.tools ?? []) requiredItems.set(id, Math.max(1, requiredItems.get(id) ?? 0));
+    for (const condition of choice.conditions ?? []) if (condition.type === "has_item")
+      requiredItems.set(condition.itemId, Math.max(condition.amount, requiredItems.get(condition.itemId) ?? 0));
+    const requirements = [...requiredItems].map(([itemId, requiredAmount]) => {
+      const ownedAmount = session.state.inventory[itemId] ?? 0;
+      return { itemId, name: this.itemDisplayName(registry, itemId), requiredAmount,
+        sourceHints: ownedAmount < requiredAmount ? materialSourceHints(session.state, registry, itemId, RECIPE_MENU_SCENE_IDS) : [],
+        ownedAmount, met: ownedAmount >= requiredAmount };
     });
 
     const prerequisites = (CRAFTING_RECIPE_PREREQUISITES[choice.id] ?? []).map((prerequisite) => ({
@@ -1856,7 +1844,7 @@ export class GameService {
     }));
 
     return {
-      actionLabel: choice.id.startsWith("cook_")
+      actionLabel: definition?.activity?.kind === "cook" || choice.id.startsWith("cook_")
         ? "요리"
         : choice.id.startsWith("brew_")
           ? "연금"
@@ -1908,13 +1896,17 @@ export class GameService {
       session.state,
       activeDialogueProfile,
     );
-    const currentScene = explorationScene
+    let currentScene = explorationScene
       ? resolveSceneCardText(explorationScene, registry)
       : dialogueScene
       ? resolveSceneCardText(dialogueScene, registry)
       : expeditionScene
         ? resolveSceneCardText(expeditionScene, registry)
         : resolveSceneCardText(this.buildAuthoringSceneCard(session, storyMaterials, registry), registry);
+    const activityScene = session.state.lastActivity;
+    if (!explorationScene && !dialogueScene && !expeditionScene && activityScene?.paragraphs?.length) {
+      currentScene = { ...currentScene, id: `activity:${activityScene.definitionId}:${activityScene.revision}`, title: { rest: "휴식", craft: "제작", cook: "요리", build: "설비 작업" }[activityScene.kind], paragraphs: activityScene.paragraphs, generatedAt: activityScene.generatedAt ?? session.createdAt, source: "template", devSource: undefined };
+    }
     const presentedLatestEvent = dialogueScene
       ? null
       : latestEvent
@@ -1976,13 +1968,13 @@ export class GameService {
         name: quest.title,
         summary: quest.description,
         status: session.state.quests[quest.id] ?? "inactive",
-        requirements: this.buildQuestRequirements(session, quest, registry),
+        ...questProgressFields(session.state, quest, registry, RECIPE_MENU_SCENE_IDS),
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
       skillProgress: buildSkillProgressCards(session.state.skillProgress, registry.actions.fish_at_river?.effects.find(effect => effect.type === "random_outcome")?.outcomes),
       availableActions: (explorationScene
         ? textWorldActions(session.state, registry)
-        : dialogueScene
+        : session.state.npcDialogue.active
         ? buildNpcDialogueActions(session.state)
         : expeditionScene
           ? buildSubwayExpeditionActions(session.state)
@@ -2002,7 +1994,11 @@ export class GameService {
           const forecast = forecastShelterSleep(session.state);
           if (!forecast) return resolved;
           const warning = forecast.isFatal ? `⚠ 취침 중 생존 종료 예상: ${forecast.reason} / ` : "";
-          return { ...resolved, showOutcomeHint: true, outcomeHint: `${resolved.outcomeHint} / ${warning}현재 상태 기준: 상태 이상 피해 -${forecast.conditionDamage} 체력 / 체력 ${forecast.hpBefore}→${forecast.hpAfter} / 감염 Lv${forecast.infectionBefore}→Lv${forecast.infectionAfter} / 취침 중 상태 이상 25% 속도` };
+          const changes = [`체력 ${forecast.hpBefore}→${forecast.hpAfter}`, `기력 ${forecast.energyBefore}→${forecast.energyAfter}`];
+          if (forecast.conditionDamage > 0) changes.push(`부상·감염 피해 −${forecast.conditionDamage}`);
+          if (forecast.infectionBefore > 0 || forecast.infectionAfter > 0) changes.push(`감염 Lv${forecast.infectionBefore}→Lv${forecast.infectionAfter}`);
+          if (forecast.exhaustionBefore > 0 || forecast.exhaustionAfter > 0) changes.push(`탈진 Lv${forecast.exhaustionBefore}→Lv${forecast.exhaustionAfter}`);
+          return { ...resolved, showOutcomeHint: true, outcomeHint: `다음 날 06:00 / 예상 ${changes.join(" · ")} / 취침 중 기력 소모 50%${warning ? ` / ${warning.slice(0, -3)}` : ""}` };
         }),
       mapEntries: this.buildMapEntries(session, registry),
       latestEvent: presentedLatestEvent,

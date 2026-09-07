@@ -1,5 +1,6 @@
 import type { GameState } from "../schemas";
 import type { TextWorld } from "../schemas/text-world";
+import { normalizeHands } from "./hands";
 import { carriedByPlayer } from "./spatial";
 import { reconcileWorldInventory } from "./interactions";
 
@@ -35,7 +36,12 @@ export function transferCarriedEntities(state: GameState, destination: TextWorld
       if (source.observations[previousId]) destination.observations[id] = structuredClone(source.observations[previousId]);
       if (source.player.heldToolId === previousId) { destination.player.heldToolId = id; source.player.heldToolId = null; }
       if (source.player.heldItemId === previousId) { destination.player.heldItemId = id; source.player.heldItemId = null; }
+      if (source.player.focusEntityId === previousId) source.player.focusEntityId = null;
+      if (source.player.placementTargetId === previousId) source.player.placementTargetId = null;
       delete source.entities[previousId];
     }
+    source.player.manipulating = false;
+    normalizeHands(source);
   }
+  normalizeHands(destination);
 }

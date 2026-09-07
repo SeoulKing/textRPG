@@ -29,6 +29,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_wood_plank",
+    activity: { kind: "craft" },
     label: "{{item:woodPlank}}",
     outcomeHint: "{{item:wood}} 1개를 가공해 {{item:woodPlank}} 1개를 만든다. 가공 시간 10분.",
     showOutcomeHint: true,
@@ -52,6 +53,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_firewood",
+    activity: { kind: "craft" },
     label: "{{item:firewood}}",
     outcomeHint: "{{item:wood}} 1개를 가공해 {{item:firewood}} 4개를 만든다. 가공 시간 10분.",
     showOutcomeHint: true,
@@ -75,6 +77,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_shelter_wall_patch",
+    activity: { kind: "build" },
     showOutcomeHint: true,
     label: "거처 보강",
     outcomeHint: "효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: {{item:woodPlank}} 1 / {{item:clothScrap}} 2 / {{item:cordage}} 1.",
@@ -105,6 +108,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_shelter_brazier",
+    activity: { kind: "build" },
     showOutcomeHint: true,
     label: "간이 화로",
     outcomeHint: "효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: {{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
@@ -135,6 +139,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_shelter_rain_bucket",
+    activity: { kind: "build" },
     showOutcomeHint: true,
     label: "빗물통",
     outcomeHint: "효과: 하루에 한 번 {{item:waterBottle}} 한 병 확보 가능. 필요 재료: {{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
@@ -165,6 +170,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "cook_at_shelter",
+    activity: { kind: "cook" },
     showOutcomeHint: true,
     label: "{{item:hotMeal}}",
     outcomeHint: "효과: +1 정신력 / +6 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1. {{item:dentedPot}} 내구도 -1.",
@@ -199,6 +205,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "cook_rice_porridge",
+    activity: { kind: "cook" },
     showOutcomeHint: true,
     label: "{{item:ricePorridge}}",
     outcomeHint: "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1. {{item:dentedPot}} 내구도 -1. 조리 시간 20분.",
@@ -228,6 +235,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_crude_axe",
+    activity: { kind: "craft" },
     showOutcomeHint: true,
     label: "{{item:crudeAxe}}",
     outcomeHint: "{{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:crudeAxe|을를}} 만든다. 제작 시간 30분. 내구도 8.",
@@ -258,6 +266,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_utility_knife",
+    activity: { kind: "craft" },
     showOutcomeHint: true,
     label: "{{item:utilityKnife}}",
     outcomeHint: "{{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:utilityKnife|을를}} 만든다. 제작 시간 20분. 내구도 10.",
@@ -286,6 +295,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "craft_dented_pot",
+    activity: { kind: "craft" },
     showOutcomeHint: true,
     label: "{{item:dentedPot}}",
     outcomeHint: "{{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1개를 써서 {{item:dentedPot|을를}} 만든다. 제작 시간 20분. 내구도 12.",
@@ -314,6 +324,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "cook_grilled_fish",
+    activity: { kind: "cook" },
     showOutcomeHint: true,
     label: "{{item:grilledFish}}",
     outcomeHint: "간이 화로에서 {{item:riverFish}} 한 마리를 구워 {{item:grilledFish|을를}} 만든다.",
@@ -339,6 +350,7 @@ export const shelterChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "assemble_rescue_radio",
+    activity: { kind: "build" },
     showOutcomeHint: true,
     label: "무전기",
     outcomeHint: "효과: 10일차 구조 신호 준비. 필요 부품: {{item:radioBattery}} / {{item:radioAntenna}} / {{item:radioTransmitter}} / {{item:scrapMetal}} 2 / {{item:clothScrap}} 1.",

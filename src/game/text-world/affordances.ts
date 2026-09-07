@@ -1,6 +1,7 @@
 import type { GameState } from "../schemas";
 import type { TextWorld, WorldAction } from "../schemas/text-world";
 import type { WorldOption } from "./choices";
+import { handledEntityId, isHeld } from "./hands";
 import { resolveWorldActions } from "./engine";
 import { visibleEntities, particle } from "./world";
 
@@ -35,12 +36,16 @@ export function interactionOptions(world: TextWorld, state: GameState): WorldOpt
       const type = c.openable.isOpen ? "CLOSE" : "OPEN";
       add("lid:" + source.id, particle(source.name, "을", "를") + (type === "CLOSE" ? " 닫는다" : " 다시 연다"), "내부 가림 변경", [...approach(source.id), { type, target: source.id }], "minor");
     }
-    if (c.portable && c.position.zone === "player" && [world.player.heldItemId, world.player.heldToolId].includes(source.id)) {
+    if (c.portable && c.position.zone === "player") {
+      if (handledEntityId(world) !== source.id) add("hold:" + source.id, particle(source.name, "을", "를") + (isHeld(world, source.id) ? " 손에 고쳐 쥔다" : " 꺼내 손에 든다"), "휴대 물건 조작", [{ type: "HOLD", target: source.id }], "minor");
+      if (!isHeld(world, source.id)) continue;
+      add("stow:" + source.id, particle(source.name, "을", "를") + (c.light?.on ? " 끄고 챙겨 둔다" : " 챙겨 둔다"), "소지품 유지 · 손 비우기", [{ type: "STOW", target: source.id }], "minor");
       // Keep choices tied to the current focal object; the engine still supports any reachable compatible pair.
-      const target = visible.find(e => e.id === world.player.near && e.id !== source.id);
+      const destinationId = world.player.placementTargetId ?? (world.player.focusEntityId !== source.id ? world.player.focusEntityId : null) ?? world.player.near;
+      const target = visible.find(e => e.id === destinationId && e.id !== source.id);
       if (target) {
         for (const relation of ["inside", "on"] as const) {
-          add("put:" + source.id + ":" + target.id + ":" + relation, particle(source.name, "을", "를") + " " + target.name + (relation === "inside" ? " 안에 넣는다" : " 위에 놓는다"), relation === "inside" ? "물건 담기" : "물건 내려놓기", [{ type: "PUT", target: source.id, destination: target.id, relation }]);
+          add("put:" + source.id + ":" + target.id + ":" + relation, particle(source.name, "을", "를") + " " + target.name + (relation === "inside" ? " 안에 넣는다" : " 위에 놓는다"), relation === "inside" ? "물건 담기" : "물건 내려놓기", [...(handledEntityId(world) !== source.id ? [{ type: "HOLD" as const, target: source.id }] : []), { type: "PUT", target: source.id, destination: target.id, relation }]);
         }
       }
       add("drop:" + source.id, particle(source.name, "을", "를") + " 지금 자리 옆에 내려놓는다", "물건 내려놓기", [{ type: "DROP", target: source.id }]);

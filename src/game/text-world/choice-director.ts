@@ -1,14 +1,16 @@
 import type { GameState } from "../schemas";
 import type { TextWorld, WorldAction } from "../schemas/text-world";
+import { carriedByPlayer } from "./spatial";
+import { isHeld } from "./hands";
 import { interactionContext, type InteractionContext } from "./interaction-context";
 
 export type ChoiceCandidate = { id: string; label: string; hint: string; actions?: WorldAction[]; nodeId?: string };
-export type ChoiceFamily = "TRAVEL" | "RETREAT" | "FOCUS" | "INSPECT" | "OPEN_CONTAINER" | "ACCESS" | "COLLECT" | "TOOL" | "PLACE_OBJECT" | "MOVE_OBJECT" | "COVER" | "DEFOCUS" | "STORY" | "WAIT";
+export type ChoiceFamily = "TRAVEL" | "RETREAT" | "FOCUS" | "INSPECT" | "OPEN_CONTAINER" | "ACCESS" | "COLLECT" | "TOOL" | "PLACE_OBJECT" | "MOVE_OBJECT" | "COVER" | "DEFOCUS" | "STORY" | "WAIT" | "WORK" | "HANDLE" | "CARE";
 export type DirectedChoice<T> = T & { family: ChoiceFamily; targetId?: string; slot: string; selectionSignature: string };
 export function describeChoice(option: ChoiceCandidate, world: TextWorld) {
   const kind = option.id.split(":")[0], last = option.actions?.at(-1), meaningful = option.actions?.find(a => !["POSTURE", "MOVE"].includes(a.type));
   const targetId = option.nodeId ?? (kind === "collect" ? option.id.slice(8) : meaningful?.target ?? last?.target);
-  const family: ChoiceFamily = kind === "story" ? "STORY" : kind === "focus" ? "FOCUS" : kind === "defocus" ? "DEFOCUS" : ["leave", "emerge"].includes(kind) || option.hint === "귀환" ? "RETREAT" : kind === "travel" ? "TRAVEL"
+  const family: ChoiceFamily = ["hold", "stow"].includes(kind) ? "HANDLE" : ["harvest", "work"].includes(kind) ? "WORK" : kind === "care" ? "CARE" : kind === "toolwork" ? "TOOL" : kind === "story" ? "STORY" : kind === "focus" ? "FOCUS" : kind === "defocus" ? "DEFOCUS" : ["leave", "emerge"].includes(kind) || option.hint === "귀환" ? "RETREAT" : kind === "travel" ? "TRAVEL"
     : ["put", "drop"].includes(kind) ? "PLACE_OBJECT" : kind === "push" ? "MOVE_OBJECT" : kind === "hide" ? "COVER" : kind === "wait" ? "WAIT"
     : ["collect", "take"].includes(kind) ? "COLLECT" : ["equip", "light"].includes(kind) ? "TOOL" : ["open", "unlock"].includes(kind) ? "ACCESS"
     : kind === "lid" || kind === "explore" && world.entities[targetId ?? ""]?.components.openable ? "OPEN_CONTAINER" : "INSPECT";
@@ -17,7 +19,12 @@ export function describeChoice(option: ChoiceCandidate, world: TextWorld) {
 function stable(value: unknown): unknown { return Array.isArray(value) ? value.map(stable) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, entry]) => [key, stable(entry)])) : value; }
 function hash(text: string) { let value = 2166136261; for (let i = 0; i < text.length; i++) value = Math.imul(value ^ text.charCodeAt(i), 16777619); return (value >>> 0).toString(16); }
 export function choiceSignature(world: TextWorld, candidates: ChoiceCandidate[], context = interactionContext(world)) {
-  return hash(JSON.stringify(stable([context, candidates.map(o => [o.id, o.label, o.actions]), world.player])));
+  const knowledge = candidates.map(o => {
+    const targetId = describeChoice(o, world).targetId;
+    const known = world.observations[targetId ?? ""];
+    return [targetId, Boolean(known?.inspected), known?.stages ?? [], Boolean(known?.collected)];
+  });
+  return hash(JSON.stringify(stable([context, candidates.map(o => [o.id, o.label, o.actions]), world.player, knowledge])));
 }
 /** Select by context roles, with family diversity as a hard constraint. Scoring only ranks within a role. */
 export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state: GameState, candidates: T[]): DirectedChoice<T>[] {
@@ -25,7 +32,20 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
   const pool = candidates.map(option => ({ ...option, ...describeChoice(option, world) })).filter(option => {
     const last = option.actions?.at(-1);
     if (context.mode === "EXPLORE" && option.id.startsWith("lid:")) return false;
-    if (option.family === "PLACE_OBJECT") return context.mode === "MANIPULATE" && last?.target === context.holdingEntityId;
+    if (option.family === "PLACE_OBJECT") {
+      if (context.mode === "MANIPULATE") return last?.target === context.holdingEntityId;
+      const destination = world.entities[last?.destination ?? ""];
+      return context.mode === "FOCUS" && last?.type === "PUT" && last.destination === context.focusEntityId
+        && Boolean(destination && carriedByPlayer(world, destination)) && Boolean(last.target && isHeld(world, last.target));
+    }
+    if (option.family === "HANDLE") {
+      if (last?.type === "STOW") return context.mode === "MANIPULATE" && last.target === context.holdingEntityId;
+      if (context.mode !== "FOCUS" || last?.target === context.focusEntityId) return false;
+      const source = world.entities[last?.target ?? ""];
+      if (source?.components.light && candidates.some(candidate => candidate.id === "equip:" + source.id)) return false;
+      const target = world.entities[context.focusEntityId ?? ""];
+      return Boolean(target && (target.components.container && target.components.openable?.isOpen !== false || target.components.physical?.supportCapacity !== undefined));
+    }
     if (option.family === "MOVE_OBJECT" && last?.relation === "blocking") return context.threat?.kind === "door_closing" && last.destination === context.threat.sourceId;
     if (option.family === "COVER") return context.mode === "THREAT";
     if (context.mode === "THREAT" && option.family === "TOOL" && last?.type === "LIGHT" && world.entities[last.target!]?.components.light?.on && !option.actions?.some(a => a.type === "TAKE")) return false;
@@ -38,8 +58,9 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
   const lastFamily = world.choiceHistory?.at(-2)?.families ?? [];
   const score = (o: typeof pool[number]) => {
     const focused = o.targetId === context.focusEntityId;
-    let value = o.family === "COLLECT" ? 130 : o.family === "TOOL" ? 95 : o.family === "ACCESS" ? 85 : o.family === "INSPECT" || o.family === "OPEN_CONTAINER" ? 80 : o.family === "FOCUS" ? 45 : 35;
+    let value = o.family === "HANDLE" ? 105 : o.family === "WORK" ? 125 : o.family === "COLLECT" ? 130 : o.family === "TOOL" ? 95 : o.family === "ACCESS" ? 85 : o.family === "INSPECT" || o.family === "OPEN_CONTAINER" ? 80 : o.family === "FOCUS" ? 45 : 35;
     if (focused) value += 60;
+    if (o.family === "HANDLE" && o.actions?.at(-1)?.type === "HOLD" && o.targetId && isHeld(world, o.targetId)) value += 30;
     if (!previous?.shownIds.includes(o.id)) value += 30;
     else value -= 20;
     if (o.id === world.lastIntent.id) value -= 40;
@@ -52,6 +73,13 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     if (o.id.startsWith("emerge:")) value += 250;
     if (o.family === "OPEN_CONTAINER" && o.actions?.at(-1)?.type === "CLOSE" && world.events.some(e => e.type === "OPEN" && e.targetId === o.targetId)) value -= 90;
     if (o.family === "INSPECT" && world.observations[o.targetId ?? ""]?.inspected) value -= 30;
+    if (o.family === "FOCUS") {
+      const known = world.observations[o.targetId ?? ""];
+      const container = world.entities[o.targetId ?? ""]?.components.container;
+      const examined = known?.inspected || known?.stages.includes("interior");
+      value += examined ? -30 : 40;
+      if (examined && container && known?.collected) value -= 35;
+    }
     if (context.mode === "THREAT") {
       if (context.goal === "restore_visibility" && o.family === "TOOL" && o.actions?.some(a => a.type === "LIGHT" && !world.entities[a.target!]?.components.light?.on || a.type === "TAKE" && world.entities[a.target!]?.components.light)) value += 240;
       if (context.goal === "keep_passage" && (o.family === "MOVE_OBJECT" || o.family === "TRAVEL")) value += 180;
@@ -79,13 +107,13 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     take("object", inFamily(pool.some(o => o.family === "OPEN_CONTAINER") ? "OPEN_CONTAINER" : "TOOL"));
     take("information", inFamily("INSPECT"));
     take("destination", inFamily(pool.some(o => o.family === "TRAVEL") ? "TRAVEL" : pool.some(o => o.family === "RETREAT") ? "RETREAT" : "FOCUS"));
-    if (selected.length < 5) take("special", inFamily("TOOL", "RETREAT"));
+    if (selected.length < 5) take("special", inFamily("TOOL", "RETREAT", "HANDLE"));
   } else {
-    take("primary", o => (context.mode === "MANIPULATE" ? ["COLLECT", "ACCESS", "TOOL"] : ["COLLECT", "ACCESS", "TOOL", "OPEN_CONTAINER"]).includes(o.family) && (o.targetId === context.focusEntityId || o.family === "COLLECT" || o.family === "TOOL" || Boolean(o.actions?.some(a => a.type === "UNLOCK"))));
+    take("primary", o => (context.mode === "MANIPULATE" ? ["WORK", "COLLECT", "ACCESS", "TOOL"] : ["WORK", "CARE", "COLLECT", "ACCESS", "TOOL", "OPEN_CONTAINER"]).includes(o.family) && (o.targetId === context.focusEntityId || o.family === "COLLECT" || o.family === "TOOL" || Boolean(o.actions?.some(a => a.type === "UNLOCK"))));
     const information = pool.filter(o => o.family === "INSPECT" || o.family === "OPEN_CONTAINER" && o.actions?.at(-1)?.type !== "CLOSE");
     take("information", information.length ? o => information.includes(o) : inFamily("FOCUS"));
-    take("situational", context.mode === "MANIPULATE" ? inFamily(pool.some(o => o.family === "PLACE_OBJECT") ? "PLACE_OBJECT" : "TOOL") : inFamily("MOVE_OBJECT", "TOOL", "OPEN_CONTAINER"));
-    take("release", inFamily("DEFOCUS"));
+    take("situational", context.mode === "MANIPULATE" ? inFamily(pool.some(o => o.family === "PLACE_OBJECT") ? "PLACE_OBJECT" : "TOOL") : pool.some(o => o.family === "PLACE_OBJECT") ? inFamily("PLACE_OBJECT") : inFamily("CARE", "MOVE_OBJECT", "TOOL", "OPEN_CONTAINER", "HANDLE"));
+    take("release", context.mode === "MANIPULATE" ? inFamily("HANDLE", "DEFOCUS") : inFamily("DEFOCUS"));
     if (selected.length < 5) take("route", inFamily(pool.some(o => o.family === "TRAVEL") ? "TRAVEL" : pool.some(o => o.family === "RETREAT") ? "RETREAT" : "ACCESS"));
   }
   // Populate unused roles with distinct useful intentions, never recap/reward-free reinspection filler.

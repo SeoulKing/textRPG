@@ -1,3 +1,5 @@
+import { activityThoughtFields } from "./activity-narrative";
+import { restChoiceHint } from "./rest";
 import type {
   ActionDefinition,
   ChoiceLoading,
@@ -12,6 +14,7 @@ import type {
 } from "./schemas";
 import { evaluateCondition, isStockNodeGone } from "./state-utils";
 import { worldRegistry } from "./data/registry";
+import { activityInputsAvailable } from "./activity";
 import { formatOutcomeHint } from "./outcome-hint";
 
 const ACTIVITY_LOADING_MS = 500;
@@ -31,6 +34,7 @@ export function resolveInteractionLoading(definition: {
   type?: ActionDefinition["type"];
   loading?: ChoiceLoading;
   effects: Effect[];
+  activity?: ActionDefinition["activity"];
 }): ChoiceLoading | undefined {
   if (definition.effects.some(effectContainsTravel)) {
     return { durationMs: REGION_TRAVEL_LOADING_MS, transitionType: "region_travel" };
@@ -41,7 +45,7 @@ export function resolveInteractionLoading(definition: {
   const advancesTime = definition.effects.some(
     (effect) => effect.type === "advance_time" || effect.type === "advance_to_daybreak",
   );
-  if (isInvestigation || advancesTime) {
+  if (isInvestigation || advancesTime || definition.activity?.kind === "rest") {
     return { durationMs: ACTIVITY_LOADING_MS, transitionType: "activity" };
   }
   return definition.loading;
@@ -55,7 +59,8 @@ export function buildStoryChoiceFromChoice(
   return {
     id: choice.id,
     label: choice.label,
-    outcomeHint: standardizedHint || choice.outcomeHint,
+    outcomeHint: choice.activity?.kind === "rest" ? restChoiceHint(state, choice.activity) : standardizedHint || choice.outcomeHint,
+    ...activityThoughtFields(choice),
     showOutcomeHint: choice.tags?.includes("studio-authored") ? choice.showOutcomeHint : standardizedHint ? true : choice.showOutcomeHint,
     loading: resolveInteractionLoading(choice),
     isAvailable: true,
@@ -67,12 +72,12 @@ export function buildStoryChoiceFromChoice(
     hidden: choice.hidden,
     nextEventId: choice.nextEventId,
     nextSceneId: choice.nextSceneId,
-    serverActionHint: { type: "content_choice", choiceId: choice.id },
+    serverActionHint: { type: "content_choice", choiceId: choice.id, ...(choice.activity ? { activityRevision: state.activityRevision } : {}) },
   };
 }
 
 export function actionConditionsMet(action: ActionDefinition, state: GameState) {
-  return action.conditions.every((condition) => evaluateCondition(condition, state));
+  return action.conditions.every((condition) => evaluateCondition(condition, state)) && activityInputsAvailable(action, state);
 }
 
 export function canPresentAction(action: ActionDefinition, state: GameState) {
@@ -80,7 +85,7 @@ export function canPresentAction(action: ActionDefinition, state: GameState) {
 }
 
 export function choiceConditionsMet(choice: ChoiceDefinition, state: GameState) {
-  return choice.conditions.every((condition) => evaluateCondition(condition, state));
+  return choice.conditions.every((condition) => evaluateCondition(condition, state)) && activityInputsAvailable(choice, state);
 }
 
 export function canPresentChoice(choice: ChoiceDefinition, state: GameState) {

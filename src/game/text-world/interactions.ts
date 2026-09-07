@@ -2,6 +2,10 @@ import type { GameState } from "../schemas";
 import type { TextEntity, TextWorld, WorldAction } from "../schemas/text-world";
 import { ancestors, carriedByPlayer, childrenOf, containedBy, entityVolume, passageBlockers, relocateEntity, rootZone, totalMass } from "./spatial";
 import { canReach, visibleEntities } from "./world";
+import { isHeld, releaseHand } from "./hands";
+
+import { inventoryTreeAvailable, transferInventoryOwnership } from "./inventory-state";
+export { reconcileWorldInventory } from "./inventory-state";
 
 export const interactionTypes = new Set<WorldAction["type"]>(["PUSH", "PUT", "DROP", "WAIT", "HIDE"]);
 export function validateInteraction(world: TextWorld, state: GameState, action: WorldAction): string | null {
@@ -15,8 +19,8 @@ export function validateInteraction(world: TextWorld, state: GameState, action: 
     if (!c.physical?.movable || c.position.zone === "player" || ancestors(world, source).length) return "지금 배치된 자리에서는 밀어 옮길 수 없다.";
     if (totalMass(world, source) > (world.player.pushCapacity ?? 40)) return "내용물까지 합친 무게가 무거워 밀어 옮길 수 없다.";
   } else {
-    if (!c.portable || c.position.zone !== "player") return "먼저 직접 지니고 있는 물건이어야 한다.";
-    if (c.portable.itemId && (state.inventory[c.portable.itemId] ?? 0) < c.portable.amount) return "지금 지닌 수량이 부족하다.";
+    if (!c.portable || !isHeld(world, source.id)) return "먼저 지닌 물건을 손에 들어야 한다.";
+    if (!inventoryTreeAvailable(world, state, source)) return "지금 지닌 수량이 부족하다.";
   }
   if (action.type === "DROP") return null;
   const destination = world.entities[action.destination ?? ""];
@@ -54,35 +58,20 @@ export function applyInteraction(world: TextWorld, state: GameState, action: Wor
   }
   const destination = world.entities[action.destination ?? ""];
   const before = { ...source.components.position, name: source.name };
+  let transfer: ReturnType<typeof transferInventoryOwnership> | undefined;
   if (action.type === "PUSH") {
     relocateEntity(world, source, { zone: world.player.zone, relativeTo: destination.id, relation: action.relation as "blocking" | "beside" });
     world.player.near = source.id; world.player.position = destination.id; world.player.facing = source.id;
     world.player.relation = "near"; world.player.coverId = null;
   } else {
-    const portable = source.components.portable!;
-    if (portable.itemId) state.inventory[portable.itemId] -= portable.amount;
     const near = visibleEntities(world).some(e => e.id === world.player.near) ? world.player.near : null;
-    relocateEntity(world, source, action.type === "DROP" ? { zone: world.player.zone, ...(near ? { relativeTo: near, relation: "beside" as const } : {}) }
+    transfer = transferInventoryOwnership(world, state, source, action.type === "DROP" ? { zone: world.player.zone, ...(near ? { relativeTo: near, relation: "beside" as const } : {}) }
       : { zone: destination.id, relation: action.relation as "inside" | "on" });
-    if (world.player.heldToolId === source.id) world.player.heldToolId = null;
-    if (world.player.heldItemId === source.id) world.player.heldItemId = null;
-    world.player.manipulating = false;
+    releaseHand(world, source.id);
+    if (world.player.focusEntityId === source.id) world.player.focusEntityId = destination?.id ?? null;
     world.observations[source.id] ??= { stages: ["outline", "surface"], collected: false };
     world.observations[source.id].collected = false;
     if (destination && world.observations[destination.id]) world.observations[destination.id].collected = false;
   }
-  return { before, after: { ...source.components.position, name: source.name, destinationName: destination?.name, amount: source.components.portable?.amount, itemId: source.components.portable?.itemId } };
-}
-/** Reconcile only represented carried stacks; consuming/crafting never resurrects physical copies. */
-export function reconcileWorldInventory(state: GameState) {
-  const budget = { ...state.inventory };
-  const worlds = [state.textWorld, ...Object.values(state.locationTextWorlds)].filter((w): w is TextWorld => Boolean(w));
-  for (const world of worlds) for (const entity of Object.values(world.entities)) {
-    const p = entity.components.portable;
-    if (!["player", "collected"].includes(entity.components.position.zone) || !p?.itemId) continue;
-    const owned = Math.min(p.amount, budget[p.itemId] ?? 0);
-    budget[p.itemId] = Math.max(0, (budget[p.itemId] ?? 0) - owned);
-    if (!owned) entity.components.position = { zone: "consumed" };
-    else { p.amount = owned; entity.components.position = { zone: "player" }; }
-  }
+  return { before, after: { ...source.components.position, name: source.name, destinationName: destination?.name, amount: source.components.portable?.amount, itemId: source.components.portable?.itemId, ...transfer } };
 }

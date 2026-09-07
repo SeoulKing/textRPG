@@ -10,6 +10,8 @@ const { GameService } = require('../.server-dist/game/service');
 
 function legacyFixture() {
   let registry = structuredClone(worldRegistry);
+  registry.textRooms = registry.textRooms.filter(room => room.locationId === "subway");
+  for (const definition of [...Object.values(registry.actions), ...Object.values(registry.choices)]) delete definition.activity;
   for (const [id, name] of [['wildGreens', '산나물'], ['greensSoup', '나물국'], ['forestStew', '숲죽']]) {
     registry.items[id] = { ...structuredClone(registry.items.vegetables), id, name };
   }
