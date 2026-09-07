@@ -20,6 +20,7 @@ const tools = require('../content-writer-tools.js');
 const fresh = () => getEffectiveContentStudioDocument(parseContentStudioDocument({ version: 2 }));
 const narrator = async context => fallbackNarration(context);
 async function choose(state,id) {
+ if(!textWorldActions(state).some(c=>c.action.optionId===id)) { const release=textWorldActions(state).find(c=>c.action.optionId==="defocus"); if(release) await performTextWorldAction(state,release.action,"room-test",narrator); }
  const action = textWorldActions(state).find(c=>c.action.optionId===id)?.action;
  assert(action, 'missing '+id);
  await performTextWorldAction(state,action,'room-test',narrator);
@@ -52,7 +53,7 @@ test('legacy Studio documents expose authored rooms, and stored drafts retain ed
  const before=state.inventory.waterBottle??0;await choose(state,'collect:crate');assert.equal(state.inventory.waterBottle,before+4);
  state.textWorld=TextWorldSchema.parse(JSON.parse(JSON.stringify(state.textWorld)));
  await choose(state,'leave');await performTextWorldAction(state,{type:'text_world',command:'enter'},'room-test',narrator,fresh().textRooms);
- assert.equal(state.textWorld.entities.crate.name,'붉은 보관함');assert.equal(state.textWorld.entities.water.components.position.zone,'collected');
+ assert.equal(state.textWorld.entities.crate.name,'붉은 보관함');assert.equal(state.textWorld.entities.water.components.position.zone,'player');
  assert.equal(state.inventory.waterBottle,before+4);
 });
 

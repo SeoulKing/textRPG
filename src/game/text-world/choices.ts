@@ -1,14 +1,18 @@
+import { directChoices } from "./choice-director";
+import { focusOptions } from "./focus-options";
+import { interactionOptions } from "./affordances";
+import { passageBlockers } from "./spatial";
 import type { GameState } from "../schemas";
 import type { TextWorld, WorldAction } from "../schemas/text-world";
 import { adjacentZones, hasDoorKey, carriesLight, illuminated, particle, portalBetween, worldRooms, visibleEntities, entityDetails } from "./world";
 
 export type WorldOption = { id: string; label: string; hint: string; actions: WorldAction[]; importance: "major" | "minor" };
-export function worldOptions(world: TextWorld, state: GameState): WorldOption[] {
+export function availableWorldOptions(world: TextWorld, state: GameState): WorldOption[] {
   if (!world.active || state.isGameOver || state.stageClear) return [];
   const options: WorldOption[] = [];
   const add = (id: string, label: string, actions: WorldAction[], hint: string, importance: WorldOption["importance"] = "major") => options.push({ id, label, actions, hint, importance });
   const posture = (value: "standing" | "crouching"): WorldAction[] => world.player.posture === value ? [] : [{ type: "POSTURE", posture: value }];
-  const approach = (id: string, value: "standing" | "crouching" = "standing"): WorldAction[] => [
+  const approach = (id: string, value: "standing" | "crouching" = "standing"): WorldAction[] => world.entities[id]?.components.position.zone === "player" ? [] : [
     ...(world.player.near === id ? [] : [...posture("standing"), { type: "MOVE" as const, target: id }]),
     ...(world.player.near !== id && value === "crouching" ? [{ type: "POSTURE" as const, posture: value }] : world.player.near === id ? posture(value) : []),
   ];
@@ -17,14 +21,14 @@ export function worldOptions(world: TextWorld, state: GameState): WorldOption[] 
     const c = e.components, observed = world.observations[e.id];
     if (observed?.blocked && c.openable?.locked) continue;
     const contentsKnown = observed?.stages.includes("interior");
-    const remaining = c.container!.items.filter(id => world.entities[id]?.components.position.zone === e.id);
+    const remaining = c.container!.items.filter(id => world.entities[id]?.components.position.zone === e.id && world.entities[id].components.portable && (contentsKnown || world.observations[id]?.stages.includes("outline")));
     if (remaining.length && contentsKnown) {
       const names = remaining.map(id => world.entities[id].name).join("과 ");
       add("collect:" + e.id, particle(names, "을", "를") + " 챙긴다",
-        [...approach(e.id, "crouching"), ...(!c.openable?.isOpen ? [{ type: "OPEN" as const, target: e.id }] : []), ...remaining.map(target => ({ type: "TAKE" as const, target }))], "발견한 물건 수집");
+        [...approach(e.id, "crouching"), ...(c.openable?.isOpen === false ? [{ type: "OPEN" as const, target: e.id }] : []), ...remaining.map(target => ({ type: "TAKE" as const, target }))], "발견한 물건 수집");
     } else if (!contentsKnown && !observed?.collected && !(observed?.blocked && c.openable?.locked)) {
-      add("explore:" + e.id, particle(e.name, "을", "를") + (c.openable?.isOpen ? " 들여다본다" : " 열어 안을 확인한다"),
-        [...approach(e.id, "crouching"), { type: "INSPECT", target: e.id }, ...(!c.openable?.isOpen ? [{ type: "OPEN" as const, target: e.id }] : [])], "내부 탐색");
+      add("explore:" + e.id, particle(e.name, "을", "를") + (c.openable?.isOpen !== false ? " 들여다본다" : " 열어 안을 확인한다"),
+        [...approach(e.id, "crouching"), { type: "INSPECT", target: e.id }, ...(c.openable?.isOpen === false ? [{ type: "OPEN" as const, target: e.id }] : [])], "내부 탐색");
     }
   }
   const lamp = visible.find(e => e.components.light);
@@ -48,8 +52,10 @@ export function worldOptions(world: TextWorld, state: GameState): WorldOption[] 
   if (illuminated(world, world.player.zone) && world.player.zone !== "office" && !world.observations["zone:" + world.player.zone]?.stages.includes("surface")) {
     add("survey:" + world.player.zone, "빛을 움직여 벽과 바닥을 살핀다", [{ type: "SURVEY" }], "통로와 배치 확인");
   }
+  options.push(...interactionOptions(world, state));
   for (const next of adjacentZones(world.player.zone, world)) {
     const portal = portalBetween(world, world.player.zone, next);
+    if (portal && passageBlockers(world, portal.id).length) continue;
     if (portal?.components.openable?.locked) {
       if (hasDoorKey(world, state, portal)) {
         add("unlock:" + portal.id, "열쇠로 " + particle(portal.name, "을", "를") + " 연다",
@@ -74,15 +80,12 @@ export function worldOptions(world: TextWorld, state: GameState): WorldOption[] 
   // Keep a real exit in view; offer only available intentions without recap filler.
   const tail: WorldOption[] = [];
   if (world.player.zone === "office") tail.push({ id: "leave", label: "대합실로 돌아간다", hint: "탐색 마치기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
-  if (lamp?.components.position.zone === "player" && lamp.components.light?.on && options.length + tail.length < 5) {
+  if (lamp?.components.position.zone === "player" && lamp.components.light?.on && !options.some(o => o.id === "light:" + lamp.id)) {
     add("light:" + lamp.id, "손에 든 " + particle(lamp.name, "을", "를") + " 끈다", [{ type: "LIGHT", target: lamp.id }], "조명 끄기", "minor");
   }
-  // Collection and new exploration rank first. Travel remains present in these authored zones.
-  const score = (option: WorldOption) => option.id.startsWith("collect:") ? 200 + (option.id.endsWith(":" + world.player.near) ? 20 : 0)
-    : option.id.startsWith("unlock:") ? 150 : option.id.startsWith("take:") ? 110 : option.id.startsWith("equip:") ? 100 : option.id.startsWith("explore:") ? 80
-    : option.id.startsWith("travel:") ? 70 : option.id.startsWith("open:") ? 65 : option.id.startsWith("survey:") ? 60 : option.id.startsWith("inspect:") ? 75 : 10;
-  const ranked = options.sort((a, b) => score(b) - score(a));
-  const routeOut = world.player.zone === "office" ? undefined : ranked.find(o => o.id === (world.player.zone === "storage" ? "travel:corridor" : "travel:office"));
-  const selected = ranked.filter(o => o !== routeOut).slice(0, 5 - tail.length - (routeOut ? 1 : 0));
-  return [...selected, ...(routeOut ? [routeOut] : []), ...tail];
+  return [...options, ...focusOptions(world), ...tail];
+}
+
+export function worldOptions(world: TextWorld, state: GameState) {
+  return directChoices(world, state, availableWorldOptions(world, state));
 }

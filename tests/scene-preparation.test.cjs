@@ -228,6 +228,7 @@ test('text exploration starts typing at click with the request and preserves the
  h.response.resolve(h.next);h.lead.resolve();await flush();assert(!h.events.includes('render'));
  h.transition.resolve();await pending;
  assert.equal(h.client.snapshot,h.next);assert.equal(h.client.renderOptions.appendScene,true);
+ assert.equal(h.client.renderOptions.continueActionStory,true);
  assert.equal(h.client.renderOptions.scrollSceneToStart,false);assert.equal(h.context.dom.choices.innerHTML,'');
 });
 test('ready results wait for the lead to finish; a finished lead waits for a slow response',async()=>{

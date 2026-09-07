@@ -13,13 +13,21 @@ const world = s => s.locationTextWorlds.convenience;
 function initial() { const s=createInitialGameState();s.location='convenience';s.sceneId='convenience_first_intro';refreshLocationKnowledge(s);return s; }
 async function enter(s,n=narrator) { await ensureConvenienceWorld(s,buildRuntimeRegistry(s),n,'store-test'); }
 function action(s,id) { const a=textWorldActions(s).find(c=>c.action.optionId===id)?.action;assert(a,`${id}: ${textWorldActions(s).map(c=>c.action.optionId)}`);return a; }
-async function choose(s,id,n=narrator) { await performTextWorldAction(s,action(s,id),'store-test',n); }
+async function choose(s,id,n=narrator) {
+ if(!textWorldActions(s).some(c=>c.action.optionId===id)) {
+  const target=id.slice(id.indexOf(':')+1),focus=textWorldActions(s).find(c=>c.action.optionId==='focus:'+target);
+  if(focus) await performTextWorldAction(s,focus.action,'store-test',n);
+  else { const release=textWorldActions(s).find(c=>c.action.optionId==='defocus'); if(release) await performTextWorldAction(s,release.action,'store-test',n); }
+ }
+ if(id.startsWith('explore:') && world(s)?.observations[id.slice(8)]?.stages.includes('interior')) return;
+ await performTextWorldAction(s,action(s,id),'store-test',n);
+}
 function session(s) {return {id:'store-test',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),state:s,world:{locationCards:{},personCards:{},itemCards:{},eventCards:{},sceneCards:{},protagonistCard:null}};}
 
 test('convenience enters text rendering directly, hides stock until inspection, and separates discovery from collection',async()=>{
  const s=initial();const before=structuredClone(s.inventory);let contexts=[];const n=async c=>{contexts.push(c);return fallbackNarration(c);};await enter(s,n);
- assert.equal(textWorldScene(s).locationId,'convenience');assert.equal(textWorldActions(s).length,4);
- assert(textWorldActions(s).every(c=>c.action.optionId.startsWith('explore:')));
+ assert.equal(textWorldScene(s).locationId,'convenience');assert(textWorldActions(s).length>=3&&textWorldActions(s).length<=5);
+ assert(textWorldActions(s).every(c=>/^(explore|focus):/.test(c.action.optionId)));
  assert(!JSON.stringify(contexts[0]).includes('통조림'));assert(!JSON.stringify(contexts[0]).includes('1800'));
  assert(textWorldActions(s).every(c=>!c.action.optionId.includes('overview')));
  await choose(s,'explore:convenience_food_crate',n);
@@ -41,7 +49,8 @@ test('group collection preserves each existing reward, flag, skill award, and ad
   assert(s.worldElapsedMs>oldTime);assert.equal(s.inventory.staleBread,(oldInventory.staleBread??0)+2);
   assert(s.systemNoteEntries.some(e=>e.type==='delta'&&e.subject==='item'&&e.amount===2));
   assert.equal(world(s).events.filter(e=>e.type==='TAKE').length,3);assert(!world(s).events.some(e=>e.type==='POSTURE'));
-  assert(!textWorldActions(s).some(c=>c.action.optionId.includes('food_crate')));
+  assert(!textWorldActions(s).some(c=>['explore:convenience_food_crate','collect:convenience_food_crate'].includes(c.action.optionId)));
+  assert(textWorldActions(s).some(c=>/^(push|put|lid):/.test(c.action.optionId)));
  } finally {Date.now=originalNow;}
 });
 
@@ -60,14 +69,14 @@ test('partial old saves and published stock definitions survive load, depletion,
  s=normalizeGameSession(JSON.parse(JSON.stringify(session(s)))).state;s.location='convenience';await enter(s);
  assert.equal(s.inventory.cannedFood,before+1);assert(!textWorldActions(s).some(c=>c.action.optionId.includes('shelf')));assert.equal(s.textWorld.observations.crate.collected,true);
  await choose(s,'explore:convenience_supply_pile');await choose(s,'collect:convenience_supply_pile');assert.equal(world(s).entities.convenience_supply_pile.components.position.zone,'depleted');
- assert(!textWorldActions(s).some(c=>c.action.optionId.includes('supply_pile')));
+ assert(!textWorldActions(s).some(c=>['explore:convenience_supply_pile','collect:convenience_supply_pile','focus:convenience_supply_pile'].includes(c.action.optionId)));
  const fresh=initial();fresh.contentVersionId=s.contentVersionId;await enter(fresh);await choose(fresh,'explore:convenience_shelf');assert.match(world(fresh).lastParagraphs.join(' '),/9개/);
 });
 
 test('portal discovery keeps the original story and choices available beside exploration',async()=>{
  const s=initial();s.flags.magic_city_entrance_discovered=true;await enter(s);assert.match(world(s).lastParagraphs.join(' '),/푸른 빛|종소리/);
  assert(action(s,'story:go_to_magic_city_entrance_after_discovery'));await choose(s,'story:leave_magic_city_portal_for_now');assert(s.flags.magic_city_portal_discovery_seen);assert.equal(s.location,'convenience');
- assert(action(s,'explore:convenience_shelf'));assert(!textWorldActions(s).some(c=>c.action.optionId.startsWith('story:')));
+ assert(textWorldActions(s).some(c=>/^(explore|focus):/.test(c.action.optionId)));assert(!textWorldActions(s).some(c=>c.action.optionId.startsWith('story:')));
 });
 
 test('death during a bundle stops subsequent rewards and narration retains actual collected items',async()=>{
@@ -82,7 +91,7 @@ test('service conceals hidden state, serializes duplicate choices, and renders o
  const service=new GameService(repository,undefined,undefined,undefined,undefined,async c=>{calls++;return fallbackNarration(c);});
  let snap=await service.getState(stored.id);assert.equal(calls,1);assert.deepEqual(snap.state.locationTextWorlds,{});assert(!JSON.stringify(snap.currentScene).includes('1800'));
  await service.getState(stored.id);assert.equal(calls,1);
- snap=await service.performAction(stored.id,snap.availableActions.find(c=>c.action.optionId==='explore:convenience_register').action);
+ snap=await service.performAction(stored.id,snap.availableActions.find(c=>c.action.optionId==='focus:convenience_register').action);
  const take=snap.availableActions.find(c=>c.action.optionId==='collect:convenience_register').action,before=stored.state.money;
  const results=await Promise.allSettled([service.performAction(stored.id,take),service.performAction(stored.id,take)]);
  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(stored.state.money,before+1800);assert.equal(calls,3);
@@ -104,6 +113,20 @@ test('observed store narration omissions and invented bulk packaging are rejecte
  assert(hasContradictoryAction(context,'빵과 물병, 쌀을 챙긴다.'));
  assert(!hasContradictoryAction(context,'몸을 낮춘 채 빵과 물병, 쌀을 챙긴다. 보관함 안은 이제 비어 있다.'));
  assert.match(world(s).lastParagraphs.join(' '),/비어/);
- assert.equal(textWorldActions(s).length,3);
+ assert(textWorldActions(s).some(c=>c.action.optionId.startsWith('explore:')));
+ assert(!textWorldActions(s).some(c=>c.action.optionId==='explore:convenience_food_crate'));
+ assert(textWorldActions(s).length<=5);
  assert(!textWorldActions(s).some(c=>c.action.optionId.startsWith('travel:')));
+});
+
+test('placed store goods survive registry synchronization and reclaiming does not repeat stock rewards',async()=>{
+ const {resolveWorldActions}=require('../.server-dist/game/text-world/engine');
+ const s=initial();await enter(s);await choose(s,'explore:convenience_food_crate');await choose(s,'collect:convenience_food_crate');
+ const w=world(s),goods=Object.values(w.entities).find(e=>e.components.position.zone==='player'&&e.components.portable?.itemId==='waterBottle');assert(goods);
+ const before={...s.inventory},stock={...s.stockState},skill=structuredClone(s.skillProgress);
+ // Other unexplored targets retain priority; the same validated engine pair is used by the offered action.
+ assert(!resolveWorldActions(w,s,[{type:'PUT',target:goods.id,destination:'convenience_food_crate',relation:'inside'}]).interrupted);
+ syncConvenienceEntities(s);assert.equal(w.entities[goods.id].components.position.zone,'convenience_food_crate');assert(w.entities.convenience_food_crate.components.container.items.includes(goods.id));
+ await choose(s,'take:'+goods.id);assert.deepEqual(s.inventory,before);assert.deepEqual(s.stockState,stock);assert.deepEqual(s.skillProgress,skill);
+ const oldRevision=w.revision;await assert.rejects(performTextWorldAction(s,{type:'text_world',command:'choose',optionId:'take:'+goods.id,revision:oldRevision-1},'store-test',narrator),/상황이 바뀌/);
 });

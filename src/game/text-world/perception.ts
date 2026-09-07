@@ -1,3 +1,6 @@
+import { interactionContext } from "./interaction-context";
+import { directScene } from "./director";
+import { audibleSounds } from "./simulation";
 import type { NarrativeContext, TextWorld, WorldFact } from "../schemas/text-world";
 import { entityDetails, illuminated, worldRooms, visibleEntities, particle } from "./world";
 
@@ -10,21 +13,23 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
   if (lit) {
     const placements = visibleEntities(world).filter(e => e.components.position.zone === zone)
       .map(e => placement(e) + "에는 " + particle(e.name, "이", "가") + " 보인다.");
-    const layout = [worldRooms(world)[zone].layout, ...placements].join(" ");
-    add("layout:" + zone, "layout", { layout, geometry: worldRooms(world)[zone].layout }, zone);
+    const moved = Object.values(world.entities).some(e => e.components.position.zone === zone && e.components.position.relativeTo);
+    const layout = [...(moved ? [] : [worldRooms(world)[zone].layout]), ...placements].join(" ");
+    add("layout:" + zone, "layout", { layout, geometry: moved ? layout : worldRooms(world)[zone].layout }, zone);
     if (world.observations["zone:" + zone]?.stages.includes("surface")) add("surface:" + zone, "surface", { detail: worldRooms(world)[zone].surface }, zone);
   }
+  for (const sound of audibleSounds(world)) add("sound:" + sound.id, "sound", sound, sound.sourceId);
   for (const [i, sensory] of (worldRooms(world)[zone].sensory ?? []).entries()) {
     const triggered = world.events.some(e => e.type === sensory.when || sensory.when === "ENTER" && e.type === "MOVE" && e.before.zone !== e.after.zone);
     if (triggered) add("ambient:" + zone + ":" + i, "sensory", { detail: sensory.detail }, zone);
   }
   for (const e of visibleEntities(world)) {
     const c = e.components;
-    if (world.entities[c.position.zone]?.components.container) continue;
-    const held = c.position.zone === "player", near = world.player.near === e.id;
+    if (world.entities[c.position.zone]?.components.container && !c.container && c.position.relation !== "on") continue;
+    const carried = c.position.zone === "player", held = carried && world.player.heldToolId === e.id, near = world.player.near === e.id;
     const discovered = world.events.some(event => Array.isArray(event.after.revealedIds) && event.after.revealedIds.includes(e.id));
-    add("entity:" + e.id, "entity", { name: e.name, placement: held ? "손에 들고 있음" : placement(e),
-      isOpen: c.openable?.isOpen, locked: near ? c.openable?.locked : undefined, discovered, on: c.light?.on, held }, e.id);
+    add("entity:" + e.id, "entity", { name: e.name, placement: held ? "손에 들고 있음" : carried ? "지니고 있음" : placement(e),
+      isOpen: c.openable?.isOpen, locked: near ? c.openable?.locked : undefined, discovered, on: c.light?.on, held, carried }, e.id);
     if (c.portal) add("connection:" + e.id, "connection", { name: e.name, from: worldRooms(world)[c.portal.from].name.split(" · ").at(-1), to: worldRooms(world)[c.portal.to].name.split(" · ").at(-1) }, e.id);
     if (lit && (near || held || discovered)) {
       add("surface:" + e.id, "surface", { name: e.name, detail: c.openable?.locked ? e.description.replace("잠금장치는 없다.", "잠겨 있다.") : e.description }, e.id);
@@ -32,11 +37,15 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
       if (entityDetails(world, e).touch && world.events.some(event => event.targetId === e.id && ["TAKE", "UNLOCK", "OPEN", "CLOSE", "LIGHT"].includes(event.type)))
         add("touch:" + e.id, "sensory", { name: e.name, detail: entityDetails(world, e).touch }, e.id);
     }
-    if (lit && near && (!c.openable || c.openable.isOpen) && c.container) {
+    if (lit && (near || carried) && (!c.openable || c.openable.isOpen || c.physical?.opaque === false) && c.container) {
       const items = visibleEntities(world).filter(item => c.container!.items.includes(item.id));
-      add("contents:" + e.id, "contents", { name: e.name, items: items.map(item => ({ id: item.id, name: item.name, amount: item.components.portable!.amount, unit: item.components.portable!.unit, detail: item.description })) }, e.id);
+      add("contents:" + e.id, "contents", { name: e.name, items: items.map(item => ({ id: item.id, name: item.name, amount: item.components.portable?.amount ?? 1, unit: item.components.portable?.unit, detail: item.description })) }, e.id);
       if (entityDetails(world, e).interior) add("interior:" + e.id, "sensory", { name: e.name, detail: entityDetails(world, e).interior }, e.id);
     }
+  }
+  if (world.player.relation === "behind" && world.player.posture === "crouching") {
+    const cover = world.entities[world.player.coverId ?? ""];
+    if (cover?.components.position.relation === "blocking") add("cover:" + cover.id, "surface", { detail: cover.name + " 뒤로 몸을 낮춘 자리에서는 그 앞을 지나는 통로가 가려진다." }, cover.id);
   }
   for (const entity of visibleEntities(world).filter(e => e.components.portal && e.components.openable?.isOpen)) {
     const portal = entity.components.portal!, to = portal.from === zone ? portal.to : portal.from;
@@ -47,7 +56,8 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
 export function directNarrative(world: TextWorld): NarrativeContext {
   const observations = perceiveWorld(world);
   const firstVisit = !world.visitedZones.includes(world.player.zone);
-  const requiredFacts: WorldFact[] = world.events.map((event, i) => ({ id: "result:" + i, kind: "result", targetId: event.targetId, data: { ...event } }));
+  const perceivedEvents = world.events.filter(event => event.witnessed !== false);
+  const requiredFacts: WorldFact[] = perceivedEvents.map((event, i) => ({ id: "result:" + i, kind: "result", targetId: event.targetId, data: { ...event } }));
   const optionalFacts: WorldFact[] = [];
   const recap = world.lastIntent.id === "overview";
   const entered = world.events.some(e => e.type === "ENTER" || e.type === "MOVE" && e.before.zone !== e.after.zone);
@@ -60,7 +70,7 @@ export function directNarrative(world: TextWorld): NarrativeContext {
     const stage = fact.kind === "surface" ? "surface" : fact.kind === "contents" ? "interior" : fact.kind === "entity" ? "outline" : null;
     const stages = fact.targetId ? world.observations[fact.targetId]?.stages ?? [] : [];
     const newlyObserved = stage ? !stages.includes(stage) : !previous;
-    const mandatory = (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
+    const mandatory = (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
       (fact.kind === "surface" && world.events.some(e => (newlyObserved && e.targetId === fact.targetId && e.type === "INSPECT") || (e.type === "SURVEY" && fact.targetId === world.player.zone))) ||
       (fact.kind === "lighting" && (changed || recap)) || (fact.kind === "threshold" && world.events.some(e => e.targetId === fact.targetId && e.type === "OPEN")) ||
       (fact.kind === "connection" && (recap || world.events.some(e => e.targetId === fact.targetId || e.type === "MOVE" && e.before.zone !== e.after.zone)));
@@ -78,16 +88,18 @@ export function directNarrative(world: TextWorld): NarrativeContext {
   const held = world.player.heldToolId ? world.entities[world.player.heldToolId] : undefined;
   const anchors: Record<string, string> = { entrance: world.player.zone === "office" ? "대합실로 통하는 입구" : "이 방으로 들어온 입구", "far-door": "역무실 안쪽 철문 앞", "office-end": "복도의 역무실 쪽 끝", "storage-end": "복도의 창고 쪽 끝", "far-wall": "입구 맞은편 벽", "far-end": "공간의 반대쪽 끝" };
   const near = world.player.near ? world.entities[world.player.near] : undefined;
-  const positionLabel = anchors[world.player.position] ?? (near ? entityDetails(world, near).placement + "의 " + near.name + " 앞" : "현재 자리");
+  const positionLabel = world.player.relation === "behind" && world.player.coverId ? world.entities[world.player.coverId].name + " 뒤" : anchors[world.player.position] ?? (near ? entityDetails(world, near).placement + "의 " + near.name + " 앞" : "현재 자리");
   const facingLabel = world.entities[world.player.facing ?? ""]?.name ?? anchors[world.player.facing ?? ""] ?? "주변";
-  return {
+  const interaction = interactionContext(world);
+  return directScene({
+    interaction: { mode: interaction.mode, focus: world.entities[interaction.focusEntityId ?? ""]?.name ?? null, holding: world.entities[interaction.holdingEntityId ?? ""]?.name ?? null, goal: interaction.goal, threat: interaction.threat?.kind ?? null },
     voice: { person: "first", selfReference: "나", tense: "present", omitSubject: true },
     intent: world.lastIntent,
     location: { id: world.player.zone, name: worldRooms(world)[world.player.zone].name, lighting: illuminated(world, world.player.zone) ? "lit" : "dark", firstVisit },
     player: { ...world.player, positionLabel, facingLabel, heldTool: held ? { name: held.name, on: Boolean(held.components.light?.on) } : null },
-    results: structuredClone(world.events), requiredFacts, optionalFacts, knownFacts,
+    results: structuredClone(perceivedEvents), requiredFacts, optionalFacts, knownFacts,
     recentScenes: structuredClone(world.recentScenes), paragraphCount: world.lastIntent.importance === "major" ? { min: 2, max: 3 } : { min: 1, max: 1 },
-  };
+  }, world.narrated);
 }
 export function rememberNarration(world: TextWorld, context: NarrativeContext, usedFactIds: string[], paragraphs: string[]) {
   for (const fact of [...context.requiredFacts, ...context.optionalFacts]) if (usedFactIds.includes(fact.id) && world.knowledge[fact.id]) world.narrated[fact.id] = world.knowledge[fact.id].signature;

@@ -975,6 +975,12 @@ body::-webkit-scrollbar,
   min-width: 0;
 }
 
+.scene-story-continuation {
+  display: flow-root;
+  margin-top: 16px;
+  overflow-anchor: none;
+}
+
 .scene-story-block + .scene-story-block {
   margin-top: 16px;
 }

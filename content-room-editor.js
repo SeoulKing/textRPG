@@ -5,10 +5,12 @@ function roomEntityKind(entity) {
   return c.container ? '보관함' : c.portal ? '문' : c.light ? '조명' : c.portable ? '수집 아이템' : '사물';
 }
 function roomEntityRows(room) {
-  return room.entities.filter(e => e.components.position.zone === room.id).flatMap(e => [e, ...room.entities.filter(child => child.components.position.zone === e.id)]);
+  const seen = new Set();
+  const visit = owner => room.entities.filter(e => e.components.position.zone === owner && !seen.has(e.id)).flatMap(e => { seen.add(e.id); return [e, ...visit(e.id)]; });
+  return visit(room.id);
 }
 function syncRoomContents(room) {
-  for (const entity of room.entities) if (entity.components.container) entity.components.container.items = room.entities.filter(e => e.components.position.zone === entity.id).map(e => e.id);
+  for (const entity of room.entities) if (entity.components.container) entity.components.container.items = room.entities.filter(e => e.components.position.zone === entity.id && e.components.position.relation !== "on").map(e => e.id);
 }
 function renderTextRoom(room) {
   writer.activeAction = null;
@@ -55,6 +57,7 @@ function bindRoomEntity(room,entity) {
   });
   bindWriter($('#roomEntityDetails'),entity.details,(key,value)=>{if(key==='placement')entity.details.anchor=value||entity.id;});
   bindWriter($('#roomEntityPosition'),c.position,()=>{
+    delete c.position.relativeTo; delete c.position.relation;
     const parent=room.entities.find(e=>e.id===c.position.zone);
     entity.details.placement=parent?parent.name+' 안':'입구 기준 정면';
     entity.details.anchor=parent?.id??entity.id;

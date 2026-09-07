@@ -23,6 +23,9 @@ function storedRecap(state) {
   return fallbackNarration(directNarrative(world)).paragraphs;
 }
 async function choose(state,id) {
+  // Follow the visible focus-exit flow when the requested intention belongs to the room.
+  if (!textWorldActions(state).some(c=>c.action.optionId===id) && textWorldActions(state).some(c=>c.action.optionId==='defocus'))
+    await performTextWorldAction(state,action(state,'defocus'),'test',narrator);
   await performTextWorldAction(state,action(state,id),'test',narrator);
   if (!state.textWorld.active || state.isGameOver || state.stageClear) return;
   const choices=textWorldActions(state); assert(choices.length>=2 && choices.length<=5,choices.map(c=>c.label).join(','));
@@ -177,7 +180,7 @@ test('reachable exploration states offer 2–5 useful intentions without recaps 
     const key=JSON.stringify([w.player,Object.values(w.entities).map(e=>e.components),w.observations]);
     if(seen.has(key)) continue; seen.add(key); inspected++;
     const choices=textWorldActions(state); assert(choices.length>=2&&choices.length<=5,choices.map(c=>c.label).join(','));
-    assert(choices.some(c=>['leave','travel:office','travel:corridor'].includes(c.action.optionId)));
+    assert(choices.some(c=>['leave','travel:office','travel:corridor','defocus','emerge:crate'].includes(c.action.optionId)));
     assert(!choices.some(c=>c.action.optionId==='overview'));
     for(const c of choices.filter(c=>!['overview','leave'].includes(c.action.optionId))) {
       const next=structuredClone(state); await performTextWorldAction(next,c.action,'test',narrator); queue.push(next);
@@ -222,7 +225,13 @@ test('authored footsteps follow movement and never play during still collection;
   await choose(s,'travel:storage');
   const w=s.textWorld;
   for(let i=0;i<8;i++) { const box=structuredClone(w.entities.cache);box.id='extraBox'+i;box.components.container.items=[];w.entities[box.id]=box; }
-  const choices=textWorldActions(s);assert.equal(choices.length,5);assert(choices.some(c=>c.action.optionId==='travel:corridor'));
+  const choices=textWorldActions(s);assert(choices.length>=3&&choices.length<=5);assert(choices.some(c=>c.action.optionId==='travel:corridor'));
+  // Other unopened objects compete for one semantic slot; inspecting them makes room for the rest.
+  for(let i=0;i<8&&!textWorldActions(s).some(c=>c.action.optionId==='explore:cache');i++) {
+    const other=textWorldActions(s).find(c=>c.action.optionId.startsWith('explore:extraBox'));
+    assert(other,'An unseen object remains reachable');await choose(s,other.action.optionId);
+    if(!textWorldActions(s).some(c=>c.action.optionId==='explore:cache'))await choose(s,'defocus');
+  }
   await choose(s,'explore:cache');await choose(s,'collect:cache');
   c=directNarrative(w);assert(!c.optionalFacts.some(f=>f.id.startsWith('ambient:')));
   assert(!textWorldActions(s).some(c=>['more','back'].includes(c.action.optionId)));

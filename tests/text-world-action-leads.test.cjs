@@ -13,7 +13,7 @@ async function enter(s,n) {
   if(s.location==='convenience') await ensureConvenienceWorld(s,buildRuntimeRegistry(s),n,'lead-test');
   else await performTextWorldAction(s,{type:'text_world',command:'enter'},'lead-test',n);
 }
-function rawNarration(c) { const n=fallbackNarration(c);return {paragraphs:n.paragraphs.map(text=>({text,factIds:n.usedFactIds})),choiceNarratives:c.nextChoices.map(o=>({optionId:o.id,text:o.actionLead.replace('시선을 모은다','시선을 둔다')}))}; }
+function rawNarration(c) { const n=fallbackNarration(c);return {paragraphs:n.paragraphs.map(text=>({text,factIds:n.usedFactIds})),choiceNarratives:c.nextChoices.map(o=>({optionId:o.id,label:o.id==='explore:crate'?o.label.replace('열어 안을 확인한다','열어 안을 들여다본다'):o.label,text:o.actionLead.replace('시선을 모은다','시선을 둔다')}))}; }
 
 for(const location of ['subway','convenience']) test(location+': one provider request renders results and all next leads, which survive saves without extra requests',async t=>{
   const oldKey=process.env.GEMINI_API_KEY;process.env.GEMINI_API_KEY='mock-placeholder';
@@ -22,6 +22,8 @@ for(const location of ['subway','convenience']) test(location+': one provider re
   t.mock.method(global,'fetch',async(_url,init)=>{
     const body=JSON.parse(init.body),c=JSON.parse(body.contents[0].parts[0].text).context;contexts.push(c);
     assert(body.systemInstruction.parts[0].text.includes('반복·인용·의역하지 않고'));
+    assert(body.systemInstruction.parts[0].text.includes('감각과 시선이 머무는 한국어 소설체'));
+    assert(c.direction.beats.every(b=>[...b.resultFactIds,...b.detailFactIds].every(id=>[...c.requiredFacts,...c.optionalFacts].some(f=>f.id===id))));
     assert.deepEqual(body.generationConfig.responseJsonSchema.properties.choiceNarratives.items.properties.optionId.enum,c.nextChoices.map(o=>o.id));
     return {ok:true,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(rawNarration(c))}]}}]})};
   });
@@ -29,6 +31,7 @@ for(const location of ['subway','convenience']) test(location+': one provider re
   assert.equal(contexts.length,1);assert.equal(currentTextWorld(s).source,'llm');
   assert(!/미개봉 물병|고철|1800|쌀/.test(JSON.stringify(contexts[0].nextChoices)));
   let choices=textWorldActions(s);assert.equal(choices.length,contexts[0].nextChoices.length);
+  if(location==='subway')assert.equal(choices.find(c=>c.action.optionId==='explore:crate').label,'나무 상자를 열어 안을 들여다본다');
   for(const choice of choices){assert.equal(ActionChoiceSchema.parse(choice).postChoiceNarrative.length,1);assert.equal(choice.postChoiceNarrativeSource,'llm');}
   for(const choice of textWorldScene(s).choices) assert.equal(StoryChoiceSchema.parse(choice).postChoiceNarrativeSource,'llm');
   s=GameStateSchema.parse(JSON.parse(JSON.stringify(s)));

@@ -5,6 +5,8 @@ import { buildRuntimeRegistry } from "../runtime-registry";
 import { applySystemNote } from "../rules";
 import { setSystemNote } from "../system-note";
 import { createSubwayTextWorld, worldRooms } from "./world";
+import { transferCarriedEntities } from "./inventory";
+import { reconcileWorldInventory } from "./interactions";
 import { worldOptions } from "./choices";
 import { choiceNarrative, choiceNarrativeFields, entryActionLead, nextNarrativeChoices, storeChoiceNarratives } from "./choice-narrative";
 import { recordEvent, resolveWorldActions } from "./engine";
@@ -28,7 +30,7 @@ export function textWorldActions(state: GameState, registry = buildRuntimeRegist
   const world = state.textWorld;
   if (!world?.active) return [];
   return worldOptions(world, state).map(option => ({
-    id: "text-world:" + world.revision + ":" + option.id, label: option.label,
+    id: "text-world:" + world.revision + ":" + option.id,
     outcomeHint: option.hint, showOutcomeHint: Boolean(option.hint), isAvailable: true,
     loading: { durationMs: 500, transitionType: "activity" },
     ...choiceNarrativeFields(world, option),
@@ -57,14 +59,16 @@ export async function performTextWorldAction(
     if (!textWorldEntryActions(state).length) throw new Error("현재 탐색이나 행동을 먼저 마쳐 주세요.");
     state.textWorld ??= createSubwayTextWorld(rooms);
     state.textWorld.active = true;
+    transferCarriedEntities(state, state.textWorld);
     state.textWorld.events = [];
-    state.textWorld.player = { ...state.textWorld.player, zone: "office", near: null, position: "entrance", facing: "far-door", posture: "standing" };
+    state.textWorld.player = { ...state.textWorld.player, zone: "office", near: null, position: "entrance", facing: "far-door", posture: "standing", relation: "near", coverId: null, focusEntityId: null, manipulating: false };
     state.textWorld.lastIntent = { id: "enter", label: "역무실로 들어선다", importance: "major" };
     recordEvent(state.textWorld, { type: "ENTER", targetId: "office", before: { zone: "concourse" }, after: { zone: "office" } });
   } else {
     const world = state.textWorld;
     if (!world?.active) throw new Error("먼저 역무실 탐색을 시작해 주세요.");
     if (action.revision !== world.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
+    reconcileWorldInventory(state);
     const option = worldOptions(world, state).find(choice => choice.id === action.optionId);
     if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
     alreadyDisplayed = [choiceNarrative(world, option).text];

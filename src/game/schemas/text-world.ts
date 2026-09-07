@@ -3,17 +3,20 @@ import { z } from "zod";
 export const TextEntityDetailsSchema = z.object({
   anchor: z.string(), placement: z.string(), outline: z.string(), surface: z.string(),
   touch: z.string().optional(), interior: z.string().optional(),
+  movementSound: z.string().optional(),
 });
 export const TextEntitySchema = z.object({
   id: z.string(), name: z.string(), description: z.string(),
+  origin: z.object({ worldId: z.string(), entityId: z.string() }).optional(),
   details: TextEntityDetailsSchema.optional(),
   components: z.object({
-    position: z.object({ zone: z.string() }),
-    openable: z.object({ isOpen: z.boolean(), locked: z.boolean(), keyId: z.string().optional() }).optional(),
+    position: z.object({ zone: z.string(), relativeTo: z.string().optional(), relation: z.enum(["beside", "blocking", "on", "inside"]).optional() }),
+    physical: z.object({ mass: z.number().nonnegative(), volume: z.number().positive().default(1), movable: z.boolean().default(false), opaque: z.boolean().default(true), blocksPassage: z.boolean().default(false), supportCapacity: z.number().nonnegative().optional() }).optional(),
+    openable: z.object({ isOpen: z.boolean(), locked: z.boolean(), keyId: z.string().optional(), autoCloseSeconds: z.number().int().positive().optional(), remainingOpenSeconds: z.number().int().nonnegative().optional() }).optional(),
     discovery: z.object({ inspectTargetId: z.string() }).optional(),
-    container: z.object({ items: z.array(z.string()) }).optional(),
+    container: z.object({ items: z.array(z.string()), capacity: z.number().positive().optional() }).optional(),
     portal: z.object({ from: z.string(), to: z.string() }).optional(),
-    light: z.object({ on: z.boolean() }).optional(),
+    light: z.object({ on: z.boolean(), fuelSeconds: z.number().int().nonnegative().optional(), spill: z.number().min(0).max(1).optional() }).optional(),
     portable: z.object({ itemId: z.string().nullable(), amount: z.number().int().positive(), unit: z.string().optional() }).optional(),
   }),
 });
@@ -27,7 +30,9 @@ export const TextRoomSchema = z.object({
 export type TextRoom = z.infer<typeof TextRoomSchema>;
 const FactSchema = z.object({ id: z.string(), kind: z.string(), targetId: z.string().optional(), data: z.record(z.string(), z.unknown()) });
 export const WorldEventSchema = z.object({
-  type: z.enum(["ENTER", "MOVE", "POSTURE", "INSPECT", "UNLOCK", "OPEN", "CLOSE", "TAKE", "LIGHT", "LOOK", "SURVEY", "LEAVE", "STOPPED", "STORY"]),
+  type: z.enum(["ENTER", "MOVE", "POSTURE", "INSPECT", "UNLOCK", "OPEN", "CLOSE", "TAKE", "LIGHT", "LOOK", "SURVEY", "LEAVE", "STOPPED", "STORY", "PUSH", "PUT", "DROP", "WAIT", "HIDE", "SOUND", "LIGHT_EXPIRED", "AUTO_CLOSE", "DEFOCUS", "FOCUS"]),
+  id: z.string().optional(), actorId: z.string().optional(), causedBy: z.string().optional(),
+  origin: z.enum(["player", "simulation"]).optional(), witnessed: z.boolean().optional(),
   at: z.number(), targetId: z.string().optional(),
   before: z.record(z.string(), z.unknown()).default({}), after: z.record(z.string(), z.unknown()).default({}),
   reason: z.string().optional(), attemptedAction: z.string().optional(),
@@ -35,7 +40,9 @@ export const WorldEventSchema = z.object({
 export const TextWorldSchema = z.object({
   version: z.literal(2), active: z.boolean(), revision: z.number().int().nonnegative(), elapsedSeconds: z.number().int().nonnegative(),
   player: z.object({ zone: z.string(), near: z.string().nullable(), position: z.string(), facing: z.string().nullable(),
-    posture: z.enum(["standing", "crouching"]), heldToolId: z.string().nullable() }),
+    posture: z.enum(["standing", "crouching"]), heldToolId: z.string().nullable(),
+    focusEntityId: z.string().nullable().optional(), heldItemId: z.string().nullable().optional(), manipulating: z.boolean().optional(),
+    relation: z.enum(["near", "behind", "under"]).optional(), coverId: z.string().nullable().optional(), pushCapacity: z.number().positive().optional() }),
   entities: z.record(z.string(), TextEntitySchema),
   rooms: z.record(z.string(), TextRoomSchema.omit({ entities: true })).optional(),
   observations: z.record(z.string(), z.object({ stages: z.array(z.enum(["outline", "surface", "interior"])),
@@ -44,14 +51,16 @@ export const TextWorldSchema = z.object({
   knowledge: z.record(z.string(), z.object({ fact: FactSchema, signature: z.string(), observedAt: z.number() })),
   narrated: z.record(z.string(), z.string()), events: z.array(WorldEventSchema).max(30),
   recentScenes: z.array(z.object({ zone: z.string(), intent: z.string(), paragraphs: z.array(z.string()) })).max(3),
-  choiceNarratives: z.record(z.string(), z.object({ label: z.string(), text: z.string().min(1).max(160), source: z.enum(["template", "llm"]) })).optional(),
+  simulation: z.object({ nextEventId: z.number().int().nonnegative().default(0), sounds: z.array(z.object({ id: z.string(), sourceId: z.string().optional(), zone: z.string(), description: z.string(), remainingSeconds: z.number().nonnegative(), intensity: z.number().min(0).max(1) })).default([]) }).optional(),
+  choiceHistory: z.array(z.object({ revision: z.number().int(), signature: z.string(), shownIds: z.array(z.string()), chosenId: z.string(), families: z.array(z.string()) })).max(3).optional(),
+  choiceNarratives: z.record(z.string(), z.object({ label: z.string(), choiceLabel: z.string().optional(), text: z.string().min(1).max(160), source: z.enum(["template", "llm"]) })).optional(),
   lastIntent: z.object({ id: z.string(), label: z.string(), importance: z.enum(["major", "minor"]) }),
   lastParagraphs: z.array(z.string()).min(1), source: z.enum(["template", "llm"]), sceneRevision: z.number().int().nonnegative(),
 });
 export type TextEntity = z.infer<typeof TextEntitySchema>;
 export type TextWorld = z.infer<typeof TextWorldSchema>;
 export type WorldEvent = z.infer<typeof WorldEventSchema>;
-export type WorldAction = { type: Exclude<WorldEvent["type"], "ENTER" | "STOPPED" | "STORY">; target?: string; posture?: "standing" | "crouching" };
+export type WorldAction = { type: "MOVE" | "POSTURE" | "INSPECT" | "UNLOCK" | "OPEN" | "CLOSE" | "TAKE" | "LIGHT" | "LOOK" | "SURVEY" | "LEAVE" | "PUSH" | "PUT" | "DROP" | "WAIT" | "HIDE" | "DEFOCUS" | "FOCUS"; target?: string; destination?: string; relation?: "beside" | "blocking" | "on" | "inside" | "behind" | "under"; durationSeconds?: number; posture?: "standing" | "crouching" };
 export type WorldFact = z.infer<typeof FactSchema>;
 export type NarrativeContext = {
   voice: { person: "first"; selfReference: "나"; tense: "present"; omitSubject: true };
@@ -64,6 +73,8 @@ export type NarrativeContext = {
   knownFacts: WorldFact[];
   recentScenes: TextWorld["recentScenes"];
   paragraphCount: { min: number; max: number };
-  nextChoices?: { id: string; label: string; actionLead: string }[];
+  nextChoices?: { id: string; label: string; actionLead: string; family?: string; selectionSignature?: string; targetId?: string; labelNames?: string[] }[];
   alreadyDisplayed?: string[];
+  interaction?: { mode: "EXPLORE" | "FOCUS" | "MANIPULATE" | "THREAT"; focus: string | null; holding: string | null; goal: string; threat: string | null };
+  direction?: { focusTargetId?: string; beats: { role: "approach" | "contact" | "reveal" | "change" | "aftermath"; resultFactIds: string[]; detailFactIds: string[] }[] };
 };

@@ -12,8 +12,8 @@ export const subwayZones: Record<string, { name: string; light: boolean; layout:
     layout: "복도에서 들어오는 창고 입구 양옆에 빈 선반이 있다.",
     surface: "선반의 칸은 비어 있고, 방 안쪽까지 바닥이 드러나 있다." },
 };
-export const details: Record<string, { anchor: string; placement: string; outline: string; surface: string; touch?: string; interior?: string }> = {
-  crate: { anchor: "left-wall", placement: "역무실 입구 기준 왼쪽 벽 아래", outline: "낮은 나무 상자", surface: "뚜껑 한쪽이 갈라져 있고 잠금장치는 없다.", touch: "뚜껑 가장자리의 나뭇결이 거칠다.", interior: "나무로 된 바닥과 안쪽 면이 드러난다." },
+export const details: Record<string, { anchor: string; placement: string; outline: string; surface: string; touch?: string; interior?: string; movementSound?: string }> = {
+  crate: { anchor: "left-wall", placement: "역무실 입구 기준 왼쪽 벽 아래", outline: "낮은 나무 상자", surface: "뚜껑 한쪽이 갈라져 있고 잠금장치는 없다.", touch: "뚜껑 가장자리의 나뭇결이 거칠다.", interior: "나무로 된 바닥과 안쪽 면이 드러난다.", movementSound: "나무 밑면이 바닥을 긁는 소리가 난다." },
   lamp: { anchor: "right-wall", placement: "역무실 입구 기준 오른쪽 벽", outline: "작은 손전등", surface: "몸통 옆에 엄지로 누르는 스위치가 있다.", touch: "금속 몸통이 손바닥에 차갑게 닿는다." },
   door: { anchor: "far-door", placement: "역무실 입구 맞은편 / 복도의 역무실 쪽 끝", outline: "철문", surface: "경첩에 녹이 슬어 있다.", touch: "손잡이가 단단하고 차갑다." },
   floor: { anchor: "floor", placement: "입구와 철문 사이", outline: "먼지가 내려앉은 바닥", surface: "바닥의 이음새에 먼지가 얇게 쌓여 있다.", touch: "바닥이 손끝에 단단하고 차갑게 닿는다." },
@@ -23,12 +23,20 @@ export const details: Record<string, { anchor: string; placement: string; outlin
   scrap: { anchor: "crate", placement: "나무 상자 안", outline: "고철 조각 두 개", surface: "작은 금속 조각이 나란히 놓여 있다." },
   food: { anchor: "cache", placement: "공구 보관함 안", outline: "캔 음식", surface: "캔이 조금 찌그러져 있지만 밀봉되어 있다." },
 };
+/** Add physical capabilities to the original box while preserving edited components and all progress. */
+export function upgradeWorldPhysics(entities: TextEntity[]) {
+  const crate = entities.find(e => e.id === "crate" && e.components.container && e.components.openable);
+  if (crate && !crate.components.physical) {
+    crate.components.physical = { mass: 12, volume: 8, movable: true, opaque: true, blocksPassage: true, supportCapacity: 5 };
+    if (crate.details && !crate.details.movementSound) crate.details.movementSound = details.crate.movementSound;
+  }
+}
 export function defaultTextRooms(): TextRoom[] {
   const entity = (id: string, name: string, zone: string, extra: Omit<TextEntity["components"], "position"> = {}): TextEntity => ({
     id, name, description: details[id].surface, details: structuredClone(details[id]), components: { position: { zone }, ...extra },
   });
   const entities = [
-    entity("crate", "나무 상자", "office", { openable: { isOpen: false, locked: false }, container: { items: ["water", "scrap"] } }),
+    entity("crate", "나무 상자", "office", { physical: { mass: 12, volume: 8, movable: true, opaque: true, blocksPassage: true, supportCapacity: 5 }, openable: { isOpen: false, locked: false }, container: { items: ["water", "scrap"] } }),
     entity("door", "철문", "office", { openable: { isOpen: false, locked: true, keyId: "doorKey" }, portal: { from: "office", to: "corridor" } }),
     ...officePuzzleEntities(),
     entity("lamp", "손전등", "office", { portable: { itemId: null, amount: 1 }, light: { on: false } }),

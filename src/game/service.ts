@@ -1,4 +1,5 @@
 import { currentTextWorld, performTextWorldAction, textWorldActions, textWorldEntryActions, textWorldScene } from "./text-world";
+import { reconcileWorldInventory } from "./text-world/interactions";
 import { ensureConvenienceWorld } from "./text-world/convenience";
 import { narrateTextWorld, type TextWorldNarrator } from "./text-world/narrator";
 import { conditionCards } from "./health-conditions";
@@ -1335,6 +1336,7 @@ export class GameService {
 
   private async ensureCards(session: GameSession) {
     const registry = this.runtimeRegistry(session);
+    reconcileWorldInventory(session.state);
     await ensureConvenienceWorld(session.state, registry, this.textWorldNarrator, session.id);
     const visibleLocationIds = this.visibleLocationIds(session);
     const allMapLocationIds = Object.keys(registry.locations);

@@ -1840,7 +1840,8 @@ function syncMobileChoiceZoneHeight() {
   });
 }
 
-function createSceneStoryBlock(append, source) {
+function createSceneStoryBlock(append, source, continueBlock = false) {
+  const previousBlock = append && continueBlock ? dom.sceneText.lastElementChild : null;
   const hasHistory = append && dom.sceneText.childElementCount > 0;
   if (!append) {
     dom.sceneText.replaceChildren();
@@ -1848,7 +1849,7 @@ function createSceneStoryBlock(append, source) {
   }
   dom.sceneText.classList.toggle("has-story-history", hasHistory);
   const block = document.createElement("div");
-  block.className = "scene-story-block";
+  block.className = previousBlock ? "scene-story-continuation" : "scene-story-block";
   if (source === "llm" || source === "template") {
     const sourceLabel = document.createElement("div");
     sourceLabel.className = `scene-narrative-source is-${source}`;
@@ -1866,7 +1867,7 @@ function createSceneStoryBlock(append, source) {
   content.appendChild(prose);
   createSceneSystemNote(content);
   block.appendChild(content);
-  dom.sceneText.appendChild(block);
+  (previousBlock || dom.sceneText).appendChild(block);
   return block;
 }
 
@@ -1927,7 +1928,7 @@ async function animateStoryText(
 ) {
   const append = options.append === true;
   const revealChoices = options.revealChoices !== false;
-  const block = createSceneStoryBlock(append, story.source);
+  const block = createSceneStoryBlock(append, story.source, options.continueBlock === true);
   const prose = block.querySelector(".scene-prose");
   client.activeAnimatedStory = story;
   client.activeAnimatedSystemNote = systemNotePayload;
@@ -2003,9 +2004,7 @@ function skipSceneTyping() {
     headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
   // Replace only the typing block so history stays intact and partial text is not duplicated.
   animationOptions.block.querySelector(".scene-prose").innerHTML = storyHtml;
-  if (animationOptions.scrollToStart) {
-    scrollSceneStoryToStart(animationOptions.block);
-  }
+  // The reading position was aligned when the action started. Skipping only completes its text.
   if (systemNotePayload?.note) {
     renderSystemNote(
       systemNotePayload.note,
@@ -2707,7 +2706,7 @@ function renderChoices() {
   syncMobileChoiceZoneHeight();
 }
 
-function renderScene(animateText = true, appendStory = false, scrollToStart = false) {
+function renderScene(animateText = true, appendStory = false, scrollToStart = false, continueActionStory = false) {
   const snapshot = client.snapshot;
   const scene = snapshot?.currentScene;
   const location = currentLocationCard();
@@ -2762,7 +2761,7 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
       : "";
     const storyHtml =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
-    const block = createSceneStoryBlock(appendStory, story.source);
+    const block = createSceneStoryBlock(appendStory, story.source, continueActionStory);
     block.querySelector(".scene-prose").innerHTML = storyHtml;
     if (scrollToStart) {
       scrollSceneStoryToStart(block);
@@ -2781,6 +2780,7 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
   const token = client.sceneRenderToken;
   animateStoryText(story, token, systemNotePayload, {
     append: appendStory,
+    continueBlock: continueActionStory,
     scrollToStart,
     revealChoices: true,
   });
@@ -3847,6 +3847,7 @@ function render(options = {}) {
     options.animateScene !== false,
     options.appendScene === true,
     options.scrollSceneToStart === true,
+    options.continueActionStory === true,
   );
   renderPanel();
   renderGameOverScreen();
@@ -3976,6 +3977,7 @@ async function submitAction(
           }),
       appendScene: (hasImmediateNarrative && (!instantActionLead || !didMove)) || continueLocationStory,
       scrollSceneToStart: continueLocationStory && !instantActionLead,
+      continueActionStory: instantActionLead && !didMove,
     });
     mark("renderedMs");
     timing.renderWorkMs = timing.renderedMs - timing.presentationReadyMs;

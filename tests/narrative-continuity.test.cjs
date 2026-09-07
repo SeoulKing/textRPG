@@ -118,7 +118,7 @@ test('skipping typing replaces only the partial current block, without duplicati
   assert.equal(currentProse.innerHTML, '<p class="scene-headline">결과</p><p>새 서사</p><p>다음 문단</p>');
   assert.equal(dom.sceneText.children.length, 2);
   assert.equal(revealed, 1);
-  assert.equal(aligned, 1);
+  assert.equal(aligned, 0);
   assert.equal(ctx.skipSceneTyping(), false);
 });
 
@@ -171,6 +171,7 @@ function noteHistoryFixture() {
       children: [], hidden: false, innerHTML: '', attributes: {},
       classList: { remove() {}, add() {}, toggle() {} },
       get childElementCount() { return this.children.length; },
+      get lastElementChild() { return this.children.at(-1) ?? null; },
       appendChild(child) { child.parentElement = this; this.children.push(child); },
       replaceChildren() { this.children.forEach(child => child.parentElement = null); this.children = []; },
       setAttribute(name, value) { this.attributes[name] = value; },
@@ -269,4 +270,13 @@ test('cash, items, stats, damage and travel share the same natural-height narrat
   });
   assert.equal(block.children.length, 1, 'reading space must not sit between prose and results');
   assert.equal(content.children.length, notes.length + 1);
+});
+
+test('an action lead and its result share one page while provenance and replacement targets remain separate',()=>{
+ const {ctx,dom}=noteHistoryFixture();
+ const lead=ctx.createSceneStoryBlock(true,'template');const leadContent=lead.children.find(c=>c.className==='scene-story-content');leadContent.children[0].innerHTML='<p>시선을 모은다.</p>';
+ const result=ctx.createSceneStoryBlock(true,'llm',true);const resultContent=result.children.find(c=>c.className==='scene-story-content');resultContent.children[0].innerHTML='<p>상자를 연다.</p>';
+ assert.equal(dom.sceneText.childElementCount,1);assert.equal(result.parentElement,lead);assert.equal(result.className,'scene-story-continuation');
+ assert.equal(leadContent.children[0].innerHTML,'<p>시선을 모은다.</p>');assert.equal(result.children[0].textContent,'LLM 생성');assert.equal(lead.children[0].textContent,'기본 서사');
+ const next=ctx.createSceneStoryBlock(true,'template');assert.equal(dom.sceneText.childElementCount,2);assert.notEqual(next,lead);
 });

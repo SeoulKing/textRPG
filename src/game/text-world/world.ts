@@ -1,6 +1,7 @@
+import { ancestors, carriedByPlayer, occludedByContainer, occludedByCover, sealedFromReach, passageBlockers, rootZone } from "./spatial";
 import { TextWorldSchema, type TextEntity, type TextWorld, type TextRoom } from "../schemas/text-world";
 
-import { defaultTextRooms, details, subwayZones, upgradeOfficeDoor } from "./definitions";
+import { defaultTextRooms, details, subwayZones, upgradeOfficeDoor, upgradeWorldPhysics } from "./definitions";
 export { details, subwayZones } from "./definitions";
 
 export function worldRooms(world: TextWorld) {
@@ -8,11 +9,16 @@ export function worldRooms(world: TextWorld) {
   return world.rooms ? Object.fromEntries(Object.entries(world.rooms).map(([id, room]) => [id, { ...room, sensory: room.sensory ?? defaults[id]?.sensory }])) : defaults;
 }
 export function entityDetails(world: TextWorld, entity: TextEntity) {
-  return entity.details ?? details[entity.id] ?? { anchor: entity.id, placement: worldRooms(world)[zoneOf(world, entity)]?.name ?? "주변", outline: entity.name, surface: entity.description };
+  const original = entity.details ?? details[entity.id] ?? { anchor: entity.id, placement: worldRooms(world)[zoneOf(world, entity)]?.name ?? "주변", outline: entity.name, surface: entity.description };
+  const p = entity.components.position, parent = world.entities[p.relativeTo ?? p.zone];
+  if (!parent || !p.relation) return original;
+  const relation = { inside: "안", on: "위", beside: "옆", blocking: "앞을 막는 자리" }[p.relation];
+  return { ...original, anchor: parent.id, placement: parent.name + " " + relation };
 }
 export function createSubwayTextWorld(rooms: TextRoom[] = defaultTextRooms()): TextWorld {
   const entities = rooms.flatMap(room => structuredClone(room.entities));
   upgradeOfficeDoor(entities);
+  upgradeWorldPhysics(entities);
   return { version: 2, active: true, revision: 0, elapsedSeconds: 0,
     player: { zone: "office", near: null, position: "entrance", facing: null, posture: "standing", heldToolId: null },
     rooms: Object.fromEntries(rooms.map(({ entities, ...room }) => [room.id, structuredClone(room)])),
@@ -28,6 +34,7 @@ export function migrateTextWorld(raw: unknown): TextWorld | null {
   if (Number(old.version) !== 1) {
     const world = TextWorldSchema.parse(raw);
     const entities = Object.values(world.entities);
+    upgradeWorldPhysics(entities);
     if (upgradeOfficeDoor(entities)) world.entities = Object.fromEntries(entities.map(e => [e.id, e]));
     return world;
   }
@@ -53,39 +60,45 @@ export function migrateTextWorld(raw: unknown): TextWorld | null {
   });
 }
 export function zoneOf(world: TextWorld, entity: TextEntity): string {
-  const zone = entity.components.position.zone;
-  if (zone === "player") return world.player.zone;
-  return world.entities[zone]?.components.position.zone ?? zone;
+  return rootZone(world, entity);
 }
 export function portalBetween(world: TextWorld, from: string, to: string) {
   return Object.values(world.entities).find(e => e.components.portal && [e.components.portal.from, e.components.portal.to].includes(from) && [e.components.portal.from, e.components.portal.to].includes(to));
 }
 export function adjacentZones(zone: string, world: TextWorld) { return worldRooms(world)[zone]?.neighbors ?? []; }
 export function pathOpen(world: TextWorld, from: string, to: string) {
-  const portal = portalBetween(world, from, to); return adjacentZones(from, world).includes(to) && (!portal || Boolean(portal.components.openable?.isOpen));
+  const portal = portalBetween(world, from, to); return adjacentZones(from, world).includes(to) && (!portal || Boolean(portal.components.openable?.isOpen) && !passageBlockers(world, portal.id).length);
 }
 export function illuminated(world: TextWorld, zone: string) {
-  return Boolean(worldRooms(world)[zone]?.light || Object.values(world.entities).some(e => e.components.light?.on && zoneOf(world, e) === zone));
+  if (worldRooms(world)[zone]?.light) return true;
+  return Object.values(world.entities).some(e => {
+    const light = e.components.light;
+    if (!light?.on || light.fuelSeconds === 0 || occludedByContainer(world, e)) return false;
+    const sourceZone = zoneOf(world, e);
+    if (sourceZone === zone) return true;
+    return Boolean(light.spill && light.spill >= 0.5 && pathOpen(world, sourceZone, zone));
+  });
 }
 export function carriesLight(world: TextWorld) {
-  return Object.values(world.entities).some(e => e.components.position.zone === "player" && e.components.light?.on);
+  return Object.values(world.entities).some(e => e.components.position.zone === "player" && e.components.light?.on && e.components.light.fuelSeconds !== 0);
 }
 export function visibleEntities(world: TextWorld) {
   return Object.values(world.entities).filter(e => {
     if (e.components.position.zone === "player") return true;
     if (e.components.discovery && !world.observations[e.components.discovery.inspectTargetId]?.inspected) return false;
     const parent = world.entities[e.components.position.zone];
-    if (parent?.components.openable && !parent.components.openable.isOpen) return false;
+    if (occludedByContainer(world, e) || occludedByCover(world, e)) return false;
     if (e.components.portal && [e.components.portal.from, e.components.portal.to].includes(world.player.zone)) return true;
     if (zoneOf(world, e) !== world.player.zone || !illuminated(world, world.player.zone)) return false;
-    return !parent || world.player.near === parent.id;
+    return !parent || carriedByPlayer(world, e) || ancestors(world, e).some(p => p.id === world.player.near) || world.player.near === e.id;
   });
 }
 export function canReach(world: TextWorld, entity: TextEntity) {
   if (entity.components.position.zone === "player") return true;
-  const parent = world.entities[entity.components.position.zone];
+  if (sealedFromReach(world, entity) || occludedByCover(world, entity)) return false;
+  const parents = ancestors(world, entity);
   const same = zoneOf(world, entity) === world.player.zone || Boolean(entity.components.portal && [entity.components.portal.from, entity.components.portal.to].includes(world.player.zone));
-  return same && (world.player.near === entity.id || (parent?.id === world.player.near && (!parent.components.openable || parent.components.openable.isOpen)));
+  return same && (carriedByPlayer(world, entity) || world.player.near === entity.id || parents.some(parent => parent.id === world.player.near));
 }
 export function particle(name: string, consonant: string, vowel: string) {
   const code = name.charCodeAt(name.length - 1) - 0xac00;
@@ -94,7 +107,8 @@ export function particle(name: string, consonant: string, vowel: string) {
 
 
 export function hasDoorKey(world: TextWorld, state: { inventory: Record<string, number> }, entity: TextEntity) {
-  const key = world.entities[entity.components.openable?.keyId ?? ""];
+  const keyId = entity.components.openable?.keyId;
+  const key = world.entities[keyId ?? ""] ?? Object.values(world.entities).find(e => e.origin?.entityId === keyId && e.components.position.zone === "player");
   const portable = key?.components.portable;
   return Boolean(portable && (portable.itemId ? (state.inventory[portable.itemId] ?? 0) > 0 : key.components.position.zone === "player"));
 }

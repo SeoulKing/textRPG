@@ -10,6 +10,12 @@ import { recordEvent, resolveWorldActions } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
 import { fallbackNarration, validateRenderedNarration, type TextWorldNarrator } from "./narrator";
 import { particle } from "./world";
+import { directChoices } from "./choice-director";
+import { focusOptions } from "./focus-options";
+import { interactionOptions } from "./affordances";
+import { transferCarriedEntities } from "./inventory";
+import { advanceWorldSimulation } from "./simulation";
+import { visibleEntities } from "./world";
 import { choiceNarrative, choiceNarrativeFields, nextNarrativeChoices, storeChoiceNarratives } from "./choice-narrative";
 
 const LOCATION = "convenience";
@@ -35,17 +41,21 @@ function nodeItems(state: GameState, registry: ContentRegistry, nodeId: string) 
 }
 export function syncConvenienceEntities(state: GameState, registry = buildRuntimeRegistry(state)) {
   const world = worldOf(state);
-  const entities: Record<string, TextEntity> = {};
+  const stockNodes = registry.locations[LOCATION].stockNodes;
+  const isStock = (id: string) => stockNodes.some(node => id === node.id || id.startsWith(node.id + ":"));
+  const entities: Record<string, TextEntity> = Object.fromEntries(Object.entries(world.entities).filter(([id]) => !isStock(id)));
   for (const node of registry.locations[LOCATION].stockNodes) {
     const items = nodeItems(state, registry, node.id);
     const detail = placements[node.id] ?? { placement: "가게 안쪽", surface: node.name + "의 표면을 가까이서 확인할 수 있다.", crouch: false };
-    const gone = node.depletionBehavior === "disappear" && !items.length;
+    const placed = Object.values(entities).filter(e => e.components.position.zone === node.id && e.components.position.relation !== "on").map(e => e.id);
+    const gone = node.depletionBehavior === "disappear" && !items.length && !placed.length;
     const previous = world.entities[node.id];
     const observed = world.observations[node.id];
     const inspected = observed?.stages.includes("interior") || state.discoveredStockNodeIds.includes(node.id);
     entities[node.id] = { id: node.id, name: node.name, description: detail.surface,
       details: { anchor: node.id, placement: detail.placement, outline: node.name, surface: detail.surface },
-      components: { position: { zone: gone ? "depleted" : ZONE }, container: { items: items.map(item => item.id) },
+      components: { ...previous?.components, position: gone ? { zone: "depleted" } : previous?.components.position.zone === "depleted" ? { zone: ZONE } : previous?.components.position ?? { zone: ZONE }, container: { ...previous?.components.container, items: [...items.map(item => item.id), ...placed] },
+        ...(detail.lid ? { physical: previous?.components.physical ?? { mass: 3, volume: 8, movable: true, opaque: true, blocksPassage: true, supportCapacity: 5 } } : node.id === "convenience_register" ? { physical: previous?.components.physical ?? { mass: 50, volume: 15, movable: false, opaque: true, blocksPassage: true, supportCapacity: 10 } } : {}),
         ...(detail.lid ? { openable: { isOpen: previous?.components.openable?.isOpen ?? Boolean(inspected), locked: false } } : {}) } };
     if (inspected || observed) world.observations[node.id] = { ...observed, stages: inspected ? ["outline", "surface", "interior"] : observed!.stages,
       inspected: Boolean(inspected), collected: Boolean(inspected && !items.length) };
@@ -71,7 +81,7 @@ function collectingChoices(state: GameState, registry: ContentRegistry, nodeId: 
     "nodeId" in effect && effect.nodeId === nodeId && "locationId" in effect && effect.locationId === LOCATION) && choiceConditionsMet(choice, focused));
 }
 function portalPending(state: GameState) { return Boolean(state.flags.magic_city_entrance_discovered && !state.flags.magic_city_portal_discovery_seen); }
-type StoreOption = { id: string; label: string; hint: string; nodeId?: string; choiceId?: string; loading: NonNullable<ActionChoice["loading"]> };
+type StoreOption = { id: string; label: string; hint: string; nodeId?: string; choiceId?: string; loading: NonNullable<ActionChoice["loading"]>; actions?: WorldAction[]; importance?: "major" | "minor" };
 export function convenienceOptions(state: GameState, registry = buildRuntimeRegistry(state)): StoreOption[] {
   const world = worldOf(state);
   if (state.location !== LOCATION || !world?.active || state.isGameOver || state.stageClear) return [];
@@ -95,12 +105,18 @@ export function convenienceOptions(state: GameState, registry = buildRuntimeRegi
     return choice && choiceConditionsMet(choice, state) ? [{ id: "story:" + id, choiceId: id, label: resolveItemText(choice.label, registry), hint: "발견한 길", loading: resolveInteractionLoading(choice) ?? ACTIVITY }] : [];
   }) : [];
   // Ordinary region travel belongs to the existing map menu.
-  return [...story, ...collect, ...explore].slice(0, 5);
+  const physical: StoreOption[] = interactionOptions(world, state).map(o => ({ ...o, loading: ACTIVITY }));
+  // Reclaim placed objects through the engine; registered stock still uses its original rewards and costs.
+  const stockIds = new Set(registry.locations[LOCATION].stockNodes.flatMap(node => nodeItems(state, registry, node.id).map(item => item.id)));
+  for (const entity of visibleEntities(world)) {
+    if (!entity.components.portable || entity.components.position.zone === "player" || stockIds.has(entity.id)) continue;
+    physical.unshift({ id: "take:" + entity.id, label: particle(entity.name, "을", "를") + " 챙긴다", hint: "놓아둔 물건 수집", loading: ACTIVITY, actions: [...approach(world, entity.id), { type: "TAKE", target: entity.id }] });
+  }
+  return directChoices(world, state, [...story, ...collect, ...explore, ...physical, ...focusOptions(world).map(o => ({ ...o, loading: ACTIVITY }))]);
 }
 export function convenienceActions(state: GameState, registry = buildRuntimeRegistry(state)): ActionChoice[] {
   return convenienceOptions(state, registry).map(option => ({ id: "text-world:convenience:" + worldOf(state).revision + ":" + option.id,
-    ...choiceNarrativeFields(worldOf(state), option),
-    label: option.label, outcomeHint: option.hint, showOutcomeHint: true, isAvailable: true, loading: option.loading,
+    ...choiceNarrativeFields(worldOf(state), option), outcomeHint: option.hint, showOutcomeHint: true, isAvailable: true, loading: option.loading,
     action: { type: "text_world", command: "choose", optionId: option.id, revision: worldOf(state).revision } }));
 }
 function approach(world: TextWorld, nodeId: string): WorldAction[] {
@@ -145,10 +161,11 @@ export async function ensureConvenienceWorld(state: GameState, registry: Content
   syncConvenienceEntities(state, registry);
   if (world.active) return;
   world.active = true;
+  transferCarriedEntities(state, world);
   world.events = [];
   const resumingFocus = legacyFocus && world.entities[legacyFocus]?.components.position.zone === ZONE ? legacyFocus : null;
   world.player = { ...world.player, zone: ZONE, near: resumingFocus, position: resumingFocus ?? "entrance", facing: resumingFocus,
-    posture: resumingFocus && placements[resumingFocus]?.crouch ? "crouching" : "standing" };
+    posture: resumingFocus && placements[resumingFocus]?.crouch ? "crouching" : "standing", relation: "near", coverId: null, focusEntityId: resumingFocus, manipulating: false };
   world.lastIntent = { id: "enter", label: resumingFocus ? "확인하던 자리에서 탐색을 이어간다" : "편의점 안으로 들어선다", importance: "major" };
   recordEvent(world, { type: "ENTER", targetId: ZONE, before: {}, after: { zone: ZONE, entryText: resumingFocus ? "확인하던 " + world.entities[resumingFocus].name + " 앞에서 주변으로 시선을 옮긴다." : "비뚤게 걸린 자동문을 지나 가게 안으로 들어선다." } });
   state.activeStockNodeId = null;
@@ -166,8 +183,17 @@ export async function performConvenienceAction(state: GameState, action: Extract
   const alreadyDisplayed = [choiceNarrative(world, option).text];
   const before = structuredClone(state), started = state.worldElapsedMs;
   world.events = [];
-  world.lastIntent = { id: option.id, label: option.label, importance: "major" };
-  if (option.choiceId) {
+  world.lastIntent = { id: option.id, label: option.label, importance: option.importance ?? "major" };
+  if (option.actions) {
+    const result = resolveWorldActions(world, state, option.actions);
+    const target = option.actions.at(-1)?.target;
+    if (!result.interrupted && option.id.startsWith("focus:") && target && registry.locations[LOCATION].stockNodes.some(node => node.id === target) && world.entities[target]?.components.openable?.isOpen !== false) {
+      const original = Object.values(registry.choices).find(choice => choice.effects.some(effect => effect.type === "focus_stock_node" && effect.nodeId === target) && choiceConditionsMet(choice, state));
+      if (original) performAction(state, { type: "content_choice", choiceId: original.id });
+      if (!state.discoveredStockNodeIds.includes(target)) state.discoveredStockNodeIds.push(target);
+      state.activeStockNodeId = null;
+    }
+  } else if (option.choiceId) {
     const choice = registry.choices[option.choiceId];
     performAction(state, { type: "content_choice", choiceId: choice.id });
     if (state.location !== LOCATION) world.active = false;
@@ -197,7 +223,16 @@ export async function performConvenienceAction(state: GameState, action: Extract
           performAction(state, { type: "content_choice", choiceId: choice.id });
           for (const item of resources) {
             const remaining = nodeItems(state, registry, nodeId).find(i => i.id === item.id)?.amount ?? 0;
-            if (remaining < item.amount) recordEvent(world, { type: "TAKE", targetId: item.id, before: { zone: nodeId }, after: { zone: "collected", name: item.name, amount: item.amount - remaining, itemId: item.money ? null : item.itemId, money: item.money } });
+            if (remaining < item.amount) {
+              const amount = item.amount - remaining;
+              if (!item.money) {
+                const id = "stock-carry:" + item.id + ":" + world.revision + ":" + world.events.length;
+                world.entities[id] = { id, name: item.name, description: item.name, components: { position: { zone: "player" }, portable: { itemId: item.itemId, amount } } };
+                world.player.heldItemId = id; world.player.manipulating = true;
+                world.observations[id] = { stages: ["outline", "surface"], collected: true };
+              }
+              recordEvent(world, { type: "TAKE", targetId: item.id, before: { zone: nodeId }, after: { zone: "player", name: item.name, amount, itemId: item.money ? null : item.itemId, money: item.money } });
+            }
           }
           if (state.location !== LOCATION) { world.active = false; break; }
         }
@@ -206,7 +241,7 @@ export async function performConvenienceAction(state: GameState, action: Extract
       }
     }
   }
-  world.elapsedSeconds += Math.max(0, Math.round((state.worldElapsedMs - started) / GAME_MINUTE_MS * 60));
+  if (!option.actions) advanceWorldSimulation(world, Math.max(0, Math.round((state.worldElapsedMs - started) / GAME_MINUTE_MS * 60)), world.events.at(-1)?.id);
   world.revision++;
   syncConvenienceEntities(state, registry);
   syncScene(state);
