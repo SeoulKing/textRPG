@@ -103,6 +103,7 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     take("information", inFamily("INSPECT"));
     take("retreat", inFamily("RETREAT", "TRAVEL"));
   } else if (context.mode === "EXPLORE") {
+    take("work", inFamily("WORK"));
     take("progress", inFamily("COLLECT", "ACCESS"));
     take("object", inFamily(pool.some(o => o.family === "OPEN_CONTAINER") ? "OPEN_CONTAINER" : "TOOL"));
     take("information", inFamily("INSPECT"));
@@ -117,7 +118,7 @@ export function directChoices<T extends ChoiceCandidate>(world: TextWorld, state
     if (selected.length < 5) take("route", inFamily(pool.some(o => o.family === "TRAVEL") ? "TRAVEL" : pool.some(o => o.family === "RETREAT") ? "RETREAT" : "ACCESS"));
   }
   // Populate unused roles with distinct useful intentions, never recap/reward-free reinspection filler.
-  if (selected.length < 3 && context.mode !== "THREAT") take("shift_attention", inFamily("FOCUS", "TOOL", "TRAVEL", "RETREAT"));
+  if (selected.length < (context.mode === "EXPLORE" && pool.some(o => o.family === "WORK") ? 5 : 3) && context.mode !== "THREAT") take("shift_attention", inFamily("FOCUS", "TOOL", "TRAVEL", "RETREAT"));
   return selected.slice(0, 5);
 }
 export function rememberChoices(world: TextWorld, options: { id: string; family?: string; selectionSignature?: string }[]) {

@@ -5,12 +5,17 @@ import type { ActionDefinition, ContentRegistry, LocationDefinition } from "./sc
 
 function locationDefaults(location: LocationDefinition, baseline: ContentRegistry) {
   const sites = baseline.locations[location.id]?.resourceSites;
-  return location.resourceSites === undefined && sites
-    ? { ...location, resourceSites: structuredClone(sites) } : location;
+  if (!sites) return location;
+  return { ...location, resourceSites: location.resourceSites === undefined ? structuredClone(sites)
+    : location.resourceSites.map(site => {
+      const defaults = sites.find(candidate => candidate.id === site.id);
+      return site.unlimited === undefined && defaults?.unlimited !== undefined
+        ? { ...site, unlimited: defaults.unlimited } : site;
+    }) };
 }
 function actionDefaults(action: ActionDefinition, baseline: ContentRegistry, locations: Record<string, LocationDefinition>) {
   const use = baseline.actions[action.id]?.resourceUse;
-  if (action.resourceUse && use?.effort && action.resourceUse.effort === undefined && action.resourceUse.siteId === use.siteId) return { ...action, resourceUse: { ...action.resourceUse, effort: use.effort } };
+  if (action.resourceUse && use && action.resourceUse.siteId === use.siteId) return { ...action, resourceUse: { ...use, ...action.resourceUse } };
   return action.resourceUse === undefined && use && action.locationIds.length > 0 && action.locationIds.every(id => locations[id]?.resourceSites?.some(site => site.id === use.siteId))
     ? { ...action, resourceUse: { ...use } } : action;
 }

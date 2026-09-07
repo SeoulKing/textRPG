@@ -3697,22 +3697,7 @@ body::-webkit-scrollbar,
 .condition-detail-card p { margin:6px 0 0; font-size:13px; line-height:1.5; }
 .condition-warning { color:#a32821; font-weight:600; }
 
-/* Keep the selected intention in view while the server finishes the scene. */
-.choice-wait-status { display: inline-flex; align-items: center; gap: 7px; color: var(--accent-strong); font-size: .75rem; font-weight: 500; }
-.choice-wait-status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: choice-wait-breathe 1.4s ease-in-out infinite; }
-.is-awaiting-result .action-transition-progress-fill { animation: choice-wait-sweep 1.8s ease-in-out infinite; width: 35%; }
-@keyframes choice-wait-breathe { 50% { opacity: .3; } }
-@keyframes choice-wait-sweep { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
-@media (prefers-reduced-motion: reduce) {
-  .choice-wait-status::before, .is-awaiting-result .action-transition-progress-fill { animation: none; }
-}
-
-.choice-wait-thought { flex: 0 0 100%; margin-top: 3px; color: var(--text-muted, #68716e); font-size: .9rem; font-style: italic; line-height: 1.55; overflow-wrap: anywhere; }
-
 .crafting-recipe-source-list { display: grid; gap: 5px; min-width: 0; color: var(--text-muted, #68716e); font-size: .86rem; line-height: 1.5; overflow-wrap: anywhere; }
-/* Work buttons share a narrow footer row on mobile; keep their waiting thought inside that column. */
-.crafting-choice-submit.is-action-pending { flex-wrap: wrap; min-width: 0; white-space: normal; }
-.crafting-choice-submit .choice-wait-thought { min-width: 0; max-width: 100%; font-size: .78rem; line-height: 1.4; }
 
 .quest-next-step { display: grid; gap: 5px; padding: 10px 12px; border-left: 3px solid var(--accent-strong); background: rgba(31, 41, 55, .035); overflow-wrap: anywhere; }
 .quest-next-step strong { font-size: .8rem; color: var(--accent-strong); }

@@ -11,6 +11,9 @@ const {currentTextWorld,textWorldActions}=require('../.server-dist/game/text-wor
 const {perceiveWorld}=require('../.server-dist/game/text-world/perception');
 const {GAME_MINUTE_MS}=require('../.server-dist/game/base-data');
 process.env.ENABLE_LLM_WORLD_PLANNER='false';process.env.ENABLE_LLM_BACKGROUND_GENERATION='false';
+const finiteRegistry=structuredClone(worldRegistry);
+for(const l of Object.values(finiteRegistry.locations))for(const site of l.resourceSites??[])site.unlimited=false;
+finiteRegistry.locations.river.resourceSites[0].recoveryMinutes=360;
 test.beforeEach(t=>t.mock.method(global,'fetch',async()=>{throw Error('External generation disabled in location world tests')}));
 async function fixture(location='forest',setup=()=>{}){
  let state=createInitialGameState();state.flags.opening_seen=true;state.location=location;state.sceneId=location+'_repeat_intro';state.stats={hp:10,mind:10,energy:15};setup(state);
@@ -23,9 +26,9 @@ async function fixture(location='forest',setup=()=>{}){
  await api.ensure();return api;
 }
 
-test('forest entry reveals geometry, stages gate work, and repeated reads reuse a single saved narration',async()=>{
+test('forest entry presents primary work immediately while optional inspection and saved narration remain available',async()=>{
  const f=await fixture();assert.equal(f.contexts.length,1);assert.equal(f.world.player.zone,'forest_edge');
- assert(f.options.length>=3&&f.options.length<=5);assert(!f.options.some(o=>o.contentActionId));
+ assert(f.options.length>=3&&f.options.length<=5);assert.equal(f.options[0].id,'harvest:chop_wood_at_forest');
  const entry=JSON.stringify(f.contexts[0]);assert.match(entry,/왼쪽/);assert.match(entry,/오른쪽/);assert(!entry.includes('cannedFood'));assert(!entry.includes('forest_bushes'));
  const inventory=structuredClone(f.state.inventory);await f.choose('inspect:forest_timber');assert.deepEqual(f.state.inventory,inventory);
  assert.equal(f.world.player.focusEntityId,'forest_timber');assert(f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));
@@ -40,16 +43,16 @@ test('tool and manual work preserve native yields, costs, tool wear and one narr
  assert(f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));assert(f.options.some(o=>o.id==='toolwork:chop_wood_with_crude_axe'));
  const start=f.state.worldElapsedMs,calls=f.contexts.length;
  await f.choose('toolwork:chop_wood_with_crude_axe');assert.equal(f.contexts.length,calls+1);assert.equal(f.state.inventory.wood,5);assert.equal(f.state.inventory.crudeAxe??0,0);
- assert.equal(f.state.worldElapsedMs-start,30*GAME_MINUTE_MS);assert.equal(f.state.resourceState.forest.fallen_wood.remaining,11);
+ assert.equal(f.state.worldElapsedMs-start,30*GAME_MINUTE_MS);assert.equal(f.state.resourceState.forest,undefined);
  const work=f.contexts.at(-1).results.find(e=>e.type==='WORK');assert.equal(work.after.elapsedSeconds,1800);assert.equal(work.after.tools[0].after,0);assert(!work.after.empty);assert.match(f.world.lastParagraphs.join(' '),/더는 사용할 수 없다/);
  assert(!f.options.some(o=>o.id==='toolwork:chop_wood_with_crude_axe'));assert.equal(f.world.player.heldItemId,null);
- await f.choose('harvest:chop_wood_at_forest');assert.equal(f.state.inventory.wood,8);assert.equal(f.state.resourceState.forest.fallen_wood.remaining,10);
+ await f.choose('harvest:chop_wood_at_forest');assert.equal(f.state.inventory.wood,8);assert.equal(f.state.resourceState.forest,undefined);
  const carried=Object.values(f.world.entities).filter(e=>e.components.position.zone==='player'&&e.components.portable?.itemId==='wood');assert.equal(carried.reduce((sum,e)=>sum+e.components.portable.amount,0),8);
 });
 
 test('revisions, forged work and finished sites cannot award a second result',async()=>{
- const f=await fixture('forest',s=>s.resourceState={forest:{fallen_wood:{remaining:1,updatedAtMinutes:0,recoveryProgressMinutes:0}}});
- const noAccess=JSON.stringify(f.state),calls=f.contexts.length;await assert.rejects(f.raw({type:'text_world',command:'choose',optionId:'harvest:chop_wood_at_forest',revision:f.world.revision}),/선택할 수 없는/);assert.equal(JSON.stringify(f.state),noAccess);assert.equal(f.contexts.length,calls);
+ const f=await fixture('forest',s=>{s.contentVersionId=registerContentVersion(finiteRegistry);s.resourceState={forest:{fallen_wood:{remaining:1,updatedAtMinutes:0,recoveryProgressMinutes:0}}}});
+ const noAccess=JSON.stringify(f.state),calls=f.contexts.length;await assert.rejects(f.raw({type:'text_world',command:'choose',optionId:'harvest:gather_cordage_at_forest',revision:f.world.revision}),/선택할 수 없는/);assert.equal(JSON.stringify(f.state),noAccess);assert.equal(f.contexts.length,calls);
  await f.choose('inspect:forest_timber');const action={type:'text_world',command:'choose',optionId:'harvest:chop_wood_at_forest',revision:f.world.revision};await f.raw(action);
  const snapshot=JSON.stringify(f.state),after=f.contexts.length;await assert.rejects(f.raw(action),/상황이 바뀌/);assert.equal(JSON.stringify(f.state),snapshot);assert.equal(f.contexts.length,after);
  assert(!f.options.some(o=>o.contentActionId));assert.match(f.world.lastParagraphs.join(' '),/남아 있지 않다/);assert(!f.world.lastParagraphs.join(' ').includes('손도끼가 필요하다'));
@@ -62,7 +65,7 @@ test('an unsuccessful search is explicit and exposes no undiscovered loot table'
  const f=await fixture();await f.choose('focus:forest_debris');await f.choose('inspect:forest_debris');assert.equal(f.world.player.posture,'crouching');
  const inventory=structuredClone(f.state.inventory);await f.choose('harvest:search_forest_resources');assert.deepEqual(f.state.inventory,inventory);
  const c=f.contexts.at(-1);assert(c.requiredFacts.some(f=>f.kind==='result'&&f.data.type==='WORK'&&f.data.after.empty));assert(!c.results.some(e=>e.type==='TAKE'));assert(!JSON.stringify(c).includes('cannedFood'));assert.match(f.world.lastParagraphs.join(' '),/찾지 못한다/);
- assert.equal(f.state.resourceState.forest.forest_debris.remaining,5);
+ assert.equal(f.state.resourceState.forest,undefined);
 });
 
 test('zone movement changes visible targets and retains posture and the last three scenes',async()=>{
@@ -84,16 +87,16 @@ test('river driftwood discovery and collection remain separate, and the disappea
 });
 
 test('recovering fishing pools becomes actionable on a later visit without generation during polls',async()=>{
- const f=await fixture('river',s=>s.resourceState={river:{fishing_pools:{remaining:0,updatedAtMinutes:0,recoveryProgressMinutes:0}}});
+ const f=await fixture('river',s=>{s.contentVersionId=registerContentVersion(finiteRegistry);s.resourceState={river:{fishing_pools:{remaining:0,updatedAtMinutes:0,recoveryProgressMinutes:0}}}});
  if(!f.options.some(o=>o.id==='inspect:river_fishing'))await f.choose('focus:river_fishing');await f.choose('inspect:river_fishing');
  assert(!f.options.some(o=>o.id==='harvest:fish_at_river'));assert.match(f.world.lastParagraphs.join(' '),/잠시 쉬어/);
  const calls=f.contexts.length;await f.ensure();await f.ensure();assert.equal(f.contexts.length,calls);
- f.state.location='shelter';await f.ensure();advanceGameMinutes(f.state,360);f.state.location='river';await f.ensure();await f.choose('focus:river_fishing');assert(f.options.some(o=>o.id==='harvest:fish_at_river'));
+ f.state.location='shelter';await f.ensure();advanceGameMinutes(f.state,360);f.state.location='river';await f.ensure();assert.equal(f.options[0].id,'harvest:fish_at_river');
 });
 
-test('interrupted work consumes one opportunity without inventing rewards or completing the work',async()=>{
+test('interrupted unlimited work awards no material and never completes the work',async()=>{
  const f=await fixture();await f.choose('inspect:forest_timber');f.state.stats.hp=1;f.state.conditions.injury={level:1,damageProgress:.99};
- await f.choose('harvest:chop_wood_at_forest');assert(f.state.isGameOver);assert.equal(f.state.inventory.wood??0,0);assert.equal(f.state.resourceState.forest.fallen_wood.remaining,11);
+ await f.choose('harvest:chop_wood_at_forest');assert(f.state.isGameOver);assert.equal(f.state.inventory.wood??0,0);assert.equal(f.state.resourceState.forest,undefined);
  assert(f.contexts.at(-1).results.some(e=>e.type==='WORK'&&e.after.interrupted));assert(!f.contexts.at(-1).results.some(e=>e.type==='TAKE'));assert.deepEqual(f.options,[]);
 });
 
@@ -117,4 +120,46 @@ test('the service rejects legacy action bypass and concurrent replay while prese
  const action=snap.availableActions.find(a=>a.action.optionId==='harvest:chop_wood_at_forest').action,results=await Promise.allSettled([service.performAction(stored.id,action),service.performAction(stored.id,action)]);
  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(stored.state.inventory.wood,3);
  snap=await service.performAction(stored.id,{type:'travel',targetId:'shelter'});assert.equal(snap.state.location,'shelter');assert(!stored.state.locationTextWorlds.forest.active);
+});
+
+
+test('primary work includes approach and observation with one narration and actual preparation time',async t=>{
+ t.mock.method(Math,'random',()=>.9);
+ for(const [place,target,id,item]of [['forest','forest_timber','harvest:chop_wood_at_forest','wood'],['river','river_fishing','harvest:fish_at_river','riverFish']]){
+  const f=await fixture(place);assert.equal(f.options[0].id,id);assert(!f.world.observations[target]?.inspected);
+  const before=f.state.worldElapsedMs,calls=f.contexts.length;await f.choose(id);
+  assert.equal(f.contexts.length,calls+1);assert.equal(f.world.player.near,target);assert(f.world.observations[target].inspected);assert(f.state.inventory[item]>0);
+  const events=f.contexts.at(-1).results;assert(events.some(e=>e.type==='MOVE'));assert(events.some(e=>e.type==='INSPECT'));assert(events.some(e=>e.type==='WORK'));assert(events.some(e=>e.type==='TAKE'));
+  assert(Math.abs(f.state.worldElapsedMs-before-(30+(place==='forest'?10:11)/60)*GAME_MINUTE_MS)<1);
+  assert(f.options.some(o=>o.id===id));
+ }
+});
+
+test('a primary intention stops at a new hidden discovery without consuming the work opportunity',async()=>{
+ const f=await fixture();f.world.entities.hidden={id:'hidden',name:'작은 열쇠',description:'작은 열쇠',components:{position:{zone:'forest_edge'},portable:{itemId:'ironDoorKey',amount:1},discovery:{inspectTargetId:'forest_timber'}}};
+ const before=structuredClone(f.state.inventory);await f.choose('harvest:chop_wood_at_forest');
+ assert.deepEqual(f.state.inventory,before);assert(!f.contexts.at(-1).results.some(e=>e.type==='WORK'));assert.equal(f.state.resourceState.forest,undefined);
+ assert(f.contexts.at(-1).results.some(e=>e.type==='INSPECT'&&e.after.revealedIds.includes('hidden')));
+});
+
+
+test('an authored primary-work opt-out keeps observation requirements and survives runtime defaults',async()=>{
+ const registry=structuredClone(worldRegistry);registry.actions.chop_wood_at_forest.resourceUse.directFromEntry=false;
+ const f=await fixture('forest',s=>s.contentVersionId=registerContentVersion(registry));
+ assert.equal(f.registry.actions.chop_wood_at_forest.resourceUse.directFromEntry,false);assert(!f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));
+ await f.choose('inspect:forest_timber');assert(f.options.some(o=>o.id==='harvest:chop_wood_at_forest'));
+});
+
+
+test('depleted native saves offer primary work immediately and keep it available after save and reentry',async t=>{
+ t.mock.method(Math,'random',()=>.9);
+ for(const [place,id,site]of [['forest','chop_wood_at_forest','fallen_wood'],['river','fish_at_river','fishing_pools']]){
+  const f=await fixture(place,s=>s.resourceState={[place]:{[site]:{remaining:0,updatedAtMinutes:0,recoveryProgressMinutes:0}}});
+  assert.equal(f.options[0].id,'harvest:'+id);assert.equal(f.options[0].remainingUses,undefined);
+  await f.choose('harvest:'+id);assert(f.options.some(o=>o.id==='harvest:'+id));
+  const facts=perceiveWorld(f.world).filter(f=>f.kind==='resource');assert(facts.length);assert(facts.every(f=>f.data.unlimited&&f.data.remaining===undefined&&f.data.recoveryMinutes===undefined));
+  assert(!/잠시 쉬어|남아 있지 않다/.test(f.world.lastParagraphs.join(' ')));
+  const inventory=structuredClone(f.state.inventory),calls=f.contexts.length;f.reload();await f.ensure();await f.ensure();assert.equal(f.contexts.length,calls);assert.deepEqual(f.state.inventory,inventory);
+  f.state.location='shelter';await f.ensure();f.state.location=place;await f.ensure();assert.equal(f.options[0].id,'harvest:'+id);assert.equal(f.options[0].remainingUses,undefined);
+ }
 });

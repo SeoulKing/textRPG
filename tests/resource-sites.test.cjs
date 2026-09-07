@@ -8,10 +8,13 @@ const {registerContentVersion,versionRegistry}=require('../.server-dist/game/con
 const {normalizeGameSession}=require('../.server-dist/game/repository');
 const {GameStateSchema}=require('../.server-dist/game/schemas');
 const {GAME_MINUTE_MS}=require('../.server-dist/game/base-data');
-function start(location='forest') {const s=createInitialGameState();s.location=location;s.sceneId=location+'_repeat_intro';s.flags.opening_seen=true;s.stats={hp:10,mind:10,energy:15};return s}
+const finiteRegistry=structuredClone(worldRegistry);
+for(const l of Object.values(finiteRegistry.locations))for(const site of l.resourceSites??[])site.unlimited=false;
+finiteRegistry.locations.river.resourceSites[0].recoveryMinutes=360;
+function start(location='forest') {const s=createInitialGameState();s.contentVersionId=registerContentVersion(finiteRegistry);s.location=location;s.sceneId=location+'_repeat_intro';s.flags.opening_seen=true;s.stats={hp:10,mind:10,energy:15};return s}
 const doAction=(s,actionId)=>performAction(s,{type:'content_action',actionId},{rng:()=>0});
 const choices=s=>buildActionCatalogFromStoryChoices(resolveStoryFrame(s,buildRuntimeRegistry(s)).choices,s);
-const site=(location,id)=>worldRegistry.locations[location].resourceSites.find(s=>s.id===id);
+const site=(location,id)=>finiteRegistry.locations[location].resourceSites.find(s=>s.id===id);
 
 test('manual and tool gathering consume the same finite site while keeping their distinct yields',()=>{
  let s=start();s.inventory={crudeAxe:1};
@@ -54,7 +57,7 @@ test('fishing opportunities recover in virtual time while away; reads and saves 
  performAction(s,{type:'travel',targetId:'river'});advanceGameMinutes(s,10);
  row=choices(s).find(c=>c.id==='fish_at_river');assert(row.isAvailable);assert.equal(row.remainingUses,1);
  doAction(s,'fish_at_river');assert.equal(s.resourceState.river.fishing_pools.remaining,0);
- assert.equal(resourceAvailability(s,worldRegistry.actions.fish_at_river,worldRegistry).recoveryMinutes,330);
+ assert.equal(resourceAvailability(s,finiteRegistry.actions.fish_at_river,finiteRegistry).recoveryMinutes,330);
  // A long absence fills capacity, not an unbounded bank that instantly restores a new use.
  s.worldElapsedMs+=1440*GAME_MINUTE_MS;s.stats={hp:10,mind:10,energy:15};
  doAction(s,'fish_at_river');assert.equal(s.resourceState.river.fishing_pools.remaining,3);
@@ -89,16 +92,36 @@ test('legacy saves gain absent resource fields without resetting inventory, prog
  assert(!/칼날|판자/.test(registry.scenes.forest_chop_result_1.paragraphs[0]));
  assert.deepEqual(versionRegistry(version),archived);
  doAction(session.state,'chop_wood_at_forest');
- const restored=normalizeGameSession(JSON.parse(JSON.stringify(session)));assert.equal(restored.state.resourceState.forest.fallen_wood.remaining,11);assert.equal(restored.state.inventory.wood,20);
+ const restored=normalizeGameSession(JSON.parse(JSON.stringify(session)));assert.deepEqual(restored.state.resourceState,{});assert.equal(restored.state.inventory.wood,20);
 });
 
 test('Studio defaults preserve authored quantities and explicit overrides and validate bad site references',()=>{
  const document=getEffectiveContentStudioDocument();const forest=document.locations.find(l=>l.id==='forest');
- forest.resourceSites.find(s=>s.id==='fallen_wood').capacity=7;
+ forest.resourceSites.find(s=>s.id==='fallen_wood').capacity=7;forest.resourceSites.find(s=>s.id==='fallen_wood').unlimited=false;
  const action=document.stories.find(s=>s.id==='native_region_forest').actions.find(a=>a.id==='chop_wood_at_forest');
  action.effects.find(e=>e.type==='add_item').amount=9;action.resourceUse.cost=2;
  const before=structuredClone(document),registry=buildWorldRegistryFromStudio(document);validateRegistry(registry);assert.deepEqual(document,before);
- assert.equal(registry.locations.forest.resourceSites.find(s=>s.id==='fallen_wood').capacity,7);assert.equal(registry.actions.chop_wood_at_forest.resourceUse.cost,2);assert.equal(registry.actions.chop_wood_at_forest.effects.find(e=>e.type==='add_item').amount,9);
+ assert.equal(registry.locations.forest.resourceSites.find(s=>s.id==='fallen_wood').capacity,7);assert.equal(registry.locations.forest.resourceSites.find(s=>s.id==='fallen_wood').unlimited,false);assert.equal(registry.actions.chop_wood_at_forest.resourceUse.cost,2);assert.equal(registry.actions.chop_wood_at_forest.effects.find(e=>e.type==='add_item').amount,9);
  action.resourceUse=null;assert.equal(buildWorldRegistryFromStudio(document).actions.chop_wood_at_forest.resourceUse,null);
  registry.actions.chop_wood_at_forest.resourceUse.siteId='missing';assert.throws(()=>validateRegistry(registry),/unavailable resource site/);
+});
+
+
+test('native repeatable sites ignore legacy depletion without counters, recovery waits or archive mutations',()=>{
+ const archived=structuredClone(worldRegistry);
+ for(const l of Object.values(archived.locations))for(const site of l.resourceSites??[])delete site.unlimited;
+ archived.locations.river.resourceSites[0].recoveryMinutes=360;
+ for(const a of Object.values(archived.actions))if(a.resourceUse)delete a.resourceUse.directFromEntry;
+ for(const l of Object.values(archived.locations))for(const a of l.interactionChoices)if(a.resourceUse)delete a.resourceUse.directFromEntry;
+ const version=registerContentVersion(archived),s=createInitialGameState();s.contentVersionId=version;s.inventory.wood=17;
+ const registry=buildRuntimeRegistry(s);validateRegistry(registry);
+ for(const [location,id]of [['forest','chop_wood_at_forest'],['forest','chop_wood_with_crude_axe'],['forest','gather_cordage_at_forest'],['forest','search_forest_resources'],['forest','search_bushes_with_utility_knife'],['river','fish_at_river']]){
+  s.location=location;const action=registry.actions[id];assert(action?.resourceUse,id);
+  s.resourceState[location]??={};s.resourceState[location][action.resourceUse.siteId]={remaining:0,updatedAtMinutes:0,recoveryProgressMinutes:0};
+  const before=JSON.stringify(s);
+  for(let i=0;i<100;i++){const available=resourceAvailability(s,action,registry);assert.equal(available.site.unlimited,true);assert.equal(available.remainingUses,undefined);assert.equal(available.recoveryMinutes,undefined);assert.equal(available.exhaustedHint,'');consumeResourceUse(s,action,available);}
+  assert.equal(JSON.stringify(s),before);
+ }
+ assert.equal(registry.actions.chop_wood_at_forest.resourceUse.directFromEntry,true);assert.equal(registry.actions.fish_at_river.resourceUse.directFromEntry,true);
+ assert.deepEqual(versionRegistry(version),archived);
 });

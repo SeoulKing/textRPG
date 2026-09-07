@@ -100,13 +100,13 @@ function actionHarness(withLead = false) {
     client, performance:{now:()=>events.length*10},
     normalizePostChoiceNarrative:value=>value??[], actionTransitionDurationMs:()=>withLead?500:1000,
     captureSceneHistory:()=>({history:true}),restoreSceneHistory:()=>events.push('restore'),
-    beginPostChoiceNarrative:(paragraphs,append,source,keepChoices)=>{events.push('lead:'+source);assert.equal(append,true);assert.equal(keepChoices,withLead);return lead.promise},
+    beginPostChoiceNarrative:(paragraphs,append,source,keepChoices)=>{events.push('lead:'+source);client.storyLead={paragraphs,append,source,keepChoices};assert.equal(append,true);assert.equal(keepChoices,withLead);return lead.promise},
     dom:{choices:{innerHTML:'choices',classList:{remove(){}}}},
     preloadActionSceneAssets:()=>events.push('predict'), api:()=>{events.push('request');return response.promise;},
     preloadNextSceneAssets:async()=>events.push('assets'), prepareScenePresentation:()=>events.push('prepare'),
-    shelterStationForAction:()=>null,isMovementAction:()=>false,beginActionTransition:(_a,_trigger,_duration,_loading,thought)=>{events.push('transition');client.waitingThought=thought},
+    shelterStationForAction:()=>null,isMovementAction:()=>false,beginActionTransition:()=>events.push('transition'),
     waitForMilliseconds:()=>transition.promise, needsFreshGame:()=>false, completedQuestChanges:()=>[],
-    shouldContinueLocationStory:()=>withLead,shouldAnimateScene:()=>true, finishActionTransition:noop,markActionAwaitingResponse:()=>events.push("awaiting"),
+    shouldContinueLocationStory:()=>withLead,shouldAnimateScene:()=>true, finishActionTransition:noop,
     render:options=>{events.push('render');client.renderOptions=options;},renderGameOverScreen:noop,showQuestCompletionBurst:noop,clearSceneAnimation:noop,
     window:{scrollTo:noop,alert:()=>events.push('error')},
   });
@@ -220,19 +220,20 @@ test('state refresh persists the current protagonist in its session without shar
 
 
 for(const actionType of ['text_world','npc_dialogue','subway_expedition']) {
-test(actionType+': exploration keeps the current scene and chosen row until one complete result is ready',async()=>{
+test(actionType+': the thought starts in prose immediately and an early response never waits for the fill timer',async()=>{
  const h=actionHarness(true),action={type:actionType,command:'choose',optionId:'explore:crate',revision:1};
  const pending=h.context.submitAction(action,null,{durationMs:500},['이전 저장의 선행 서사.'],'llm','돈이 좀 있을래나.');
- assert.deepEqual(h.events,['predict','request','transition']);assert.equal(h.context.dom.choices.innerHTML,'choices');assert.equal(h.client.waitingThought,'돈이 좀 있을래나.');
+ assert.deepEqual(h.events,['predict','request','transition','lead:null']);assert.equal(h.context.dom.choices.innerHTML,'choices');assert.equal(h.client.storyLead.paragraphs[0],'‘돈이 좀 있을래나.’');
  await h.context.submitAction(action);assert.equal(h.events.filter(e=>e==='request').length,1);
- h.response.resolve(h.next);await flush();assert(!h.events.includes('render'));
- h.transition.resolve();await pending;
- assert.equal(h.client.snapshot,h.next);assert.equal(h.client.renderOptions.appendScene,true);assert.equal(h.client.renderOptions.scrollSceneToStart,true);
- assert(!h.events.some(e=>e.startsWith('lead:')));assert.equal(h.context.dom.choices.innerHTML,'choices');
+ h.lead.resolve();await flush();assert(!h.events.includes('render'));
+ // Leave the visual timer unresolved: an available response must render without it.
+ h.response.resolve(h.next);await pending;
+ assert.equal(h.client.snapshot,h.next);assert.equal(h.client.renderOptions.appendScene,true);assert.equal(h.client.renderOptions.scrollSceneToStart,false);assert.equal(h.client.renderOptions.continueActionStory,true);
+ assert.equal(h.events.filter(e=>e==='render').length,1);assert.equal(h.context.dom.choices.innerHTML,'choices');
 });
 test(actionType+': a slow response keeps readable history and a pending selection without speculative prose',async()=>{
  const h=actionHarness(true),pending=h.context.submitAction({type:actionType},null,{durationMs:500},['이전 선행 서사.']);
- h.transition.resolve();await flush();assert(h.events.includes('awaiting'));assert(!h.events.includes('render'));assert.equal(h.client.snapshot,h.previous);
+ h.transition.resolve();await flush();assert(!h.events.includes('render'));assert.equal(h.client.snapshot,h.previous);
  h.response.resolve(h.next);await pending;assert.equal(h.events.filter(e=>e==='render').length,1);assert(!h.events.some(e=>e.startsWith('lead:')));
 });
 test(actionType+': a failed action retains reading history, clears the pending lock and never retries automatically',async()=>{
@@ -266,7 +267,23 @@ test('subway reading continues within one floor, while another floor or expediti
 test('work with an activity revision preserves history and shows its thought while waiting for the complete result',async()=>{
  const h=actionHarness(true),action={type:'content_choice',choiceId:'craft_firewood',activityRevision:0};
  const pending=h.context.submitAction(action,null,{durationMs:500},['구버전 미리 쓴 작업 문단.'],'template','이걸 만들어 두면 쓸 일이 있겠지.');
- assert.equal(h.client.waitingThought,'이걸 만들어 두면 쓸 일이 있겠지.');assert.equal(h.client.snapshot,h.previous);
- h.transition.resolve();await flush();assert(h.events.includes('awaiting'));assert(!h.events.some(e=>e.startsWith('lead:')));
- h.response.resolve(h.next);await pending;assert.equal(h.client.renderOptions.appendScene,true);assert.equal(h.client.renderOptions.scrollSceneToStart,true);assert.equal(h.events.filter(e=>e==='request').length,1);
+ assert.equal(h.client.storyLead.paragraphs[0],'‘이걸 만들어 두면 쓸 일이 있겠지.’');assert.equal(h.client.snapshot,h.previous);
+ h.lead.resolve();await flush();assert(!h.events.includes('render'));
+ h.response.resolve(h.next);await pending;assert.equal(h.client.renderOptions.appendScene,true);assert.equal(h.client.renderOptions.scrollSceneToStart,false);assert.equal(h.client.renderOptions.continueActionStory,true);assert.equal(h.events.filter(e=>e==='request').length,1);
+});
+
+
+test('one-second choice fill replaces legacy half-second metadata without changing explicit special timings',()=>{
+ const h=functions(['actionTransitionDurationMs'],{
+  ACTION_TRANSITION_ACTION_MS:Number(source.match(/const ACTION_TRANSITION_ACTION_MS = (\d+)/)[1]),
+  ACTION_TRANSITION_MOVEMENT_MS:1000,isMovementAction:a=>a.type==='travel',
+ });
+ for(const action of [{type:'text_world'},{type:'npc_dialogue'},{type:'subway_expedition',command:'encounter_choice'},{type:'content_choice'}]){
+  assert.equal(h.actionTransitionDurationMs(action,{durationMs:500}),1000);
+  assert.equal(h.actionTransitionDurationMs(action,{durationMs:1000}),1000);
+  assert.equal(h.actionTransitionDurationMs(action,{durationMs:0}),0);
+  assert.equal(h.actionTransitionDurationMs(action,{durationMs:2500}),2500);
+ }
+ assert.equal(h.actionTransitionDurationMs({type:'text_world'}),1000);
+ assert.equal(h.actionTransitionDurationMs({type:'travel'}),1000);
 });

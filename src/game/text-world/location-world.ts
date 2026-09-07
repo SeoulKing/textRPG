@@ -41,8 +41,9 @@ export function syncLocationResources(state: GameState, registry: ContentRegistr
     const projected = projectResourceSite(state, state.location, site);
     const missingTools = siteActions(state, registry, site.id).flatMap(action => toolIds(action).filter(id => !(state.inventory[id] > 0)))
       .map(id => String((registry.items[id] as { name?: string } | undefined)?.name ?? id));
-    entity.components.resourceSite = { siteId: site.id, remaining: projected.remaining, capacity: site.capacity,
-      recoveryMinutes: site.recoveryMinutes, missingTools: projected.remaining > 0 ? [...new Set(missingTools)] : [] };
+    entity.components.resourceSite = { siteId: site.id, unlimited: site.unlimited,
+      remaining: site.unlimited ? undefined : projected.remaining, capacity: site.unlimited ? undefined : site.capacity,
+      recoveryMinutes: site.unlimited ? undefined : site.recoveryMinutes, missingTools: projected.remaining > 0 ? [...new Set(missingTools)] : [] };
   }
 }
 type LocationOption = { id: string; label: string; hint: string; nodeId?: string; contentActionId?: string;
@@ -57,8 +58,8 @@ export function locationWorldOptions(state: GameState, registry: ContentRegistry
   candidates.push(...boundStockOptions(state, registry, world));
   const focus = interactionContext(world, state).focusEntityId;
   for (const entity of visibleEntities(world)) {
-    if (entity.id !== focus || entity.id !== world.player.near || !world.observations[entity.id]?.inspected) continue;
-    for (const binding of entity.components.interactionPoint?.actions ?? []) {
+    const focused = entity.id === focus && entity.id === world.player.near && world.observations[entity.id]?.inspected;
+    for (const binding of focused ? entity.components.interactionPoint?.actions ?? [] : []) {
       const action = registry.actions[binding.actionId];
       if (!action || !action.locationIds.includes(state.location) || !actionConditionsMet(action, state) || action.dailyLimit && getRemainingDailyUses(state, action.dailyLimit) <= 0) continue;
       candidates.push({ id: binding.role + ":" + action.id, nodeId: entity.id, contentActionId: action.id,
@@ -66,17 +67,22 @@ export function locationWorldOptions(state: GameState, registry: ContentRegistry
         importance: "major", loading: resolveInteractionLoading(action) ?? ACTIVITY });
     }
     if (!entity.components.resourceSite) continue;
-    const methods = siteActions(state, registry, entity.components.resourceSite.siteId).filter(action => actionConditionsMet(action, state)
+    const methods = siteActions(state, registry, entity.components.resourceSite.siteId).filter(action => (focused || action.resourceUse?.directFromEntry && entity.components.position.zone === world.player.zone) && actionConditionsMet(action, state)
       && (!action.dailyLimit || getRemainingDailyUses(state, action.dailyLimit) > 0));
     const hasManual = methods.some(action => !toolIds(action).length);
     for (const action of methods) {
       const resource = resourceAvailability(state, action, registry);
-      if (!resource?.remainingUses) continue;
+      if (!resource || resource.remainingUses === 0) continue;
       const label = resolveItemText(action.label, registry).replace(/하기$/, "한다");
       const possibleEmpty = action.effects.some(effect => effect.type === "random_outcome" && effect.outcomes.some(outcome => outcome.result === "failure"));
       const hint = resolveItemText(formatOutcomeHint(action.effects, state, action.skillUse) || action.outcomeHint, registry);
       candidates.push({ id: (hasManual && toolIds(action).length ? "toolwork:" : "harvest:") + action.id,
         label, nodeId: entity.id, contentActionId: action.id, hint: hint + (possibleEmpty ? " / 빈손으로 끝날 수 있음" : ""),
+        preparation: [
+          ...(entity.id !== world.player.near ? [...(world.player.posture !== "standing" ? [{ type: "POSTURE" as const, posture: "standing" as const }] : []), { type: "MOVE" as const, target: entity.id }] : []),
+          ...((entity.details?.posture ?? "standing") !== (entity.id !== world.player.near ? "standing" : world.player.posture) ? [{ type: "POSTURE" as const, posture: entity.details?.posture ?? "standing" as const }] : []),
+          ...(!world.observations[entity.id]?.inspected ? [{ type: "INSPECT" as const, target: entity.id }] : []),
+        ],
         remainingUses: resource.remainingUses, importance: "major", loading: resolveInteractionLoading(action) ?? ACTIVITY });
     }
   }
@@ -148,6 +154,14 @@ export async function performLocationWorldAction(state: GameState, action: Extra
     if (entity.components.interactionPoint?.actions.some(binding => binding.actionId === definition.id)) {
       performPointAction(state, registry, world, definition, entity.id);
     } else {
+      const preparation = resolveWorldActions(world, state, option.preparation ?? []);
+      if (preparation.interrupted || preparation.discovery) {
+        world.revision++;
+        syncScene(state);
+        applySystemNote(before, state);
+        if (world.active) await render(state, registry, narrator, gameId);
+        return;
+      }
       const event = recordEvent(world, { type: "WORK", targetId: entity.id, before: { siteId: definition.resourceUse!.siteId },
         after: { name: entity.name, effort: definition.resourceUse?.effort ?? entity.name + "에서 작업을 이어간다." } });
       // Native effects own costs, tool wear, experience and rewards. Narration never replays them.

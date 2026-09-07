@@ -76,7 +76,7 @@ export const ActionDefinitionSchema = z.object({
   nextSceneId: z.string().optional(),
   dailyLimit: DailyLimitSchema.optional(),
   activity: ActivityDefinitionSchema.nullable().optional(),
-  resourceUse: z.object({ siteId: z.string().min(1), cost: z.number().int().positive(), effort: z.string().min(1).optional() }).nullable().optional(),
+  resourceUse: z.object({ siteId: z.string().min(1), cost: z.number().int().positive(), effort: z.string().min(1).optional(), directFromEntry: z.boolean().optional() }).nullable().optional(),
   tags: z.array(z.string()).default([]),
   riskHint: z.enum(["low", "medium", "high"]).optional(),
   skillUse: SkillUseSchema.optional(),

@@ -739,7 +739,7 @@ function validateAction(registry: ContentRegistry, action: ActionDefinition) {
     if (!Number.isInteger(use.cost) || use.cost <= 0 || !action.locationIds.length) throw new Error(`action:${action.id} invalid resource cost or location.`);
     for (const locationId of action.locationIds) {
       const site = registry.locations[locationId]?.resourceSites?.find(site => site.id === use.siteId);
-      if (!site || use.cost > site.capacity) throw new Error(`action:${action.id} references unavailable resource site '${use.siteId}'.`);
+      if (!site || !site.unlimited && use.cost > site.capacity) throw new Error(`action:${action.id} references unavailable resource site '${use.siteId}'.`);
     }
   }
   validateItemTextReferences(action.label, registry, `action:${action.id}:label`);

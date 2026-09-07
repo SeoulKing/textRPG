@@ -5,7 +5,7 @@ import { forestResultSceneTags } from "./result-scene-tags";
 export const forestChoices: ActionDefinition[] = [
   interactionFor("forest", {
     id: "chop_wood_at_forest",
-    resourceUse: { siteId: "fallen_wood", cost: 1, effort: "단단한 나뭇가지를 골라 부러진 부분을 떼어 낸다." },
+    resourceUse: { siteId: "fallen_wood", cost: 1, directFromEntry: true, effort: "단단한 나뭇가지를 골라 부러진 부분을 떼어 낸다." },
     skillUse: { skillId: "collection" },
     label: "벌목하기",
     type: "search",
@@ -22,7 +22,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "chop_wood_with_crude_axe",
-    resourceUse: { siteId: "fallen_wood", cost: 1, effort: "손도끼로 쓰러진 나무의 마른 부분을 쳐 낸다." },
+    resourceUse: { siteId: "fallen_wood", cost: 1, directFromEntry: true, effort: "손도끼로 쓰러진 나무의 마른 부분을 쳐 낸다." },
     skillUse: { skillId: "collection" },
     label: "{{item:crudeAxe|으로로}} 벌목한다",
     type: "search",
@@ -220,22 +220,26 @@ export const forestLocation = defineLocation({
     {
       "id": "fallen_wood",
       "name": "쓰러진 나무",
-      "capacity": 12
+      "capacity": 12,
+      "unlimited": true
     },
     {
       "id": "vines",
       "name": "질긴 덩굴",
-      "capacity": 8
+      "capacity": 8,
+      "unlimited": true
     },
     {
       "id": "forest_debris",
       "name": "숲에 남은 잔해",
-      "capacity": 6
+      "capacity": 6,
+      "unlimited": true
     },
     {
       "id": "bushes",
       "name": "길가의 덤불",
-      "capacity": 8
+      "capacity": 8,
+      "unlimited": true
     }
   ],
   interactionChoices: forestChoices,

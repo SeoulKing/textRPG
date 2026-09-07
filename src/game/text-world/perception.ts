@@ -33,7 +33,7 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
     add("entity:" + e.id, "entity", { name: e.name, placement: held ? "손에 들고 있음" : carried ? "지니고 있음" : placement(e),
       isOpen: c.openable?.isOpen, locked: near ? c.openable?.locked : undefined, discovered, on: c.light?.on, held, carried, stowed: carried && !held }, e.id);
     if (c.resourceSite && near && world.observations[e.id]?.inspected) add("resource:" + e.id, "resource", {
-      name: e.name, remaining: c.resourceSite.remaining, capacity: c.resourceSite.capacity,
+      name: e.name, unlimited: c.resourceSite.unlimited, remaining: c.resourceSite.remaining, capacity: c.resourceSite.capacity,
       recoveryMinutes: c.resourceSite.recoveryMinutes, missingTools: c.resourceSite.missingTools ?? [],
     }, e.id);
     if (c.portal) add("connection:" + e.id, "connection", { name: e.name, from: worldRooms(world)[c.portal.from].name.split(" · ").at(-1), to: worldRooms(world)[c.portal.to].name.split(" · ").at(-1) }, e.id);

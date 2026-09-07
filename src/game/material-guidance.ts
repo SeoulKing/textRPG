@@ -33,9 +33,10 @@ export function materialSourceHints(state: GameState, registry: ContentRegistry,
     for (const action of location.interactionChoices) {
       if (!action.resourceUse || !action.conditions.every(c => evaluateCondition(c, localState)) || !yieldsItem(action.effects, itemId)) continue;
       const available = resourceAvailability(localState, action, registry)!;
-      const suffix = available.remainingUses === 0 ? available.recoveryMinutes ? `${available.recoveryMinutes}분 뒤 재개` : '소진'
+      const suffix = available.site.unlimited ? action.effects.some(e => e.type === "random_outcome") ? '수색 결과에 따라 획득' : '반복 채집 가능'
+        : available.remainingUses === 0 ? available.recoveryMinutes ? `${available.recoveryMinutes}분 뒤 재개` : '소진'
         : action.effects.some(e => e.type === "random_outcome") ? `수색 결과에 따라 획득 · ${available.remainingUses}회 남음` : `${available.remainingUses}회 남음`;
-      hints.push({ key: location.id + ':' + available.site.id, priority: available.remainingUses ? 1 : 3, text: `${location.name} · ${resolveItemText(action.label, registry)} (${suffix})` });
+      hints.push({ key: location.id + ':' + available.site.id, priority: available.remainingUses === 0 ? 3 : 1, text: `${location.name} · ${resolveItemText(action.label, registry)} (${suffix})` });
     }
     for (const node of location.stockNodes) {
       if (!state.discoveredStockNodeIds.includes(node.id)) continue;

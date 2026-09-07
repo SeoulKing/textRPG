@@ -13,7 +13,7 @@ export const TextEntitySchema = z.object({
   components: z.object({
     stockNode: z.object({ nodeId: z.string().min(1) }).optional(),
     interactionPoint: z.object({ actions: z.array(z.object({ actionId: z.string().min(1), role: z.enum(["work", "care"]) })).min(1) }).optional(),
-    resourceSite: z.object({ siteId: z.string().min(1), remaining: z.number().int().nonnegative().optional(), capacity: z.number().int().positive().optional(), recoveryMinutes: z.number().positive().optional(), missingTools: z.array(z.string()).optional() }).optional(),
+    resourceSite: z.object({ siteId: z.string().min(1), unlimited: z.boolean().optional(), remaining: z.number().int().nonnegative().optional(), capacity: z.number().int().positive().optional(), recoveryMinutes: z.number().positive().optional(), missingTools: z.array(z.string()).optional() }).optional(),
     position: z.object({ zone: z.string(), relativeTo: z.string().optional(), relation: z.enum(["beside", "blocking", "on", "inside"]).optional() }),
     physical: z.object({ mass: z.number().nonnegative(), volume: z.number().positive().default(1), movable: z.boolean().default(false), opaque: z.boolean().default(true), blocksPassage: z.boolean().default(false), supportCapacity: z.number().nonnegative().optional() }).optional(),
     openable: z.object({ isOpen: z.boolean(), locked: z.boolean(), keyId: z.string().optional(), autoCloseSeconds: z.number().int().positive().optional(), remainingOpenSeconds: z.number().int().nonnegative().optional() }).optional(),

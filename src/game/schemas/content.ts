@@ -37,6 +37,8 @@ export const ResourceSiteDefinitionSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   capacity: z.number().int().positive(),
+  // Repeatable work ignores capacity and saved depletion when unlimited.
+  unlimited: z.boolean().optional(),
   // One work opportunity recovers each interval. Omission means finite material.
   recoveryMinutes: z.number().positive().optional(),
 });

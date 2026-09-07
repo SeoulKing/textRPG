@@ -64,7 +64,7 @@ function factText(f: WorldFact): string {
   const d = f.data;
   if (f.kind === "result") return eventText(d as WorldEvent);
   if (f.kind === "resource") {
-    const status = Number(d.remaining) === 0 ? String(d.name) + (d.recoveryMinutes ? "은 잠시 쉬어 두어야 다시 작업할 수 있다." : "에서는 더 챙길 만한 것이 남아 있지 않다.") : String(d.name) + "에는 아직 작업할 부분이 남아 있다.";
+    const status = d.unlimited ? String(d.name) + "에서 작업을 이어갈 수 있다." : Number(d.remaining) === 0 ? String(d.name) + (d.recoveryMinutes ? "은 잠시 쉬어 두어야 다시 작업할 수 있다." : "에서는 더 챙길 만한 것이 남아 있지 않다.") : String(d.name) + "에는 아직 작업할 부분이 남아 있다.";
     const tools = d.missingTools as string[];
     return status + (tools?.length ? " 다른 작업 방법에는 " + particle(tools.join(", "), "이", "가") + " 필요하다." : "");
   }

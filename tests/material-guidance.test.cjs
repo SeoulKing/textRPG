@@ -8,7 +8,7 @@ const menus=['shelter_crafting_menu','shelter_crafting_menu_repeat','shelter_coo
 
 test('material advice uses visited gathering places and keeps undiscovered contents and gated actions hidden',()=>{
  const s=createInitialGameState();assert.deepEqual(materialSourceHints(s,worldRegistry,'wood',menus),[]);assert.deepEqual(materialSourceHints(s,worldRegistry,'rawRice',menus),[]);
- s.flags.visited_forest=true;assert.match(materialSourceHints(s,worldRegistry,'wood',menus)[0],/숲.*12회/);
+ s.flags.visited_forest=true;assert.match(materialSourceHints(s,worldRegistry,'wood',menus)[0],/숲.*반복 채집 가능/);
  const registry=structuredClone(worldRegistry);for(const a of registry.locations.forest.interactionChoices)a.conditions.push({type:'flag',flag:'hidden_camp_found'});
  registry.choices.secret_material={...structuredClone(registry.choices.craft_firewood),id:'secret_material',presentationMode:'when_conditions_met',conditions:[{type:'flag',flag:'hidden_camp_found'},{type:'has_item',itemId:'clothScrap',amount:1}],effects:[{type:'add_item',itemId:'wood',amount:1}]};registry.scenes.shelter_crafting_menu.choiceIds.push('secret_material');
  assert.deepEqual(materialSourceHints(s,registry,'wood',menus),[]);
@@ -18,21 +18,24 @@ test('material advice uses visited gathering places and keeps undiscovered conte
  s.stockState[getStockStateKey('convenience',node.id,'rawRice')]=0;assert.match(materialSourceHints(s,worldRegistry,'rawRice',menus)[0],/수집 완료/);
 });
 
-test('processing advice explains ingredient chains while finite and recoverable sources report their actual state',()=>{
+test('processing advice and unlimited sources ignore depletion while explicit finite sources retain their rules',()=>{
+ const registry=structuredClone(worldRegistry);for(const l of Object.values(registry.locations))for(const site of l.resourceSites??[])site.unlimited=false;registry.locations.river.resourceSites[0].recoveryMinutes=360;
  const s=createInitialGameState();s.flags.visited_forest=true;s.flags.visited_river=true;
  assert.match(materialSourceHints(s,worldRegistry,'firewood',menus)[0],/목재 1개로 제작/);
  assert.match(materialSourceHints(s,worldRegistry,'woodPlank',menus)[0],/목재 1개로 제작/);
  s.resourceState.forest={fallen_wood:{remaining:0,updatedAtMinutes:0,recoveryProgressMinutes:0}};
- assert.match(materialSourceHints(s,worldRegistry,'wood',menus)[0],/소진/);
+ assert.match(materialSourceHints(s,registry,'wood',menus)[0],/소진/);assert.match(materialSourceHints(s,worldRegistry,'wood',menus)[0],/반복 채집 가능/);
  s.resourceState.river={fishing_pools:{remaining:0,updatedAtMinutes:0,recoveryProgressMinutes:120}};
- assert.match(materialSourceHints(s,worldRegistry,'riverFish',menus)[0],/240분 뒤/);
+ assert.match(materialSourceHints(s,registry,'riverFish',menus)[0],/240분 뒤/);assert(!/회 남음|분 뒤|소진|undefined/.test(materialSourceHints(s,worldRegistry,'riverFish',menus)[0]));
  const before=JSON.stringify(s);materialSourceHints(s,worldRegistry,'scrapMetal',menus);assert.equal(JSON.stringify(s),before);
 });
 
 test('a new recipe reaches the ingredient panel and guidance without adding its ID to the service effect map',async t=>{
  t.mock.method(global,'fetch',async()=>{throw Error('External providers disabled in recipe test')});
  const s=createInitialGameState();s.flags.opening_seen=true;s.flags.shelter_crafting_open=true;s.flags.shelter_crafting_intro_seen=true;s.flags.visited_forest=true;s.sceneId='shelter_crafting_menu_repeat';
- const recipe={...structuredClone(worldRegistry.choices.craft_firewood),id:'writer_fuel_bundle',label:'작은 땔감 묶음',conditions:[{type:'has_item',itemId:'wood',amount:2}],effects:[{type:'remove_item',itemId:'wood',amount:2},{type:'add_item',itemId:'firewood',amount:6},{type:'advance_time',minutes:20}]};
+ const recipe={...structuredClone(worldRegistry.choices.craft_firewood),id:'writer_fuel_bundle',label:'작은 땔감 묶음',outcomeHint:'',conditions:[{type:'has_item',itemId:'wood',amount:2}],effects:[{type:'remove_item',itemId:'wood',amount:2},{type:'add_item',itemId:'firewood',amount:6},{type:'advance_time',minutes:20}]};
+ // This fixture has no authored activity prose: its effect text must come from actual rewards.
+ delete recipe.activity;
  s.dynamicContent.choices[recipe.id]=recipe;
  for(const sceneId of menus.slice(0,2))s.dynamicContent.scenes[sceneId]={...structuredClone(worldRegistry.scenes[sceneId]),choiceIds:[recipe.id,'leave_shelter_crafting']};
  let stored={id:'recipe-guidance',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),state:s,world:{locationCards:{},personCards:{},itemCards:{},eventCards:{},sceneCards:{},protagonistCard:null}};

@@ -13,7 +13,7 @@ const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const ACTION_TRANSITION_ACTION_MS = 500;
+const ACTION_TRANSITION_ACTION_MS = 1000;
 const ACTION_TRANSITION_MOVEMENT_MS = 1000;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
 const SCENE_IMAGE_CACHE_LIMIT = 8;
@@ -383,7 +383,6 @@ const client = {
   pendingActionElement: null,
   pendingActionSceneElement: null,
   pendingActionStatusElement: null,
-  pendingThoughtElement: null,
   pendingActionProgressElement: null,
   pendingActionDisabledControls: [],
   actionTransitionMessage: "",
@@ -828,25 +827,26 @@ function usesRegionTravelOverlay(action, loading = null) {
 }
 
 function actionTransitionDurationMs(action, loading = null) {
+  // Existing content sends the former 500 ms default; render it with the current pacing.
+  const activityDuration = Number.isFinite(loading?.durationMs)
+    ? loading.durationMs === 500 ? ACTION_TRANSITION_ACTION_MS : Math.max(0, loading.durationMs)
+    : ACTION_TRANSITION_ACTION_MS;
   if (isMovementAction(action, loading)) {
     return ACTION_TRANSITION_MOVEMENT_MS;
   }
   if (action?.type === "text_world" || action?.type === "npc_dialogue") {
-    return Number.isFinite(loading?.durationMs) ? Math.max(0, loading.durationMs) : ACTION_TRANSITION_ACTION_MS;
+    return activityDuration;
   }
   if (action?.type === "use_item" || action?.type === "item_light") {
     return ACTION_TRANSITION_ACTION_MS;
   }
   if (action?.type === "subway_expedition" && ["search_loot", "encounter_choice"].includes(action.command)) {
-    if (Number.isFinite(loading?.durationMs)) return Math.max(0, loading.durationMs);
-    return ACTION_TRANSITION_ACTION_MS;
+    return activityDuration;
   }
   if (!loading) {
     return 0;
   }
-  return Number.isFinite(loading.durationMs)
-    ? Math.max(0, loading.durationMs)
-    : ACTION_TRANSITION_ACTION_MS;
+  return activityDuration;
 }
 
 function actionTransitionMessage(action, loading = null) {
@@ -913,7 +913,7 @@ function pendingActionControls() {
   ].join(",")));
 }
 
-function beginActionTransition(action, triggerElement, durationMs, loading = null, choiceThought = null) {
+function beginActionTransition(action, triggerElement, durationMs, loading = null) {
   const control = triggerElement instanceof Element
     ? triggerElement.closest("button, [role='button']")
     : null;
@@ -1010,38 +1010,16 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     visualTarget.appendChild(progressTrack);
     visualTarget.classList.add("is-action-pending");
     visualTarget.setAttribute("aria-busy", "true");
-    if (action?.type === "text_world" || (typeof choiceThought === "string" && choiceThought.trim())) {
-      const waiting = document.createElement("span");
-      waiting.className = "choice-wait-status";
-      waiting.setAttribute("role", "status");
-      waiting.textContent = "진행 중";
-      visualTarget.appendChild(waiting);
-      client.pendingActionStatusElement = waiting;
-      if (typeof choiceThought === "string" && choiceThought.trim()) {
-        const thought = document.createElement("span");
-        thought.className = "choice-wait-thought";
-        thought.textContent = `‘${choiceThought.trim()}’`;
-        visualTarget.appendChild(thought);
-        client.pendingThoughtElement = thought;
-      }
-    }
     visualTarget.classList.toggle("is-choice-surface-pending", usesInlineSurfaceFill);
     client.pendingActionProgressElement = progressTrack;
   }
 }
 
-function markActionAwaitingResponse() {
-  client.pendingActionElement?.classList.add("is-awaiting-result");
-}
-
 function finishActionTransition() {
-  client.pendingThoughtElement?.remove();
-  client.pendingThoughtElement = null;
   client.pendingActionStatusElement?.remove();
   client.pendingActionProgressElement?.remove();
   client.pendingActionSceneElement?.remove();
   client.pendingActionElement?.classList.remove("is-action-pending");
-  client.pendingActionElement?.classList.remove("is-awaiting-result");
   client.pendingActionElement?.removeAttribute("aria-busy");
   client.pendingActionElement?.classList.remove("is-choice-surface-pending");
   dom.sceneFrame.classList.remove("is-action-in-progress");
@@ -3930,14 +3908,16 @@ async function submitAction(
   }
   client.actionInFlight = true;
   client.pendingAction = action;
-  // Old saves may contain retired leads. Only actual results enter the reading history.
+  // Keep retired action leads out of history; the chosen thought introduces the actual result.
   const continuousNarrative = ["text_world", "npc_dialogue", "subway_expedition", "item_light"].includes(action.type)
     || Number.isInteger(action.activityRevision);
-  const immediateNarrative = continuousNarrative ? [] : normalizePostChoiceNarrative(postChoiceNarrative);
+  const hasChoiceThought = typeof choiceThought === "string" && Boolean(choiceThought.trim());
+  const immediateNarrative = hasChoiceThought ? [`‘${choiceThought.trim()}’`]
+    : continuousNarrative ? [] : normalizePostChoiceNarrative(postChoiceNarrative);
   const hasImmediateNarrative = immediateNarrative.length > 0;
-  const savedHistory = continuousNarrative ? captureSceneHistory() : null;
+  const savedHistory = continuousNarrative || hasChoiceThought ? captureSceneHistory() : null;
   let presentingAction = true;
-  const transitionDurationMs = hasImmediateNarrative && !loading
+  const transitionDurationMs = hasImmediateNarrative && !hasChoiceThought && !loading
     ? 0
     : actionTransitionDurationMs(action, loading);
   const shouldShowTransition = transitionDurationMs > 0;
@@ -3971,20 +3951,20 @@ async function submitAction(
       resetSceneScrollOnMobile();
     }
     if (shouldShowTransition) {
-      beginActionTransition(action, triggerElement, transitionDurationMs, loading, choiceThought);
+      beginActionTransition(action, triggerElement, transitionDurationMs, loading);
     }
-    const transitionPromise = waitForMilliseconds(transitionDurationMs);
+    // Narrative generation already supplies the wait; its fill must not delay an early result.
+    const transitionPromise = continuousNarrative || hasChoiceThought
+      ? Promise.resolve() : waitForMilliseconds(transitionDurationMs);
     const beginNarrative = () => presentingAction ? beginPostChoiceNarrative(
       immediateNarrative,
-      !isMovementAction(action, loading) && !previousSnapshot.state.subwayExpedition?.active,
-      postChoiceNarrativeSource,
-      false,
+      !isMovementAction(action, loading) && (hasChoiceThought || !previousSnapshot.state.subwayExpedition?.active),
+      hasChoiceThought ? null : postChoiceNarrativeSource,
+      hasChoiceThought,
     ) : undefined;
     const immediateNarrativePromise = hasImmediateNarrative
-      ? transitionPromise.then(beginNarrative) : Promise.resolve();
-    void transitionPromise.then(() => {
-      if (presentingAction && !hasImmediateNarrative) markActionAwaitingResponse();
-    });
+      ? hasChoiceThought ? beginNarrative() : transitionPromise.then(beginNarrative)
+      : Promise.resolve();
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
       transitionPromise,
@@ -4031,8 +4011,9 @@ async function submitAction(
             previousSnapshot,
             nextSnapshot: snapshot,
           }),
-      appendScene: hasImmediateNarrative || continueLocationStory,
-      scrollSceneToStart: continueLocationStory,
+      appendScene: (hasImmediateNarrative && (!hasChoiceThought || !didMove)) || continueLocationStory,
+      scrollSceneToStart: continueLocationStory && !hasChoiceThought,
+      continueActionStory: hasChoiceThought && !didMove,
     });
     mark("renderedMs");
     timing.renderWorkMs = timing.renderedMs - timing.presentationReadyMs;

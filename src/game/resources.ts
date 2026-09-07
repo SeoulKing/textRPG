@@ -6,7 +6,7 @@ export type ResourceAvailability = {
   site: ResourceSiteDefinition;
   locationId: string;
   projected: ResourceState;
-  remainingUses: number;
+  remainingUses?: number;
   exhaustedHint: string;
   recoveryMinutes?: number;
 };
@@ -18,7 +18,7 @@ function gameMinutes(state: GameState) {
 /** Pure projection: an absent place can recover, but rendering and polling never write state. */
 export function projectResourceSite(state: GameState, locationId: string, site: ResourceSiteDefinition): ResourceState {
   const now = gameMinutes(state), saved = state.resourceState?.[locationId]?.[site.id];
-  if (!saved) return { remaining: site.capacity, recoveryProgressMinutes: 0, updatedAtMinutes: now };
+  if (site.unlimited || !saved) return { remaining: site.capacity, recoveryProgressMinutes: 0, updatedAtMinutes: now };
   const remaining = Math.min(site.capacity, saved.remaining);
   if (!site.recoveryMinutes || remaining === site.capacity) return { remaining, recoveryProgressMinutes: 0, updatedAtMinutes: now };
   const progress = saved.recoveryProgressMinutes + Math.max(0, now - saved.updatedAtMinutes);
@@ -34,8 +34,9 @@ export function projectResourceSite(state: GameState, locationId: string, site: 
 export function resourceAvailability(state: GameState, action: ActionDefinition, registry: ContentRegistry): ResourceAvailability | undefined {
   if (!action.resourceUse) return undefined;
   const site = registry.locations[state.location]?.resourceSites?.find(s => s.id === action.resourceUse!.siteId);
-  if (!action.locationIds.includes(state.location) || !site || action.resourceUse.cost > site.capacity) throw new Error("현재 장소에서 이용할 수 없는 채집지입니다.");
+  if (!action.locationIds.includes(state.location) || !site || !site.unlimited && action.resourceUse.cost > site.capacity) throw new Error("현재 장소에서 이용할 수 없는 채집지입니다.");
   const projected = projectResourceSite(state, state.location, site);
+  if (site.unlimited) return { site, locationId: state.location, projected, exhaustedHint: "" };
   const remainingUses = Math.floor(projected.remaining / action.resourceUse.cost);
   const missing = Math.max(0, action.resourceUse.cost - projected.remaining);
   const recoveryMinutes = missing && site.recoveryMinutes
@@ -49,6 +50,7 @@ export function resourceAvailability(state: GameState, action: ActionDefinition,
 /** Reserve a work opportunity before its effects. Failed searches still examine that part of the site. */
 export function consumeResourceUse(state: GameState, action: ActionDefinition, availability: ResourceAvailability) {
   if (!action.resourceUse || availability.remainingUses === 0) throw new Error(availability.exhaustedHint);
+  if (availability.site.unlimited) return;
   state.resourceState ??= {};
   state.resourceState[availability.locationId] ??= {};
   state.resourceState[availability.locationId][availability.site.id] = {

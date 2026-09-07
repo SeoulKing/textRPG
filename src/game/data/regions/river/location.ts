@@ -5,7 +5,7 @@ import { riverResultSceneTags } from "./result-scene-tags";
 export const riverChoices: ActionDefinition[] = [
   interactionFor("river", {
     id: "fish_at_river",
-    resourceUse: { siteId: "fishing_pools", cost: 1, effort: "강둑에 고정된 낚싯줄을 풀어 물속으로 내리고 입질을 기다린다." },
+    resourceUse: { siteId: "fishing_pools", cost: 1, directFromEntry: true, effort: "강둑에 고정된 낚싯줄을 풀어 물속으로 내리고 입질을 기다린다." },
     skillUse: { skillId: "fishing" },
     label: "낚시하기",
     type: "search",
@@ -65,7 +65,7 @@ export const riverLocation = defineLocation({
       "id": "fishing_pools",
       "name": "낚시 자리",
       "capacity": 4,
-      "recoveryMinutes": 360
+      "unlimited": true
     }
   ],
   interactionChoices: riverChoices,
