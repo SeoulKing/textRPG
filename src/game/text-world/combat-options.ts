@@ -46,5 +46,5 @@ export function combatWorldOptions(state: GameState): CombatWorldOption[] {
 }
 export function combatResultEvent(state: GameState,result: SubwayEncounterTurnResult,actionText?:string) {
   const space=combatGeometry(state),encounter=state.subwayExpedition.currentFloorProgress.encounter!;
-  return {type:"COMBAT" as const,witnessed:Boolean(actionText || result.resolution || result.damageDealt || result.damageTaken || result.rolls.counter!==null),targetId:expeditionFloorIds(state).prefix+"_opponent",before:{},after:{name:encounter.enemy?.name??"상대",actionText,success:result.success,resolution:result.resolution,damageDealt:result.damageDealt,damageTaken:result.damageTaken,counterAttempted:result.rolls.counter!==null,enemyHp:result.enemyHpAfter,playerHp:result.playerHpAfter,coverName:space.coverName}};
+  return {type:"COMBAT" as const,witnessed:Boolean(actionText || result.resolution || result.damageDealt || result.damageTaken || result.rolls.counter!==null),targetId:expeditionFloorIds(state).prefix+"_opponent",before:{},after:{name:encounter.enemy?.name??"상대",actionText,success:result.success,resolution:result.resolution,damageDealt:result.damageDealt,damageTaken:result.damageTaken,counterAttempted:result.rolls.counter!==null,enemyHp:result.enemyHpAfter,playerHp:result.playerHpAfter,coverName:space.coverName,coverRelation:space.coverRelation}};
 }

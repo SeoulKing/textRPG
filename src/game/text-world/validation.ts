@@ -28,6 +28,12 @@ export function textRoomIssues(rooms: TextRoom[], itemIds: Set<string>) {
       if (rootOf(entity.id) !== room.id || parent && (c.position.relation === "on" ? parent.components.physical?.supportCapacity === undefined : !parent.components.container?.items.includes(entity.id))) add(room.id, label + ": 배치할 방이나 보관함을 확인해 주세요. 순환 배치는 사용할 수 없습니다.");
       if (c.position.relativeTo && (!entities.has(c.position.relativeTo) || rootOf(c.position.relativeTo) !== room.id || c.position.relativeTo === entity.id)) add(room.id, label + ": 상대 배치 대상은 같은 방의 다른 사물이어야 합니다.");
       if (c.openable?.locked && c.openable.isOpen) add(room.id, `${label}: 잠긴 물체는 닫힌 상태로 설정해 주세요.`);
+      if (c.actor?.routine) {
+        const routine=c.actor.routine;
+        for (const id of [routine.homeZone,...routine.roamZones]) if (!rooms.some(r=>r.id===id && r.locationId===room.locationId)) add(room.id,label+": NPC의 생활 구역은 같은 지역의 실제 방이어야 합니다.");
+        if (!routine.roamZones.includes(routine.homeZone)) add(room.id,label+": NPC의 생활 범위에는 쉬는 방이 포함되어야 합니다.");
+        for (const id of routine.foodItemIds) if (!itemIds.has(id)) add(room.id,label+": NPC가 먹을 식량 ID를 확인해 주세요.");
+      }
       if (c.structure) {
         if (c.structure.integrity > c.structure.maxIntegrity) add(room.id, label + ": 남은 구조 내구도가 최대치를 넘을 수 없습니다.");
         if (c.structure.integrity === 0 && (c.openable && !c.openable.isOpen || c.physical?.blocksPassage)) add(room.id, label + ": 부서진 구조가 문이나 통로를 막을 수 없습니다.");

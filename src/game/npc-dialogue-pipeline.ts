@@ -14,6 +14,8 @@ export type NpcDialogueRole = "dialogue_turn";
 export type NpcDialogueRoleRequest = { gameId: string; role: NpcDialogueRole; target: string; payload: Record<string, unknown>; timeoutMs?: number };
 export type NpcDialogueRoleClient = <T>(request: NpcDialogueRoleRequest) => Promise<T>;
 export type NpcDialogueWorldContext = {
+  approachParagraph?: string;
+  actor?: { locationName: string; placement: string; mode?: string; hunger?: number; fatigue?: number };
   location: { id: string; name: string; summary: string; sceneTitle: string; sceneParagraphs: string[] };
   player: { day: number; phase: string; condition?: { hp: number; mind: number; energy: number }; recentLog: string[] };
 };
@@ -40,8 +42,10 @@ const DIALOGUE_PROMPT = [
   "selectedChoice.label은 지금 실제로 선택한 대화 의도다. 그 뜻을 지키고 새로운 약속·이동·수집·조작을 대신 결정하지 않는다.",
   "selectedChoice.thought는 대기 중 이미 표시한 속말이며 입 밖에 한 대사가 아니다. 이를 반복하거나 NPC가 들은 것처럼 반응하지 않는다.",
   "dialogue에는 그 장면에서 NPC가 실제로 하는 대사만 넣는다. 플레이어의 감정을 확정하지 않는다.",
+  "worldContext.actor가 있으면 현재 위치와 생활 상태는 그 값을 따른다. npcProfile의 고정 거주 묘사나 과거 대화를 현재 위치로 되돌리지 않는다. self 관찰은 NPC 자신이 겪은 일이며 플레이어의 행동으로 바꾸지 않는다.",
   "사물·감각·공간은 npcProfile과 worldContext에 근거한다. 과거 대화는 대화 기억이며 현재 사물 배치를 증명하지 않는다.",
   "worldExperience는 이 인물이 실제로 보고 듣거나 직접 주고받은 사실이다. sense=heard이며 actorKnown=false이면 행위자·물건·의도를 추측해서 아는 것처럼 말하지 않는다. 플레이어의 다른 장소 행동이나 비공개 소지품은 모른다.",
+  "worldContext.approachParagraph가 있으면 엔진이 실제 접근을 처리해 별도 문단으로 표시한다. situation은 다가가기나 말 걸기를 반복하지 말고 바로 NPC 반응부터 쓴다.",
   "socialOutcome는 엔진이 이미 실행한 물건 전달·교환 결과다. 별도 문단으로 표시하므로 situation은 받은 뒤의 NPC 반응부터 시작한다. 전달을 반복하거나 새로운 거래·지급·피해·회복·퀘스트 완료를 선언하지 않는다.",
   "choices는 방금 쓴 NPC 반응에 이어 질문·대답·화제 전환 중 서로 다른 대화 의도 세 개다. 같은 뜻을 말투만 바꿔 채우지 않는다.",
   "각 label은 짧은 답변 또는 말할 의도다. 각 thought는 상황에 맞는 8~30자 정도의 짧은 속말이다. 궁금증과 가벼운 의도만 담고 결과·감정·숨은 사실을 단정하지 않는다.",
@@ -84,7 +88,7 @@ function fallbackReply(input: NpcDialogueGenerationInput) {
   if (!input.selectedChoice && observed?.sense === "heard") return { situation: name + "에게 말을 건네자 잠시 귀를 기울인다.", dialogue: "전에 소리가 들린 일이 있었어요. " + observed.summary + " 무슨 일이 있었나요?" };
   if (!input.selectedChoice && (input.memory.affinity ?? 0) < 0) return { situation: particle(name,"은","는") + " 거리를 둔 채 이쪽을 살핀다.", dialogue: "제 물건을 건드린 일은 기억하고 있어요. 무슨 얘기를 하려는 거죠?" };
   if (!input.selectedChoice) return {
-    situation: name + "에게 다가가 말을 건다. " + (input.visitCount <= 1 ? particle(name, "이", "가") + " 고개를 들어 이쪽을 살핀다." : particle(name, "이", "가") + " 익숙한 얼굴을 확인하듯 이쪽을 살핀다."),
+    situation: (input.context.approachParagraph ? "" : name + "에게 다가가 말을 건다. ") + (input.visitCount <= 1 ? particle(name, "이", "가") + " 고개를 들어 이쪽을 살핀다." : particle(name, "이", "가") + " 익숙한 얼굴을 확인하듯 이쪽을 살핀다."),
     dialogue: input.visitCount <= 1 ? "무슨 일이세요? 여기 구경하러 내려온 건 아닐 텐데요." : "또 오셨네요. 이번에는 무슨 일인데요?",
   };
   return { situation: input.selectedChoice.label.replace(/[.!?]$/, "") + ". " + particle(name, "은", "는") + " 말을 끝까지 듣고 잠시 대답을 고른다.",

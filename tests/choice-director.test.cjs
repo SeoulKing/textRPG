@@ -10,13 +10,13 @@ const {resolveChoiceLabels}=require('../.server-dist/game/text-world/choice-labe
 const {resolveWorldActions}=require('../.server-dist/game/text-world/engine');
 const narrator=async c=>fallbackNarration(c);
 async function start(){const s=createInitialGameState();s.location='subway';await performTextWorldAction(s,{type:'text_world',command:'enter'},'choice-test',narrator);return s;}
-async function choose(s,id,n=narrator){const choice=textWorldActions(s).find(o=>o.action.optionId===id);assert(choice,'missing '+id+': '+textWorldActions(s).map(o=>o.action.optionId));await performTextWorldAction(s,choice.action,'choice-test',n);}
+async function choose(s,id,n=narrator){const choice=textWorldActions(s).find(o=>o.action.optionId===id) ?? (availableWorldOptions(s.textWorld,s).some(o=>o.id===id) ? {action:{type:'text_world',command:'choose',optionId:id,revision:s.textWorld.revision}} : null);assert(choice,'missing '+id+': '+textWorldActions(s).map(o=>o.action.optionId));await performTextWorldAction(s,choice.action,'choice-test',n);}
 
 test('available capabilities are distinct from contextual slots, with no synonymous placement or movement rows',async()=>{
  const s=await start(),w=s.textWorld;const initial=worldOptions(w,s);assert(initial.length>=3&&initial.length<=5);assert.equal(new Set(initial.map(o=>o.family)).size,initial.length);
  await choose(s,'explore:crate');await choose(s,'collect:crate');
  const candidates=availableWorldOptions(w,s),shown=worldOptions(w,s);assert(candidates.filter(o=>o.id.startsWith('put:')||o.id.startsWith('drop:')).length>=3);
- assert.equal(shown.filter(o=>o.family==='PLACE_OBJECT').length,1);assert(shown.length>=3&&shown.length<=5);
+ assert.equal(shown.filter(o=>o.family==='PLACE_OBJECT').length,0);assert(shown.length>=3&&shown.length<=5);
  assert.equal(new Set(shown.map(o=>o.family)).size,shown.length);assert(shown.every(o=>o.slot));
 });
 
@@ -28,17 +28,17 @@ test('explicit focus exit keeps physical position and survives save without rest
  const restored=GameStateSchema.parse(JSON.parse(JSON.stringify(s)));assert.equal(interactionContext(restored.textWorld).focusEntityId,null);assert.equal(interactionContext(restored.textWorld).mode,'EXPLORE');
 });
 
-test('placement resumes only after explicitly handling an item at a compatible surface',async()=>{
+test('placement remains available in the catalogue without crowding meaningful recommendations',async()=>{
  const s=await start(),w=s.textWorld;assert(!availableWorldOptions(w,s).some(o=>/^(put|drop):/.test(o.id)));
  await choose(s,'explore:crate');await choose(s,'collect:crate');const held=interactionContext(w).holdingEntityId;assert.equal(held,'scrap');assert.equal(interactionContext(w).mode,'MANIPULATE');
  assert(worldOptions(w,s).filter(o=>o.family==='PLACE_OBJECT').every(o=>o.actions.at(-1).target===held));
- const before={...s.inventory};const place=worldOptions(w,s).find(o=>o.family==='PLACE_OBJECT');await choose(s,place.id);assert.equal(s.inventory.scrapMetal,(before.scrapMetal??0)-2);
+ const before={...s.inventory};const place=availableWorldOptions(w,s).find(o=>o.id.startsWith('drop:')&&o.actions.at(-1).target===held);await choose(s,place.id);assert.equal(s.inventory.scrapMetal,(before.scrapMetal??0)-2);
  assert.equal(interactionContext(w).holdingEntityId,null);
  // Carrying light does not turn observation of another object into item manipulation.
  resolveWorldActions(w,s,[{type:'MOVE',target:'lamp'},{type:'TAKE',target:'lamp'},{type:'MOVE',target:'crate'}]);
  assert.equal(interactionContext(w).mode,'FOCUS');assert(!worldOptions(w,s).some(o=>o.family==='PLACE_OBJECT'));
  assert(!worldOptions(w,s).some(o=>/^(light|equip|hold|stow|put|drop):lamp/.test(o.id)));
- await choose(s,'hold:water');assert.equal(interactionContext(w).mode,'MANIPULATE');assert(worldOptions(w,s).some(o=>o.family==='PLACE_OBJECT'&&o.actions.at(-1).target==='water'));
+ await choose(s,'hold:water');assert.equal(interactionContext(w).mode,'MANIPULATE');assert(!worldOptions(w,s).some(o=>['HANDLE','PLACE_OBJECT'].includes(o.family)));assert(availableWorldOptions(w,s).some(o=>o.id.startsWith('drop:')&&o.actions.at(-1).target==='water'));
 });
 
 test('real perceived urgency prioritizes responding and retreating and suppresses ordinary item placement',async()=>{

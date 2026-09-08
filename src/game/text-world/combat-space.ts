@@ -3,7 +3,7 @@ import type { TextEntity, TextWorld } from "../schemas/text-world";
 import { audibleSounds } from "./simulation";
 import { recordEvent } from "./events";
 import { illuminated, visibleEntities, pathOpen, portalBetween, worldRooms } from "./world";
-import { canProvideCover, carriedByPlayer, passageBlockers, rootZone } from "./spatial";
+import { currentCover, type CoverRelation, carriedByPlayer, passageBlockers, rootZone } from "./spatial";
 
 export function hostileEntities(world: TextWorld) {
   return Object.values(world.entities).filter(e=>e.components.combatant?.hostile && e.components.combatant.hp>0);
@@ -22,16 +22,15 @@ export function openWorldPath(world: TextWorld, from: string, to: string): strin
 /** Cover and reach derive from current physical objects, never a generated success label. */
 export function combatGeometry(state: GameState) {
   const world=state.textWorld,enemy=combatOpponent(state);
-  if(!world || !enemy)return {spatial:false,reachable:true,coverId:undefined as string|undefined,coverName:undefined as string|undefined,counterPenalty:0};
-  const cover=world.entities[world.player.coverId??""];
-  const protectedBy=world.player.relation==="behind" && world.player.posture==="crouching" && cover && canProvideCover(world,cover) ? cover : undefined;
-  return {spatial:true,reachable:rootZone(world,enemy)===world.player.zone,coverId:protectedBy?.id,coverName:protectedBy?.name,counterPenalty:protectedBy?30:0};
+  if(!world || !enemy)return {spatial:false,reachable:true,coverId:undefined as string|undefined,coverName:undefined as string|undefined,coverRelation:undefined as CoverRelation|undefined,counterPenalty:0};
+  const cover=currentCover(world), protectedBy=cover?.entity;
+  return {spatial:true,reachable:rootZone(world,enemy)===world.player.zone,coverId:protectedBy?.id,coverName:protectedBy?.name,coverRelation:cover?.relation,counterPenalty:protectedBy?30:0};
 }
 /** Concealment affects new visual information; known nearby danger still uses the cover combat rule. */
 export function combatCanSeePlayer(world: TextWorld, enemy: TextEntity) {
-  const cover=world.entities[world.player.coverId??""];
+  const cover=currentCover(world);
   return rootZone(world,enemy)===world.player.zone && illuminated(world,world.player.zone)
-    && !(world.player.relation==="behind" && world.player.posture==="crouching" && cover && canProvideCover(world,cover));
+    && !cover;
 }
 function pursuitPath(world: TextWorld, from: string, to: string) {
   const queue=[[from]],seen=new Set<string>();
@@ -49,7 +48,7 @@ export function advanceCombatOpponent(state: GameState, before?: GameState) {
   const seesPlayer=combatCanSeePlayer(world,enemy),priorEnemy=before?.textWorld?.entities[enemy.id];
   const sawPlayerBefore=Boolean(before?.textWorld && priorEnemy && combatCanSeePlayer(before.textWorld,priorEnemy));
   const departure=world.events.find(e=>e.type==="MOVE" && e.before.zone===from && e.after.zone!==from);
-  if(departure && (sawPlayerBefore || !before && illuminated(world,from) && departure.before.relation!=="behind"))awareness.lastKnownPlayerZone=String(departure.after.zone);
+  if(departure && (sawPlayerBefore || !before && illuminated(world,from) && !["behind","under"].includes(String(departure.before.relation))))awareness.lastKnownPlayerZone=String(departure.after.zone);
   const view:TextWorld={...world,player:{...world.player,zone:from,relation:"near",coverId:null,posture:"standing"}};
   const heard=new Set(audibleSounds(view).map(sound=>sound.id));
   const sequence=(id:string)=>Number(id.split(":").at(-1));

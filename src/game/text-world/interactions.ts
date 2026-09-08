@@ -7,16 +7,22 @@ import { isHeld, releaseHand } from "./hands";
 import { inventoryTreeAvailable, transferInventoryOwnership } from "./inventory-state";
 export { reconcileWorldInventory } from "./inventory-state";
 
-import { canProvideCover } from "./spatial";
+import { canProvideCover, currentCover, clearCover } from "./spatial";
 
-export const interactionTypes = new Set<WorldAction["type"]>(["PUSH", "PUT", "DROP", "WAIT", "HIDE"]);
+export const interactionTypes = new Set<WorldAction["type"]>(["PUSH", "PUT", "DROP", "WAIT", "HIDE", "EMERGE"]);
 export function validateInteraction(world: TextWorld, state: GameState, action: WorldAction): string | null {
   if (action.type === "WAIT") return Number.isInteger(action.durationSeconds ?? 5) && (action.durationSeconds ?? 5) > 0 && (action.durationSeconds ?? 5) <= 60 ? null : "기다릴 시간은 1초부터 60초까지 정할 수 있다.";
+  if (action.type === "EMERGE") return currentCover(world)?.entity.id === action.target ? null : "지금 그 사물에 몸을 숨기고 있지 않다.";
   const source = world.entities[action.target ?? ""];
   if (!source || !visibleEntities(world).some(e => e.id === source.id)) return "지금은 그 대상을 확인할 수 없다.";
   if (!canReach(world, source)) return "먼저 손이 닿는 곳까지 다가가야 한다.";
   const c = source.components;
-  if (action.type === "HIDE") return canProvideCover(world,source) ? null : "몸을 가릴 만큼 큰 사물이 아니다.";
+  if (action.type === "HIDE") {
+    const relation = action.relation ?? "behind";
+    if (relation !== "under" && relation !== "behind") return "숨을 위치가 올바르지 않다.";
+    if (currentCover(world)?.entity.id === source.id && world.player.relation === relation) return "이미 그 자리에 몸을 숨기고 있다.";
+    return canProvideCover(world, source, relation) ? null : "그 위치에는 몸을 숨길 공간이 없다.";
+  }
   if (action.type === "PUSH") {
     if (!c.physical?.movable || c.position.zone === "player" || ancestors(world, source).length) return "지금 배치된 자리에서는 밀어 옮길 수 없다.";
     if (totalMass(world, source) > (world.player.pushCapacity ?? 40)) return "내용물까지 합친 무게가 무거워 밀어 옮길 수 없다.";
@@ -43,6 +49,8 @@ export function validateInteraction(world: TextWorld, state: GameState, action: 
     return occupied + entityVolume(source) <= (container.capacity ?? Infinity) ? null : "안에 물건을 놓을 공간이 부족하다.";
   }
   if (action.relation === "on") {
+    const cover = currentCover(world);
+    if (cover?.relation === "under" && cover.entity.id === destination.id) return "먼저 아래에서 나와 물건을 놓을 표면에 손을 뻗어야 한다.";
     const capacity = destination.components.physical?.supportCapacity;
     if (capacity === undefined) return "물건을 받칠 수 있는 표면이 아니다.";
     const supported = childrenOf(world, destination.id).filter(e => e.components.position.relation === "on").reduce((sum, e) => sum + totalMass(world, e), 0);
@@ -53,11 +61,17 @@ export function validateInteraction(world: TextWorld, state: GameState, action: 
 export function applyInteraction(world: TextWorld, state: GameState, action: WorldAction) {
   if (action.type === "WAIT") return { before: {}, after: { durationSeconds: action.durationSeconds ?? 5 } };
   const source = world.entities[action.target!]!;
+  if (action.type === "EMERGE") {
+    const before = { relation: world.player.relation, coverId: source.id, posture: world.player.posture };
+    clearCover(world);
+    return { before, after: { name: source.name, relation: "near", posture: world.player.posture } };
+  }
   if (action.type === "HIDE") {
     const before = { relation: world.player.relation, coverId: world.player.coverId, posture: world.player.posture };
     world.player.posture = "crouching";
-    world.player.relation = "behind"; world.player.coverId = source.id;
-    return { before, after: { relation: "behind", coverId: source.id, name: source.name, posture: "crouching" } };
+    world.player.relation = (action.relation ?? "behind") as "behind" | "under"; world.player.coverId = source.id;
+    world.player.near = source.id; world.player.facing = source.id;
+    return { before, after: { relation: world.player.relation, coverId: source.id, name: source.name, posture: "crouching" } };
   }
   const destination = world.entities[action.destination ?? ""];
   const before = { ...source.components.position, name: source.name };

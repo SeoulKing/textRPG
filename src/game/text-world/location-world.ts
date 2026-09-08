@@ -13,10 +13,10 @@ import { formatOutcomeHint } from "../outcome-hint";
 import { getRemainingDailyUses } from "../state-utils";
 import { projectResourceSite, resourceAvailability } from "../resources";
 import { applySystemNote, consumeCurrentSceneIntro, performAction, syncScene } from "../rules";
-import { createLocationTextWorld, visibleEntities, worldRooms, portalBetween } from "./world";
+import { createLocationTextWorld, visibleEntities, worldRooms, portalBetween, canReach } from "./world";
 import { transferCarriedEntities, materializeOwnedInventory } from "./inventory";
 import { availableWorldOptions } from "./choices";
-import { directChoices } from "./choice-director";
+import { directChoices, learnChoice } from "./choice-director";
 import { interactionContext } from "./interaction-context";
 import { choiceLabelFields, nextNarrativeChoices, storeChoiceLabels } from "./choice-labels";
 import { recordEvent, resolveWorldActions, validateWorldAction } from "./engine";
@@ -58,7 +58,7 @@ export function syncLocationResources(state: GameState, registry: ContentRegistr
       recoveryMinutes: site.unlimited ? undefined : site.recoveryMinutes, missingTools: projected.remaining > 0 ? [...new Set(missingTools)] : [] };
   }
 }
-type LocationOption = { id: string; label: string; hint: string; nodeId?: string; contentActionId?: string; subwayCommand?: "ascend" | "descend" | "return";
+type LocationOption = { id: string; label: string; hint: string; nodeId?: string; contentActionId?: string; need?: "food" | "health"; subwayCommand?: "ascend" | "descend" | "return";
   actions?: WorldAction[]; importance: "major" | "minor"; loading: NonNullable<ActionChoice["loading"]>; remainingUses?: number; stockChoiceIds?: string[]; preparation?: WorldAction[]; combatChoice?: CombatWorldOption["combatChoice"] };
 
 export function availableLocationWorldOptions(state: GameState, registry: ContentRegistry) {
@@ -78,13 +78,22 @@ export function availableLocationWorldOptions(state: GameState, registry: Conten
     candidates.push({id:"separate:"+destination,label:worldRooms(world)[destination].name.split(" · ").at(-1)+"로 건너가 "+portal.name+"을 닫는다",hint:"이동 후 문 닫기 · 전투 대응 +5분",nodeId:portal.id,actions:[...travel.actions!,{type:"CLOSE",target:portal.id}],importance:"major",loading:ACTIVITY});
   }
   const focus = interactionContext(world, state).focusEntityId;
+  const pointApproach = (id: string): WorldAction[] => world.player.near === id ? [] : [
+    ...(world.player.posture === "crouching" ? [{type:"POSTURE" as const,posture:"standing" as const}] : []), {type:"MOVE",target:id}];
   for (const entity of visibleEntities(world)) {
     const focused = entity.id === focus && entity.id === world.player.near && world.observations[entity.id]?.inspected;
-    const pointReady = entity.id === focus && entity.id === world.player.near && (focused || entity.components.interactionPoint?.requiresInspection === false);
+    const point = entity.components.interactionPoint;
+    const authored = registry.textRooms?.flatMap(r=>r.entities).find(e=>e.id===entity.id)?.components.interactionPoint;
+    const direct = point?.directFromEntry ?? (point?.requiresInspection === false && authored?.directFromEntry && point.actions.every(a=>authored.actions.some(b=>b.actionId===a.actionId)));
+    const pointReady = entity.id === focus && entity.id === world.player.near && (focused || point?.requiresInspection === false) || direct && entity.components.position.zone === world.player.zone;
     for (const binding of pointReady ? entity.components.interactionPoint?.actions ?? [] : []) {
       const action = registry.actions[binding.actionId];
       if (!action || !action.locationIds.includes(state.location) || !actionConditionsMet(action, state) || action.dailyLimit && getRemainingDailyUses(state, action.dailyLimit) <= 0) continue;
-      candidates.push({ id: binding.role + ":" + action.id, nodeId: entity.id, contentActionId: action.id,
+      const preparation = pointApproach(entity.id), projected = structuredClone(world), projectedState = structuredClone(state);
+      if(state.location==="subway")projectedState.textWorld=projected;else projectedState.locationTextWorlds[state.location]=projected;
+      const result=resolveWorldActions(projected,projectedState,preparation,{advanceTime:false});
+      if(result.interrupted || result.discovery || !canReach(projected,projected.entities[entity.id]))continue;
+      candidates.push({ preparation, need: action.tags.includes("food") ? "food" : binding.role === "care" ? "health" : undefined, id: binding.role + ":" + action.id, nodeId: entity.id, contentActionId: action.id,
         label: resolveItemText(action.label, registry), hint: resolveItemText(formatOutcomeHint(action.effects, state, action.skillUse) || action.outcomeHint, registry),
         importance: "major", loading: resolveInteractionLoading(action) ?? ACTIVITY });
     }
@@ -176,6 +185,7 @@ export async function performLocationWorldAction(state: GameState, action: Extra
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
   const option = availableLocationWorldOptions(state, registry).find(option => option.id === action.optionId);
   if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
+  if (option.id.startsWith("talk:")) throw new Error("인물과의 대화는 게임 서비스에서 처리해야 합니다.");
   if (option.subwayCommand || option.contentActionId && registry.actions[option.contentActionId]?.tags.includes("subway-expedition-start")) throw new Error("심층 탐험 진입은 게임 서비스에서 처리해야 합니다.");
   const before = structuredClone(state);
   world.events = [];
@@ -186,7 +196,10 @@ export async function performLocationWorldAction(state: GameState, action: Extra
     const definition = registry.actions[option.contentActionId];
     const entity = world.entities[option.nodeId!];
     if (entity.components.interactionPoint?.actions.some(binding => binding.actionId === definition.id)) {
-      performPointAction(state, registry, world, definition, entity.id);
+      const preparation = resolveWorldActions(world, state, option.preparation ?? []);
+      if (!preparation.interrupted && !preparation.discovery && canReach(world, entity) && actionConditionsMet(definition,state)) {
+        performPointAction(state, registry, world, definition, entity.id);
+      } else if (!world.events.some(e=>e.type==="STOPPED")) recordEvent(world,{type:"STOPPED",targetId:entity.id,attemptedAction:"SERVICE",reason:"다가가는 사이 상황이 달라져 행동을 이어가지 못한다.",before:{},after:{}});
     } else {
       const preparation = resolveWorldActions(world, state, option.preparation ?? []);
       if (preparation.interrupted || preparation.discovery) {
@@ -217,6 +230,7 @@ export async function performLocationWorldAction(state: GameState, action: Extra
       if (state.location !== before.location) world.active = false;
     }
   }
+  if (!state.isGameOver && !world.events.some(e=>e.type==="STOPPED")) learnChoice(state, state.location === "subway" ? before.textWorld! : before.locationTextWorlds[before.location], option);
   world.revision++;
   syncScene(state);
   applySystemNote(before, state);

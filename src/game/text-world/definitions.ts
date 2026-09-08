@@ -1,3 +1,4 @@
+import { ActorRoutineSchema } from "../schemas/actor";
 import type { TextEntity, TextRoom, TextWorld } from "../schemas/text-world";
 
 // Directions are tied to the entrance, never to whichever way the player turns.
@@ -55,7 +56,7 @@ export function defaultTextRooms(): TextRoom[] {
   });
   const entities = [
     entity("subway_depth_stairs", "지하층 계단", "concourse", { interactionPoint: { requiresInspection: false, actions: [{ actionId: "start_subway_expedition", role: "journey" }] } }),
-    entity("shumi_presence", "슈미", "concourse", { actor: { npcId: "shumi" } }),
+    entity("shumi_presence", "슈미", "concourse", { actor: { npcId: "shumi", routine: ActorRoutineSchema.parse({ homeZone:"concourse", roamZones:["concourse","office"] }) } }),
     entity("crate", "나무 상자", "office", { physical: { mass: 12, volume: 8, movable: true, opaque: true, blocksPassage: true, supportCapacity: 5 }, openable: { isOpen: false, locked: false }, container: { items: ["water", "scrap"] } }),
     entity("door", "철문", "office", { openable: { isOpen: false, locked: true, keyId: "doorKey" }, portal: { from: "office", to: "corridor" } }),
     ...officePuzzleEntities(),
@@ -108,6 +109,7 @@ export function upgradeSubwayResidents(world: TextWorld) {
   delete world.rooms.concourse.outsideExploration;
   world.rooms.concourse.regionalExit = true;
   if (!Object.values(world.entities).some(e => e.components.interactionPoint?.actions.some(a => a.actionId === "start_subway_expedition")) && !world.entities.subway_depth_stairs) world.entities.subway_depth_stairs = structuredClone(boundary.entities.find(e => e.id === "subway_depth_stairs")!);
+  for (const actor of Object.values(world.entities)) if (actor.components.actor?.npcId === "shumi" && actor.description === details.shumi_presence.surface && actor.components.actor.routine === undefined) actor.components.actor.routine = ActorRoutineSchema.parse({ homeZone:"concourse", roamZones:["concourse","office"] });
   if (!Object.values(world.entities).some(e=>e.components.actor?.npcId === "shumi")) {
     const actor = structuredClone(boundary.entities.find(e => e.components.actor?.npcId === "shumi")!);let suffix=1;
     while (world.entities[actor.id]) actor.id = "shumi_presence_" + suffix++;

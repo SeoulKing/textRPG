@@ -5,7 +5,7 @@ import type { TextWorld, WorldAction, WorldEvent } from "../schemas/text-world";
 import { advanceGameSeconds } from "../rules";
 import { handledEntityId, heldInSlot, holdEntity, isHeld, normalizeHands, releaseHand } from "./hands";
 import { inventoryRegistered, inventoryTreeAvailable, transferInventoryOwnership } from "./inventory-state";
-import { carriedByPlayer, passageBlockers, rootZone } from "./spatial";
+import { carriedByPlayer, currentCover, normalizeCover, passageBlockers, rootZone } from "./spatial";
 import { recordEvent } from "./events";
 import { applyToolUse, materializeTool, toolTechniques, validateToolUse } from "./tool-rules";
 import { observeWorldEvent, propertyOwner, synchronizeWorldActors } from "./observers";
@@ -15,7 +15,7 @@ import { applyInteraction, interactionTypes, validateInteraction } from "./inter
 export { recordEvent } from "./events";
 import { adjacentZones, hasDoorKey, canReach, carriesLight, entityDetails, illuminated, pathOpen, worldRooms, visibleEntities, portalBetween } from "./world";
 
-const seconds: Record<WorldAction["type"], number> = { LOOK: 3, INSPECT: 5, MOVE: 5, POSTURE: 1, UNLOCK: 3, OPEN: 2, CLOSE: 2, TAKE: 3, HOLD: 2, STOW: 2, LIGHT: 1, SURVEY: 5, LEAVE: 5, PUSH: 8, PUT: 3, DROP: 2, WAIT: 5, HIDE: 2, DEFOCUS: 2, FOCUS: 1, USE_TOOL: 20, REPAIR: 30, THROW: 3 };
+const seconds: Record<WorldAction["type"], number> = { LOOK: 3, INSPECT: 5, MOVE: 5, POSTURE: 1, UNLOCK: 3, OPEN: 2, CLOSE: 2, TAKE: 3, HOLD: 2, STOW: 2, LIGHT: 1, SURVEY: 5, LEAVE: 5, PUSH: 8, PUT: 3, DROP: 2, WAIT: 5, HIDE: 2, EMERGE: 2, DEFOCUS: 2, FOCUS: 1, USE_TOOL: 20, REPAIR: 30, THROW: 3 };
 export function validateWorldAction(world: TextWorld, state: GameState, action: WorldAction): string | null {
   if (state.isGameOver || state.stageClear || !world.active) return "지금은 행동할 수 없다.";
   if (action.type === "THROW") return validateThrow(world, state, action);
@@ -58,9 +58,18 @@ export function validateWorldAction(world: TextWorld, state: GameState, action: 
 export function resolveWorldActions(world: TextWorld, state: GameState, actions: WorldAction[], options: { advanceTime?: boolean } = {}) {
   let elapsedSeconds = 0;
   normalizeHands(world);
+  normalizeCover(world);
   for (const action of actions) {
     const handlingAttention = world.player.focusEntityId;
     let failure = validateWorldAction(world, state, action);
+    // First leave the cramped space while crouching; standing or walking follows.
+    const cover = currentCover(world);
+    if (!failure && cover?.relation === "under" && (action.type === "MOVE" || action.type === "POSTURE" && action.posture === "standing")) {
+      const preparation = resolveWorldActions(world, state, [{ type: "EMERGE", target: cover.entity.id }], options);
+      elapsedSeconds += preparation.elapsedSeconds;
+      if (preparation.interrupted) return { elapsedSeconds, interrupted: true, discovery: false };
+      failure = validateWorldAction(world, state, action);
+    }
     if (!failure && (action.type === "USE_TOOL" || action.type === "REPAIR" && action.toolItemId)) {
       const tool = materializeTool(world, state, action.toolItemId!);
       if (!isHeld(world, tool.id)) {
@@ -106,7 +115,7 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
         world.player.focusEntityId = e!.id; world.player.facing = e!.id; break;
       }
       case "THROW": { const result = applyThrow(world, state, action); before = result.before; after = result.after; actionSound = result.sound; break; }
-      case "PUSH": case "PUT": case "DROP": case "WAIT": case "HIDE": {
+      case "PUSH": case "PUT": case "DROP": case "WAIT": case "HIDE": case "EMERGE": {
         const result = applyInteraction(world, state, action); before = result.before; after = result.after; break;
       }
       case "FOCUS": before = { focusEntityId: world.player.focusEntityId }; world.player.focusEntityId = e!.id; world.player.facing = e!.id; world.player.manipulating = false; after = { focusEntityId: e!.id, name: e!.name }; break;
@@ -187,6 +196,7 @@ export function resolveWorldActions(world: TextWorld, state: GameState, actions:
       case "LIGHT": before = { on: c!.light!.on }; c!.light!.on = !c!.light!.on; after = { on: c!.light!.on, name: e!.name }; break;
       case "LEAVE": before = { zone: world.player.zone }; world.active = false; after = { zone: worldRooms(world)[world.player.zone]?.optionalEntry ? state.location : "concourse", exitText: worldRooms(world)[world.player.zone]?.optionalEntry?.exitText }; break;
     }
+    normalizeCover(world);
     if (["HOLD", "TAKE"].includes(action.type) && e?.components.portable?.itemId && e.toolDurability !== undefined) state.toolDurability[e.components.portable.itemId] = e.toolDurability;
     const event = recordEvent(world, { type: action.type, targetId: action.target, before: { ...before, ...(ownerNpcId ? { ownerNpcId } : {}) }, after });
     if (action.type === "PUSH") emitMovementSound(world, action.target!, event.id);

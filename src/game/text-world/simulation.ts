@@ -1,10 +1,11 @@
+import { advanceActorLife, nextActorBoundary, type ActorTimeContext } from "./actor-life";
 import type { TextWorld } from "../schemas/text-world";
 import { recordEvent } from "./events";
 import { passageBlockers, rootZone } from "./spatial";
 import { visibleEntities, worldRooms } from "./world";
 
 /** Virtual time only: deterministic and independent of response latency or browser polling. */
-export function advanceWorldSimulation(world: TextWorld, seconds: number, causedBy?: string, options: { witnessed?: boolean } = {}) {
+export function advanceWorldSimulation(world: TextWorld, seconds: number, causedBy?: string, options: { witnessed?: boolean; actors?: ActorTimeContext } = {}) {
   if (!Number.isSafeInteger(seconds) || seconds < 0) throw new Error("세계 시간은 유한한 양수여야 합니다.");
   world.simulation ??= { nextEventId: 0, sounds: [] };
   let remaining = seconds;
@@ -15,7 +16,7 @@ export function advanceWorldSimulation(world: TextWorld, seconds: number, caused
       const c = e.components;
       return [c.light?.on ? c.light.fuelSeconds : undefined, c.openable?.isOpen ? c.openable.remainingOpenSeconds : undefined].filter((n): n is number => n !== undefined && n > 0);
     });
-    const step = Math.min(remaining, ...boundaries);
+    const step = Math.min(remaining, ...boundaries, ...(options.actors ? nextActorBoundary(world, options.actors) : []));
     const beforeVisible = new Set(options.witnessed === false ? [] : visibleEntities(world).map(e => e.id));
     world.elapsedSeconds += step; remaining -= step;
     world.simulation.sounds = world.simulation.sounds.map(sound => ({ ...sound, remainingSeconds: Math.max(0, sound.remainingSeconds - step) })).filter(sound => sound.remainingSeconds > 0);
@@ -36,6 +37,7 @@ export function advanceWorldSimulation(world: TextWorld, seconds: number, caused
         }
       }
     }
+    if (options.actors && step > 0) advanceActorLife(world, step, options.actors);
   } while (remaining > 0);
 }
 export function emitMovementSound(world: TextWorld, sourceId: string, causedBy?: string) {

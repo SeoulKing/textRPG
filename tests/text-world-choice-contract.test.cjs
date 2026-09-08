@@ -53,7 +53,8 @@ test('every displayed store action executes after database-shaped reloads, inclu
  for(const id of ['explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_register']){
   snap=await chooseId(f,snap,id);verified+=await verifyFrame(f,snap);
  }
- const bread=options(snap).find(c=>c.label.includes('빵')&&c.action.optionId.startsWith('hold:'));assert(bread);
+ assert(!options(snap).some(c=>c.action.optionId.startsWith('hold:')));
+ const bread=snap.exploration.targets.flatMap(t=>t.actions).find(c=>c.label.includes('빵')&&c.action.optionId?.startsWith('hold:'));assert(bread);
  const originalInventory=structuredClone(f.saved.state.inventory),stale=bread.action;
  snap=await f.choose(bread.action);verified+=await verifyFrame(f,snap);
  assert.deepEqual(f.saved.state.inventory,originalInventory,'holding collected bread must not award it again');
@@ -67,7 +68,7 @@ test('forest, river and office keep the same executable choices across reordered
  let verified=0;
  for(const [location,route]of [['forest',['harvest:chop_wood_at_forest']],['river',['harvest:fish_at_river']],['subway',['explore:crate','collect:crate']]]){
   const f=fixture(session(location));let snap=await f.get();
-  if(location==='subway'){const entry=snap.availableActions.find(c=>c.action.type==='text_world'&&c.action.command==='enter');assert(entry);snap=await f.choose(entry.action);}
+  if(location==='subway'){const entry=snap.availableActions.find(c=>c.action.type==='text_world'&&c.action.command==='enter');if(entry)snap=await f.choose(entry.action);else if(currentTextWorld(f.saved.state).player.zone!=='office')snap=await chooseId(f,snap,'travel:office');}
   verified+=await verifyFrame(f,snap);
   for(const id of route){snap=await chooseId(f,snap,id);verified+=await verifyFrame(f,snap);}
  }

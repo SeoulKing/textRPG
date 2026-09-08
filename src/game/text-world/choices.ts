@@ -1,3 +1,4 @@
+import { conversationOptions } from "./conversation-options";
 import { directChoices } from "./choice-director";
 import { focusOptions } from "./focus-options";
 import { interactionOptions } from "./affordances";
@@ -98,7 +99,7 @@ export function availableWorldOptions(world: TextWorld, state: GameState): World
   if (world.player.zone === "office" && worldRooms(world).concourse?.outsideExploration) tail.push({ id: "leave", label: "대합실로 돌아간다", hint: "탐색 마치기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
   const exit = worldRooms(world)[world.player.zone]?.optionalEntry;
   if (exit) tail.push({ id: "leave", label: exit.exitLabel, hint: "살림 자리에서 나가기", actions: [...posture("standing"), { type: "LEAVE" }], importance: "minor" });
-  return [...options, ...focusOptions(world), ...tail];
+  return [...options, ...conversationOptions(world, state), ...focusOptions(world), ...tail];
 }
 
 export function worldOptions(world: TextWorld, state: GameState) {

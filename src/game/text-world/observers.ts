@@ -2,9 +2,9 @@ import type { GameState, ContentRegistry } from "../schemas";
 import { NpcConversationMemorySchema } from "../schemas/npc-dialogue";
 import type { TextWorld, WorldEvent, TextEntity } from "../schemas/text-world";
 import { buildRuntimeRegistry } from "../runtime-registry";
-import { ancestors, carriedByPlayer, rootZone } from "./spatial";
+import { ancestors, carriedByPlayer, currentCover, rootZone } from "./spatial";
 import { isHeld } from "./hands";
-import { illuminated, visibleEntities, worldRooms, canReach } from "./world";
+import { illuminated, visibleEntities, worldRooms, canReach, entityDetails } from "./world";
 import { audibleSounds } from "./simulation";
 import { recordEvent } from "./events";
 
@@ -40,8 +40,8 @@ export function observeWorldEvent(world: TextWorld, state: GameState, event: Wor
       const sound = audibleSounds(view).find(sound => sound.id === event.id);
       if (sound) observation = { ...identity, sense: "heard", actorKnown: false, summary: sound.direction + "에서 " + sound.description };
     } else if (event.origin !== "simulation" && (observedVerbs[event.type] || event.type === "USE_TOOL")) {
-      const target = world.entities[event.targetId ?? ""], cover = world.entities[world.player.coverId ?? ""];
-      const concealed = world.player.relation === "behind" && world.player.posture === "crouching" && cover?.components.physical?.opaque;
+      const target = world.entities[event.targetId ?? ""];
+      const concealed = Boolean(currentCover(world));
       const targetVisible = target && (event.type === "THROW" && event.before.launchZone === zone || visibleEntities(view).some(e=>e.id===target.id)) && (!carriedByPlayer(world,target) || isHeld(world,target.id));
       if (zone === world.player.zone && illuminated(view, zone) && !concealed && targetVisible) {
         const result = event.type === "USE_TOOL" ? event.after.destroyed ? "구조를 부쉈다" : event.after.technique === "pry" ? "잠금장치를 비틀어 열었다" : "구조에 손상을 냈다" : observedVerbs[event.type];
@@ -56,6 +56,12 @@ export function observeWorldEvent(world: TextWorld, state: GameState, event: Wor
     if (observation) memory.observations = [...memory.observations, observation].slice(-24);
     state.npcDialogue.conversations[npcId] = memory;
   }
+}
+export function npcWorldContext(world: TextWorld | null | undefined, npcId: string) {
+  const actor = Object.values(world?.entities ?? {}).find(e=>e.components.actor?.npcId===npcId && e.components.actor.active!==false);
+  if (!world || !actor) return undefined;
+  const life = actor.components.actor?.life;
+  return { locationName:worldRooms(world)[rootZone(world,actor)]?.name ?? "현재 자리", placement:entityDetails(world,actor).placement, mode:life?.mode, hunger:life?.hunger, fatigue:life?.fatigue };
 }
 export function nearbyWorldNpc(world: TextWorld | null | undefined, npcId?: string) {
   if (!world?.active) return undefined;

@@ -86,7 +86,7 @@ test('known item manipulation costs zero Gemini calls, but new discoveries and t
  const f=fixture('convenience');let snap=await entered(f);
  for(const id of ['explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_register'])snap=await f.service.performAction('stream-test',chosen(snap,id));
  f.narrator=narrateTextWorld;let calls=0;t.mock.method(global,'fetch',async()=>{calls++;throw Error('must not call')});
- const bread=snap.availableActions.find(c=>c.action.optionId?.startsWith('hold:')&&c.label.includes('빵'));assert(bread);let timing;
+ assert(!snap.availableActions.some(c=>c.action.optionId?.startsWith('hold:')));const bread=snap.exploration.targets.flatMap(t=>t.actions).find(c=>c.action.optionId?.startsWith('hold:')&&c.label.includes('빵'));assert(bread);let timing;
  const next=await f.service.performAction('stream-test',bread.action,{onTiming:v=>timing=v});
  assert.equal(calls,0);assert.equal(timing.providerCalls,0);assert.equal(next.currentScene.paragraphs.length,1);assert.equal(timing.fallbackReason,'routine_action');
  const context=f.context;assert.equal(needsGeneratedNarration(context),false);

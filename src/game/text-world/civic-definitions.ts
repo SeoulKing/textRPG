@@ -14,9 +14,9 @@ export function kitchenTextRooms(): TextRoom[] {
     sensory: [{ when: "ENTER", detail: "묵은 국 냄새가 남아 있다." }],
     entities: [
       object("kitchen_serving_counter", "배식대", zone, "급식소 입구 정면", "배식대에서는 돈이나 배급표를 내고 식사를 받을 수 있고, 배식 일을 거들 수도 있다.",
-        { physical: { mass: 40, volume: 15, movable: false, opaque: true, blocksPassage: false, supportCapacity: 10 }, interactionPoint: { requiresInspection: false, actions: [{ actionId: "buy_meal_at_kitchen", role: "trade" }, { actionId: "buy_crowded_meal_at_kitchen", role: "trade" }, { actionId: "exchange_ration_ticket_at_kitchen", role: "trade" }, { actionId: "help_kitchen_queue", role: "work" }] } }),
+        { physical: { mass: 40, volume: 15, movable: false, opaque: true, blocksPassage: false, supportCapacity: 10 }, interactionPoint: { directFromEntry: true, requiresInspection: false, actions: [{ actionId: "buy_meal_at_kitchen", role: "trade" }, { actionId: "buy_crowded_meal_at_kitchen", role: "trade" }, { actionId: "exchange_ration_ticket_at_kitchen", role: "trade" }, { actionId: "help_kitchen_queue", role: "work" }] } }),
       object("kitchen_old_cook", "노파", zone, "입구 정면의 배식대 옆", "노파가 배식줄을 살피고 있다.",
-        { actor: { npcId: "oldCook" }, interactionPoint: { requiresInspection: false, actions: [{ actionId: "deliver_canned_food_to_old_cook", role: "delivery" }] } }),
+        { actor: { npcId: "oldCook" }, interactionPoint: { directFromEntry: true, requiresInspection: false, actions: [{ actionId: "deliver_canned_food_to_old_cook", role: "delivery" }] } }),
       object("kitchen_scrap_heap", "폐자재 더미", zone, "급식소 입구 기준 왼쪽의 배식줄 옆 구석", "배식줄 옆 구석에 폐자재가 한데 얽혀 있다.",
         { stockNode: { nodeId: "kitchen_scrap_heap" }, container: { items: [] } }),
       object("kitchen_ingredient_crate", "식재료 상자", zone, "입구 정면 배식대 뒤쪽", "배식대 뒤쪽에 낡은 작은 상자가 놓여 있다.",

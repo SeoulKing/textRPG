@@ -21,7 +21,7 @@ async function fixture(location,setup=()=>{}){
 for(const location of ['kitchen','checkpoint'])test(location+' entry is spatial, hides stock, and uses ordinary direct intentions',async()=>{
  const f=await fixture(location),c=JSON.stringify(f.contexts[0]);assert(f.recommended.length>=3&&f.recommended.length<=5);assert.match(c,/정면/);
  for(const node of f.registry.locations[location].stockNodes)for(const item of node.items)assert(!c.includes('"'+item.itemId+'"'),'entry leaked '+item.itemId);
- assert(!f.options.some(o=>o.stockChoiceIds||o.contentActionId));
+ assert(!f.options.some(o=>o.stockChoiceIds));if(location!=='kitchen')assert(!f.options.some(o=>o.contentActionId));
  if(location==='kitchen')assert(f.recommended.some(o=>o.targetId==='kitchen_serving_counter'),'the main food counter must be a visible entry choice');
  const host=location==='kitchen'?'kitchen_ingredient_crate':'checkpoint_radio_truck',inventory=structuredClone(f.state.inventory);
  await f.choose('explore:'+host);assert.deepEqual(f.state.inventory,inventory);assert(f.options.some(o=>o.id==='collect:'+host));assert(f.contexts.at(-1).requiredFacts.some(f=>f.kind==='contents'));

@@ -1,4 +1,5 @@
-import { carriedByPlayer } from "./spatial";
+import { actorActivity } from "./actor-life";
+import { carriedByPlayer, currentCover, coverLocation } from "./spatial";
 import { isHeld } from "./hands";
 import { interactionContext } from "./interaction-context";
 import { directScene } from "./director";
@@ -27,6 +28,7 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
   }
   for (const e of visibleEntities(world)) {
     const c = e.components;
+    if(c.actor?.life)add("npc-activity:"+e.id,"npc_activity",{name:e.name,detail:actorActivity(e)},e.id);
     if(c.combatant)add("threat:"+e.id,"threat",{name:e.name,hostile:c.combatant.hostile,defeated:c.combatant.hp===0},e.id);
     if (world.entities[c.position.zone]?.components.container && !c.container && c.position.relation !== "on") continue;
     const carried = c.position.zone === "player", held = isHeld(world, e.id), near = world.player.near === e.id;
@@ -62,10 +64,9 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
       if (entityDetails(world, e).interior) add("interior:" + e.id, "sensory", { name: e.name, detail: entityDetails(world, e).interior }, e.id);
     }
   }
-  if (world.player.relation === "behind" && world.player.posture === "crouching") {
-    const cover = world.entities[world.player.coverId ?? ""];
-    if (cover?.components.position.relation === "blocking") add("cover:" + cover.id, "surface", { detail: cover.name + " 뒤로 몸을 낮춘 자리에서는 그 앞을 지나는 통로가 가려진다." }, cover.id);
-  }
+  const cover = currentCover(world);
+  if (cover) add("cover:" + cover.entity.id, "surface", { relation: cover.relation, detail: cover.entity.name + " " + coverLocation(cover.relation) + "에서 몸을 낮추고 있다."
+    + (cover.relation === "under" ? " 윗면은 이 자리에서 보이지 않는다." : cover.entity.components.position.relation === "blocking" ? " 그 앞을 지나는 통로가 가려진다." : "") }, cover.entity.id);
   for (const entity of visibleEntities(world).filter(e => e.components.portal && e.components.openable?.isOpen)) {
     const portal = entity.components.portal!, to = portal.from === zone ? portal.to : portal.from;
     if (!illuminated(world, to)) add("threshold:" + to, "threshold", { dark: true, from: zone, to, name: entity.name, destination: worldRooms(world)[to].name }, entity.id);
@@ -75,7 +76,12 @@ export function perceiveWorld(world: TextWorld): WorldFact[] {
 export function directNarrative(world: TextWorld): NarrativeContext {
   const observations = perceiveWorld(world);
   const firstVisit = !world.visitedZones.includes(world.player.zone);
-  const perceivedEvents = world.events.filter(event => event.witnessed !== false);
+  const perceivedEvents = world.events.filter(event => event.witnessed !== false).map(event => {
+    if (event.type === "OPEN" && event.after.actorKnown === false) return {...event,actorId:undefined,after:{...event.after,actorName:undefined}};
+    if (event.type === "ACTOR_ACTIVITY") return {...event,before:{},after:{name:event.after.name,detail:event.after.detail}};
+    if (event.type === "NPC_CONSUME") return {...event,before:{}};
+    return event;
+  });
   const requiredFacts: WorldFact[] = perceivedEvents.map((event, i) => ({ id: "result:" + i, kind: "result", targetId: event.targetId, data: { ...event } }));
   const optionalFacts: WorldFact[] = [];
   const recap = world.lastIntent.id === "overview";
@@ -90,12 +96,15 @@ export function directNarrative(world: TextWorld): NarrativeContext {
     const stages = fact.targetId ? world.observations[fact.targetId]?.stages ?? [] : [];
     const newlyObserved = stage ? !stages.includes(stage) : !previous;
     const resourceStatusChanged = !previous || (Number(previous.fact.data.remaining) === 0) !== (Number(fact.data.remaining) === 0) || JSON.stringify(previous.fact.data.missingTools) !== JSON.stringify(fact.data.missingTools);
-    const mandatory = (["structure", "facility", "threat"].includes(fact.kind) && changed) || (fact.kind === "resource" && (resourceStatusChanged || world.events.some(e => e.targetId === fact.targetId && e.type === "INSPECT"))) || (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
+    const mandatory = (["structure", "facility", "threat", "npc_activity"].includes(fact.kind) && changed) || (fact.kind === "resource" && (resourceStatusChanged || world.events.some(e => e.targetId === fact.targetId && e.type === "INSPECT"))) || (fact.id.startsWith("cover:") && changed) || (fact.kind === "entity" && fact.data.discovered === true) || (fact.kind === "layout" && (entered && firstVisit || newlyObserved || recap)) || (fact.kind === "contents" && (changed || newlyObserved || recap)) ||
       (fact.kind === "surface" && world.events.some(e => (newlyObserved && e.targetId === fact.targetId && e.type === "INSPECT") || (e.type === "SURVEY" && fact.targetId === world.player.zone))) ||
       (fact.kind === "lighting" && (changed || recap)) || (fact.kind === "threshold" && world.events.some(e => e.targetId === fact.targetId && e.type === "OPEN")) ||
       (fact.kind === "connection" && (recap || world.events.some(e => e.targetId === fact.targetId || e.type === "MOVE" && e.before.zone !== e.after.zone)));
+    const alreadyStated = fact.kind === "npc_activity" && perceivedEvents.some(e=>e.type === "ACTOR_ACTIVITY" && e.targetId === fact.targetId && e.after.detail === fact.data.detail);
+    if (!alreadyStated) {
     if (mandatory || recap && fact.kind === "entity") requiredFacts.push(fact);
     else if (fact.kind !== "layout" && (changed || (fact.kind === "sensory" && world.events.some(e => e.targetId === fact.targetId && ["OPEN", "INSPECT", "LIGHT"].includes(e.type))) || fact.data.held)) optionalFacts.push(fact);
+    }
     world.knowledge[fact.id] = { fact, signature, observedAt: world.elapsedSeconds };
     if (stage && fact.targetId) {
       world.observations[fact.targetId] ??= { stages: [], collected: false };
@@ -108,7 +117,8 @@ export function directNarrative(world: TextWorld): NarrativeContext {
   const held = world.player.heldToolId ? world.entities[world.player.heldToolId] : undefined;
   const anchors: Record<string, string> = { entrance: worldRooms(world)[world.player.zone].entryAnchor ?? (world.player.zone === "office" ? "대합실로 통하는 입구" : "이 방으로 들어온 입구"), "far-door": "역무실 안쪽 철문 앞", "office-end": "복도의 역무실 쪽 끝", "storage-end": "복도의 창고 쪽 끝", "far-wall": "입구 맞은편 벽", "far-end": "공간의 반대쪽 끝" };
   const near = world.player.near ? world.entities[world.player.near] : undefined;
-  const positionLabel = world.player.relation === "behind" && world.player.coverId ? world.entities[world.player.coverId].name + " 뒤" : anchors[world.player.position] ?? (near ? entityDetails(world, near).placement + "의 " + near.name + " 앞" : "현재 자리");
+  const cover = currentCover(world);
+  const positionLabel = cover ? cover.entity.name + " " + coverLocation(cover.relation) : anchors[world.player.position] ?? (near ? entityDetails(world, near).placement + "의 " + near.name + " 앞" : "현재 자리");
   const facingLabel = world.entities[world.player.facing ?? ""]?.name ?? anchors[world.player.facing ?? ""] ?? "주변";
   const interaction = interactionContext(world);
   return directScene({

@@ -41,6 +41,8 @@ function eventText(e: WorldEvent) {
     }
     case "THROW": return name+" 한 개를 "+String(e.after.destinationName)+"으로 던진다. "+String(e.after.soundDescription)+"가 난다.";
     case "ITEM_USE": return particle(name,"을","를")+" 사용한다.";
+    case "ACTOR_ACTIVITY": return particle(name,"이","가") + " " + String(e.after.detail);
+    case "NPC_CONSUME": return particle(name,"이","가") + " " + e.after.itemName + " 1개를 먹는다.";
     case "ACTOR_MOVE": return name+"가 "+(e.after.reason === "sound" ? "소리가 난 " : "")+String(e.after.destination)+" 쪽으로 움직인다.";
     case "COMBAT": {
       let text=e.after.actionText ? String(e.after.actionText)+" " : "";
@@ -52,11 +54,11 @@ function eventText(e: WorldEvent) {
       else if(e.after.success===false)text+="시도가 뜻대로 되지 않는다.";
       if(Number(e.after.damageTaken)>0)text+=" 반격에 "+e.after.damageTaken+"만큼 피해를 입는다.";
       else if(e.after.counterAttempted)text+=" 반격에 다치지 않고 버틴다.";
-      if(e.after.coverName)text+=" "+e.after.coverName+" 뒤에 낮춘 몸이 가려진다.";
+      if(e.after.coverName)text+=" "+e.after.coverName+(e.after.coverRelation === "under" ? " 아래에" : " 뒤에")+" 낮춘 몸이 가려진다.";
       return text.trim() || "상대의 움직임을 경계하며 자리를 지킨다.";
     }
     case "NPC_REACTION": return name + "의 목소리가 들린다. “" + String(e.after.dialogue) + "”";
-    case "OPEN": return (e.after.actorName ? String(e.after.actorName)+"가 " : "")+particle(name, "을", "를") + " 연다.";
+    case "OPEN": if(e.after.actorKnown === false) return particle(name,"이","가") + " 반대편에서 열린다."; return (e.after.actorName ? String(e.after.actorName)+"가 " : "")+particle(name, "을", "를") + " 연다.";
     case "REPAIR": return String(e.after.effort) + " " + particle(name, "을", "를") + " 다시 쓸 수 있게 손본다."
       + (e.after.lockBroken ? " 망가진 잠금장치는 그대로다." : "") + (e.after.toolBroken ? " 사용한 도구가 닳아 더는 쓸 수 없다." : "");
     case "CLOSE": return particle(name, "을", "를") + " 닫는다.";
@@ -68,7 +70,8 @@ function eventText(e: WorldEvent) {
     case "PUT": return particle(name, "을", "를") + " " + e.after.destinationName + (e.after.relation === "inside" ? " 안에 넣는다." : " 위에 내려놓는다.") + movedContents(e);
     case "DROP": return particle(name, "을", "를") + " 지금 자리 옆에 내려놓는다." + movedContents(e);
     case "WAIT": return "움직임을 멈추고 잠시 주변의 변화를 기다린다.";
-    case "HIDE": return name + " 뒤로 몸을 옮겨 낮춘다.";
+    case "HIDE": return name + (e.after.relation === "under" ? " 아래로 몸을 낮춰 들어간다." : " 뒤로 몸을 옮겨 낮춘다.");
+    case "EMERGE": return name + (e.before.relation === "under" ? " 아래에서" : " 뒤에서") + " 몸을 낮춘 채 빠져나온다.";
     case "AUTO_CLOSE": return name + "이 저절로 닫힌다.";
     case "LIGHT_EXPIRED": return name + "의 불이 꺼진다.";
     case "SOUND": return String(e.after.description ?? "");
@@ -105,6 +108,7 @@ function factText(f: WorldFact): string {
     return String(d.name) + (reduction > 0 ? "를 사용하면 " + kinds + " 시간이 " + reduction + "% 줄어든다." : "에서 " + kinds + " 작업을 할 수 있다.");
   }
   if (f.kind === "threat") return particle(String(d.name), "은", "는")+(d.defeated?" 쓰러져 더는 공격하지 못한다.":d.hostile?" 공격할 태세로 움직임을 주시하고 있다.":" 싸움을 멈춘 상태다.");
+  if (f.kind === "npc_activity") return particle(String(d.name), "은", "는") + " " + String(d.detail);
   if (f.kind === "structure") return d.destroyed ? d.name + "의 구조는 부서진 상태다." : d.lockBroken ? d.name + "의 잠금장치가 망가져 있다." : d.integrity !== d.maxIntegrity ? d.name + "의 " + d.material + " 구조에 손상이 남아 있다." : d.name + "의 구조는 " + d.material + "로 되어 있다.";
   if (f.kind === "layout") return String(d.layout);
   if (f.kind === "surface" || f.kind === "sensory") return String(d.detail);
@@ -235,6 +239,10 @@ function contradictionReason(context: NarrativeContext, text: string): string | 
   const crossed = context.results.some(e => e.type === "MOVE" && e.before.zone !== e.after.zone);
   if (crossed && !/들어(?:선|온|간)|돌아(?:온|간)|걸어|걸음|발(?:을|걸음)|지나|옮|나온|나선/.test(text)) return "unreported_crossing";
   if (context.results.some(e => e.type === "TAKE") && !/챙|집어|쥐|거둬|가져|수거/.test(text)) return "unreported_take";
+  for (const e of context.results) {
+    if (e.type === "HIDE" && !(e.after.relation === "under" ? /아래|밑/ : /뒤/).test(text)) return "unreported_cover_position";
+    if (e.type === "EMERGE" && !/빠져|벗어나|나온|나와/.test(text)) return "unreported_cover_exit";
+  }
   const crouched = context.results.some(e => (e.type === "POSTURE" || e.type === "HIDE") && e.after.posture === "crouching");
   const stood = context.results.some(e => e.type === "POSTURE" && e.after.posture === "standing");
   if (!crouched && /(?:쪼그|쭈그|쭈구)(?:려|리고) 앉는다|몸을 낮춘다|무릎을 굽힌다/.test(text)) return "unperformed_crouch";

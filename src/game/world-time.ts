@@ -1,5 +1,8 @@
 import type { GameState } from "./schemas";
 import type { TextWorld } from "./schemas/text-world";
+import { buildRuntimeRegistry } from "./runtime-registry";
+import { synchronizeWorldActors } from "./text-world/observers";
+import { GAME_MINUTE_MS } from "./base-data";
 import { advanceWorldSimulation } from "./text-world/simulation";
 
 export type WorldTimeCause = { actionWorld?: TextWorld; causedBy?: string };
@@ -11,6 +14,7 @@ export function advancePersistentWorlds(state: GameState, seconds: number, cause
     ...Object.entries(state.locationTextWorlds),
   ];
   if (cause.actionWorld && !entries.some(([, world]) => world === cause.actionWorld)) entries.push([state.location, cause.actionWorld]);
+  const registry = buildRuntimeRegistry(state);
   const seen = new Set<TextWorld>();
   for (const [locationId, world] of entries) {
     if (seen.has(world)) continue;
@@ -21,7 +25,8 @@ export function advancePersistentWorlds(state: GameState, seconds: number, cause
     world.simulation.fractionalSeconds = Math.max(0, Math.round((total - whole) * 1e8) / 1e8);
     const previousSequence = world.simulation.nextEventId;
     const witnessed = world.active && (world === cause.actionWorld || locationId === state.location);
-    advanceWorldSimulation(world, whole, world === cause.actionWorld ? cause.causedBy : undefined, { witnessed });
+    synchronizeWorldActors(world, state, registry);
+    advanceWorldSimulation(world, whole, world === cause.actionWorld ? cause.causedBy : undefined, { witnessed, actors: { state, registry, witnessed, causedBy: world === cause.actionWorld ? cause.causedBy : undefined, clockOffsetMs: state.worldElapsedMs - (world.elapsedSeconds + whole) * GAME_MINUTE_MS / 60 } });
     if (world !== cause.actionWorld) world.revision += world.simulation.nextEventId - previousSequence;
   }
 }

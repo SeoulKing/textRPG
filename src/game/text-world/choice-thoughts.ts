@@ -3,12 +3,15 @@ import type { TextWorld } from "../schemas/text-world";
 type ThoughtOption = { id: string; label: string; family?: string; targetId?: string };
 /** A question or modest intention, never an advance account of the action's outcome. */
 export function defaultChoiceThought(world: TextWorld, option: ThoughtOption): string {
+  if (option.id.startsWith("talk:")) return "궁금한 걸 직접 물어보자.";
   const kind = option.id.split(":")[0];
   const target = world.entities[option.targetId ?? option.id.slice(kind.length + 1)];
   if (["focus", "explore", "inspect"].includes(kind) && /계산대|카운터|금전/.test(target?.name ?? "")) return "돈이 좀 있을래나.";
   if (["harvest", "toolwork"].includes(kind)) return /낚/.test(option.label) ? "이번에는 입질이 있을까." : /덩굴|끈/.test(option.label) ? "단단한 것만 골라 보자." : "여기서 쓸 만한 걸 더 구할 수 있을까.";
   if(kind==="separate")return "문을 사이에 두면 틈이 생길까.";
   if(kind==="combat")return option.family==="NEGOTIATE" ? "말이 통할 여지는 있을까." : option.family==="RETREAT" ? "지금 틈을 타서 빠져나가자." : option.family==="COVER" ? "다가오는 움직임부터 막아 보자." : "빈틈을 먼저 잡아 보자.";
+  if (kind === "hide") return "여기라면 몸을 가릴 수 있겠지.";
+  if (kind === "emerge") return "밖을 다시 살펴볼까.";
   if (kind === "throw") return "소리가 나면 그쪽을 돌아볼까.";
   if (kind === "trade") return "지금 쓸 몫을 마련해 둘까.";
   if (kind === "delivery") return "부탁받은 것을 건네 두자.";

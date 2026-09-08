@@ -35,8 +35,8 @@ export const NpcDialogueExchangeSchema = z.object({
 
 export const NpcObservationSchema = z.object({
   id: z.string(), worldId: z.string(), sequence: z.number().int().nonnegative(), atMs: z.number().nonnegative(),
-  sense: z.enum(["seen", "heard", "exchange"]), eventType: z.string(), actorKnown: z.boolean(),
-  summary: z.string(), targetId: z.string().optional(), targetName: z.string().optional(),
+  sense: z.enum(["seen", "heard", "exchange", "self"]), eventType: z.string(), actorKnown: z.boolean(),
+  summary: z.string(), actorId: z.string().optional(), targetId: z.string().optional(), targetName: z.string().optional(),
 }).strict();
 export const NpcConversationMemorySchema = z.object({
   affinity: z.number().int().min(-10).max(10).default(0),

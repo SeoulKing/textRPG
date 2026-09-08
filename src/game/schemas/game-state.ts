@@ -9,6 +9,7 @@ import { SkillProgressStateSchema } from "./skill-progression";
 import { SystemNoteEntriesSchema } from "./system-note";
 import { NpcDialogueStateSchema } from "./npc-dialogue";
 import { HealthConditionsSchema } from "./health-condition";
+import { ChoicePreferencesSchema } from "./choice-preferences";
 import { TextWorldSchema } from "./text-world";
 
 export const LogEntrySchema = z.object({
@@ -17,6 +18,7 @@ export const LogEntrySchema = z.object({
 });
 
 export const GameStateSchema = z.object({
+  choicePreferences: ChoicePreferencesSchema.optional(),
   saveVersion: z.number().int(),
   contentVersionId: z.string().optional(),
   sceneId: z.string(),

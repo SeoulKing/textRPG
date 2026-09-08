@@ -9,7 +9,7 @@ import { recordEvent, resolveWorldActions } from "./engine";
 import { directNarrative, rememberNarration } from "./perception";
 import { renderNarration, type TextWorldNarrator } from "./narrator";
 import { particle } from "./world";
-import { directChoices } from "./choice-director";
+import { directChoices, learnChoice } from "./choice-director";
 import { focusOptions } from "./focus-options";
 import { interactionOptions } from "./affordances";
 import { inventoryRegistered } from "./inventory-state";
@@ -182,6 +182,7 @@ export async function performConvenienceAction(state: GameState, action: Extract
   if (world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
   const option = availableConvenienceOptions(state, registry).find(o => o.id === action.optionId);
   if (!option) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
+  if (option.id.startsWith("talk:")) throw new Error("인물과의 대화는 게임 서비스에서 처리해야 합니다.");
   const before = structuredClone(state);
   world.events = [];
   world.lastIntent = { id: option.id, label: option.label, thought: choiceLabelFields(world, option).choiceThought, importance: option.importance ?? "major" };
@@ -241,6 +242,7 @@ export async function performConvenienceAction(state: GameState, action: Extract
       }
     }
   }
+  if (!state.isGameOver && !world.events.some(e=>e.type==="STOPPED")) learnChoice(state, before.locationTextWorlds[LOCATION], option);
   world.revision++;
   syncConvenienceEntities(state, registry);
   syncScene(state);

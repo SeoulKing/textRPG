@@ -1,6 +1,7 @@
+import { ChoicePreferencesSchema } from "./schemas/choice-preferences";
 import { EXHAUSTION_TICK_MS } from "./base-data";
 import { MAX_EXHAUSTION_LEVEL } from "./survival-pressure";
-import { migrateTextWorld } from "./text-world/world";
+import { migrateTextWorld, normalizeWorldCover } from "./text-world/world";
 import { normalizeHealthConditions } from "./health-conditions";
 import { legacyContentVersionId, versionRegistry } from "./content-versions";
 import { copyFile, mkdir, readFile, rename, unlink, writeFile, appendFile } from "node:fs/promises";
@@ -405,6 +406,7 @@ function pruneState(state: unknown): GameState {
     nextFlags.rescue_goal_accepted = true;
   }
   return {
+    choicePreferences: ChoicePreferencesSchema.safeParse(rawState.choicePreferences).success ? ChoicePreferencesSchema.parse(rawState.choicePreferences) : undefined,
     saveVersion: SAVE_VERSION,
     conditions: normalizeHealthConditions(rawState.conditions),
     contentVersionId,
@@ -437,7 +439,7 @@ function pruneState(state: unknown): GameState {
     narrativeState,
     subwayExpedition,
     textWorld: migrateTextWorld(rawState.textWorld),
-    locationTextWorlds: GameStateSchema.shape.locationTextWorlds.parse(rawState.locationTextWorlds),
+    locationTextWorlds: Object.fromEntries(Object.entries(GameStateSchema.shape.locationTextWorlds.parse(rawState.locationTextWorlds)).map(([id, world]) => [id, normalizeWorldCover(world)])),
     npcDialogue,
     flags: nextFlags,
     quests: nextQuests,

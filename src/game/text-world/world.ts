@@ -1,6 +1,8 @@
-import { ancestors, carriedByPlayer, occludedByContainer, occludedByCover, sealedFromReach, passageBlockers, rootZone, releaseStructureContents } from "./spatial";
+import { ancestors, carriedByPlayer, occludedByContainer, occludedByCover, sealedFromReach, passageBlockers, rootZone, releaseStructureContents, normalizeCover } from "./spatial";
+import { upgradeShelterCover } from "./shelter-definitions";
 import { TextWorldSchema, type TextEntity, type TextWorld, type TextRoom } from "../schemas/text-world";
 import { inventoryRegistered } from "./inventory-state";
+import { initializeActorLife } from "./actor-life";
 import { isHeld, normalizeHands } from "./hands";
 
 import { defaultTextRooms, details, subwayZones, upgradeSubwayResidents, upgradeOfficeDoor, upgradeWorldPhysics } from "./definitions";
@@ -16,6 +18,7 @@ export function entityDetails(world: TextWorld, entity: TextEntity) {
   const authored = details[entity.id];
   const resolved = authored && entity.description === authored.surface ? { ...original, responses: original.responses ?? authored.responses } : original;
   const p = entity.components.position, parent = world.entities[p.relativeTo ?? p.zone];
+  if (!parent && entity.components.actor?.routine && rootZone(world,entity) !== entity.components.actor.routine.homeZone) return { ...resolved, anchor:entity.id, placement:worldRooms(world)[rootZone(world,entity)]?.name ?? "현재 자리" };
   if (!parent || !p.relation) return entity.components.portal ? { ...resolved, placement: entity.components.portal.to === world.player.zone
     ? particle(worldRooms(world)[entity.components.portal.from].name.split(" · ").at(-1)!, "으로", "로") + " 통하는 쪽"
     : resolved.placement.split(" / ")[0] } : resolved;
@@ -34,17 +37,27 @@ export function createSubwayTextWorld(rooms: TextRoom[] = defaultTextRooms()): T
     lastIntent: { id: "enter", label: "역무실에 들어선다", importance: "major" },
     lastParagraphs: [rooms.find(room => room.id === "office")!.layout], source: "template", sceneRevision: 0 };
   upgradeSubwayResidents(world);
+  for (const actor of Object.values(world.entities)) initializeActorLife(actor);
   return world;
 }
 
 /** Instantiate only the supplied location. Content IDs and initial entry come from its room graph. */
+export function normalizeWorldCover(world: TextWorld) {
+  for (const actor of Object.values(world.entities)) initializeActorLife(actor);
+  upgradeShelterCover(Object.values(world.entities));
+  normalizeCover(world);
+  return world;
+}
 export function createLocationTextWorld(rooms: TextRoom[]): TextWorld {
   const entry = rooms[0];
   if (!entry) throw new Error("탐색 구역이 정의되지 않았습니다.");
+  const entities = rooms.flatMap(room => room.entities).map(entity => structuredClone(entity));
+  upgradeShelterCover(entities);
+  for (const actor of entities) initializeActorLife(actor);
   return { version: 2, active: false, revision: 0, elapsedSeconds: 0,
     player: { zone: entry.id, near: null, position: "entrance", facing: null, posture: "standing", heldToolId: null, heldItemId: null, focusEntityId: null, manipulating: false },
     rooms: Object.fromEntries(rooms.map(({ entities, ...room }) => [room.id, structuredClone(room)])),
-    entities: Object.fromEntries(rooms.flatMap(room => room.entities).map(entity => [entity.id, structuredClone(entity)])),
+    entities: Object.fromEntries(entities.map(entity => [entity.id, entity])),
     observations: {}, visitedZones: [], knowledge: {}, narrated: {}, events: [], recentScenes: [],
     lastIntent: { id: "enter", label: entry.name + "에 들어선다", importance: "major" },
     lastParagraphs: [entry.layout], source: "template", sceneRevision: 0,
@@ -64,6 +77,7 @@ export function migrateTextWorld(raw: unknown): TextWorld | null {
     upgradeSubwayResidents(world);
     for (const entity of entities) if (entity.components.structure?.integrity === 0) releaseStructureContents(world, entity);
     normalizeHands(world);
+    normalizeWorldCover(world);
     return world;
   }
   const observations: TextWorld["observations"] = {};

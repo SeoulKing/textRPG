@@ -1,7 +1,13 @@
+import { conversationOptions } from "./text-world/conversation-options";
+import { learnChoice } from "./text-world/choice-director";
+import { resolveWorldActions, recordEvent as recordConversationEvent } from "./text-world/engine";
+import { directNarrative, rememberNarration } from "./text-world/perception";
+import { fallbackNarration } from "./text-world/narrator";
+import { choiceLabelFields } from "./text-world/choice-labels";
 import { recordEvent } from "./text-world/events";
 import { worldDeparturePlan } from "./text-world/departure";
 import { isSubwayStockMenuAction } from "./text-world/subway-stock";
-import { nearbyWorldNpc, residentAtConversationLocation } from "./text-world/observers";
+import { nearbyWorldNpc, residentAtConversationLocation, npcWorldContext } from "./text-world/observers";
 import { runtimeSocialProfile, performNpcSocialAction } from "./npc-social";
 import { questProgressFields } from "./quest-guidance";
 import { activityConditionState, localWorkEnvironment } from "./work-environment";
@@ -419,7 +425,8 @@ export class GameService {
 
   private npcDialogueContext(session: GameSession, npcId: string): NpcDialogueWorldContext {
     const location = this.currentLocation(session), profile = runtimeNpcDialogueProfile(npcId, this.runtimeRegistry(session));
-    return { location: { id: location.id, name: location.name, summary: location.summary, sceneTitle: location.name, sceneParagraphs: profile?.visibleDetails ?? [] },
+    const actor = npcWorldContext(currentTextWorld(session.state), npcId);
+    return { actor, location: { id: location.id, name: location.name, summary: location.summary, sceneTitle: location.name, sceneParagraphs: actor ? [actor.placement] : profile?.visibleDetails ?? [] },
       player: { day: session.state.day, phase: PHASES[session.state.phaseIndex] ?? "unknown", recentLog: [] } };
   }
   private npcDialogueStartActions(
@@ -441,6 +448,36 @@ export class GameService {
       }
       return [buildNpcDialogueStartAction(profile)];
     });
+  }
+
+  private async startWorldConversation(session: GameSession, state: GameSession["state"], action: Extract<GameAction,{type:"text_world"}>, registry: ContentRegistry) {
+    const world = currentTextWorld(state);
+    if (!world?.active || world.revision !== action.revision) throw new Error("상황이 바뀌었습니다. 현재 선택지를 다시 골라 주세요.");
+    const option = conversationOptions(world,state,registry).find(o=>o.id===action.optionId);
+    if (!option) throw new Error("현재 위치에서는 이 인물과 대화할 수 없습니다.");
+    const before = structuredClone(world);
+    world.events=[];
+    world.lastIntent={id:option.id,label:option.label,thought:choiceLabelFields(world,option).choiceThought,importance:"major"};
+    const result=resolveWorldActions(world,state,option.actions);
+    if (result.interrupted || result.discovery || !nearbyWorldNpc(world,option.npcId)) {
+      if(!world.events.some(e=>e.type==="STOPPED"))recordConversationEvent(world,{type:"STOPPED",targetId:option.nodeId,reason:"다가가는 사이 상대와 거리가 벌어져 말을 건네지 못한다.",before:{},after:{}});
+      const context=directNarrative(world),narration=fallbackNarration(context);
+      world.lastParagraphs=narration.paragraphs;world.lastParagraphSources=narration.paragraphs.map(()=>"template");world.source="template";world.sceneRevision++;
+      rememberNarration(world,context,narration.usedFactIds,narration.paragraphs);
+    } else {
+      const profile=runtimeNpcDialogueProfile(option.npcId,registry)!;
+      const memory=npcDialogueMemory(state,profile.id);
+      const context=this.npcDialogueContext({...session,state},profile.id);
+      if(option.actions.length)context.approachParagraph=profile.name+" 곁으로 다가가 말을 건넨다.";
+      const generation=await this.npcDialogueGenerator({gameId:session.id,profile,context,memory,visitCount:memory.visitCount+1,turnNumber:nextNpcDialogueTurn(memory),selectedChoice:null});
+      if(context.approachParagraph){generation.scene.outcomeParagraph=context.approachParagraph;if(generation.scene.source==="llm")generation.scene.source="mixed";}
+      applyNpcDialogueGeneration(state,generation,{newVisit:true});
+      learnChoice(state,before,option);
+      world.recentScenes=[...world.recentScenes,{zone:world.player.zone,intent:option.label,paragraphs:[...(generation.scene.outcomeParagraph?[generation.scene.outcomeParagraph]:[]),generation.scene.situation,generation.scene.dialogue]}].slice(-3);
+      await this.repository.appendGenerationLog({gameId:session.id,kind:"npcDialogue",npcId:profile.id,turnNumber:generation.scene.turnNumber,source:generation.scene.source,fallback:generation.diagnostics.fallback,errors:generation.diagnostics.errors,latencyMs:generation.diagnostics.latencyMs,at:nowIso()});
+    }
+    world.revision++;
+    applySystemNote(session.state,state);
   }
 
   private async withGameMutation<T>(gameId: string, operation: () => Promise<T>) {
@@ -943,7 +980,8 @@ export class GameService {
 
     if (action.type === "text_world" && !journey) {
       const workingState = structuredClone(session.state);
-      if(spatialCombatActive(workingState))await performCombatWorldAction(workingState,action,registry,this.textWorldNarrator,gameId);
+      if (action.command === "choose" && action.optionId?.startsWith("talk:")) await this.startWorldConversation(session, workingState, action, registry);
+      else if(spatialCombatActive(workingState))await performCombatWorldAction(workingState,action,registry,this.textWorldNarrator,gameId);
       else await performTextWorldAction(workingState, action, gameId, this.textWorldNarrator, registry.textRooms, registry);
       session.state = workingState;
       session.updatedAt = nowIso();
@@ -1991,6 +2029,7 @@ export class GameService {
     // The browser receives rendered observations and offered actions, never hidden entities or contents.
     clientState.textWorld = null;
     clientState.locationTextWorlds = {};
+    delete clientState.choicePreferences;
     clientState.npcDialogue.conversations = {};
     delete clientState.npcDialogue.lastRequest;
     clientState.subwayExpedition.exploredFloors = {};

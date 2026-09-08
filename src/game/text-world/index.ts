@@ -76,9 +76,7 @@ function coreTextWorldActions(state: GameState, registry = buildRuntimeRegistry(
 
 export function textWorldActions(state: GameState, registry: ContentRegistry = buildRuntimeRegistry(state)): ActionChoice[] {
   if (state.npcDialogue.active) return [];
-  const choices = coreTextWorldActions(state, registry), world = currentTextWorld(state), actor = nearbyWorldNpc(world, world?.entities[world.player.focusEntityId ?? ""]?.components.actor?.npcId);
-  const profile = actor && runtimeSocialProfile(actor.components.actor!.npcId, registry);
-  return profile?.homeLocationId === state.location && world?.player.focusEntityId === actor!.id ? [buildNpcDialogueStartAction(profile), ...choices.slice(0,4)] : choices;
+  return coreTextWorldActions(state, registry);
 }
 export function textWorldScene(state: GameState, registry = buildRuntimeRegistry(state)): SceneCard | null {
   if (state.npcDialogue.active || state.subwayExpedition.active && !expeditionFloorReady(state) && !spatialCombatActive(state) && !spatialCombatUpgrade(state) || state.isGameOver || state.stageClear) return null;
