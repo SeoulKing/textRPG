@@ -3,10 +3,8 @@ import { refreshCombatDecision } from "./expedition-combat";
 import { ensureExpeditionFloor } from "./expedition-floor-world";
 import { expeditionFloorReady } from "./expedition-floor-state";
 import { hasSubwayStockBinding, syncSubwayStockWorld } from "./subway-stock";
-import { buildNpcDialogueStartAction } from "../npc-dialogue";
-import { runtimeSocialProfile } from "../npc-social";
 import { upgradeSubwayResidents } from "./definitions";
-import { synchronizeWorldActors, nearbyWorldNpc } from "./observers";
+import { synchronizeWorldActors } from "./observers";
 import type { TextRoom } from "../schemas/text-world";
 import type { ActionChoice, ContentRegistry, GameAction, GameState, SceneCard } from "../schemas";
 import { availableConvenienceOptions, convenienceActions, performConvenienceAction } from "./convenience";
@@ -58,12 +56,6 @@ export function explorationInteractions(state: GameState, registry = buildRuntim
     const target = targets.find(t => t.id === targetId);
     if (target) target.actions.push(choice);
     else generalActions.push(choice);
-  }
-  for (const target of targets) {
-    const actor = world.entities[target.id];
-    if (!actor.components.actor || !nearbyWorldNpc(world, actor.components.actor.npcId)) continue;
-    const profile = runtimeSocialProfile(actor.components.actor.npcId, registry);
-    if (profile?.homeLocationId === state.location) target.actions.unshift(buildNpcDialogueStartAction(profile));
   }
   return { revision: world.revision, roomName: worldRooms(world)[world.player.zone].name, targets, generalActions };
 }

@@ -26,10 +26,12 @@ function draft(c){
  const last=fallbackNarration({...c,results:[],requiredFacts:others,optionalFacts:[],paragraphCount:{min:1,max:1}});
  return {paragraphs:[{text:first.paragraphs[0],factIds:first.usedFactIds},{text:last.paragraphs[0],factIds:last.usedFactIds}],choiceLabels:[]};
 }
-function mockStream(t,{gate,corruptTail=false,failTail=false}={}){
+function mockStream(t,{context,gate,corruptTail=false,failTail=false}={}){
  let calls=0,request;
  t.mock.method(global,'fetch',async(url,init)=>{
-  calls++;request=JSON.parse(init.body);const c=JSON.parse(request.contents[0].parts[0].text).context,raw=draft(c);
+  calls++;request=JSON.parse(init.body);const c=context(),raw=draft(c);
+  const sent=JSON.parse(request.contents[0].parts[0].text).context;
+  assert(!('results' in sent));assert.deepEqual(sent.requiredFacts,JSON.parse(JSON.stringify(c.requiredFacts)));
   assert(validateNarration(c,raw),'fixture itself must faithfully represent the scene');
   assert.match(url,/:streamGenerateContent\?alt=sse$/);
   const prefix='{"paragraphs":['+JSON.stringify(raw.paragraphs[0])+',';
@@ -51,7 +53,7 @@ test.beforeEach(t=>{const old=process.env.GEMINI_API_KEY;process.env.GEMINI_API_
 
 test('a validated first paragraph arrives before completion; duplicate requests and reload recovery never replay collection',async t=>{
  const f=fixture(),snap=await entered(f);f.narrator=narrateTextWorld;
- const gate=deferred(),first=deferred(),mock=mockStream(t,{gate}),events=[];let timing,done=false;
+ const gate=deferred(),first=deferred(),mock=mockStream(t,{context:()=>f.context,gate}),events=[];let timing,done=false;
  const action=chosen(snap,'explore:crate'),before=structuredClone(f.saved),writes=f.writes;
  const pending=f.service.performAction('stream-test',action,{requestId:'stream-request-0001',onParagraph:e=>{events.push(e);first.resolve()},onTiming:v=>timing=v}).then(s=>{done=true;return s});
  await first.promise;
@@ -73,7 +75,7 @@ test('a validated first paragraph arrives before completion; duplicate requests 
 
 for(const failure of ['corruptTail','failTail'])test(failure+': preserve published prose and append only missing facts without another provider request',async t=>{
  const f=fixture(),snap=await entered(f);f.narrator=narrateTextWorld;
- const gate=deferred(),first=deferred(),events=[],mock=mockStream(t,{gate,[failure]:true});let timing;
+ const gate=deferred(),first=deferred(),events=[],mock=mockStream(t,{context:()=>f.context,gate,[failure]:true});let timing;
  const pending=f.service.performAction('stream-test',chosen(snap,'explore:crate'),{onParagraph:e=>{events.push(e);first.resolve()},onTiming:v=>timing=v});
  await first.promise;const firstText=events[0].text;gate.resolve();const result=await pending;
  assert.equal(mock.calls,1);assert.equal(result.currentScene.paragraphs[0],firstText);assert.equal(events[0].source,'llm');assert.equal(events.at(-1).source,'template');

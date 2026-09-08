@@ -13,7 +13,7 @@ export function conversationOptions(world: TextWorld, state: GameState, registry
   return visibleEntities(world).sort((a, b) => a.id.localeCompare(b.id)).flatMap(entity => {
     const npcId = entity.components.actor?.npcId;
     const profile = npcId && runtimeSocialProfile(npcId, registry);
-    if (!profile || entity.components.actor?.active === false || profile.homeLocationId !== state.location || rootZone(world, entity) !== world.player.zone) return [];
+    if (!profile || entity.components.actor?.active === false || entity.components.actor?.life?.mode === "ESCAPE" || profile.homeLocationId !== state.location || rootZone(world, entity) !== world.player.zone) return [];
     const actions: WorldAction[] = canReach(world, entity) ? [] : [
       ...(world.player.posture === "crouching" ? [{ type: "POSTURE" as const, posture: "standing" as const }] : []),
       { type: "MOVE", target: entity.id },

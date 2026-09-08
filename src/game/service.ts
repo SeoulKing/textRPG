@@ -1,3 +1,4 @@
+import { advanceConversation, conversationObstacle, interruptConversation } from "./text-world/conversation-flow";
 import { conversationOptions } from "./text-world/conversation-options";
 import { learnChoice } from "./text-world/choice-director";
 import { resolveWorldActions, recordEvent as recordConversationEvent } from "./text-world/engine";
@@ -8,7 +9,7 @@ import { recordEvent } from "./text-world/events";
 import { worldDeparturePlan } from "./text-world/departure";
 import { isSubwayStockMenuAction } from "./text-world/subway-stock";
 import { nearbyWorldNpc, residentAtConversationLocation, npcWorldContext } from "./text-world/observers";
-import { runtimeSocialProfile, performNpcSocialAction } from "./npc-social";
+import { runtimeSocialProfile, performNpcSocialAction, validateNpcSocialAction } from "./npc-social";
 import { questProgressFields } from "./quest-guidance";
 import { activityConditionState, localWorkEnvironment } from "./work-environment";
 import { planActivity } from "./activity";
@@ -443,7 +444,7 @@ export class GameService {
     const location = this.currentLocation(session, registry);
     return location.residentIds.flatMap((npcId) => {
       const profile = runtimeNpcDialogueProfile(npcId, registry);
-      if (!profile || profile.homeLocationId !== location.id || !residentAtConversationLocation(currentTextWorld(session.state), npcId)) {
+      if (!profile || profile.homeLocationId !== location.id || !residentAtConversationLocation(currentTextWorld(session.state), npcId) || conversationObstacle(session.state, currentTextWorld(session.state), npcId)) {
         return [];
       }
       return [buildNpcDialogueStartAction(profile)];
@@ -459,8 +460,9 @@ export class GameService {
     world.events=[];
     world.lastIntent={id:option.id,label:option.label,thought:choiceLabelFields(world,option).choiceThought,importance:"major"};
     const result=resolveWorldActions(world,state,option.actions);
-    if (result.interrupted || result.discovery || !nearbyWorldNpc(world,option.npcId)) {
-      if(!world.events.some(e=>e.type==="STOPPED"))recordConversationEvent(world,{type:"STOPPED",targetId:option.nodeId,reason:"다가가는 사이 상대와 거리가 벌어져 말을 건네지 못한다.",before:{},after:{}});
+    const obstacle=conversationObstacle(state,world,option.npcId);
+    if (result.interrupted || result.discovery || obstacle) {
+      if(!world.events.some(e=>e.type==="STOPPED"))recordConversationEvent(world,{type:"STOPPED",targetId:option.nodeId,reason:obstacle??"다가가는 사이 상대와 거리가 벌어져 말을 건네지 못한다.",before:{},after:{}});
       const context=directNarrative(world),narration=fallbackNarration(context);
       world.lastParagraphs=narration.paragraphs;world.lastParagraphSources=narration.paragraphs.map(()=>"template");world.source="template";world.sceneRevision++;
       rememberNarration(world,context,narration.usedFactIds,narration.paragraphs);
@@ -953,7 +955,7 @@ export class GameService {
 
     if (session.state.location === "subway" && isSubwayStockMenuAction(action, registry)) throw new Error("현재 탐색 장면에 표시된 선택지를 골라 주세요.");
 
-    if (session.state.location === "subway" && session.state.textWorld?.active && !(["text_world", "item_light", "travel", "use_item"].includes(action.type)) && !(action.type === "subway_expedition" && action.command === "choose_upgrade" && spatialCombatUpgrade(session.state)) && !(action.type === "npc_dialogue" && nearbyWorldNpc(session.state.textWorld, action.npcId))) {
+    if (session.state.location === "subway" && session.state.textWorld?.active && !(["text_world", "item_light", "travel", "use_item"].includes(action.type)) && !(action.type === "subway_expedition" && action.command === "choose_upgrade" && spatialCombatUpgrade(session.state)) && !(action.type === "npc_dialogue" && (session.state.npcDialogue.active?.npcId === action.npcId || nearbyWorldNpc(session.state.textWorld, action.npcId)))) {
       throw new Error("현재 위치에서 가능한 선택지를 골라 주세요.");
     }
 
@@ -1016,71 +1018,64 @@ export class GameService {
       const workingState = structuredClone(session.state);
       let generation: NpcDialogueGenerationResult | null = null;
 
+      const conversationWorld = currentTextWorld(workingState);
+      if (conversationWorld?.active) conversationWorld.events = [];
+      const stop = (reason: string, completed: string[] = []) => interruptConversation(workingState, conversationWorld, profile.id, reason, completed);
       if (action.command === "start") {
-        if (workingState.npcDialogue.active) {
-          throw new Error("이미 다른 대화를 진행 중입니다.");
-        }
+        if (workingState.npcDialogue.active) throw new Error("이미 다른 대화를 진행 중입니다.");
         const location = this.currentLocation(session, registry);
-        if (
-          profile.homeLocationId !== workingState.location ||
-          !residentAtConversationLocation(currentTextWorld(workingState), profile.id) || (!currentTextWorld(workingState)?.active && !location.residentIds.includes(profile.id))
-        ) {
-          throw new Error("현재 위치에서는 이 인물과 대화할 수 없습니다.");
+        if (profile.homeLocationId !== workingState.location || !residentAtConversationLocation(conversationWorld, profile.id)
+          || (!conversationWorld?.active && !location.residentIds.includes(profile.id))) throw new Error("현재 위치에서는 이 인물과 대화할 수 없습니다.");
+        const obstacle = advanceConversation(workingState, conversationWorld, profile.id, 0);
+        if (obstacle) stop(obstacle);
+        else {
+          const memory = npcDialogueMemory(workingState, profile.id);
+          generation = await this.npcDialogueGenerator({ gameId, profile, context: this.npcDialogueContext({...session,state:workingState},profile.id),
+            memory, visitCount: memory.visitCount + 1, turnNumber: nextNpcDialogueTurn(memory), selectedChoice: null });
+          applyNpcDialogueGeneration(workingState, generation, {newVisit:true});
         }
-        const memory = npcDialogueMemory(workingState, profile.id);
-        generation = await this.npcDialogueGenerator({
-          gameId,
-          profile,
-          context: this.npcDialogueContext(session, profile.id),
-          memory,
-          visitCount: memory.visitCount + 1,
-          turnNumber: nextNpcDialogueTurn(memory),
-          selectedChoice: null,
-        });
-        applyNpcDialogueGeneration(workingState, generation, {
-          newVisit: true,
-        });
       } else if (action.command === "give" || action.command === "trade") {
-        const socialOutcome = performNpcSocialAction(workingState, action, registry);
-        applySystemNote(session.state, workingState);
-        const memory = npcDialogueMemory(workingState, profile.id);
-        generation = await this.npcDialogueGenerator({ gameId, profile, context: this.npcDialogueContext({ ...session, state: workingState }, profile.id), memory,
-          socialOutcome, visitCount: memory.visitCount, turnNumber: nextNpcDialogueTurn(memory), selectedChoice: { id: "social:" + action.command + ":" + action.turnNumber, label: socialOutcome.paragraph } });
-        generation.scene.outcomeParagraph = socialOutcome.paragraph;
-        applyNpcDialogueGeneration(workingState, generation, { newVisit: false });
+        validateNpcSocialAction(workingState, action, registry);
+        const obstacle = advanceConversation(workingState, conversationWorld, profile.id, 0);
+        if (obstacle) stop(obstacle);
+        else {
+          const socialOutcome = performNpcSocialAction(workingState, action, registry);
+          const interrupted = conversationObstacle(workingState, conversationWorld, profile.id);
+          if (interrupted) stop(interrupted, [socialOutcome.paragraph]);
+          else {
+            const memory = npcDialogueMemory(workingState, profile.id);
+            generation = await this.npcDialogueGenerator({ gameId, profile, context: this.npcDialogueContext({...session,state:workingState},profile.id), memory,
+              socialOutcome, visitCount: memory.visitCount, turnNumber: nextNpcDialogueTurn(memory), selectedChoice: { id: "social:" + action.command + ":" + action.turnNumber, label: socialOutcome.paragraph } });
+            generation.scene.outcomeParagraph = socialOutcome.paragraph;
+            applyNpcDialogueGeneration(workingState, generation, {newVisit:false});
+          }
+        }
       } else if (action.command === "choose") {
-        const selectedChoice = selectNpcDialogueChoice(
-          workingState,
-          profile.id,
-          action.choiceId,
-          action.turnNumber,
-        );
-        const memory = npcDialogueMemory(workingState, profile.id);
-        generation = await this.npcDialogueGenerator({
-          gameId,
-          profile,
-          context: this.npcDialogueContext(session, profile.id),
-          memory,
-          visitCount: memory.visitCount,
-          turnNumber: nextNpcDialogueTurn(memory),
-          selectedChoice,
-        });
-        applyNpcDialogueGeneration(workingState, generation, {
-          newVisit: false,
-        });
+        const selectedChoice = selectNpcDialogueChoice(workingState, profile.id, action.choiceId, action.turnNumber);
+        const obstacle = advanceConversation(workingState, conversationWorld, profile.id);
+        if (obstacle) stop(obstacle);
+        else {
+          const memory = npcDialogueMemory(workingState, profile.id);
+          generation = await this.npcDialogueGenerator({ gameId, profile, context: this.npcDialogueContext({...session,state:workingState},profile.id), memory,
+            visitCount: memory.visitCount, turnNumber: nextNpcDialogueTurn(memory), selectedChoice });
+          applyNpcDialogueGeneration(workingState, generation, {newVisit:false});
+        }
       } else {
-        leaveNpcDialogue(workingState, profile.id, profile.name);
+        if (workingState.npcDialogue.active?.npcId !== profile.id) throw new Error("현재 이 인물과 대화하고 있지 않습니다.");
+        const obstacle = advanceConversation(workingState, conversationWorld, profile.id, 0);
+        if (obstacle) stop(obstacle);
+        else leaveNpcDialogue(workingState, profile.id, profile.name);
       }
+      applySystemNote(session.state, workingState);
       if (action.command === "start" || action.command === "leave") {
         consumeCurrentSceneIntro(workingState);
         syncScene(workingState);
       }
 
-      const conversationWorld = currentTextWorld(workingState);
       if (conversationWorld?.active) {
         conversationWorld.revision++;
         if (generation) conversationWorld.recentScenes = [...conversationWorld.recentScenes, { zone: conversationWorld.player.zone, intent: profile.name + "와 대화한다", paragraphs: [...(generation.scene.outcomeParagraph ? [generation.scene.outcomeParagraph] : []), generation.scene.situation, generation.scene.dialogue] }].slice(-3);
-        if (action.command === "leave") {
+        if (action.command === "leave" && !workingState.npcDialogue.departure?.reason) {
           conversationWorld.lastParagraphs = workingState.npcDialogue.departure!.paragraphs;
           conversationWorld.lastParagraphSources = conversationWorld.lastParagraphs.map(()=>"template");
           conversationWorld.source = "template";conversationWorld.sceneRevision++;
@@ -1090,6 +1085,9 @@ export class GameService {
       session.state = workingState;
       session.updatedAt = nowIso();
       session.world.sceneCards = {};
+      syncQuestState(session.state);
+      syncScene(session.state);
+      await this.replanTomorrowIfNeeded(session, previousDay);
       await this.ensureCards(session);
       if (generation) {
         await this.repository.appendGenerationLog({

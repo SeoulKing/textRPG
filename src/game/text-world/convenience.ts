@@ -1,3 +1,4 @@
+import { conversationOptions } from "./conversation-options";
 import type { ActionChoice, ContentRegistry, GameAction, GameState } from "../schemas";
 import type { NarrativeContext, TextEntity, TextWorld, WorldAction } from "../schemas/text-world";
 import { choiceConditionsMet, resolveInteractionLoading } from "../content-engine";
@@ -83,7 +84,7 @@ function portalPending(state: GameState) { return Boolean(state.flags.magic_city
 type StoreOption = { id: string; label: string; hint: string; nodeId?: string; choiceId?: string; loading: NonNullable<ActionChoice["loading"]>; actions?: WorldAction[]; importance?: "major" | "minor" };
 export function availableConvenienceOptions(state: GameState, registry = buildRuntimeRegistry(state)): StoreOption[] {
   const world = worldOf(state);
-  if (state.location !== LOCATION || !world?.active || state.isGameOver || state.stageClear) return [];
+  if (state.location !== LOCATION || !world?.active || state.isGameOver || state.stageClear || state.npcDialogue.active) return [];
   const explore: StoreOption[] = [], collect: StoreOption[] = [];
   for (const node of registry.locations[LOCATION].stockNodes) {
     if (world.entities[node.id]?.components.position.zone !== ZONE) continue;
@@ -111,7 +112,7 @@ export function availableConvenienceOptions(state: GameState, registry = buildRu
     if (!entity.components.portable || entity.components.position.zone === "player" && inventoryRegistered(world, entity) || stockIds.has(entity.id)) continue;
     physical.unshift({ id: "take:" + entity.id, label: particle(entity.name, "을", "를") + " 챙긴다", hint: "놓아둔 물건 수집", loading: ACTIVITY, actions: [...approach(world, entity.id), { type: "TAKE", target: entity.id }] });
   }
-  return [...story, ...collect, ...explore, ...physical, ...focusOptions(world).map(o => ({ ...o, loading: ACTIVITY }))];
+  return [...story, ...collect, ...explore, ...physical, ...conversationOptions(world, state, registry).map(o => ({ ...o, loading: ACTIVITY })), ...focusOptions(world).map(o => ({ ...o, loading: ACTIVITY }))];
 }
 export function convenienceOptions(state: GameState, registry = buildRuntimeRegistry(state)) {
   const world = worldOf(state);

@@ -21,8 +21,9 @@ export function nextActorBoundary(world: TextWorld, context: ActorTimeContext) {
   return autonomousActors(world).map(actor => {
     const life=initializeActorLife(actor)!;
     const released=life.mode==="INTERACT" && context.state.npcDialogue.active?.npcId!==actor.components.actor!.npcId && !(context.witnessed && world.player.zone===rootZone(world,actor) && world.player.near===actor.id);
-    const fresh=currentThreats(world,actor).some(e=>!life.threats.some(t=>t.zone===rootZone(world,e)&&t.until>world.elapsedSeconds));
-    return released || fresh ? 1 : life.remainingSeconds || 1;
+    const threats=currentThreats(world,actor), fresh=threats.some(e=>!life.threats.some(t=>t.zone===rootZone(world,e)&&t.until>world.elapsedSeconds));
+    const engaged=context.state.npcDialogue.active?.npcId===actor.components.actor!.npcId && life.mode!=="INTERACT" && !threats.length && context.witnessed && world.player.zone===rootZone(world,actor) && world.player.near===actor.id;
+    return released || fresh || engaged ? 1 : life.remainingSeconds || 1;
   });
 }
 function currentThreats(world:TextWorld,actor:TextEntity) { return visibleEntities(actorView(world,actor)).filter(e=>e.components.combatant?.hostile && e.components.combatant.hp>0); }
@@ -126,14 +127,15 @@ export function advanceActorLife(world:TextWorld,seconds:number,context:ActorTim
     const playerNear=context.witnessed && world.player.zone===rootZone(world,actor) && world.player.near===actor.id;
     if(life.mode==="INTERACT" && !playerNear && context.state.npcDialogue.active?.npcId!==c.npcId)life.remainingSeconds=0;
     const threats=currentThreats(world,actor);
+    if(playerNear && !threats.length && context.state.npcDialogue.active?.npcId===c.npcId && life.mode!=="INTERACT")life.remainingSeconds=0;
     if(threats.some(e=>!life.threats.some(t=>t.zone===rootZone(world,e)&&t.until>world.elapsedSeconds)))life.remainingSeconds=0;
     life.remainingSeconds=Math.max(0,life.remainingSeconds-seconds);if(life.remainingSeconds>0)continue;life.remainingSeconds=routine.decisionSeconds;
     life.threats=life.threats.filter(t=>t.until>world.elapsedSeconds);
     for(const enemy of threats){const zone=rootZone(world,enemy);life.threats=life.threats.filter(t=>t.zone!==zone);life.threats.push({zone,until:world.elapsedSeconds+300});}
-    // A turn of conversation reserves the participant; needs and known danger still progress.
-    if(context.state.npcDialogue.active?.npcId===c.npcId){setMode(world,actor,context,"INTERACT");continue;}
     if(threats.length){setMode(world,actor,context,"ESCAPE");const danger=new Set(life.threats.map(t=>t.zone));
       const destinations=[routine.homeZone,...routine.roamZones].filter(id=>!danger.has(id));const target=destinations.find(id=>route(world,actor,id,danger));if(target)walk(world,actor,target,context,danger);continue;}
+    // Conversation reserves attention only while the participant is safe.
+    if(context.state.npcDialogue.active?.npcId===c.npcId){setMode(world,actor,context,"INTERACT");continue;}
     if(playerNear){setMode(world,actor,context,"INTERACT");continue;}
     if(life.fatigue<70 && life.hunger>=60 && world.elapsedSeconds>=life.retryAt){forage(world,actor,context);continue;}
     setMode(world,actor,context,"REST");if(rootZone(world,actor)!==routine.homeZone)walk(world,actor,routine.homeZone,context);

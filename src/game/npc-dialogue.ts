@@ -93,7 +93,7 @@ export function buildNpcDialogueScene(
   const active = state.npcDialogue.active;
   const departure = state.npcDialogue.departure;
   if (!active && departure?.locationId === state.location) return { id: "npc-dialogue:" + departure.npcId + ":departure:" + departure.generatedAt,
-    locationId: state.location, title: "대화를 마치고", paragraphs: departure.paragraphs, choices: [],
+    locationId: state.location, title: departure.reason === "interrupted" ? "대화가 끊기고" : "대화를 마치고", paragraphs: departure.paragraphs, choices: [],
     materialIds: { locationIds: [state.location], personIds: [departure.npcId], itemIds: [] }, source: "template", generatedAt: departure.generatedAt };
   if (!active || !profile || active.npcId !== profile.id) {
     return null;

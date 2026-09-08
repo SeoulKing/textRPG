@@ -27,7 +27,7 @@ test('a fresh survivor makes audible changes, talks, gives real goods and unlock
   const requestId='social-route-'+(++request);snap=await service.performAction(saved.id,action,{requestId});
   assert(!snap.state.isGameOver);assert(snap.availableActions.length<=5);return {action,requestId};
  }
- for(const id of ['opening_commit','travel:convenience','explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_supply_pile','collect:convenience_supply_pile','travel:subway','travel:office','explore:crate','collect:crate','push:crate:door:beside','leave','focus:shumi_presence','npc-dialogue:shumi:start'])await choose(id);
+ for(const id of ['opening_commit','travel:convenience','explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_supply_pile','collect:convenience_supply_pile','travel:subway','travel:office','explore:crate','collect:crate','push:crate:door:beside','leave','focus:shumi_presence','talk:shumi'])await choose(id);
  assert.match(snap.currentScene.paragraphs.join(' '),/소리가 들린/);
  assert(requests[0].payload.worldExperience.observations.every(o=>o.sense==='heard'&&!o.actorKnown));
  assert.deepEqual(requests[0].payload.worldContext.player.recentLog,[]);assert.equal(requests[0].payload.worldContext.player.condition,undefined);
@@ -45,7 +45,7 @@ test('a fresh survivor makes audible changes, talks, gives real goods and unlock
  assert.equal(snap.state.inventory.radioBattery,(beforeTrade.radioBattery??0)+1);assert.equal(snap.state.inventory.scrapMetal,beforeTrade.scrapMetal-2);
  assert.equal(saved.state.npcDialogue.conversations.shumi.inventory.radioBattery,0);
  assert(!npcSocialActions(saved.state,buildRuntimeRegistry(saved.state)).some(row=>row.action.command==='trade'));
- const afterTrade={...snap.state.inventory};await perform({type:'npc_dialogue',command:'leave',npcId:'shumi'});await choose('npc-dialogue:shumi:start');
+ const afterTrade={...snap.state.inventory};await perform({type:'npc_dialogue',command:'leave',npcId:'shumi'});await choose('talk:shumi');
  assert.deepEqual(snap.state.inventory,afterTrade);assert.equal(saved.state.npcDialogue.conversations.shumi.inventory.radioBattery,0);
  assert(saved.state.npcDialogue.conversations.shumi.observations.some(o=>o.sense==='exchange'));
  assert(!snap.availableActions.some(row=>row.action.command==='trade'));
@@ -66,7 +66,7 @@ test('an authored resident can be approached and spoken to inside exploration, t
  await assert.rejects(()=>service.performAction(saved.id,{type:'npc_dialogue',command:'start',npcId:'shumi'}),/현재 위치|대합실|현재 공간/);
  const approach=rows(snap).find(row=>row.action.optionId==='focus:shumi_presence');assert(approach);
  snap=await service.performAction(saved.id,approach.action);
- const talk=snap.availableActions.find(row=>row.action.type==='npc_dialogue'&&row.action.command==='start');assert(talk);
+ const talk=snap.availableActions.find(row=>row.action.optionId==='talk:shumi');assert(talk);
  const before=saved.state.textWorld.entities.crate.components.openable.isOpen,revision=saved.state.textWorld.revision;
  snap=await service.performAction(saved.id,talk.action);assert.equal(calls,1);assert.match(snap.currentScene.id,/npc-dialogue/);assert.equal(snap.exploration,null);
  snap=await service.performAction(saved.id,{type:'npc_dialogue',command:'leave',npcId:'shumi'});
@@ -99,7 +99,7 @@ for (const location of ['forest','convenience','shelter']) test('dialogue preser
  const fallback=createNpcDialogueGenerator(undefined,()=>false);
  const service=new GameService(repo,undefined,undefined,undefined,async input=>{npcCalls++;return fallback(input)},async c=>{worldCalls++;return fallbackNarration(c)});
  let snap=await service.getState(saved.id);const before=structuredClone(saved.state.locationTextWorlds[location].player);
- const talk=snap.availableActions.find(row=>row.action.type==='npc_dialogue');assert(talk,'nearby resident is offered');
+ const talk=snap.availableActions.find(row=>row.action.optionId==='talk:shumi');assert(talk,'nearby resident is offered');
  snap=await service.performAction(saved.id,talk.action);assert.equal(npcCalls,1);assert.equal(snap.exploration,null);assert.match(snap.currentScene.id,/npc-dialogue/);
  assert(saved.state.locationTextWorlds[location].active,'conversation only changes the presentation layer');
  snap=await service.getState(saved.id);assert.equal(npcCalls,1);assert.equal(worldCalls,0);

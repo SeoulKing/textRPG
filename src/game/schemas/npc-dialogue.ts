@@ -56,7 +56,7 @@ export const NpcDialogueActiveSchema = z.object({
 
 export const NpcDialogueStateSchema = z.object({
   lastRequest: z.object({ id: z.string(), actionKey: z.string(), npcId: z.string(), turnNumber: z.number().int() }).optional(),
-  departure: z.object({ npcId: z.string(), locationId: z.string(), paragraphs: z.array(z.string()).min(1), generatedAt: z.string() }).optional(),
+  departure: z.object({ npcId: z.string(), locationId: z.string(), reason: z.literal("interrupted").optional(), paragraphs: z.array(z.string()).min(1), generatedAt: z.string() }).optional(),
   active: NpcDialogueActiveSchema.nullable().default(null),
   conversations: z.record(
     z.string(),

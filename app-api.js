@@ -1896,7 +1896,7 @@ function createSceneStoryBlock(append, source, continueBlock = false) {
     const sourceLabel = document.createElement("div");
     sourceLabel.className = `scene-narrative-source is-${source}`;
     sourceLabel.textContent = source === "mixed" ? "LLM 생성 · 기본 서사 보완" : source === "llm" ? "LLM 생성" : "기본 서사";
-    sourceLabel.title = source === "mixed" ? "생성된 문단을 유지하고 남은 결과를 기본 서사로 이어 썼습니다." : source === "llm"
+    sourceLabel.title = source === "mixed" ? "검사를 통과한 생성 문단은 유지하고, 필요한 부분을 기본 서사로 보완했습니다." : source === "llm"
       ? "LLM이 생성한 서사입니다."
       : "게임에 정의된 기본 서사입니다. 재확인이나 생성 실패 시에도 사용합니다.";
     block.appendChild(sourceLabel);

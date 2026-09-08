@@ -1,5 +1,7 @@
+import { missingEventOutcomes, contradictoryActorOutcomes, hasUnclaimedEventOutcome, hasUnsupportedActorPosture } from "./narrative-outcomes";
 import { z } from "zod";
 import { buildNarrationPrompt, compactNarrativeContext, needsGeneratedNarration } from "./narration-prompt";
+import { narrationRequest } from "./narration-request";
 import { appendDevLlmTraceForGame } from "../dev-llm-trace";
 import { completedParagraphs } from "../gemini-stream";
 import { currentObservation, markAction, publishParagraph, recordActionTiming } from "../action-observation";
@@ -42,7 +44,7 @@ function eventText(e: WorldEvent) {
     case "THROW": return name+" 한 개를 "+String(e.after.destinationName)+"으로 던진다. "+String(e.after.soundDescription)+"가 난다.";
     case "ITEM_USE": return particle(name,"을","를")+" 사용한다.";
     case "ACTOR_ACTIVITY": return particle(name,"이","가") + " " + String(e.after.detail);
-    case "NPC_CONSUME": return particle(name,"이","가") + " " + e.after.itemName + " 1개를 먹는다.";
+    case "NPC_CONSUME": return particle(name,"이","가") + " " + e.after.itemName + " " + (e.after.amount ?? 1) + "개를 먹는다.";
     case "ACTOR_MOVE": return name+"가 "+(e.after.reason === "sound" ? "소리가 난 " : "")+String(e.after.destination)+" 쪽으로 움직인다.";
     case "COMBAT": {
       let text=e.after.actionText ? String(e.after.actionText)+" " : "";
@@ -88,7 +90,7 @@ function eventText(e: WorldEvent) {
     case "LOOK": return "지금 있는 자리에서 방의 배치와 확인한 상태를 짚어 본다.";
     case "SURVEY": return "손전등 빛을 벽에서 바닥으로 옮기며 통로를 살핀다.";
     case "LEAVE": return String(e.after.exitText ?? "역무실 입구를 지나 대합실로 돌아간다.");
-    case "STOPPED": return e.reason + " 그 지점에서 움직임을 멈춘다.";
+    case "STOPPED": return e.reason + (e.attemptedAction === "NPC_DIALOGUE" ? "" : " 그 지점에서 움직임을 멈춘다.");
   }
 }
 function factText(f: WorldFact): string {
@@ -162,6 +164,9 @@ export function fallbackNarration(context: NarrativeContext): Narration {
         text = particle(names, "을", "를") + (group.every(member => { const event = member.data as WorldEvent; return event.before.carried && event.before.inventoryRegistered; }) ? " 차례로 꺼내 든다." : " 차례로 챙긴다.");
         i += group.length - 1;
       }
+    }
+    if (e.type === "NPC_CONSUME" && after?.type === "ACTOR_ACTIVITY" && after.actorId === e.actorId && after.after.detail === "자리에 머물며 쉬고 있다.") {
+      used.add(next.id); text = text.replace(/먹는다[.]$/, "먹고 그 자리에 머물며 쉰다.");
     }
     if (e.type === "POSTURE" && e.after.posture === "standing" && after?.type === "MOVE") {
       used.add(next.id);
@@ -269,12 +274,12 @@ function missingFacilityEffect(context: NarrativeContext, paragraphs: { text: st
   });
 }
 export type NarrationValidationIssue = {
-  code: "invalid_schema" | "paragraph_count" | "unknown_fact_ids" | "missing_required_facts" | "invalid_text" | "missing_facility_effect" | "contradictory_action" | "wrong_viewpoint" | "published_prefix_changed";
+  code: "invalid_schema" | "paragraph_count" | "unknown_fact_ids" | "missing_required_facts" | "missing_event_outcome" | "contradictory_event_outcome" | "invalid_text" | "missing_facility_effect" | "contradictory_action" | "wrong_viewpoint" | "published_prefix_changed";
   factIds?: string[];
   detail?: string;
 };
 /** A deterministic check reports exactly what failed; it does not claim full semantic verification. */
-export function inspectNarration(context: NarrativeContext, raw: unknown): { narration: Narration | null; issues: NarrationValidationIssue[] } {
+export function inspectNarration(context: NarrativeContext, raw: unknown, actorContext = context): { narration: Narration | null; issues: NarrationValidationIssue[] } {
   const parsed = NarrationSchema.safeParse(raw);
   if (!parsed.success) return { narration: null, issues: [{ code: "invalid_schema" }] };
   const paragraphs = parsed.data.paragraphs.flatMap(p => {
@@ -298,10 +303,15 @@ export function inspectNarration(context: NarrativeContext, raw: unknown): { nar
   if (paragraphs.length < context.paragraphCount.min || paragraphs.length > context.paragraphCount.max) issues.push({ code: "paragraph_count" });
   if (unknownIds.length) issues.push({ code: "unknown_fact_ids", factIds: unknownIds });
   if (missingIds.length) issues.push({ code: "missing_required_facts", factIds: missingIds });
+  const missingOutcomes = missingEventOutcomes(context, paragraphs, actorContext).filter(id => used.has(id));
+  if (missingOutcomes.length) issues.push({ code: "missing_event_outcome", factIds: missingOutcomes, detail: "unreported_actor_consumption" });
+  const contradictoryOutcomes=contradictoryActorOutcomes(actorContext,paragraphs);
+  if(contradictoryOutcomes.length)issues.push({code:"contradictory_event_outcome",factIds:contradictoryOutcomes,detail:"consumed_food_still_held"});
   if (paragraphs.some(p => !p.text.trim() || /(?:result|entity|contents|layout|surface|touch|interior|threshold|light|ambient|connection):[\w-]+/.test(p.text))) issues.push({ code: "invalid_text" });
   if (missingFacilityEffect(context, paragraphs)) issues.push({ code: "missing_facility_effect" });
   const contradiction = contradictionReason(context, paragraphs.map(p => p.text).join(" "));
   if (contradiction) issues.push({ code: "contradictory_action", detail: contradiction });
+  if (hasUnsupportedActorPosture(actorContext,paragraphs)) issues.push({code:"contradictory_action",detail:"unsupported_actor_sitting"});
   if (paragraphs.some(p => /당신(?:은|이|을|의)|너는|네가|플레이어(?:는|가)|주인공(?:은|이)/.test(p.text))) issues.push({ code: "wrong_viewpoint" });
   if (issues.length) return { narration: null, issues };
   return { narration: { paragraphs: paragraphs.map(p => p.text.replace(/마저\s+마저/g, "마저")), source: "llm", usedFactIds: [...used], choiceLabels: resolveChoiceLabels(context, parsed.data.choiceLabels) }, issues };
@@ -315,13 +325,36 @@ export function validateRenderedNarration(context: NarrativeContext, raw: unknow
   const valid = validateNarration(context, { paragraphs: value.paragraphs.map(text => ({ text, factIds: value.usedFactIds })), choiceLabels: value.choiceLabels });
   return valid ? { ...valid, source: value.source!, paragraphSources: value.paragraphSources?.length === valid.paragraphs.length && value.paragraphSources.every(s => s === "llm" || s === "template") ? value.paragraphSources : undefined } : null;
 }
+type CheckedParagraph = { text: string; factIds: string[]; source: "llm" | "template" };
+function checkParagraph(context: NarrativeContext, raw: z.infer<typeof NarrationSchema>["paragraphs"][number]): CheckedParagraph | null {
+  if (hasUnclaimedEventOutcome(context,raw)) return null;
+  const ids = new Set(raw.factIds);
+  const local = { ...context, paragraphCount: { min: 1, max: 1 },
+    requiredFacts: context.requiredFacts.filter(f => ids.has(f.id)),
+    results: context.requiredFacts.filter(f => f.kind === "result" && ids.has(f.id)).map(f => f.data as WorldEvent) };
+  const inspected = inspectNarration(local, { paragraphs: [raw] }, context);
+  if (inspected.narration) return { text: inspected.narration.paragraphs[0], factIds: raw.factIds, source: "llm" };
+  if (!inspected.issues.length || inspected.issues.some(i=>!["missing_event_outcome","contradictory_event_outcome"].includes(i.code))) return null;
+  const fallback = fallbackNarration({ ...local, optionalFacts: context.optionalFacts.filter(f=>ids.has(f.id)) });
+  const repaired = { text: fallback.paragraphs.join(" "), factIds: fallback.usedFactIds, source: "template" as const };
+  return inspectNarration(local,{paragraphs:[repaired]},context).narration ? repaired : null;
+}
+function repairEventOutcomes(context: NarrativeContext, raw: unknown): Narration | null {
+  const parsed=NarrationSchema.safeParse(raw);if(!parsed.success)return null;
+  const paragraphs=parsed.data.paragraphs.map(p=>checkParagraph(context,p));
+  if(paragraphs.some(p=>!p) || !paragraphs.some(p=>p?.source==="template"))return null;
+  const complete=paragraphs as CheckedParagraph[];
+  const validated=validateNarration(context,{paragraphs:complete,choiceLabels:parsed.data.choiceLabels});
+  return validated ? {...validated,source:"template",paragraphSources:complete.map(p=>p.source)} : null;
+}
+
 export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) => {
   const context = compactNarrativeContext(fullContext);
   if (!needsGeneratedNarration(context) || !hasGeminiConfig()) {
     recordActionTiming({ narration: "template", fallbackReason: hasGeminiConfig() ? "routine_action" : "not_configured" });
     return fallbackNarration({ ...context, paragraphCount: needsGeneratedNarration(context) ? context.paragraphCount : { min: 1, max: 1 } });
   }
-  const accepted: { text: string; factIds: string[] }[] = [];
+  const accepted: CheckedParagraph[] = [];
   let invalidPrefix = false;
   const remainingFallback = () => {
     const used = new Set(accepted.flatMap(p => p.factIds));
@@ -335,16 +368,17 @@ export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) =
     return fallbackNarration({ ...context, results, requiredFacts, optionalFacts, paragraphCount: { min: 1, max: 1 } });
   };
   const recover = (reason: string): Narration => {
-    recordActionTiming({ narration: accepted.length ? "mixed" : "template", fallbackReason: reason });
-    if (!accepted.length) return fallbackNarration(context);
+    if (!accepted.length) { recordActionTiming({narration:"template",fallbackReason:reason}); return fallbackNarration(context); }
     const tail = remainingFallback();
+    const sources=[...accepted.map(p=>p.source),...tail.paragraphs.map(()=>"template" as const)];
+    recordActionTiming({narration:sources.every(s=>s==="llm")?"llm":sources.some(s=>s==="llm")?"mixed":"template",fallbackReason:reason});
     return { paragraphs: [...accepted.map(p => p.text), ...tail.paragraphs],
-      paragraphSources: [...accepted.map(() => "llm" as const), ...tail.paragraphs.map(() => "template" as const)],
-      source: tail.paragraphs.length ? "template" : "llm", usedFactIds: [...new Set([...accepted.flatMap(p => p.factIds), ...tail.usedFactIds])],
+      paragraphSources: sources,
+      source: tail.paragraphs.length || accepted.some(p=>p.source==="template") ? "template" : "llm", usedFactIds: [...new Set([...accepted.flatMap(p => p.factIds), ...tail.usedFactIds])],
       choiceLabels: resolveChoiceLabels(context, []) };
   };
   try {
-    const result = await generateGeminiJson(buildNarrationPrompt(context), { context }, {
+    const result = await generateGeminiJson(buildNarrationPrompt(context), { context: narrationRequest(context) }, {
       // Partial output is usable before the final JSON object and its choice wording exist.
       onJsonProgress: currentObservation()?.observer.onParagraph ? text => {
         if (!currentObservation()?.observer.onParagraph || invalidPrefix) return;
@@ -354,18 +388,14 @@ export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) =
           const raw = paragraphs[accepted.length];
           const paragraph = NarrationSchema.shape.paragraphs.element.safeParse(raw);
           if (!paragraph.success) { invalidPrefix = true; break; }
-          const ids = new Set(paragraph.data.factIds);
-          const localContext = { ...context, paragraphCount: { min: 1, max: 1 },
-            requiredFacts: context.requiredFacts.filter(f => ids.has(f.id)),
-            results: context.requiredFacts.filter(f => f.kind === "result" && ids.has(f.id)).map(f => f.data as WorldEvent) };
-          const valid = validateNarration(localContext, { paragraphs: [paragraph.data] });
+          const valid = checkParagraph(context, paragraph.data);
           if (!valid) { invalidPrefix = true; break; }
-          accepted.push({ text: valid.paragraphs[0], factIds: paragraph.data.factIds });
+          accepted.push(valid);
           // Before publishing, prove a deterministic continuation can still complete this scene.
           const tail = remainingFallback();
           const completion = { paragraphs: [...accepted, ...tail.paragraphs.map(text => ({ text, factIds: tail.usedFactIds }))] };
           if (!validateNarration(context, completion)) { accepted.pop(); break; }
-          publishParagraph(valid.paragraphs[0], "llm");
+          publishParagraph(valid.text, valid.source);
         }
       } : undefined,
       responseJsonSchema: {
@@ -393,6 +423,13 @@ export const narrateTextWorld: TextWorldNarrator = async (fullContext, gameId) =
         response: JSON.stringify(result), errorReason: JSON.stringify(issues),
         message: "서술 검사 실패. 이미 전달한 유효 문단은 유지하고 필요한 사실을 기본 서술로 보완합니다.",
       });
+      if (inspection.issues.length && inspection.issues.every(i=>["missing_event_outcome","contradictory_event_outcome"].includes(i.code))) {
+        const repaired=repairEventOutcomes(context,result);
+        if(repaired && accepted.every((p,i)=>p.text===repaired.paragraphs[i])) {
+          recordActionTiming({narration:repaired.paragraphSources?.some(s=>s==="llm")?"mixed":"template",fallbackReason:"repaired_event_outcome"});
+          return repaired;
+        }
+      }
       return recover("invalid_narration");
     }
     recordActionTiming({ narration: "llm" });

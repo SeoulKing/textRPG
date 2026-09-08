@@ -18,7 +18,7 @@ test('recorded combat room response omits spatial facts, independently of valid 
  assert.equal(inspectNarration(context, complete).narration.source, 'llm');
  assert.deepEqual(inspectNarration(context, complete).issues, []);
  const prompt=buildNarrationPrompt(context);
- assert(prompt.includes(JSON.stringify(context.requiredFacts.map(f=>f.id))));
+ assert.match(prompt,/requiredFacts의 ID가 모두/);
  assert.match(prompt,/ID만 붙여 누락된 서술을 대신하지 않는다/);
  assert.match(prompt,/문을 지났다는 말만으로 이 정보를 대신하지 않는다/);
 });

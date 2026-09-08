@@ -8,8 +8,14 @@ const typeOf = (fact: WorldFact) => String(fact.data.type);
 /** The director orders attention, never creates a world fact or chooses an action. */
 export function directScene(context: NarrativeContext, narrated: Record<string, string> = {}): NarrativeContext {
   const results = context.requiredFacts.filter(f => f.kind === "result");
-  const substantive = results.filter(f => !["MOVE", "POSTURE", "INSPECT", "LOOK", "SURVEY"].includes(typeOf(f)));
-  const last = substantive.at(-1) ?? results.at(-1);
+  // Incidental NPC activity must not replace the object the player chose to inspect.
+  // When merely waiting or listening, the observed activity can become the focus.
+  const purposeful = results.filter(f => f.data.origin !== "simulation"
+    && (!f.data.actorId || f.data.actorId === "player")
+    && !["WAIT", "LOOK", "SURVEY"].includes(typeOf(f)));
+  const focalResults = purposeful.length ? purposeful : results;
+  const substantive = focalResults.filter(f => !["MOVE", "POSTURE", "INSPECT", "LOOK", "SURVEY", "WAIT"].includes(typeOf(f)));
+  const last = substantive.at(-1) ?? focalResults.at(-1);
   const event = last?.data as WorldEvent | undefined;
   const focus = event?.type === "TAKE" ? String(event.before.zone ?? "") : last?.targetId ?? context.player.facing ?? undefined;
   const score = (fact: WorldFact) => (fact.targetId === focus ? 40 : 0) + (fact.id.startsWith("response:") ? 40 : fact.id.startsWith("touch:") ? 35 : fact.kind === "sound" ? 30 : fact.kind === "sensory" ? 20 : 5) - (narrated[fact.id] === JSON.stringify(fact.data) ? 35 : 0);

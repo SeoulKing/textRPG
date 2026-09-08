@@ -41,11 +41,15 @@ export function npcSocialActions(state: GameState, registry: ContentRegistry = b
   return choices;
 }
 export type NpcSocialOutcome = { kind: "give" | "trade"; paragraph: string; affinity: number; npcName: string; given: { itemId: string; name: string; amount: number }; received?: { itemId: string; name: string; amount: number } };
-export function performNpcSocialAction(state: GameState, action: Extract<GameAction, { type: "npc_dialogue" }>, registry: ContentRegistry): NpcSocialOutcome {
+export function validateNpcSocialAction(state: GameState, action: Extract<GameAction, { type: "npc_dialogue" }>, registry: ContentRegistry) {
   const active = state.npcDialogue.active;
   if (!active || active.npcId !== action.npcId || action.turnNumber !== active.turnNumber) throw new Error("이미 지난 대화 선택지입니다.");
   const offered = npcSocialActions(state, registry).find(choice => choice.action.type === "npc_dialogue" && choice.action.command === action.command && choice.action.itemId === action.itemId && choice.action.offerId === action.offerId);
   if (!offered) throw new Error("현재 상황에서는 선택할 수 없는 행동입니다.");
+}
+export function performNpcSocialAction(state: GameState, action: Extract<GameAction, { type: "npc_dialogue" }>, registry: ContentRegistry): NpcSocialOutcome {
+  validateNpcSocialAction(state, action, registry);
+  const active = state.npcDialogue.active!;
   const profile = runtimeSocialProfile(action.npcId, registry)!, memory = socialMemory(state, profile);
   const trade = action.command === "trade" ? profile.trades!.find(trade => trade.id === action.offerId)! : undefined;
   const given = { ...(trade?.give ?? { itemId: action.itemId!, amount: 1 }), name: (registry.items[trade?.give.itemId ?? action.itemId!] as ItemCard).name };
