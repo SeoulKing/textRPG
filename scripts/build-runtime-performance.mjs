@@ -62,7 +62,7 @@ async function patchCompiledServer() {
   const serverPath = path.join(distDir, "server.js");
   let source = await readFile(serverPath, "utf8");
 
-  const appApiPathPattern = /([A-Za-z0-9_$.]+\.join\()webRoot, "app-api\\.js"\)/;
+  const appApiPathPattern = /([A-Za-z0-9_$.]+\.join\()webRoot, "app-api\.js"\)/;
   if (!appApiPathPattern.test(source)) {
     throw new Error("Runtime performance patch target not found: compiled app-api route");
   }
