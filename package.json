@@ -4,7 +4,7 @@
   "description": "Choice-driven survival text RPG MVP.",
   "main": "src/server.ts",
   "scripts": {
-    "build": "tsc --outDir .server-dist --rootDir src",
+    "build": "tsc --outDir .server-dist --rootDir src && node scripts/optimize-scene-images.mjs && node scripts/build-runtime-performance.mjs",
     "dev": "tsx watch src/server.ts",
     "start": "npm run build && node .server-dist/server.js",
     "typecheck": "tsc --noEmit",
@@ -34,6 +34,7 @@
     "honeycomb-grid": "^4.1.5",
     "pg": "^8.20.0",
     "phaser": "^4.2.1",
+    "sharp": "^0.34.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
