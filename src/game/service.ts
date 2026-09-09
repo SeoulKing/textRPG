@@ -890,6 +890,7 @@ export class GameService {
 
   private async getStateUnlocked(gameId: string) {
     const session = await this.repository.loadGame(gameId);
+    if (session.state.stateWorld) throw new Error("상태 기반 월드 화면에서 이어가 주세요.");
     const previousState = structuredClone(session.state);
     syncClock(session.state);
     syncQuestState(session.state, previousState.quests);
@@ -925,6 +926,7 @@ export class GameService {
 
   private async performActionUnlocked(gameId: string, action: GameAction) {
     const session = await this.repository.loadGame(gameId);
+    if (session.state.stateWorld) throw new Error("상태 기반 월드 화면에서 이어가 주세요.");
     markAction("loadMs");
     const requestId = currentObservation()?.observer.requestId;
     const actionKey = action.type === "text_world" ? JSON.stringify([action.type, action.command, action.optionId ?? null, action.revision ?? null]) : action.type === "npc_dialogue" ? JSON.stringify([action.type, action.command, action.npcId, action.choiceId ?? null, action.itemId ?? null, action.offerId ?? null, action.turnNumber ?? null]) : "";
@@ -2025,6 +2027,7 @@ export class GameService {
         : locationChoices;
     const clientState = structuredClone(session.state);
     // The browser receives rendered observations and offered actions, never hidden entities or contents.
+    delete clientState.stateWorld;
     clientState.textWorld = null;
     clientState.locationTextWorlds = {};
     delete clientState.choicePreferences;

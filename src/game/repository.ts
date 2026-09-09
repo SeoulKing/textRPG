@@ -406,6 +406,7 @@ function pruneState(state: unknown): GameState {
     nextFlags.rescue_goal_accepted = true;
   }
   return {
+    stateWorld: rawState.stateWorld == null ? undefined : GameStateSchema.shape.stateWorld.parse(rawState.stateWorld),
     choicePreferences: ChoicePreferencesSchema.safeParse(rawState.choicePreferences).success ? ChoicePreferencesSchema.parse(rawState.choicePreferences) : undefined,
     saveVersion: SAVE_VERSION,
     conditions: normalizeHealthConditions(rawState.conditions),

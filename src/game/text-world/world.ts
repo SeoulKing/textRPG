@@ -1,3 +1,4 @@
+import { particle } from "../korean";
 import { ancestors, carriedByPlayer, occludedByContainer, occludedByCover, sealedFromReach, passageBlockers, rootZone, releaseStructureContents, normalizeCover } from "./spatial";
 import { upgradeShelterCover } from "./shelter-definitions";
 import { TextWorldSchema, type TextEntity, type TextWorld, type TextRoom } from "../schemas/text-world";
@@ -145,11 +146,7 @@ export function canReach(world: TextWorld, entity: TextEntity) {
     && world.observations[world.player.near!]?.inspected && entityDetails(world, entity).anchor === world.player.position;
   return same && (carriedByPlayer(world, entity) || world.player.near === entity.id || discoveredHere || entity.components.position.relation === "beside" && entity.components.position.relativeTo === world.player.near || parents.some(parent => parent.id === world.player.near));
 }
-export function particle(name: string, consonant: string, vowel: string) {
-  const code = name.charCodeAt(name.length - 1) - 0xac00;
-  const finalIndex = code >= 0 && code <= 11171 ? code % 28 : 0;
-  return name + (finalIndex !== 0 && !(consonant === "으로" && finalIndex === 8) ? consonant : vowel);
-}
+export { particle } from "../korean";
 
 
 export function hasDoorKey(world: TextWorld, state: { inventory: Record<string, number> }, entity: TextEntity) {

@@ -1,3 +1,4 @@
+import { SnapshotSchema } from "../state-world/model";
 import { z } from "zod";
 import { ActivityResultSchema } from "./activity";
 import { PlayerSchema } from "./player";
@@ -72,6 +73,7 @@ export const GameStateSchema = z.object({
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
   subwayExpedition: SubwayExpeditionStateSchema,
+  stateWorld: SnapshotSchema.optional(),
   textWorld: TextWorldSchema.nullable().default(null),
   locationTextWorlds: z.record(z.string(), TextWorldSchema).default({}),
   npcDialogue: NpcDialogueStateSchema,

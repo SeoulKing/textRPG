@@ -1,4 +1,5 @@
 import "./load-env";
+import { registerStateWorldRoutes } from "./state-world-routes";
 import crypto from "node:crypto";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
@@ -450,6 +451,7 @@ async function bootstrap() {
     }
   });
 
+  registerStateWorldRoutes(app, repository);
   app.post("/api/games", async () => {
     return gameService.createGame();
   });

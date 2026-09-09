@@ -20,6 +20,10 @@ The engine rolls normal floor loot from fixed depth tables and gives the model a
 
 LLM-led world expansion is deferred. It remains in the codebase as an optional development feature, but normal play uses authored/template content.
 
+## Deterministic state world
+
+The home screen now includes **작은 창고 · 상태 기반 월드**, a two-room object/placement engine that runs without LLM calls. It reuses the server, game clock and file/PostgreSQL repository while preserving the existing survival game. See [implementation, API, tests and scope](docs/state-world-engine.md).
+
 ## Run
 
 ```powershell
