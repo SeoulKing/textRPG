@@ -1,13 +1,29 @@
 import type { LocationDefinition } from "../../schemas";
+import { arcanaHuntingGroundRegion } from "./arcana-hunting-ground";
+import { arcanaPlazaRegion } from "./arcana-plaza";
 import { checkpointRegion } from "./checkpoint";
 import { convenienceRegion } from "./convenience";
 import { forestRegion } from "./forest";
 import { hospitalRegion } from "./hospital";
 import { kitchenRegion } from "./kitchen";
+import { magicCityEntranceRegion } from "./magic-city-entrance";
+import { riverRegion } from "./river";
 import { shelterRegion } from "./shelter";
 import { subwayRegion } from "./subway";
 
-export const regionModules = [shelterRegion, convenienceRegion, kitchenRegion, forestRegion, hospitalRegion, subwayRegion, checkpointRegion];
+export const regionModules = [
+  shelterRegion,
+  convenienceRegion,
+  kitchenRegion,
+  forestRegion,
+  riverRegion,
+  hospitalRegion,
+  subwayRegion,
+  checkpointRegion,
+  magicCityEntranceRegion,
+  arcanaPlazaRegion,
+  arcanaHuntingGroundRegion,
+];
 
 export const baseLocations = Object.fromEntries(
   regionModules.map((region) => [region.location.id, region.location]),

@@ -6,7 +6,7 @@ export const hospitalChoices: ActionDefinition[] = [
     id: "go_to_hospital_medicine_cabinet",
     label: "약품 보관함으로 간다",
     type: "search",
-    outcomeHint: "깨진 접수대 뒤 약품 보관함을 열어, 남은 약과 무전기 배터리를 확인한다.",
+    outcomeHint: "깨진 접수대 뒤 약품 보관함을 열어, 남은 약과 {{item:radioBattery|을를}} 확인한다.",
     effects: [
       { type: "focus_stock_node", nodeId: "hospital_medicine_cabinet" },
       { type: "log", message: "당신은 깨진 접수대 뒤로 몸을 낮춰 약품 보관함 앞에 선다." },
@@ -30,6 +30,57 @@ export const hospitalChoices: ActionDefinition[] = [
     tags: ["medicine", "recovery"],
     riskHint: "low",
   }),
+  interactionFor("hospital", {
+    id: "help_hospital_triage",
+    label: "임시 처치대를 돕는다",
+    type: "use",
+    outcomeHint: "기력 -1 / 보상: {{item:painRelief}}·{{item:clothScrap}}·{{item:cordage}}·간단한 처치 중 하나 / +35분",
+    showOutcomeHint: true,
+    conditions: [{ type: "stat_gte", stat: "energy", value: 1 }],
+    effects: [
+      { type: "change_stat", stat: "energy", value: -1 },
+      { type: "advance_time", minutes: 35 },
+      {
+        type: "random_outcome",
+        outcomes: [
+          {
+            weight: 30,
+            effects: [
+              { type: "add_item", itemId: "painRelief", amount: 1 },
+              { type: "log", message: "당신은 임시 처치대를 돕고 {{item:painRelief}} 한 알을 받았다." },
+              { type: "set_scene", sceneId: "hospital_triage_pain_relief" },
+            ],
+          },
+          {
+            weight: 30,
+            effects: [
+              { type: "add_item", itemId: "clothScrap", amount: 1 },
+              { type: "log", message: "당신은 더러운 붕대 더미를 정리하다가 쓸 만한 {{item:clothScrap}} 하나를 챙겼다." },
+              { type: "set_scene", sceneId: "hospital_triage_cloth" },
+            ],
+          },
+          {
+            weight: 20,
+            effects: [
+              { type: "add_item", itemId: "cordage", amount: 1 },
+              { type: "log", message: "당신은 수액줄을 걷어 내고 묶는 데 쓸 만한 {{item:cordage}} 하나를 얻었다." },
+              { type: "set_scene", sceneId: "hospital_triage_cordage" },
+            ],
+          },
+          {
+            weight: 20,
+            effects: [
+              { type: "change_stat", stat: "hp", value: 1 },
+              { type: "log", message: "당신은 처치대를 도운 대가로 짧은 소독과 붕대 교체를 받았다." },
+              { type: "set_scene", sceneId: "hospital_triage_treatment" },
+            ],
+          },
+        ],
+      },
+    ],
+    tags: ["medicine", "work", "repeatable", "resource"],
+    riskHint: "medium",
+  }),
 ];
 
 export const hospitalLocation = defineLocation({
@@ -40,12 +91,13 @@ export const hospitalLocation = defineLocation({
   imagePath: "assets/scenes/hospital.svg",
   summary: "깨진 유리와 소독약 냄새, 낮은 신음이 뒤섞인 작은 병원이다. 아직 쓸 만한 약품과 전원 부품이 남아 있다.",
   tags: ["medicine", "signal", "day4"],
-  traits: ["first aid", "battery", "stress"],
+  traits: ["first aid", "battery", "stress", "triage work"],
   obtainableItemIds: ["painRelief", "clothScrap", "cordage", "radioBattery"],
-  neighbors: ["convenience"],
+  neighbors: ["convenience", "river"],
   interactionChoices: hospitalChoices,
   links: {
     convenience: { note: "병원 뒤편 골목을 거슬러 편의점 폐허 쪽으로 돌아간다." },
+    river: { note: "병원 옆 무너진 제방 계단을 따라 강가로 내려간다." },
   },
   stockNodes: [
     stockNode({

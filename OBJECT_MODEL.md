@@ -77,12 +77,13 @@ src/game/data/regions/<region>/
 
 ## 3. 상태 변경 흐름
 
-클라이언트가 보낼 수 있는 액션은 네 종류입니다.
+클라이언트가 보낼 수 있는 액션은 다섯 종류입니다.
 
 - `travel`: 이미 열린 지역으로 이동합니다.
 - `use_item`: 인벤토리 아이템을 사용합니다.
 - `content_action`: location interaction을 실행합니다.
 - `content_choice`: 현재 scene choice를 실행합니다.
+- `subway_expedition`: 심층 탐험의 사건·파밍·이동과 턴 기반 강도 조우를 실행합니다.
 
 주요 처리 파일:
 
@@ -94,6 +95,8 @@ src/game/data/regions/<region>/
 - `src/game/repository.ts`: 파일 기반 세이브 저장, 로딩, 정규화를 담당합니다.
 
 프런티어와 continuation은 일반 `rules.performAction()`보다 먼저 `GameService`에서 가로채 처리합니다. 그 외 제작, 파밍, 이동, 아이템 사용은 기존 rules/effect 흐름으로 처리됩니다.
+
+지하 1층 강도 조우는 `선택 검증 -> 서버 확률 판정 -> 임시 상태 변경 -> Gemini 장면 생성·검증 -> 세션 저장` 순서로 처리합니다. LLM은 `fight`, `talk`, `flee`, `strike`, `throw_debris` 중 현재 단계에서 서버가 허용한 ID만 반환할 수 있으며, 피해·시간·적 체력·고정 보상을 만들거나 바꿀 수 없습니다. 응답 생성과 검증이 최초 요청 및 두 번의 재시도에서 모두 실패하면 임시 상태를 저장하지 않습니다.
 
 효과 실행 경계:
 

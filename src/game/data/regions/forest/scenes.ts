@@ -39,7 +39,7 @@ export const forestSceneDefinitions: SceneDefinition[] = [
     title: "벌목",
     tags: [forestResultSceneTags.chop],
     paragraphs: [
-      "당신은 마른 나무와 부서진 가지를 골라 칼날을 세운다. 젖지 않은 부분만 따로 떼어 내자, 손에 들 만한 판자들이 묵직하게 모인다.",
+      "쓰러진 나무 옆에서 마른 가지를 골라낸다. 부러진 끝을 잡고 젖은 부분을 떼어 내자, 품에 안을 만한 목재가 하나씩 모인다.",
       "팔에는 뻐근한 힘이 남았지만 성과는 분명하다. 오늘 밤 불을 피우거나 거처를 손보는 데 쓸 수 있을 것이다.",
     ],
     choiceIds: [],
@@ -51,7 +51,7 @@ export const forestSceneDefinitions: SceneDefinition[] = [
     title: "벌목",
     tags: [forestResultSceneTags.chop],
     paragraphs: [
-      "넘어진 가로수의 마른 부분을 찾아내자, 톱니처럼 갈라진 나무껍질이 손끝에 걸린다. 당신은 쓸 만한 부분만 잘라 한쪽에 차곡차곡 쌓는다.",
+      "넘어진 가로수의 마른 부분을 찾아내자, 톱니처럼 갈라진 나무껍질이 손끝에 걸린다. 이미 부러진 가지 중 단단한 것만 골라 한쪽에 차곡차곡 쌓는다.",
       "작은 숲은 금세 다시 조용해진다. 남은 것은 젖은 흙 냄새와 등에 멘 목재의 무게뿐이다.",
     ],
     choiceIds: [],
@@ -63,7 +63,7 @@ export const forestSceneDefinitions: SceneDefinition[] = [
     title: "벌목",
     tags: [forestResultSceneTags.chop],
     paragraphs: [
-      "당신은 무너진 울타리 너머로 들어가 아직 단단한 목재만 골라낸다. 갈라진 끝을 다듬고 끈으로 묶자, 제법 쓸 만한 자재가 품에 안긴다.",
+      "무너진 울타리 너머에서 떨어진 나뭇가지를 골라낸다. 무른 조각을 빼고 단단한 것끼리 모으자, 쓸 만한 목재가 품에 안긴다.",
       "짧은 작업이었지만 숨은 가빠진다. 그래도 빈손으로 돌아가는 것보다는 훨씬 낫다.",
     ],
     choiceIds: [],
@@ -288,7 +288,7 @@ export const forestSceneDefinitions: SceneDefinition[] = [
   {
     id: "forest_forage_greens_result_1",
     locationId: "forest",
-    title: "산나물",
+    title: "채소",
     tags: [forestResultSceneTags.forageGreens],
     paragraphs: [
       "젖은 풀잎 사이에서 익숙한 모양의 잎이 보인다. 당신은 독이 오를 만한 줄기는 버리고, 어린 잎만 조심스럽게 뜯는다.",
@@ -300,7 +300,7 @@ export const forestSceneDefinitions: SceneDefinition[] = [
   {
     id: "forest_forage_greens_result_2",
     locationId: "forest",
-    title: "산나물",
+    title: "채소",
     tags: [forestResultSceneTags.forageGreens],
     paragraphs: [
       "햇빛이 조금 드는 비탈에 잎이 옹기종기 돋아 있다. 당신은 흙을 털어 내며 먹을 수 있는 부분만 골라낸다.",

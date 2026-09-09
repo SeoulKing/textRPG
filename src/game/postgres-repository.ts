@@ -7,12 +7,20 @@ import { buildManualSaveInfo, emptyTemplateStore, normalizeGameSession, normaliz
 
 export class PostgresGameRepository implements GameRepository {
   private readonly pool: Pool;
+  private readonly lockPool: Pool;
   private readonly schemaPath: string;
 
   constructor(databaseUrl: string, rootDir: string) {
-    this.pool = new Pool({
+    const connectionOptions = {
       connectionString: databaseUrl,
       ssl: databaseUrl.includes("supabase.co") ? { rejectUnauthorized: false } : undefined,
+    };
+    this.pool = new Pool(connectionOptions);
+    // Lock waiters use a separate, small pool so they cannot occupy every data
+    // connection while the lock holder is trying to load or save the session.
+    this.lockPool = new Pool({
+      ...connectionOptions,
+      max: 4,
     });
     this.schemaPath = path.join(rootDir, "src", "db", "schema.sql");
   }
@@ -27,6 +35,30 @@ export class PostgresGameRepository implements GameRepository {
        on conflict (kind, template_id) do nothing`,
       ["__meta__", "bootstrap", JSON.stringify(emptyTemplateStore)],
     );
+  }
+
+  async withGameLock<T>(gameId: string, operation: () => Promise<T>) {
+    const client = await this.lockPool.connect();
+    let transactionOpen = false;
+    try {
+      await client.query("begin");
+      transactionOpen = true;
+      await client.query(
+        "select pg_advisory_xact_lock(hashtextextended($1::text, 0))",
+        [gameId],
+      );
+      const result = await operation();
+      await client.query("commit");
+      transactionOpen = false;
+      return result;
+    } catch (error) {
+      if (transactionOpen) {
+        await client.query("rollback").catch(() => undefined);
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async saveGame(session: GameSession) {
