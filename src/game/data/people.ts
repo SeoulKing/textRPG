@@ -3,6 +3,16 @@
  */
 
 export const basePeople = {
+  shumi: {
+    id: "shumi",
+    name: "슈미",
+    role: "지하철역 대합실 거주자",
+    personality: ["까칠함", "경계심이 강함", "마음이 여림"],
+    relationToPlayer: "아직 서로 처음 보는 사이이며, 슈미는 쉽게 거리를 좁히지 않는다.",
+    inventoryItemIds: [],
+    locationId: "subway",
+    summary: "대합실에서 홀로 지내는 열아홉 살 생존자다. 차갑게 선을 긋지만 곤란한 사람을 외면하지 못한다.",
+  },
   oldCook: {
     id: "oldCook",
     name: "노파 배식 담당",

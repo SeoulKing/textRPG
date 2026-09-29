@@ -1,0 +1,121 @@
+:root {
+  color-scheme: dark;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: #101512;
+  color: #edf4ee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(70, 112, 80, 0.2), transparent 42%),
+    #101512;
+}
+
+.preview-shell {
+  width: min(100%, 768px);
+  margin: 0 auto;
+}
+
+.preview-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.preview-eyebrow {
+  margin: 0 0 4px;
+  color: #92b99b;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+}
+
+.preview-header h1 {
+  margin: 0;
+  font-size: clamp(1.2rem, 5vw, 1.8rem);
+}
+
+.preview-viewport {
+  color: #92b99b;
+  font-size: 0.78rem;
+}
+
+.preview-frame {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 24 / 7;
+  border: 1px solid rgba(146, 185, 155, 0.34);
+  border-radius: 10px;
+  background: #171c19;
+}
+
+.preview-frame canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.preview-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.preview-controls button {
+  min-height: 42px;
+  border: 1px solid rgba(146, 185, 155, 0.35);
+  border-radius: 8px;
+  background: #1d2720;
+  color: #edf4ee;
+  font: inherit;
+  cursor: pointer;
+}
+
+.preview-controls button:hover,
+.preview-controls button:focus-visible {
+  border-color: #9fd0aa;
+  background: #263329;
+}
+
+.preview-debug {
+  min-height: 130px;
+  margin: 12px 0 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(146, 185, 155, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #b9d6bf;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 16px 0;
+  }
+
+  .preview-header,
+  .preview-controls,
+  .preview-debug {
+    margin-right: 12px;
+    margin-left: 12px;
+  }
+
+  .preview-frame {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+}

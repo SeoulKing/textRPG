@@ -1,8 +1,17 @@
+import { SnapshotSchema } from "../state-world/model";
 import { z } from "zod";
+import { ActivityResultSchema } from "./activity";
 import { PlayerSchema } from "./player";
 import { WorldStateSchema } from "./world-state";
 import { QuestStateSchema } from "./quest";
 import { DynamicWorldRegistrySchema, FrontierStateSchema, NarrativeStateSchema, WorldPlanSchema } from "./dynamic-world";
+import { SubwayExpeditionStateSchema } from "./subway-expedition";
+import { SkillProgressStateSchema } from "./skill-progression";
+import { SystemNoteEntriesSchema } from "./system-note";
+import { NpcDialogueStateSchema } from "./npc-dialogue";
+import { HealthConditionsSchema } from "./health-condition";
+import { ChoicePreferencesSchema } from "./choice-preferences";
+import { TextWorldSchema } from "./text-world";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -10,13 +19,16 @@ export const LogEntrySchema = z.object({
 });
 
 export const GameStateSchema = z.object({
+  choicePreferences: ChoicePreferencesSchema.optional(),
   saveVersion: z.number().int(),
+  contentVersionId: z.string().optional(),
   sceneId: z.string(),
   activeEventId: z.string().nullable(),
   location: z.string(),
   day: z.number().int().positive(),
   phaseIndex: z.number().int().nonnegative(),
   worldElapsedMs: z.number().int().nonnegative(),
+  clockRemainderMs: z.number().min(-0.5).max(0.5).optional(),
   lastRealTimestamp: z.number().int().nonnegative(),
   autoEnergyElapsedMs: z.number().int().nonnegative(),
   exhaustionElapsedMs: z.number().int().nonnegative(),
@@ -30,9 +42,17 @@ export const GameStateSchema = z.object({
   }),
   money: z.number().int().nonnegative(),
   skills: z.array(z.string()),
+  skillProgress: SkillProgressStateSchema,
   inventory: z.record(z.string(), z.number().int().nonnegative()),
   toolDurability: z.record(z.string(), z.number().int().nonnegative()).default({}),
   stockState: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  activityRevision: z.number().int().nonnegative().default(0),
+  lastActivity: ActivityResultSchema.nullable().default(null),
+  resourceState: z.record(z.string(), z.record(z.string(), z.object({
+    remaining: z.number().int().nonnegative(),
+    updatedAtMinutes: z.number().nonnegative(),
+    recoveryProgressMinutes: z.number().nonnegative(),
+  }))).default({}),
   discoveredStockNodeIds: z.array(z.string()).default([]),
   activeStockNodeId: z.string().nullable().default(null),
   dynamicContent: DynamicWorldRegistrySchema.default({
@@ -52,12 +72,19 @@ export const GameStateSchema = z.object({
   }),
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
+  subwayExpedition: SubwayExpeditionStateSchema,
+  stateWorld: SnapshotSchema.optional(),
+  textWorld: TextWorldSchema.nullable().default(null),
+  locationTextWorlds: z.record(z.string(), TextWorldSchema).default({}),
+  npcDialogue: NpcDialogueStateSchema,
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),
   lastSleepEnergy: z.number().int().min(0).max(15),
   exhaustionLevel: z.number().int().nonnegative(),
+  conditions: HealthConditionsSchema,
   log: z.array(LogEntrySchema),
   systemNote: z.string(),
+  systemNoteEntries: SystemNoteEntriesSchema.default([]),
 });
 
 export const GameStateV2Schema = z.object({

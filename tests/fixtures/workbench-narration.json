@@ -1,0 +1,221 @@
+{
+  "context": {
+    "interaction": {
+      "mode": "FOCUS",
+      "focus": "거처 작업대",
+      "holding": null,
+      "goal": "explore",
+      "threat": null
+    },
+    "voice": {
+      "person": "first",
+      "selfReference": "나",
+      "tense": "present",
+      "omitSubject": true
+    },
+    "intent": {
+      "id": "repair:shelter_workbench",
+      "label": "거처 작업대를 수리한다",
+      "thought": "손보면 다시 쓸 수 있겠지.",
+      "importance": "major"
+    },
+    "location": {
+      "id": "shelter_work_corner",
+      "name": "임시 거처 · 살림 자리",
+      "lighting": "lit",
+      "firstVisit": false
+    },
+    "player": {
+      "zone": "shelter_work_corner",
+      "near": "shelter_workbench",
+      "position": "far-wall",
+      "facing": "shelter_workbench",
+      "posture": "standing",
+      "heldToolId": null,
+      "placementTargetId": null,
+      "focusEntityId": "shelter_workbench",
+      "heldItemId": null,
+      "manipulating": false,
+      "relation": "near",
+      "coverId": null,
+      "positionLabel": "입구 맞은편 벽",
+      "facingLabel": "거처 작업대",
+      "heldTool": null
+    },
+    "results": [
+      {
+        "origin": "player",
+        "actorId": "player",
+        "witnessed": true,
+        "type": "REPAIR",
+        "targetId": "shelter_workbench",
+        "before": {
+          "integrity": 0,
+          "destroyed": true
+        },
+        "after": {
+          "name": "거처 작업대",
+          "integrity": 5,
+          "rebuilt": true,
+          "effort": "판재를 새로 대고 고철과 끈으로 가로대의 이음새를 단단히 고정한다.",
+          "materials": [
+            {
+              "itemId": "woodPlank",
+              "amount": 2,
+              "name": "나무 판자"
+            },
+            {
+              "itemId": "scrapMetal",
+              "amount": 2,
+              "name": "고철 조각"
+            },
+            {
+              "itemId": "cordage",
+              "amount": 1,
+              "name": "끈 묶음"
+            }
+          ],
+          "inventoryDelta": {
+            "woodPlank": -2,
+            "scrapMetal": -2,
+            "cordage": -1
+          },
+          "toolBroken": false,
+          "energyCost": 1
+        },
+        "at": 5,
+        "id": "event:2"
+      }
+    ],
+    "requiredFacts": [
+      {
+        "id": "result:0",
+        "kind": "result",
+        "targetId": "shelter_workbench",
+        "data": {
+          "origin": "player",
+          "actorId": "player",
+          "witnessed": true,
+          "type": "REPAIR",
+          "targetId": "shelter_workbench",
+          "before": {
+            "integrity": 0,
+            "destroyed": true
+          },
+          "after": {
+            "name": "거처 작업대",
+            "integrity": 5,
+            "rebuilt": true,
+            "effort": "판재를 새로 대고 고철과 끈으로 가로대의 이음새를 단단히 고정한다.",
+            "materials": [
+              {
+                "itemId": "woodPlank",
+                "amount": 2,
+                "name": "나무 판자"
+              },
+              {
+                "itemId": "scrapMetal",
+                "amount": 2,
+                "name": "고철 조각"
+              },
+              {
+                "itemId": "cordage",
+                "amount": 1,
+                "name": "끈 묶음"
+              }
+            ],
+            "inventoryDelta": {
+              "woodPlank": -2,
+              "scrapMetal": -2,
+              "cordage": -1
+            },
+            "toolBroken": false,
+            "energyCost": 1
+          },
+          "at": 5,
+          "id": "event:2"
+        }
+      },
+      {
+        "id": "structure:shelter_workbench",
+        "kind": "structure",
+        "data": {
+          "name": "거처 작업대",
+          "material": "나무",
+          "integrity": 5,
+          "maxIntegrity": 5,
+          "destroyed": false
+        },
+        "targetId": "shelter_workbench"
+      },
+      {
+        "id": "facility:shelter_workbench",
+        "kind": "facility",
+        "data": {
+          "name": "거처 작업대",
+          "storage": false,
+          "available": true,
+          "kinds": [
+            "craft"
+          ],
+          "durationMultiplier": 0.8
+        },
+        "targetId": "shelter_workbench"
+      }
+    ],
+    "optionalFacts": [
+      {
+        "id": "surface:shelter_workbench",
+        "kind": "surface",
+        "data": {
+          "name": "거처 작업대",
+          "detail": "판재와 가로대를 연결한 목재 작업대다."
+        },
+        "targetId": "shelter_workbench"
+      }
+    ],
+    "knownFacts": [],
+    "recentScenes": [
+      {
+        "zone": "shelter_work_corner",
+        "intent": "임시 거처 · 살림 자리에 들어선다",
+        "paragraphs": [
+          "천막 안쪽으로 걸음을 옮겨 물건을 정리할 자리를 살핀다. 가까운 사물을 구별할 만큼 빛이 닿는다.",
+          "천막 입구를 기준으로 왼쪽 바닥에 뚜껑 달린 보관함이 있고, 맞은편에는 판재를 받치는 작업대가 놓여 있다. 천막 입구 기준 왼쪽 바닥에는 거처 보관함이 보인다. 천막 입구 맞은편에는 거처 작업대가 보인다."
+        ]
+      },
+      {
+        "zone": "shelter_work_corner",
+        "intent": "거처 작업대로 다가간다",
+        "paragraphs": [
+          "천막 입구 맞은편의 거처 작업대로 다가간다. 거처 작업대의 구조는 부서진 상태다. 거처 작업대는 구조를 복원해야 작업에 쓸 수 있다."
+        ]
+      }
+    ],
+    "paragraphCount": {
+      "min": 2,
+      "max": 3
+    },
+    "direction": {
+      "focusTargetId": "shelter_workbench",
+      "beats": [
+        {
+          "role": "change",
+          "resultFactIds": [
+            "result:0"
+          ],
+          "detailFactIds": [
+            "structure:shelter_workbench",
+            "facility:shelter_workbench",
+            "surface:shelter_workbench"
+          ]
+        }
+      ]
+    },
+    "nextChoices": []
+  },
+  "prose": [
+    "나무 판자를 대고 고철과 끈으로 이음새를 엮어 나간다. 손끝에 거친 결이 닿으며 가로대가 제 자리를 잡아간다.",
+    "단단히 고정된 뼈대 위로 매끄러운 목재 작업대의 표면이 온전히 드러난다. 이제 다시 쓸 수 있게 된 거처 작업대가 단단하게 자리를 지킨다."
+  ]
+}

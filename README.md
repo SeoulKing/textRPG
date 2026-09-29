@@ -4,16 +4,25 @@ Server-driven survival text RPG set in a collapsing Seoul.
 
 The current playable direction is a compact 10-day survival game: gather supplies, reinforce the shelter, collect three radio parts, assemble a rescue signal, and survive until the rescue check on day 10.
 
-The seed world is hand-authored around six fixed regions:
+The seed world is hand-authored around seven fixed regions:
 
 - shelter
 - convenience store
 - soup kitchen
+- forest
 - hospital
 - subway station
 - checkpoint
 
+The subway station also contains a repeatable deep-expedition mode. The concourse remains authored content, while Gemini can direct a run-local mystery and package each underground floor as one major event, all prewritten choice outcomes, and three loot spots. Every new run always starts with the bandit encounter on underground floor 1; the generated major event never replaces or skips it. The server owns hit rolls, damage, time, enemy HP, and the fixed reward; Gemini receives the selected action and the authoritative result, then writes the next scene and selects from server-allowed actions. Invalid or failed encounter responses are retried twice, and the game action is not saved if all attempts fail. Defeating the bandit adds one canned food and one pain relief item to temporary expedition loot.
+
+The engine rolls normal floor loot from fixed depth tables and gives the model an exact mechanics envelope; output outside those rules is regenerated up to two times and then replaced by a visibly labeled template floor. A template for the next floor is persisted immediately and upgraded in the background with the same loot and mechanics. Loot only enters the main inventory after a successful return, and run-local story memory is cleared on return.
+
 LLM-led world expansion is deferred. It remains in the codebase as an optional development feature, but normal play uses authored/template content.
+
+## Deterministic state world
+
+The home screen now includes **작은 창고 · 상태 기반 월드**, a two-room object/placement engine that runs without LLM calls. It reuses the server, game clock and file/PostgreSQL repository while preserving the existing survival game. See [implementation, API, tests and scope](docs/state-world-engine.md).
 
 ## Run
 
@@ -37,6 +46,23 @@ npm run start
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
+홈 화면의 **유니티 웹**을 누르면 Unity 프로젝트의 WebGL 빌드가 `/unity-web`에서 열립니다. 다른 프로젝트를 빌드하려면 WebGL 모듈이 있는 Unity 에디터로 다음 명령을 실행합니다. 스크립트는 원본 프로젝트를 복사해 빌드하며, 결과를 `assets/unity-preview`에 놓습니다.
+
+```powershell
+.\scripts\build-unity-preview.ps1 -ProjectPath 'D:\path\to\UnityProject'
+```
+
+미리보기는 본편 저장 데이터와 별개입니다. 모바일에서 공개 URL로 변경 사항을 확인하려면 생성된 `assets/unity-preview`를 저장소에 반영하고, Render가 배포하는 브랜치에 푸시해야 합니다. 로컬 빌드만으로는 공개 사이트가 갱신되지 않습니다. 현재 숲 프로토타입의 사용법은 [`unity-mvp/README.md`](unity-mvp/README.md)에 있습니다.
+
+## Content Studio
+
+The home screen links to the writer workspace at [/content-editor](http://127.0.0.1:3000/content-editor).
+Create regions and characters, write dialogue and choices, assign item rewards, connect story graphs, and test drafts without affecting player saves.
+Published content applies to new games; existing saves retain their content version.
+
+See [the writer guide and storage migration notes](CONTENT_STUDIO.md).
+Production access retains the existing ENABLE_CONTENT_STUDIO, CONTENT_STUDIO_ADMIN_TOKEN and PostgreSQL requirements.
+
 ## Deploy
 
 This project needs a long-running Node server because the browser talks to `/api/games`.
@@ -45,7 +71,7 @@ GitHub Pages can host the static files, but it cannot run the game API.
 The root `render.yaml` defines a Render Blueprint for:
 
 - a Node web service that runs `node .server-dist/server.js`
-- a Render Postgres database connected through `DATABASE_URL`
+- a PostgreSQL database connected through `NEON_DATABASE_URL` or `DATABASE_URL`
 - `/api/health` as the deployment health check
 
 Render setup:
@@ -59,15 +85,34 @@ The Blueprint uses free Render instances for the first MVP deployment. Upgrade t
 
 ## Optional Gemini Setup
 
-Gemini is not required for normal play.
+Gemini is not required for the authored surface survival loop. The experimental underground-floor-1 bandit encounter requires Gemini and refuses to apply an encounter action when generation remains unavailable after two retries.
 
 Optional settings:
 
 - `ENABLE_LLM_WORLD_PLANNER=true`
+- `ENABLE_LLM_BACKGROUND_GENERATION=true` opts into speculative story/floor generation (default: off). With it off, local floor templates remain ready and Gemini still narrates player-selected exploration and encounters.
+- `ENABLE_LLM_SUBWAY_EXPEDITION=false` to use built-in fallback floors after the mandatory bandit encounter
 - `GEMINI_MODEL`
 - `GEMINI_API_URL`
 
-Default model: `gemini-3.1-flash-lite-preview`
+Default model: `gemini-3.5-flash-lite`
+
+The live subway encounter uses separate LLM roles:
+
+```text
+opening_scene → choices
+player choice → server resolution → result_scene → choices
+```
+
+The scene roles only write prose. The choices role receives server-owned
+`allowedIntents`, while the server remains authoritative for probability,
+damage, time, inventory, rewards, and encounter completion.
+
+The pipeline runs directly in the TypeScript backend. Each role has its own
+prompt and Zod output contract. Gemini also receives the corresponding JSON
+schema, and the server validates the returned value again before passing it to
+the next role. A failed role is repaired with the existing server-owned
+fallback without handing game-state authority to the model.
 
 By default, the world planner uses the safe template planner even when `GEMINI_API_KEY` exists.
 
@@ -116,6 +161,7 @@ When a user is logged in, `저장하기` writes to that account's single manual 
 - `PORT`
 - `RUNTIME_DIR`
 - `DATABASE_URL`
+- `NEON_DATABASE_URL` (takes precedence over `DATABASE_URL`)
 - `PUBLIC_BASE_URL`
 - `AUTH_SECRET`
 - `KAKAO_REST_API_KEY`
@@ -123,10 +169,11 @@ When a user is logged in, `저장하기` writes to that account's single manual 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-If `DATABASE_URL` is empty, the game uses the local file repository under `.runtime` or `RUNTIME_DIR` when set.
+If both `NEON_DATABASE_URL` and `DATABASE_URL` are empty, the game uses the local file repository under `.runtime` or `RUNTIME_DIR` when set.
 
 ## Docs
 
 - Project structure: `OBJECT_MODEL.md`
 - World design: `WORLD_DESIGN.md`
+- Subway expedition design and loot tables: `SUBWAY_EXPEDITION.md`
 - Content ledger: `CONTENT_LEDGER.md`

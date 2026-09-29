@@ -1,0 +1,42 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const {GameService}=require('../.server-dist/game/service');
+const {GameStateSchema}=require('../.server-dist/game/schemas');
+const {fallbackNarration}=require('../.server-dist/game/text-world/narrator');
+
+test('a fresh survivor can explore, gather, craft a cooking setup and eat through the offered choices',async t=>{
+  const keys=['ENABLE_LLM_WORLD_PLANNER','ENABLE_LLM_BACKGROUND_GENERATION'];
+  const previous=Object.fromEntries(keys.map(key=>[key,process.env[key]]));
+  for(const key of keys)process.env[key]='false';
+  t.after(()=>{for(const key of keys)if(previous[key]===undefined)delete process.env[key];else process.env[key]=previous[key]});
+  t.mock.method(global,'fetch',async()=>{throw Error('External generation is disabled in survival route tests')});
+  let stored;
+  const repository={withGameLock:async(_id,fn)=>fn(),loadGame:async()=>structuredClone(stored),saveGame:async s=>{stored=JSON.parse(JSON.stringify(s));stored.state=GameStateSchema.parse(stored.state)},getTemplate:async()=>undefined,saveTemplate:async()=>{},saveProtagonistTemplate:async()=>{},appendGenerationLog:async()=>{},appendActionLog:async()=>{}};
+  const service=new GameService(repository,undefined,undefined,undefined,undefined,async c=>fallbackNarration(c));
+  let snapshot=await service.createGame();
+  const choose=async id=>{
+    if(id.startsWith('explore:')&&!snapshot.availableActions.some(c=>c.action.optionId===id)&&snapshot.availableActions.some(c=>c.action.optionId==='defocus'))await choose('defocus');
+    const selected=snapshot.availableActions.find(c=>c.id===id||c.action.choiceId===id||c.action.actionId===id||c.action.optionId===id);
+    const action=selected?.action??(id.startsWith('travel:')?{type:'travel',targetId:id.slice(7)}:id.startsWith('use:')?{type:'use_item',itemId:id.slice(4)}:undefined);
+    assert(action,'Not offered: '+id+'; '+snapshot.availableActions.map(c=>c.action.optionId||c.action.actionId||c.action.choiceId).join(','));
+    if(selected)assert(selected.isAvailable,'Unavailable: '+id);
+    snapshot=await service.performAction(stored.id,action);
+    assert(!snapshot.state.isGameOver,'Survival route ended at '+id);
+    return snapshot;
+  };
+  for(const id of ['opening_commit','travel:convenience','explore:convenience_food_crate','collect:convenience_food_crate','explore:convenience_shelf','collect:convenience_shelf','defocus','explore:convenience_register','collect:convenience_register','explore:convenience_supply_pile','collect:convenience_supply_pile','travel:shelter','travel:subway','travel:office','explore:crate','collect:crate','leave','travel:forest','harvest:chop_wood_at_forest','travel:shelter','open_shelter_crafting','craft_shelter_brazier','craft_dented_pot','craft_firewood','leave_shelter_crafting','open_shelter_cooking','cook_rice_porridge'])await choose(id);
+  assert.equal(snapshot.state.inventory.ricePorridge,1);
+  assert.equal(snapshot.state.inventory.dentedPot,1);
+  assert.equal(snapshot.state.inventory.firewood,3);
+  assert.equal(snapshot.state.inventory.rawRice??0,0);
+  const energyBefore=snapshot.state.stats.energy,timeBefore=snapshot.state.worldElapsedMs;
+  await choose('use:ricePorridge');
+  assert.equal(snapshot.state.inventory.ricePorridge??0,0);
+  assert(snapshot.state.stats.energy>energyBefore);
+  assert(snapshot.state.worldElapsedMs>timeBefore);
+  assert.equal(snapshot.state.inventory.scrapMetal,1);
+  const savedInventory=structuredClone(snapshot.state.inventory),savedTime=snapshot.state.worldElapsedMs;
+  snapshot=await service.getState(stored.id);
+  assert.deepEqual(snapshot.state.inventory,savedInventory);
+  assert.equal(snapshot.state.worldElapsedMs,savedTime);
+  assert(snapshot.availableActions.some(c=>c.action.actionId==='leave_shelter_cooking'||c.action.choiceId==='leave_shelter_cooking'));
+});

@@ -1,0 +1,667 @@
+{
+  "context": {
+    "interaction": {
+      "mode": "THREAT",
+      "focus": null,
+      "holding": null,
+      "goal": "survive_encounter",
+      "threat": "hostile"
+    },
+    "voice": {
+      "person": "first",
+      "selfReference": "나",
+      "tense": "present",
+      "omitSubject": true
+    },
+    "intent": {
+      "id": "separate:depth_1_1_landing",
+      "label": "계단실로 건너가 계단실 철문을 닫는다",
+      "thought": "문을 사이에 두면 틈이 생길까.",
+      "importance": "major"
+    },
+    "location": {
+      "id": "depth_1_1_landing",
+      "name": "지하 1층 · 계단실",
+      "lighting": "lit",
+      "firstVisit": true
+    },
+    "player": {
+      "zone": "depth_1_1_landing",
+      "near": "depth_1_1_door",
+      "position": "entrance",
+      "facing": "stairs",
+      "posture": "standing",
+      "heldToolId": null,
+      "placementTargetId": null,
+      "focusEntityId": null,
+      "heldItemId": null,
+      "manipulating": false,
+      "relation": "near",
+      "coverId": null,
+      "positionLabel": "이 방으로 들어온 입구",
+      "facingLabel": "주변",
+      "heldTool": null
+    },
+    "results": [
+      {
+        "origin": "player",
+        "actorId": "player",
+        "witnessed": true,
+        "type": "MOVE",
+        "targetId": "depth_1_1_landing",
+        "before": {
+          "zone": "depth_1_1_room",
+          "near": null,
+          "position": "entrance",
+          "facing": "far-door",
+          "posture": "standing",
+          "heldToolId": null,
+          "placementTargetId": null,
+          "focusEntityId": null,
+          "heldItemId": null,
+          "manipulating": false,
+          "relation": "near",
+          "coverId": null
+        },
+        "after": {
+          "zone": "depth_1_1_landing",
+          "near": "depth_1_1_door",
+          "position": "entrance",
+          "facing": "stairs",
+          "posture": "standing",
+          "heldToolId": null,
+          "placementTargetId": null,
+          "focusEntityId": null,
+          "heldItemId": null,
+          "manipulating": false,
+          "relation": "near",
+          "coverId": null,
+          "name": "지하 1층 · 계단실",
+          "arrivalText": "철문을 지나 계단실로 들어선다."
+        },
+        "at": 605,
+        "id": "event:4"
+      },
+      {
+        "origin": "player",
+        "actorId": "player",
+        "witnessed": true,
+        "type": "CLOSE",
+        "targetId": "depth_1_1_door",
+        "before": {
+          "isOpen": true
+        },
+        "after": {
+          "isOpen": false,
+          "name": "계단실 철문"
+        },
+        "at": 610,
+        "id": "event:5"
+      },
+      {
+        "origin": "simulation",
+        "actorId": "depth_1_1_opponent",
+        "witnessed": true,
+        "type": "OPEN",
+        "targetId": "depth_1_1_door",
+        "before": {
+          "isOpen": false
+        },
+        "after": {
+          "isOpen": true,
+          "name": "계단실 철문",
+          "actorName": "강도"
+        },
+        "at": 612,
+        "id": "event:6"
+      }
+    ],
+    "requiredFacts": [
+      {
+        "id": "result:0",
+        "kind": "result",
+        "targetId": "depth_1_1_landing",
+        "data": {
+          "origin": "player",
+          "actorId": "player",
+          "witnessed": true,
+          "type": "MOVE",
+          "targetId": "depth_1_1_landing",
+          "before": {
+            "zone": "depth_1_1_room",
+            "near": null,
+            "position": "entrance",
+            "facing": "far-door",
+            "posture": "standing",
+            "heldToolId": null,
+            "placementTargetId": null,
+            "focusEntityId": null,
+            "heldItemId": null,
+            "manipulating": false,
+            "relation": "near",
+            "coverId": null
+          },
+          "after": {
+            "zone": "depth_1_1_landing",
+            "near": "depth_1_1_door",
+            "position": "entrance",
+            "facing": "stairs",
+            "posture": "standing",
+            "heldToolId": null,
+            "placementTargetId": null,
+            "focusEntityId": null,
+            "heldItemId": null,
+            "manipulating": false,
+            "relation": "near",
+            "coverId": null,
+            "name": "지하 1층 · 계단실",
+            "arrivalText": "철문을 지나 계단실로 들어선다."
+          },
+          "at": 605,
+          "id": "event:4"
+        }
+      },
+      {
+        "id": "result:1",
+        "kind": "result",
+        "targetId": "depth_1_1_door",
+        "data": {
+          "origin": "player",
+          "actorId": "player",
+          "witnessed": true,
+          "type": "CLOSE",
+          "targetId": "depth_1_1_door",
+          "before": {
+            "isOpen": true
+          },
+          "after": {
+            "isOpen": false,
+            "name": "계단실 철문"
+          },
+          "at": 610,
+          "id": "event:5"
+        }
+      },
+      {
+        "id": "result:2",
+        "kind": "result",
+        "targetId": "depth_1_1_door",
+        "data": {
+          "origin": "simulation",
+          "actorId": "depth_1_1_opponent",
+          "witnessed": true,
+          "type": "OPEN",
+          "targetId": "depth_1_1_door",
+          "before": {
+            "isOpen": false
+          },
+          "after": {
+            "isOpen": true,
+            "name": "계단실 철문",
+            "actorName": "강도"
+          },
+          "at": 612,
+          "id": "event:6"
+        }
+      },
+      {
+        "id": "light:depth_1_1_landing",
+        "kind": "lighting",
+        "data": {
+          "lit": true
+        },
+        "targetId": "depth_1_1_landing"
+      },
+      {
+        "id": "layout:depth_1_1_landing",
+        "kind": "layout",
+        "data": {
+          "layout": "철문 뒤쪽의 좁은 계단실에서 아래층으로 내려가는 계단이 이어진다. 계단실 안쪽에는 아래층 계단이 보인다.",
+          "geometry": "철문 뒤쪽의 좁은 계단실에서 아래층으로 내려가는 계단이 이어진다."
+        },
+        "targetId": "depth_1_1_landing"
+      },
+      {
+        "id": "connection:depth_1_1_door",
+        "kind": "connection",
+        "data": {
+          "name": "계단실 철문",
+          "from": "수색 구역",
+          "to": "계단실"
+        },
+        "targetId": "depth_1_1_door"
+      }
+    ],
+    "optionalFacts": [
+      {
+        "id": "entity:depth_1_1_door",
+        "kind": "entity",
+        "data": {
+          "name": "계단실 철문",
+          "outline": "계단실 철문",
+          "placement": "수색 구역으로 통하는 쪽",
+          "isOpen": true,
+          "locked": false,
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false
+        },
+        "targetId": "depth_1_1_door"
+      },
+      {
+        "id": "surface:depth_1_1_door",
+        "kind": "surface",
+        "data": {
+          "name": "계단실 철문",
+          "detail": "손잡이를 당겨 여닫는 철문이 계단실로 이어진다."
+        },
+        "targetId": "depth_1_1_door"
+      },
+      {
+        "id": "entity:depth_1_1_down",
+        "kind": "entity",
+        "data": {
+          "name": "아래층 계단",
+          "outline": "아래층 계단",
+          "placement": "계단실 안쪽",
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false
+        },
+        "targetId": "depth_1_1_down"
+      }
+    ],
+    "knownFacts": [
+      {
+        "id": "light:concourse",
+        "kind": "lighting",
+        "targetId": "concourse",
+        "data": {
+          "lit": true,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "layout:concourse",
+        "kind": "layout",
+        "targetId": "concourse",
+        "data": {
+          "layout": "지상 계단에서 내려온 입구 오른쪽으로 역무실이 이어지고, 정면에는 개찰구가 있다. 지상 계단 입구 기준 정면 개찰구 너머에는 지하층 계단이 보인다. 지상 계단 입구 기준 정면 개찰구의 왼쪽 기둥 아래에는 슈미가 보인다.",
+          "geometry": "지상 계단에서 내려온 입구 오른쪽으로 역무실이 이어지고, 정면에는 개찰구가 있다.",
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "entity:subway_depth_stairs",
+        "kind": "entity",
+        "targetId": "subway_depth_stairs",
+        "data": {
+          "name": "지하층 계단",
+          "outline": "지하층 계단",
+          "placement": "지상 계단 입구 기준 정면 개찰구 너머",
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "entity:shumi_presence",
+        "kind": "entity",
+        "targetId": "shumi_presence",
+        "data": {
+          "name": "슈미",
+          "outline": "슈미",
+          "placement": "지상 계단 입구 기준 정면 개찰구의 왼쪽 기둥 아래",
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "surface:subway_depth_stairs",
+        "kind": "surface",
+        "targetId": "subway_depth_stairs",
+        "data": {
+          "name": "지하층 계단",
+          "detail": "개찰구 너머로 지하 1층에 내려가는 계단이 이어진다.",
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "light:depth_1_1_room",
+        "kind": "lighting",
+        "targetId": "depth_1_1_room",
+        "data": {
+          "lit": true,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "layout:depth_1_1_room",
+        "kind": "layout",
+        "targetId": "depth_1_1_room",
+        "data": {
+          "layout": "들어온 계단을 기준으로 왼쪽 벽에는 보관함, 가운데에는 나무 상자, 오른쪽 벽에는 철제 선반이 있다. 맞은편 철문은 아래층 계단실로 이어진다. 입구 왼쪽 벽에는 벽면 보관함이 보인다. 방 가운데 바닥에는 나무 상자가 보인다. 입구 오른쪽 벽에는 철제 선반이 보인다. 맞은편 벽에는 계단실 철문이 보인다. 들어온 입구에는 위층 계단이 보인다. 맞은편 철문 앞에는 강도가 보인다.",
+          "geometry": "들어온 계단을 기준으로 왼쪽 벽에는 보관함, 가운데에는 나무 상자, 오른쪽 벽에는 철제 선반이 있다. 맞은편 철문은 아래층 계단실로 이어진다.",
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "entity:depth_1_1_cache0",
+        "kind": "entity",
+        "targetId": "depth_1_1_cache0",
+        "data": {
+          "name": "벽면 보관함",
+          "outline": "벽면 보관함",
+          "placement": "입구 왼쪽 벽",
+          "isOpen": false,
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "entity:depth_1_1_cache1",
+        "kind": "entity",
+        "targetId": "depth_1_1_cache1",
+        "data": {
+          "name": "나무 상자",
+          "outline": "나무 상자",
+          "placement": "방 가운데 바닥",
+          "isOpen": false,
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "entity:depth_1_1_cache2",
+        "kind": "entity",
+        "targetId": "depth_1_1_cache2",
+        "data": {
+          "name": "철제 선반",
+          "outline": "철제 선반",
+          "placement": "입구 오른쪽 벽",
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "entity:depth_1_1_up",
+        "kind": "entity",
+        "targetId": "depth_1_1_up",
+        "data": {
+          "name": "위층 계단",
+          "outline": "위층 계단",
+          "placement": "들어온 입구",
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "threat:depth_1_1_opponent",
+        "kind": "threat",
+        "targetId": "depth_1_1_opponent",
+        "data": {
+          "name": "강도",
+          "hostile": true,
+          "defeated": false,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      },
+      {
+        "id": "entity:depth_1_1_opponent",
+        "kind": "entity",
+        "targetId": "depth_1_1_opponent",
+        "data": {
+          "name": "강도",
+          "outline": "강도",
+          "placement": "맞은편 철문 앞",
+          "discovered": false,
+          "held": false,
+          "carried": false,
+          "stowed": false,
+          "previouslyObserved": true,
+          "currentlyVisible": false
+        }
+      }
+    ],
+    "recentScenes": [
+      {
+        "zone": "concourse",
+        "intent": "대합실로 들어선다",
+        "paragraphs": [
+          "지상 계단을 내려와 대합실에 들어선다. 가까운 사물을 구별할 만큼 빛이 닿는다.",
+          "지상 계단에서 내려온 입구 오른쪽으로 역무실이 이어지고, 정면에는 개찰구가 있다. 지상 계단 입구 기준 정면 개찰구 너머에는 지하층 계단이 보인다. 지상 계단 입구 기준 정면 개찰구의 왼쪽 기둥 아래에는 슈미가 보인다."
+        ]
+      },
+      {
+        "zone": "concourse",
+        "intent": "지하층 계단으로 다가간다",
+        "paragraphs": [
+          "지상 계단 입구 기준 정면 개찰구 너머의 지하층 계단으로 다가간다."
+        ]
+      },
+      {
+        "zone": "depth_1_1_room",
+        "intent": "지하층 통로로 들어선다",
+        "paragraphs": [
+          "계단을 내려와 지하층의 통로 앞에 선다. 가까운 사물을 구별할 만큼 빛이 닿는다.",
+          "들어온 계단을 기준으로 왼쪽 벽에는 보관함, 가운데에는 나무 상자, 오른쪽 벽에는 철제 선반이 있다. 맞은편 철문은 아래층 계단실로 이어진다. 입구 왼쪽 벽에는 벽면 보관함이 보인다. 방 가운데 바닥에는 나무 상자가 보인다. 입구 오른쪽 벽에는 철제 선반이 보인다. 맞은편 벽에는 계단실 철문이 보인다. 들어온 입구에는 위층 계단이 보인다. 맞은편 철문 앞에는 강도가 보인다. 강도는 공격할 태세로 움직임을 주시하고 있다."
+        ]
+      }
+    ],
+    "paragraphCount": {
+      "min": 2,
+      "max": 3
+    },
+    "direction": {
+      "focusTargetId": "depth_1_1_door",
+      "beats": [
+        {
+          "role": "approach",
+          "resultFactIds": [
+            "result:0"
+          ],
+          "detailFactIds": [
+            "layout:depth_1_1_landing"
+          ]
+        },
+        {
+          "role": "aftermath",
+          "resultFactIds": [
+            "result:1"
+          ],
+          "detailFactIds": []
+        },
+        {
+          "role": "reveal",
+          "resultFactIds": [
+            "result:2"
+          ],
+          "detailFactIds": [
+            "light:depth_1_1_landing",
+            "connection:depth_1_1_door",
+            "entity:depth_1_1_door",
+            "surface:depth_1_1_door",
+            "entity:depth_1_1_down"
+          ]
+        }
+      ]
+    },
+    "nextChoices": [
+      {
+        "id": "close:depth_1_1_door",
+        "label": "계단실 철문을 닫는다",
+        "family": "ACCESS",
+        "targetId": "depth_1_1_door",
+        "selectionSignature": "33970c05",
+        "defaultThought": "가까이서 보면 더 알 수 있겠지.",
+        "labelNames": [
+          "철문",
+          "계단실 철문",
+          "계단실"
+        ]
+      },
+      {
+        "id": "combat:subway_floor_1_bandit:1:1:server:5:flee",
+        "label": "거리를 벌리고 후퇴한다",
+        "family": "RETREAT",
+        "targetId": "depth_1_1_opponent",
+        "selectionSignature": "33970c05",
+        "defaultThought": "지금 틈을 타서 빠져나가자.",
+        "labelNames": []
+      },
+      {
+        "id": "inspect:depth_1_1_down",
+        "label": "아래층 계단을 자세히 살핀다",
+        "family": "INSPECT",
+        "targetId": "depth_1_1_down",
+        "selectionSignature": "33970c05",
+        "defaultThought": "가까이서 보면 더 알 수 있겠지.",
+        "labelNames": [
+          "아래층 계단"
+        ]
+      }
+    ]
+  },
+  "raw": {
+    "paragraphs": [
+      {
+        "text": "철문을 지나 계단실로 들어선다. 좁은 공간의 철문을 당겨 닫는다.",
+        "factIds": [
+          "result:0",
+          "result:1"
+        ]
+      },
+      {
+        "text": "곧이어 닫힌 철문이 다시 열린다. 강도가 손잡이를 잡은 채 서 있다.",
+        "factIds": [
+          "result:2"
+        ]
+      }
+    ],
+    "choiceLabels": [
+      {
+        "optionId": "close:depth_1_1_door",
+        "label": "계단실 철문을 닫는다",
+        "thought": "문이 다시 열리지 않게 잠가야 해."
+      },
+      {
+        "optionId": "combat:subway_floor_1_bandit:1:1:server:5:flee",
+        "label": "거리를 벌리고 후퇴한다",
+        "thought": "지금 틈을 타서 빠져나가자."
+      },
+      {
+        "optionId": "inspect:depth_1_1_down",
+        "label": "아래층 계단을 자세히 살핀다",
+        "thought": "가까이서 보면 더 알 수 있겠지."
+      }
+    ]
+  },
+  "afterCoveragePromptRaw": {
+    "paragraphs": [
+      {
+        "text": "철문을 지나 계단실로 들어선다. 좁은 계단실 안쪽으로는 아래층으로 이어지는 계단이 어렴풋이 시야에 들어온다.",
+        "factIds": [
+          "result:0",
+          "layout:depth_1_1_landing",
+          "entity:depth_1_1_down"
+        ]
+      },
+      {
+        "text": "서둘러 계단실 철문을 닫았지만, 곧이어 틈새 너머로 손을 뻗은 강도가 문을 밀어젖힌다.",
+        "factIds": [
+          "result:1",
+          "result:2",
+          "connection:depth_1_1_door"
+        ]
+      }
+    ],
+    "choiceLabels": [
+      {
+        "optionId": "close:depth_1_1_door",
+        "label": "계단실 철문을 닫는다",
+        "thought": "다시 문을 닫아야 해."
+      },
+      {
+        "optionId": "combat:subway_floor_1_bandit:1:1:server:5:flee",
+        "label": "거리를 벌리고 후퇴한다",
+        "thought": "여기서 물러서야 해."
+      },
+      {
+        "optionId": "inspect:depth_1_1_down",
+        "label": "아래층 계단을 자세히 살핀다",
+        "thought": "아래로 내려갈 길을 찾자."
+      }
+    ]
+  },
+  "afterFactFirstRaw": {
+    "paragraphs": [
+      {
+        "factIds": [
+          "result:0",
+          "light:depth_1_1_landing",
+          "layout:depth_1_1_landing"
+        ],
+        "text": "철문을 지나 계단실로 들어선다. 환한 빛 아래로 철문 뒤쪽의 좁은 계단실에서 아래층으로 내려가는 계단이 이어진다."
+      },
+      {
+        "factIds": [
+          "result:1",
+          "result:2",
+          "connection:depth_1_1_door",
+          "entity:depth_1_1_door",
+          "surface:depth_1_1_door",
+          "entity:depth_1_1_down"
+        ],
+        "text": "손잡이를 당겨 여닫는 철문이 계단실로 이어지는 곳을 닫으려던 순간, 뒤따라온 강도가 손잡이를 잡고 다시 계단실 철문을 밀어 연다. 계단실 안쪽으로는 아래층으로 향하는 계단이 보인다."
+      }
+    ],
+    "choiceLabels": [
+      {
+        "optionId": "close:depth_1_1_door",
+        "label": "계단실 철문을 닫는다",
+        "thought": "다시 닫을 수 있을까."
+      },
+      {
+        "optionId": "combat:subway_floor_1_bandit:1:1:server:5:flee",
+        "label": "거리를 벌리고 후퇴한다",
+        "thought": "서둘러 자리를 떠야 해."
+      },
+      {
+        "optionId": "inspect:depth_1_1_down",
+        "label": "아래층 계단을 자세히 살핀다",
+        "thought": "아래로 내려갈 길이 있겠지."
+      }
+    ]
+  }
+}

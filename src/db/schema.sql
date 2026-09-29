@@ -43,6 +43,13 @@ create table if not exists content_templates (
   primary key (kind, template_id)
 );
 
+create table if not exists content_studio_documents (
+  stage text primary key check (stage in ('draft', 'published')),
+  payload jsonb not null,
+  updated_at timestamptz not null default now(),
+  published_at timestamptz
+);
+
 create table if not exists action_logs (
   id bigserial primary key,
   game_id text not null,

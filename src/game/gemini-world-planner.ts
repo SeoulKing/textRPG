@@ -31,6 +31,16 @@ function compactInventory(state: PlannerInput["state"]) {
     .map(([itemId, amount]) => ({ itemId, amount }));
 }
 
+function compactItemCatalog(registry: ContentRegistry) {
+  return Object.entries(registry.items).map(([itemId, entry]) => {
+    const item = entry as { id?: string; name?: string };
+    return {
+      id: item.id ?? itemId,
+      name: item.name ?? itemId,
+    };
+  });
+}
+
 function plannerGuidancePayload(input: PlannerInput) {
   const frontier =
     input.registry.actions[input.sourceFrontierActionId]
@@ -53,6 +63,7 @@ function plannerGuidancePayload(input: PlannerInput) {
       inventory: compactInventory(input.state),
     },
     recentLog: input.recentLog.slice(-8),
+    itemCatalog: compactItemCatalog(input.registry),
     existingDynamicLocations: Object.values(input.state.dynamicContent.locations).map((location) => ({
       id: location.id,
       name: location.name,
@@ -67,6 +78,8 @@ function plannerGuidancePayload(input: PlannerInput) {
       "선택지는 3~4개이며 최소 1개는 frontier_exit intent여야 합니다.",
       "각 선택지는 storyPromise로 '이걸 누르면 어떤 이야기 방향으로 가는지'를 분명히 약속합니다.",
       "아이템은 새 id를 만들지 말고 suggestedItemIds에는 기존 catalog id만 넣습니다.",
+      "prose, 선택지 label, outcomeHint에서 itemCatalog의 아이템을 언급할 때 표시 이름을 직접 쓰지 말고 {{item:itemId}}를 사용합니다.",
+      "한국어 조사가 필요하면 {{item:itemId|을를}}, {{item:itemId|은는}}, {{item:itemId|이가}}, {{item:itemId|과와}}, {{item:itemId|으로로}} 형식을 사용합니다.",
       "저수준 effects, conditions, action schema는 만들지 않습니다.",
     ],
   };
@@ -88,6 +101,7 @@ function storyBeatGuidancePayload(request: StoryBeatPlannerInput) {
     },
     selectedChoice: request.trigger,
     recentLog: request.recentLog.slice(-8),
+    itemCatalog: compactItemCatalog(request.registry),
     localMemory: {
       scenes: request.localSceneIds.slice(-8),
       people: request.localPeopleIds,
@@ -118,6 +132,8 @@ function storyBeatGuidancePayload(request: StoryBeatPlannerInput) {
       "sceneGoal, dramaticQuestion, worldFacts, unresolvedQuestions를 갱신해 다음 장면이 단절되지 않게 합니다.",
       "선택지는 3~4개이며 최소 1개는 frontier_exit intent여야 합니다.",
       "각 선택지는 storyPromise로 '이걸 누르면 어떤 이야기 방향으로 가는지'를 분명히 약속합니다.",
+      "prose, 선택지 label, outcomeHint에서 itemCatalog의 아이템을 언급할 때 표시 이름을 직접 쓰지 말고 {{item:itemId}}를 사용합니다.",
+      "한국어 조사가 필요하면 {{item:itemId|을를}}, {{item:itemId|은는}}, {{item:itemId|이가}}, {{item:itemId|과와}}, {{item:itemId|으로로}} 형식을 사용합니다.",
       "기계적 효과는 쓰지 말고, 선택지 의도와 서사 힌트만 작성합니다.",
       "모든 플레이어 노출 문장은 한국어로 작성합니다.",
     ],
@@ -165,6 +181,8 @@ Never invent schema keys outside the requested draft schema.
 Write all player-facing strings in Korean.
 Use frontier context as a hint, not a fixed destination.
 Do not create brand new item ids. Refer only to existing catalog ids or broad item hints/categories.
+When prose or choice text mentions a catalog item, use {{item:itemId}} references instead of copying its display name.
+For Korean particles, use forms such as {{item:itemId|을를}}, {{item:itemId|은는}}, {{item:itemId|이가}}, {{item:itemId|과와}}, or {{item:itemId|으로로}}.
 Anchor drafts must include at least one frontier_exit choice.
 Scene drafts must stay inside the same anchor location and also include at least one frontier_exit choice.
 Write prose like a bleak, grounded survival novel: sensory detail, concrete stakes, and quoted dialogue when people speak.

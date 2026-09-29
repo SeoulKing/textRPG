@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HealthConditionKindSchema } from "./health-condition";
 
 export const ConditionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("has_item"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
@@ -11,6 +12,7 @@ export const ConditionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("day_gte"), value: z.number().int().positive() }),
   z.object({ type: z.literal("day_lt"), value: z.number().int().positive() }),
   z.object({ type: z.literal("money_gte"), amount: z.number().int().nonnegative() }),
+  z.object({ type: z.literal("stat_gte"), stat: z.enum(["hp", "mind", "energy"]), value: z.number().int().nonnegative() }),
   z.object({ type: z.literal("quest_state"), questId: z.string(), status: z.enum(["inactive", "active", "completed"]) }),
   z.object({
     type: z.literal("stock_item_gte"),
@@ -45,6 +47,7 @@ export const ConditionSchema = z.discriminatedUnion("type", [
 ]);
 
 const InstantEffectSchemas = [
+  z.object({ type: z.literal("add_condition"), condition: HealthConditionKindSchema, chancePercent: z.number().min(0).max(100).default(0) }),
   z.object({ type: z.literal("change_stat"), stat: z.enum(["hp", "mind", "energy"]), value: z.number().int() }),
   z.object({ type: z.literal("set_flag"), flag: z.string() }),
   z.object({ type: z.literal("clear_flag"), flag: z.string() }),
@@ -58,7 +61,7 @@ const InstantEffectSchemas = [
   z.object({ type: z.literal("complete_quest"), questId: z.string() }),
   z.object({ type: z.literal("log"), message: z.string() }),
   z.object({ type: z.literal("set_scene"), sceneId: z.string() }),
-  z.object({ type: z.literal("set_random_scene"), tag: z.string() }),
+  z.object({ type: z.literal("set_random_scene"), tag: z.string(), sceneIds: z.array(z.string()).min(1).optional(), avoidRepeat: z.boolean().optional(), returnToLocation: z.boolean().optional() }),
   z.object({ type: z.literal("discover_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("focus_stock_node"), nodeId: z.string() }),
   z.object({ type: z.literal("clear_stock_node_focus") }),
@@ -104,9 +107,11 @@ export const EffectSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("random_outcome"),
     outcomes: z.array(z.object({
-      weight: z.number().positive(),
+      weight: z.number().nonnegative(),
+      label: z.string().optional(),
+      result: z.enum(["success", "failure"]).optional(),
       effects: z.array(RandomOutcomeEffectSchema).default([]),
-    })).min(1),
+    })).min(1).refine(outcomes => outcomes.some(outcome => outcome.weight > 0), "결과 확률의 합은 0보다 커야 합니다."),
   }),
 ] as const);
 

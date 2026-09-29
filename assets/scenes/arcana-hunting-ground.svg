@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 620" role="img" aria-labelledby="title desc">
+  <title id="title">아르카나 사냥터의 슬라임</title>
+  <desc id="desc">별이 흐르는 밤하늘 아래 푸른 초원에서 초록빛 슬라임이 모습을 드러낸다.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#10163b"/>
+      <stop offset="0.58" stop-color="#273b6f"/>
+      <stop offset="1" stop-color="#6b6eb0"/>
+    </linearGradient>
+    <linearGradient id="field" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#355a68"/>
+      <stop offset="1" stop-color="#122d32"/>
+    </linearGradient>
+    <radialGradient id="slime" cx="42%" cy="28%" r="70%">
+      <stop offset="0" stop-color="#c9ffd3" stop-opacity=".96"/>
+      <stop offset=".42" stop-color="#75e79a" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#27985d" stop-opacity=".95"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1440" height="620" fill="url(#sky)"/>
+  <g fill="#e9f5ff" filter="url(#glow)">
+    <circle cx="118" cy="90" r="3"/><circle cx="286" cy="54" r="2"/><circle cx="442" cy="126" r="4"/>
+    <circle cx="678" cy="72" r="3"/><circle cx="866" cy="118" r="2"/><circle cx="1038" cy="66" r="4"/>
+    <circle cx="1248" cy="138" r="3"/><circle cx="1362" cy="52" r="2"/>
+  </g>
+  <path d="M0 350 C210 292 342 330 520 300 C720 266 870 328 1040 292 C1204 258 1324 294 1440 266 V620 H0Z" fill="url(#field)"/>
+  <path d="M0 450 C225 382 412 438 610 392 C810 346 1004 432 1210 370 C1310 340 1382 350 1440 330 V620 H0Z" fill="#173d3b" opacity=".88"/>
+  <g stroke="#8bd9bd" stroke-width="5" stroke-linecap="round" opacity=".72">
+    <path d="M92 560l-22-92m22 92l35-74m118 90l-9-118m9 118l42-90m896 78l-18-104m18 104l40-80m106 90l14-110m-14 110l-39-83"/>
+  </g>
+  <ellipse cx="742" cy="530" rx="190" ry="34" fill="#081d23" opacity=".55"/>
+  <path d="M590 485 C586 390 624 318 708 302 C788 286 876 340 890 438 C900 505 852 536 742 536 C640 536 592 520 590 485Z" fill="url(#slime)" stroke="#baffcf" stroke-width="7"/>
+  <ellipse cx="680" cy="413" rx="15" ry="24" fill="#153c38"/>
+  <ellipse cx="800" cy="413" rx="15" ry="24" fill="#153c38"/>
+  <path d="M704 470 Q742 495 780 468" fill="none" stroke="#1d5b49" stroke-width="8" stroke-linecap="round"/>
+  <ellipse cx="680" cy="365" rx="42" ry="21" fill="#effff3" opacity=".48" transform="rotate(-18 680 365)"/>
+  <circle cx="742" cy="430" r="52" fill="#74d8ff" opacity=".2" filter="url(#glow)"/>
+  <path d="M0 610 C250 570 490 602 720 576 C938 550 1162 590 1440 548" fill="none" stroke="#79c7aa" stroke-width="8" opacity=".35"/>
+</svg>
