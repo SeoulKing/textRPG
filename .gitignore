@@ -4,6 +4,7 @@ node_modules/
 .server-dist/
 .pnpm-store/
 .tmp-validate/
+.tmp-unity-webgl/
 .env
 .env.local
 .dev-server.*.log

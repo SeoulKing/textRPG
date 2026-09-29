@@ -19,7 +19,7 @@ function replaceRequired(source, pattern, replacement, label) {
 
 async function buildRuntimeClient() {
   const sourcePath = path.join(root, "app-api.js");
-  let source = await readFile(sourcePath, "utf8");
+  let source = (await readFile(sourcePath, "utf8")).replace(/\r\n/g, "\n");
 
   const oldSceneImageSource = `function sceneImageSource(location) {
   // Use the same address for prediction, preloading, and display of old saves.

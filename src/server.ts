@@ -161,6 +161,13 @@ async function bootstrap() {
     reply.header("Cache-Control", isStaticAsset && reply.statusCode < 400
       ? "public, max-age=0, must-revalidate"
       : isNarrativeStream ? "no-store, no-transform" : "no-store");
+    if (pathname.startsWith("/assets/unity-preview/Build/") && pathname.endsWith(".br")) {
+      reply.header("Content-Encoding", "br");
+      if (pathname.endsWith(".js.br")) reply.type("application/javascript");
+      else if (pathname.endsWith(".wasm.br")) reply.type("application/wasm");
+      else if (pathname.endsWith(".json.br")) reply.type("application/json");
+      else reply.type("application/octet-stream");
+    }
     return payload;
   });
 
@@ -186,6 +193,12 @@ async function bootstrap() {
     reply.type("text/html; charset=utf-8");
     return readFile(path.join(webRoot, "index.html"), "utf8");
   });
+  for (const route of ["/unity-web", "/unity-preview"]) {
+    app.get(route, async (_request, reply) => {
+      reply.type("text/html; charset=utf-8");
+      return readFile(path.join(webRoot, "unity-preview.html"), "utf8");
+    });
+  }
   app.get("/app-api.js", async (_request, reply) => {
     reply.type("application/javascript; charset=utf-8");
     return readFile(path.join(webRoot, "app-api.js"), "utf8");
