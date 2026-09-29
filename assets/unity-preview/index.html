@@ -136,6 +136,12 @@
             loadingContainer.style.display = "none";
           }
         }).then((unityInstance) => {
+                const syncPixelRatio = () => {
+                  unityInstance.SendMessage("Forest MVP", "SetBrowserPixelRatio",
+                    String(window.devicePixelRatio || 1));
+                };
+                syncPixelRatio();
+                window.addEventListener("resize", syncPixelRatio);
                 document.querySelector("#unity-fullscreen-button").onclick = () => {
                   unityInstance.SetFullscreen(1);
                 };

@@ -135,6 +135,19 @@ try {
     if (-not $html.Contains($loaderMarker)) {
         throw "Unity preview loader was not found: $htmlPath"
     }
+    $unityReadyMarker = '        }).then((unityInstance) => {'
+    if (-not $html.Contains($unityReadyMarker)) {
+        throw "Unity preview ready handler was not found: $htmlPath"
+    }
+    $pixelRatioSync = @'
+                const syncPixelRatio = () => {
+                  unityInstance.SendMessage("Forest MVP", "SetBrowserPixelRatio",
+                    String(window.devicePixelRatio || 1));
+                };
+                syncPixelRatio();
+                window.addEventListener("resize", syncPixelRatio);
+'@
+    $html = $html.Replace($unityReadyMarker, "$unityReadyMarker`n$pixelRatioSync")
     [IO.File]::WriteAllText($htmlPath, $html.TrimEnd([char[]]@("`r", "`n")) + "`n", [Text.UTF8Encoding]::new($false))
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'unity-preview-responsive.css') -Destination $buildOutput
 

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Tilemaps;
@@ -61,6 +62,7 @@ namespace RuinedSeoul.Mvp
         private Canvas uiCanvas;
         private Rect lastSafeArea;
         private Vector2Int lastScreenSize;
+        private float browserPixelRatio = 1f;
         private Font font;
         private int day = 1;
         private int minute = 9 * 60;
@@ -371,11 +373,22 @@ namespace RuinedSeoul.Mvp
             safeRoot.offsetMax = Vector2.zero;
         }
 
+        public void SetBrowserPixelRatio(string value)
+        {
+            if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var ratio)) return;
+            ratio = Mathf.Clamp(ratio, .5f, 4f);
+            if (Mathf.Approximately(browserPixelRatio, ratio)) return;
+            browserPixelRatio = ratio;
+            LayoutUi();
+        }
+
         private void LayoutUi()
         {
             lastScreenSize = new Vector2Int(Screen.width, Screen.height);
-            var compact = Screen.width <= 620 || Screen.height < 650 ||
-                Screen.height > Screen.width;
+            var viewportWidth = Screen.width / browserPixelRatio;
+            var viewportHeight = Screen.height / browserPixelRatio;
+            var compact = viewportWidth <= 620 || viewportHeight < 650 ||
+                viewportHeight > viewportWidth;
             pageBackground.GetComponent<Image>().color = compact
                 ? Color.white : new Color32(247, 249, 250, 255);
             var statusImage = statusStrip.GetComponent<Image>();
@@ -392,7 +405,7 @@ namespace RuinedSeoul.Mvp
                 ? VerticalWrapMode.Truncate : VerticalWrapMode.Overflow;
             uiCanvas.GetComponent<CanvasScaler>().matchWidthOrHeight = compact ? .8f : .5f;
             Canvas.ForceUpdateCanvases();
-            var unit = 1f / Mathf.Max(.01f, uiCanvas.scaleFactor);
+            var unit = browserPixelRatio / Mathf.Max(.01f, uiCanvas.scaleFactor);
             clockText.fontSize = Mathf.RoundToInt((compact ? 13f : 16f) * unit);
             locationText.fontSize = Mathf.RoundToInt((compact ? 15f : 17f) * unit);
             narrativeText.fontSize = Mathf.RoundToInt((compact ? 18f : 20f) * unit);
