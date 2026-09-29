@@ -140,8 +140,16 @@ async function bootstrap() {
   }
   validateContent();
 
-  app.addHook("onSend", async (_request, reply, payload) => {
+  app.addHook("onSend", async (request, reply, payload) => {
     reply.header("Cache-Control", "no-store");
+    const unityAssetPath = request.url.split("?", 1)[0];
+    if (unityAssetPath.startsWith("/assets/unity-preview/Build/") && unityAssetPath.endsWith(".br")) {
+      reply.header("Content-Encoding", "br");
+      if (unityAssetPath.endsWith(".js.br")) reply.type("application/javascript");
+      else if (unityAssetPath.endsWith(".wasm.br")) reply.type("application/wasm");
+      else if (unityAssetPath.endsWith(".json.br")) reply.type("application/json");
+      else reply.type("application/octet-stream");
+    }
     return payload;
   });
 
@@ -162,6 +170,12 @@ async function bootstrap() {
     reply.type("text/html; charset=utf-8");
     return readFile(path.join(webRoot, "index.html"), "utf8");
   });
+  for (const route of ["/unity-web", "/unity-preview"]) {
+    app.get(route, async (_request, reply) => {
+      reply.type("text/html; charset=utf-8");
+      return readFile(path.join(webRoot, "unity-preview.html"), "utf8");
+    });
+  }
   app.get("/app-api.js", async (_request, reply) => {
     reply.type("application/javascript; charset=utf-8");
     return readFile(path.join(webRoot, "app-api.js"), "utf8");
