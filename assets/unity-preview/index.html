@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | unity-mvp</title>
+    <title>폐허 서울 · 유니티 웹</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
   </head>
@@ -24,7 +24,7 @@
       <div id="unity-footer">
         <div id="unity-logo-title-footer"></div>
         <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">unity-mvp</div>
+        <div id="unity-build-title">폐허 서울 · 숲</div>
       </div>
     </div>
     <script>
@@ -98,7 +98,7 @@
       // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
       // expected to change.
 
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(max-width: 700px)").matches) {
         // Mobile device style: fill the whole browser client area with the game canvas:
 
         var meta = document.createElement('meta');

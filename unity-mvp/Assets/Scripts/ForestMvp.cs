@@ -37,9 +37,16 @@ namespace RuinedSeoul.Mvp
         private readonly List<Button> choiceButtons = new List<Button>();
         private readonly List<Text> choiceLabels = new List<Text>();
         private readonly List<Text> choiceMetaLabels = new List<Text>();
+        private readonly List<RectTransform> choiceSeparators = new List<RectTransform>();
         private readonly List<RectTransform> statusChips = new List<RectTransform>();
         private readonly List<Text> dockLabels = new List<Text>();
+        private RectTransform pageBackground;
         private RectTransform safeRoot;
+        private RectTransform statusDivider;
+        private RectTransform choiceDivider;
+        private Sprite statusCardSprite;
+        private Sprite stageCardSprite;
+        private Sprite choiceCardSprite;
         private RectTransform statusStrip;
         private RectTransform timeChip;
         private RectTransform stage;
@@ -234,9 +241,9 @@ namespace RuinedSeoul.Mvp
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = .5f;
 
-            var page = Solid("Soft page background", canvasObject.transform,
+            pageBackground = Solid("Soft page background", canvasObject.transform,
                 new Color32(247, 249, 250, 255));
-            Place(page, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            Place(pageBackground, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
             safeRoot = new GameObject("Safe Area", typeof(RectTransform)).GetComponent<RectTransform>();
             safeRoot.SetParent(canvasObject.transform, false);
@@ -244,6 +251,7 @@ namespace RuinedSeoul.Mvp
 
             statusStrip = Card("Status strip", safeRoot, new Color32(255, 255, 255, 250),
                 new Color32(229, 233, 235, 255), 24, true);
+            statusCardSprite = statusStrip.GetComponent<Image>().sprite;
             MakeStatusChip("체력", new Color32(192, 59, 69, 255), .8f);
             MakeStatusChip("정신력", new Color32(59, 105, 199, 255), .6f);
             MakeStatusChip("기력", new Color32(224, 169, 43, 255), 7f / 15f);
@@ -252,9 +260,13 @@ namespace RuinedSeoul.Mvp
             clockText = Label("Clock", timeChip, 16, TextAnchor.MiddleCenter);
             Place(clockText.rectTransform, Vector2.zero, Vector2.one,
                 new Vector2(4, 0), new Vector2(-4, 0));
+            statusDivider = Solid("Status divider", statusStrip,
+                new Color32(226, 231, 233, 255));
+            statusDivider.GetComponent<Image>().raycastTarget = false;
 
             stage = Card("Story stage", safeRoot, Color.white,
                 new Color32(230, 234, 236, 255), 28, true);
+            stageCardSprite = stage.GetComponent<Image>().sprite;
             stage.gameObject.AddComponent<Mask>().showMaskGraphic = true;
             sceneArt = Solid("Scene art", stage, new Color32(31, 45, 42, 255));
             var sceneImageObject = new GameObject("Live forest art", typeof(RectTransform), typeof(RawImage));
@@ -272,6 +284,8 @@ namespace RuinedSeoul.Mvp
             narrativeText.lineSpacing = 1.35f;
             narrativeText.verticalOverflow = VerticalWrapMode.Overflow;
 
+            choiceCardSprite = MakeRoundedSprite(new Color32(248, 250, 249, 255),
+                new Color32(221, 228, 225, 255), 18);
             for (var i = 0; i < 3; i++)
             {
                 var buttonObject = new GameObject("Choice " + (i + 1), typeof(RectTransform),
@@ -279,8 +293,7 @@ namespace RuinedSeoul.Mvp
                 buttonObject.transform.SetParent(stage, false);
                 var rect = buttonObject.GetComponent<RectTransform>();
                 var buttonImage = buttonObject.GetComponent<Image>();
-                buttonImage.sprite = MakeRoundedSprite(new Color32(248, 250, 249, 255),
-                    new Color32(221, 228, 225, 255), 18);
+                buttonImage.sprite = choiceCardSprite;
                 buttonImage.type = Image.Type.Sliced;
                 var button = buttonObject.GetComponent<Button>();
                 var colors = button.colors;
@@ -296,7 +309,14 @@ namespace RuinedSeoul.Mvp
                 choiceButtons.Add(button);
                 choiceLabels.Add(label);
                 choiceMetaLabels.Add(meta);
+                var separator = Solid("Choice divider", rect,
+                    new Color32(226, 231, 233, 255));
+                separator.GetComponent<Image>().raycastTarget = false;
+                choiceSeparators.Add(separator);
             }
+            choiceDivider = Solid("Choice section divider", stage,
+                new Color32(226, 231, 233, 255));
+            choiceDivider.GetComponent<Image>().raycastTarget = false;
 
             dock = Solid("Utility dock", safeRoot, Color.white);
             var dockLine = Solid("Dock border", dock, new Color32(226, 231, 233, 255));
@@ -354,6 +374,23 @@ namespace RuinedSeoul.Mvp
             lastScreenSize = new Vector2Int(Screen.width, Screen.height);
             var compact = Screen.width <= 620 || Screen.height < 650 ||
                 Screen.height > Screen.width;
+            pageBackground.GetComponent<Image>().color = compact
+                ? Color.white : new Color32(247, 249, 250, 255);
+            var statusImage = statusStrip.GetComponent<Image>();
+            statusImage.sprite = compact ? null : statusCardSprite;
+            statusImage.type = compact ? Image.Type.Simple : Image.Type.Sliced;
+            statusStrip.GetComponent<Shadow>().enabled = !compact;
+            var stageImage = stage.GetComponent<Image>();
+            stageImage.sprite = compact ? null : stageCardSprite;
+            stageImage.type = compact ? Image.Type.Simple : Image.Type.Sliced;
+            stage.GetComponent<Shadow>().enabled = !compact;
+            statusDivider.gameObject.SetActive(compact);
+            clockText.fontSize = compact ? 13 : 16;
+            locationText.fontSize = compact ? 15 : 17;
+            narrativeText.fontSize = compact ? 18 : 20;
+            narrativeText.lineSpacing = compact ? 1.25f : 1.35f;
+            narrativeText.verticalOverflow = compact
+                ? VerticalWrapMode.Truncate : VerticalWrapMode.Overflow;
             uiCanvas.GetComponent<CanvasScaler>().matchWidthOrHeight = compact ? .8f : .5f;
             Canvas.ForceUpdateCanvases();
             var unit = 1f / Mathf.Max(.01f, uiCanvas.scaleFactor);
@@ -367,13 +404,15 @@ namespace RuinedSeoul.Mvp
             var dockHeight = 58f;
             var stageBottom = compact ? dockHeight : 82f;
             var stageHeight = heightPx - stageTop - stageBottom;
-            var artHeight = compact ? (stageHeight < 600f ? 88f : 112f) :
+            var artHeight = compact ? Mathf.Min(112f, Mathf.Max(64f, contentPx / 4.8f)) :
                 Mathf.Clamp(Mathf.Min(stageHeight * .41f, stageHeight - 322f), 145f, 300f);
-            var padding = compact ? 18f : 30f;
+            var padding = compact ? 16f : 30f;
 
             Place(statusStrip, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(margin, -(statusTop + statusHeight) * unit),
                 new Vector2(-margin, -statusTop * unit));
+            Place(statusDivider, Vector2.zero, new Vector2(1, 0),
+                Vector2.zero, new Vector2(0, 1f * unit));
             var inner = compact ? 5f : 8f;
             var gap = compact ? 5f : 8f;
             var timeWidth = compact ? 82f : 116f;
@@ -409,34 +448,51 @@ namespace RuinedSeoul.Mvp
                 sceneImage.uvRect = new Rect((1f - visible) * .5f, 0, visible, 1);
             }
 
-            Place(locationText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
-                new Vector2(padding * unit, -(artHeight + 51f) * unit),
-                new Vector2(-padding * unit, -(artHeight + 20f) * unit));
-            var narrativeBottom = compact ? (stageHeight < 600f ? 169f : 206f) : 115f;
-            Place(narrativeText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
-                new Vector2(padding * unit, -(artHeight + narrativeBottom) * unit),
-                new Vector2(-padding * unit, -(artHeight + 59f) * unit));
-
-            var rowHeight = compact ? 64f : 55f;
-            var rowGap = 8f;
+            var rowHeight = compact ? 52f : 55f;
+            var rowGap = compact ? 0f : 8f;
             var firstChoice = compact
-                ? stageHeight - 16f - visibleChoiceCount * rowHeight -
-                  Mathf.Max(0, visibleChoiceCount - 1) * rowGap
+                ? stageHeight - 4f - visibleChoiceCount * rowHeight
                 : artHeight + 120f;
+            var locationTop = artHeight + (compact ? 12f : 20f);
+            var locationBottom = artHeight + (compact ? 34f : 51f);
+            Place(locationText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
+                new Vector2(padding * unit, -locationBottom * unit),
+                new Vector2(-padding * unit, -locationTop * unit));
+            var narrativeTop = artHeight + (compact ? 39f : 59f);
+            var narrativeEnd = compact
+                ? Mathf.Max(narrativeTop + 100f, firstChoice - 14f)
+                : artHeight + 115f;
+            Place(narrativeText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
+                new Vector2(padding * unit, -narrativeEnd * unit),
+                new Vector2(-padding * unit, -narrativeTop * unit));
+            choiceDivider.gameObject.SetActive(compact && visibleChoiceCount > 0);
+            Place(choiceDivider, new Vector2(0, 1), new Vector2(1, 1),
+                new Vector2(0, -(firstChoice + 1f) * unit),
+                new Vector2(0, -firstChoice * unit));
             for (var i = 0; i < choiceButtons.Count; i++)
             {
                 var top = firstChoice + i * (rowHeight + rowGap);
                 var rect = (RectTransform)choiceButtons[i].transform;
+                var buttonImage = choiceButtons[i].GetComponent<Image>();
+                buttonImage.sprite = compact ? null : choiceCardSprite;
+                buttonImage.type = compact ? Image.Type.Simple : Image.Type.Sliced;
+                choiceLabels[i].fontSize = compact ? 18 : 20;
+                choiceMetaLabels[i].fontSize = compact ? 12 : 14;
+                var choiceInset = compact ? 12f : padding;
+                var textInset = compact ? 8f : 18f;
                 Place(rect, new Vector2(0, 1), new Vector2(1, 1),
-                    new Vector2(padding * unit, -(top + rowHeight) * unit),
-                    new Vector2(-padding * unit, -top * unit));
+                    new Vector2(choiceInset * unit, -(top + rowHeight) * unit),
+                    new Vector2(-choiceInset * unit, -top * unit));
                 Place(choiceLabels[i].rectTransform, new Vector2(0, .42f), Vector2.one,
-                    new Vector2(18f * unit, 0), new Vector2(-18f * unit, 0));
+                    new Vector2(textInset * unit, 0), new Vector2(-textInset * unit, 0));
                 Place(choiceMetaLabels[i].rectTransform, Vector2.zero, new Vector2(1, .48f),
-                    new Vector2(18f * unit, 0), new Vector2(-18f * unit, 0));
+                    new Vector2(textInset * unit, 0), new Vector2(-textInset * unit, 0));
                 if (!choiceMetaLabels[i].gameObject.activeSelf)
                     Place(choiceLabels[i].rectTransform, Vector2.zero, Vector2.one,
-                        new Vector2(18f * unit, 0), new Vector2(-18f * unit, 0));
+                        new Vector2(textInset * unit, 0), new Vector2(-textInset * unit, 0));
+                choiceSeparators[i].gameObject.SetActive(compact && i < visibleChoiceCount - 1);
+                Place(choiceSeparators[i], Vector2.zero, new Vector2(1, 0),
+                    Vector2.zero, new Vector2(0, 1f * unit));
             }
 
             Place(dock, Vector2.zero, new Vector2(1, 0),
@@ -445,9 +501,10 @@ namespace RuinedSeoul.Mvp
                 Place((RectTransform)dockLabels[i].transform.parent,
                     new Vector2(i / 5f, 0), new Vector2((i + 1) / 5f, 1),
                     Vector2.zero, Vector2.zero);
+            var panelMargin = compact ? 8f * unit : margin;
             Place(dockPanel, Vector2.zero, new Vector2(1, 0),
-                new Vector2(margin, (dockHeight + 8f) * unit),
-                new Vector2(-margin, (dockHeight + 170f) * unit));
+                new Vector2(panelMargin, (dockHeight + 8f) * unit),
+                new Vector2(-panelMargin, (dockHeight + 170f) * unit));
         }
 
         private void MakeStatusChip(string name, Color32 color, float progress)

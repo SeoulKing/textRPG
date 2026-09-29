@@ -99,6 +99,29 @@ try {
         throw "Unity did not produce index.html. See $logPath"
     }
 
+    # Keep the WebGL canvas edge-to-edge on phones and narrow browser windows.
+    $webIndexPath = Join-Path $buildOutput 'index.html'
+    $webIndex = [IO.File]::ReadAllText($webIndexPath)
+    $mobileCheck = 'if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {'
+    if ($webIndex.Contains($mobileCheck)) {
+        $webIndex = $webIndex.Replace($mobileCheck,
+            'if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(max-width: 700px)").matches) {')
+    }
+    $webIndex = $webIndex.Replace('<title>Unity Web Player | unity-mvp</title>',
+        '<title>폐허 서울 · 유니티 웹</title>')
+    $webIndex = $webIndex.Replace('<div id="unity-build-title">unity-mvp</div>',
+        '<div id="unity-build-title">폐허 서울 · 숲</div>')
+    [IO.File]::WriteAllText($webIndexPath, $webIndex, [Text.UTF8Encoding]::new($false))
+    $webStylePath = Join-Path $buildOutput 'TemplateData\style.css'
+    if (Test-Path -LiteralPath $webStylePath -PathType Leaf) {
+        [IO.File]::AppendAllText($webStylePath, @'
+
+@supports (height: 100dvh) {
+  #unity-container.unity-mobile { height: 100dvh; }
+}
+'@)
+    }
+
     if (Test-Path -LiteralPath $publishedOutput) {
         Remove-Item -LiteralPath $publishedOutput -Recurse -Force
     }
