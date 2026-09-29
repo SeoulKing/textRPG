@@ -39,6 +39,8 @@ namespace RuinedSeoul.Mvp
         private readonly List<Text> choiceMetaLabels = new List<Text>();
         private readonly List<RectTransform> choiceSeparators = new List<RectTransform>();
         private readonly List<RectTransform> statusChips = new List<RectTransform>();
+        private readonly List<RectTransform> statusIcons = new List<RectTransform>();
+        private readonly List<RectTransform> statusMeters = new List<RectTransform>();
         private readonly List<Text> dockLabels = new List<Text>();
         private RectTransform pageBackground;
         private RectTransform safeRoot;
@@ -385,15 +387,17 @@ namespace RuinedSeoul.Mvp
             stageImage.type = compact ? Image.Type.Simple : Image.Type.Sliced;
             stage.GetComponent<Shadow>().enabled = !compact;
             statusDivider.gameObject.SetActive(compact);
-            clockText.fontSize = compact ? 13 : 16;
-            locationText.fontSize = compact ? 15 : 17;
-            narrativeText.fontSize = compact ? 18 : 20;
             narrativeText.lineSpacing = compact ? 1.25f : 1.35f;
             narrativeText.verticalOverflow = compact
                 ? VerticalWrapMode.Truncate : VerticalWrapMode.Overflow;
             uiCanvas.GetComponent<CanvasScaler>().matchWidthOrHeight = compact ? .8f : .5f;
             Canvas.ForceUpdateCanvases();
             var unit = 1f / Mathf.Max(.01f, uiCanvas.scaleFactor);
+            clockText.fontSize = Mathf.RoundToInt((compact ? 13f : 16f) * unit);
+            locationText.fontSize = Mathf.RoundToInt((compact ? 15f : 17f) * unit);
+            narrativeText.fontSize = Mathf.RoundToInt((compact ? 18f : 20f) * unit);
+            dockPanelTitle.fontSize = Mathf.RoundToInt((compact ? 20f : 22f) * unit);
+            dockPanelContent.fontSize = Mathf.RoundToInt((compact ? 16f : 17f) * unit);
             var widthPx = safeRoot.rect.width / unit;
             var heightPx = safeRoot.rect.height / unit;
             var contentPx = compact ? widthPx : Mathf.Min(1100f, widthPx - 24f);
@@ -424,6 +428,12 @@ namespace RuinedSeoul.Mvp
                 Place(statusChips[i], new Vector2(0, 0), new Vector2(0, 1),
                     new Vector2(left * unit, 6f * unit),
                     new Vector2((left + chipWidth) * unit, -6f * unit));
+                Place(statusIcons[i], new Vector2(0, .5f), new Vector2(0, .5f),
+                    new Vector2(8f * unit, -8f * unit),
+                    new Vector2(24f * unit, 8f * unit));
+                Place(statusMeters[i], new Vector2(0, .5f), new Vector2(1, .5f),
+                    new Vector2(29f * unit, -3.5f * unit),
+                    new Vector2(-8f * unit, 3.5f * unit));
             }
             var timeLeft = inner + 3f * (chipWidth + gap);
             Place(timeChip, new Vector2(0, 0), new Vector2(0, 1),
@@ -476,8 +486,8 @@ namespace RuinedSeoul.Mvp
                 var buttonImage = choiceButtons[i].GetComponent<Image>();
                 buttonImage.sprite = compact ? null : choiceCardSprite;
                 buttonImage.type = compact ? Image.Type.Simple : Image.Type.Sliced;
-                choiceLabels[i].fontSize = compact ? 18 : 20;
-                choiceMetaLabels[i].fontSize = compact ? 12 : 14;
+                choiceLabels[i].fontSize = Mathf.RoundToInt((compact ? 18f : 20f) * unit);
+                choiceMetaLabels[i].fontSize = Mathf.RoundToInt((compact ? 12f : 14f) * unit);
                 var choiceInset = compact ? 12f : padding;
                 var textInset = compact ? 8f : 18f;
                 Place(rect, new Vector2(0, 1), new Vector2(1, 1),
@@ -498,9 +508,12 @@ namespace RuinedSeoul.Mvp
             Place(dock, Vector2.zero, new Vector2(1, 0),
                 Vector2.zero, new Vector2(0, dockHeight * unit));
             for (var i = 0; i < dockLabels.Count; i++)
+            {
+                dockLabels[i].fontSize = Mathf.RoundToInt(14f * unit);
                 Place((RectTransform)dockLabels[i].transform.parent,
                     new Vector2(i / 5f, 0), new Vector2((i + 1) / 5f, 1),
                     Vector2.zero, Vector2.zero);
+            }
             var panelMargin = compact ? 8f * unit : margin;
             Place(dockPanel, Vector2.zero, new Vector2(1, 0),
                 new Vector2(panelMargin, (dockHeight + 8f) * unit),
@@ -513,16 +526,14 @@ namespace RuinedSeoul.Mvp
                 new Color32(230, 234, 236, 255), 18);
             statusChips.Add(chip);
             var icon = Solid("Status icon", chip, Color.white);
+            statusIcons.Add(icon);
             var iconImage = icon.GetComponent<Image>();
             iconImage.sprite = MakeStatusIcon(name, color);
             iconImage.preserveAspect = true;
             iconImage.raycastTarget = false;
-            Place(icon, new Vector2(0, .5f), new Vector2(0, .5f),
-                new Vector2(9, -9), new Vector2(27, 9));
             var meter = Card("Meter", chip, new Color32(237, 240, 241, 255),
                 new Color32(237, 240, 241, 255), 8);
-            Place(meter, new Vector2(0, .5f), new Vector2(1, .5f),
-                new Vector2(31, -4), new Vector2(-10, 4));
+            statusMeters.Add(meter);
             var fill = Solid("Meter fill", meter, color);
             Place(fill, Vector2.zero, new Vector2(progress, 1),
                 Vector2.zero, Vector2.zero);

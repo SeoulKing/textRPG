@@ -127,8 +127,8 @@ try {
         throw "Unity preview has no HTML head: $htmlPath"
     }
     $responsiveHead = @'
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="unity-preview-responsive.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="unity-preview-responsive.css">
 '@
     $html = $html -replace '(?i)<head>', "<head>`n$responsiveHead"
     $loaderMarker = '      var script = document.createElement("script");'
@@ -136,7 +136,7 @@ try {
         throw "Unity preview loader was not found: $htmlPath"
     }
     $html = $html.Replace($loaderMarker, "      config.devicePixelRatio = 1;`n$loaderMarker")
-    Set-Content -LiteralPath $htmlPath -Value $html -Encoding utf8
+    [IO.File]::WriteAllText($htmlPath, $html.TrimEnd([char[]]@("`r", "`n")) + "`n", [Text.UTF8Encoding]::new($false))
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'unity-preview-responsive.css') -Destination $buildOutput
 
 
