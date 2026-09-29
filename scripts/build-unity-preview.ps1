@@ -99,6 +99,24 @@ try {
         throw "Unity did not produce index.html. See $logPath"
     }
 
+    $htmlPath = Join-Path $buildOutput 'index.html'
+    $html = Get-Content -LiteralPath $htmlPath -Raw
+    if ($html -notmatch '(?i)<head>') {
+        throw "Unity preview has no HTML head: $htmlPath"
+    }
+    $responsiveHead = @'
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="unity-preview-responsive.css">
+'@
+    $html = $html -replace '(?i)<head>', "<head>`n$responsiveHead"
+    $loaderMarker = '      var script = document.createElement("script");'
+    if (-not $html.Contains($loaderMarker)) {
+        throw "Unity preview loader was not found: $htmlPath"
+    }
+    $html = $html.Replace($loaderMarker, "      config.devicePixelRatio = 1;`n$loaderMarker")
+    Set-Content -LiteralPath $htmlPath -Value $html -Encoding utf8
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'unity-preview-responsive.css') -Destination $buildOutput
+
     if (Test-Path -LiteralPath $publishedOutput) {
         Remove-Item -LiteralPath $publishedOutput -Recurse -Force
     }
