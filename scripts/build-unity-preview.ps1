@@ -135,7 +135,6 @@ try {
     if (-not $html.Contains($loaderMarker)) {
         throw "Unity preview loader was not found: $htmlPath"
     }
-    $html = $html.Replace($loaderMarker, "      config.devicePixelRatio = 1;`n$loaderMarker")
     [IO.File]::WriteAllText($htmlPath, $html.TrimEnd([char[]]@("`r", "`n")) + "`n", [Text.UTF8Encoding]::new($false))
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'unity-preview-responsive.css') -Destination $buildOutput
 
