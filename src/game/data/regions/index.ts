@@ -1,6 +1,7 @@
 import type { LocationDefinition } from "../../schemas";
 import { arcanaHuntingGroundRegion } from "./arcana-hunting-ground";
 import { arcanaPlazaRegion } from "./arcana-plaza";
+import { arcanaDistrictRegions } from "./arcana-district";
 import { checkpointRegion } from "./checkpoint";
 import { convenienceRegion } from "./convenience";
 import { forestRegion } from "./forest";
@@ -20,6 +21,7 @@ export const regionModules = [
   checkpointRegion,
   magicCityEntranceRegion,
   arcanaPlazaRegion,
+  ...arcanaDistrictRegions,
   arcanaHuntingGroundRegion,
 ];
 

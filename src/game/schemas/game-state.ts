@@ -7,6 +7,8 @@ import { SubwayExpeditionStateSchema } from "./subway-expedition";
 import { SkillProgressStateSchema } from "./skill-progression";
 import { SystemNoteEntriesSchema } from "./system-note";
 import { NpcDialogueStateSchema } from "./npc-dialogue";
+import { MagicDungeonStateSchema } from "./magic-dungeon";
+import { ArcanaCombatSchema, ActiveClockSchema } from "./arcana-combat";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
@@ -27,6 +29,8 @@ export const GameStateSchema = z.object({
   isGameOver: z.boolean(),
   gameOverReason: z.string(),
   stageClear: z.boolean(),
+  chapterOneResult: z.enum(["pending", "signal", "missed"]).default("pending"),
+  preparedMeal: z.enum(["hotMeal", "ricePorridge", "greensSoup", "forestStew"]).nullable().default(null),
   stats: z.object({
     hp: z.number().int().min(0).max(10),
     mind: z.number().int().min(0).max(10),
@@ -58,6 +62,9 @@ export const GameStateSchema = z.object({
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
   subwayExpedition: SubwayExpeditionStateSchema,
+  magicDungeon: MagicDungeonStateSchema,
+  arcanaCombat: ArcanaCombatSchema,
+  activeClock: ActiveClockSchema,
   npcDialogue: NpcDialogueStateSchema,
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),

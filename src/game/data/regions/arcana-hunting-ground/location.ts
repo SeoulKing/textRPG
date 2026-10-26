@@ -23,18 +23,18 @@ export const arcanaHuntingGroundChoices: ActionDefinition[] = [
 
 export const arcanaHuntingGroundLocation = defineLocation({
   id: "arcana_hunting_ground",
-  name: "아르카나 사냥터",
+  name: "도시 앞 평원",
   risk: "medium",
-  mapPosition: { q: 0, r: 1 },
-  imagePath: "assets/scenes/arcana-hunting-ground.svg",
-  summary: "아르카나 광장 아래로 펼쳐진 별빛 초원. 마력이 뭉친 야생 몬스터와 마주칠 수 있는 초급 사냥터다.",
+  mapPosition: { q: 0, r: 2 },
+  imagePath: "assets/scenes/arcana-front-plains.png",
+  summary: "아르카나 도시 남문 밖으로 펼쳐진 별빛 평원. 마력이 뭉친 야생 몬스터가 서식한다.",
   tags: ["magic-city", "fantasy", "hunting-ground", "realm:magic"],
   traits: ["monster encounters", "starlight grassland", "beginner hunting"],
   obtainableItemIds: [],
-  neighbors: ["arcana_plaza"],
+  neighbors: ["arcana_city_gate"],
   interactionChoices: arcanaHuntingGroundChoices,
   links: {
-    arcana_plaza: { note: "별빛이 깔린 오르막길을 따라 아르카나 광장으로 돌아간다." },
+    arcana_city_gate: { note: "별빛 초원의 길을 따라 도시 남문으로 돌아간다." },
   },
   monsters: [slimeMonster],
 });

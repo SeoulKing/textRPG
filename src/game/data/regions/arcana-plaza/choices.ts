@@ -1,11 +1,21 @@
+import { GAME_MINUTE_MS, TRAVEL_DURATION_MS } from "../../../base-data";
 import type { ChoiceDefinition } from "../../../schemas";
 import { sceneChoice } from "../../scene-choice-helpers";
 
 export const arcanaPlazaChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
+    id: "leave_arcana_place", label: "광장으로 나간다", outcomeHint: "",
+    effects: [
+      { type: "travel", locationId: "arcana_plaza" },
+      { type: "advance_time", minutes: Math.round(TRAVEL_DURATION_MS / GAME_MINUTE_MS) },
+    ],
+    nextSceneId: "arcana_plaza_repeat_intro", riskHint: "low",
+  }),
+
+  sceneChoice({
     id: "brew_mana_potion",
     label: "{{item:manaPotion}}",
-    outcomeHint: "효과: MP +4. 필요 재료: {{item:moonHerb}} 2 / {{item:arcaneDust}} 1. 연금 시간 20분.",
+    outcomeHint: "효과: MP +20. 필요 재료: {{item:moonHerb}} 2 / {{item:arcaneDust}} 1. 연금 시간 20분.",
     showOutcomeHint: true,
     presentationMode: "always",
     conditions: [

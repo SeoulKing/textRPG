@@ -17,14 +17,18 @@ import {
   type SubwayPendingThreat,
   type SubwaySituationKind,
 } from "./schemas";
-import { subwaySituationActionCatalog } from "./subway-encounter";
+import {
+  DEFAULT_SUBWAY_ENCOUNTER_CHOICE_COUNT,
+  MAX_SUBWAY_ENCOUNTER_CHOICE_COUNT,
+  subwaySituationActionCatalog,
+} from "./subway-encounter";
 import {
   generateSubwayRoleJson,
   hasSubwayRoleConfig,
   type SubwayRoleClient,
 } from "./subway-role-pipeline";
 
-export const SUBWAY_ENCOUNTER_PROMPT_VERSION = "subway-server-combat-narrative-v5";
+export const SUBWAY_ENCOUNTER_PROMPT_VERSION = "subway-server-combat-narrative-v6";
 
 export type SubwayEncounterGenerationInput = {
   gameId: string;
@@ -397,8 +401,31 @@ function serverEncounterChoices(
   const encounter = input.state.subwayExpedition.currentFloorProgress.encounter!;
   if (encounter.stage === "resolved") return [];
   const opening = encounter.stage === "opening";
-  return subwaySituationActionCatalog(input.state, encounter)
-    .slice(0, 20)
+  const catalog = subwaySituationActionCatalog(input.state, encounter);
+  const standardActions = catalog.filter(
+    (entry) => !entry.actionToken.startsWith("use_item:"),
+  );
+  const itemActions = catalog.filter(
+    (entry) => entry.actionToken.startsWith("use_item:"),
+  );
+  const coreActions = standardActions.length <= DEFAULT_SUBWAY_ENCOUNTER_CHOICE_COUNT
+    ? standardActions
+    : [
+        standardActions[0]!,
+        standardActions[
+          encounter.turnNumber % (standardActions.length - 2) + 1
+        ]!,
+        standardActions[standardActions.length - 1]!,
+      ];
+  const selectedActions = [
+    ...coreActions,
+    ...itemActions.slice(
+      0,
+      MAX_SUBWAY_ENCOUNTER_CHOICE_COUNT - coreActions.length,
+    ),
+  ].slice(0, MAX_SUBWAY_ENCOUNTER_CHOICE_COUNT);
+
+  return selectedActions
     .map((entry, index) => {
       const label = serverChoiceLabel(entry.actionToken, opening);
       return {

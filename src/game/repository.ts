@@ -23,11 +23,14 @@ import {
   type WorldInstance,
 } from "./schemas";
 import { SAVE_VERSION } from "./base-data";
+import { normalizeArcanaCombat } from "./arcana-combat";
+import { ActiveClockSchema } from "./schemas/arcana-combat";
 import { worldRegistry } from "./data/registry";
 import { normalizeDynamicLocationNames } from "./dynamic-location-naming";
 import { formatLogTimestamp } from "./state-utils";
 import { buildRuntimeRegistry, emptyDynamicWorldRegistry } from "./runtime-registry";
 import { normalizeSkillProgress } from "./skill-progression";
+import { normalizeMagicDungeon } from "./magic-dungeon";
 
 export type CardKind = "locationCards" | "personCards" | "itemCards" | "eventCards" | "sceneCards";
 export type StoredCard = LocationCard | PersonCard | ItemCard | EventCard | SceneCard;
@@ -350,7 +353,8 @@ function pruneState(state: unknown): GameState {
   const rawLocation = typeof rawState.location === "string" ? rawState.location : "shelter";
   const nextLocation = validLocationIds.has(rawLocation) ? rawLocation : "shelter";
   const nextDay = normalizeInt(rawState.day, 1, 1);
-  const nextWorldElapsedMs = normalizeInt(rawState.worldElapsedMs, 0, 0);
+  const timeScale = normalizeInt(rawState.saveVersion, 0, 0) < 19 ? 2 : 1;
+  const nextWorldElapsedMs = normalizeInt(rawState.worldElapsedMs, 0, 0) * timeScale;
   const nextFlags = pruneFlags(
     rawState.flags && typeof rawState.flags === "object"
       ? rawState.flags as Record<string, boolean | number | string>
@@ -383,6 +387,19 @@ function pruneState(state: unknown): GameState {
   const legacyLastSleepEnergyKey = "lastSleep" + "Full" + "ness";
   const legacyExhaustionLevelKey = "star" + "vation" + "Level";
   const nextInventory = normalizeInventory(rawState.inventory, validItemIds);
+  const legacySignalMiss = rawState.isGameOver === true &&
+    typeof rawState.gameOverReason === "string" &&
+    rawState.gameOverReason.includes("구조 기회를 놓쳤다");
+  const chapterOneResult = rawState.chapterOneResult === "signal" || rawState.chapterOneResult === "missed"
+    ? rawState.chapterOneResult
+    : rawState.stageClear === true
+      ? "signal"
+      : legacySignalMiss
+        ? "missed"
+        : "pending";
+  const preparedMeal = ["hotMeal", "ricePorridge", "greensSoup", "forestStew"].includes(String(rawState.preparedMeal))
+    ? rawState.preparedMeal as GameState["preparedMeal"]
+    : null;
   nextFlags[`visited_${nextLocation}`] = true;
   if (
     nextFlags.opening_seen ||
@@ -405,15 +422,20 @@ function pruneState(state: unknown): GameState {
     phaseIndex: normalizeInt(rawState.phaseIndex, 0, 0, 4),
     worldElapsedMs: nextWorldElapsedMs,
     lastRealTimestamp: normalizeInt(rawState.lastRealTimestamp, Date.now(), 0),
-    autoEnergyElapsedMs: normalizeInt(rawState.autoEnergyElapsedMs ?? rawState[legacyAutoEnergyElapsedKey], 0, 0),
-    exhaustionElapsedMs: normalizeInt(rawState.exhaustionElapsedMs ?? rawState[legacyExhaustionElapsedKey], 0, 0),
-    isGameOver: typeof rawState.isGameOver === "boolean" ? rawState.isGameOver : false,
-    gameOverReason: typeof rawState.gameOverReason === "string" ? rawState.gameOverReason : "",
-    stageClear: typeof rawState.stageClear === "boolean" ? rawState.stageClear : false,
+    autoEnergyElapsedMs: normalizeInt(rawState.autoEnergyElapsedMs ?? rawState[legacyAutoEnergyElapsedKey], 0, 0) * timeScale,
+    exhaustionElapsedMs: normalizeInt(rawState.exhaustionElapsedMs ?? rawState[legacyExhaustionElapsedKey], 0, 0) * timeScale,
+    isGameOver: legacySignalMiss ? false : rawState.isGameOver === true,
+    gameOverReason: legacySignalMiss ? "" : typeof rawState.gameOverReason === "string" ? rawState.gameOverReason : "",
+    stageClear: false,
+    chapterOneResult,
+    preparedMeal,
     stats: normalizeStats(rawState.stats),
     money: normalizeInt(rawState.money, 0, 0),
     skills: normalizeStringArray(rawState.skills),
     skillProgress: normalizeSkillProgress(rawState.skillProgress),
+    magicDungeon: normalizeMagicDungeon(rawState.magicDungeon),
+    arcanaCombat: normalizeArcanaCombat(rawState.arcanaCombat),
+    activeClock: ActiveClockSchema.catch({ ownerId: null, heartbeatAt: 0, sequence: 0, paused: true }).parse(rawState.activeClock),
     inventory: nextInventory,
     toolDurability: normalizeToolDurability(rawState.toolDurability, nextInventory, validItemIds),
     dynamicContent,

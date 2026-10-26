@@ -479,6 +479,7 @@ function validateCondition(registry: ContentRegistry, condition: Condition, sour
   switch (condition.type) {
     case "has_item":
     case "not_has_item":
+    case "tool_durability_lt":
       if (!registry.items[condition.itemId]) throw new Error(`${source} references unknown item '${condition.itemId}'.`);
       break;
     case "location":

@@ -20,6 +20,8 @@ import { setSystemNote } from "./system-note";
 
 export const SUBWAY_BANDIT_ENCOUNTER_ID = "subway_floor_1_bandit";
 export const SUBWAY_BANDIT_ACTION_MINUTES = 5;
+export const DEFAULT_SUBWAY_ENCOUNTER_CHOICE_COUNT = 3;
+export const MAX_SUBWAY_ENCOUNTER_CHOICE_COUNT = 5;
 
 const BANDIT_MAX_HP = 4;
 const BANDIT_ATTACK = 1;

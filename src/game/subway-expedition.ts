@@ -8,6 +8,7 @@ import {
   buildTemplateSubwayRunPlan,
   prepareSubwayFloorGeneration,
 } from "./subway-expedition-generator";
+import { MAX_SUBWAY_ENCOUNTER_CHOICE_COUNT } from "./subway-encounter";
 import type {
   ActionChoice,
   GameState,
@@ -809,23 +810,25 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
     if (!encounter?.currentScene) {
       return [];
     }
-    return encounter.currentScene.choices.map((choice) => ({
-      id: choice.id,
-      label: choice.label,
-      outcomeHint: "",
-      showOutcomeHint: false,
-      postChoiceNarrative: choice.postChoiceNarrative,
-      action: {
-        type: "subway_expedition" as const,
-        command: "encounter_choice" as const,
-        optionId: choice.id,
-        turnNumber: encounter.turnNumber,
-      },
-      loading: {
-        durationMs: 650,
-      },
-      isAvailable: true,
-    }));
+    return encounter.currentScene.choices
+      .slice(0, MAX_SUBWAY_ENCOUNTER_CHOICE_COUNT)
+      .map((choice) => ({
+        id: choice.id,
+        label: choice.label,
+        outcomeHint: "",
+        showOutcomeHint: false,
+        postChoiceNarrative: choice.postChoiceNarrative,
+        action: {
+          type: "subway_expedition" as const,
+          command: "encounter_choice" as const,
+          optionId: choice.id,
+          turnNumber: encounter.turnNumber,
+        },
+        loading: {
+          durationMs: 650,
+        },
+        isAvailable: true,
+      }));
   }
 
   if (phase === "encounter_result") {

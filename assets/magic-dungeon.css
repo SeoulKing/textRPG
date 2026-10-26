@@ -1,0 +1,109 @@
+/* Dungeon-only hierarchy; the survival story keeps its existing layout. */
+.in-magic-dungeon { --mobile-status-height: 0px; }
+.in-magic-dungeon .status-strip, .in-magic-dungeon .scene-art-wrap { display: none; }
+.in-magic-dungeon .scene-copy { background: #fff; padding-bottom: 24px; }
+.in-magic-dungeon .scene-copy:has(.choice-list:not(:empty)) { padding-bottom: 24px; }
+.in-magic-dungeon .scene-copy:has(.choice-list:not(:empty))::after { display: none; }
+.magic-dungeon-status { color: #26343a; margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
+.magic-dungeon-status[hidden] { display: none; }
+.dungeon-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dungeon-kicker { margin: 0 0 5px; color: #526268; font-size: 13px; font-weight: 500; }
+.dungeon-heading h2 { margin: 0; font-size: 24px; line-height: 1.3; color: #1e3036; font-weight: 700; }
+.dungeon-class { color: #435b65; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.dungeon-objective { margin: 12px 0 16px; color: #526268; font-size: 14px; line-height: 1.65; }
+.dungeon-opponent { margin: 0 0 18px; }
+.dungeon-enemy, .dungeon-resource, .dungeon-threat-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dungeon-enemy { margin-bottom: 7px; font-size: 15px; }
+.dungeon-enemy strong { font-weight: 650; }
+.dungeon-enemy span { font-variant-numeric: tabular-nums; font-size: 13px; }
+.magic-dungeon-status progress { display: block; height: 8px; width: 100%; border: 0; border-radius: 0; background: #e6eae8; accent-color: #3c7963; }
+.magic-dungeon-status progress::-webkit-progress-bar { background: #e6eae8; }
+.magic-dungeon-status progress::-webkit-progress-value { background: #3c7963; }
+.magic-dungeon-status progress.mana { accent-color: #526eac; }
+.magic-dungeon-status progress.mana::-webkit-progress-value { background: #526eac; }
+.magic-dungeon-status progress.enemy { accent-color: #a4474d; }
+.magic-dungeon-status progress.enemy::-webkit-progress-value { background: #a4474d; }
+.dungeon-intent { margin-top: 14px; padding: 12px 14px; background: #f1f4f3; border-left: 3px solid #8e9e96; }
+.dungeon-intent.is-casting { background: #fff0ed; border-left-color: #a93225; }
+.dungeon-threat-line strong { font-size: 16px; }
+.dungeon-threat-line b { font-size: 22px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dungeon-intent.is-casting .dungeon-threat-line { color: #a93225; }
+.dungeon-intent p { font-size: 13px; line-height: 1.6; margin: 8px 0 0; color: #435157; }
+.magic-dungeon-status progress.cast { height: 5px; margin-top: 9px; accent-color: #a93225; }
+.magic-dungeon-status progress.cast::-webkit-progress-value { background: #a93225; }
+.magic-dungeon-status progress[hidden] { display: none; }
+.dungeon-resources { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.dungeon-resource { margin-bottom: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.dungeon-resource strong { font-weight: 650; }
+.dungeon-protection { margin: 10px 0 0; color: #365b87; font-size: 13px; font-weight: 600; }
+.dungeon-feedback { margin: 14px 0 0; padding: 10px 12px; background: #edf5ef; border-left: 3px solid #3c7963; font-size: 14px; font-weight: 650; color: #28583f; }
+.dungeon-pack { margin-top: 14px; padding: 10px 0; border-top: 1px solid #dce3df; border-bottom: 1px solid #dce3df; color: #46595e; font-size: 13px; }
+.dungeon-pack summary, .dungeon-history summary { cursor: pointer; }
+.dungeon-pack p { margin: 8px 0 0; line-height: 1.6; }
+.dungeon-utilities { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+.dungeon-utilities button { font: inherit; font-size: 13px; color: #41555e; border: 0; background: transparent; border-radius: 0; padding: 10px 12px; min-height: 44px; cursor: pointer;
+  border-bottom: 1px solid #dce3df;
+  box-shadow: none;
+}
+.dungeon-utilities button:disabled { opacity: .55; cursor: wait; }
+.in-magic-dungeon .scene-text { min-height: 0; font-family: inherit; font-size: 14px; line-height: 1.65; }
+.in-magic-dungeon .scene-text p { margin-bottom: 10px; }
+.dungeon-history { color: #59696d; font-size: 13px; }
+.dungeon-history p { margin: 10px 0 0; }
+.dungeon-summary { color: #34474f; }
+.in-magic-dungeon .choice-list { position: static; display: grid; grid-template-columns: 1fr; gap: 0; min-height: 0; max-height: none; margin-top: 10px; padding: 0; overflow: visible; background: #fff; }
+.in-magic-dungeon .choice-button { min-height: 76px; padding: 16px 4px; border: 0; border-bottom: 1px solid #dce3df; border-radius: 0; background: transparent; overflow: visible;
+  box-shadow: none;
+}
+.in-magic-dungeon .choice-button:first-child { border-top: 0; }
+.in-magic-dungeon .choice-label-row { align-items: flex-start; gap: 10px; }
+.in-magic-dungeon .choice-label { font-size: 16px; line-height: 1.4; font-weight: 650; color: #263a42; }
+.in-magic-dungeon .choice-meta { display: block; color: #57696e; font-size: 13px; line-height: 1.6; margin-top: 6px; white-space: normal; }
+.in-magic-dungeon .choice-meta[hidden] { display: none; }
+.dungeon-choice-effect { display: block; margin-top: 8px; color: #2e6b54; font-size: 15px; font-weight: 650; line-height: 1.5; }
+.dungeon-choice-effect[hidden] { display: none; }
+.in-magic-dungeon .choice-side { align-items: flex-end; flex-direction: column; gap: 4px; }
+.in-magic-dungeon .choice-status { color: #7e4a22; font-size: 12px; font-weight: 600; }
+.dungeon-role { color: #46647b; font-size: 12px; font-weight: 650; white-space: nowrap; }
+.dungeon-role[hidden] { display: none; }
+.in-magic-dungeon .choice-button:hover { background: transparent;
+  transform: none;
+}
+.in-magic-dungeon .choice-button:focus-visible, .dungeon-utilities button:focus-visible, .dungeon-pack summary:focus-visible, .dungeon-history summary:focus-visible { outline: 2px solid #2f7359; outline-offset: 3px; }
+.in-magic-dungeon .choice-button.dungeon-secondary { min-height: 44px; margin-top: 12px; border-top: 0; border-bottom: 0; }
+.in-magic-dungeon .dungeon-secondary .choice-label { font-size: 14px; color: #4f6269; }
+.in-magic-dungeon .dungeon-secondary .dungeon-choice-effect { font-size: 13px; font-weight: 500; color: #52646b; }
+.in-magic-dungeon .choice-button:disabled { opacity: .65; }
+.in-magic-dungeon[data-dungeon-phase="battle"] .choice-list { grid-template-columns: 1fr; gap: 0; }
+.in-magic-dungeon[data-dungeon-phase="battle"] .choice-button { min-height: 90px; padding: 12px 4px; border: 0; background: transparent;
+  border-bottom: 1px solid #dce3df;
+  border-radius: 0;
+  box-shadow: none;
+}
+.in-magic-dungeon[data-dungeon-phase="battle"] .choice-button:nth-child(n+5), .in-magic-dungeon[data-dungeon-phase="battle"] .dungeon-secondary { grid-column: 1 / -1; }
+.in-magic-dungeon[data-dungeon-phase="battle"] .choice-label-row { display: block; }
+.in-magic-dungeon[data-dungeon-phase="battle"] .choice-side { margin-top: 5px; flex-direction: row; flex-wrap: wrap; align-items: center; }
+.in-magic-dungeon[data-dungeon-phase="battle"] .choice-label { font-size: 15px; }
+.in-magic-dungeon .choice-button.dungeon-ready-response { border-color: #dce3df; border-left-width: 0; background: transparent; }
+.in-magic-dungeon .dungeon-ready-response .dungeon-role, .in-magic-dungeon .dungeon-ready-response .choice-status { color: #a93225; }
+@media (max-width: 620px) {
+  .in-magic-dungeon .app-shell { top: env(safe-area-inset-top); }
+  .in-magic-dungeon .scene-copy, .in-magic-dungeon .scene-copy:has(.choice-list:not(:empty)) { padding: 20px 16px 24px; }
+  .in-magic-dungeon .scene-text { padding: 0; }
+  .in-magic-dungeon .system-note { margin-inline: 0; max-width: 100%; }
+  .dungeon-heading h2 { font-size: 23px; }
+}
+@media (max-width: 350px) {
+  .dungeon-resources { gap: 12px; }
+  .in-magic-dungeon[data-dungeon-phase="battle"] .choice-list { grid-template-columns: 1fr;
+  gap: 0;
+}
+}
+
+.dungeon-support[hidden] { display: none; }
+.dungeon-support { margin-top: 12px; }
+.dungeon-support .dungeon-history { margin-top: 16px; }
+.dungeon-feedback.is-damage { color: #983326; background: #fff0ed; border-left-color: #a93225; }
+.in-magic-dungeon[data-dungeon-phase="battle"] .scene-text:empty { display: none; }
+
+.in-magic-dungeon .choice-list > .choice-button:last-child { border-bottom: 0; }

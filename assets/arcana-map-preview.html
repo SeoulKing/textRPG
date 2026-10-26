@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>아르카나 광장 지도</title><link rel="stylesheet" href="arcana-map.css?v=20261026-sprites-v2"></head>
+<body class="arcana-map-preview"><main><section id="map"></section></main><script src="arcana-map.js?v=20261026-sprites-v2"></script><script>
+const map=window.ArcanaMapUI.create(document.getElementById("map"));
+map.update(null);
+window.render_game_to_text=()=>JSON.stringify(map.state());
+</script></body></html>

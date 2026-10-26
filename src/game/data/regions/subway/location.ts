@@ -24,7 +24,25 @@ export const subwayChoices: ActionDefinition[] = [
     tags: ["signal", "search"],
     riskHint: "medium",
   }),
-];
+  interactionFor("subway", {
+    id: "trace_day6_station_notice",
+    label: "6일차 역무실 안내문을 대조한다",
+    type: "search",
+    outcomeHint: "대합실의 구조 안내문에서 검문소 통신 차량의 위치를 확인한다. {{item:cordage}} 1개 / +90분",
+    showOutcomeHint: true,
+    conditions: [
+      { type: "flag", flag: "day6_subway_hint" },
+      { type: "flag_not", flag: "station_notice_checked" },
+    ],
+    effects: [
+      { type: "advance_time", minutes: 90 },
+      { type: "add_item", itemId: "cordage", amount: 1 },
+      { type: "set_flag", flag: "station_notice_checked" },
+      { type: "log", message: "대합실 안내문에 역무실 신호함의 안테나와 검문소 통신 차량의 위치가 함께 적혀 있다." },
+    ],
+    tags: ["hint", "signal", "resource"],
+    riskHint: "low",
+  }),];
 
 export const subwayLocation = defineLocation({
   id: "subway",

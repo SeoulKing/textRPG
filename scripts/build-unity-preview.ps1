@@ -99,6 +99,59 @@ try {
         throw "Unity did not produce index.html. See $logPath"
     }
 
+    # Keep the WebGL canvas edge-to-edge on phones and narrow browser windows.
+    $webIndexPath = Join-Path $buildOutput 'index.html'
+    $webIndex = [IO.File]::ReadAllText($webIndexPath)
+    $mobileCheck = 'if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {'
+    if ($webIndex.Contains($mobileCheck)) {
+        $webIndex = $webIndex.Replace($mobileCheck,
+            'if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(max-width: 700px)").matches) {')
+    }
+    $webIndex = $webIndex.Replace('<title>Unity Web Player | unity-mvp</title>',
+        '<title>폐허 서울 · 유니티 웹</title>')
+    $webIndex = $webIndex.Replace('<div id="unity-build-title">unity-mvp</div>',
+        '<div id="unity-build-title">폐허 서울 · 숲</div>')
+    [IO.File]::WriteAllText($webIndexPath, $webIndex, [Text.UTF8Encoding]::new($false))
+    $webStylePath = Join-Path $buildOutput 'TemplateData\style.css'
+    if (Test-Path -LiteralPath $webStylePath -PathType Leaf) {
+        [IO.File]::AppendAllText($webStylePath, @'
+
+@supports (height: 100dvh) {
+  #unity-container.unity-mobile { height: 100dvh; }
+}
+'@)
+    }
+    $htmlPath = Join-Path $buildOutput 'index.html'
+    $html = Get-Content -LiteralPath $htmlPath -Raw
+    if ($html -notmatch '(?i)<head>') {
+        throw "Unity preview has no HTML head: $htmlPath"
+    }
+    $responsiveHead = @'
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="unity-preview-responsive.css">
+'@
+    $html = $html -replace '(?i)<head>', "<head>`n$responsiveHead"
+    $loaderMarker = '      var script = document.createElement("script");'
+    if (-not $html.Contains($loaderMarker)) {
+        throw "Unity preview loader was not found: $htmlPath"
+    }
+    $unityReadyMarker = '        }).then((unityInstance) => {'
+    if (-not $html.Contains($unityReadyMarker)) {
+        throw "Unity preview ready handler was not found: $htmlPath"
+    }
+    $pixelRatioSync = @'
+                const syncPixelRatio = () => {
+                  unityInstance.SendMessage("Forest MVP", "SetBrowserPixelRatio",
+                    String(window.devicePixelRatio || 1));
+                };
+                syncPixelRatio();
+                window.addEventListener("resize", syncPixelRatio);
+'@
+    $html = $html.Replace($unityReadyMarker, "$unityReadyMarker`n$pixelRatioSync")
+    [IO.File]::WriteAllText($htmlPath, $html.TrimEnd([char[]]@("`r", "`n")) + "`n", [Text.UTF8Encoding]::new($false))
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'unity-preview-responsive.css') -Destination $buildOutput
+
+
     if (Test-Path -LiteralPath $publishedOutput) {
         Remove-Item -LiteralPath $publishedOutput -Recurse -Force
     }

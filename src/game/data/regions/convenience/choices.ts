@@ -13,8 +13,8 @@ const foodCrate = { locationId: "convenience", nodeId: "convenience_food_crate" 
 export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "go_to_magic_city_entrance_after_discovery",
-    label: "옥상으로 올라가 마법도시 입구로 간다",
-    outcomeHint: "푸른 빛을 따라 비상계단을 올라 포탈이 열린 옥상으로 향한다. +5분",
+    label: "들판의 포탈로 향한다",
+    outcomeHint: "푸른 빛을 따라 오솔길을 걸어 포탈이 열린 들판으로 향한다. +5분",
     conditions: [
       { type: "flag", flag: "magic_city_entrance_discovered" },
       { type: "flag_not", flag: "magic_city_portal_discovery_seen" },
@@ -22,7 +22,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
     effects: [
       { type: "set_flag", flag: "magic_city_portal_discovery_seen" },
       { type: "travel", locationId: "magic_city_entrance" },
-      { type: "log", message: "당신은 푸른 빛을 따라 녹슨 비상계단을 올라 포탈이 열린 옥상으로 향한다." },
+      { type: "log", message: "당신은 가게를 나와 푸른 빛을 따라 포탈이 열린 들판으로 향한다." },
       { type: "advance_time", minutes: 5 },
     ],
     nextSceneId: "magic_city_entrance_first_intro",
@@ -30,15 +30,15 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   }),
   sceneChoice({
     id: "leave_magic_city_portal_for_now",
-    label: "일단 가게 안으로 돌아간다",
-    outcomeHint: "포탈의 위치를 기억해 두고 편의점 안쪽으로 돌아간다.",
+    label: "일단 가게 안을 더 살핀다",
+    outcomeHint: "포탈의 위치를 기억해 두고 편의점 안쪽을 더 살핀다.",
     conditions: [
       { type: "flag", flag: "magic_city_entrance_discovered" },
       { type: "flag_not", flag: "magic_city_portal_discovery_seen" },
     ],
     effects: [
       { type: "set_flag", flag: "magic_city_portal_discovery_seen" },
-      { type: "log", message: "당신은 포탈의 위치를 기억해 둔 채 다시 편의점 안쪽으로 내려간다." },
+      { type: "log", message: "당신은 들판에 열린 포탈의 위치를 기억해 둔 채 다시 가게 안쪽으로 시선을 돌린다." },
     ],
     nextSceneId: "convenience_scene_discovered",
     riskHint: "low",
@@ -90,7 +90,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "collect_stale_bread_from_food_crate",
     label: "{{item:staleBread|을를}} 챙긴다",
-    outcomeHint: "보관함 안쪽의 {{item:staleBread|을를}} 모두 챙긴다. +5분",
+    outcomeHint: "보관함 안쪽의 {{item:staleBread|을를}} 모두 챙긴다. +60분",
     ...collectStockItemChoiceParts({
       ...foodCrate,
       itemId: "staleBread",
@@ -102,7 +102,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "collect_water_from_food_crate",
     label: "{{item:waterBottle|을를}} 챙긴다",
-    outcomeHint: "보관함 구석에 남은 {{item:waterBottle|을를}} 챙긴다. +5분",
+    outcomeHint: "보관함 구석에 남은 {{item:waterBottle|을를}} 챙긴다. +60분",
     ...collectStockItemChoiceParts({
       ...foodCrate,
       itemId: "waterBottle",
@@ -114,7 +114,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "collect_rice_from_food_crate",
     label: "{{item:rawRice|을를}} 챙긴다",
-    outcomeHint: "젖지 않은 {{item:rawRice}} 봉지를 챙긴다. +5분",
+    outcomeHint: "젖지 않은 {{item:rawRice}} 봉지를 챙긴다. +60분",
     ...collectStockItemChoiceParts({
       ...foodCrate,
       itemId: "rawRice",

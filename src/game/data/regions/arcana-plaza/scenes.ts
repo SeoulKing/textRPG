@@ -6,8 +6,7 @@ export const arcanaPlazaSceneDefinitions: SceneDefinition[] = [
     locationId: "arcana_plaza",
     title: "아르카나 광장",
     paragraphs: [
-      "포탈을 빠져나오자 중력이 잠깐 방향을 잃는다. 발밑에는 은빛 돌로 짠 광장이 펼쳐지고, 하늘에는 달 세 개와 거꾸로 흐르는 별무리가 걸려 있다. 망토를 두른 사람들과 작은 날개를 가진 짐승들이 아무렇지 않게 당신 곁을 스쳐 간다.",
-      "이 세계에서 정신력이라 부르던 감각은 마력을 담는 그릇으로 바뀐다. 이제 푸른 수치는 MP다. 광장 가장자리에는 달빛 약초가 자라고, 허공의 룬에서는 비전 가루를 얻을 수 있으며, 중앙의 작업대에서는 이 세계만의 레시피를 사용할 수 있다.",
+      "포탈을 빠져나오자 은빛 돌을 깐 광장이 시야 끝까지 넓게 펼쳐진다. 중앙 분수에서 쏟아지는 물소리 사이로 상인들의 호객 소리와 사람들의 웃음이 뒤섞이고, 망토를 두른 여행자들이 저마다의 길로 광장을 가로지른다. 가장자리에 늘어선 가판대마다 푸른 수정등이 빛나고, 아치형 회랑 너머의 첨탑과 창문에는 따뜻한 금빛이 하나둘 켜지고 있다.",
     ],
     choiceIds: [],
     conditions: [
@@ -21,8 +20,7 @@ export const arcanaPlazaSceneDefinitions: SceneDefinition[] = [
     locationId: "arcana_plaza",
     title: "아르카나 광장",
     paragraphs: [
-      "아르카나 광장의 별빛은 시간과 상관없이 일정하다. 달빛 약초는 분수 주변에서 은빛 잎을 흔들고, 부유 룬은 손을 뻗으면 닿을 듯 천천히 회전한다.",
-      "현실의 생존 도구 대신 마법 재료와 MP가 이곳의 선택을 결정한다. 더 깊은 도시로 향할 준비는 비전 작업대에서 시작할 수 있다.",
+      "분수 둘레에는 쉬어 가는 사람들이 모여 있고, 가판대 사이로 물건을 구경하는 행렬이 느리게 흐른다. 머리 위를 맴도는 작은 빛무리가 젖은 돌바닥에 푸른 흔적을 비추고, 회랑 아래에서는 잔을 부딪치는 소리와 웃음이 새어 나온다. 널찍한 광장을 오가는 발걸음은 저녁이 깊어져도 좀처럼 줄지 않는다.",
     ],
     choiceIds: [],
     conditions: [
@@ -83,4 +81,5 @@ export const arcanaPlazaSceneDefinitions: SceneDefinition[] = [
     choiceIds: [],
     conditions: [{ type: "location", locationId: "arcana_plaza" }],
   },
+
 ];

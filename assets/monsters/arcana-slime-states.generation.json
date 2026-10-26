@@ -1,0 +1,14 @@
+{
+  "reference": "assets/monsters/arcana-slime.png",
+  "states": [
+    {
+      "id": "hit",
+      "prompt": "Edit the provided slime illustration into ONE alternate state sprite of the EXACT SAME monster. Reference image role: SAME CHARACTER AND STYLE REFERENCE. Preserve its translucent moss/olive green jelly, luminous pale yellow-green core, two small dark oval eyes, dark crisp anime line art, flat two-to-three-tone cel shading, warm highlights, small internal starlight specks. Preserve the same square canvas, camera view, ground baseline near the lower edge, and overall scale. Transparent background with genuine alpha, no scene, no frame, no words, no numbers, no health bar. Full creature completely visible with padding. No human features, no gore, no 3D rendering or photorealism. Change only the pose and expression for the specified state. HIT REACTION: the still-living slime recoils from a blow. Compress and squash its jelly body sideways with one obvious indentation, small jelly droplets flying a short distance, the two eyes squeezed shut as dark small angled curves, core briefly brighter. A clear hurt flinch, but not melted, not dead. Do not include weapons, attackers, flames, text or impact symbols."
+    },
+    {
+      "id": "dead",
+      "prompt": "Edit the provided slime illustration into ONE alternate state sprite of the EXACT SAME monster. Reference image role: SAME CHARACTER AND STYLE REFERENCE. Preserve its translucent moss/olive green jelly, luminous pale yellow-green core, two small dark oval eyes, dark crisp anime line art, flat two-to-three-tone cel shading, warm highlights, small internal starlight specks. Preserve the same square canvas, camera view, ground baseline near the lower edge, and overall scale. Transparent background with genuine alpha, no scene, no frame, no words, no numbers, no health bar. Full creature completely visible with padding. No human features, no gore, no 3D rendering or photorealism. Change only the pose and expression for the specified state. DEFEATED / DEAD: the slime has lost its strength and collapsed into a low wide puddle of the same green jelly. Body height about one third the original, resting at exactly the same bottom baseline, with the original head bulge deflated and the core dim, eyes gently closed into two short curves. A few small rounded separated jelly blobs nearby. No gore, skeleton, grave, skull, X symbols or textual marks. Maintain original full-canvas scale and transparent empty upper area; do NOT enlarge the puddle to fill the image."
+    }
+  ],
+  "generator": "built-in image_gen"
+}

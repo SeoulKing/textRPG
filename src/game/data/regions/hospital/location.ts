@@ -34,12 +34,12 @@ export const hospitalChoices: ActionDefinition[] = [
     id: "help_hospital_triage",
     label: "임시 처치대를 돕는다",
     type: "use",
-    outcomeHint: "기력 -1 / 보상: {{item:painRelief}}·{{item:clothScrap}}·{{item:cordage}}·간단한 처치 중 하나 / +35분",
+    outcomeHint: "기력 -1 / 보상: {{item:painRelief}}·{{item:clothScrap}}·{{item:cordage}}·간단한 처치 중 하나 / +90분",
     showOutcomeHint: true,
     conditions: [{ type: "stat_gte", stat: "energy", value: 1 }],
     effects: [
       { type: "change_stat", stat: "energy", value: -1 },
-      { type: "advance_time", minutes: 35 },
+      { type: "advance_time", minutes: 90 },
       {
         type: "random_outcome",
         outcomes: [
@@ -81,7 +81,46 @@ export const hospitalChoices: ActionDefinition[] = [
     tags: ["medicine", "work", "repeatable", "resource"],
     riskHint: "medium",
   }),
-];
+  interactionFor("hospital", {
+    id: "search_hospital_records_after_day4",
+    label: "피난 기록에서 구조 단서를 찾는다",
+    type: "search",
+    outcomeHint: "4일차에 들은 소문을 기록과 대조한다. 배터리 위치를 확인하고 {{item:painRelief}} 1개를 얻는다. +90분",
+    showOutcomeHint: true,
+    conditions: [
+      { type: "flag", flag: "day4_hospital_hint" },
+      { type: "flag_not", flag: "hospital_records_checked" },
+    ],
+    effects: [
+      { type: "advance_time", minutes: 90 },
+      { type: "add_item", itemId: "painRelief", amount: 1 },
+      { type: "set_flag", flag: "hospital_records_checked" },
+      { type: "log", message: "피난 기록에 접수대 뒤 약품 보관함의 예비 배터리가 표시돼 있다. 기록을 정리하다 진통제도 챙겼다." },
+    ],
+    tags: ["hint", "signal", "medicine"],
+    riskHint: "low",
+  }),
+  interactionFor("hospital", {
+    id: "open_hospital_supply_with_knife",
+    label: "{{item:utilityKnife|으로로}} 붕대 꾸러미를 연다",
+    type: "search",
+    outcomeHint: "{{item:clothScrap}} 2개와 {{item:painRelief}} 1개 / 간이 칼 내구도 -1 / +90분",
+    showOutcomeHint: true,
+    conditions: [
+      { type: "has_item", itemId: "utilityKnife", amount: 1 },
+      { type: "flag_not", flag: "hospital_supply_opened" },
+    ],
+    effects: [
+      { type: "advance_time", minutes: 90 },
+      { type: "add_item", itemId: "clothScrap", amount: 2 },
+      { type: "add_item", itemId: "painRelief", amount: 1 },
+      { type: "damage_tool", itemId: "utilityKnife", amount: 1 },
+      { type: "set_flag", flag: "hospital_supply_opened" },
+      { type: "log", message: "간이 칼로 굳은 포장을 갈라 남은 붕대와 진통제를 꺼냈다." },
+    ],
+    tags: ["tool", "medicine", "once"],
+    riskHint: "low",
+  }),];
 
 export const hospitalLocation = defineLocation({
   id: "hospital",

@@ -1,5 +1,29 @@
-import { defineLocation, stockNode } from "../../location-helpers";
+import type { ActionDefinition } from "../../../schemas";
+import { defineLocation, interactionFor, stockNode } from "../../location-helpers";
 
+export const convenienceChoices: ActionDefinition[] = [
+  interactionFor("convenience", {
+    id: "open_convenience_backroom_with_axe",
+    label: "{{item:crudeAxe|으로로}} 뒤편 창고를 연다",
+    type: "search",
+    outcomeHint: "한 번만 남은 자재를 얻는다. +1 고철 조각 / +2 천 조각 / 손도끼 내구도 -1 / +90분",
+    showOutcomeHint: true,
+    conditions: [
+      { type: "has_item", itemId: "crudeAxe", amount: 1 },
+      { type: "flag_not", flag: "convenience_backroom_opened" },
+    ],
+    effects: [
+      { type: "advance_time", minutes: 90 },
+      { type: "add_item", itemId: "scrapMetal", amount: 1 },
+      { type: "add_item", itemId: "clothScrap", amount: 2 },
+      { type: "damage_tool", itemId: "crudeAxe", amount: 1 },
+      { type: "set_flag", flag: "convenience_backroom_opened" },
+      { type: "log", message: "손도끼로 뒤편 창고의 걸린 문을 젖히자 쓸 만한 고철과 천이 드러났다." },
+    ],
+    tags: ["tool", "salvage", "once"],
+    riskHint: "low",
+  }),
+];
 export const convenienceLocation = defineLocation({
   id: "convenience",
   name: "편의점 폐허",
@@ -11,6 +35,7 @@ export const convenienceLocation = defineLocation({
   traits: ["food", "water", "cash", "salvage"],
   obtainableItemIds: ["emergencySnack", "cannedFood", "rawRice", "vegetables", "waterBottle", "woodPlank", "scrapMetal", "clothScrap", "cordage", "staleBread"],
   neighbors: ["shelter", "hospital", "forest", "magic_city_entrance"],
+  interactionChoices: convenienceChoices,
   links: {
     shelter: { note: "무심한 발걸음처럼 가장한 채 거처 쪽으로 되돌아간다." },
     hospital: {
@@ -20,7 +45,7 @@ export const convenienceLocation = defineLocation({
       note: "편의점 뒤편의 낮은 비탈을 타고 숲 가장자리로 올라간다.",
     },
     magic_city_entrance: {
-      note: "가게 뒤편의 녹슨 비상계단을 올라 푸른 빛이 새어 나오는 옥상으로 향한다.",
+      note: "가게를 나와 오솔길을 따라 푸른 포탈이 열린 들판으로 향한다.",
     },
   },
   stockNodes: [
@@ -42,8 +67,8 @@ export const convenienceLocation = defineLocation({
       summary: "계산대 뒤쪽 아래에 밀려 들어간 플라스틱 보관함이다. 습기를 먹은 식량과 물자가 조금 남아 있다.",
       items: [
         { itemId: "staleBread", initialQuantity: 2 },
-        { itemId: "waterBottle", initialQuantity: 1 },
-        { itemId: "rawRice", initialQuantity: 1 },
+        { itemId: "waterBottle", initialQuantity: 3 },
+        { itemId: "rawRice", initialQuantity: 3 },
       ],
     }),
     stockNode({

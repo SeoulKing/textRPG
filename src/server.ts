@@ -390,8 +390,15 @@ async function bootstrap() {
     }
   });
 
-  app.post("/api/games", async () => {
-    return gameService.createGame();
+  app.post<{ Body: unknown }>("/api/games", async (request, reply) => {
+    const parsed = z.object({
+      startAt: z.enum(["shelter", "arcana"]).default("shelter"),
+    }).safeParse(request.body ?? {});
+    if (!parsed.success) {
+      reply.code(400);
+      return { error: "invalid_start_location", details: z.treeifyError(parsed.error) };
+    }
+    return gameService.createGame(parsed.data.startAt);
   });
 
   app.get<{ Params: { gameId: string } }>("/api/games/:gameId/state", async (request) => {

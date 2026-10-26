@@ -45,8 +45,8 @@ export const magicCityEntranceLocation = defineLocation({
   name: "마법도시 입구",
   risk: "medium",
   mapPosition: { q: -1, r: 0 },
-  imagePath: "assets/scenes/magic-city-entrance.svg",
-  summary: "편의점 폐허 옥상 위, 현실의 하늘을 찢고 열린 푸른 포탈. 너머에서는 별빛과 종소리가 흘러온다.",
+  imagePath: "assets/scenes/magic-city-entrance.png",
+  summary: "바람에 풀이 흔들리는 들판 한가운데 열린 푸른 포탈. 너머에서는 별빛과 종소리가 흘러온다.",
   tags: ["portal", "fantasy", "expansion", "realm:reality"],
   traits: ["realm gateway", "unstable magic", "one-way threshold"],
   obtainableItemIds: [],
@@ -54,10 +54,10 @@ export const magicCityEntranceLocation = defineLocation({
   interactionChoices: magicCityEntranceChoices,
   links: {
     shelter: {
-      note: "포탈 앞 골목을 빠져나와 임시 거처로 돌아간다.",
+      note: "들판의 오솔길을 따라 임시 거처로 돌아간다.",
     },
     convenience: {
-      note: "옥상 계단을 내려가 편의점 폐허 안쪽으로 돌아간다.",
+      note: "들판을 벗어나 편의점 폐허로 돌아간다.",
     },
   },
 });

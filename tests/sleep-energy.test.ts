@@ -10,7 +10,7 @@ import {
   performAction,
 } from "../src/game/rules";
 
-test("취침으로 흐르는 시간은 기력을 평소의 절반만 소모한다", () => {
+test("취침은 다음 날 기력을 기본치까지 회복하고 남은 기력은 보존한다", () => {
   const state = createInitialGameState();
   state.worldElapsedMs = GAME_HOUR_MS * 12;
   state.stats.energy = 15;
@@ -22,5 +22,11 @@ test("취침으로 흐르는 시간은 기력을 평소의 절반만 소모한�
   });
 
   assert.equal(state.worldElapsedMs, REAL_DAY_MS);
-  assert.equal(state.stats.energy, 9);
+  assert.equal(state.stats.energy, 15);
+
+  const tired = createInitialGameState();
+  tired.worldElapsedMs = GAME_HOUR_MS * 12;
+  tired.stats.energy = 2;
+  performAction(tired, { type: "content_action", actionId: "sleep_at_shelter" });
+  assert.equal(tired.stats.energy, 7);
 });

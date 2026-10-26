@@ -29,7 +29,7 @@ export const baseItems = {
   hotMeal: defineItem({
     id: "hotMeal",
     name: "따뜻한 식사",
-    description: "속이 풀리면서 정신도 조금 안정되는 식사다.",
+    description: "속을 채우고 정신을 안정시킨다. 먹은 뒤 다음 고된 탐색이나 일의 기력 부담을 한 번 줄인다.",
     kind: "food",
     rarity: "uncommon",
     price: 4500,
@@ -183,7 +183,7 @@ export const baseItems = {
   ricePorridge: defineItem({
     id: "ricePorridge",
     name: "묽은 죽",
-    description: "쌀과 물을 오래 끓여 만든 묽은 죽이다. 양은 많지 않아도 빈속을 부드럽게 채워 준다.",
+    description: "쌀과 물을 끓인 죽이다. 먹은 뒤 다음 취침의 기력 회복을 한 번 더 돕는다.",
     kind: "food",
     rarity: "common",
     price: 0,
@@ -194,7 +194,7 @@ export const baseItems = {
   greensSoup: defineItem({
     id: "greensSoup",
     name: "나물국",
-    description: "산나물을 물에 풀어 끓인 국이다. 거칠지만 따뜻한 국물이 몸을 다시 움직이게 한다.",
+    description: "산나물을 끓인 국이다. 먹은 뒤 다음 탐색의 성공 가능성을 한 번 높인다.",
     kind: "food",
     rarity: "common",
     price: 0,
@@ -205,7 +205,7 @@ export const baseItems = {
   forestStew: defineItem({
     id: "forestStew",
     name: "숲죽",
-    description: "산나물과 채소를 같이 넣어 끓인 걸쭉한 죽이다. 고급 식사는 아니지만 몸을 다시 움직이게 만든다.",
+    description: "산나물과 채소를 끓인 든든한 죽이다. 먹은 뒤 다음 채집 시간을 한 번 줄인다.",
     kind: "food",
     rarity: "uncommon",
     price: 0,

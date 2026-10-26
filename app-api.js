@@ -8,7 +8,9 @@ const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id-v8",
   "ruined-seoul-stage1-game-id-v7",
 ];
-const REAL_DAY_MS = 15 * 60 * 1000;
+const REAL_DAY_MS = 30 * 60 * 1000;
+const clockClientId = crypto.randomUUID();
+let clockSequence = 0;
 const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
@@ -37,6 +39,61 @@ const HEX_DIRECTIONS = [
 ];
 const MAP_ZOOM_MULTIPLIERS = [0.56, 0.68, 0.82, 1, 1.18, 1.42, 1.72, 2.08, 2.5];
 const MAP_ZOOM_FIT_INDEX = 3;
+// Landmark cells retain the original 4 x 3 terrain atlas ordering.
+const MAP_TERRAIN_CELLS = {
+  shelter: 0,
+  convenience: 1,
+  kitchen: 2,
+  forest: 3,
+  subway: 4,
+  hospital: 5,
+  checkpoint: 6,
+  magic_city_entrance: 7,
+  arcana_plaza: 8,
+  arcana_hunting_ground: 9,
+};
+
+// Alpha bounds measured from each sprite; fit the complete object inside the hex.
+const MAP_LANDMARK_BOUNDS = [
+  [24, 97, 333, 251], [377, 55, 347, 307], [724, 68, 362, 294], [1086, 66, 334, 296],
+  [47, 433, 283, 291], [387, 362, 337, 335], [743, 362, 343, 362], [1086, 362, 335, 351],
+  [27, 724, 335, 310], [362, 737, 360, 292], [748, 724, 338, 298], [1086, 810, 312, 187],
+];
+
+// Magic locations share the reality map's hex layout, ground layer and selection states.
+const MAGIC_MAP_LANDMARKS = {
+  arcana_plaza: { file: "fountain", bounds: [24, 85, 1205, 1054] },
+  arcana_shop: { file: "shop", bounds: [101, 85, 1106, 1054] },
+  arcana_inn: { file: "inn", bounds: [91, 70, 1097, 1092] },
+  arcana_restaurant: { file: "restaurant", bounds: [70, 50, 1114, 1166] },
+  arcana_return_portal: { file: "portal", bounds: [262, 47, 803, 1160] },
+};
+
+// A seven-cell downtown is painted once; logical cells remain selectable.
+const ARCANA_DOWNTOWN_LOCATIONS = new Set([
+  "arcana_plaza", "arcana_shop", "arcana_inn",
+  "arcana_restaurant", "arcana_return_portal", "arcana_city_gate", "arcana_academy",
+]);
+
+function hexTerrainMarkup(locationId, size) {
+  const magicLandmark = MAGIC_MAP_LANDMARKS[locationId];
+  const cell = MAP_TERRAIN_CELLS[locationId] ?? 10;
+  const bounds = magicLandmark?.bounds || MAP_LANDMARK_BOUNDS[cell];
+  const href = magicLandmark
+    ? "assets/arcana-map/sprites/" + magicLandmark.file + ".png"
+    : "assets/map-landmarks-v2.png";
+  const imageWidth = magicLandmark ? 1254 : 1448;
+  const imageHeight = magicLandmark ? 1254 : 1086;
+  const shadowMarkup = magicLandmark
+    ? '<ellipse cx="0" cy="' + (size * 0.48) + '" rx="' + (size * 0.44) + '" ry="' + (size * 0.09)
+      + '" fill="#655546" opacity=".19" filter="url(#map-landmark-contact)" />'
+    : "";
+
+  return '<g class="hex-tile-art" aria-hidden="true">' + shadowMarkup + '<svg x="' + (-size * 0.65)
+    + '" y="' + (-size * 0.58) + '" width="' + (size * 1.3) + '" height="' + (size * 1.16)
+    + '" viewBox="' + bounds.join(" ") + '" preserveAspectRatio="xMidYMid meet" overflow="hidden">'
+    + '<image href="' + href + '" width="' + imageWidth + '" height="' + imageHeight + '" /></svg></g>';
+}
 
 function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -148,11 +205,13 @@ function buildHexBoardLayout(nodes) {
 }
 
 function mapAvailableSize() {
-  const panelWidth = dom.panelContent?.clientWidth || Math.min(window.innerWidth - 32, 520);
-  const isMobile = window.matchMedia("(max-width: 620px)").matches;
+  const viewport = dom.panelContent?.querySelector(".hex-map-viewport");
+  const panelWidth = viewport?.clientWidth || dom.panelContent?.clientWidth || Math.min(window.innerWidth, 520);
+  const panelHeight = dom.panelContent?.clientHeight || Math.min(window.innerHeight * 0.62, 620);
+  const viewportHeight = viewport?.clientHeight || Math.max(100, panelHeight - 160);
   return {
-    width: Math.max(250, panelWidth - 34),
-    height: isMobile ? 286 : 368,
+    width: Math.max(120, panelWidth - 24),
+    height: Math.max(80, viewportHeight - 24),
   };
 }
 
@@ -160,7 +219,7 @@ function mapFitScale(boardLayout) {
   const available = mapAvailableSize();
   const widthScale = available.width / Math.max(1, boardLayout.pixelWidth);
   const heightScale = available.height / Math.max(1, boardLayout.pixelHeight);
-  return clampNumber(Math.min(widthScale, heightScale), 0.46, 1.24);
+  return clampNumber(Math.min(widthScale, heightScale), 0.18, 1.24);
 }
 
 function currentMapScale(boardLayout) {
@@ -245,20 +304,48 @@ function isMagicWorldState(state = currentState()) {
   return Boolean(state?.flags?.in_magic_world);
 }
 
+function usesArcanaStatus(state = currentState()) { return Boolean(state?.flags?.in_magic_world && state.arcanaCombat && !state.magicDungeon?.run); }
+function magicExperience(state = currentState()) {
+  if (!isMagicWorldState(state)) return null;
+  const inDungeon = Boolean(state.magicDungeon?.run);
+  const growth = inDungeon ? state.magicDungeon : state.arcanaCombat;
+  if (!growth) return null;
+  const capped = inDungeon && growth.level >= 50;
+  const max = capped ? 1 : (inDungeon ? 40 : 30) + (growth.level - 1) * 15;
+  return { level: growth.level, value: capped ? 1 : growth.xp, max, capped };
+}
+function statusValue(statKey, state = currentState()) {
+  const experience = statKey === "energy" ? magicExperience(state) : null;
+  if (experience) return experience.value;
+  if (statKey === "power") return 10 + (state.arcanaCombat.level - 1) * 2;
+  const value = usesArcanaStatus(state) && statKey !== "energy" ? state.arcanaCombat[statKey === "mind" ? "mp" : "hp"] : state.stats[statKey];
+  return Math.round(value * 10) / 10;
+}
+function arcanaFireballDamage(state = currentState()) {
+  return Math.floor(statusValue("power", state) * 0.5);
+}
 function statusDetailFor(statKey, state = currentState()) {
-  if (statKey === "mind" && isMagicWorldState(state)) {
-    return {
-      title: "MP",
-      max: 10,
-      note: "마법과 룬을 다룰 때 소모되는 마력",
-    };
+  const experience = statKey === "energy" ? magicExperience(state) : null;
+  if (experience) return { title: "경험치", max: experience.max, valueText: experience.capped ? "MAX" : null,
+    note: experience.capped ? "최고 레벨 Lv." + experience.level : "Lv." + experience.level + " · 다음 레벨까지 경험치 " + Math.max(0, experience.max - experience.value) + " 필요" };
+  if (usesArcanaStatus(state)) {
+    const c = state.arcanaCombat;
+    if (statKey === "power") return { title: "마력", max: null, note: "파이어볼 피해 = 마력 " + statusValue("power", state) + " × 50% = " + arcanaFireballDamage(state) };
+    if (statKey === "hp") return { title: "HP", max: 100 + (c.level - 1) * 10, note: "여관에서 체력을 회복할 수 있습니다." };
+    if (statKey === "mind") return { title: "MP", max: 30 + (c.level - 1) * 3, note: "게임 시간당 MP " + c.manaRegenPerHour + " 회복 · 마나 포션으로 20 회복" };
   }
+  if (statKey === "mind" && isMagicWorldState(state)) return { title: "MP", max: 10, note: "마법과 룬을 다룰 때 소모되는 마력" };
   return STATUS_DETAILS[statKey];
+}
+function statusDisplayValue(statKey, state = currentState()) {
+  const detail = statusDetailFor(statKey, state);
+  return detail.valueText || (detail.max === null ? String(statusValue(statKey, state)) : statusValue(statKey, state) + " / " + detail.max);
 }
 
 const dom = {
   homeScreen: document.querySelector("#home-screen"),
   homeNewGame: document.querySelector("#home-new-game"),
+  homeArcanaStart: document.querySelector("#home-arcana-start"),
   homeContinue: document.querySelector("#home-continue"),
   homeFullscreenPlay: document.querySelector("#home-fullscreen-play"),
   homeSaveStatus: document.querySelector("#home-save-status"),
@@ -292,7 +379,6 @@ const dom = {
   choiceTemplate: document.querySelector("#choice-template"),
   gameOverScreen: null,
   panelShell: document.querySelector(".panel-shell"),
-  panelTitle: document.querySelector("#panel-title"),
   panelContent: document.querySelector("#panel-content"),
   dockButtons: Array.from(document.querySelectorAll(".dock-button")),
 };
@@ -483,7 +569,8 @@ function projectedWorldElapsedMs() {
   if (!state) {
     return 0;
   }
-  return state.worldElapsedMs || 0;
+  const live = !document.hidden && !client.isHomeVisible && !state.activeClock?.paused && state.activeClock?.ownerId === clockClientId;
+  return (state.worldElapsedMs || 0) + (live ? Math.min(5000, Math.max(0, Date.now() - (client.lastFetchedAt || Date.now()))) : 0);
 }
 
 function clockLabelFromElapsed(worldElapsedMs) {
@@ -622,15 +709,6 @@ function formatDurationMinutes(value) {
 
 function pairKey(left, right) {
   return [left, right].sort().join("::");
-}
-
-function hexLabelMarkup(name) {
-  const words = String(name).split(/\s+/).filter(Boolean);
-  const lines = words.length > 1 ? words : [String(name)];
-  const startDy = lines.length > 1 ? -4 : 5;
-  return lines.map((line, index) =>
-    `<tspan x="0" dy="${index === 0 ? startDy : 17}">${escapeHtml(line)}</tspan>`
-  ).join("");
 }
 
 async function api(path, options = {}) {
@@ -986,7 +1064,7 @@ function startBackgroundSync() {
   if (client.syncTimer) {
     return;
   }
-  client.syncTimer = window.setInterval(backgroundSync, 10000);
+  client.syncTimer = window.setInterval(backgroundSync, 1000);
 }
 
 function showGameScreen() {
@@ -1021,7 +1099,7 @@ async function requestGameFullscreen() {
       return true;
     }
   } catch (error) {
-    console.info("전체화면을 열 수 없어 일반 화면으로 게임을 시작합니다.", error);
+    console.info("전체화면으로 전환하지 못했습니다.", error);
   }
   return false;
 }
@@ -1033,7 +1111,7 @@ function renderHomeScreen() {
   dom.homeContinue.setAttribute("aria-disabled", info.exists ? "false" : "true");
   dom.homeFullscreenPlay.setAttribute(
     "aria-label",
-    info.exists ? "저장 게임을 전체화면으로 이어하기" : "새 게임을 전체화면으로 시작하기",
+    "전체화면",
   );
 
   const user = client.authInfo?.user;
@@ -1098,6 +1176,7 @@ async function refreshHomeSaveInfo() {
 }
 
 async function showHomeScreen() {
+  pauseVisibleGame();
   stopBackgroundSync();
   clearSceneAnimation();
   resetTimeAdvancePresentation();
@@ -1113,10 +1192,10 @@ async function showHomeScreen() {
   await refreshHomeSaveInfo();
 }
 
-async function createNewGame() {
+async function createNewGame(startAt = "shelter") {
   const snapshot = await api("/api/games", {
     method: "POST",
-    body: {},
+    body: { startAt },
   });
   resetTimeAdvancePresentation();
   client.gameId = snapshot.gameId;
@@ -1457,6 +1536,7 @@ function hasConsumedIntroFlag(snapshot, introFlag) {
 }
 
 function shouldAnimateScene({ source, previousSnapshot, nextSnapshot }) {
+  if (nextSnapshot?.state?.magicDungeon?.run) return false;
   if (source === "bootstrap" || source === "backgroundSync") {
     return false;
   }
@@ -1489,6 +1569,7 @@ function shouldAnimateScene({ source, previousSnapshot, nextSnapshot }) {
 }
 
 function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
+  if (nextSnapshot?.state?.magicDungeon?.run || previousSnapshot?.state?.magicDungeon?.run || nextSnapshot?.state?.arcanaCombat?.battle || previousSnapshot?.state?.arcanaCombat?.battle) return false;
   if (!previousSnapshot?.currentScene || !nextSnapshot?.currentScene) {
     return false;
   }
@@ -1569,7 +1650,7 @@ function resetSceneScrollOnMobile() {
 }
 
 function syncMobileChoiceZoneHeight() {
-  if (!window.matchMedia("(max-width: 620px)").matches || !dom.choices.childElementCount) {
+  if (client.snapshot?.state?.magicDungeon?.run || !window.matchMedia("(max-width: 620px)").matches || !dom.choices.childElementCount) {
     document.documentElement.style.removeProperty("--mobile-choice-zone-height");
     return;
   }
@@ -2088,8 +2169,8 @@ function openStatusPopover(statKey, options = {}) {
   }
 
   client.activeStatusPopoverKey = statKey;
-  const detail = STATUS_DETAILS[statKey];
-  const value = `${snapshot.stats[statKey]} / ${detail.max}`;
+  const detail = statusDetailFor(statKey, snapshot);
+  const value = statusDisplayValue(statKey, snapshot);
 
   dom.statusPopover.innerHTML = `
     <strong>${detail.title}</strong>
@@ -2198,35 +2279,47 @@ function renderStatusBar() {
     return;
   }
 
+  window.ArcanaCombatUI?.updateChoices(client.snapshot, client.actionInFlight);
+  if (window.ArcanaCombatUI) window.ArcanaCombatUI.onAction = action => submitAction(action);
+  window.MagicDungeonUI?.render(snapshot);
+  window.MagicDungeonUI?.updateChoices(client.snapshot, client.actionInFlight);
+  if (window.MagicDungeonUI) window.MagicDungeonUI.onAction = action => submitAction(action);
+
   renderEncounterStatus(snapshot);
-  const hpMax = STATUS_DETAILS.hp.max;
+  const hpMax = statusDetailFor("hp", snapshot).max;
+  const hpValue = statusValue("hp", snapshot), mindValue = statusValue("mind", snapshot);
   const mindDetail = statusDetailFor("mind", snapshot);
   const mindMax = mindDetail.max;
-  const energyMax = STATUS_DETAILS.energy.max;
-  dom.hpFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.hp / hpMax) * 100))}%`;
-  dom.mindFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.mind / mindMax) * 100))}%`;
-  dom.energyFill.style.width = `${Math.max(0, Math.min(100, (snapshot.stats.energy / energyMax) * 100))}%`;
-  dom.hpStatus.setAttribute("aria-label", `체력 ${snapshot.stats.hp} / ${hpMax}`);
-  dom.mindStatus.setAttribute("aria-label", `${mindDetail.title} ${snapshot.stats.mind} / ${mindMax}`);
+  const energyDetail = statusDetailFor("energy", snapshot);
+  const energyMax = energyDetail.max, energyValue = statusValue("energy", snapshot);
+  const experience = magicExperience(snapshot);
+  dom.hpFill.style.width = `${Math.max(0, Math.min(100, (hpValue / hpMax) * 100))}%`;
+  dom.mindFill.style.width = `${Math.max(0, Math.min(100, (mindValue / mindMax) * 100))}%`;
+  dom.energyFill.style.width = `${Math.max(0, Math.min(100, (energyValue / energyMax) * 100))}%`;
+  dom.hpStatus.setAttribute("aria-label", `체력 ${hpValue} / ${hpMax}`);
+  dom.mindStatus.setAttribute("aria-label", `${mindDetail.title} ${mindValue} / ${mindMax}`);
   dom.mindStatus.classList.toggle("is-magic-stat", isMagicWorldState(snapshot));
-  const mindIcon = dom.mindStatus.querySelector(".status-icon");
   const mindHiddenLabel = dom.mindStatus.querySelector(".visually-hidden");
-  if (mindIcon) {
-    mindIcon.textContent = isMagicWorldState(snapshot) ? "✦" : "🧠";
-  }
   if (mindHiddenLabel) {
     mindHiddenLabel.textContent = mindDetail.title;
   }
-  dom.energyStatus.setAttribute("aria-label", `기력 ${snapshot.stats.energy} / ${energyMax}`);
-  applyStatusSeverity(dom.hpStatus, snapshot.stats.hp);
-  applyStatusSeverity(dom.mindStatus, snapshot.stats.mind);
-  applyStatusSeverity(dom.energyStatus, snapshot.stats.energy);
+  dom.energyStatus.setAttribute("aria-label", energyDetail.title + " " + statusDisplayValue("energy", snapshot) + (experience ? " · Lv." + experience.level : ""));
+  dom.energyStatus.classList.toggle("is-experience", Boolean(experience));
+  const energyHiddenLabel = dom.energyStatus.querySelector(".visually-hidden");
+  if (energyHiddenLabel) energyHiddenLabel.textContent = energyDetail.title;
+  applyStatusSeverity(dom.hpStatus, hpValue / hpMax * 10);
+  applyStatusSeverity(dom.mindStatus, mindValue / mindMax * 10);
+  applyStatusSeverity(dom.energyStatus, experience ? 15 : snapshot.stats.energy);
   const nextWorldElapsedMs = Math.max(0, snapshot.worldElapsedMs || 0);
   const didTimeAdvance = client.renderedWorldElapsedMs !== null
     && nextWorldElapsedMs > client.renderedWorldElapsedMs;
-  dom.timeIndicator.textContent = `${snapshot.day}일차 ${gameClockLabel()}`;
+  const clockLabel = gameClockLabel();
+  const [clockHours, clockMinutes] = clockLabel.split(":").map(Number);
+  const dayProgress = ((clockHours * 60 + clockMinutes) / (24 * 60)) * 100;
+  dom.timeIndicator.textContent = `D${snapshot.day} ${clockLabel}`;
+  dom.timeStatus.style.setProperty("--day-progress", `${dayProgress}%`);
   client.renderedWorldElapsedMs = nextWorldElapsedMs;
-  if (didTimeAdvance) {
+  if (didTimeAdvance && client.pendingAction && client.pendingAction.type !== "world_clock") {
     emphasizeAdvancedTime();
   }
 
@@ -2237,6 +2330,14 @@ function renderStatusBar() {
 
 function renderChoices() {
   const snapshot = client.snapshot;
+  if (window.ArcanaCombatUI?.updateChoices(snapshot, client.actionInFlight)) {
+    syncMobileChoiceZoneHeight();
+    return;
+  }
+  if (window.MagicDungeonUI?.updateChoices(snapshot, client.actionInFlight)) {
+    syncMobileChoiceZoneHeight();
+    return;
+  }
   dom.choices.innerHTML = "";
   dom.choices.classList.remove("revealed", "is-crafting-menu");
   if (!snapshot) {
@@ -2281,6 +2382,7 @@ function renderChoices() {
     const meta = fragment.querySelector(".choice-meta");
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
+    if (choice.action?.type === "magic_dungeon") button.dataset.dungeonChoice = choice.id;
     status.textContent = choice.statusLabel || "";
     status.hidden = !choice.statusLabel;
     const hasRemainingUses = Number.isInteger(choice.remainingUses);
@@ -2301,6 +2403,7 @@ function renderChoices() {
     dom.choices.appendChild(fragment);
   });
 
+  window.MagicDungeonUI?.updateChoices(snapshot, client.actionInFlight);
   dom.choices.classList.add("revealed");
   syncMobileChoiceZoneHeight();
 }
@@ -2310,6 +2413,27 @@ function renderScene(animateText = true, appendStory = false) {
   const scene = snapshot?.currentScene;
   const location = currentLocationCard();
   if (!snapshot || !scene || !location) {
+    return;
+  }
+
+  document.body.classList.toggle("in-arcana-combat", Boolean(snapshot.state.arcanaCombat?.battle));
+  if (!snapshot.state.arcanaCombat?.battle) dom.sceneText.parentElement.querySelector(":scope > .arcana-combat")?.remove();
+  if (snapshot.state.arcanaCombat?.battle) {
+    clearSceneAnimation();
+    window.ArcanaCombatUI.render(snapshot, dom.sceneText);
+    client.renderedStorySurfaceId = scene.id;
+    hideSystemNote(); renderChoices(); return;
+  }
+  if (snapshot.state.magicDungeon?.run) {
+    clearSceneAnimation();
+    if (client.renderedStorySurfaceId !== scene.id) {
+      window.MagicDungeonUI.renderNarrative(snapshot, dom.sceneText);
+      client.renderedStorySurfaceId = scene.id;
+    }
+    renderSceneDevSource(snapshot);
+    if (snapshot.state.systemNote) renderSystemNote(snapshot.state.systemNote, systemNoteKey(snapshot, snapshot.state.systemNote), snapshot.state.systemNoteEntries || []);
+    else hideSystemNote();
+    renderChoices();
     return;
   }
 
@@ -2406,6 +2530,11 @@ function renderMapPanel() {
   if (!snapshot) {
     return;
   }
+  if (snapshot.state.magicDungeon?.run) {
+    const run = snapshot.state.magicDungeon.run;
+    dom.panelContent.innerHTML = `<section class="map-detail-slot"><div class="map-detail-head"><h3>별빛 회랑 ${run.floor}층</h3></div><p>던전 본문의 갈림길에서 다음 경로를 선택할 수 있습니다. 귀환해 전리품을 정산한 뒤 아르카나 광장과 서울 지도로 돌아갈 수 있습니다.</p></section>`;
+    return;
+  }
   if (snapshot.state.subwayExpedition?.active) {
     const expedition = snapshot.state.subwayExpedition;
     dom.panelContent.innerHTML = `
@@ -2425,6 +2554,7 @@ function renderMapPanel() {
 
   const currentLocation = currentLocationCard();
   const { visible, states } = locationMap();
+  const isDowntownMap = isMagicWorldState(snapshot.state) && visible.has("arcana_plaza");
   const boardNodes = buildBoardNodes(visible);
   const boardLayout = buildHexBoardLayout(boardNodes);
   const mapScale = currentMapScale(boardLayout);
@@ -2435,7 +2565,6 @@ function renderMapPanel() {
     : 0;
   const scrollSpaceWidth = scaledMapWidth + (mapFocusGutter * 2);
   const scrollSpaceHeight = scaledMapHeight + (mapFocusGutter * 2);
-  const mapBoardHeight = clampNumber(scaledMapHeight + 24, 214, 390);
   const mapZoomPercent = Math.round(mapScale * 100);
   const canZoomOut = client.mapZoomIndex > 0;
   const canZoomIn = client.mapZoomIndex < MAP_ZOOM_MULTIPLIERS.length - 1;
@@ -2489,6 +2618,7 @@ function renderMapPanel() {
     }
     const classes = [
       "hex-tile",
+      isDowntownMap && ARCANA_DOWNTOWN_LOCATIONS.has(node.locationId) ? "is-city" : "",
       state.isCurrent ? "is-current" : "",
       state.isAdjacent ? "is-adjacent" : "",
       state.isReachable ? "is-reachable" : "",
@@ -2507,46 +2637,65 @@ function renderMapPanel() {
         aria-label="${escapeHtml(location.name)}"
         transform="translate(${position.x} ${position.y})"
       >
+        ${isDowntownMap && ARCANA_DOWNTOWN_LOCATIONS.has(node.locationId) ? "" : hexTerrainMarkup(node.locationId, boardLayout.dimensions.size)}
         <polygon class="hex-tile-shape" points="${hexPoints(0, 0, boardLayout.dimensions.size)}"></polygon>
-        <text class="hex-tile-name" text-anchor="middle">${hexLabelMarkup(location.name)}</text>
         <title>${escapeHtml(location.name)}</title>
       </g>
     `;
   }).join("");
 
+  // Draw the current border after every tile so neighboring grid lines cannot cover it.
+  const currentMapPosition = boardLayout.positions.get(currentLocation.id);
+  const currentTileOutline = currentMapPosition && !(isDowntownMap && ARCANA_DOWNTOWN_LOCATIONS.has(currentLocation.id))
+    ? `<polygon class="hex-current-outline" points="${hexPoints(currentMapPosition.x, currentMapPosition.y, boardLayout.dimensions.size)}" aria-hidden="true"></polygon>`
+    : "";
+  const revealedTerrain = boardNodes.map((node) => {
+    const position = boardLayout.positions.get(node.locationId);
+    return position
+      ? `<polygon points="${hexPoints(position.x, position.y, boardLayout.dimensions.size * 1.015)}" fill="white" />`
+      : "";
+  }).join("");
+  const downtownPosition = isDowntownMap ? boardLayout.positions.get("arcana_plaza") : null;
+  const downtownExtent = boardLayout.dimensions.size * 5.3;
+  const cityGroundMarkup = downtownPosition
+    ? '<image href="assets/map-arcana-downtown-v2.png" x="' + (downtownPosition.x - downtownExtent / 2)
+      + '" y="' + (downtownPosition.y - downtownExtent / 2)
+      + '" width="' + downtownExtent + '" height="' + downtownExtent
+      + '" preserveAspectRatio="xMidYMid meet"'
+      + (ARCANA_DOWNTOWN_LOCATIONS.has(currentLocation.id) ? ' filter="url(#map-city-current)"' : "") + ' />'
+    : "";
   const hexMapDefs = `
     <defs>
-      <linearGradient id="hex-fill-default" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#f9fbfb"></stop>
-        <stop offset="100%" stop-color="#e4ebee"></stop>
-      </linearGradient>
-      <linearGradient id="hex-fill-reachable" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#d5dee4"></stop>
-        <stop offset="100%" stop-color="#aebdc7"></stop>
-      </linearGradient>
-      <linearGradient id="hex-fill-reachable-hover" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#c8d6dd"></stop>
-        <stop offset="100%" stop-color="#9fb3be"></stop>
-      </linearGradient>
-      <linearGradient id="hex-fill-current" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#3b927b"></stop>
-        <stop offset="100%" stop-color="#236451"></stop>
-      </linearGradient>
-      <linearGradient id="hex-fill-known" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#f6f8f8"></stop>
-        <stop offset="100%" stop-color="#dfe7ea"></stop>
-      </linearGradient>
-      <linearGradient id="hex-fill-locked" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#646a70"></stop>
-        <stop offset="100%" stop-color="#3d4349"></stop>
-      </linearGradient>
-      <filter id="hex-shadow-soft" x="-28%" y="-28%" width="156%" height="156%">
-        <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#1f2937" flood-opacity="0.12"></feDropShadow>
+      <pattern id="map-ground" patternUnits="userSpaceOnUse" width="132" height="132">
+        <svg width="132" height="132" viewBox="300 200 100 100" overflow="hidden">
+          <image href="assets/map-terrain-v1.png" width="400" height="300" preserveAspectRatio="none" />
+        </svg>
+      </pattern>
+      <filter id="map-city-current" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="1.1" result="expanded" />
+        <feComposite in="expanded" in2="SourceAlpha" operator="out" result="outline" />
+        <feFlood flood-color="#f4ce6b" result="gold" />
+        <feComposite in="gold" in2="outline" operator="in" result="border" />
+        <feMerge><feMergeNode in="border" /><feMergeNode in="SourceGraphic" /></feMerge>
       </filter>
-      <filter id="hex-shadow-current" x="-32%" y="-32%" width="164%" height="164%">
-        <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#1f4e42" flood-opacity="0.18"></feDropShadow>
+<filter id="map-landmark-contact" x="-35%" y="-80%" width="170%" height="260%"><feGaussianBlur stdDeviation="1.6" /></filter>
+      <filter id="map-frontier-soften" x="-5%" y="-5%" width="110%" height="110%">
+        <feGaussianBlur stdDeviation="1.8" />
       </filter>
+      <mask id="map-revealed-terrain" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse"
+        x="0" y="0" width="${boardLayout.pixelWidth}" height="${boardLayout.pixelHeight}" style="mask-type: luminance;">
+        <rect width="${boardLayout.pixelWidth}" height="${boardLayout.pixelHeight}" fill="black" />
+        <g filter="url(#map-frontier-soften)">${revealedTerrain}</g>
+      </mask>
     </defs>
+  `;
+  const mapGroundMarkup = `
+    <g aria-hidden="true" pointer-events="none">
+
+      <rect width="${boardLayout.pixelWidth}" height="${boardLayout.pixelHeight}"
+        fill="url(#map-ground)" mask="url(#map-revealed-terrain)" />
+      ${cityGroundMarkup}
+    </g>
   `;
 
   const travelEntries = snapshot.mapEntries
@@ -2567,6 +2716,10 @@ function renderMapPanel() {
     : travelEntries[0]?.entry.locationId ?? null;
   client.activeMapDetailKey = activeTravelEntry;
   const selectedTravel = travelEntries.find(({ entry }) => entry.locationId === client.activeMapDetailKey);
+  const selectedPosition = selectedTravel ? boardLayout.positions.get(selectedTravel.entry.locationId) : null;
+  const selectedTileOutline = selectedPosition
+    ? `<polygon class="hex-selected-outline" points="${hexPoints(selectedPosition.x, selectedPosition.y, boardLayout.dimensions.size * .93)}" aria-hidden="true"></polygon>`
+    : "";
 
   const travelCards = travelEntries
     .map(({ entry, location }) => {
@@ -2586,6 +2739,7 @@ function renderMapPanel() {
           <div class="map-meta">
             <h3>${location.name}</h3>
             <div class="map-card-tags">
+              ${isSelected ? `<span class="tag tag-selected">선택</span>` : ""}
               <span class="tag">${riskLabel(location.risk)}</span>
               ${routeTag}
               ${entry.isReachable ? "" : `<span class="tag tag-muted">이동 불가</span>`}
@@ -2602,10 +2756,10 @@ function renderMapPanel() {
     : "";
   const mapDetailSlot = selectedTravel
     ? `
-      <section class="map-detail-slot" aria-live="polite">
+      <section class="map-detail-slot" aria-live="polite" aria-label="선택한 목적지">
         <div class="map-detail-head">
           <div>
-            <p class="meta-label">선택한 목적지</p>
+            <span class="map-selection-label">선택한 장소</span>
             <h3>${selectedTravel.location.name}</h3>
           </div>
           <div class="map-card-tags">
@@ -2613,7 +2767,6 @@ function renderMapPanel() {
             ${selectedTravelRouteTag}
           </div>
         </div>
-        <p>${selectedTravel.location.summary}</p>
         ${selectedTravel.entry.isReachable ? "" : `<small class="tiny">${selectedTravel.entry.reason || "아직 이동할 수 없는 경로다."}</small>`}
         <button
           class="map-travel-action ${selectedTravel.entry.isReachable ? "" : "is-disabled"}"
@@ -2627,40 +2780,38 @@ function renderMapPanel() {
     `
     : `<p class="empty-state">지금 이동할 수 있는 장소가 없다.</p>`;
 
+  const previousDestinationScroll = dom.panelContent.querySelector(".map-list")?.scrollLeft || 0;
   dom.panelContent.innerHTML = `
     <section class="hex-map-shell">
-      <div class="hex-map-board" style="height:${mapBoardHeight}px;">
-        <div class="hex-map-scroll-space" style="width:${scrollSpaceWidth}px; height:${scrollSpaceHeight}px;">
-          <div class="hex-map-canvas" style="width:${scaledMapWidth}px; height:${scaledMapHeight}px; left:${mapFocusGutter}px; top:${mapFocusGutter}px;">
-            <svg
-              class="hex-map-stage"
-              viewBox="0 0 ${boardLayout.pixelWidth} ${boardLayout.pixelHeight}"
-              style="--hex-size:${boardLayout.dimensions.size}px;"
-              role="img"
-              aria-label="지역 지도"
-            >
-              ${hexMapDefs}
-              ${edgeMarkup}
-              ${tileMarkup}
-            </svg>
+      <div class="hex-map-viewport">
+        <div class="hex-map-board">
+          <div class="hex-map-scroll-space" style="width:${scrollSpaceWidth}px; height:${scrollSpaceHeight}px;">
+            <div class="hex-map-canvas" style="width:${scaledMapWidth}px; height:${scaledMapHeight}px; left:${mapFocusGutter}px; top:${mapFocusGutter}px;">
+              <svg class="hex-map-stage"
+                viewBox="0 0 ${boardLayout.pixelWidth} ${boardLayout.pixelHeight}"
+                style="--hex-size:${boardLayout.dimensions.size}px;" role="img" aria-label="${isMagicWorldState(snapshot.state) ? "마법세계 지도" : "현실세계 지도"}">
+                ${hexMapDefs}
+                ${mapGroundMarkup}
+                ${edgeMarkup}
+                ${tileMarkup}
+                ${currentTileOutline}
+                ${selectedTileOutline}
+              </svg>
+            </div>
           </div>
         </div>
+        <div class="hex-map-toolbar" aria-label="지도 확대 축소">
+          <button class="map-zoom-button" data-map-zoom="out" type="button" aria-label="지도 축소" ${canZoomOut ? "" : "disabled"}>−</button>
+          <span class="map-zoom-value">${mapZoomPercent}%</span>
+          <button class="map-zoom-button" data-map-zoom="in" type="button" aria-label="지도 확대" ${canZoomIn ? "" : "disabled"}>+</button>
+          <button class="map-zoom-button map-zoom-fit" data-map-zoom="fit" type="button" aria-label="지도 맞춤">맞춤</button>
+        </div>
       </div>
-
-      <div class="hex-map-toolbar" aria-label="지도 확대 축소">
-        <button class="map-zoom-button" data-map-zoom="out" type="button" aria-label="지도 축소" ${canZoomOut ? "" : "disabled"}>−</button>
-        <span class="map-zoom-value">${mapZoomPercent}%</span>
-        <button class="map-zoom-button" data-map-zoom="in" type="button" aria-label="지도 확대" ${canZoomIn ? "" : "disabled"}>+</button>
-        <button class="map-zoom-button map-zoom-fit" data-map-zoom="fit" type="button" aria-label="지도 맞춤">맞춤</button>
-      </div>
-
-      <div class="map-list">
-        ${travelCards}
-      </div>
-
       ${mapDetailSlot}
+      <div class="map-list" aria-label="목적지 목록">${travelCards}</div>
     </section>
   `;
+  dom.panelContent.querySelector(".map-list").scrollLeft = previousDestinationScroll;
 
   alignHexMapViewport(boardLayout, mapScale, currentLocation.id);
   refreshTransientScrollbars();
@@ -2684,6 +2835,7 @@ function renderMapPanel() {
   });
 
   dom.panelContent.querySelectorAll("[data-hex-location]").forEach((tile) => {
+    tile.setAttribute("aria-pressed", String(tile.dataset.hexLocation === client.activeMapDetailKey));
     const activateTile = () => {
       const locationId = tile.dataset.hexLocation;
       const entry = states.get(locationId);
@@ -2698,7 +2850,8 @@ function renderMapPanel() {
       }
       if (entry.isReachable) {
         client.mapHint = "";
-        submitAction({ type: "travel", targetId: locationId }, tile);
+        client.activeMapDetailKey = locationId;
+        renderMapPanel();
         return;
       }
       if (entry.isControlled) {
@@ -2756,6 +2909,37 @@ function renderMapPanel() {
 function renderInventoryPanel() {
   const snapshot = client.snapshot;
   const itemCards = snapshot.inventoryCards || [];
+  const itemIconPaths = {
+    emergencySnack: "assets/items/emergency-snack.png",
+    waterBottle: "assets/items/water-bottle.png",
+    cannedFood: "assets/items/canned-food.png",
+    hotMeal: "assets/items/hot-meal.png",
+    painRelief: "assets/items/pain-relief.png",
+    scrapBundle: "assets/items/scrap-bundle.png",
+    rationTicket: "assets/items/ration-ticket.png",
+    woodPlank: "assets/items/wood-plank.png",
+    scrapMetal: "assets/items/scrap-metal.png",
+    clothScrap: "assets/items/cloth-scrap.png",
+    cordage: "assets/items/cordage.png",
+    crudeAxe: "assets/items/crude-axe.png",
+    utilityKnife: "assets/items/utility-knife.png",
+    dentedPot: "assets/items/dented-pot.png",
+    rawRice: "assets/items/raw-rice.png",
+    vegetables: "assets/items/vegetables.png",
+    wildGreens: "assets/items/wild-greens.png",
+    staleBread: "assets/items/stale-bread.png",
+    ricePorridge: "assets/items/rice-porridge.png",
+    greensSoup: "assets/items/greens-soup.png",
+    forestStew: "assets/items/forest-stew.png",
+    manaShard: "assets/items/mana-shard.png",
+    moonHerb: "assets/items/moon-herb.png",
+    arcaneDust: "assets/items/arcane-dust.png",
+    manaPotion: "assets/items/mana-potion.png",
+    runeCompass: "assets/items/rune-compass.png",
+    radioBattery: "assets/items/radio-battery.png",
+    radioAntenna: "assets/items/radio-antenna.png",
+    radioTransmitter: "assets/items/radio-transmitter.png",
+  };
   const moneyDetailKey = "money";
   const inventoryDetails = new Map([
     [moneyDetailKey, {
@@ -2833,15 +3017,18 @@ function renderInventoryPanel() {
   };
   const moneyCard = `
     <article
-      class="info-card inventory-card ${isMoneyActive ? "is-active" : ""}"
-      data-inventory-detail="${moneyDetailKey}"
+      class="info-card inventory-card has-item-icon ${isMoneyActive ? "is-active" : ""}"
+      data-inventory-detail="${moneyDetailKey}" aria-label="돈 ${snapshot.state.money.toLocaleString()}원" title="돈"
       role="button"
       tabindex="0"
       aria-pressed="${isMoneyActive ? "true" : "false"}"
     >
       <div class="inventory-card-head">
-        <h3>돈</h3>
-        <span class="tag">${snapshot.state.money.toLocaleString()}원</span>
+        <img class="inventory-item-icon" src="assets/items/money.png" width="24" height="24" alt="" draggable="false">
+        <div class="inventory-item-copy">
+          <h3>돈</h3>
+          <span class="tag">${snapshot.state.money.toLocaleString()}원</span>
+        </div>
       </div>
     </article>
   `;
@@ -2851,15 +3038,21 @@ function renderInventoryPanel() {
     const isActive = client.activeInventoryDetailKey === item.id;
     return `
       <article
-        class="info-card inventory-card ${isActive ? "is-active" : ""}"
-        data-inventory-detail="${item.id}"
+        class="info-card inventory-card ${itemIconPaths[item.id] ? "has-item-icon" : ""} ${isActive ? "is-active" : ""}"
+        data-inventory-detail="${item.id}" aria-label="${escapeHtml(item.name)} ${count}개" title="${escapeHtml(item.name)}"
         role="button"
         tabindex="0"
         aria-controls="inventory-detail-slot"
         aria-pressed="${isActive ? "true" : "false"}"
       >
         <div class="inventory-card-head">
-          <h3>${escapeHtml(item.name)} ${count > 1 ? `x${count}` : ""}</h3>
+          ${itemIconPaths[item.id] ? `
+            <img class="inventory-item-icon" src="${itemIconPaths[item.id]}" width="24" height="24" alt="" draggable="false">
+            <div class="inventory-item-copy">
+              <h3>${escapeHtml(item.name)}</h3>
+              <span class="tag">×${count}</span>
+            </div>
+          ` : `<h3>${escapeHtml(item.name)} ${count > 1 ? `x${count}` : ""}</h3>`}
         </div>
       </article>
     `;
@@ -2930,7 +3123,8 @@ function skillsPanelMarkup() {
 
   return `
     <div class="skills-panel">
-      ${skillProgress.length ? `
+      ${usesArcanaStatus() ? `<section class="skill-section"><h3 class="skill-section-title">마법 스킬</h3><div class="arcana-stat-growth"><strong>파이어볼</strong> · 피해 ${arcanaFireballDamage()} (마력의 50%)<br>MP 4 · 재사용 3초</div></section>` : ""}
+      ${!isMagicWorldState() && skillProgress.length ? `
         <section class="skill-section" aria-label="숙련도">
           <h3 class="skill-section-title">숙련도</h3>
           <div class="panel-grid skill-progress-grid">
@@ -3007,49 +3201,44 @@ function statusDetailMarkup() {
   const stats = [
     {
       key: "hp",
-      value: state.stats.hp,
+      value: statusValue("hp", state),
     },
     {
       key: "mind",
-      value: state.stats.mind,
+      value: statusValue("mind", state),
     },
     {
       key: "energy",
-      value: state.stats.energy,
+      value: statusValue("energy", state),
     },
   ];
+  if (usesArcanaStatus(state)) stats.push({ key: "power", value: statusValue("power", state) });
 
   return `
     <div class="status-detail-stack">
       ${stats.map((stat) => {
         const detail = statusDetailFor(stat.key, state);
         const isActive = client.activeStatusDetailKey === stat.key;
-        const fillPercent = Math.max(0, Math.min(100, (stat.value / detail.max) * 100));
+        const fillPercent = detail.max ? Math.max(0, Math.min(100, (stat.value / detail.max) * 100)) : 0;
+        const isExperience = stat.key === "energy" && Boolean(magicExperience(state));
         return `
           <div class="status-detail-row-wrap">
             <button
-              class="status-detail-row is-${stat.key} ${isActive ? "is-active" : ""}"
+              class="status-detail-row is-${stat.key} ${isExperience ? "is-experience" : ""} ${isActive ? "is-active" : ""}"
               data-status-detail="${stat.key}"
               type="button"
               aria-expanded="${isActive ? "true" : "false"}"
             >
               <span class="status-detail-title">${detail.title}</span>
-              <span class="status-detail-meter" aria-hidden="true">
-                <span style="width:${fillPercent}%"></span>
-              </span>
-              <span class="status-detail-value">${stat.value} / ${detail.max}</span>
+              ${detail.max ? `<span class="status-detail-meter" aria-hidden="true"><span style="width:${fillPercent}%"></span></span>` : `<span class="status-detail-spacer" aria-hidden="true"></span>`}
+              <span class="status-detail-value">${statusDisplayValue(stat.key, state)}</span>
             </button>
             ${isActive ? `<p class="status-detail-note">${detail.note}</p>` : ""}
           </div>
         `;
       }).join("")}
     </div>
-    <div class="status-summary-grid status-summary-grid-single">
-      <article class="info-card status-summary-card">
-        <h3>돈</h3>
-        <p>${state.money.toLocaleString()}원</p>
-      </article>
-    </div>
+    ${usesArcanaStatus(state) ? `<div class="status-mana-regeneration"><span>시간당 마나 재생</span><strong>+${Number(state.arcanaCombat.manaRegenPerHour).toLocaleString("ko-KR")} MP</strong></div>` : ""}
   `;
 }
 
@@ -3146,8 +3335,35 @@ function completedQuestGroupMarkup(completedQuests) {
 
 function renderQuestsPanel() {
   const visibleQuests = (client.snapshot.quests || []).filter((quest) => quest.status !== "inactive");
+  const state = client.snapshot.state;
+  const goal = client.snapshot.survivalGoal;
+  const resultLabels = {
+    pending: `${goal.daysRemaining}일 남음`,
+    signal: "구조 신호 전달 · 첫 장 완료",
+    missed: "구조 신호 기회 놓침 · 여정 계속",
+  };
+  const dayLead = state.flags.day8_checkpoint_hint && !state.flags.rescue_route_checked
+    ? "검문소에서 구조 경로를 확인할 수 있습니다."
+    : state.flags.day6_subway_hint && !state.flags.station_notice_checked
+      ? "지하철역 대합실의 안내문을 살펴보세요."
+      : state.flags.day4_hospital_hint && !state.flags.hospital_records_checked
+        ? "작은 병원에서 피난 기록을 대조할 수 있습니다."
+        : state.flags.day2_refugee_crowd
+          ? "급식소 배식줄이 붐빕니다. 일거리와 식사 값을 확인하세요."
+          : "편의점과 급식소에서 식량을 찾고 거처에서 생활 도구를 마련하세요.";
+  const chapterCard = `<article class="info-card chapter-goal-card">
+    <header class="chapter-goal-header">
+      <h3>첫 10일 · 구조 준비</h3>
+      <span class="chapter-goal-deadline">${escapeHtml(resultLabels[state.chapterOneResult] || resultLabels.pending)}</span>
+    </header>
+    <div class="chapter-goal-equipment">
+      <div class="chapter-goal-status"><span>신호 장비</span><strong>${goal.signalReady ? "준비 완료" : "미완성"}</strong></div>
+      <ul class="chapter-goal-parts">${goal.signalParts.map((part) => `<li class="${part.owned ? "is-owned" : ""}"><span>${escapeHtml(part.name)}</span><span class="chapter-goal-part-state" role="img" aria-label="${part.owned ? "확보" : "미확보"}">${part.owned ? "✓" : ""}</span></li>`).join("")}</ul>
+    </div>
+    <p class="chapter-goal-hint">${escapeHtml(dayLead)}</p>
+  </article>`;
   if (!visibleQuests.length) {
-    dom.panelContent.innerHTML = `<p class="empty-state">아직 받은 퀘스트가 없다.</p>`;
+    dom.panelContent.innerHTML = chapterCard;
     return;
   }
 
@@ -3156,6 +3372,7 @@ function renderQuestsPanel() {
 
   dom.panelContent.innerHTML = `
     <div class="quest-panel-stack">
+      <div class="panel-grid">${chapterCard}</div>
       ${activeQuests.length ? `
         <div class="panel-grid">
           ${activeQuests.map((quest) => questCardMarkup(quest)).join("")}
@@ -3337,7 +3554,9 @@ function renderMenuPanel() {
 
 function renderPanel() {
   const config = PANEL_CONFIG[client.activePanel];
-  dom.panelTitle.textContent = config.title;
+  dom.panelShell.setAttribute("aria-label", config.title);
+  dom.panelShell.classList.toggle("is-map-panel", client.activePanel === "map");
+  dom.panelContent.classList.toggle("map-panel-content", client.activePanel === "map");
   dom.panelContent.classList.toggle(
     "inventory-panel-content",
     client.activePanel === "inventory",
@@ -3494,12 +3713,15 @@ async function submitAction(
 }
 
 async function backgroundSync() {
+  if (client.backgroundSyncInFlight || client.isHomeVisible || document.hidden) return;
   if (!client.gameId || client.actionInFlight) {
     renderStatusBar();
     return;
   }
+  client.backgroundSyncInFlight = true;
   try {
-    const snapshot = await api(`/api/games/${client.gameId}/state`);
+    const snapshot = await api(`/api/games/${client.gameId}/actions`, { method: "POST", body: { type: "world_clock", command: "tick", clientId: clockClientId, sequence: ++clockSequence } });
+    if (client.actionInFlight || document.hidden || client.isHomeVisible || snapshot.gameId !== client.gameId) return;
     if (needsFreshGame(snapshot)) {
       await createNewGame();
       render({
@@ -3536,11 +3758,24 @@ async function backgroundSync() {
       return;
     }
     renderStatusBar();
+    if (effectiveSnapshot.state.arcanaCombat?.battle) window.ArcanaCombatUI?.render(effectiveSnapshot, dom.sceneText);
+    if (client.isPanelOpen && client.activePanel === "status") renderStatusPanel();
     showQuestCompletionBurst(newlyCompletedQuests);
   } catch (_error) {
     renderStatusBar();
+  } finally {
+    client.backgroundSyncInFlight = false;
   }
 }
+
+function pauseVisibleGame() {
+  if (!client.gameId || client.isHomeVisible) return;
+  void fetch("/api/games/" + client.gameId + "/actions", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", keepalive: true,
+    body: JSON.stringify({ type: "world_clock", command: "pause", clientId: clockClientId, sequence: ++clockSequence }) }).catch(() => {});
+  if (client.snapshot?.state?.activeClock) client.snapshot.state.activeClock.paused = true;
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) pauseVisibleGame(); else void backgroundSync(); });
+window.addEventListener("pagehide", pauseVisibleGame);
 
 async function bootstrap() {
   clearLegacyGameIds();
@@ -3670,14 +3905,14 @@ async function goHomeFromMenu() {
   await showHomeScreen();
 }
 
-async function startNewGameFromHome() {
+async function startNewGameFromHome(startAt = "shelter") {
   if (client.actionInFlight) {
     return;
   }
   client.actionInFlight = true;
   clearSceneAnimation();
   try {
-    await createNewGame();
+    await createNewGame(startAt);
     client.actionInFlight = false;
     render({
       animateScene: shouldAnimateScene({
@@ -3694,7 +3929,8 @@ async function startNewGameFromHome() {
   }
 }
 
-dom.homeNewGame.addEventListener("click", startNewGameFromHome);
+dom.homeNewGame.addEventListener("click", () => startNewGameFromHome());
+dom.homeArcanaStart.addEventListener("click", () => startNewGameFromHome("arcana"));
 
 dom.homeContinue.addEventListener("click", () => {
   continueSavedGame();
@@ -3708,13 +3944,7 @@ dom.homeFullscreenPlay.addEventListener("click", async () => {
   client.fullscreenLaunchInFlight = true;
   dom.homeFullscreenPlay.disabled = true;
   try {
-    const shouldContinue = activeHomeSaveInfo().exists;
     await requestGameFullscreen();
-    if (shouldContinue) {
-      await continueSavedGame();
-    } else {
-      await startNewGameFromHome();
-    }
   } finally {
     client.fullscreenLaunchInFlight = false;
     dom.homeFullscreenPlay.disabled = false;
@@ -3823,6 +4053,11 @@ window.render_game_to_text = () => JSON.stringify({
   location: client.snapshot?.state?.location || null,
   day: client.snapshot?.state?.day || null,
   time: client.snapshot ? gameClockLabel() : null,
+  energy: client.snapshot?.state?.stats?.energy ?? null,
+  preparedMeal: client.snapshot?.state?.preparedMeal ?? null,
+  toolDurability: client.snapshot?.state?.toolDurability ?? {},
+  chapterOneResult: client.snapshot?.state?.chapterOneResult ?? null,
+  survivalGoal: client.snapshot?.survivalGoal ?? null,
   skillProgress: (client.snapshot?.skillProgress || []).map((skill) => ({
     id: skill.id,
     level: skill.level,
@@ -3832,6 +4067,8 @@ window.render_game_to_text = () => JSON.stringify({
       : Number(skill.totalXp) - Number(skill.xpIntoLevel) + Number(skill.xpForNextLevel),
     effectPercent: skill.effectPercent,
   })),
+  arcanaCombat: client.snapshot?.state?.arcanaCombat || null,
+  activeClock: client.snapshot?.state?.activeClock || null,
   subwayExpedition: client.snapshot?.state?.subwayExpedition || null,
   actionTransition: client.actionInFlight
     ? {
@@ -3853,3 +4090,262 @@ bootstrap().catch((error) => {
   dom.sceneText.innerHTML = `<p>서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>`;
   dom.panelContent.innerHTML = `<p class="empty-state">API 서버가 필요합니다.</p>`;
 });
+
+
+/* Arcana uses server outcomes and interpolates only visible countdowns. */
+(() => {
+  let latest = null, receivedAt = 0, busy = false, sceneTarget = null, battleKey = '', choiceKey = '';
+  const fmt = n => String(Math.round(n * 10) / 10);
+  const ENEMY_MAX_HP = 30;
+  const ATTACK_PREPARATION_SECONDS = 3;
+  const ATTACK_WARNING_SECONDS = 1;
+  const DAMAGE_DELAY_MS = 600;
+  const DAMAGE_CATCHUP_MS = 500;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let healthTrail = null, playerHealthTrail = null, meterFrame = 0, slimeHitUntil = 0;
+  const SLIME_PORTRAITS = {
+    idle: 'assets/monsters/arcana-slime.png',
+    prepare: 'assets/monsters/arcana-slime-prepare.png',
+    hit: 'assets/monsters/arcana-slime-hit.png',
+    dead: 'assets/monsters/arcana-slime-dead.png',
+  };
+  Object.values(SLIME_PORTRAITS).forEach(src => { const image = new Image(); image.src = src; });
+
+  function trailHpAt(now, trail = healthTrail) {
+    if (!trail) return 0;
+    if (now < trail.holdUntil) return trail.fromHp;
+    if (reducedMotion.matches) return trail.hp;
+    const progress = Math.min(1, (now - trail.holdUntil) / DAMAGE_CATCHUP_MS);
+    return trail.fromHp + (trail.hp - trail.fromHp) * progress;
+  }
+  function displayedEnemyHp(now = performance.now()) {
+    if (!healthTrail) return 0;
+    return now < (healthTrail.impactAt || 0) ? healthTrail.beforeHp : healthTrail.hp;
+  }
+  function rememberHealth(battle, now) {
+    if (!battle) {
+      window.ArcanaFireballFX?.cancel();
+      healthTrail = null; slimeHitUntil = 0;
+      window.cancelAnimationFrame(meterFrame); meterFrame = 0;
+      return;
+    }
+    const hp = Math.max(0, Math.min(ENEMY_MAX_HP, battle.enemyHp));
+    if (!healthTrail || healthTrail.battleId !== battle.id) {
+      window.ArcanaFireballFX?.cancel();
+      healthTrail = { battleId: battle.id, hp, fromHp: hp, holdUntil: 0 };
+      slimeHitUntil = 0;
+    } else if (hp < healthTrail.hp) {
+      const beforeHp = displayedEnemyHp(now);
+      const fromHp = Math.max(beforeHp, trailHpAt(now));
+      const effect = window.ArcanaFireballFX?.play({
+        source: document.querySelector('[data-arcana-command="fireball"]'),
+        target: sceneTarget?.querySelector('.arcana-enemy-portrait'),
+        damage: healthTrail.hp - hp,
+        onImpact: () => {
+          if (healthTrail?.battleId !== battle.id) return;
+          refreshMeters();
+          updateSlimePortrait(battle);
+        },
+      });
+      const impactAt = effect?.impactAt ?? now;
+      slimeHitUntil = hp > 0 ? impactAt + DAMAGE_DELAY_MS : 0;
+      healthTrail = { battleId: battle.id, hp, beforeHp, fromHp, impactAt, holdUntil: impactAt + DAMAGE_DELAY_MS };
+    } else if (hp > healthTrail.hp) {
+      healthTrail = { battleId: battle.id, hp, fromHp: hp, holdUntil: 0 };
+      slimeHitUntil = 0;
+    }
+  }
+  function rememberPlayerHealth(state, now) {
+    const combat = state?.arcanaCombat, battle = combat?.battle;
+    if (!battle) { playerHealthTrail = null; return; }
+    const maxHp = 100 + (combat.level - 1) * 10;
+    const hp = Math.max(0, Math.min(maxHp, combat.hp));
+    if (!playerHealthTrail || playerHealthTrail.battleId !== battle.id || playerHealthTrail.maxHp !== maxHp) {
+      playerHealthTrail = { battleId: battle.id, maxHp, hp, fromHp: hp, holdUntil: 0 };
+    } else if (hp < playerHealthTrail.hp) {
+      const fromHp = Math.max(playerHealthTrail.hp, trailHpAt(now, playerHealthTrail));
+      playerHealthTrail = { battleId: battle.id, maxHp, hp, fromHp, holdUntil: now + DAMAGE_DELAY_MS };
+    } else if (hp > playerHealthTrail.hp) {
+      playerHealthTrail = { battleId: battle.id, maxHp, hp, fromHp: hp, holdUntil: 0 };
+    }
+  }
+  function paintPlayerHealth(now) {
+    const meter = sceneTarget?.querySelector('[data-arcana-player-meter]');
+    const trail = playerHealthTrail;
+    if (!meter || !trail || trail.battleId !== latest?.state.arcanaCombat?.battle?.id) return;
+    const trailHp = Math.max(trail.hp, trailHpAt(now, trail));
+    meter.querySelector('[data-arcana-player-hp-fill]').style.transform = 'scaleX(' + trail.hp / trail.maxHp + ')';
+    meter.querySelector('[data-arcana-player-hp-trail]').style.transform = 'scaleX(' + trailHp / trail.maxHp + ')';
+    setMeterAttribute(meter, 'aria-valuemax', trail.maxHp);
+    setMeterAttribute(meter, 'aria-valuenow', trail.hp);
+    setMeterAttribute(meter, 'aria-valuetext', fmt(trail.hp) + ' / ' + trail.maxHp);
+    write('[data-arcana-player-hp]', fmt(trail.hp) + ' / ' + trail.maxHp);
+  }
+  function attackPresentation(now = performance.now()) {
+    const battle = latest?.state.arcanaCombat?.battle;
+    const fighting = battle?.phase === 'battle';
+    const paused = Boolean(battle?.paused || latest?.state.activeClock?.paused || document.hidden);
+    // Stop at zero until an authoritative snapshot starts the next attack cycle.
+    const dt = paused ? 0 : Math.max(0, (now - receivedAt) / 1000);
+    const remaining = Math.max(0, (battle?.attackIn || 0) - dt);
+    const preparing = fighting && !paused && remaining > 0 && remaining <= ATTACK_PREPARATION_SECONDS;
+    const warning = preparing && remaining <= ATTACK_WARNING_SECONDS;
+    const text = battle?.phase === 'ready' ? '준비되면 전투를 시작하세요.'
+      : battle?.phase === 'victory' ? '슬라임을 처치했습니다.'
+      : battle?.phase === 'defeat' ? '광장으로 귀환했습니다. 여관에서 회복할 수 있습니다.'
+      : paused ? '일시정지 · 재개하면 이어집니다.'
+      : remaining <= 0 ? '도약 결과 확인 중…'
+      : warning ? '도약 임박' : preparing ? '도약 준비 중' : '';
+    return { fighting, paused, remaining, preparing, warning, text };
+  }
+  function setMeterAttribute(element, name, value) {
+    const text = String(value);
+    if (element.getAttribute(name) !== text) element.setAttribute(name, text);
+  }
+  const ACTION_COOLDOWN_SECONDS = { fireball: 3, dodge: 5 };
+  function paintCooldownMeters(now) {
+    const battle = latest?.state.arcanaCombat?.battle;
+    document.querySelector('#choices')?.querySelectorAll('[data-arcana-cooldown]').forEach(meter => {
+      const command = meter.dataset.arcanaCooldown;
+      const cooldown = remaining(command, now);
+      meter.hidden = battle?.phase !== 'battle' || cooldown <= .001;
+      meter.querySelector('.arcana-cooldown-fill').style.transform =
+        'scaleX(' + Math.min(1, cooldown / ACTION_COOLDOWN_SECONDS[command]) + ')';
+    });
+  }
+  function paintMeters(now = performance.now()) {
+    paintCooldownMeters(now);
+    paintPlayerHealth(now);
+    const battle = latest?.state.arcanaCombat?.battle;
+    const hpMeter = sceneTarget?.querySelector('[data-arcana-enemy-meter]');
+    if (!battle || !hpMeter || healthTrail?.battleId !== battle.id) return;
+    const hp = displayedEnemyHp(now);
+    const trailHp = Math.max(hp, trailHpAt(now));
+    hpMeter.querySelector('[data-arcana-hp-fill]').style.transform = 'scaleX(' + hp / ENEMY_MAX_HP + ')';
+    hpMeter.querySelector('[data-arcana-hp-trail]').style.transform = 'scaleX(' + trailHp / ENEMY_MAX_HP + ')';
+    setMeterAttribute(hpMeter, 'aria-valuenow', hp);
+    setMeterAttribute(hpMeter, 'aria-valuetext', fmt(hp) + ' / ' + ENEMY_MAX_HP);
+    write('[data-arcana-enemy-hp]', fmt(hp) + ' / ' + ENEMY_MAX_HP);
+    sceneTarget.querySelector('.arcana-opponent')?.classList.toggle('is-defeated', hp <= 0);
+    const attack = attackPresentation(now);
+    const attackMeter = sceneTarget.querySelector('[data-arcana-attack-meter]');
+    if (attackMeter) {
+      attackMeter.hidden = !attack.fighting || attack.remaining > ATTACK_PREPARATION_SECONDS;
+      const fraction = Math.min(1, attack.remaining / ATTACK_PREPARATION_SECONDS);
+      attackMeter.querySelector('[data-arcana-attack-fill]').style.transform = 'scaleX(' + fraction + ')';
+      setMeterAttribute(attackMeter, 'aria-valuenow', Math.round(fraction * 100));
+      setMeterAttribute(attackMeter, 'aria-valuetext', attack.text);
+    }
+    sceneTarget.querySelector('.arcana-opponent')?.classList.toggle('is-warning', attack.warning);
+    write('[data-arcana-intent]', attack.text);
+  }
+  function metersNeedAnimation(now) {
+    const attack = attackPresentation(now);
+    const trailing = [healthTrail, playerHealthTrail].some(trail => trail && trail.fromHp > trail.hp
+      && now < trail.holdUntil + (reducedMotion.matches ? 0 : DAMAGE_CATCHUP_MS));
+    return !document.hidden && Boolean(sceneTarget?.querySelector('[data-arcana-enemy-meter]'))
+      && Boolean(latest?.state.arcanaCombat?.battle)
+      && ((attack.fighting && !attack.paused && (attack.remaining > 0
+        || Object.keys(ACTION_COOLDOWN_SECONDS).some(command => remaining(command, now) > .001))) || trailing);
+  }
+  function animateMeters(now) {
+    meterFrame = 0;
+    if (document.hidden) return;
+    paintMeters(now);
+    if (metersNeedAnimation(now)) meterFrame = window.requestAnimationFrame(animateMeters);
+  }
+  function refreshMeters() {
+    const now = performance.now();
+    paintMeters(now);
+    if (!meterFrame && metersNeedAnimation(now)) meterFrame = window.requestAnimationFrame(animateMeters);
+  }
+  function remember(snapshot) {
+    if (latest !== snapshot) {
+      const now = performance.now();
+      rememberHealth(snapshot?.state.arcanaCombat?.battle, now);
+      rememberPlayerHealth(snapshot?.state, now);
+      latest = snapshot; receivedAt = now;
+    }
+  }
+  function elapsed() {
+    if (!latest || document.hidden || latest.state.activeClock?.paused) return 0;
+    return Math.min(5, (performance.now() - receivedAt) / 1000);
+  }
+  function remaining(command, now = performance.now()) {
+    const c = latest?.state.arcanaCombat, b = c?.battle;
+    const paused = b?.paused || latest?.state.activeClock?.paused || document.hidden;
+    const dt = paused ? 0 : Math.min(5, Math.max(0, (now - receivedAt) / 1000));
+    return Math.max(0, (c?.cooldowns[command] || 0) - dt);
+  }
+  function write(selector, value) {
+    const el = sceneTarget?.querySelector(selector);
+    if (el && el.textContent !== value) el.textContent = value;
+  }
+  function updateSlimePortrait(battle) {
+    const portrait = sceneTarget?.querySelector('.arcana-enemy-portrait');
+    if (!portrait) return;
+    const now = performance.now();
+    const state = displayedEnemyHp(now) <= 0 ? 'dead' : now >= (healthTrail?.impactAt || 0) && now < slimeHitUntil ? 'hit' : attackPresentation().preparing ? 'prepare' : 'idle';
+    if (portrait.dataset.state === state) return;
+    portrait.dataset.state = state;
+    portrait.src = SLIME_PORTRAITS[state];
+    portrait.alt = state === 'dead' ? '힘을 잃고 납작하게 쓰러진 슬라임'
+      : state === 'hit' ? '공격을 받아 움찔하는 슬라임' : state === 'prepare' ? '몸을 낮게 압축해 도약을 준비하는 슬라임' : '반투명한 초록빛 슬라임';
+  }
+  function update() {
+    const c = latest?.state.arcanaCombat, b = c?.battle;
+    if (!b) return;
+    const maxMp = 30 + (c.level - 1) * 3;
+    const mp = Math.min(maxMp, c.mp + elapsed() * c.manaRegenPerHour / 75);
+    refreshMeters();
+    updateSlimePortrait(b);
+    write('[data-arcana-feedback]', b.log.at(-1) || '');
+    document.querySelector('#choices')?.querySelectorAll('[data-arcana-command]').forEach(button => {
+      const cmd = button.dataset.arcanaCommand, cooldown = remaining(cmd);
+      const unavailable = cmd === 'fireball' ? mp < 4 : cmd === 'potion' ? !(latest.state.inventory.manaPotion > 0) || mp >= maxMp : false;
+      button.disabled = busy || cooldown > .001 || unavailable;
+      const label = button.querySelector('[data-action-state]');
+      if (label) label.textContent = cooldown > .001 ? ACTION_COOLDOWN_SECONDS[cmd] ? '재사용 대기' : cooldown.toFixed(1) + '초' : unavailable ? cmd === 'fireball' ? 'MP 부족' : latest.state.inventory.manaPotion ? 'MP 가득 참' : '포션 없음' : cmd === 'potion' ? (latest.state.inventory.manaPotion || 0) + '개' : '';
+    });
+  }
+  function render(snapshot, target) {
+    remember(snapshot); sceneTarget = target.parentElement;
+    const c = snapshot.state.arcanaCombat, b = c?.battle;
+    if (!b) { battleKey = ''; choiceKey = ''; return; }
+    // Preserve meter layers through victory so the final damage trail can finish.
+    const key = b.id;
+    if (battleKey !== key || !sceneTarget.querySelector(':scope > .arcana-combat')) {
+      battleKey = key;
+      const card = document.createElement('div');
+      card.innerHTML = '<section class="arcana-combat" aria-label="슬라임 전투"><section class="arcana-player-vitals" aria-label="내 체력"><div class="arcana-player-heading"><strong>내 체력</strong><span data-arcana-player-hp></span></div><div class="arcana-hp-meter arcana-player-hp-meter" data-arcana-player-meter role="progressbar" aria-label="내 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span class="arcana-hp-trail" data-arcana-player-hp-trail aria-hidden="true"></span><span class="arcana-hp-fill" data-arcana-player-hp-fill aria-hidden="true"></span></div></section><section class="arcana-opponent" aria-label="조우한 슬라임"><img class="arcana-enemy-portrait" src="assets/monsters/arcana-slime.png" width="104" height="104" alt="반투명한 초록빛 슬라임" draggable="false"><div class="arcana-enemy-stats"><div class="arcana-enemy-heading"><strong>슬라임</strong><span data-arcana-enemy-hp></span></div><div class="arcana-hp-meter" data-arcana-enemy-meter role="progressbar" aria-label="슬라임 체력" aria-valuemin="0" aria-valuemax="30" aria-valuenow="30"><span class="arcana-hp-trail" data-arcana-hp-trail aria-hidden="true"></span><span class="arcana-hp-fill" data-arcana-hp-fill aria-hidden="true"></span></div><div class="arcana-attack-meter" data-arcana-attack-meter role="progressbar" aria-label="슬라임 공격까지 남은 준비" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" hidden><span class="arcana-attack-fill" data-arcana-attack-fill aria-hidden="true"></span></div><p class="arcana-intent" data-arcana-intent></p></div></section></section>';
+      sceneTarget.querySelector(':scope > .arcana-combat')?.remove();
+      target.before(card.firstElementChild);
+      target.innerHTML = '<p class="arcana-feedback" data-arcana-feedback></p>';
+    }
+    update();
+  }
+  function updateChoices(snapshot, inFlight) {
+    remember(snapshot); busy = inFlight;
+    const b = snapshot?.state.arcanaCombat?.battle, target = document.querySelector('#choices');
+    if (!b || !target) { choiceKey = ''; sceneTarget?.querySelector(':scope > .arcana-combat')?.remove(); return false; }
+    const actions = snapshot.availableActions || [], key = b.id + ':' + b.phase + ':' + b.paused;
+    if (choiceKey !== key || !target.querySelector('[data-arcana-command]')) {
+      choiceKey = key; target.innerHTML = ''; target.classList.add('revealed');
+      actions.forEach(a => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'choice-button arcana-action';
+        button.dataset.arcanaCommand = a.action.command;
+        const outcomeHint = a.action.command === 'start' ? '' : a.outcomeHint;
+        const cooldownMarkup = ACTION_COOLDOWN_SECONDS[a.action.command]
+          ? '<span class="arcana-cooldown" data-arcana-cooldown="' + a.action.command + '" aria-hidden="true" hidden><span class="arcana-cooldown-fill"></span></span>' : '';
+        button.innerHTML = '<span class="arcana-action-title">' + escapeHtml(a.label) + '<span data-action-state></span></span>' + (outcomeHint ? '<small>' + escapeHtml(outcomeHint) + '</small>' : '') + cooldownMarkup;
+        button.addEventListener('click', () => {
+          const current = latest.availableActions.find(c=>c.action.command===button.dataset.arcanaCommand);
+          if (!button.disabled && current) window.ArcanaCombatUI.onAction?.(current.action);
+        }); target.append(button);
+      });
+    }
+    update(); return true;
+  }
+  window.ArcanaCombatUI = { render, updateChoices, onAction: null };
+  window.setInterval(() => { if (!document.hidden) update(); }, 100);
+})();

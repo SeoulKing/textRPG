@@ -236,6 +236,7 @@ test("보유한 허용 도구만 선택지와 서버 판정에 사용할 수 있
   state.inventory.utilityKnife = 1;
   state.toolDurability.utilityKnife = 10;
   state.inventory.waterBottle = 1;
+  delete state.inventory.emergencySnack;
   const generation = compileSubwayEncounterDraftForTest({
     title: "손에 잡힌 간이 칼",
     narrative: [
@@ -621,10 +622,60 @@ test("서버 판정 뒤에는 결과 서사 역할 한 번만 호출하고 전�
   assert.deepEqual(roles, ["result_scene"]);
   assert.equal(generation.scene.title, "밀려난 강도");
   assert.deepEqual(
-    generation.scene.choices.slice(0, 5).map((choice) =>
+    generation.scene.choices.map((choice) =>
       choice.legacyActionToken
     ),
-    ["close_attack", "throw_improvised", "guard", "talk", "flee"],
+    [
+      "close_attack",
+      "guard",
+      "flee",
+      "use_item:emergencySnack",
+      "use_item:waterBottle",
+    ],
+  );
+});
+
+test("지하철 조우 선택지는 기본 3개이며 아이템을 포함해도 5개를 넘지 않는다", async () => {
+  const state = await stateWithBanditEncounter();
+  const serverResult = resolveSubwayBanditChoice(
+    state,
+    "fight",
+    0,
+    sequenceRng([0, 0.99]),
+  );
+  delete state.inventory.emergencySnack;
+  delete state.inventory.waterBottle;
+
+  const basicGeneration = compileSubwayEncounterDraftForTest({}, {
+    gameId: "choice-count-basic",
+    state,
+    latestServerResult: serverResult,
+  });
+  assert.deepEqual(
+    basicGeneration.scene.choices.map((choice) => choice.legacyActionToken),
+    ["close_attack", "guard", "flee"],
+  );
+
+  state.inventory.utilityKnife = 1;
+  state.inventory.crudeAxe = 1;
+  state.inventory.emergencySnack = 1;
+  state.inventory.waterBottle = 1;
+  state.inventory.painRelief = 1;
+  const itemGeneration = compileSubwayEncounterDraftForTest({}, {
+    gameId: "choice-count-items",
+    state,
+    latestServerResult: serverResult,
+  });
+  assert.equal(itemGeneration.scene.choices.length, 5);
+  assert.deepEqual(
+    itemGeneration.scene.choices.map((choice) => choice.legacyActionToken),
+    [
+      "close_attack",
+      "guard",
+      "flee",
+      "use_item:utilityKnife",
+      "use_item:crudeAxe",
+    ],
   );
 });
 

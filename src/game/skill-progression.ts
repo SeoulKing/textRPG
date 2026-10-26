@@ -78,7 +78,7 @@ export function getSkillXpForMinutes(baseMinutes: number) {
   const normalizedMinutes = Number.isFinite(baseMinutes)
     ? Math.max(1, Math.floor(baseMinutes))
     : 1;
-  return Math.max(1, Math.ceil(normalizedMinutes / 5));
+  return Math.max(1, Math.ceil(normalizedMinutes / 15));
 }
 
 export function getSkillEffectPercent(level: number) {
@@ -134,6 +134,7 @@ function baseOutcomeProbabilities<T extends WeightedOutcome>(outcomes: T[]) {
 export function getExplorationOutcomeProbabilities<T extends WeightedOutcome>(
   outcomes: T[],
   level: number,
+  mealBonus = 0,
 ) {
   if (
     outcomes.length === 0 ||
@@ -153,7 +154,7 @@ export function getExplorationOutcomeProbabilities<T extends WeightedOutcome>(
   }
 
   const baseSuccessProbability = successWeight / (failureWeight + successWeight);
-  const successBonus = getSkillEffectPercent(level) / 100;
+  const successBonus = getSkillEffectPercent(level) / 100 + mealBonus;
   const adjustedSuccessProbability = Math.min(1, baseSuccessProbability + successBonus);
   const adjustedFailureProbability = 1 - adjustedSuccessProbability;
   return outcomes.map((outcome) =>
@@ -177,6 +178,7 @@ export function selectRandomOutcome<T extends WeightedOutcome>(
     skillUse?: SkillUse;
     progress: SkillProgressState;
     rng?: () => number;
+    explorationSuccessBonus?: number;
   },
 ) {
   if (outcomes.length === 0) {
@@ -186,6 +188,7 @@ export function selectRandomOutcome<T extends WeightedOutcome>(
     ? getExplorationOutcomeProbabilities(
         outcomes,
         getProgressionSkillLevel(options.progress, "exploration"),
+        options.explorationSuccessBonus ?? 0,
       )
     : baseOutcomeProbabilities(outcomes);
   const roll = normalizedRandomRoll(options.rng ?? Math.random);

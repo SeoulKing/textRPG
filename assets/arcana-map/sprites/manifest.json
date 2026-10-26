@@ -1,0 +1,190 @@
+{
+  "mode": "built-in image_gen",
+  "projection": {
+    "type": "orthographic dimetric",
+    "yawDegrees": 45,
+    "elevationDegrees": 30,
+    "groundAxes": [
+      [
+        2,
+        1
+      ],
+      [
+        -2,
+        1
+      ]
+    ],
+    "verticalAxis": [
+      0,
+      -1
+    ],
+    "scaleRule": "uniform scaling only; no per-object perspective, mirroring or shear"
+  },
+  "sprites": [
+    {
+      "id": "shop",
+      "file": "shop.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "crop": [
+        101,
+        85,
+        1207,
+        1139
+      ],
+      "foot": [
+        654,
+        1138
+      ],
+      "width": 300,
+      "ground": [
+        4,
+        8.2
+      ],
+      "prompt": "Use case: stylized-concept. ONE isolated game object sprite, genuine TRANSPARENT background, clean alpha. Two inputs: IMAGE 1 is the mandatory mathematical CAMERA/PROJECTION guide only; IMAGE 2 is the mandatory Japanese anime fantasy ART-STYLE reference only. Reconstruct this object in exactly the orthographic dimetric camera of image 1, not a cinematic perspective. Camera yaw 45 degrees, elevation 30 degrees, 2:1 ground projection. Both horizontal ground axes have screen vectors (2,1) and (-2,1), all parallel physical edges stay parallel; every vertical is screen-vertical. No perspective convergence or foreshortening by distance. Floor bases are a diamond whose full width is exactly twice its height. Window sill and wall-base lines follow +/-26.565 degrees, same left/right axis scale. Ridge is parallel to one ground axis; roof slope lines can be steeper according to pitch. No camera variations. Art: beautifully detailed clean Japanese anime fantasy RPG illustration, warm amber lights from upper-left, cool soft shadows, blue-violet roof tiles, cream masonry, warm timber, gold touches and flowers, matching image2. Entire object visible centered in a square canvas, roughly 85 percent fill with transparent margins. Only a thin closely attached foundation as necessary, no surrounding terrain or broad platform, no background, no black/white/checkerboard painted backdrop, no people, animals, letters, labels, UI or watermark. The object will be independently placed on a 2:1 game map. Subject: compact two-storey POTION AND MAGICAL-ITEM SHOP. A clear rectangular footprint on the shared grid, one blue-violet gabled roof, cream plaster walls with wood framing, deep purple front awning, open storefront with rows of jewel-colored potion bottles and crystals, a hanging potion-bottle pictogram without writing, a few small attached crates and modest flower boxes. Front facade faces lower-left, other wall faces lower-right. Do not tilt or rotate the building away from the camera guide."
+    },
+    {
+      "id": "inn",
+      "file": "inn.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "crop": [
+        91,
+        70,
+        1188,
+        1162
+      ],
+      "foot": [
+        730,
+        1161
+      ],
+      "width": 330,
+      "ground": [
+        8.7,
+        13.5
+      ],
+      "prompt": "Use case: stylized-concept. ONE isolated game object sprite, genuine TRANSPARENT background, clean alpha. Two inputs: IMAGE 1 is the mandatory mathematical CAMERA/PROJECTION guide only; IMAGE 2 is the mandatory Japanese anime fantasy ART-STYLE reference only. Reconstruct this object in exactly the orthographic dimetric camera of image 1, not a cinematic perspective. Camera yaw 45 degrees, elevation 30 degrees, 2:1 ground projection. Both horizontal ground axes have screen vectors (2,1) and (-2,1), all parallel physical edges stay parallel; every vertical is screen-vertical. No perspective convergence or foreshortening by distance. Floor bases are a diamond whose full width is exactly twice its height. Window sill and wall-base lines follow +/-26.565 degrees, same left/right axis scale. Ridge is parallel to one ground axis; roof slope lines can be steeper according to pitch. No camera variations. Art: beautifully detailed clean Japanese anime fantasy RPG illustration, warm amber lights from upper-left, cool soft shadows, blue-violet roof tiles, cream masonry, warm timber, gold touches and flowers, matching image2. Entire object visible centered in a square canvas, roughly 85 percent fill with transparent margins. Only a thin closely attached foundation as necessary, no surrounding terrain or broad platform, no background, no black/white/checkerboard painted backdrop, no people, animals, letters, labels, UI or watermark. The object will be independently placed on a 2:1 game map. Subject: welcoming two-storey INN, slightly larger than the item shop but same architectural language and SAME camera. Blue-violet gabled roof, a few dormer windows, cream plaster walls with warm timber framing, cozy golden ground-floor windows, a visible recessed arched doorway with two little steps, hanging bed-symbol sign WITHOUT lettering. Modest flower boxes and small barrel by the doorway. Both side walls visible and align to the ground axes of image1. Front facade faces lower-left, side wall faces lower-right. Only the inn and its tiny attached foundation."
+    },
+    {
+      "id": "restaurant",
+      "file": "restaurant.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "crop": [
+        70,
+        50,
+        1184,
+        1216
+      ],
+      "foot": [
+        561,
+        1215
+      ],
+      "width": 330,
+      "ground": [
+        13.5,
+        8.7
+      ],
+      "prompt": "Use case: stylized-concept. ONE isolated game object sprite, genuine TRANSPARENT background, clean alpha. Two inputs: IMAGE 1 is the mandatory mathematical CAMERA/PROJECTION guide only; IMAGE 2 is the mandatory Japanese anime fantasy ART-STYLE reference only. Reconstruct this object in exactly the orthographic dimetric camera of image 1, not a cinematic perspective. Camera yaw 45 degrees, elevation 30 degrees, 2:1 ground projection. Both horizontal ground axes have screen vectors (2,1) and (-2,1), all parallel physical edges stay parallel; every vertical is screen-vertical. No perspective convergence or foreshortening by distance. Floor bases are a diamond whose full width is exactly twice its height. Window sill and wall-base lines follow +/-26.565 degrees, same left/right axis scale. Ridge is parallel to one ground axis; roof slope lines can be steeper according to pitch. No camera variations. Art: beautifully detailed clean Japanese anime fantasy RPG illustration, warm amber lights from upper-left, cool soft shadows, blue-violet roof tiles, cream masonry, warm timber, gold touches and flowers, matching image2. Entire object visible centered in a square canvas, roughly 85 percent fill with transparent margins. Only a thin closely attached foundation as necessary, no surrounding terrain or broad platform, no background, no black/white/checkerboard painted backdrop, no people, animals, letters, labels, UI or watermark. The object will be independently placed on a 2:1 game map. Subject: a charming two-storey fantasy RESTAURANT in the SAME camera and architecture. Blue-violet tiled roof, cream stone and warm timber, large warmly lit windows, recessed door, blue-and-ivory striped awning above a small attached outdoor terrace. The terrace contains exactly two small round wooden tables, a few empty chairs, one cream parasol and bread baskets, all on the same orthographic grid. Hanging fork-and-spoon pictogram sign with NO lettering. Front facade faces lower-left, side wall faces lower-right. Compact single-object silhouette with terrace immediately adjoining, not a broad plaza scene."
+    },
+    {
+      "id": "hunting",
+      "file": "hunting.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "crop": [
+        177,
+        20,
+        1163,
+        1227
+      ],
+      "foot": [
+        961,
+        1226
+      ],
+      "width": 226,
+      "ground": [
+        9.05,
+        1.59
+      ],
+      "prompt": "Use case: stylized-concept. ONE isolated game object sprite, genuine TRANSPARENT background, clean alpha. Two inputs: IMAGE 1 is the mandatory mathematical CAMERA/PROJECTION guide only; IMAGE 2 is the mandatory Japanese anime fantasy ART-STYLE reference only. Reconstruct this object in exactly the orthographic dimetric camera of image 1, not a cinematic perspective. Camera yaw 45 degrees, elevation 30 degrees, 2:1 ground projection. Both horizontal ground axes have screen vectors (2,1) and (-2,1), all parallel physical edges stay parallel; every vertical is screen-vertical. No perspective convergence or foreshortening by distance. Floor bases are a diamond whose full width is exactly twice its height. Window sill and wall-base lines follow +/-26.565 degrees, same left/right axis scale. Ridge is parallel to one ground axis; roof slope lines can be steeper according to pitch. No camera variations. Art: beautifully detailed clean Japanese anime fantasy RPG illustration, warm amber lights from upper-left, cool soft shadows, blue-violet roof tiles, cream masonry, warm timber, gold touches and flowers, matching image2. Entire object visible centered in a square canvas, roughly 85 percent fill with transparent margins. Only a thin closely attached foundation as necessary, no surrounding terrain or broad platform, no background, no black/white/checkerboard painted backdrop, no people, animals, letters, labels, UI or watermark. The object will be independently placed on a 2:1 game map. Subject: ONE open CITY GATE leading to the hunting grounds, with a pair of elegant ivory stone pillars, restrained gold finials, one modest arch/lintel between them, two dark blue cloth banners decorated only with abstract gold geometric motifs. No terrain, no grassland scene behind it, no road behind the opening: the opening must be fully transparent so the map ground remains visible. Two pillars sit on a thin shared rectangular foundation with 2:1 diamond projection, exactly matching the guide's axes. The vertical plane joining the pillar centers is parallel to the guide's broad front wall: from left foot to right foot the line runs down-right at exactly 26.565 degrees. Same for crossbar endpoints; NOT a head-on symmetrical arch. Single compact landmark, no castle or attached city walls."
+    },
+    {
+      "id": "fountain",
+      "file": "fountain.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "crop": [
+        24,
+        85,
+        1229,
+        1139
+      ],
+      "foot": [
+        628,
+        1138
+      ],
+      "width": 235,
+      "ground": [
+        8.25,
+        8.25
+      ],
+      "prompt": "Use case: stylized-concept. ONE isolated game object sprite, genuine TRANSPARENT background, clean alpha. Two inputs: IMAGE 1 is the mandatory mathematical CAMERA/PROJECTION guide only; IMAGE 2 is the mandatory Japanese anime fantasy ART-STYLE reference only. Reconstruct this object in exactly the orthographic dimetric camera of image 1, not a cinematic perspective. Camera yaw 45 degrees, elevation 30 degrees, 2:1 ground projection. Both horizontal ground axes have screen vectors (2,1) and (-2,1), all parallel physical edges stay parallel; every vertical is screen-vertical. No perspective convergence or foreshortening by distance. Floor bases are a diamond whose full width is exactly twice its height. Window sill and wall-base lines follow +/-26.565 degrees, same left/right axis scale. Ridge is parallel to one ground axis; roof slope lines can be steeper according to pitch. No camera variations. Art: beautifully detailed clean Japanese anime fantasy RPG illustration, warm amber lights from upper-left, cool soft shadows, blue-violet roof tiles, cream masonry, warm timber, gold touches and flowers, matching image2. Entire object visible centered in a square canvas, roughly 85 percent fill with transparent margins. Only a thin closely attached foundation as necessary, no surrounding terrain or broad platform, no background, no black/white/checkerboard painted backdrop, no people, animals, letters, labels, UI or watermark. The object will be independently placed on a 2:1 game map. Subject: ONE central magical FOUNTAIN, a circular shallow ivory stone basin with concentric circular steps, clear luminous blue water and a gold armillary ornament on a modest central pedestal with a small blue crystal. Exactly match the guide camera: every horizontal circular ring is projected as a level ellipse with WIDTH EXACTLY TWICE HEIGHT. Fountain body may be sculpted but avoid tall excessive tower height. A small amount of elegant water is frozen in the static image; extra animation will be handled in code. Central ornament and spouts vertical. No people, no benches, no surrounding plaza, no flowers around a giant ground island. Only fountain and tightly attached circular steps, transparent elsewhere. The fountain should feel refined and readable as a map sprite."
+    },
+    {
+      "id": "portal",
+      "file": "portal.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "crop": [
+        262,
+        47,
+        1065,
+        1207
+      ],
+      "foot": [
+        895,
+        1206
+      ],
+      "width": 145,
+      "ground": [
+        13.5,
+        12.5
+      ],
+      "prompt": "Use case: stylized-concept. ONE isolated game object sprite, genuine TRANSPARENT background, clean alpha. Two inputs: IMAGE 1 is the mandatory mathematical CAMERA/PROJECTION guide only; IMAGE 2 is the mandatory Japanese anime fantasy ART-STYLE reference only. Reconstruct this object in exactly the orthographic dimetric camera of image 1, not a cinematic perspective. Camera yaw 45 degrees, elevation 30 degrees, 2:1 ground projection. Both horizontal ground axes have screen vectors (2,1) and (-2,1), all parallel physical edges stay parallel; every vertical is screen-vertical. No perspective convergence or foreshortening by distance. Floor bases are a diamond whose full width is exactly twice its height. Window sill and wall-base lines follow +/-26.565 degrees, same left/right axis scale. Ridge is parallel to one ground axis; roof slope lines can be steeper according to pitch. No camera variations. Art: beautifully detailed clean Japanese anime fantasy RPG illustration, warm amber lights from upper-left, cool soft shadows, blue-violet roof tiles, cream masonry, warm timber, gold touches and flowers, matching image2. Entire object visible centered in a square canvas, roughly 85 percent fill with transparent margins. Only a thin closely attached foundation as necessary, no surrounding terrain or broad platform, no background, no black/white/checkerboard painted backdrop, no people, animals, letters, labels, UI or watermark. The object will be independently placed on a 2:1 game map. Subject: ONE arrival/return magical PORTAL landmark, an upright elegant blue-violet oval ring on a thin small ivory-stone footing, delicate gold-and-stone frame, softly luminous inner magic. View through the portal shows a subtle quiet green meadow and blue sky, contained ONLY within the ring's opening; everywhere OUTSIDE the portal and its tiny base remains transparent. Rigid camera rule: portal's vertical plane is parallel to the guide's broad front wall / X-Z plane; the line joining the ring's two feet runs DOWN-RIGHT at exactly 26.565 degrees on screen, not horizontal. Left foot visually higher, right foot lower by half their horizontal separation. All vertical supports stay upright. The frame cannot face the viewer head-on. Base is an exact 2:1 ground ellipse. Moderately ornate frame matching the anime fantasy reference. Not a doorway building, not a pair of portals. Full object visible."
+    },
+    {
+      "id": "garden",
+      "file": "garden.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "crop": [
+        181,
+        48,
+        1093,
+        1182
+      ],
+      "foot": [
+        763,
+        1181
+      ],
+      "width": 70,
+      "prompt": "Use case: stylized-concept. ONE isolated game object sprite, genuine TRANSPARENT background, clean alpha. Two inputs: IMAGE 1 is the mandatory mathematical CAMERA/PROJECTION guide only; IMAGE 2 is the mandatory Japanese anime fantasy ART-STYLE reference only. Reconstruct this object in exactly the orthographic dimetric camera of image 1, not a cinematic perspective. Camera yaw 45 degrees, elevation 30 degrees, 2:1 ground projection. Both horizontal ground axes have screen vectors (2,1) and (-2,1), all parallel physical edges stay parallel; every vertical is screen-vertical. No perspective convergence or foreshortening by distance. Floor bases are a diamond whose full width is exactly twice its height. Window sill and wall-base lines follow +/-26.565 degrees, same left/right axis scale. Ridge is parallel to one ground axis; roof slope lines can be steeper according to pitch. No camera variations. Art: beautifully detailed clean Japanese anime fantasy RPG illustration, warm amber lights from upper-left, cool soft shadows, blue-violet roof tiles, cream masonry, warm timber, gold touches and flowers, matching image2. Entire object visible centered in a square canvas, roughly 85 percent fill with transparent margins. Only a thin closely attached foundation as necessary, no surrounding terrain or broad platform, no background, no black/white/checkerboard painted backdrop, no people, animals, letters, labels, UI or watermark. The object will be independently placed on a 2:1 game map. Subject: ONE compact decorative garden-and-lamp SPRITE to reuse at the edges of the map: a small rectangular raised ivory-stone planter containing lush low green foliage with white/lilac flowers, one slender stylized cypress toward the back and one thin elegant blue crystal lamp toward the side. No separate scattered objects. Planter footprint obeys the exact guide camera: rectangular footprint rendered as a 2:1 diamond with parallel +/-26.565-degree edges. Vertical tree trunk and lamp upright. Same warm anime fantasy detailing as buildings, a small self-contained landscaping prop, no terrain island or broad paving, no people. Generous transparent margin."
+    }
+  ],
+  "guide": "projection-guide.png"
+}

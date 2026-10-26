@@ -1,5 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import { GAME_MINUTE_MS, PHASES, SIGNAL_PART_ITEM_IDS, TARGET_RESCUE_DAY, TRAVEL_DURATION_MS, getSkillEntries } from "./base-data";
+import { buildArcanaActions, buildArcanaScene, ensureArcanaEncounter, performArcanaAction } from "./arcana-combat";
+import { advanceGameMinutes, performWorldClockAction } from "./rules";
+import { buildMagicDungeonActions, buildMagicDungeonEntranceActions, buildMagicDungeonScene, performMagicDungeonAction, syncMagicDungeon } from "./magic-dungeon";
+import { GAME_MINUTE_MS, PHASES, SIGNAL_PART_ITEM_IDS, TARGET_RESCUE_DAY, TRAVEL_DURATION_MS, MAGIC_TRAVEL_DURATION_MS, getSkillEntries } from "./base-data";
 import {
   buildStoryChoiceFromChoice,
   resolveEventChoices,
@@ -258,6 +261,8 @@ const SCENE_CARD_CACHE_VERSION = 5;
 const RECIPE_MENU_SCENE_IDS = [
   "shelter_crafting_menu",
   "shelter_crafting_menu_repeat",
+  "shelter_crafting_facilities",
+  "shelter_crafting_tools",
   "shelter_cooking_menu",
   "shelter_cooking_menu_repeat",
   "arcana_workbench_menu",
@@ -276,7 +281,7 @@ const CRAFTING_RECIPE_EFFECTS: Record<string, string> = {
   cook_greens_soup: "+1 정신력 / +3 기력",
   cook_forest_stew: "+6 기력 / 피로 완화",
   assemble_rescue_radio: "10일차 구조 신호 준비",
-  brew_mana_potion: "MP +4",
+  brew_mana_potion: "MP +20",
   craft_rune_compass: "마법도시의 숨은 길 탐색",
 };
 
@@ -300,6 +305,12 @@ function isLocationInActiveRealm(state: GameSession["state"], location: Location
 const STATIC_SCENE_SOURCE_PATH_BY_LOCATION: Record<string, string> = {
   arcana_hunting_ground: "src/game/data/regions/arcana-hunting-ground/scenes.ts",
   arcana_plaza: "src/game/data/regions/arcana-plaza/scenes.ts",
+  arcana_shop: "src/game/data/regions/arcana-district/scenes.ts",
+  arcana_inn: "src/game/data/regions/arcana-district/scenes.ts",
+  arcana_restaurant: "src/game/data/regions/arcana-district/scenes.ts",
+  arcana_academy: "src/game/data/regions/arcana-district/scenes.ts",
+  arcana_return_portal: "src/game/data/regions/arcana-district/scenes.ts",
+  arcana_city_gate: "src/game/data/regions/arcana-district/scenes.ts",
   checkpoint: "src/game/data/regions/checkpoint/scenes.ts",
   convenience: "src/game/data/regions/convenience/scenes.ts",
   forest: "src/game/data/regions/forest/scenes.ts",
@@ -310,7 +321,6 @@ const STATIC_SCENE_SOURCE_PATH_BY_LOCATION: Record<string, string> = {
   subway: "src/game/data/regions/subway/scenes.ts",
 };
 
-const TRAVEL_MINUTES_PER_ROUTE = Math.round(TRAVEL_DURATION_MS / GAME_MINUTE_MS);
 const UNIQUE_SUBWAY_LOOT_ITEM_IDS = new Set(
   SUBWAY_LOOT_TABLES.flatMap((table) =>
     table.entries.filter((entry) => entry.unique).map((entry) => entry.itemId)
@@ -808,12 +818,12 @@ export class GameService {
     });
   }
 
-  async createGame() {
+  async createGame(startAt: "shelter" | "arcana" = "shelter") {
     const session: GameSession = {
       id: randomUUID(),
       createdAt: nowIso(),
       updatedAt: nowIso(),
-      state: createInitialGameState(),
+      state: createInitialGameState(startAt),
       world: {
         locationCards: {},
         personCards: {},
@@ -839,6 +849,8 @@ export class GameService {
     const session = await this.repository.loadGame(gameId);
     const previousState = structuredClone(session.state);
     syncClock(session.state);
+    syncMagicDungeon(session.state);
+    ensureArcanaEncounter(session.state);
     syncQuestState(session.state, previousState.quests);
     syncScene(session.state);
     applySystemNote(previousState, session.state);
@@ -860,6 +872,52 @@ export class GameService {
     const session = await this.repository.loadGame(gameId);
     const previousDay = session.state.day;
     const registry = this.runtimeRegistry(session);
+
+    syncClock(session.state);
+    syncMagicDungeon(session.state);
+    ensureArcanaEncounter(session.state);
+    if (action.type === "use_item" && action.itemId === "manaPotion" && session.state.flags.in_magic_world && !session.state.magicDungeon.run) {
+      action = { type: "arcana_combat", command: "potion", battleId: session.state.arcanaCombat.battle?.id };
+    }
+    if (action.type === "world_clock" || action.type === "arcana_combat") {
+      const previousState = structuredClone(session.state);
+      const workingState = structuredClone(session.state);
+      if (action.type === "world_clock") performWorldClockAction(workingState, action);
+      else {
+        performArcanaAction(workingState, action);
+        if (action.command === "rest") advanceGameMinutes(workingState, 10);
+      }
+      syncQuestState(workingState); syncScene(workingState);
+      if (action.type !== "world_clock") applySystemNote(previousState, workingState);
+      session.state = workingState; session.updatedAt = nowIso();
+      if (previousDay !== workingState.day) await this.replanTomorrowIfNeeded(session, previousDay);
+      await this.ensureCards(session);
+      const snapshot = this.buildSnapshot(session, null);
+      await this.repository.saveGame(session);
+      if (action.type !== "world_clock") await this.repository.appendActionLog({ gameId, action, at: session.updatedAt, location: workingState.location, day: workingState.day });
+      return snapshot;
+    }
+    if (session.state.arcanaCombat.battle) throw new Error("사냥터 전투를 마치거나 후퇴한 뒤 다른 행동을 할 수 있습니다.");
+    if (action.type === "magic_dungeon") {
+      const previousState = structuredClone(session.state);
+      const workingState = structuredClone(session.state);
+      syncClock(workingState);
+      performMagicDungeonAction(workingState, action);
+      syncQuestState(workingState);
+      syncScene(workingState);
+      applySystemNote(previousState, workingState);
+      session.state = workingState;
+      session.updatedAt = nowIso();
+      if (!workingState.magicDungeon.run) session.world.sceneCards = {};
+      await this.ensureCards(session);
+      const snapshot = this.buildSnapshot(session, null);
+      await this.repository.saveGame(session);
+      await this.repository.appendActionLog({ gameId, action, at: session.updatedAt, location: workingState.location, day: workingState.day });
+      return snapshot;
+    }
+    if (session.state.magicDungeon.run) {
+      throw new Error("마법도시 던전 탐험을 마치고 귀환한 뒤 다른 행동을 할 수 있습니다.");
+    }
 
     if (
       session.state.npcDialogue.active &&
@@ -1205,6 +1263,8 @@ export class GameService {
     }
 
     const session = record.session;
+    session.state.activeClock.paused = true;
+    if (session.state.arcanaCombat.battle?.phase === "battle") session.state.arcanaCombat.battle.paused = true;
     const previousDay = session.state.day;
     syncClock(session.state);
     syncQuestState(session.state);
@@ -1227,6 +1287,8 @@ export class GameService {
 
     return this.withGameMutation(record.session.id, async () => {
       const session = record.session;
+      session.state.activeClock.paused = true;
+      if (session.state.arcanaCombat.battle?.phase === "battle") session.state.arcanaCombat.battle.paused = true;
       const previousDay = session.state.day;
       syncClock(session.state);
       syncQuestState(session.state);
@@ -1659,7 +1721,8 @@ export class GameService {
       );
       const routePath = isCurrent ? [locationId] : (resolveTravelPath(session.state, locationId, registry) ?? []);
       const routeDistance = routePath.length > 1 ? routePath.length - 1 : 0;
-      const travelMinutes = routeDistance * TRAVEL_MINUTES_PER_ROUTE;
+      const travelDurationMs = session.state.flags.in_magic_world ? MAGIC_TRAVEL_DURATION_MS : TRAVEL_DURATION_MS;
+      const travelMinutes = routeDistance * Math.round(travelDurationMs / GAME_MINUTE_MS);
       const hasPositionPair = Boolean(currentLocation.mapPosition && targetLocation.mapPosition);
       const isAdjacent = !isCurrent && (
         hasPositionPair
@@ -1832,6 +1895,9 @@ export class GameService {
   private buildSnapshot(session: GameSession, latestEvent: EventCard | null, registry = this.runtimeRegistry(session)): StateSnapshot {
     const storyMaterials = this.buildStoryMaterials(session, { includeProtagonist: true }, registry);
     const expeditionScene = buildSubwayExpeditionScene(session.state);
+    ensureArcanaEncounter(session.state);
+    const arcanaScene = buildArcanaScene(session.state);
+    const dungeonScene = buildMagicDungeonScene(session.state);
     const activeDialogueProfile = getNpcDialogueProfile(
       session.state.npcDialogue.active?.npcId ?? "",
     );
@@ -1839,12 +1905,16 @@ export class GameService {
       session.state,
       activeDialogueProfile,
     );
-    const currentScene = dialogueScene
+    const currentScene = arcanaScene
+      ? arcanaScene
+      : dungeonScene
+      ? resolveSceneCardText(dungeonScene, registry)
+      : dialogueScene
       ? resolveSceneCardText(dialogueScene, registry)
       : expeditionScene
         ? resolveSceneCardText(expeditionScene, registry)
         : resolveSceneCardText(this.buildAuthoringSceneCard(session, storyMaterials, registry), registry);
-    const presentedLatestEvent = dialogueScene
+    const presentedLatestEvent = arcanaScene || dungeonScene || dialogueScene
       ? null
       : latestEvent
       ? resolveEventCardText(latestEvent, registry)
@@ -1905,11 +1975,17 @@ export class GameService {
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
       skillProgress: buildSkillProgressCards(session.state.skillProgress),
-      availableActions: (dialogueScene
+      availableActions: (arcanaScene
+        ? buildArcanaActions(session.state)
+        : dungeonScene
+        ? buildMagicDungeonActions(session.state)
+        : dialogueScene
         ? buildNpcDialogueActions(session.state)
         : expeditionScene
           ? buildSubwayExpeditionActions(session.state)
           : [
+              ...buildArcanaActions(session.state),
+              ...buildMagicDungeonEntranceActions(session.state),
               ...this.npcDialogueStartActions(session, registry),
               ...this.buildAvailableActions(
                 session,
@@ -1925,6 +2001,11 @@ export class GameService {
       survivalGoal: this.buildSurvivalGoal(session, registry),
     };
 
+    if (session.state.flags.in_magic_world && !session.state.magicDungeon.run) {
+      for (const item of [...snapshot.inventoryCards, ...snapshot.itemCatalog]) {
+        if (item?.id === "manaPotion") { item.effects = { ...item.effects, mind: 20 }; item.useMinutes = 0; item.price = 100; }
+      }
+    }
     return StateSnapshotSchema.parse(snapshot);
   }
 
@@ -2135,7 +2216,7 @@ export class GameService {
     };
   }
 
-  private applyGeneratedStoryBeat(session: GameSession, beat: GeneratedStoryBeat, triggerLabel: string, registry: ContentRegistry) {
+  private applyGeneratedStoryBeat(session: GameSession, beat: GeneratedStoryBeat, registry: ContentRegistry) {
     const previousState = structuredClone(session.state);
     const currentScene = this.presentedSceneDefinition(session, registry);
     if (currentScene.introFlag && !session.state.flags[currentScene.introFlag]) {
@@ -2148,7 +2229,7 @@ export class GameService {
     refreshLocationKnowledge(session.state);
     syncQuestState(session.state, previousState.quests);
     syncScene(session.state, beat.patch.sceneId);
-    applySystemNote(previousState, session.state, triggerLabel);
+    applySystemNote(previousState, session.state);
     this.mergeAnchorMemory(session, beat.anchorMemory);
     session.state.narrativeState.history.push({
       beatId: beat.id,
@@ -2196,7 +2277,7 @@ export class GameService {
     }
 
     this.clearNarrativeCacheEntry(session, key);
-    this.applyGeneratedStoryBeat(session, beat, trigger.label, registry);
+    this.applyGeneratedStoryBeat(session, beat, registry);
     session.updatedAt = nowIso();
 
     const nextRegistry = this.runtimeRegistry(session);

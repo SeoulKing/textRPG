@@ -34,12 +34,12 @@ export const checkpointChoices: ActionDefinition[] = [
     skillUse: { skillId: "exploration" },
     label: "초소 주변을 정찰한다",
     type: "search",
-    outcomeHint: "기력 -1 / 보상: {{item:scrapMetal}}·{{item:cordage}}·{{item:rationTicket}} 중 하나 / 위험: 체력 -1 / +35분",
+    outcomeHint: "기력 -1 / 보상: {{item:scrapMetal}}·{{item:cordage}}·{{item:rationTicket}} 중 하나 / 위험: 체력 -1 / +90분",
     showOutcomeHint: true,
     conditions: [{ type: "stat_gte", stat: "energy", value: 1 }],
     effects: [
       { type: "change_stat", stat: "energy", value: -1 },
-      { type: "advance_time", minutes: 35 },
+      { type: "advance_time", minutes: 90 },
       {
         type: "random_outcome",
         outcomes: [
@@ -85,7 +85,25 @@ export const checkpointChoices: ActionDefinition[] = [
     tags: ["patrol", "salvage", "risk", "repeatable"],
     riskHint: "high",
   }),
-];
+  interactionFor("checkpoint", {
+    id: "verify_day8_rescue_route",
+    label: "8일차 구조 경로를 확인한다",
+    type: "search",
+    outcomeHint: "구조대의 접근 경로와 신호 시점을 확인한다. {{item:rationTicket}} 1장 / +90분",
+    showOutcomeHint: true,
+    conditions: [
+      { type: "flag", flag: "day8_checkpoint_hint" },
+      { type: "flag_not", flag: "rescue_route_checked" },
+    ],
+    effects: [
+      { type: "advance_time", minutes: 90 },
+      { type: "add_item", itemId: "rationTicket", amount: 1 },
+      { type: "set_flag", flag: "rescue_route_checked" },
+      { type: "log", message: "통신 기록에서 구조대가 10일차 아침 검문소 근처를 지날 가능성을 확인했다. 남은 배급표도 챙겼다." },
+    ],
+    tags: ["hint", "signal", "food"],
+    riskHint: "low",
+  }),];
 
 export const checkpointLocation = defineLocation({
   id: "checkpoint",

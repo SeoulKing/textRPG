@@ -1610,3 +1610,72 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   bumped the client script query version so browsers fetch the corrected behavior.
   `node --check app-api.js` and `git diff --check` passed.
   focused 390px in-app browser verification skipped `prologue_old_woman_visit` mid-sentence and confirmed the completed narrative, one revealed choice, the shared `fade-up` animation at `0.22s`, and no console errors.
+- 2026-07-30 subway encounter choice-count cleanup:
+  reduced normal encounter choices to 3 core actions (attack, one rotating situational tactic, retreat),
+  allows at most 2 currently held item/tool actions for an absolute total of 5,
+  and caps rendered legacy encounter scenes at 5 choices for existing saves.
+  `.\node_modules\.bin\tsx.cmd --test tests\subway-encounter.test.ts` passed all 16 tests.
+- 2026-07-30 subway encounter choice-count cleanup:
+  reduced normal encounter choices to 3 core actions (attack, one rotating situational tactic, retreat),
+  allows at most 2 currently held item/tool actions for an absolute total of 5,
+  and caps rendered legacy encounter scenes at 5 choices for existing saves.
+  `.\node_modules\.bin\tsx.cmd --test tests\subway-encounter.test.ts` passed all 16 tests.
+
+- 2026-10-26 Arcana interactive quarter-view district:
+  user request: replace the illustrated district map with clickable 2D quarter-view graphics and remove people.
+  added assets/arcana-map.js and .css: geometry-only canvas buildings, paths, fountain, meadow portal, vegetation, native accessible destination buttons, and reduced-motion support.
+  integrated the map into plaza intro scenes, reusing authoritative hunting-ground travel and portal return actions; added shop/restaurant/inn scene entry and return without inventing commerce, food or lodging mechanics.
+  assets/arcana-map-preview.html displays the same renderer with selectable location descriptions.
+  syntax checks and server compilation passed; automated gameplay/browser tests were not run, per user preference.
+  manual checks: select each destination; enter and leave shop/restaurant/inn; travel to the hunting ground and return through the portal; check narrow-screen labels and keyboard selection.
+- 2026-10-26 Arcana illustrated object sprites:
+  replaced primitive geometry with seven individually generated transparent sprites: shop, inn, restaurant, hunting gate, fountain, return portal and reusable garden.
+  all prompts share a mathematical 2:1 orthographic projection guide (yaw 45 degrees, elevation 30 degrees) and the selected anime map art reference.
+  retained code-drawn paving and light/water effects; sprites use uniform scaling and opaque foundation registration points; canvas picking uses reduced alpha masks and the same draw order/placement.
+  native destination labels and authoritative travel remain unchanged. Sprite metadata, generation prompts and camera guide are saved in assets/arcana-map/sprites/.
+  verified alpha transparency and source syntax. Gameplay/browser tests remain delegated to the user.
+- 2026-10-26 shared reality/magic hex map:
+  user request: give the magic world the same map method as the reality world.
+  reused the existing hex map, terrain, fog, zoom, tooltips, travel controls and current-location border; removed the standalone Arcana canvas script and hooks from the main game.
+  registered shop, inn, restaurant and return portal as real magic-realm locations with reciprocal plaza links and adjacent axial coordinates; added discovery flags and moved the legacy place scenes to their matching locations.
+  reused generated transparent landmarks in the shared tile renderer; moved the reality-return action into the portal region.
+  existing saves with legacy plaza place scenes resolve to valid plaza scenes; no new save schema is needed.
+  JavaScript syntax and TypeScript server compilation passed. Gameplay/browser testing remains with the user.
+- 2026-10-26 city paving: added a shared 2:1 stone-paving pattern under magic-city tiles; kept reality and outdoor hunting terrain unchanged. JavaScript syntax passed; no gameplay/browser tests run.
+
+- 2026-10-26 painted city ground: replaced the procedural paving grid with an opaque hand-painted stone texture referenced from the actual shop sprite; cover the whole city map once to avoid repeat seams, preserving the existing city mask and outdoor/reality ground. Added subtle city-landmark contact shadows. Syntax check passed; gameplay/browser tests omitted per preference.
+
+- 2026-10-26 paving scale correction: tie the painted ground repeat period to hex size (0.85 x radius), rather than stretching the source texture across the board. Buildings and pavers share the map zoom transform and stable relative scale. JavaScript syntax passed; no gameplay/browser tests run.
+
+- 2026-10-26 Arcana realtime hunting combat: added separate HP/MP, fireball/dodge/potion/retreat, slime HP 30 and attack 5, XP and automatic level growth, shop purchases and inn healing. Active clock now uses a 30-minute day with owner leases, visibility pause, stale-signal protection and v18 time migration. Mana regeneration uses game hours (12 MP/hour). Main TypeScript and frontend syntax checks passed before final integration; gameplay tests are left to the user as requested.
+- Final integration: server build and app-api.js syntax check passed. Added tests/arcana-combat.test.ts and test:arcana script without running gameplay tests. Restarted the compiled local server; port 3000 and /api/health confirmed available. Browser interaction remains for the user.
+
+- 2026-10-26 unified Arcana downtown: replaced the center and six surrounding cells with one generated transparent illustration, keeping coherent paving, fountain, shop, inn, restaurant, portal, garden and south gate. Retained accessible destination hit areas and select-then-move controls; hid internal city hex borders. Added a south-gate location and moved hunting to (0,2), linked through the gate. Frontend syntax and TypeScript server compilation passed; gameplay/browser testing remains with the user.
+- 2026-10-26: renamed the hunting-ground display name and route copy to 도시 앞 평원; removed the slime and its shadow/highlights from the existing SVG, retaining the night sky and grassland. Build and syntax checks passed; local server restarted. Browser testing left to the user.
+
+- 2026-10-26 Arcana home start: added a dedicated home button and validated optional startAt on game creation. Arcana starts at the plaza first-intro scene with magic-world, first-entry and plaza-visit flags set before knowledge/scene/quest synchronization. Default survival start and manual saves remain unchanged. Frontend syntax and server compilation passed; no gameplay/browser tests run per user preference.
+- 2026-10-26: generated a new panoramic anime-style Arcana exterior plain (empty meadow, path to the southern gate, distant ivory city at twilight; no monsters or people) using built-in image_gen. Saved assets/scenes/arcana-front-plains.png and its .prompt.txt, linked the location, built and restarted the local server. Browser testing left to the user.
+
+- 2026-10-26 slime combat meters: replaced the native green enemy HP meter with a red current-HP layer and an orange damage trail (600 ms hold, 500 ms catch-up). Trail state is keyed by battle ID and actual HP changes, survives victory, and resets for new encounters. Replaced numeric attack countdown with a left-anchored shrinking preparation bar, final-1.5-second warning, pause handling and zero-hold until server confirmation. Added progressbar accessibility and reduced-motion handling. Combat rules and save format are unchanged. JavaScript syntax check passed; gameplay/browser tests were not run per user preference.
+- 2026-10-26 Arcana choice spacing: hid the start-button enemy-stat hint, kept separators only between action rows, removed mobile choice container vertical padding and gaps, and equalized row sizing with a 56px minimum touch height. The custom combat branch now synchronizes the mobile choice-zone height. Frontend syntax passed; no gameplay/browser tests run per user preference.
+
+- 2026-10-26 player combat HP and fireball tuning: added current/max player HP and a live red bar above the opponent, using the existing Arcana HP state and level-adjusted maximum. Fireball damage and action hint now share a fixed value of 8. Updated existing combat expectations for four-hit slime kills without executing tests. Frontend syntax and server compilation passed; gameplay/browser tests remain with the user.
+
+- 2026-10-26 magic power scaling: set base power to 10, retaining +2 per level. Fireball now deals floor(current power * 0.5), shared between damage resolution and action hints. Updated frontend power, stat explanation and skill description to match. Existing damage/level-up test expectations were adjusted without executing tests. Frontend syntax and server compilation passed; no save migration is needed because power is derived from level.
+
+- 2026-10-26 opaque home buttons: Arcana uses solid purple, fullscreen uses solid lime with dark text/icon, and disabled continue uses solid gray at full opacity. Updated the base button surface and stylesheet cache version. Rechecked changed CSS values; no gameplay/browser tests run.
+
+- 2026-10-26 action cooldown bars: added left-anchored shrinking bars inside fireball (3 seconds) and dodge (5 seconds) buttons, driven by authoritative cooldown snapshots and the existing animation loop. Bars freeze during pause and disappear at readiness; dynamic second labels for these two commands now read 재사용 대기. Bars are decorative alongside the existing accessible button state and do not change row height or combat rules. JavaScript syntax passed; no gameplay/browser tests run per user preference.
+
+- 2026-10-26 cooldown background correction: the common choice-content selector overrode the cooldown container's absolute positioning. Added a more specific scoped selector, full-button background coverage behind text, a muted gray-green fill and full opacity during cooldown. Fireball and dodge share the same subtle background bar; existing timers and left-anchored shrink behavior are unchanged. Rechecked the CSS cascade and refreshed the stylesheet version; no browser/gameplay tests run.
+
+- 2026-10-26 player damage trail and earlier warning: player HP now uses the same orange damage trail timing as the enemy (600 ms hold, 500 ms catch-up), with independent state per battle and health increases/max-HP changes resetting the trail. The shared animation loop handles both bars and reduced motion. Enemy attack warning now begins with 3 seconds remaining, while preserving the 6-second attack cycle and existing dodge rules. JavaScript syntax passed; no gameplay/browser tests run per user preference.
+
+- 2026-10-26 staged attack text: keep attack text empty before the final 3 seconds, show 도약 준비 중 from 3 seconds, then 도약 임박 from 1 second. Removed the dodge preparation instruction; urgent styling also starts at 1 second. JavaScript syntax passed; no gameplay/browser tests run.
+
+- 2026-10-26 three-second attack bar: hide the purple attack preparation bar until 3 seconds remain, then shrink from full over that 3-second window. Preserve pause behavior, zero-hold while awaiting the server, and the 1-second imminent warning. JavaScript syntax passed; no gameplay/browser tests run.
+- 2026-10-26: generated assets/monsters/arcana-slime-prepare.png (transparent crouched leap preparation sprite) with built-in image_gen, preserving the idle slime identity. Added portrait preloading and preparation/warning state switching with hit/death priority. Saved the generation prompt; JavaScript syntax and image alpha checked. Browser gameplay confirmation remains with the user.
+
+- 2026-10-26 silent fireball motion: added assets/arcana-fireball-fx.js with a pointer-transparent SVG layer for 100 ms charge, 200 ms curved flight, a small 150 ms portrait shake, impact flash/ring/sparks and an actual HP-loss number fading over 500 ms. Effects trigger once on confirmed enemy HP loss, not clicks or periodic snapshots. Enemy visual HP and hit/death portrait switch at impact; the existing orange trail follows from that moment. Server outcomes/cooldowns remain unchanged. New battles, leaving combat, hidden tabs, scrolling and resizing clean up the effect. Reduced motion skips flight, shake and moving particles. No sound, dependencies or raster generation. Both modified JavaScript files passed syntax checks; browser/gameplay testing remains with the user. Manual checks: cast normally and for the killing blow, reject a cooldown cast, pause/resume, leave combat, and repeat with reduced motion enabled.
+
+- 2026-10-26 Arcana academy district: added arcana_academy at (1,-1), directly north of the restaurant, replacing the synthetic garden-only slot with a real selectable location. Connected academy/plaza and academy/restaurant bidirectionally; added discovery flags, a persistent introductory description and scene-source mapping. Updated plaza/restaurant summaries so existing cached cards refresh their connections. Edited the unified district illustration with built-in image_gen, adding an academy hall and observatory to the upper-right while preserving the remaining city; saved v2 artwork and edit prompt. Frontend syntax and server compilation passed; no gameplay/browser tests run per user preference.

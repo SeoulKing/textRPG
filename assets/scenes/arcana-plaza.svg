@@ -10,9 +10,6 @@
     </radialGradient>
   </defs>
   <rect width="960" height="360" fill="url(#night)"/>
-  <circle cx="150" cy="73" r="28" fill="#f7e8b4"/>
-  <circle cx="805" cy="88" r="18" fill="#cfc7ff"/>
-  <circle cx="695" cy="46" r="9" fill="#8de7ff"/>
   <g fill="#f7f2ff">
     <circle cx="80" cy="120" r="2"/><circle cx="238" cy="45" r="2"/><circle cx="338" cy="91" r="3"/>
     <circle cx="548" cy="55" r="2"/><circle cx="620" cy="122" r="2"/><circle cx="892" cy="52" r="3"/>

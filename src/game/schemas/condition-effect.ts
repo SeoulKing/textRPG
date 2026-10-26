@@ -3,6 +3,7 @@ import { z } from "zod";
 export const ConditionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("has_item"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
   z.object({ type: z.literal("not_has_item"), itemId: z.string(), amount: z.number().int().min(1).default(1) }),
+  z.object({ type: z.literal("tool_durability_lt"), itemId: z.string(), value: z.number().int().positive() }),
   z.object({ type: z.literal("skill_gte"), skillId: z.string(), value: z.number().int() }),
   z.object({ type: z.literal("flag"), flag: z.string() }),
   z.object({ type: z.literal("flag_not"), flag: z.string() }),

@@ -4,10 +4,10 @@ export const convenienceSceneDefinitions: SceneDefinition[] = [
   {
     id: "convenience_portal_discovery",
     locationId: "convenience",
-    title: "옥상 위의 푸른 틈",
+    title: "들판 너머의 푸른 빛",
     paragraphs: [
-      "창고 천장 틈으로 푸른 빛이 규칙적으로 번진다. 가게 뒤편 비상계단을 올려다보자, 녹슨 난간 위로 별가루 같은 불빛이 흘러내리고 있다.",
-      "옥상 문 너머에서는 이 폐허에서 들을 수 없는 맑은 종소리가 울린다. 지도에 새로운 길, 마법도시 입구가 표시된다.",
+      "깨진 가게 창문 너머로 푸른 빛이 규칙적으로 번진다. 멀리 펼쳐진 들판 한가운데, 풀잎 위로 거대한 빛의 고리가 떠 있다.",
+      "들판에서 불어오는 바람에 이 폐허에서는 들을 수 없는 맑은 종소리가 섞여 온다. 지도에 새로운 길, 마법도시 입구가 표시된다.",
     ],
     choiceIds: [
       "go_to_magic_city_entrance_after_discovery",

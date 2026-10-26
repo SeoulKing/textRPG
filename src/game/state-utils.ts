@@ -349,6 +349,9 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
       return getInventoryAmount(state, condition.itemId) >= condition.amount;
     case "not_has_item":
       return getInventoryAmount(state, condition.itemId) < condition.amount;
+    case "tool_durability_lt":
+      return getInventoryAmount(state, condition.itemId) > 0 &&
+        (state.toolDurability[condition.itemId] ?? toolMaxDurability(state, condition.itemId)) < condition.value;
     case "skill_gte":
       if (condition.skillId === "collection" || condition.skillId === "exploration") {
         return getProgressionSkillLevel(state.skillProgress, condition.skillId) >= condition.value;
@@ -400,6 +403,7 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
 export type ApplyEffectOptions = {
   skillUse?: SkillUse;
   rng?: () => number;
+  explorationSuccessBonus?: number;
 };
 
 export function applyEffect(
@@ -413,6 +417,7 @@ export function applyEffect(
         skillUse: options.skillUse,
         progress: state.skillProgress,
         rng: options.rng,
+        explorationSuccessBonus: options.explorationSuccessBonus,
       });
       if (!selected) {
         break;

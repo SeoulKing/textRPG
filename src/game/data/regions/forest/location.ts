@@ -5,13 +5,14 @@ import { forestResultSceneTags } from "./result-scene-tags";
 export const forestChoices: ActionDefinition[] = [
   interactionFor("forest", {
     id: "chop_wood_at_forest",
+    conditions: [{ type: "not_has_item", itemId: "crudeAxe", amount: 1 }],
     skillUse: { skillId: "collection" },
     label: "벌목하기",
     type: "search",
-    outcomeHint: "30분을 들여 {{item:woodPlank}} 3개를 얻는다.",
+    outcomeHint: "90분을 들여 {{item:woodPlank}} 3개를 얻는다.",
     showOutcomeHint: true,
     effects: [
-      { type: "advance_time", minutes: 30 },
+      { type: "advance_time", minutes: 90 },
       { type: "add_item", itemId: "woodPlank", amount: 3 },
       { type: "log", message: "당신은 숲에서 목재로 쓸 만한 판자들을 챙겼다." },
       { type: "set_random_scene", tag: forestResultSceneTags.chop },
@@ -24,11 +25,11 @@ export const forestChoices: ActionDefinition[] = [
     skillUse: { skillId: "collection" },
     label: "{{item:crudeAxe|으로로}} 벌목한다",
     type: "search",
-    outcomeHint: "{{item:woodPlank}} +5 / {{item:crudeAxe}} 내구도 -1 / +30분",
+    outcomeHint: "{{item:woodPlank}} +5 / {{item:crudeAxe}} 내구도 -1 / +90분",
     showOutcomeHint: true,
     conditions: [{ type: "has_item", itemId: "crudeAxe", amount: 1 }],
     effects: [
-      { type: "advance_time", minutes: 30 },
+      { type: "advance_time", minutes: 90 },
       { type: "add_item", itemId: "woodPlank", amount: 5 },
       { type: "damage_tool", itemId: "crudeAxe", amount: 1 },
       { type: "log", message: "당신은 {{item:crudeAxe|으로로}} 마른 가지와 무너진 울타리 목재를 빠르게 쳐 냈다." },
@@ -42,10 +43,10 @@ export const forestChoices: ActionDefinition[] = [
     skillUse: { skillId: "exploration" },
     label: "수색하기",
     type: "search",
-    outcomeHint: "30분을 들여 숲을 뒤진다.",
+    outcomeHint: "90분을 들여 숲을 뒤진다.",
     showOutcomeHint: true,
     effects: [
-      { type: "advance_time", minutes: 30 },
+      { type: "advance_time", minutes: 90 },
       {
         type: "random_outcome",
         outcomes: [
@@ -101,13 +102,14 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "gather_cordage_at_forest",
+    conditions: [{ type: "not_has_item", itemId: "utilityKnife", amount: 1 }],
     skillUse: { skillId: "collection" },
     label: "덩굴을 꼬아 끈을 만든다",
     type: "search",
-    outcomeHint: "{{item:cordage}} +2 / +30분",
+    outcomeHint: "{{item:cordage}} +2 / +90분",
     showOutcomeHint: true,
     effects: [
-      { type: "advance_time", minutes: 30 },
+      { type: "advance_time", minutes: 90 },
       { type: "add_item", itemId: "cordage", amount: 2 },
       { type: "log", message: "당신은 질긴 덩굴과 천막에서 떨어진 끈을 꼬아 쓸 만한 {{item:cordage|을를}} 만들었다." },
       { type: "set_random_scene", tag: forestResultSceneTags.cordageGather },
@@ -120,11 +122,11 @@ export const forestChoices: ActionDefinition[] = [
     skillUse: { skillId: "collection" },
     label: "{{item:utilityKnife|으로로}} 덩굴을 잘라낸다",
     type: "search",
-    outcomeHint: "{{item:cordage}} +4 / {{item:utilityKnife}} 내구도 -1 / +30분",
+    outcomeHint: "{{item:cordage}} +4 / {{item:utilityKnife}} 내구도 -1 / +90분",
     showOutcomeHint: true,
     conditions: [{ type: "has_item", itemId: "utilityKnife", amount: 1 }],
     effects: [
-      { type: "advance_time", minutes: 30 },
+      { type: "advance_time", minutes: 90 },
       { type: "add_item", itemId: "cordage", amount: 4 },
       { type: "damage_tool", itemId: "utilityKnife", amount: 1 },
       { type: "log", message: "당신은 {{item:utilityKnife|으로로}} 질긴 덩굴을 잘라 내고, 길이가 맞는 것끼리 묶어 끈으로 정리했다." },
@@ -138,10 +140,10 @@ export const forestChoices: ActionDefinition[] = [
     skillUse: { skillId: "exploration" },
     label: "먹을 것을 뒤진다",
     type: "search",
-    outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:clothScrap}} +1 / +30분",
+    outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:clothScrap}} +1 / +90분",
     showOutcomeHint: true,
     effects: [
-      { type: "advance_time", minutes: 30 },
+      { type: "advance_time", minutes: 90 },
       {
         type: "random_outcome",
         outcomes: [
@@ -191,11 +193,11 @@ export const forestChoices: ActionDefinition[] = [
     skillUse: { skillId: "exploration" },
     label: "{{item:utilityKnife|으로로}} 덤불을 뒤진다",
     type: "search",
-    outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:cannedFood}} +1 / {{item:clothScrap}} +1 / {{item:utilityKnife}} 내구도 -1 / +30분",
+    outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:cannedFood}} +1 / {{item:clothScrap}} +1 / {{item:utilityKnife}} 내구도 -1 / +90분",
     showOutcomeHint: true,
     conditions: [{ type: "has_item", itemId: "utilityKnife", amount: 1 }],
     effects: [
-      { type: "advance_time", minutes: 30 },
+      { type: "advance_time", minutes: 90 },
       {
         type: "random_outcome",
         outcomes: [
