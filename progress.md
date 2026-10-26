@@ -1689,3 +1689,7 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   - Reused the request registry for location-card templates without regenerating story/action inputs for every map location; added new-game Server-Timing.
   - Verified production build, 31 focused tests, and local browser home -> Arcana -> map with no console errors. Home art 7197 -> 99 KiB; plaza 3354 -> 192 KiB; slime portraits total 4301 -> 134 KiB.
   - Live deployment verification follows the push. Original art and gameplay/save formats remain unchanged.
+- 2026-10-26 deployed black map-tile fix:
+  - Confirmed the live Render JS creates a topmost hex-tile-outline polygon, but live CSS has no matching rule, so SVG's default black fill covers the hovered/focused tile and intercepts input.
+  - Restored a transparent, pointer-transparent hover/focus border with explicit visibility; added SVG presentation attributes so missing/delayed CSS cannot restore a black overlay. Gold current-location and blue selected-destination markers remain intact.
+  - Client JavaScript syntax and production build passed; generated CSS includes transparency, pointer-event and visibility rules, and generated HTML uses a fresh asset hash. Live deployment verification follows the push. Gameplay/browser tests remain with the user per repository preference.

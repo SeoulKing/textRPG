@@ -2993,6 +2993,9 @@ function setupHexMapHighlight(stage) {
   // neighboring fills and strokes cannot cover any of its six edges.
   const outline = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
   outline.setAttribute("class", "hex-tile-outline");
+  // Keep this overlay transparent and non-interactive even before CSS loads.
+  outline.setAttribute("fill", "none");
+  outline.setAttribute("pointer-events", "none");
   outline.setAttribute("aria-hidden", "true");
   stage.appendChild(outline);
 
