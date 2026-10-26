@@ -104,3 +104,23 @@ test("both starting worlds keep complete map cards and current phase after start
     }
   }
 });
+
+test("leaving shelter while its lazy module loads cannot revive the old scene", async () => {
+  let ready;
+  const calls = [];
+  const source = fs.readFileSync(path.join(root, "app-api.js"), "utf8");
+  const start = source.indexOf("let sceneVisualGeneration = 0;");
+  const end = source.indexOf("\nconst client =", start);
+  const context = vm.createContext({
+    ensureSceneDirector: () => new Promise(resolve => {ready = resolve;}),
+    activeSceneDirector: null,
+    dom: {sceneAnimation: {}, sceneFrame: {classList: {remove() {}}}},
+    sceneDirectorLoadError: null,
+  });
+  vm.runInContext(source.slice(start,end) + "\nthis.director = sceneDirector;", context);
+  const loading = context.director.showShelterAtStation("rest");
+  context.director.hideShelter();
+  ready({showShelterAtStation: () => calls.push("shown")});
+  await loading;
+  assert.deepEqual(calls, []);
+});

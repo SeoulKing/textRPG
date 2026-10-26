@@ -411,21 +411,25 @@ function ensureSceneDirector() {
   });
 }
 
+let sceneVisualGeneration = 0;
 const sceneDirector = {
   preloadShelter() {
     return ensureSceneDirector().then((director) => director.preloadShelter());
   },
   showShelterAtStation(station, options) {
+    const generation = ++sceneVisualGeneration;
     return ensureSceneDirector().then((director) =>
-      director.showShelterAtStation(station, options)
+      generation === sceneVisualGeneration ? director.showShelterAtStation(station, options) : undefined
     );
   },
   moveShelterActor(station, options) {
+    const generation = ++sceneVisualGeneration;
     return ensureSceneDirector().then((director) =>
-      director.moveShelterActor(station, options)
+      generation === sceneVisualGeneration ? director.moveShelterActor(station, options) : undefined
     );
   },
   hideShelter() {
+    sceneVisualGeneration++;
     activeSceneDirector?.hideShelter();
     dom.sceneAnimation.hidden = true;
     dom.sceneFrame.classList.remove("has-shelter-scene-visual");
