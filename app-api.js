@@ -1,4 +1,5 @@
 import { readActionStream } from "./action-stream-client.mjs";
+import { assetUrl, queueAssets, pauseAssetWarmup, prioritizeAsset } from "./client/asset-loader.mjs";
 
 const SAVED_GAME_ID_KEY = "ruined-seoul-stage1-manual-save-game-id-v1";
 const PENDING_ACTION_KEY = "textrpg-pending-text-action-v1";
@@ -85,9 +86,9 @@ function hexTerrainMarkup(locationId, size) {
   const magicLandmark = MAGIC_MAP_LANDMARKS[locationId];
   const cell = MAP_TERRAIN_CELLS[locationId] ?? 10;
   const bounds = magicLandmark?.bounds || MAP_LANDMARK_BOUNDS[cell];
-  const href = magicLandmark
+  const href = assetUrl(magicLandmark
     ? "assets/arcana-map/sprites/" + magicLandmark.file + ".png"
-    : "assets/map-landmarks-v2.png";
+    : "assets/map-landmarks-v2.png");
   const imageWidth = magicLandmark ? 1254 : 1448;
   const imageHeight = magicLandmark ? 1254 : 1086;
   const shadowMarkup = magicLandmark
@@ -393,7 +394,9 @@ const dom = {
 
 let activeSceneDirector = null;
 let sceneDirectorLoadError = null;
-const sceneDirectorReady = import("./client/graphics/scene-director.js")
+let sceneDirectorPromise = null;
+function ensureSceneDirector() {
+  return sceneDirectorPromise ??= import("./client/graphics/scene-director.js")
   .then(({ SceneDirector }) => {
     activeSceneDirector = new SceneDirector({
       canvas: dom.sceneAnimation,
@@ -403,20 +406,22 @@ const sceneDirectorReady = import("./client/graphics/scene-director.js")
   })
   .catch((error) => {
     sceneDirectorLoadError = error instanceof Error ? error.message : String(error);
+    sceneDirectorPromise = null;
     throw error;
   });
+}
 
 const sceneDirector = {
   preloadShelter() {
-    return sceneDirectorReady.then((director) => director.preloadShelter());
+    return ensureSceneDirector().then((director) => director.preloadShelter());
   },
   showShelterAtStation(station, options) {
-    return sceneDirectorReady.then((director) =>
+    return ensureSceneDirector().then((director) =>
       director.showShelterAtStation(station, options)
     );
   },
   moveShelterActor(station, options) {
-    return sceneDirectorReady.then((director) =>
+    return ensureSceneDirector().then((director) =>
       director.moveShelterActor(station, options)
     );
   },
@@ -1174,10 +1179,11 @@ function snapshotLocationCard(snapshot) {
 function sceneImageSource(location) {
   // Use the same address for prediction, preloading, and display of old saves.
   const source = location?.imagePath || "assets/scenes/camp.svg";
-  return source.replace(/^\/?assets\/scenes\/forest\.svg$/, "assets/scenes/forest-pencil-charcoal.png");
+  return assetUrl(source.replace(/^\/?assets\/scenes\/forest\.svg$/, "assets/scenes/forest-pencil-charcoal.png"));
 }
 
 function preloadImage(source) {
+  source = prioritizeAsset(source);
   if (!source) return Promise.resolve(null);
   const cached = sceneImageCache.get(source);
   if (cached) {
@@ -1460,10 +1466,12 @@ async function showHomeScreen() {
 }
 
 async function createNewGame(startAt = "shelter") {
+  pauseAssetWarmup(true);
+  void preloadImage(startAt === "arcana" ? "assets/scenes/arcana-plaza.png" : "assets/scenes/shelter.png");
   const snapshot = await api("/api/games", {
     method: "POST",
     body: { startAt },
-  });
+  }).finally(() => pauseAssetWarmup(false));
   resetTimeAdvancePresentation();
   client.gameId = snapshot.gameId;
   client.snapshot = snapshot;
@@ -3137,7 +3145,7 @@ function renderMapPanel() {
   const downtownPosition = isDowntownMap ? boardLayout.positions.get("arcana_plaza") : null;
   const downtownExtent = boardLayout.dimensions.size * 5.3;
   const cityGroundMarkup = downtownPosition
-    ? '<image href="assets/map-arcana-downtown-v2.png" x="' + (downtownPosition.x - downtownExtent / 2)
+    ? '<image href="' + assetUrl("assets/map-arcana-downtown-v2.png") + '" x="' + (downtownPosition.x - downtownExtent / 2)
       + '" y="' + (downtownPosition.y - downtownExtent / 2)
       + '" width="' + downtownExtent + '" height="' + downtownExtent
       + '" preserveAspectRatio="xMidYMid meet"'
@@ -3147,7 +3155,7 @@ function renderMapPanel() {
     <defs>
       <pattern id="map-ground" patternUnits="userSpaceOnUse" width="132" height="132">
         <svg width="132" height="132" viewBox="300 200 100 100" overflow="hidden">
-          <image href="assets/map-terrain-v1.png" width="400" height="300" preserveAspectRatio="none" />
+          <image href="${assetUrl("assets/map-terrain-v1.png")}" width="400" height="300" preserveAspectRatio="none" />
         </svg>
       </pattern>
       <filter id="map-city-current" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
@@ -4145,6 +4153,7 @@ function renderPanel() {
     "inventory-panel-content",
     client.activePanel === "inventory",
   );
+  if (client.isPanelOpen) {
   if (client.activePanel === "exploration") {
     renderExplorationPanel();
   } else if (client.activePanel === "map") {
@@ -4162,6 +4171,7 @@ function renderPanel() {
   } else {
     renderMenuPanel();
   }
+  }
   dom.panelShell.classList.toggle("is-open", client.isPanelOpen);
   dom.panelShell.setAttribute("aria-hidden", client.isPanelOpen ? "false" : "true");
   dom.dockButtons.forEach((button) => {
@@ -4176,7 +4186,27 @@ function renderPanel() {
   refreshTransientScrollbars();
 }
 
+let warmedLocationKey = "";
+function warmNearbyAssets(snapshot) {
+  const location = snapshotLocationCard(snapshot);
+  if (!location) return;
+  const key = snapshot.gameId + ":" + location.id + ":" + location.imagePath;
+  if (warmedLocationKey === key) return;
+  warmedLocationKey = key;
+  const arcana = location.id.startsWith("arcana_");
+  const near = (location.neighbors || []).map(id => snapshot.visibleLocations.find(entry => entry.id === id)).filter(Boolean);
+  const monsters = arcana ? ["arcana-slime.png", "arcana-slime-prepare.png", "arcana-slime-hit.png", "arcana-slime-dead.png"].map(name => "assets/monsters/" + name) : [];
+  const maps = ["assets/map-terrain-v1.png", "assets/map-landmarks-v2.png", ...(arcana ? ["assets/map-arcana-downtown-v2.png"] : [])];
+  // Fetch bytes gradually; decode only images that are about to be displayed.
+  void preloadImage(sceneImageSource(location)).then(() => {
+    if (warmedLocationKey !== key) return;
+    const combat = /plain|hunting/.test(location.id);
+    queueAssets([...(combat ? monsters : []), ...maps, ...near.map(sceneImageSource), ...(!combat ? monsters : [])], { replace: true });
+  });
+}
+
 function render(options = {}) {
+  if (!client.actionInFlight) pauseAssetWarmup(false);
   if (!client.snapshot) {
     return;
   }
@@ -4189,6 +4219,7 @@ function render(options = {}) {
   );
   renderPanel();
   renderGameOverScreen();
+  warmNearbyAssets(client.snapshot);
   client.justCreatedGame = false;
 }
 
@@ -4248,6 +4279,7 @@ async function submitAction(
     });
   };
   try {
+    pauseAssetWarmup(true);
     preloadActionSceneAssets(action, previousSnapshot);
     const requestResultPromise = (action.type === "text_world" ? requestTextWorldAction(action, onStreamEvent) : api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
@@ -4263,8 +4295,7 @@ async function submitAction(
         const assetsReady = preloadNextSceneAssets(snapshot);
         prepareScenePresentation(snapshot);
         mark("preparedMs");
-        await assetsReady;
-        mark("assetsMs");
+        void assetsReady.then(() => mark("assetsMs")).catch(() => undefined);
         return { snapshot, error: null };
       })
       .catch((error) => ({ snapshot: null, error }));
@@ -4364,6 +4395,7 @@ async function submitAction(
     presentingAction = false;
     finishActionTransition();
     client.actionInFlight = false;
+    pauseAssetWarmup(false);
     client.pendingAction = null;
   }
 }
@@ -4770,7 +4802,7 @@ window.render_game_to_text = () => JSON.stringify({
     : null,
 });
 
-sceneDirector.preloadShelter().catch((error) => console.warn(error));
+// Shelter animation is initialized only when its scene is actually displayed.
 bootstrap().catch((error) => {
   console.error(error);
   dom.homeScreen.hidden = false;
@@ -4800,7 +4832,7 @@ bootstrap().catch((error) => {
     hit: 'assets/monsters/arcana-slime-hit.png',
     dead: 'assets/monsters/arcana-slime-dead.png',
   };
-  Object.values(SLIME_PORTRAITS).forEach(src => { const image = new Image(); image.src = src; });
+  // Regional warmup fetches these before combat without competing with the home screen.
 
   function trailHpAt(now, trail = healthTrail) {
     if (!trail) return 0;
@@ -4979,7 +5011,7 @@ bootstrap().catch((error) => {
     const state = displayedEnemyHp(now) <= 0 ? 'dead' : now >= (healthTrail?.impactAt || 0) && now < slimeHitUntil ? 'hit' : attackPresentation().preparing ? 'prepare' : 'idle';
     if (portrait.dataset.state === state) return;
     portrait.dataset.state = state;
-    portrait.src = SLIME_PORTRAITS[state];
+    portrait.src = assetUrl(SLIME_PORTRAITS[state]);
     portrait.alt = state === 'dead' ? '힘을 잃고 납작하게 쓰러진 슬라임'
       : state === 'hit' ? '공격을 받아 움찔하는 슬라임' : state === 'prepare' ? '몸을 낮게 압축해 도약을 준비하는 슬라임' : '반투명한 초록빛 슬라임';
   }

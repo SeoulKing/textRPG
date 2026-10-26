@@ -3,6 +3,7 @@ import { registerStateWorldRoutes } from "./state-world-routes";
 import crypto from "node:crypto";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import staticPlugin from "@fastify/static";
@@ -43,6 +44,10 @@ const app = Fastify({
 });
 
 const webRoot = path.resolve(__dirname, "..");
+function runtimeFile(name: string) {
+  const built = path.join(webRoot, ".server-dist", "public", name);
+  return existsSync(built) ? built : path.join(webRoot, name);
+}
 const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 const repository: GameRepository = databaseUrl
   ? new PostgresGameRepository(databaseUrl, webRoot)
@@ -158,7 +163,10 @@ async function bootstrap() {
     const isNarrativeStream = String(reply.getHeader("content-type") ?? "").startsWith("application/x-ndjson");
     // Revalidate stable URLs so Studio image replacements appear on the next load.
     // Static files retain their ETag/Last-Modified and can return an empty 304.
-    reply.header("Cache-Control", isStaticAsset && reply.statusCode < 400
+    const immutable = /^\/assets\/optimized\/[\w-]+-[a-f0-9]{16}\.(webp|woff2)$/.test(pathname);
+    reply.header("Cache-Control", immutable && reply.statusCode < 400
+      ? "public, max-age=31536000, immutable"
+      : isStaticAsset && reply.statusCode < 400
       ? "public, max-age=0, must-revalidate"
       : isNarrativeStream ? "no-store, no-transform" : "no-store");
     if (pathname.startsWith("/assets/unity-preview/Build/") && pathname.endsWith(".br")) {
@@ -187,11 +195,11 @@ async function bootstrap() {
 
   app.get("/", async (_request, reply) => {
     reply.type("text/html; charset=utf-8");
-    return readFile(path.join(webRoot, "index.html"), "utf8");
+    return readFile(runtimeFile("index.html"), "utf8");
   });
   app.get("/index.html", async (_request, reply) => {
     reply.type("text/html; charset=utf-8");
-    return readFile(path.join(webRoot, "index.html"), "utf8");
+    return readFile(runtimeFile("index.html"), "utf8");
   });
   for (const route of ["/unity-web", "/unity-preview"]) {
     app.get(route, async (_request, reply) => {
@@ -199,6 +207,15 @@ async function bootstrap() {
       return readFile(path.join(webRoot, "unity-preview.html"), "utf8");
     });
   }
+  app.get("/service-worker.js", async (_request, reply) => {
+    reply.type("application/javascript; charset=utf-8");
+    return readFile(path.join(webRoot, "service-worker.js"), "utf8");
+  });
+  app.get("/asset-manifest.mjs", async (_request, reply) => {
+    reply.type("application/javascript; charset=utf-8");
+    const built = path.join(webRoot, ".server-dist", "public", "asset-manifest.mjs");
+    return existsSync(built) ? readFile(built, "utf8") : "export default {};";
+  });
   app.get("/app-api.js", async (_request, reply) => {
     reply.type("application/javascript; charset=utf-8");
     return readFile(path.join(webRoot, "app-api.js"), "utf8");
@@ -213,7 +230,7 @@ async function bootstrap() {
   });
   app.get("/styles.css", async (_request, reply) => {
     reply.type("text/css; charset=utf-8");
-    return readFile(path.join(webRoot, "styles.css"), "utf8");
+    return readFile(runtimeFile("styles.css"), "utf8");
   });
 
   if (graphicsPreviewEnabled) {
@@ -473,7 +490,10 @@ async function bootstrap() {
       reply.code(400);
       return { error: "invalid_start_location", details: z.treeifyError(parsed.error) };
     }
-    return gameService.createGame(parsed.data.startAt);
+    const started = performance.now();
+    const snapshot = await gameService.createGame(parsed.data.startAt);
+    reply.header("Server-Timing", `game;dur=${(performance.now() - started).toFixed(1)}`);
+    return snapshot;
   });
 
   app.get<{ Params: { gameId: string } }>("/api/games/:gameId/state", async (request) => {

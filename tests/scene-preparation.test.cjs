@@ -40,6 +40,7 @@ function imageHarness() {
   dom.sceneArt.attributes.push({name:'id', value:'scene-art'}, {name:'alt', value:'현재 장면 일러스트'});
   images.length = 0;
   const context = functions(['sceneImageSource','snapshotLocationCard','preloadImage','displaySceneImage','preloadActionSceneAssets','preloadNextSceneAssets'], {
+    assetUrl: value=>value, prioritizeAsset: value=>value,
     Image, sceneImageCache, SCENE_IMAGE_CACHE_LIMIT:2, ACTION_ASSET_PRELOAD_TIMEOUT_MS:5,
     client:{}, dom, window:{setTimeout,clearTimeout},
   });
@@ -97,6 +98,7 @@ function actionHarness(withLead = false) {
   const client={gameId:'test',snapshot:previous,actionInFlight:false};
   const noop=()=>{};
   const context=functions(['submitAction'],{
+    pauseAssetWarmup: ()=>{},
     client, performance:{now:()=>events.length*10},
     normalizePostChoiceNarrative:value=>value??[], actionTransitionDurationMs:()=>withLead?500:1000,
     captureSceneHistory:()=>({history:true}),restoreSceneHistory:()=>events.push('restore'),

@@ -5,6 +5,7 @@ import { summarizeState } from "./rules";
 import { buildRuntimeRegistry } from "./runtime-registry";
 import type {
   ActionChoice,
+  ContentRegistry,
   EventCard,
   EventDefinition,
   GameState,
@@ -53,9 +54,7 @@ function stripCodeFence(raw: string) {
 
 const SCENE_CARD_CACHE_VERSION = 5;
 
-class TemplateContentGenerator implements ContentGenerator {
-  async generateLocationCard(locationId: string, input: GeneratorInput) {
-    const registry = buildRuntimeRegistry(input.state);
+export function templateLocationCard(locationId: string, state: GameState, registry: ContentRegistry) {
     const location = registry.locations[locationId];
     const availableActionIds = (location.interactionChoices ?? []).map((choice) => choice.id);
     return LocationCardSchema.parse({
@@ -64,7 +63,7 @@ class TemplateContentGenerator implements ContentGenerator {
       risk: location.risk,
       mapPosition: location.mapPosition,
       summary: location.summary,
-      description: `${location.summary} ${summarizeState(input.state).phase.toLowerCase()}의 공기는 이곳의 먼지와 기척을 더 또렷하게 드러낸다.`,
+      description: `${location.summary} ${summarizeState(state).phase.toLowerCase()}의 공기는 이곳의 먼지와 기척을 더 또렷하게 드러낸다.`,
       tags: [...location.tags],
       traits: [...location.traits],
       obtainableItemIds: [...location.obtainableItemIds],
@@ -79,6 +78,11 @@ class TemplateContentGenerator implements ContentGenerator {
     });
   }
 
+
+class TemplateContentGenerator implements ContentGenerator {
+  async generateLocationCard(locationId: string, input: GeneratorInput) {
+    return templateLocationCard(locationId, input.state, buildRuntimeRegistry(input.state));
+  }
   async generatePersonCard(personId: string, _input: GeneratorInput) {
     const registry = buildRuntimeRegistry(_input.state);
     const person = registry.people[personId] as Omit<PersonCard, "source" | "generatedAt"> | undefined;

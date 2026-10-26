@@ -38,7 +38,7 @@ import {
   resolveSceneDefinition,
   resolveTriggeredEvents,
 } from "./content-engine";
-import { createTemplateContentGenerator, type ContentGenerator } from "./content-generator";
+import { createTemplateContentGenerator, templateLocationCard, type ContentGenerator } from "./content-generator";
 import {
   appendDevLlmTraceForGame,
   clearDevLlmTrace,
@@ -1610,7 +1610,7 @@ export class GameService {
 
   private async ensureLocationCard(session: GameSession, locationId: string, registry: ContentRegistry) {
     if (session.state.contentVersionId && registry.locations[locationId]) {
-      const card = await this.templateGenerator.generateLocationCard(locationId, this.generatorInput(session, false, registry));
+      const card = templateLocationCard(locationId, session.state, registry);
       session.world.locationCards[locationId] = card;
       return card;
     }
