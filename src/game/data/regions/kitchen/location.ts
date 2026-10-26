@@ -4,7 +4,7 @@ import { defineLocation, interactionFor, stockNode } from "../../location-helper
 export const kitchenChoices: ActionDefinition[] = [
   interactionFor("kitchen", {
     id: "buy_meal_at_kitchen",
-    label: "돈을 내고 {{item:hotMeal|을를}} 산다",
+    label: "{{item:hotMeal|을를}} 산다",
     type: "use",
     outcomeHint: "4,500원을 내고 {{item:hotMeal}} 1개를 얻는다.",
     showOutcomeHint: true,

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HealthConditionsSchema } from "./health-condition";
 
 export const PlayerSchema = z.object({
   id: z.string(),
@@ -11,6 +12,7 @@ export const PlayerSchema = z.object({
   skills: z.array(z.string()),
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   statusEffects: z.array(z.string()).default([]),
+  conditions: HealthConditionsSchema,
 });
 
 export type Player = z.infer<typeof PlayerSchema>;

@@ -54,7 +54,7 @@ const CATEGORY_ITEM_FALLBACKS = {
   medicine: ["painRelief"],
   trade: ["scrapBundle"],
   ticket: ["rationTicket"],
-  material: ["woodPlank", "scrapMetal", "clothScrap"],
+  material: ["wood", "woodPlank", "scrapMetal", "clothScrap"],
 } as const;
 
 function slugify(value: string) {
@@ -109,7 +109,9 @@ function inferItemIdFromHint(hint: string | undefined, registry: ContentRegistry
     [["canned", "통조림", "캔", "식량"], "cannedFood"],
     [["ticket", "배식권"], "rationTicket"],
     [["trade", "잡화", "부품", "전자"], "scrapBundle"],
-    [["wood", "판자", "목재"], "woodPlank"],
+    [["plank", "판자"], "woodPlank"],
+    [["firewood", "땔감", "장작"], "firewood"],
+    [["wood", "timber", "목재"], "wood"],
     [["metal", "고철", "금속", "철"], "scrapMetal"],
     [["cloth", "천", "옷감", "섬유"], "clothScrap"],
   ];

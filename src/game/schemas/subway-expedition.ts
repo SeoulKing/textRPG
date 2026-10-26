@@ -153,9 +153,52 @@ export const SubwayExpeditionHistoryEntrySchema = z.object({
   outcome: z.string(),
 });
 
+export const SubwayRoguelikeSkillIdSchema = z.enum([
+  "power_strike",
+  "improvised_mastery",
+  "iron_guard",
+  "second_wind",
+  "silver_tongue",
+  "escape_route",
+]);
+
+export const SubwayRunSkillRanksSchema = z.object({
+  power_strike: z.number().int().min(0).max(5).default(0),
+  improvised_mastery: z.number().int().min(0).max(5).default(0),
+  iron_guard: z.number().int().min(0).max(5).default(0),
+  second_wind: z.number().int().min(0).max(5).default(0),
+  silver_tongue: z.number().int().min(0).max(5).default(0),
+  escape_route: z.number().int().min(0).max(5).default(0),
+}).default({
+  power_strike: 0,
+  improvised_mastery: 0,
+  iron_guard: 0,
+  second_wind: 0,
+  silver_tongue: 0,
+  escape_route: 0,
+});
+
+export const SubwayRunBuildSchema = z.object({
+  victories: z.number().int().nonnegative().default(0),
+  skillRanks: SubwayRunSkillRanksSchema,
+  pendingUpgradeChoices: z.array(SubwayRoguelikeSkillIdSchema).max(3).default([]),
+}).default({
+  victories: 0,
+  skillRanks: {
+    power_strike: 0,
+    improvised_mastery: 0,
+    iron_guard: 0,
+    second_wind: 0,
+    silver_tongue: 0,
+    escape_route: 0,
+  },
+  pendingUpgradeChoices: [],
+});
+
 export const SubwayExpeditionPhaseSchema = z.enum([
   "encounter",
   "encounter_result",
+  "upgrade",
   "event",
   "event_result",
   "loot",
@@ -216,6 +259,8 @@ export const SubwayPreparedNextFloorSchema = z.object({
 }).strict();
 
 export const SubwayExpeditionStateSchema = z.object({
+  spatialMode: z.boolean().default(false),
+  exploredFloors: z.record(z.string(), z.object({ floor: SubwayExpeditionFloorSchema, progress: SubwayFloorProgressSchema })).default({}),
   active: z.boolean().default(false),
   runNumber: z.number().int().nonnegative().default(0),
   depth: z.number().int().nonnegative().default(0),
@@ -224,6 +269,7 @@ export const SubwayExpeditionStateSchema = z.object({
   carriedLoot: z.record(z.string(), z.number().int().nonnegative()).default({}),
   currentFloor: SubwayExpeditionFloorSchema.nullable().default(null),
   currentFloorProgress: SubwayFloorProgressSchema,
+  runBuild: SubwayRunBuildSchema,
   runPlan: SubwayRunPlanSchema.nullable().default(null),
   storyMemory: SubwayStoryMemorySchema,
   preparedNextFloor: SubwayPreparedNextFloorSchema.nullable().default(null),
@@ -232,6 +278,7 @@ export const SubwayExpeditionStateSchema = z.object({
   history: z.array(SubwayExpeditionHistoryEntrySchema).default([]),
   lastOutcome: z.string().default(""),
 }).default({
+  spatialMode: false, exploredFloors: {},
   active: false,
   runNumber: 0,
   depth: 0,
@@ -249,6 +296,18 @@ export const SubwayExpeditionStateSchema = z.object({
     searchedLootSpotIds: [],
     floorLoot: {},
     generationFailure: "",
+  },
+  runBuild: {
+    victories: 0,
+    skillRanks: {
+      power_strike: 0,
+      improvised_mastery: 0,
+      iron_guard: 0,
+      second_wind: 0,
+      silver_tongue: 0,
+      escape_route: 0,
+    },
+    pendingUpgradeChoices: [],
   },
   runPlan: null,
   storyMemory: {
@@ -279,6 +338,8 @@ export type SubwayRunPlan = z.infer<typeof SubwayRunPlanSchema>;
 export type SubwayMechanicsEnvelope = z.infer<typeof SubwayMechanicsEnvelopeSchema>;
 export type SubwayExpeditionFloor = z.infer<typeof SubwayExpeditionFloorSchema>;
 export type SubwayFloorBundle = z.infer<typeof SubwayFloorBundleSchema>;
+export type SubwayRoguelikeSkillId = z.infer<typeof SubwayRoguelikeSkillIdSchema>;
+export type SubwayRunBuild = z.infer<typeof SubwayRunBuildSchema>;
 export type SubwayExpeditionPhase = z.infer<typeof SubwayExpeditionPhaseSchema>;
 export type SubwayCurrentResult = z.infer<typeof SubwayCurrentResultSchema>;
 export type SubwayFloorProgress = z.infer<typeof SubwayFloorProgressSchema>;

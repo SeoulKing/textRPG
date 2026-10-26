@@ -5,6 +5,7 @@ import { forestResultSceneTags } from "./result-scene-tags";
 export const forestChoices: ActionDefinition[] = [
   interactionFor("forest", {
     id: "chop_wood_at_forest",
+    resourceUse: { siteId: "fallen_wood", cost: 1, directFromEntry: true, effort: "단단한 나뭇가지를 골라 부러진 부분을 떼어 낸다." },
     conditions: [{ type: "not_has_item", itemId: "crudeAxe", amount: 1 }],
     skillUse: { skillId: "collection" },
     label: "벌목하기",
@@ -22,6 +23,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "chop_wood_with_crude_axe",
+    resourceUse: { siteId: "fallen_wood", cost: 1, directFromEntry: true, effort: "손도끼로 쓰러진 나무의 마른 부분을 쳐 낸다." },
     skillUse: { skillId: "collection" },
     label: "{{item:crudeAxe|으로로}} 벌목한다",
     type: "search",
@@ -40,6 +42,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "search_forest_resources",
+    resourceUse: { siteId: "forest_debris", cost: 1, effort: "낙엽을 걷어 내며 잔해 사이를 차례로 뒤진다." },
     skillUse: { skillId: "exploration" },
     label: "수색하기",
     type: "search",
@@ -102,6 +105,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "gather_cordage_at_forest",
+    resourceUse: { siteId: "vines", cost: 1, effort: "질긴 덩굴을 골라 길이를 맞추고 단단하게 꼰다." },
     conditions: [{ type: "not_has_item", itemId: "utilityKnife", amount: 1 }],
     skillUse: { skillId: "collection" },
     label: "덩굴을 꼬아 끈을 만든다",
@@ -119,6 +123,7 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "cut_vines_with_utility_knife",
+    resourceUse: { siteId: "vines", cost: 1, effort: "간이 칼로 질긴 줄기를 잘라 길이가 맞는 것끼리 꼰다." },
     skillUse: { skillId: "collection" },
     label: "{{item:utilityKnife|으로로}} 덩굴을 잘라낸다",
     type: "search",
@@ -140,7 +145,7 @@ export const forestChoices: ActionDefinition[] = [
     skillUse: { skillId: "exploration" },
     label: "먹을 것을 뒤진다",
     type: "search",
-    outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:clothScrap}} +1 / +90분",
+    outcomeHint: "{{item:vegetables}} +1 / {{item:staleBread}} +1 / {{item:clothScrap}} +1 / +90분",
     showOutcomeHint: true,
     effects: [
       { type: "advance_time", minutes: 90 },
@@ -159,8 +164,8 @@ export const forestChoices: ActionDefinition[] = [
             weight: 25,
             result: "success",
             effects: [
-              { type: "add_item", itemId: "wildGreens", amount: 1 },
-              { type: "log", message: "당신은 숲 가장자리에서 먹을 수 있는 {{item:wildGreens}} 한 줌을 뜯었다." },
+              { type: "add_item", itemId: "vegetables", amount: 1 },
+              { type: "log", message: "당신은 숲 가장자리에서 먹을 수 있는 {{item:vegetables}} 한 줌을 뜯었다." },
               { type: "set_random_scene", tag: forestResultSceneTags.forageGreens },
             ],
           },
@@ -190,10 +195,11 @@ export const forestChoices: ActionDefinition[] = [
   }),
   interactionFor("forest", {
     id: "search_bushes_with_utility_knife",
+    resourceUse: { siteId: "bushes", cost: 1, effort: "간이 칼로 엉킨 줄기를 걷어 내며 덤불 안쪽을 살핀다." },
     skillUse: { skillId: "exploration" },
     label: "{{item:utilityKnife|으로로}} 덤불을 뒤진다",
     type: "search",
-    outcomeHint: "{{item:wildGreens}} +1 / {{item:staleBread}} +1 / {{item:cannedFood}} +1 / {{item:clothScrap}} +1 / {{item:utilityKnife}} 내구도 -1 / +90분",
+    outcomeHint: "{{item:vegetables}} +1 / {{item:staleBread}} +1 / {{item:cannedFood}} +1 / {{item:clothScrap}} +1 / {{item:utilityKnife}} 내구도 -1 / +90분",
     showOutcomeHint: true,
     conditions: [{ type: "has_item", itemId: "utilityKnife", amount: 1 }],
     effects: [
@@ -213,8 +219,8 @@ export const forestChoices: ActionDefinition[] = [
             weight: 35,
             result: "success",
             effects: [
-              { type: "add_item", itemId: "wildGreens", amount: 1 },
-              { type: "log", message: "당신은 칼로 질긴 줄기를 잘라 {{item:wildGreens}} 한 줌을 챙겼다." },
+              { type: "add_item", itemId: "vegetables", amount: 1 },
+              { type: "log", message: "당신은 칼로 질긴 줄기를 잘라 {{item:vegetables}} 한 줌을 챙겼다." },
               { type: "set_random_scene", tag: forestResultSceneTags.forageGreens },
             ],
           },
@@ -259,16 +265,43 @@ export const forestLocation = defineLocation({
   name: "숲",
   risk: "low",
   mapPosition: { q: 0, r: 1 },
-  imagePath: "assets/scenes/forest.svg",
+  imagePath: "assets/scenes/forest-pencil-charcoal.png",
   summary: "임시 거처 아래로 이어지는 작은 숲. 무너진 울타리와 젖은 낙엽 사이에 아직 쓸 만한 자재가 남아 있다.",
   tags: ["resource", "forest", "forage"],
   traits: ["woodcutting", "foraging", "repeatable resources"],
-  obtainableItemIds: ["woodPlank", "cannedFood", "scrapMetal", "clothScrap", "cordage", "wildGreens", "staleBread"],
-  neighbors: ["shelter", "convenience", "kitchen"],
+  obtainableItemIds: ["wood", "woodPlank", "cannedFood", "scrapMetal", "clothScrap", "cordage", "vegetables", "staleBread"],
+  neighbors: ["shelter", "convenience", "kitchen", "river"],
+  resourceSites: [
+    {
+      "id": "fallen_wood",
+      "name": "쓰러진 나무",
+      "capacity": 12,
+      "unlimited": true
+    },
+    {
+      "id": "vines",
+      "name": "질긴 덩굴",
+      "capacity": 8,
+      "unlimited": true
+    },
+    {
+      "id": "forest_debris",
+      "name": "숲에 남은 잔해",
+      "capacity": 6,
+      "unlimited": true
+    },
+    {
+      "id": "bushes",
+      "name": "길가의 덤불",
+      "capacity": 8,
+      "unlimited": true
+    }
+  ],
   interactionChoices: forestChoices,
   links: {
     shelter: { note: "언덕길을 거슬러 임시 거처의 천막 불빛 쪽으로 돌아간다." },
     convenience: { note: "나무 사이로 난 비탈길을 지나 편의점 폐허 쪽으로 내려간다." },
     kitchen: { note: "젖은 흙길을 따라 배식줄 소리가 들리는 급식소 쪽으로 빠져나간다." },
+    river: { note: "나무 사이의 내리막을 따라 축축한 강둑으로 내려간다." },
   },
 });

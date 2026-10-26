@@ -158,7 +158,7 @@ export const convenienceChoiceDefinitions: ChoiceDefinition[] = [
   sceneChoice({
     id: "collect_wood_from_supply_pile",
     label: "쓸 만한 판자를 챙긴다",
-    outcomeHint: "아직 버틸 만한 판자들을 한데 모아, 거처 보강과 불씨 재료로 쓸 목재를 확보한다.",
+    outcomeHint: "아직 버틸 만한 판자들을 한데 모아, 거처 보강과 도구 제작에 쓸 판자를 확보한다.",
     ...collectStockItemChoiceParts({
       ...supplyPile,
       itemId: "woodPlank",

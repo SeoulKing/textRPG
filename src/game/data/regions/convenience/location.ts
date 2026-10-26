@@ -34,7 +34,7 @@ export const convenienceLocation = defineLocation({
   tags: ["supplies", "early scavenging"],
   traits: ["food", "water", "cash", "salvage"],
   obtainableItemIds: ["emergencySnack", "cannedFood", "rawRice", "vegetables", "waterBottle", "woodPlank", "scrapMetal", "clothScrap", "cordage", "staleBread"],
-  neighbors: ["shelter", "hospital", "forest", "magic_city_entrance"],
+  neighbors: ["shelter", "hospital", "forest", "river", "magic_city_entrance"],
   interactionChoices: convenienceChoices,
   links: {
     shelter: { note: "무심한 발걸음처럼 가장한 채 거처 쪽으로 되돌아간다." },
@@ -43,6 +43,9 @@ export const convenienceLocation = defineLocation({
     },
     forest: {
       note: "편의점 뒤편의 낮은 비탈을 타고 숲 가장자리로 올라간다.",
+    },
+    river: {
+      note: "편의점 아래로 난 콘크리트 둑길을 따라 물소리가 들리는 강으로 내려간다.",
     },
     magic_city_entrance: {
       note: "가게를 나와 오솔길을 따라 푸른 포탈이 열린 들판으로 향한다.",

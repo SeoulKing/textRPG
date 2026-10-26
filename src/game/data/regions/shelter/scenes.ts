@@ -154,8 +154,7 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     choiceIds: [
       "cook_at_shelter",
       "cook_rice_porridge",
-      "cook_greens_soup",
-      "cook_forest_stew",
+      "cook_grilled_fish",
       "leave_shelter_cooking",
     ],
     conditions: [
@@ -173,8 +172,7 @@ export const shelterSceneDefinitions: SceneDefinition[] = [
     choiceIds: [
       "cook_at_shelter",
       "cook_rice_porridge",
-      "cook_greens_soup",
-      "cook_forest_stew",
+      "cook_grilled_fish",
       "leave_shelter_cooking",
     ],
     conditions: [

@@ -1,4 +1,7 @@
+import { readActionStream } from "./action-stream-client.mjs";
+
 const SAVED_GAME_ID_KEY = "ruined-seoul-stage1-manual-save-game-id-v1";
+const PENDING_ACTION_KEY = "textrpg-pending-text-action-v1";
 const LEGACY_STORAGE_KEYS = [
   "ruined-seoul-stage1-game-id",
   "ruined-seoul-stage1-game-id-v12",
@@ -15,9 +18,12 @@ const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);
 const CLOCK_TICK_MS = 1000;
 const TYPEWRITER_CHAR_DELAY = 20;
 const TYPEWRITER_PARAGRAPH_DELAY = 260;
-const ACTION_TRANSITION_ACTION_MS = 500;
+const ACTION_TRANSITION_ACTION_MS = 1000;
 const ACTION_TRANSITION_MOVEMENT_MS = 1000;
 const ACTION_ASSET_PRELOAD_TIMEOUT_MS = 1200;
+const SCENE_IMAGE_CACHE_LIMIT = 8;
+const sceneImageCache = new Map();
+const preparedScenePresentations = new WeakMap();
 const TIME_ADVANCE_EMPHASIS_MS = 820;
 const SQRT_3 = Math.sqrt(3);
 const DEFAULT_HEX_COORDS = {
@@ -248,6 +254,7 @@ function alignHexMapViewport(boardLayout, mapScale, currentLocationId) {
 }
 
 const PANEL_CONFIG = {
+  exploration: { title: "주변과 물건" },
   map: {
     title: "이동",
   },
@@ -296,7 +303,7 @@ const STATUS_DETAILS = {
   energy: {
     title: "기력",
     max: 15,
-    note: "시간이 지나면 줄어들고 음식으로 회복 가능",
+    note: "시간이 지나면 줄어들고 음식으로 회복합니다. 기력 0으로 보낸 시간이 12시간 쌓이면 탈진 +1단계, Lv4에서는 생존이 끝납니다. 기력을 회복하면 진행이 멈춥니다.",
   },
 };
 
@@ -366,16 +373,17 @@ const dom = {
   encounterStatusName: document.querySelector("#encounter-status-name"),
   encounterHealth: document.querySelector("#encounter-health"),
   encounterHealthValue: document.querySelector("#encounter-health-value"),
+  encounterBuildSummary: document.querySelector("#encounter-build-summary"),
   statusPopover: document.querySelector("#status-popover"),
   sceneFrame: document.querySelector(".scene-frame"),
   sceneArt: document.querySelector("#scene-art"),
-  sceneLocationBadge: document.querySelector("#scene-location-badge"),
-  sceneRiskBadge: document.querySelector("#scene-risk-badge"),
+  sceneAnimation: document.querySelector("#scene-animation"),
   sceneDevSource: document.querySelector("#scene-dev-source"),
   sceneText: document.querySelector("#scene-text"),
   systemNote: document.querySelector("#system-note"),
   questCompletion: null,
   choices: document.querySelector("#choices"),
+  explorationToggle: document.querySelector("#exploration-toggle"),
   choiceTemplate: document.querySelector("#choice-template"),
   gameOverScreen: null,
   panelShell: document.querySelector(".panel-shell"),
@@ -383,9 +391,59 @@ const dom = {
   dockButtons: Array.from(document.querySelectorAll(".dock-button")),
 };
 
+let activeSceneDirector = null;
+let sceneDirectorLoadError = null;
+const sceneDirectorReady = import("./client/graphics/scene-director.js")
+  .then(({ SceneDirector }) => {
+    activeSceneDirector = new SceneDirector({
+      canvas: dom.sceneAnimation,
+      host: dom.sceneFrame,
+    });
+    return activeSceneDirector;
+  })
+  .catch((error) => {
+    sceneDirectorLoadError = error instanceof Error ? error.message : String(error);
+    throw error;
+  });
+
+const sceneDirector = {
+  preloadShelter() {
+    return sceneDirectorReady.then((director) => director.preloadShelter());
+  },
+  showShelterAtStation(station, options) {
+    return sceneDirectorReady.then((director) =>
+      director.showShelterAtStation(station, options)
+    );
+  },
+  moveShelterActor(station, options) {
+    return sceneDirectorReady.then((director) =>
+      director.moveShelterActor(station, options)
+    );
+  },
+  hideShelter() {
+    activeSceneDirector?.hideShelter();
+    dom.sceneAnimation.hidden = true;
+    dom.sceneFrame.classList.remove("has-shelter-scene-visual");
+  },
+  snapshot() {
+    if (sceneDirectorLoadError) {
+      return {
+        engine: "phaser",
+        state: "error",
+        error: sceneDirectorLoadError,
+      };
+    }
+    return activeSceneDirector?.snapshot() ?? {
+      engine: "phaser",
+      state: "loading",
+    };
+  },
+};
+
 const client = {
   isHomeVisible: true,
   activePanel: "map",
+  explorationTargetId: null,
   isPanelOpen: false,
   snapshot: null,
   gameId: "",
@@ -397,6 +455,10 @@ const client = {
   geminiTestStatus: null,
   lastFetchedAt: 0,
   syncTimer: null,
+  syncInFlight: false,
+  syncFailures: 0,
+  syncRetryAt: 0,
+  apiRetryAt: 0,
   mapHint: "",
   mapZoomIndex: MAP_ZOOM_FIT_INDEX,
   activeMapDetailKey: null,
@@ -418,6 +480,8 @@ const client = {
   actionTransitionMessage: "",
   actionTransitionStartedAt: 0,
   actionTransitionDurationMs: 0,
+  lastActionTiming: null,
+  sceneImageSource: "",
   sceneRenderToken: 0,
   activeSceneTimer: null,
   activeSceneTimerResolve: null,
@@ -545,7 +609,7 @@ function hideScrollbarChrome(element) {
 }
 
 function refreshTransientScrollbars() {
-  setupTransientScrollbar(dom.appShell);
+  hideScrollbarChrome(dom.appShell);
   setupTransientScrollbar(dom.panelContent);
   document.querySelectorAll(".inventory-list-scroll").forEach((list) => {
     setupTransientScrollbar(list);
@@ -711,7 +775,25 @@ function pairKey(left, right) {
   return [left, right].sort().join("::");
 }
 
+function hexLabelMarkup(name) {
+  const words = String(name).split(/\s+/).filter(Boolean);
+  const lines = words.length > 1 ? words : [String(name)];
+  const startDy = lines.length > 1 ? -4 : 5;
+  return lines.map((line, index) =>
+    `<tspan x="0" dy="${index === 0 ? startDy : 17}">${escapeHtml(line)}</tspan>`
+  ).join("");
+}
+
+function rateLimitError(retryAt) {
+  const seconds = Math.max(1, Math.ceil((retryAt - Date.now()) / 1000));
+  const error = new Error(`요청이 잠시 제한되었습니다. ${seconds}초 뒤 다시 시도해 주세요.`);
+  error.status = 429;
+  error.retryAt = retryAt;
+  return error;
+}
+
 async function api(path, options = {}) {
+  if (Date.now() < client.apiRetryAt) throw rateLimitError(client.apiRetryAt);
   const response = await fetch(path, {
     method: options.method || "GET",
     headers: {
@@ -721,16 +803,123 @@ async function api(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   if (!response.ok) {
+    if (response.status === 429) {
+      const retryAfter = response.headers.get("Retry-After");
+      const seconds = retryAfter?.trim() ? Number(retryAfter) : NaN;
+      const retryAt = Number.isFinite(seconds) ? Date.now() + Math.max(0, seconds) * 1000 : Date.parse(retryAfter);
+      client.apiRetryAt = Math.max(client.apiRetryAt, Number.isFinite(retryAt) ? Math.max(Date.now() + 1000, retryAt) : Date.now() + 30000);
+      console.warn(`HTTP 429: ${options.method || "GET"} ${path}`);
+      throw rateLimitError(client.apiRetryAt);
+    }
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.message || payload.error || `HTTP ${response.status}`);
+    const error = new Error(payload.message || payload.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
-  return response.json();
+  return response.headers.get("content-type")?.includes("application/x-ndjson")
+    ? readActionStream(response, options.onEvent, options.headers?.["X-Action-Id"])
+    : response.json();
+}
+
+async function requestTextWorldAction(action, onEvent) {
+  const gameId = client.gameId, requestId = crypto.randomUUID();
+  let settled = false;
+  try { window.sessionStorage.setItem(PENDING_ACTION_KEY, JSON.stringify({ gameId, requestId })); } catch { /* Storage may be disabled. */ }
+  try {
+    const snapshot = await api(`/api/games/${gameId}/actions`, { method: "POST", body: action,
+      headers: { Accept: "application/x-ndjson", "X-Action-Id": requestId }, onEvent });
+    settled = true;
+    return snapshot;
+  } catch (error) {
+    // Read the committed receipt after a lost connection; never execute the action again here.
+    if (!error.status) {
+      try { const snapshot = await api(`/api/games/${gameId}/actions/${requestId}`); settled = true; return snapshot; }
+      catch (recoveryError) { settled = recoveryError.status === 404; }
+    }
+    if (error.status >= 400 && error.status < 500) settled = true;
+    throw error;
+  } finally {
+    if (settled) try { window.sessionStorage.removeItem(PENDING_ACTION_KEY); } catch { /* Storage may be disabled. */ }
+  }
 }
 
 function waitForMilliseconds(durationMs) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, Math.max(0, durationMs));
   });
+}
+
+function shelterStationForAction(action) {
+  if (action?.type === "content_action") {
+    if (["open_shelter_crafting", "open_shelter_crafting_repeat"].includes(action.actionId)) {
+      return "crafting";
+    }
+    if (["open_shelter_cooking", "open_shelter_cooking_repeat"].includes(action.actionId)) {
+      return "cooking";
+    }
+  }
+  if (
+    action?.type === "content_choice"
+    && ["leave_shelter_crafting", "leave_shelter_cooking"].includes(action.choiceId)
+  ) {
+    return "rest";
+  }
+  return null;
+}
+
+function isCookingMenuSnapshot(snapshot) {
+  return Boolean(snapshot?.availableActions?.some((choice) =>
+    choice.id === "leave_shelter_cooking"
+  ));
+}
+
+function isCraftingMenuSnapshot(snapshot) {
+  return Boolean(snapshot?.availableActions?.some((choice) =>
+    choice.id === "leave_shelter_crafting"
+  ));
+}
+
+function shelterStationForSnapshot(snapshot) {
+  if (isCookingMenuSnapshot(snapshot)) {
+    return "cooking";
+  }
+  if (isCraftingMenuSnapshot(snapshot)) {
+    return "crafting";
+  }
+  return "rest";
+}
+
+function isShelterSnapshot(snapshot) {
+  return snapshot?.state?.location === "shelter";
+}
+
+function showShelterSceneVisual(station) {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  sceneDirector.showShelterAtStation(station, { reduceMotion }).catch((error) => {
+    console.warn(error);
+    sceneDirector.hideShelter();
+  });
+}
+
+function playShelterStationTransition(station) {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return sceneDirector.moveShelterActor(station, {
+    reduceMotion,
+  }).catch((error) => {
+    console.warn(error);
+    sceneDirector.hideShelter();
+  });
+}
+
+function syncShelterSceneVisual(snapshot) {
+  if (shelterStationForAction(client.pendingAction)) {
+    return;
+  }
+  if (isShelterSnapshot(snapshot)) {
+    showShelterSceneVisual(shelterStationForSnapshot(snapshot));
+    return;
+  }
+  sceneDirector.hideShelter();
 }
 
 function isMovementAction(action, loading = null) {
@@ -755,21 +944,26 @@ function usesRegionTravelOverlay(action, loading = null) {
 }
 
 function actionTransitionDurationMs(action, loading = null) {
+  // Existing content sends the former 500 ms default; render it with the current pacing.
+  const activityDuration = Number.isFinite(loading?.durationMs)
+    ? loading.durationMs === 500 ? ACTION_TRANSITION_ACTION_MS : Math.max(0, loading.durationMs)
+    : ACTION_TRANSITION_ACTION_MS;
   if (isMovementAction(action, loading)) {
     return ACTION_TRANSITION_MOVEMENT_MS;
   }
-  if (action?.type === "use_item") {
+  if (action?.type === "text_world" || action?.type === "npc_dialogue") {
+    return activityDuration;
+  }
+  if (action?.type === "use_item" || action?.type === "item_light") {
     return ACTION_TRANSITION_ACTION_MS;
   }
-  if (action?.type === "subway_expedition" && action.command === "search_loot") {
-    return ACTION_TRANSITION_ACTION_MS;
+  if (action?.type === "subway_expedition" && ["search_loot", "encounter_choice"].includes(action.command)) {
+    return activityDuration;
   }
   if (!loading) {
     return 0;
   }
-  return Number.isFinite(loading.durationMs)
-    ? Math.max(0, loading.durationMs)
-    : ACTION_TRANSITION_ACTION_MS;
+  return activityDuration;
 }
 
 function actionTransitionMessage(action, loading = null) {
@@ -785,7 +979,7 @@ function actionTransitionMessage(action, loading = null) {
       ? `${destination.name} 쪽으로 이동하는 중…`
       : "이동하는 중…";
   }
-  if (action.type === "use_item") {
+  if (action.type === "use_item" || action.type === "item_light") {
     return "아이템을 사용하는 중…";
   }
   if (action.type === "subway_expedition") {
@@ -833,6 +1027,7 @@ function pendingActionControls() {
     "[data-use-item]",
     "[data-hex-location]",
     ".dock-button",
+    "#exploration-toggle",
   ].join(",")));
 }
 
@@ -850,7 +1045,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     && anchor instanceof HTMLElement
     ? anchor.querySelector(".crafting-choice-select")
     : null;
-  const visualTarget = action?.type === "use_item"
+  const visualTarget = ["use_item", "item_light"].includes(action?.type)
     && anchor instanceof HTMLElement
     && anchor.matches(".inventory-detail-slot, .inventory-card")
     ? anchor
@@ -859,9 +1054,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
       : control;
   const isMovement = isMovementAction(action, loading);
   const usesOverlay = usesRegionTravelOverlay(action, loading);
-  const usesEncounterOverlay = action?.type === "subway_expedition" &&
-    action.command === "encounter_choice";
-  const message = usesOverlay || usesEncounterOverlay
+  const message = usesOverlay
     ? actionTransitionMessage(action, loading)
     : "";
   const usesInlineSurfaceFill = visualTarget instanceof HTMLElement
@@ -934,6 +1127,7 @@ function beginActionTransition(action, triggerElement, durationMs, loading = nul
     progressTrack.appendChild(progressFill);
     visualTarget.appendChild(progressTrack);
     visualTarget.classList.add("is-action-pending");
+    visualTarget.setAttribute("aria-busy", "true");
     visualTarget.classList.toggle("is-choice-surface-pending", usesInlineSurfaceFill);
     client.pendingActionProgressElement = progressTrack;
   }
@@ -944,6 +1138,7 @@ function finishActionTransition() {
   client.pendingActionProgressElement?.remove();
   client.pendingActionSceneElement?.remove();
   client.pendingActionElement?.classList.remove("is-action-pending");
+  client.pendingActionElement?.removeAttribute("aria-busy");
   client.pendingActionElement?.classList.remove("is-choice-surface-pending");
   dom.sceneFrame.classList.remove("is-action-in-progress");
   dom.sceneFrame.removeAttribute("aria-busy");
@@ -976,35 +1171,107 @@ function snapshotLocationCard(snapshot) {
   return snapshot?.visibleLocations?.find((entry) => entry.id === locationId) || null;
 }
 
+function sceneImageSource(location) {
+  // Use the same address for prediction, preloading, and display of old saves.
+  const source = location?.imagePath || "assets/scenes/camp.svg";
+  return source.replace(/^\/?assets\/scenes\/forest\.svg$/, "assets/scenes/forest-pencil-charcoal.png");
+}
+
 function preloadImage(source) {
-  if (!source) {
-    return Promise.resolve();
+  if (!source) return Promise.resolve(null);
+  const cached = sceneImageCache.get(source);
+  if (cached) {
+    sceneImageCache.delete(source);
+    sceneImageCache.set(source, cached);
+    return cached.promise;
   }
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.addEventListener("load", resolve, { once: true });
-    image.addEventListener("error", resolve, { once: true });
+  const image = new Image();
+  const entry = { image, ready: false, promise: null };
+  entry.promise = new Promise((resolve) => {
+    let settled = false;
+    const finish = async () => {
+      if (settled) return;
+      settled = true;
+      if (!image.naturalWidth) {
+        if (sceneImageCache.get(source) === entry) sceneImageCache.delete(source);
+        resolve(null);
+        return;
+      }
+      // Retain the decoded image itself so displaying it does not start another load.
+      if (typeof image.decode === "function") await image.decode().catch(() => undefined);
+      entry.ready = true;
+      resolve(image);
+    };
+    image.addEventListener("load", finish, { once: true });
+    image.addEventListener("error", finish, { once: true });
     image.src = source;
-    if (image.complete) {
-      resolve();
-    }
+    if (image.complete) Promise.resolve().then(finish);
   });
+  sceneImageCache.set(source, entry);
+  while (sceneImageCache.size > SCENE_IMAGE_CACHE_LIMIT) {
+    sceneImageCache.delete(sceneImageCache.keys().next().value);
+  }
+  return entry.promise;
+}
+
+function displaySceneImage(source) {
+  client.sceneImageSource = source;
+  const show = (image) => {
+    if (client.sceneImageSource !== source) return;
+    if (!image) {
+      dom.sceneArt.hidden = true;
+      return;
+    }
+    if (image !== dom.sceneArt) {
+      for (const { name, value } of Array.from(dom.sceneArt.attributes)) {
+        if (name !== "src") image.setAttribute(name, value);
+      }
+      dom.sceneArt.replaceWith(image);
+      dom.sceneArt = image;
+    }
+    dom.sceneArt.hidden = false;
+  };
+  const cached = sceneImageCache.get(source);
+  if (cached?.ready) {
+    show(cached.image);
+    return;
+  }
+  // After the loading deadline, show the text without a wrong location image.
+  dom.sceneArt.hidden = true;
+  void preloadImage(source).then(show);
+}
+
+function preloadActionSceneAssets(action, snapshot) {
+  const targetId = action?.type === "travel" ? action.targetId : snapshot?.state?.location;
+  const location = snapshot?.visibleLocations?.find((entry) => entry.id === targetId);
+  if (location) void preloadImage(sceneImageSource(location));
 }
 
 async function preloadNextSceneAssets(snapshot) {
-  const location = snapshotLocationCard(snapshot);
-  const imageSources = new Set([
-    location?.imagePath,
-    snapshot?.currentScene?.imagePath,
-  ].filter(Boolean));
-  if (imageSources.size === 0) {
-    return;
+  let timer;
+  try {
+    await Promise.race([
+      preloadImage(sceneImageSource(snapshotLocationCard(snapshot))),
+      new Promise((resolve) => {
+        timer = window.setTimeout(resolve, ACTION_ASSET_PRELOAD_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    window.clearTimeout(timer);
   }
+}
 
-  await Promise.race([
-    Promise.all(Array.from(imageSources, preloadImage)),
-    waitForMilliseconds(ACTION_ASSET_PRELOAD_TIMEOUT_MS),
-  ]);
+function prepareScenePresentation(snapshot) {
+  let prepared = preparedScenePresentations.get(snapshot);
+  if (!prepared) {
+    prepared = { story: buildStoryDisplay(snapshot), choices: null, recipeDetailId: null };
+    preparedScenePresentations.set(snapshot, prepared);
+  }
+  if (!prepared.choices || prepared.recipeDetailId !== client.activeCraftingRecipeDetailId) {
+    prepared.choices = buildChoicePresentation(snapshot);
+    prepared.recipeDetailId = client.activeCraftingRecipeDetailId;
+  }
+  return prepared;
 }
 
 function clearLegacyGameIds() {
@@ -1461,6 +1728,10 @@ function storyAnimationSurfaceId(snapshot) {
   if (isEventStoryActive(snapshot)) {
     return `event:${snapshot.latestEvent.id}`;
   }
+  // 텍스트 탐색은 기본 sceneId를 유지하므로 결과 장면의 revision으로 구분한다.
+  if (currentSceneId(snapshot).startsWith("text-world:")) {
+    return `scene:${currentSceneId(snapshot)}`;
+  }
   if (snapshot.state?.npcDialogue?.active) {
     return `dialogue:${currentSceneId(snapshot)}`;
   }
@@ -1490,11 +1761,13 @@ function buildStoryDisplay(snapshot) {
     return {
       headline: ev.title || "",
       paragraphs: splitSummaryToParagraphs(ev.summary),
+      source: ev.source,
     };
   }
   return {
     headline: "",
     paragraphs: (snapshot.currentScene.paragraphs || []).filter((paragraph) => String(paragraph).trim()),
+    source: new Set(snapshot.currentScene.paragraphSources).size > 1 ? "mixed" : snapshot.currentScene.source,
   };
 }
 
@@ -1508,15 +1781,33 @@ function normalizePostChoiceNarrative(value) {
     .slice(0, 2);
 }
 
-function beginPostChoiceNarrative(paragraphs) {
+function beginPostChoiceNarrative(paragraphs, append = false, source = "template", keepChoices = false) {
   clearSceneAnimation();
-  hideSystemNote();
-  const story = { headline: "", paragraphs };
+  const story = { headline: "", paragraphs, source };
   const token = client.sceneRenderToken;
   return animateStoryText(story, token, null, {
-    append: false,
+    append,
+    scrollToStart: append,
     revealChoices: false,
+    keepChoices,
   });
+}
+
+function captureSceneHistory() {
+  return {
+    blocks: [...dom.sceneText.children], systemNote: dom.systemNote,
+    noteKey: client.renderedSystemNoteKey,
+    hasHistory: dom.sceneText.classList.contains("has-story-history"),
+  };
+}
+
+function restoreSceneHistory(saved) {
+  dom.sceneText.replaceChildren(...saved.blocks);
+  dom.sceneText.classList.toggle("has-story-history", saved.hasHistory);
+  dom.systemNote = saved.systemNote;
+  dom.systemNote.id = "system-note";
+  dom.systemNote.setAttribute("role", "status");
+  client.renderedSystemNoteKey = saved.noteKey;
 }
 
 function currentSceneDefinitionId(snapshot = client.snapshot) {
@@ -1592,11 +1883,28 @@ function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
   return currentSceneId(previousSnapshot) === currentSceneId(nextSnapshot);
 }
 
+function shouldContinueLocationStory(previousSnapshot, nextSnapshot) {
+  if (!previousSnapshot?.currentScene || !nextSnapshot?.currentScene
+    || !previousSnapshot.gameId || previousSnapshot.gameId !== nextSnapshot.gameId
+    || !previousSnapshot.state?.location
+    || previousSnapshot.state.location !== nextSnapshot.state?.location) {
+    return false;
+  }
+  const before = previousSnapshot.state.subwayExpedition;
+  const after = nextSnapshot.state.subwayExpedition;
+  if (before?.active || after?.active) {
+    if (!before?.active || !after?.active || before.runNumber !== after.runNumber
+      || !before.currentFloor?.id || before.currentFloor.id !== after.currentFloor?.id) return false;
+  }
+  return storySurfaceId(previousSnapshot) !== storySurfaceId(nextSnapshot)
+    || JSON.stringify(buildStoryDisplay(previousSnapshot)) !== JSON.stringify(buildStoryDisplay(nextSnapshot));
+}
+
 function availableActionsSignature(snapshot) {
   const list = snapshot?.availableActions ?? [];
   // id만 보면 라벨·힌트만 바뀐 서버 응답에서 actionsChanged가 false가 되어 선택지 DOM이 갱신되지 않는다.
   return list
-    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}:${JSON.stringify(choice.postChoiceNarrative || null)}`)
+    .map((choice) => `${choice.id}:${choice.label}:${choice.outcomeHint ?? ""}:${choice.showOutcomeHint ? "1" : "0"}:${choice.isAvailable ? "1" : "0"}:${choice.statusLabel ?? ""}:${choice.remainingUses ?? ""}:${JSON.stringify(choice.loading || null)}:${JSON.stringify(choice.craftingRecipe || null)}:${JSON.stringify(choice.postChoiceNarrative || null)}:${choice.postChoiceNarrativeSource ?? ""}:${choice.choiceThought ?? ""}:${choice.action?.activityRevision ?? choice.serverActionHint?.activityRevision ?? ""}`)
     .join("|");
 }
 
@@ -1664,6 +1972,67 @@ function syncMobileChoiceZoneHeight() {
   });
 }
 
+function createSceneStoryBlock(append, source, continueBlock = false) {
+  const previousBlock = append && continueBlock ? dom.sceneText.lastElementChild : null;
+  const hasHistory = append && dom.sceneText.childElementCount > 0;
+  if (!append) {
+    dom.sceneText.replaceChildren();
+    client.renderedSystemNoteKey = "";
+  }
+  dom.sceneText.classList.toggle("has-story-history", hasHistory);
+  const block = document.createElement("div");
+  block.className = previousBlock ? "scene-story-continuation" : "scene-story-block";
+  if (source === "llm" || source === "template" || source === "mixed") {
+    const sourceLabel = document.createElement("div");
+    sourceLabel.className = `scene-narrative-source is-${source}`;
+    sourceLabel.textContent = source === "mixed" ? "LLM 생성 · 기본 서사 보완" : source === "llm" ? "LLM 생성" : "기본 서사";
+    sourceLabel.title = source === "mixed" ? "검사를 통과한 생성 문단은 유지하고, 필요한 부분을 기본 서사로 보완했습니다." : source === "llm"
+      ? "LLM이 생성한 서사입니다."
+      : "게임에 정의된 기본 서사입니다. 재확인이나 생성 실패 시에도 사용합니다.";
+    block.appendChild(sourceLabel);
+  }
+  // Reading space belongs to the outer block; prose and all results share natural height.
+  const content = document.createElement("div");
+  content.className = "scene-story-content";
+  const prose = document.createElement("div");
+  prose.className = "scene-prose";
+  content.appendChild(prose);
+  createSceneSystemNote(content);
+  block.appendChild(content);
+  (previousBlock || dom.sceneText).appendChild(block);
+  return block;
+}
+
+function createSceneSystemNote(block) {
+  // Completed notes stay with their prose; only the newest note announces updates.
+  dom.systemNote.removeAttribute("id");
+  dom.systemNote.removeAttribute("role");
+  dom.systemNote.classList.remove("is-entering");
+  const note = document.createElement("div");
+  note.id = "system-note";
+  note.className = "system-note";
+  note.setAttribute("role", "status");
+  note.hidden = true;
+  block.appendChild(note);
+  dom.systemNote = note;
+  client.renderedSystemNote = "";
+  return note;
+}
+
+function scrollSceneStoryToStart(block) {
+  window.requestAnimationFrame(() => {
+    if (!block.isConnected || dom.sceneText.lastElementChild !== block) {
+      return;
+    }
+    const isMobile = window.matchMedia("(max-width: 620px)").matches;
+    const viewportTop = isMobile ? dom.appShell.getBoundingClientRect().top : 0;
+    const scrollTop = isMobile ? dom.appShell.scrollTop : window.scrollY;
+    const top = Math.max(0, scrollTop + block.getBoundingClientRect().top - viewportTop - 12);
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    (isMobile ? dom.appShell : window).scrollTo({ top, behavior });
+  });
+}
+
 async function typeParagraph(paragraphElement, text, token) {
   paragraphElement.classList.add("typing");
   for (let index = 1; index <= text.length; index += 1) {
@@ -1691,36 +2060,30 @@ async function animateStoryText(
 ) {
   const append = options.append === true;
   const revealChoices = options.revealChoices !== false;
+  const block = createSceneStoryBlock(append, story.source, options.continueBlock === true);
+  const prose = block.querySelector(".scene-prose");
   client.activeAnimatedStory = story;
   client.activeAnimatedSystemNote = systemNotePayload;
-  client.activeStoryAnimationOptions = { append, revealChoices };
+  client.activeStoryAnimationOptions = { append, revealChoices, block, scrollToStart: options.scrollToStart === true };
   client.isSceneTyping = true;
   dom.sceneFrame.classList.add("is-story-typing");
-  if (!append) {
-    dom.sceneText.innerHTML = "";
+  if (!options.keepChoices) {
+    dom.choices.innerHTML = "";
+    dom.choices.classList.remove("revealed");
   }
-  dom.choices.innerHTML = "";
-  dom.choices.classList.remove("revealed");
+  if (options.scrollToStart) {
+    scrollSceneStoryToStart(block);
+  }
 
   if (story.headline) {
     if (token !== client.sceneRenderToken) {
-      client.isSceneTyping = false;
-      dom.sceneFrame.classList.remove("is-story-typing");
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
-      client.activeStoryAnimationOptions = null;
       return;
     }
     const headlineElement = document.createElement("p");
     headlineElement.className = "scene-headline";
-    dom.sceneText.appendChild(headlineElement);
+    prose.appendChild(headlineElement);
     const headlineDone = await typeParagraph(headlineElement, story.headline, token);
     if (!headlineDone) {
-      client.isSceneTyping = false;
-      dom.sceneFrame.classList.remove("is-story-typing");
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
-      client.activeStoryAnimationOptions = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1728,22 +2091,12 @@ async function animateStoryText(
 
   for (const paragraph of story.paragraphs) {
     if (token !== client.sceneRenderToken) {
-      client.isSceneTyping = false;
-      dom.sceneFrame.classList.remove("is-story-typing");
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
-      client.activeStoryAnimationOptions = null;
       return;
     }
     const paragraphElement = document.createElement("p");
-    dom.sceneText.appendChild(paragraphElement);
+    prose.appendChild(paragraphElement);
     const completed = await typeParagraph(paragraphElement, paragraph, token);
     if (!completed) {
-      client.isSceneTyping = false;
-      dom.sceneFrame.classList.remove("is-story-typing");
-      client.activeAnimatedStory = null;
-      client.activeAnimatedSystemNote = null;
-      client.activeStoryAnimationOptions = null;
       return;
     }
     await scheduleSceneStep(() => {}, TYPEWRITER_PARAGRAPH_DELAY);
@@ -1781,11 +2134,9 @@ function skipSceneTyping() {
     : "";
   const storyHtml =
     headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
-  if (animationOptions.append) {
-    dom.sceneText.insertAdjacentHTML("beforeend", storyHtml);
-  } else {
-    dom.sceneText.innerHTML = storyHtml;
-  }
+  // Replace only the typing block so history stays intact and partial text is not duplicated.
+  animationOptions.block.querySelector(".scene-prose").innerHTML = storyHtml;
+  // The reading position was aligned when the action started. Skipping only completes its text.
   if (systemNotePayload?.note) {
     renderSystemNote(
       systemNotePayload.note,
@@ -1825,6 +2176,10 @@ function itemEffectHintHtml(effects = {}, useMinutes = 0) {
     const signedValue = value > 0 ? `+${value}` : String(value);
     return [`<span class="${className}">${signedValue} ${label}</span>`];
   });
+  for (const [key, label] of [["injuryRelief", "부상"], ["infectionRelief", "감염"], ["exhaustionRelief", "탈진"]]) {
+    if (effects[key] > 0) effectParts.push(`<span class="item-hp-hint">${label} -${effects[key]}단계</span>`);
+  }
+  if (effects.infectionRelief > 0) effectParts.push('<span class="item-time-hint">다음 감염 악화까지 6시간</span>');
   if (useMinutes && useMinutes > 0) {
     effectParts.push(`<span class="item-time-hint">+ ${formatMinutesLabel(useMinutes)}</span>`);
   }
@@ -1843,7 +2198,7 @@ function itemDurabilityHintHtml(item, state) {
   return `<span class="item-effect-list"><span class="item-durability-hint">내구도 ${current}/${item.maxDurability}</span></span>`;
 }
 
-function craftingRecipeMetaHtml(recipe) {
+function craftingRecipeMetaHtml(recipe, { showEffect = true } = {}) {
   if (!recipe) {
     return "";
   }
@@ -1871,27 +2226,35 @@ function craftingRecipeMetaHtml(recipe) {
         <span class="crafting-recipe-token-list">
           ${requirements.map((entry) => `
             <span class="crafting-recipe-token ${entry.met ? "is-met" : "is-missing"}">
-              ${escapeHtml(entry.name)} (${entry.ownedAmount}/${entry.requiredAmount})
+              ${escapeHtml(entry.name)} (${entry.ownedAmount}/${entry.requiredAmount})${entry.storedAmount ? ` · 보관함 ${entry.storedAmount}` : ""}
             </span>
           `).join("")}
         </span>
       </span>
     `
     : "";
-
-  return `
-    <span class="crafting-recipe-detail">
+  const sourceRows = requirements.filter(entry => !entry.met && entry.sourceHints?.length);
+  const sourceHtml = sourceRows.length ? `<span class="crafting-recipe-row is-sources"><span class="crafting-recipe-label">준비 방법</span><span class="crafting-recipe-source-list">${sourceRows.map(entry => `<span>${escapeHtml(entry.name)}: ${entry.sourceHints.map(escapeHtml).join(" / ")}</span>`).join("")}</span></span>` : "";
+  const effectHtml = showEffect
+    ? `
       <span class="crafting-recipe-row is-effect">
         <span class="crafting-recipe-label">효과</span>
         <span class="crafting-recipe-effect">${escapeHtml(recipe.effect)}</span>
       </span>
+    `
+    : "";
+
+  return `
+    <span class="crafting-recipe-detail">
+      ${effectHtml}
       ${prerequisiteHtml}
       ${requirementsHtml}
+      ${sourceHtml}
     </span>
   `;
 }
 
-function renderCraftingChoices(snapshot) {
+function buildCraftingChoices(snapshot, container, { isCookingMenu = false } = {}) {
   const recipeChoices = snapshot.availableActions.filter((choice) =>
     !["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) && choice.craftingRecipe
   );
@@ -1899,49 +2262,41 @@ function renderCraftingChoices(snapshot) {
     ["leave_shelter_crafting", "leave_shelter_cooking"].includes(choice.id) || !choice.craftingRecipe
   );
   const selectedChoice = recipeChoices.find((choice) => choice.id === client.activeCraftingRecipeDetailId) || recipeChoices[0] || null;
-  client.activeCraftingRecipeDetailId = selectedChoice?.id || null;
+  const selectedRecipeId = selectedChoice?.id || null;
 
   if (selectedChoice?.craftingRecipe) {
     const detail = document.createElement("section");
-    detail.className = "crafting-recipe-panel";
+    detail.className = `crafting-recipe-panel${isCookingMenu ? " is-cooking-menu" : ""}`;
     detail.setAttribute("aria-live", "polite");
+    const detailHeadMeta = isCookingMenu
+      ? `<span class="crafting-recipe-effect">${escapeHtml(selectedChoice.craftingRecipe.effect)}</span>`
+      : `
+        <span class="crafting-recipe-state ${selectedChoice.isAvailable ? "is-met" : "is-missing"}">
+          ${escapeHtml(selectedChoice.statusLabel || (selectedChoice.isAvailable ? "제작 가능" : "조건 미충족"))}
+        </span>
+      `;
     detail.innerHTML = `
       <div class="crafting-recipe-panel-head">
         <strong>${escapeHtml(selectedChoice.label)}</strong>
-        <span class="crafting-recipe-state ${selectedChoice.isAvailable ? "is-met" : "is-missing"}">
-          ${selectedChoice.isAvailable ? "제작 가능" : "재료 부족"}
-        </span>
+        ${detailHeadMeta}
       </div>
-      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe)}
+      ${craftingRecipeMetaHtml(selectedChoice.craftingRecipe, { showEffect: !isCookingMenu })}
     `;
-    dom.choices.appendChild(detail);
+    container.appendChild(detail);
   }
 
-  recipeChoices.forEach((choice) => {
-    const card = document.createElement("article");
-    card.className = [
-      "crafting-choice-card",
-      choice.isAvailable ? "is-recipe-available" : "is-recipe-unavailable",
-      choice.id === client.activeCraftingRecipeDetailId ? "is-active" : "",
-    ].filter(Boolean).join(" ");
-
-    const selectButton = document.createElement("button");
-    selectButton.className = "crafting-choice-select";
-    selectButton.type = "button";
-    selectButton.setAttribute("aria-pressed", choice.id === client.activeCraftingRecipeDetailId ? "true" : "false");
-    selectButton.innerHTML = `<span class="crafting-recipe-name">${escapeHtml(choice.label)}</span>`;
-    selectButton.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      client.activeCraftingRecipeDetailId = choice.id;
-      renderChoices();
-    });
-
+  const createCraftButton = (choice, { menuFooter = false } = {}) => {
     const craftButton = document.createElement("button");
-    craftButton.className = "inline-action crafting-choice-submit";
+    craftButton.className = [
+      "inline-action",
+      "crafting-choice-submit",
+      menuFooter ? "is-recipe-menu-submit" : "",
+    ].filter(Boolean).join(" ");
     craftButton.type = "button";
-    craftButton.textContent = choice.craftingRecipe.actionLabel || "제작";
-    craftButton.disabled = client.actionInFlight;
+    craftButton.disabled = choice.isAvailable === false;
+    craftButton.textContent = menuFooter
+      ? isCookingMenu ? "요리하기" : "제작하기"
+      : choice.craftingRecipe.actionLabel || "제작";
     craftButton.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -1950,12 +2305,43 @@ function renderCraftingChoices(snapshot) {
         craftButton,
         choice.loading,
         choice.postChoiceNarrative,
+        choice.postChoiceNarrativeSource,
+        choice.choiceThought,
       );
     });
+    return craftButton;
+  };
 
-    card.append(selectButton, craftButton);
-    dom.choices.appendChild(card);
+  const recipeGrid = document.createElement("div");
+  recipeGrid.className = "crafting-recipe-grid";
+
+  recipeChoices.forEach((choice) => {
+    const card = document.createElement("article");
+    card.className = [
+      "crafting-choice-card",
+      choice.isAvailable ? "is-recipe-available" : "is-recipe-unavailable",
+      choice.id === selectedRecipeId ? "is-active" : "",
+    ].filter(Boolean).join(" ");
+
+    const selectButton = document.createElement("button");
+    selectButton.className = "crafting-choice-select";
+    selectButton.type = "button";
+    selectButton.setAttribute("aria-pressed", choice.id === selectedRecipeId ? "true" : "false");
+    selectButton.innerHTML = `<span class="crafting-recipe-name">${escapeHtml(choice.label)}</span>`;
+    selectButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      client.activeCraftingRecipeDetailId = choice.id;
+      renderChoices();
+    });
+
+    card.appendChild(selectButton);
+    recipeGrid.appendChild(card);
   });
+
+  container.appendChild(recipeGrid);
+
+  let recipeMenuExitButton = null;
 
   otherChoices.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
@@ -1964,6 +2350,13 @@ function renderCraftingChoices(snapshot) {
     const status = fragment.querySelector(".choice-status");
     const remaining = fragment.querySelector(".choice-remaining");
     const meta = fragment.querySelector(".choice-meta");
+    const isRecipeMenuExit = [
+      "leave_shelter_crafting",
+      "leave_shelter_cooking",
+    ].includes(choice.id);
+    if (isRecipeMenuExit) {
+      button.classList.add("is-recipe-menu-exit");
+    }
     label.textContent = choice.label;
     status.textContent = choice.statusLabel || "";
     status.hidden = !choice.statusLabel;
@@ -1974,15 +2367,32 @@ function renderCraftingChoices(snapshot) {
     const shouldShowOutcomeHint = Boolean(choice.showOutcomeHint && outcomeHint);
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
-    button.disabled = client.actionInFlight || choice.isAvailable === false;
+    button.disabled = choice.isAvailable === false;
     button.addEventListener("click", () => submitAction(
       choice.action,
       button,
       choice.loading,
       choice.postChoiceNarrative,
+      choice.postChoiceNarrativeSource,
+      choice.choiceThought,
     ));
-    dom.choices.appendChild(fragment);
+    if (isRecipeMenuExit) {
+      recipeMenuExitButton = button;
+    } else {
+      container.appendChild(fragment);
+    }
   });
+
+  if (recipeMenuExitButton) {
+    const footer = document.createElement("div");
+    footer.className = "recipe-menu-footer";
+    footer.appendChild(recipeMenuExitButton);
+    if (selectedChoice) {
+      footer.appendChild(createCraftButton(selectedChoice, { menuFooter: true }));
+    }
+    container.appendChild(footer);
+  }
+  return selectedRecipeId;
 }
 
 function hideSystemNote() {
@@ -2048,11 +2458,14 @@ function structuredSystemNoteToken(entry) {
 }
 
 function renderSystemNote(note, noteKey = "", entries = []) {
-  if (!note) {
-    hideSystemNote();
+  if (!note || (noteKey && noteKey === client.renderedSystemNoteKey)) {
     return;
   }
 
+  // Another result on the same scene is also history, not a replacement.
+  if (!dom.systemNote.hidden) {
+    createSceneSystemNote(dom.systemNote.parentElement);
+  }
   const changed = note !== client.renderedSystemNote;
   const structuredParts = Array.isArray(entries)
     ? entries.map(structuredSystemNoteToken).filter(Boolean)
@@ -2093,6 +2506,7 @@ function renderSystemNote(note, noteKey = "", entries = []) {
         return [`<span class="system-note-token">${escapeHtml(trimmed)}</span>`];
       });
 
+  // The active story block owns the note from creation, including while typing.
   dom.systemNote.hidden = false;
   dom.systemNote.innerHTML = parts.join("");
   if (changed) {
@@ -2271,6 +2685,24 @@ function renderEncounterStatus(state) {
       : `${name} ${value} / ${maxValue}`,
   );
   dom.encounterHealthValue.textContent = `${value}/${maxValue}`;
+  const skillNames = {
+    power_strike: "강타",
+    improvised_mastery: "임기응변",
+    iron_guard: "철벽",
+    second_wind: "재정비",
+    silver_tongue: "협상가",
+    escape_route: "퇴로 확보",
+  };
+  const runBuild = state.subwayExpedition?.runBuild;
+  const skillSummary = Object.entries(runBuild?.skillRanks || {})
+    .filter(([, rank]) => Number(rank) > 0)
+    .map(([skillId, rank]) => `${skillNames[skillId] || skillId} ${rank}`)
+    .join(" · ");
+  dom.encounterBuildSummary.textContent = [
+    `지하 ${state.subwayExpedition.depth}층`,
+    `승리 ${runBuild?.victories || 0}회`,
+    skillSummary,
+  ].filter(Boolean).join(" · ");
 }
 
 function renderStatusBar() {
@@ -2286,6 +2718,21 @@ function renderStatusBar() {
   if (window.MagicDungeonUI) window.MagicDungeonUI.onAction = action => submitAction(action);
 
   renderEncounterStatus(snapshot);
+  const badges = document.querySelector("#condition-badges");
+  const conditions = client.snapshot?.conditionCards || [];
+  badges.hidden = conditions.length === 0;
+  const badgeMarkup = conditions.map(condition => `<button type="button" class="condition-badge ${condition.level >= 3 ? "is-critical" : ""}" data-condition-detail aria-label="${condition.label} Lv${condition.level} 상세 보기">${condition.label} Lv${condition.level}</button>`).join("");
+  if (badges.dataset.rendered !== badgeMarkup) {
+    badges.dataset.rendered = badgeMarkup;
+    badges.innerHTML = badgeMarkup;
+    badges.querySelectorAll("[data-condition-detail]").forEach(button => button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      client.isPanelOpen = true;
+      client.activePanel = "status";
+      client.activeStatusPanelView = "status";
+      renderPanel();
+    }));
+  }
   const hpMax = statusDetailFor("hp", snapshot).max;
   const hpValue = statusValue("hp", snapshot), mindValue = statusValue("mind", snapshot);
   const mindDetail = statusDetailFor("mind", snapshot);
@@ -2328,51 +2775,16 @@ function renderStatusBar() {
   }
 }
 
-function renderChoices() {
-  const snapshot = client.snapshot;
-  if (window.ArcanaCombatUI?.updateChoices(snapshot, client.actionInFlight)) {
-    syncMobileChoiceZoneHeight();
-    return;
-  }
-  if (window.MagicDungeonUI?.updateChoices(snapshot, client.actionInFlight)) {
-    syncMobileChoiceZoneHeight();
-    return;
-  }
-  dom.choices.innerHTML = "";
-  dom.choices.classList.remove("revealed", "is-crafting-menu");
-  if (!snapshot) {
-    syncMobileChoiceZoneHeight();
-    return;
-  }
-  const pendingAction = client.pendingAction;
-  const isGeneratingSubwayFloor = client.actionInFlight && (
-    pendingAction?.type === "subway_expedition" &&
-      (pendingAction.command === "start" || pendingAction.command === "descend") ||
-    pendingAction?.type === "content_action" &&
-      pendingAction.actionId === "start_subway_expedition"
-  );
-  if (isGeneratingSubwayFloor) {
-    const loading = document.createElement("p");
-    loading.className = "empty-state";
-    loading.textContent = "준비된 지하 구간으로 이동하고 있습니다…";
-    loading.setAttribute("aria-live", "polite");
-    dom.choices.appendChild(loading);
-  }
-  if (snapshot.state.isGameOver) {
-    dom.choices.classList.add("revealed");
-    syncMobileChoiceZoneHeight();
-    return;
-  }
-
+function buildChoicePresentation(snapshot) {
+  const element = document.createDocumentFragment();
   const isRecipeMenu = snapshot.availableActions.some((choice) => choice.craftingRecipe);
+  const isCookingMenu = snapshot.availableActions.some((choice) => choice.id === "leave_shelter_cooking");
+  const presentation = { element, isRecipeMenu, isCookingMenu, selectedRecipeId: null };
+  if (snapshot.state.isGameOver) return presentation;
   if (isRecipeMenu) {
-    dom.choices.classList.add("is-crafting-menu");
-    renderCraftingChoices(snapshot);
-    dom.choices.classList.add("revealed");
-    syncMobileChoiceZoneHeight();
-    return;
+    presentation.selectedRecipeId = buildCraftingChoices(snapshot, element, { isCookingMenu });
+    return presentation;
   }
-
   snapshot.availableActions.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
@@ -2393,22 +2805,69 @@ function renderChoices() {
     meta.textContent = shouldShowOutcomeHint ? outcomeHint : "";
     meta.hidden = !shouldShowOutcomeHint;
     button.classList.toggle("is-quest", isQuestChoice);
-    button.disabled = client.actionInFlight || choice.isAvailable === false;
+    button.disabled = choice.isAvailable === false;
     button.addEventListener("click", () => submitAction(
       choice.action,
       button,
       choice.loading,
       choice.postChoiceNarrative,
+      choice.postChoiceNarrativeSource,
+      choice.choiceThought,
     ));
-    dom.choices.appendChild(fragment);
+    element.appendChild(fragment);
   });
 
-  window.MagicDungeonUI?.updateChoices(snapshot, client.actionInFlight);
+  return presentation;
+}
+
+function renderChoices() {
+  const snapshot = client.snapshot;
+  if (window.ArcanaCombatUI?.updateChoices(snapshot, client.actionInFlight)) {
+    syncMobileChoiceZoneHeight();
+    return;
+  }
+  if (window.MagicDungeonUI?.updateChoices(snapshot, client.actionInFlight)) {
+    syncMobileChoiceZoneHeight();
+    return;
+  }
+  if (dom.explorationToggle) dom.explorationToggle.disabled = client.actionInFlight || client.isSceneTyping;
+  dom.choices.replaceChildren();
+  dom.choices.classList.remove("revealed", "is-crafting-menu", "is-cooking-menu");
+  dom.sceneFrame.classList.remove("is-cooking-menu");
+  if (!snapshot) {
+    syncMobileChoiceZoneHeight();
+    return;
+  }
+  const prepared = prepareScenePresentation(snapshot);
+  const presentation = prepared.choices;
+  prepared.choices = null; // The fragment is consumed when attached to the live document.
+  if (presentation.isRecipeMenu) {
+    client.activeCraftingRecipeDetailId = presentation.selectedRecipeId;
+    dom.choices.classList.add("is-crafting-menu");
+    dom.choices.classList.toggle("is-cooking-menu", presentation.isCookingMenu);
+    dom.sceneFrame.classList.toggle("is-cooking-menu", presentation.isCookingMenu);
+  }
+  const pendingAction = client.pendingAction;
+  const isGeneratingSubwayFloor = client.actionInFlight && (
+    pendingAction?.type === "subway_expedition" && ["start", "descend"].includes(pendingAction.command) ||
+    pendingAction?.type === "content_action" && pendingAction.actionId === "start_subway_expedition"
+  );
+  if (isGeneratingSubwayFloor && !snapshot.state.isGameOver) {
+    const status = document.createElement("p");
+    status.className = "empty-state";
+    status.textContent = "준비된 지하 구간으로 이동하고 있습니다…";
+    status.setAttribute("aria-live", "polite");
+    dom.choices.appendChild(status);
+  }
+  dom.choices.appendChild(presentation.element);
+  if (client.actionInFlight) {
+    dom.choices.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+  }
   dom.choices.classList.add("revealed");
   syncMobileChoiceZoneHeight();
 }
 
-function renderScene(animateText = true, appendStory = false) {
+function renderScene(animateText = true, appendStory = false, scrollToStart = false, continueActionStory = false) {
   const snapshot = client.snapshot;
   const scene = snapshot?.currentScene;
   const location = currentLocationCard();
@@ -2437,34 +2896,22 @@ function renderScene(animateText = true, appendStory = false) {
     return;
   }
 
-  const story = buildStoryDisplay(snapshot);
+  const story = prepareScenePresentation(snapshot).story;
   const surfaceId = storySurfaceId(snapshot);
   const previousRenderedNoteKey = client.renderedSystemNoteKey;
   const surfaceChanged = Boolean(client.renderedStorySurfaceId && client.renderedStorySurfaceId !== surfaceId);
   if (surfaceChanged && !appendStory) {
-    hideSystemNote();
     resetSceneScrollOnMobile();
   }
 
-  const expedition = snapshot.state.subwayExpedition;
-  const isSubwayExpedition = Boolean(expedition?.active && expedition.currentFloor);
-  dom.sceneArt.src = location.imagePath || "assets/scenes/camp.svg";
-  dom.sceneLocationBadge.textContent = isSubwayExpedition
-    ? `${location.name} · ${expedition.depth}층`
-    : location.name;
-  dom.sceneRiskBadge.textContent = snapshot.state.isGameOver
-    ? "게임오버"
-    : isSubwayExpedition
-      ? `${scene.source === "template" ? "템플릿 층" : "LLM 생성 층"} · 최고 ${expedition.deepestDepth}층`
-    : isEventStoryActive(snapshot)
-      ? "이벤트"
-      : riskLabel(location.risk);
+  displaySceneImage(sceneImageSource(location));
+  syncShelterSceneVisual(snapshot);
   renderSceneDevSource(snapshot);
   const systemNote = snapshot.state.systemNote || "";
   const currentSystemNoteKey = systemNoteKey(snapshot, systemNote);
-  const isCarriedNoteAfterSurfaceChange =
-    surfaceChanged && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
-  const systemNotePayload = systemNote && !isCarriedNoteAfterSurfaceChange
+  const isCarriedNote =
+    (surfaceChanged || appendStory) && Boolean(systemNote) && currentSystemNoteKey === previousRenderedNoteKey;
+  const systemNotePayload = systemNote && !isCarriedNote
     ? {
         key: currentSystemNoteKey,
         note: systemNote,
@@ -2496,10 +2943,10 @@ function renderScene(animateText = true, appendStory = false) {
       : "";
     const storyHtml =
       headlineBlock + story.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
-    if (appendStory) {
-      dom.sceneText.insertAdjacentHTML("beforeend", storyHtml);
-    } else {
-      dom.sceneText.innerHTML = storyHtml;
+    const block = createSceneStoryBlock(appendStory, story.source, continueActionStory);
+    block.querySelector(".scene-prose").innerHTML = storyHtml;
+    if (scrollToStart) {
+      scrollSceneStoryToStart(block);
     }
     if (systemNotePayload?.note) {
       renderSystemNote(
@@ -2515,6 +2962,8 @@ function renderScene(animateText = true, appendStory = false) {
   const token = client.sceneRenderToken;
   animateStoryText(story, token, systemNotePayload, {
     append: appendStory,
+    continueBlock: continueActionStory,
+    scrollToStart,
     revealChoices: true,
   });
 }
@@ -2523,6 +2972,36 @@ function locationMap() {
   const visible = new Map(client.snapshot.visibleLocations.map((entry) => [entry.id, entry]));
   const states = new Map(client.snapshot.mapEntries.map((entry) => [entry.locationId, entry]));
   return { visible, states };
+}
+
+function setupHexMapHighlight(stage) {
+  if (!stage) return;
+
+  // SVG siblings paint in DOM order. Draw the outline after every tile so
+  // neighboring fills and strokes cannot cover any of its six edges.
+  const outline = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  outline.setAttribute("class", "hex-tile-outline");
+  outline.setAttribute("aria-hidden", "true");
+  stage.appendChild(outline);
+
+  let hoveredTile = stage.querySelector(".hex-tile:hover");
+  let focusedTile = stage.querySelector(".hex-tile:focus-visible");
+  const syncOutline = () => {
+    const tile = hoveredTile || (focusedTile?.matches(":focus-visible") ? focusedTile : null);
+    const shape = tile?.querySelector(".hex-tile-shape");
+    outline.classList.toggle("is-visible", Boolean(shape));
+    if (!shape) return;
+    outline.setAttribute("points", shape.getAttribute("points"));
+    outline.setAttribute("transform", tile.getAttribute("transform") || "");
+  };
+
+  stage.querySelectorAll(".hex-tile").forEach((tile) => {
+    tile.addEventListener("pointerenter", () => { hoveredTile = tile; syncOutline(); });
+    tile.addEventListener("pointerleave", () => { hoveredTile = null; syncOutline(); });
+    tile.addEventListener("focus", () => { focusedTile = tile; syncOutline(); });
+    tile.addEventListener("blur", () => { focusedTile = null; syncOutline(); });
+  });
+  syncOutline();
 }
 
 function renderMapPanel() {
@@ -2813,6 +3292,7 @@ function renderMapPanel() {
   `;
   dom.panelContent.querySelector(".map-list").scrollLeft = previousDestinationScroll;
 
+  setupHexMapHighlight(dom.panelContent.querySelector(".hex-map-stage"));
   alignHexMapViewport(boardLayout, mapScale, currentLocation.id);
   refreshTransientScrollbars();
 
@@ -2906,6 +3386,13 @@ function renderMapPanel() {
   });
 }
 
+function canUseTreatmentItem(item, state = currentState()) {
+  const effects = item.effects || {};
+  if (!effects.injuryRelief && !effects.infectionRelief) return true;
+  return Boolean((effects.injuryRelief > 0 && state?.conditions?.injury?.level > 0)
+    || (effects.infectionRelief > 0 && state?.conditions?.infection?.level > 0));
+}
+
 function renderInventoryPanel() {
   const snapshot = client.snapshot;
   const itemCards = snapshot.inventoryCards || [];
@@ -2952,6 +3439,9 @@ function renderInventoryPanel() {
 
   itemCards.forEach((item) => {
     const detailLines = [{ text: item.description }];
+    const provisional = snapshot.state.subwayExpedition?.active ? snapshot.state.subwayExpedition.carriedLoot[item.id] || 0 : 0;
+    if (provisional) detailLines.push({ text: `${provisional}개는 이번 탐사에서 챙긴 물건입니다. 귀환하면 계속 보관할 수 있습니다.` });
+    if (!canUseTreatmentItem(item, snapshot.state)) detailLines.push({ text: "치료할 부상 또는 감염이 없습니다." });
     const effectHintHtml = ["food", "drink", "medicine"].includes(item.kind)
       ? itemEffectHintHtml(item.effects, item.useMinutes)
       : "";
@@ -2966,7 +3456,8 @@ function renderInventoryPanel() {
       name: item.name,
       lines: detailLines,
       itemId: item.id,
-      isUsable: ["food", "drink", "medicine"].includes(item.kind),
+      lights: (snapshot.inventoryLights || []).filter(light => light.itemId === item.id),
+      isUsable: ["food", "drink", "medicine"].includes(item.kind) && canUseTreatmentItem(item, snapshot.state),
     });
   });
 
@@ -3008,6 +3499,13 @@ function renderInventoryPanel() {
       });
     });
 
+    dom.panelContent.querySelectorAll("[data-inventory-light]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const light = (snapshot.inventoryLights || [])[Number(button.dataset.inventoryLight)];
+        if (light) submitAction({ type: "item_light", worldId: light.worldId, entityId: light.entityId, revision: light.revision, on: !light.on }, button);
+      });
+    });
     dom.panelContent.querySelectorAll("[data-use-item]").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -3034,7 +3532,7 @@ function renderInventoryPanel() {
   `;
 
   const renderedItemCards = itemCards.map((item) => {
-    const count = snapshot.state.inventory[item.id] || 0;
+    const count = (snapshot.state.inventory[item.id] || 0) + (snapshot.state.subwayExpedition?.active ? snapshot.state.subwayExpedition.carriedLoot[item.id] || 0 : 0);
     const isActive = client.activeInventoryDetailKey === item.id;
     return `
       <article
@@ -3088,6 +3586,15 @@ function renderInventoryPanel() {
             `).join("")}
           </div>
         </div>
+        ${(detail?.lights || []).map(light => `
+          <div class="inventory-light-control">
+            <span>${light.on ? "켜짐" : "꺼짐"}${light.reason ? " · " + escapeHtml(light.reason) : ""}</span>
+            <button class="inline-action inventory-use-action" type="button"
+              data-inventory-light="${(snapshot.inventoryLights || []).indexOf(light)}"
+              aria-label="${escapeHtml(light.name)} ${light.on ? "끄기" : "켜기"}"
+              ${!light.on && !light.canTurnOn ? "disabled" : ""}>${light.on ? "끄기" : "켜기"}</button>
+          </div>
+        `).join("")}
         ${detail?.isUsable ? `
           <button
             class="inline-action inventory-use-action"
@@ -3113,6 +3620,25 @@ function renderInventoryPanel() {
   bindInventoryPanelInteractions();
 }
 
+function combatSkillDetailsMarkup(combat) {
+  if (!combat) return "";
+  const statLabel = `공격 +${combat.attackBonus} · 명중 +${combat.hitChanceBonus}%p · 회피 +${combat.evasionBonus}%p`;
+  return `
+    <details class="combat-skill-details">
+      <summary aria-label="${escapeHtml(statLabel)}. 성장 단계 펼치기">${escapeHtml(statLabel)}</summary>
+      <div class="combat-skill-growth">
+        <p>공격 시 +${escapeHtml(combat.turnXp)} XP. 적의 위협을 방어·회피해도 같은 경험치를 얻습니다. 빗나가거나 방어에 실패해도 쌓이며, 승리하면 +${escapeHtml(combat.victoryXp)} XP를 추가로 얻습니다.</p>
+        <table>
+          <caption>레벨별 누적 보너스</caption>
+          <thead><tr><th scope="col">레벨</th><th scope="col">누적 XP</th><th scope="col">공격</th><th scope="col">명중</th><th scope="col">회피</th></tr></thead>
+          <tbody>${(combat.tiers || []).map(tier => `<tr><th scope="row">Lv.${escapeHtml(tier.level)}</th><td>${escapeHtml(tier.totalXp)}</td><td>+${escapeHtml(tier.attackBonus)}</td><td>+${escapeHtml(tier.hitChanceBonus)}%p</td><td>+${escapeHtml(tier.evasionBonus)}%p</td></tr>`).join("")}</tbody>
+        </table>
+        <p>공격 보너스는 공격 피해에 더해집니다. 명중률은 최대 ${escapeHtml(combat.hitChanceCap)}%이며, 회피 보너스만큼 적의 반격 명중 확률이 낮아집니다. 전투 숙련도는 탐험을 마치고 돌아와도 유지됩니다.</p>
+      </div>
+    </details>
+  `;
+}
+
 function skillsPanelMarkup() {
   const skills = client.snapshot.skills || [];
   const skillProgress = client.snapshot.skillProgress || [];
@@ -3135,10 +3661,10 @@ function skillsPanelMarkup() {
               const xpForNextLevel = Math.max(0, Number(skill.xpForNextLevel) || 0);
               const effectPercent = Math.max(0, Number(skill.effectPercent) || 0);
               const skillName = skill.name
-                || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id);
+                || (skill.id === "collection" ? "수집" : skill.id === "exploration" ? "탐색" : skill.id === "fishing" ? "낚시" : skill.id === "combat" ? "전투" : skill.id);
               const effectLabel = skill.id === "collection"
                 ? `시간 -${effectPercent}%`
-                : skill.id === "exploration"
+                : skill.id === "exploration" || skill.id === "fishing"
                   ? `성공률 +${effectPercent}%`
                   : `효과 ${effectPercent}%`;
               const xpLabel = isMaxLevel ? "MAX" : `${xpIntoLevel} / ${xpForNextLevel} XP`;
@@ -3151,7 +3677,7 @@ function skillsPanelMarkup() {
                 <article class="info-card skill-progress-card is-${escapeHtml(skill.id)}">
                   <div class="skill-progress-compact-row">
                     <h3>${escapeHtml(skillName)}</h3>
-                    <span class="skill-progress-effect">${escapeHtml(effectLabel)}</span>
+                    ${skill.combat ? "" : `<span class="skill-progress-effect">${escapeHtml(effectLabel)}</span>`}
                     <span class="skill-level-badge ${isMaxLevel ? "is-max" : ""}">
                       ${isMaxLevel ? "MAX" : `Lv.${skill.level}`}
                     </span>
@@ -3168,6 +3694,7 @@ function skillsPanelMarkup() {
                     </div>
                     <strong class="skill-xp-value">${compactXpLabel}</strong>
                   </div>
+                  ${combatSkillDetailsMarkup(skill.combat)}
                 </article>
               `;
             }).join("")}
@@ -3195,6 +3722,20 @@ function renderSkillsPanel() {
   dom.panelContent.innerHTML = skillsPanelMarkup();
 }
 
+function healthConditionDetailsMarkup() {
+  const conditions = client.snapshot?.conditionCards || [];
+  if (!conditions.length) return "";
+  return `<section class="condition-details" aria-label="상태 이상 상세">${conditions.map(condition => `
+    <article class="condition-detail-card ${condition.level >= 3 ? "is-critical" : ""}">
+      <strong>${condition.label} Lv${condition.level}</strong>
+      ${condition.level >= 4 ? '<p>Lv4 도달 · 생존 종료</p>' : `
+      ${condition.kind === "exhaustion" ? `<p>${condition.nextWorseningMinutes === null ? "기력이 남아 있어 탈진 진행이 멈춰 있습니다." : "기력 0으로 보낸 시간이 쌓이고 있습니다."}</p>` : `<p>다음 체력 −1까지 ${formatMinutesLabel(condition.nextDamageMinutes)}</p>`}
+      ${condition.nextWorseningMinutes === null ? '' : `<p>다음 악화까지 ${formatMinutesLabel(condition.nextWorseningMinutes)}</p>`}
+      <p>${condition.kind === "exhaustion" ? "음식의 탈진 회복 효과로 누적된 피로를 줄일 수 있습니다. 휴식만으로는 낫지 않습니다." : `${condition.kind === "injury" ? "붕대" : "항생제"} 1개로 1단계 치료`}</p>
+      ${condition.level === 3 ? '<p class="condition-warning">한 단계 더 쌓이면 체력과 관계없이 생존 종료됩니다.</p>' : ''}`}
+    </article>`).join("")}<p class="status-detail-note">게임 시간이 흐를 때 진행됩니다. 취침 중 부상·감염은 25% 속도로 진행됩니다. 탈진은 기력 0으로 보낸 시간이 그대로 쌓입니다.</p></section>`;
+}
+
 function statusDetailMarkup() {
   const snapshot = client.snapshot;
   const state = snapshot.state;
@@ -3215,6 +3756,7 @@ function statusDetailMarkup() {
   if (usesArcanaStatus(state)) stats.push({ key: "power", value: statusValue("power", state) });
 
   return `
+    ${healthConditionDetailsMarkup()}
     <div class="status-detail-stack">
       ${stats.map((stat) => {
         const detail = statusDetailFor(stat.key, state);
@@ -3282,8 +3824,9 @@ function questRequirementsMarkup(quest) {
       ${requirements.map((requirement) => `
         <div class="quest-requirement ${requirement.met ? "is-met" : ""}">
           <span class="quest-requirement-check" aria-hidden="true">${requirement.met ? "✓" : ""}</span>
-          <span class="quest-requirement-name">${requirement.name}</span>
+          <span class="quest-requirement-name">${escapeHtml(requirement.name)}</span>
           <span class="quest-requirement-count">${Math.min(requirement.ownedAmount, requirement.amount)} / ${requirement.amount}</span>
+          ${!requirement.met && requirement.sourceHints?.length ? `<span class="quest-source-hints">${requirement.sourceHints.map(hint => escapeHtml(hint)).join("<br>")}</span>` : ""}
         </div>
       `).join("")}
     </div>
@@ -3295,13 +3838,14 @@ function questCardMarkup(quest) {
   return `
     <article class="quest-card ${isCompleted ? "is-completed" : ""}">
       <div class="quest-card-head">
-        <h3>${quest.name}</h3>
+        <h3>${escapeHtml(quest.name)}</h3>
         <div class="quest-card-actions">
           <span class="tag">${questStatusLabel(quest.status)}</span>
         </div>
       </div>
       <div class="quest-card-body">
-        <p>${quest.summary}</p>
+        <p>${escapeHtml(quest.summary)}</p>
+        ${!isCompleted && quest.nextStep ? `<p class="quest-next-step"><strong>다음 단계</strong><span>${escapeHtml(quest.nextStep)}</span></p>` : ""}
         ${questRequirementsMarkup(quest)}
       </div>
     </article>
@@ -3552,7 +4096,47 @@ function renderMenuPanel() {
   `;
 }
 
+function renderExplorationPanel() {
+  const exploration = client.snapshot?.exploration;
+  if (!exploration) { dom.panelContent.innerHTML = '<p class="empty-state">지금은 살펴볼 공간이 없습니다.</p>'; return; }
+  const targets = [{ id: "", name: "통로와 주변", placement: exploration.roomName, actions: exploration.generalActions }, ...exploration.targets];
+  const selected = targets.find(t => t.id === client.explorationTargetId) || targets.find(t => t.actions.length) || targets[0];
+  client.explorationTargetId = selected.id;
+  dom.panelContent.innerHTML = `<div class="exploration-targets" aria-label="살펴볼 대상">${targets.map((target, index) => `<button type="button" data-exploration-target="${index}" aria-pressed="${target.id === selected.id}" ${client.actionInFlight ? "disabled" : ""}>${escapeHtml(target.name)}</button>`).join("")}</div>
+    <p class="exploration-placement">${escapeHtml(selected.placement)}</p><div class="choice-list exploration-actions"></div>`;
+  const list = dom.panelContent.querySelector(".exploration-actions");
+  if (!selected.actions.length) list.innerHTML = '<p class="empty-state">지금 이 대상에 할 수 있는 별도 행동은 없습니다.</p>';
+  selected.actions.forEach(choice => {
+    const fragment = dom.choiceTemplate.content.cloneNode(true), button = fragment.querySelector("button");
+    fragment.querySelector(".choice-label").textContent = choice.label;
+    fragment.querySelector(".choice-meta").textContent = choice.outcomeHint || "";
+    for (const selector of [".choice-status", ".choice-remaining"]) fragment.querySelector(selector).hidden = true;
+    button.disabled = client.actionInFlight || choice.isAvailable === false;
+    button.addEventListener("click", () => {
+      if (client.actionInFlight) return;
+      const pendingChoice = button.cloneNode(true);
+      dom.choices.replaceChildren(pendingChoice);
+      dom.choices.classList.add("revealed");
+      client.isPanelOpen = false;
+      renderPanel();
+      syncMobileChoiceZoneHeight();
+      submitAction(choice.action, pendingChoice, choice.loading, null, "template", choice.choiceThought);
+    });
+    list.appendChild(fragment);
+  });
+  dom.panelContent.querySelectorAll("[data-exploration-target]").forEach(button => button.addEventListener("click", () => {
+    if (client.actionInFlight) return;
+    client.explorationTargetId = targets[Number(button.dataset.explorationTarget)].id;
+    renderExplorationPanel();
+  }));
+}
+
 function renderPanel() {
+  if (dom.explorationToggle) {
+    dom.explorationToggle.hidden = !client.snapshot?.exploration;
+    dom.explorationToggle.disabled = client.actionInFlight || client.isSceneTyping;
+    dom.explorationToggle.setAttribute("aria-expanded", String(client.isPanelOpen && client.activePanel === "exploration"));
+  }
   const config = PANEL_CONFIG[client.activePanel];
   dom.panelShell.setAttribute("aria-label", config.title);
   dom.panelShell.classList.toggle("is-map-panel", client.activePanel === "map");
@@ -3561,7 +4145,9 @@ function renderPanel() {
     "inventory-panel-content",
     client.activePanel === "inventory",
   );
-  if (client.activePanel === "map") {
+  if (client.activePanel === "exploration") {
+    renderExplorationPanel();
+  } else if (client.activePanel === "map") {
     renderMapPanel();
   } else if (client.activePanel === "inventory") {
     renderInventoryPanel();
@@ -3598,6 +4184,8 @@ function render(options = {}) {
   renderScene(
     options.animateScene !== false,
     options.appendScene === true,
+    options.scrollSceneToStart === true,
+    options.continueActionStory === true,
   );
   renderPanel();
   renderGameOverScreen();
@@ -3609,6 +4197,8 @@ async function submitAction(
   triggerElement = null,
   loading = null,
   postChoiceNarrative = null,
+  postChoiceNarrativeSource = "template",
+  choiceThought = null,
 ) {
   if (!client.gameId || client.actionInFlight) {
     return;
@@ -3619,23 +4209,69 @@ async function submitAction(
   }
   client.actionInFlight = true;
   client.pendingAction = action;
-  const immediateNarrative = normalizePostChoiceNarrative(postChoiceNarrative);
+  // Keep retired action leads out of history; the chosen thought introduces the actual result.
+  const continuousNarrative = ["text_world", "npc_dialogue", "subway_expedition", "item_light"].includes(action.type)
+    || Number.isInteger(action.activityRevision);
+  const hasChoiceThought = typeof choiceThought === "string" && Boolean(choiceThought.trim());
+  const immediateNarrative = hasChoiceThought ? [`‘${choiceThought.trim()}’`]
+    : continuousNarrative ? [] : normalizePostChoiceNarrative(postChoiceNarrative);
   const hasImmediateNarrative = immediateNarrative.length > 0;
-  const transitionDurationMs = hasImmediateNarrative && !loading
+  const savedHistory = continuousNarrative || hasChoiceThought ? captureSceneHistory() : null;
+  let presentingAction = true;
+  const transitionDurationMs = hasImmediateNarrative && !hasChoiceThought && !loading
     ? 0
     : actionTransitionDurationMs(action, loading);
   const shouldShowTransition = transitionDurationMs > 0;
   const previousSnapshot = client.snapshot;
+  const timing = { action: action.type, startedAt: performance.now() };
+  const mark = (key) => { timing[key] = Math.round(performance.now() - timing.startedAt); };
+  client.lastActionTiming = timing;
+  const streamedParagraphs = [];
+  let paragraphQueue = Promise.resolve(), immediateNarrativePromise = Promise.resolve();
+  let previousParagraphSource = null;
+  const onStreamEvent = event => {
+    if (event.type === "complete") { timing.server = event.timing; return; }
+    if (event.type !== "paragraph") return;
+    streamedParagraphs.push(event.text);
+    if (streamedParagraphs.length === 1) mark("firstParagraphReceivedMs");
+    paragraphQueue = paragraphQueue.then(async () => {
+      await immediateNarrativePromise;
+      if (!presentingAction) return;
+      if (event.index === 0) mark("firstParagraphDisplayedMs");
+      clearSceneAnimation();
+      const source = event.source === previousParagraphSource ? null : event.source;
+      previousParagraphSource = event.source;
+      await animateStoryText({ headline: "", paragraphs: [event.text], source }, client.sceneRenderToken, null, {
+        append: true, continueBlock: hasChoiceThought || event.index > 0,
+        scrollToStart: !hasChoiceThought && event.index === 0, revealChoices: false, keepChoices: true,
+      });
+    });
+  };
   try {
-    const requestResultPromise = api(`/api/games/${client.gameId}/actions`, {
+    preloadActionSceneAssets(action, previousSnapshot);
+    const requestResultPromise = (action.type === "text_world" ? requestTextWorldAction(action, onStreamEvent) : api(`/api/games/${client.gameId}/actions`, {
       method: "POST",
       body: action,
-    })
+    }))
       .then(async (snapshot) => {
-        await preloadNextSceneAssets(snapshot);
+        mark("responseMs");
+        if (streamedParagraphs.length) {
+          const finalParagraphs = snapshot.currentScene.paragraphs;
+          if (streamedParagraphs.some((text, i) => text !== finalParagraphs[i])) throw new Error("표시한 서사와 저장된 결과가 일치하지 않습니다.");
+          for (let i = streamedParagraphs.length; i < finalParagraphs.length; i++) onStreamEvent({ type: "paragraph", index: i, text: finalParagraphs[i], source: snapshot.currentScene.paragraphSources?.[i] ?? snapshot.currentScene.source });
+        }
+        const assetsReady = preloadNextSceneAssets(snapshot);
+        prepareScenePresentation(snapshot);
+        mark("preparedMs");
+        await assetsReady;
+        mark("assetsMs");
         return { snapshot, error: null };
       })
       .catch((error) => ({ snapshot: null, error }));
+    const shelterStation = shelterStationForAction(action);
+    const shelterSceneVisualPromise = shelterStation
+      ? playShelterStationTransition(shelterStation)
+      : Promise.resolve();
     if (isMovementAction(action, loading)) {
       client.isPanelOpen = false;
       renderPanel();
@@ -3644,18 +4280,29 @@ async function submitAction(
     if (shouldShowTransition) {
       beginActionTransition(action, triggerElement, transitionDurationMs, loading);
     }
-    const transitionPromise = waitForMilliseconds(transitionDurationMs);
-    const immediateNarrativePromise = hasImmediateNarrative
-      ? transitionPromise.then(() => beginPostChoiceNarrative(immediateNarrative))
+    // Narrative generation already supplies the wait; its fill must not delay an early result.
+    const transitionPromise = continuousNarrative || hasChoiceThought
+      ? Promise.resolve() : waitForMilliseconds(transitionDurationMs);
+    const beginNarrative = () => presentingAction ? beginPostChoiceNarrative(
+      immediateNarrative,
+      !isMovementAction(action, loading) && (hasChoiceThought || !previousSnapshot.state.subwayExpedition?.active),
+      hasChoiceThought ? null : postChoiceNarrativeSource,
+      hasChoiceThought,
+    ) : undefined;
+    immediateNarrativePromise = hasImmediateNarrative
+      ? hasChoiceThought ? beginNarrative() : transitionPromise.then(beginNarrative)
       : Promise.resolve();
     const [{ snapshot, error }] = await Promise.all([
       requestResultPromise,
       transitionPromise,
+      shelterSceneVisualPromise,
     ]);
     if (error) {
       throw error;
     }
     await immediateNarrativePromise;
+    await paragraphQueue;
+    mark("presentationReadyMs");
     if (needsFreshGame(snapshot)) {
       finishActionTransition();
       await createNewGame();
@@ -3672,6 +4319,7 @@ async function submitAction(
       snapshot?.state?.location &&
       previousSnapshot.state.location !== snapshot.state.location;
     const newlyCompletedQuests = completedQuestChanges(previousSnapshot, snapshot);
+    const continueLocationStory = shouldContinueLocationStory(previousSnapshot, snapshot);
     client.snapshot = snapshot;
     client.lastFetchedAt = Date.now();
     client.mapHint = "";
@@ -3683,29 +4331,37 @@ async function submitAction(
     finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
+    if (streamedParagraphs.length) client.renderedStorySurfaceId = storySurfaceId(snapshot);
     render({
-      animateScene: hasImmediateNarrative
+      animateScene: streamedParagraphs.length ? false : hasImmediateNarrative
         ? true
         : shouldAnimateScene({
             source: "action",
             previousSnapshot,
             nextSnapshot: snapshot,
           }),
-      appendScene: hasImmediateNarrative,
+      appendScene: !streamedParagraphs.length && ((hasImmediateNarrative && (!hasChoiceThought || !didMove)) || continueLocationStory),
+      scrollSceneToStart: !streamedParagraphs.length && continueLocationStory && !hasChoiceThought,
+      continueActionStory: !streamedParagraphs.length && hasChoiceThought && !didMove,
     });
+    mark("renderedMs");
+    timing.renderWorkMs = timing.renderedMs - timing.presentationReadyMs;
     showQuestCompletionBurst(newlyCompletedQuests);
     if (didMove) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   } catch (error) {
+    presentingAction = false;
     window.alert(error instanceof Error ? error.message : "액션 처리에 실패했습니다.");
     clearSceneAnimation();
-    client.renderedStorySurfaceId = "";
+    if (savedHistory) restoreSceneHistory(savedHistory);
+    else client.renderedStorySurfaceId = "";
     finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
     render({ animateScene: false });
   } finally {
+    presentingAction = false;
     finishActionTransition();
     client.actionInFlight = false;
     client.pendingAction = null;
@@ -3713,15 +4369,20 @@ async function submitAction(
 }
 
 async function backgroundSync() {
-  if (client.backgroundSyncInFlight || client.isHomeVisible || document.hidden) return;
-  if (!client.gameId || client.actionInFlight) {
+  if (!client.gameId || client.isHomeVisible || document.hidden || client.actionInFlight || client.syncInFlight ||
+      Date.now() < Math.max(client.syncRetryAt, client.apiRetryAt)) {
     renderStatusBar();
     return;
   }
-  client.backgroundSyncInFlight = true;
+  client.syncInFlight = true;
+  const gameId = client.gameId;
+  const snapshotAtRequest = client.snapshot;
   try {
-    const snapshot = await api(`/api/games/${client.gameId}/actions`, { method: "POST", body: { type: "world_clock", command: "tick", clientId: clockClientId, sequence: ++clockSequence } });
-    if (client.actionInFlight || document.hidden || client.isHomeVisible || snapshot.gameId !== client.gameId) return;
+    const snapshot = await api(`/api/games/${gameId}/actions`, { method: "POST", body: { type: "world_clock", command: "tick", clientId: clockClientId, sequence: ++clockSequence } });
+    client.syncFailures = 0;
+    client.syncRetryAt = 0;
+    // A late poll must not overwrite a newer action or a different game.
+    if (client.gameId !== gameId || client.isHomeVisible || client.actionInFlight || client.snapshot !== snapshotAtRequest) return;
     if (needsFreshGame(snapshot)) {
       await createNewGame();
       render({
@@ -3761,10 +4422,12 @@ async function backgroundSync() {
     if (effectiveSnapshot.state.arcanaCombat?.battle) window.ArcanaCombatUI?.render(effectiveSnapshot, dom.sceneText);
     if (client.isPanelOpen && client.activePanel === "status") renderStatusPanel();
     showQuestCompletionBurst(newlyCompletedQuests);
-  } catch (_error) {
+  } catch (error) {
+    client.syncFailures = Math.min(client.syncFailures + 1, 5);
+    client.syncRetryAt = Math.max(error.retryAt || 0, Date.now() + Math.min(120000, 10000 * 2 ** client.syncFailures));
     renderStatusBar();
   } finally {
-    client.backgroundSyncInFlight = false;
+    client.syncInFlight = false;
   }
 }
 
@@ -3784,6 +4447,22 @@ async function bootstrap() {
     throw new Error("서버 상태가 올바르지 않습니다.");
   }
   await showHomeScreen();
+  let pending;
+  try { pending = JSON.parse(window.sessionStorage.getItem(PENDING_ACTION_KEY) || "null"); } catch { /* No recoverable receipt. */ }
+  if (pending?.gameId && pending?.requestId) {
+    let settled = false;
+    try {
+      const snapshot = await api(`/api/games/${encodeURIComponent(pending.gameId)}/actions/${encodeURIComponent(pending.requestId)}`);
+      settled = true;
+      client.gameId = snapshot.gameId;
+      client.snapshot = snapshot;
+      client.lastFetchedAt = Date.now();
+      client.hasUnsavedProgress = true;
+      showGameScreen();
+      render({ animateScene: false });
+    } catch (error) { settled = error.status === 404; }
+    finally { if (settled) try { window.sessionStorage.removeItem(PENDING_ACTION_KEY); } catch { /* Optional storage. */ } }
+  }
   refreshTransientScrollbars();
   window.setInterval(() => {
     renderStatusBar();
@@ -3841,7 +4520,7 @@ document.addEventListener("click", (event) => {
   const startedInDock = eventPath.some((node) =>
     node instanceof Element && node.classList.contains("utility-dock")
   ) || clickedElement?.closest(".utility-dock");
-  if (startedInPanel || startedInDock) {
+  if (startedInPanel || startedInDock || eventPath.includes(dom.explorationToggle)) {
     return;
   }
   client.isPanelOpen = false;
@@ -3971,6 +4650,13 @@ dom.homeLogout.addEventListener("click", async () => {
   }
 });
 
+dom.explorationToggle.addEventListener("click", () => {
+  if (client.actionInFlight || client.isSceneTyping || !client.snapshot?.exploration) return;
+  client.isPanelOpen = !(client.isPanelOpen && client.activePanel === "exploration");
+  client.activePanel = "exploration";
+  renderPanel();
+});
+
 dom.panelContent.addEventListener("click", (event) => {
   const statusViewButton = event.target.closest("[data-status-view]");
   if (statusViewButton) {
@@ -4070,6 +4756,7 @@ window.render_game_to_text = () => JSON.stringify({
   arcanaCombat: client.snapshot?.state?.arcanaCombat || null,
   activeClock: client.snapshot?.state?.activeClock || null,
   subwayExpedition: client.snapshot?.state?.subwayExpedition || null,
+  lastActionTiming: client.lastActionTiming,
   actionTransition: client.actionInFlight
     ? {
         message: client.actionTransitionMessage,
@@ -4078,8 +4765,12 @@ window.render_game_to_text = () => JSON.stringify({
         action: client.pendingAction,
       }
     : null,
+  sceneVisual: dom.sceneFrame.classList.contains("has-shelter-scene-visual")
+    ? sceneDirector.snapshot()
+    : null,
 });
 
+sceneDirector.preloadShelter().catch((error) => console.warn(error));
 bootstrap().catch((error) => {
   console.error(error);
   dom.homeScreen.hidden = false;

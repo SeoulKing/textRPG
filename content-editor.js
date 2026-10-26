@@ -29,7 +29,7 @@ const state = {
     builtInItemIds: [],
     builtInRecipeIds: [],
   },
-  tab: "items",
+  tab: "stories",
   selectedId: null,
   selectedSceneId: null,
   selectedChoiceId: null,
@@ -46,9 +46,12 @@ const state = {
 };
 
 const TAB_META = {
+  textRooms: { eyebrow: "ROOMS", title: "방·엔티티", singular: "엔티티" },
   items: { eyebrow: "ITEMS", title: "아이템", singular: "아이템" },
   recipes: { eyebrow: "RECIPES", title: "레시피", singular: "레시피" },
-  stories: { eyebrow: "STORIES", title: "이야기", singular: "이야기" },
+  stories: { eyebrow: "STORIES", title: "이벤트", singular: "이벤트" },
+  locations: { eyebrow: "WORLD", title: "지역", singular: "지역" },
+  people: { eyebrow: "CHARACTERS", title: "캐릭터", singular: "캐릭터" },
 };
 
 const CONDITION_TYPES = [
@@ -68,6 +71,7 @@ const EFFECT_TYPES = [
   ["add_item", "아이템 추가"],
   ["remove_item", "아이템 제거"],
   ["change_stat", "능력치 변경"],
+  ["add_condition", "부상·감염 발생"],
   ["change_money", "돈 변경"],
   ["set_flag", "플래그 설정"],
   ["clear_flag", "플래그 해제"],
@@ -99,7 +103,7 @@ function options(entries, selected, includeEmpty = false) {
 
 function itemOptions(selected, includeEmpty = false) {
   const entries = state.document.items
-    .map((item) => [item.id, `${item.name} · ${item.id}`])
+    .map((item) => [item.id, item.name])
     .sort((left, right) => left[1].localeCompare(right[1], "ko"));
   return options(entries, selected, includeEmpty);
 }
@@ -184,10 +188,12 @@ function bindItemReferencePickers(container) {
     const particleSelect = picker.querySelector("[data-item-reference-particle]");
     const insertButton = picker.querySelector("[data-insert-item-reference]");
     if (!target || !itemSelect || !particleSelect || !insertButton) return;
+    const itemEditor = typeof StudioItemTextEditor !== 'undefined' ? StudioItemTextEditor.mount(target,target.value,{key:`${state.selectedId}:legacy:${picker.dataset.targetField}`}) : null;
 
     insertButton.addEventListener("click", () => {
       const particle = particleSelect.value ? `|${particleSelect.value}` : "";
       const token = `{{item:${itemSelect.value}${particle}}}`;
+      if (itemEditor) { itemEditor.insert(token); return; }
       const start = target.selectionStart ?? target.value.length;
       const end = target.selectionEnd ?? start;
       target.setRangeText(token, start, end, "end");
@@ -199,7 +205,7 @@ function bindItemReferencePickers(container) {
 
 function locationOptions(selected) {
   return options(
-    state.catalogs.locations.map((location) => [location.id, `${location.name} · ${location.id}`]),
+    state.catalogs.locations.map((location) => [location.id, location.name]),
     selected,
   );
 }
@@ -233,6 +239,7 @@ function selectedEntity() {
 
 function markDirty() {
   state.dirty = true;
+  if (typeof writerChanged === "function") writerChanged();
   ui.saveState.textContent = "저장되지 않은 변경사항";
   ui.saveState.className = "save-state dirty";
 }
@@ -279,16 +286,18 @@ function showToast(message, error = false) {
 }
 
 function entityName(entity) {
-  if (state.tab === "items") return entity.name;
+  if (["items", "locations", "people", "textRooms"].includes(state.tab)) return entity.name;
   if (state.tab === "recipes") return resolveItemTextPreview(entity.label);
   return entity.title;
 }
 
 function entityBadges(entity) {
+  if (state.tab === "textRooms") return [`<span class="badge">엔티티 ${entity.entities.length}개</span>`];
+  if (state.tab === "locations") return [`<span class="badge">연결 ${entity.neighbors.length}</span>`];
+  if (state.tab === "people") return [`<span class="badge">${escapeHtml(entity.role)}</span>`];
   if (state.tab === "items") {
     return [
       `<span class="badge">${escapeHtml(entity.kind)}</span>`,
-      `<span class="badge accent">${escapeHtml(entity.rarity)}</span>`,
     ];
   }
   if (state.tab === "recipes") {
@@ -305,23 +314,29 @@ function entityBadges(entity) {
 }
 
 function renderCounts() {
+  document.querySelector("#roomCount").textContent = state.document.textRooms.length;
+  document.querySelector("#locationCount").textContent = state.document.locations.length;
+  document.querySelector("#personCount").textContent = state.document.people.length;
+  state.catalogs.locations = state.document.locations;
   ui.itemCount.textContent = state.document.items.length;
   ui.recipeCount.textContent = state.document.recipes.length;
   ui.storyCount.textContent = state.document.stories.length;
 }
 
 function renderList() {
+  ui.entityList.classList.toggle('writer-story-list', state.tab === 'stories');
   const normalizedQuery = state.query.trim().toLowerCase();
   const entries = collection()
+    .filter(entry => typeof writerMatches !== "function" || writerMatches(entry))
     .filter((entry) => {
-      const haystack = `${entry.id} ${entityName(entry)}`.toLowerCase();
+      const haystack = state.tab === "stories" ? studioStorySearchText(entry, state.document) : `${entry.id} ${entityName(entry)}`.toLowerCase();
       return !normalizedQuery || haystack.includes(normalizedQuery);
     })
     .sort((left, right) => entityName(left).localeCompare(entityName(right), "ko"));
 
   ui.entityList.innerHTML = entries.length
     ? entries.map((entry) => `
-      <button class="entity-card ${entry.id === state.selectedId ? "active" : ""}" data-select-id="${escapeHtml(entry.id)}" type="button">
+      <button class="entity-card ${state.tab === "items" ? "item-list-row" : ""} ${entry.id === state.selectedId ? "active" : ""}" data-select-id="${escapeHtml(entry.id)}" type="button">
         <strong>${escapeHtml(entityName(entry))}</strong>
         <span class="entity-id">${escapeHtml(entry.id)}</span>
         <span class="entity-meta">${entityBadges(entry).join("")}</span>
@@ -331,6 +346,7 @@ function renderList() {
 
   ui.entityList.querySelectorAll("[data-select-id]").forEach((button) => {
     button.addEventListener("click", () => {
+      if (state.tab === "stories") writer.library = false;
       state.selectedId = button.dataset.selectId;
       state.selectedSceneId = null;
       state.selectedChoiceId = null;
@@ -342,10 +358,12 @@ function renderList() {
 
 function renderShell() {
   const meta = TAB_META[state.tab];
+  ui.addButton.hidden = state.tab === "textRooms";
   ui.listEyebrow.textContent = meta.eyebrow;
   ui.listTitle.textContent = meta.title;
   ui.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === state.tab));
   renderCounts();
+  if (typeof renderWriterFilters === "function") renderWriterFilters();
   renderList();
   renderEditor();
 }
@@ -439,8 +457,9 @@ function editorHeader(kind, title, id, description) {
 
 function renderItem(item) {
   ui.editorPanel.innerHTML = `
+    <div class="item-editor">
     ${editorHeader("ITEM", item.name, item.id, "게임 안에서 획득하고 사용할 수 있는 물건")}
-    <div class="form-stack">
+    <div class="form-stack item-form-layout">
       <section class="form-section">
         <div class="section-title"><div><h3>기본 정보</h3><p>저장 데이터에서 사용하는 ID와 플레이어에게 보이는 정보를 정합니다.</p></div></div>
         <div class="field-grid">
@@ -468,6 +487,8 @@ function renderItem(item) {
             ["mind", "정신력"],
             ["energy", "기력"],
             ["exhaustionRelief", "탈진 완화"],
+            ["injuryRelief", "부상 치료 단계"],
+            ["infectionRelief", "감염 치료 단계"],
           ].map(([key, label]) => `
             <label class="metric">
               <span>${label}</span>
@@ -476,6 +497,7 @@ function renderItem(item) {
           `).join("")}
         </div>
       </section>
+    </div>
     </div>
   `;
 
@@ -522,6 +544,7 @@ function defaultEffect(type = "add_item") {
     add_item: { type, itemId: firstItem, amount: 1 },
     remove_item: { type, itemId: firstItem, amount: 1 },
     change_stat: { type, stat: "energy", value: 1 },
+    add_condition: { type, condition: "injury", chancePercent: 0 },
     change_money: { type, amount: 1000 },
     set_flag: { type, flag: "new_flag" },
     clear_flag: { type, flag: "new_flag" },
@@ -588,6 +611,8 @@ function effectParams(effect, index, arrayName) {
         <select ${attr("itemId")}>${itemOptions(effect.itemId)}</select>
         <input type="number" min="0" ${attr("value", "number")} value="${effect.value ?? 0}" />
       `;
+    case "add_condition":
+      return `<select ${attr("condition")}>${options([["injury", "부상"], ["infection", "감염"]], effect.condition)}</select><input type="number" min="0" max="100" step="any" ${attr("chancePercent")} data-mode="number" value="${effect.chancePercent ?? 0}" aria-label="발생 확률 (%)"> <span>% · 발생 시 +1단계</span>`;
     case "change_stat":
       return `
         <select ${attr("stat")}>${options([["hp", "체력"], ["mind", "정신력"], ["energy", "기력"]], effect.stat)}</select>
@@ -616,7 +641,7 @@ function effectParams(effect, index, arrayName) {
 
 function arrayEditorHtml(owner, arrayName, kind, title, description) {
   const entries = owner[arrayName] ?? [];
-  const typeList = kind === "condition" ? CONDITION_TYPES : EFFECT_TYPES;
+  const typeList = kind === "condition" ? CONDITION_TYPES : EFFECT_TYPES.filter(([type]) => !('weight' in owner) || !['advance_time', 'advance_to_daybreak', 'random_outcome'].includes(type));
   return `
     <section class="form-section">
       <div class="section-title">
@@ -680,6 +705,10 @@ function bindArrayEditors(container, owner) {
       entry[input.dataset.key] = input.dataset.mode === "number" ? Number(input.value || 0) : input.value;
       markDirty();
     });
+    const entry=owner[input.dataset.array][Number(input.dataset.index)];
+    if(entry.type==='log' && input.dataset.key==='message' && typeof StudioItemTextEditor!=='undefined') {
+      StudioItemTextEditor.mount(input,entry.message,{key:`${state.selectedId}:${owner.id??state.selectedChoiceId}:log:${input.dataset.array}:${input.dataset.index}`});
+    }
   });
 
   container.querySelectorAll("[data-raw-array]").forEach((textarea) => {
@@ -1002,9 +1031,15 @@ function renderEditor() {
   if (state.tab === "items") renderItem(entity);
   if (state.tab === "recipes") renderRecipe(entity);
   if (state.tab === "stories") renderStory(entity);
+  if (state.tab === "locations") renderLocation(entity);
+  if (state.tab === "people") renderPerson(entity);
+  if (state.tab === "textRooms") renderTextRoom(entity);
+  ui.editorPanel.querySelectorAll('[data-field="id"]').forEach(input => { input.readOnly = true; input.closest("label").hidden = true; });
 }
 
 function addEntity() {
+  if (state.tab === "textRooms") return addRoomEntity();
+  if (["stories", "locations", "people"].includes(state.tab)) return writerAddEntity();
   if (state.tab === "items") {
     const id = makeId("item");
     state.document.items.push({
@@ -1066,79 +1101,8 @@ function addEntity() {
   renderShell();
 }
 
-async function save() {
-  if (state.saving || state.publishing) return;
-  state.saving = true;
-  ui.saveButton.disabled = true;
-  ui.publishButton.disabled = true;
-  ui.saveState.textContent = "초안 검사 및 저장 중…";
-  ui.saveState.className = "save-state";
-  try {
-    const response = await studioFetch("/api/content-studio", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.document),
-    });
-    const payload = await response.json();
-    if (response.status === 401) {
-      showAuthGate(payload.message);
-      throw new Error(payload.message);
-    }
-    if (!response.ok) {
-      throw new Error(payload.message || "초안을 저장하지 못했습니다.");
-    }
-    state.document = payload.document;
-    state.status = payload.status;
-    markSaved();
-    renderShell();
-    showToast("초안을 저장했습니다. 게임에는 아직 공개되지 않았습니다.");
-  } catch (error) {
-    ui.saveState.textContent = "저장 실패";
-    ui.saveState.className = "save-state dirty";
-    showToast(error instanceof Error ? error.message : "저장하지 못했습니다.", true);
-  } finally {
-    state.saving = false;
-    ui.saveButton.disabled = false;
-    ui.publishButton.disabled = false;
-  }
-}
-
-async function publish() {
-  if (state.saving || state.publishing) return;
-  state.publishing = true;
-  ui.saveButton.disabled = true;
-  ui.publishButton.disabled = true;
-  ui.saveState.textContent = "콘텐츠 검사 및 공개 중…";
-  ui.saveState.className = "save-state";
-  try {
-    const response = await studioFetch("/api/content-studio/publish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.document),
-    });
-    const payload = await response.json();
-    if (response.status === 401) {
-      showAuthGate(payload.message);
-      throw new Error(payload.message);
-    }
-    if (!response.ok) {
-      throw new Error(payload.message || "콘텐츠를 공개하지 못했습니다.");
-    }
-    state.document = payload.document;
-    state.status = payload.status;
-    markSaved();
-    renderShell();
-    showToast("게임 콘텐츠를 공개했습니다. 다음 요청부터 바로 적용됩니다.");
-  } catch (error) {
-    ui.saveState.textContent = "공개 실패";
-    ui.saveState.className = "save-state dirty";
-    showToast(error instanceof Error ? error.message : "콘텐츠를 공개하지 못했습니다.", true);
-  } finally {
-    state.publishing = false;
-    ui.saveButton.disabled = false;
-    ui.publishButton.disabled = false;
-  }
-}
+async function save() { return writerSave(false); }
+async function publish() { return writerSave(true); }
 
 async function load() {
   try {
@@ -1153,7 +1117,11 @@ async function load() {
       return false;
     }
     state.document = payload.document;
+    const roomId = new URLSearchParams(location.search).get("room");
+    if (roomId && state.document.textRooms.some(room => room.id === roomId)) { state.tab = "textRooms"; state.selectedId = roomId; }
     state.catalogs = payload.catalogs;
+    state.selectedId ??= state.document.stories.find(s => !s.native)?.id ?? state.document.stories[0]?.id;
+    if (typeof writerLoaded === "function") writerLoaded();
     state.status = payload.status;
     markSaved();
     renderShell();
@@ -1175,7 +1143,7 @@ async function load() {
 ui.tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     state.tab = tab.dataset.tab;
-    state.selectedId = null;
+    state.selectedId = state.tab === "textRooms" ? state.document.textRooms[0]?.id ?? null : null;
     state.selectedSceneId = null;
     state.selectedChoiceId = null;
     state.query = "";
@@ -1184,9 +1152,16 @@ ui.tabs.forEach((tab) => {
   });
 });
 
-ui.searchInput.addEventListener("input", () => {
+ui.searchInput.addEventListener("input", (event) => {
   state.query = ui.searchInput.value;
+  if (event.isComposing) return;
   renderList();
+});
+
+document.querySelector("#listPanelToggle").addEventListener("click", (event) => {
+  const collapsed = document.querySelector(".workspace").classList.toggle("list-collapsed");
+  event.currentTarget.setAttribute("aria-expanded", String(!collapsed));
+  event.currentTarget.textContent = collapsed ? "목록 펼치기" : "목록 접기";
 });
 
 ui.addButton.addEventListener("click", addEntity);
@@ -1212,5 +1187,3 @@ window.addEventListener("beforeunload", (event) => {
   event.preventDefault();
   event.returnValue = "";
 });
-
-load();

@@ -1,3 +1,5 @@
+import { carriedByPlayer } from "./text-world/spatial";
+import { reconcileWorldInventory } from "./text-world/inventory-state";
 import { baseItems } from "./data/items";
 import { itemTextReference } from "./item-text";
 import { advanceGameMinutes, syncClock } from "./rules";
@@ -9,6 +11,12 @@ import {
   prepareSubwayFloorGeneration,
 } from "./subway-expedition-generator";
 import { MAX_SUBWAY_ENCOUNTER_CHOICE_COUNT } from "./subway-encounter";
+import {
+  createEmptySubwayRunBuild,
+  subwayRunBuildSummary,
+  subwaySkillDefinition,
+} from "./subway-roguelike";
+import { subwayChoiceThoughtFields } from "./subway-choice-thoughts";
 import type {
   ActionChoice,
   GameState,
@@ -348,6 +356,7 @@ function cleanupFailedExpedition(state: GameState) {
   state.subwayExpedition.currentFloor = null;
   state.subwayExpedition.carriedLoot = {};
   resetFloorProgress(state);
+  state.subwayExpedition.runBuild = createEmptySubwayRunBuild();
   state.subwayExpedition.runPlan = null;
   state.subwayExpedition.storyMemory = emptyStoryMemory();
   state.subwayExpedition.preparedNextFloor = null;
@@ -418,6 +427,7 @@ export async function startSubwayExpedition(
     preparedRunPlan ?? buildTemplateSubwayRunPlan({ runNumber }),
   );
   state.subwayExpedition = {
+    spatialMode: true, exploredFloors: {},
     active: true,
     runNumber,
     depth: 1,
@@ -436,6 +446,7 @@ export async function startSubwayExpedition(
       floorLoot: {},
       generationFailure: "",
     },
+    runBuild: createEmptySubwayRunBuild(),
     runPlan,
     storyMemory: storyMemoryFromPlan(runPlan),
     preparedNextFloor: null,
@@ -549,7 +560,7 @@ export function completeSubwayFloor(state: GameState) {
   if (!expedition.active || !expedition.currentFloor) {
     throw new Error("진행 중인 지하철 심층 탐험이 없습니다.");
   }
-  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete") {
+  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete" || expedition.spatialMode && ["escaped","failed","player_defeated"].includes(progress.encounter?.resolution ?? "")) {
     throw new Error("핵심 상황을 먼저 해결해야 합니다.");
   }
   progress.phase = "complete";
@@ -648,10 +659,12 @@ export async function descendSubwayFloor(
   if (!expedition.active || !floor) {
     throw new Error("진행 중인 지하철 심층 탐험이 없습니다.");
   }
-  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete") {
+  if (!progress.eventResolved || currentFloorPhase(progress) !== "complete" || expedition.spatialMode && ["escaped","failed","player_defeated"].includes(progress.encounter?.resolution ?? "")) {
     throw new Error("이 층의 핵심 상황이 끝난 뒤 내려갈 수 있습니다.");
   }
 
+  expedition.exploredFloors[String(floor.depth)]={floor:structuredClone(floor),progress:structuredClone(progress)};
+  if(state.textWorld)state.textWorld.active=false;
   const settlement = currentFloorSettlement(state);
   const floorLootEntries = Object.entries(progress.floorLoot)
     .filter(([, amount]) => amount > 0);
@@ -678,6 +691,8 @@ export async function descendSubwayFloor(
     nextDepth,
   );
   expedition.lastOutcome = `지하 ${floor.depth}층 정산: ${settlement.loot}`;
+  const visited=expedition.exploredFloors[String(nextDepth)];
+  if(visited){expedition.currentFloor=structuredClone(visited.floor);expedition.currentFloorProgress=structuredClone(visited.progress);expedition.preparedNextFloor=null;expedition.nextFloorStatus="idle";expedition.nextFloorError="";setSystemNote(state,[{type:"time",minutes:15},{type:"text",text:"지하 "+nextDepth+"층으로 돌아왔다.",tone:"neutral"}]);return;}
   resetFloorProgress(state);
   const cachedNextFloor = expedition.preparedNextFloor;
   expedition.preparedNextFloor = null;
@@ -711,7 +726,7 @@ export async function descendSubwayFloor(
   mergeFloorMemory(expedition.storyMemory, nextFloor);
   setSystemNote(state, [
     { type: "text", text: `지하 ${floor.depth}층 정산`, tone: "neutral" },
-    ...floorLootEntries.map(([itemId, amount]) => ({
+    ...(expedition.spatialMode ? [] : floorLootEntries).map(([itemId, amount]) => ({
       type: "delta" as const,
       subject: "item" as const,
       label: itemName(itemId),
@@ -722,6 +737,18 @@ export async function descendSubwayFloor(
     { type: "text", text: `지하 ${nextDepth}층 진입`, tone: "neutral" },
   ]);
   addLog(state, `지하 ${floor.depth}층 탐색을 마쳤다. ${settlement.loot}`);
+}
+
+export function ascendSubwayFloor(state: GameState) {
+  const e=state.subwayExpedition,previous=e.exploredFloors[String(e.depth-1)];
+  if(!e.active || !e.currentFloor || !previous || !e.currentFloorProgress.eventResolved || currentFloorPhase(e.currentFloorProgress)!=="complete")throw new Error("돌아갈 수 있는 이전 층이 없습니다.");
+  e.exploredFloors[String(e.depth)]={floor:structuredClone(e.currentFloor),progress:structuredClone(e.currentFloorProgress)};
+  if(state.textWorld)state.textWorld.active=false;
+  advanceGameMinutes(state,15);syncClock(state);
+  if(state.isGameOver || state.stageClear || state.stats.hp<=0){cleanupFailedExpedition(state);return;}
+  e.depth--;e.currentFloor=structuredClone(previous.floor);e.currentFloorProgress=structuredClone(previous.progress);
+  e.preparedNextFloor=null;e.nextFloorStatus="idle";e.nextFloorError="";
+  setSystemNote(state,[{type:"time",minutes:15},{type:"text",text:"지하 "+e.depth+"층으로 돌아왔다.",tone:"neutral"}]);
 }
 
 export function returnFromSubwayExpedition(state: GameState) {
@@ -738,17 +765,21 @@ export function returnFromSubwayExpedition(state: GameState) {
 
   const lootEntries = Object.entries(expedition.carriedLoot).filter(([, amount]) => amount > 0);
   if (!state.isGameOver && !state.stageClear && state.stats.hp > 0) {
+    reconcileWorldInventory(state);
+    if(state.textWorld)for(const entity of Object.values(state.textWorld.entities))if(entity.expeditionLoot && carriedByPlayer(state.textWorld,entity))delete entity.expeditionLoot;
     lootEntries.forEach(([itemId, amount]) => {
       state.inventory[itemId] = (state.inventory[itemId] ?? 0) + amount;
     });
   }
 
   const lootSummary = carriedLootSummary(state);
+  if(state.textWorld)state.textWorld.active=false;
   expedition.active = false;
   expedition.depth = 0;
   expedition.currentFloor = null;
   expedition.carriedLoot = {};
   resetFloorProgress(state);
+  expedition.runBuild = createEmptySubwayRunBuild();
   expedition.runPlan = null;
   expedition.storyMemory = emptyStoryMemory();
   expedition.preparedNextFloor = null;
@@ -811,24 +842,47 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
       return [];
     }
     return encounter.currentScene.choices
+      .filter((choice) => choice.intent.primary !== "use_item")
       .slice(0, MAX_SUBWAY_ENCOUNTER_CHOICE_COUNT)
       .map((choice) => ({
-        id: choice.id,
-        label: choice.label,
-        outcomeHint: "",
-        showOutcomeHint: false,
-        postChoiceNarrative: choice.postChoiceNarrative,
-        action: {
-          type: "subway_expedition" as const,
-          command: "encounter_choice" as const,
-          optionId: choice.id,
-          turnNumber: encounter.turnNumber,
-        },
-        loading: {
-          durationMs: 650,
-        },
+      id: choice.id,
+      label: choice.label,
+      outcomeHint: choice.effectDescription,
+      showOutcomeHint: true,
+      ...subwayChoiceThoughtFields(choice),
+      action: {
+        type: "subway_expedition" as const,
+        command: "encounter_choice" as const,
+        optionId: choice.id,
+        turnNumber: encounter.turnNumber,
+      },
+      loading: {
+        durationMs: 650,
+      },
         isAvailable: true,
       }));
+  }
+
+  if (phase === "upgrade") {
+    return expedition.runBuild.pendingUpgradeChoices.map((skillId) => {
+      const skill = subwaySkillDefinition(skillId);
+      const nextRank = expedition.runBuild.skillRanks[skillId] + 1;
+      return {
+        id: `subway-upgrade-${skillId}-${nextRank}`,
+        label: `${skill.name} ${nextRank}등급을 익힌다`,
+        outcomeHint: skill.description,
+        showOutcomeHint: true,
+        action: {
+          type: "subway_expedition" as const,
+          command: "choose_upgrade" as const,
+          optionId: skillId,
+        },
+        loading: {
+          durationMs: 500,
+        },
+        isAvailable: true,
+      };
+    });
   }
 
   if (phase === "encounter_result") {
@@ -899,6 +953,7 @@ export function buildSubwayExpeditionActions(state: GameState): ActionChoice[] {
   }
 
   if (phase === "complete") {
+    if(expedition.spatialMode && ["escaped","failed","player_defeated"].includes(expedition.currentFloorProgress.encounter?.resolution ?? ""))return [returnAction(state)];
     const descendAction: ActionChoice = {
       id: "descend-subway-floor",
       label: "다음 층으로 내려간다",
@@ -933,6 +988,9 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
     label: choice.label,
     outcomeHint: choice.outcomeHint,
     showOutcomeHint: choice.showOutcomeHint,
+    choiceThought: choice.choiceThought,
+    choiceThoughtSource: choice.choiceThoughtSource,
+    loading: choice.loading,
     serverActionHint: choice.action,
     isAvailable: choice.isAvailable,
   }));
@@ -950,15 +1008,29 @@ export function buildSubwayExpeditionScene(state: GameState): SceneCard | null {
   const encounter = progress.encounter;
   const encounterScene = encounter?.currentScene;
   if (
-    (phase === "encounter" || phase === "encounter_result" || phase === "complete") &&
+    (
+      phase === "encounter" ||
+      phase === "encounter_result" ||
+      phase === "upgrade" ||
+      phase === "complete"
+    ) &&
     encounter &&
     encounterScene
   ) {
+    const upgradePrompt = phase === "upgrade"
+      ? [
+          `전투를 통해 몸에 밴 요령 하나를 이번 원정의 기술로 굳힐 수 있다. ${subwayRunBuildSummary(state)}.`,
+          "아래 기술 가운데 하나를 선택하면 이번 지하철 원정이 끝날 때까지 모든 이후 전투에 적용된다.",
+        ]
+      : [];
     return {
-      id: `${floor.id}:encounter:${encounter.id}:${encounter.turnNumber}`,
+      id: `${floor.id}:encounter:${encounter.id}:${encounter.turnNumber}:${phase}`,
       locationId: "subway",
       title: `지하 ${floor.depth}층 · ${encounterScene.title}`,
-      paragraphs: [...encounterScene.paragraphs],
+      paragraphs: [
+        ...encounterScene.paragraphs,
+        ...upgradePrompt,
+      ],
       choices,
       materialIds: {
         ...materialIds,

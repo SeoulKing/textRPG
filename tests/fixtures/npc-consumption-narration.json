@@ -1,0 +1,460 @@
+{
+  "description": "Unedited Gemini response: the NPC ate a gifted meal, but the first paragraph merely says they hold it. All required fact IDs were present.",
+  "context": {
+    "interaction": {
+      "mode": "FOCUS",
+      "focus": "지하층 계단",
+      "holding": null,
+      "goal": "explore",
+      "threat": null
+    },
+    "voice": {
+      "person": "first",
+      "selfReference": "나",
+      "tense": "present",
+      "omitSubject": true
+    },
+    "intent": {
+      "id": "inspect:subway_depth_stairs",
+      "label": "지하층 계단을 자세히 살핀다",
+      "thought": "가까이서 보면 더 알 수 있겠지.",
+      "importance": "major"
+    },
+    "location": {
+      "id": "concourse",
+      "name": "지하철역 · 대합실",
+      "lighting": "lit",
+      "firstVisit": false
+    },
+    "player": {
+      "zone": "concourse",
+      "near": "subway_depth_stairs",
+      "position": "depth-stairs",
+      "facing": "subway_depth_stairs",
+      "posture": "standing",
+      "heldToolId": null,
+      "placementTargetId": null,
+      "focusEntityId": "subway_depth_stairs",
+      "heldItemId": null,
+      "manipulating": false,
+      "relation": "near",
+      "coverId": null,
+      "positionLabel": "지상 계단 입구 기준 정면 개찰구 너머의 지하층 계단 앞",
+      "facingLabel": "지하층 계단",
+      "heldTool": null
+    },
+    "results": [
+      {
+        "origin": "player",
+        "actorId": "player",
+        "witnessed": true,
+        "type": "MOVE",
+        "targetId": "subway_depth_stairs",
+        "before": {
+          "zone": "concourse",
+          "near": "shumi_presence",
+          "position": "pillar",
+          "facing": "shumi_presence",
+          "posture": "standing",
+          "heldToolId": null,
+          "placementTargetId": null,
+          "focusEntityId": "shumi_presence",
+          "heldItemId": null,
+          "manipulating": false,
+          "relation": "near",
+          "coverId": null
+        },
+        "after": {
+          "zone": "concourse",
+          "near": "subway_depth_stairs",
+          "position": "depth-stairs",
+          "facing": "subway_depth_stairs",
+          "posture": "standing",
+          "heldToolId": null,
+          "placementTargetId": null,
+          "focusEntityId": "subway_depth_stairs",
+          "heldItemId": null,
+          "manipulating": false,
+          "relation": "near",
+          "coverId": null,
+          "name": "지하층 계단",
+          "placement": "지상 계단 입구 기준 정면 개찰구 너머"
+        },
+        "at": 10,
+        "id": "event:3"
+      },
+      {
+        "origin": "simulation",
+        "actorId": "shumi_presence",
+        "witnessed": true,
+        "type": "NPC_CONSUME",
+        "targetId": "shumi_presence",
+        "before": {},
+        "after": {
+          "name": "슈미",
+          "itemId": "cannedFood",
+          "itemName": "캔 음식",
+          "amount": 1
+        },
+        "causedBy": "event:3",
+        "at": 11,
+        "id": "event:4"
+      },
+      {
+        "origin": "simulation",
+        "actorId": "shumi_presence",
+        "witnessed": true,
+        "type": "ACTOR_ACTIVITY",
+        "targetId": "shumi_presence",
+        "before": {},
+        "after": {
+          "name": "슈미",
+          "detail": "자리에 머물며 쉬고 있다."
+        },
+        "causedBy": "event:3",
+        "at": 11,
+        "id": "event:5"
+      },
+      {
+        "origin": "player",
+        "actorId": "player",
+        "witnessed": true,
+        "type": "INSPECT",
+        "targetId": "subway_depth_stairs",
+        "before": {
+          "firstInspection": true
+        },
+        "after": {
+          "stage": "surface",
+          "name": "지하층 계단",
+          "revealedIds": []
+        },
+        "at": 15,
+        "id": "event:6"
+      }
+    ],
+    "requiredFacts": [
+      {
+        "id": "result:0",
+        "kind": "result",
+        "targetId": "subway_depth_stairs",
+        "data": {
+          "origin": "player",
+          "actorId": "player",
+          "witnessed": true,
+          "type": "MOVE",
+          "targetId": "subway_depth_stairs",
+          "before": {
+            "zone": "concourse",
+            "near": "shumi_presence",
+            "position": "pillar",
+            "facing": "shumi_presence",
+            "posture": "standing",
+            "heldToolId": null,
+            "placementTargetId": null,
+            "focusEntityId": "shumi_presence",
+            "heldItemId": null,
+            "manipulating": false,
+            "relation": "near",
+            "coverId": null
+          },
+          "after": {
+            "zone": "concourse",
+            "near": "subway_depth_stairs",
+            "position": "depth-stairs",
+            "facing": "subway_depth_stairs",
+            "posture": "standing",
+            "heldToolId": null,
+            "placementTargetId": null,
+            "focusEntityId": "subway_depth_stairs",
+            "heldItemId": null,
+            "manipulating": false,
+            "relation": "near",
+            "coverId": null,
+            "name": "지하층 계단",
+            "placement": "지상 계단 입구 기준 정면 개찰구 너머"
+          },
+          "at": 10,
+          "id": "event:3"
+        }
+      },
+      {
+        "id": "result:1",
+        "kind": "result",
+        "targetId": "shumi_presence",
+        "data": {
+          "origin": "simulation",
+          "actorId": "shumi_presence",
+          "witnessed": true,
+          "type": "NPC_CONSUME",
+          "targetId": "shumi_presence",
+          "before": {},
+          "after": {
+            "name": "슈미",
+            "itemId": "cannedFood",
+            "itemName": "캔 음식",
+            "amount": 1
+          },
+          "causedBy": "event:3",
+          "at": 11,
+          "id": "event:4"
+        }
+      },
+      {
+        "id": "result:2",
+        "kind": "result",
+        "targetId": "shumi_presence",
+        "data": {
+          "origin": "simulation",
+          "actorId": "shumi_presence",
+          "witnessed": true,
+          "type": "ACTOR_ACTIVITY",
+          "targetId": "shumi_presence",
+          "before": {},
+          "after": {
+            "name": "슈미",
+            "detail": "자리에 머물며 쉬고 있다."
+          },
+          "causedBy": "event:3",
+          "at": 11,
+          "id": "event:5"
+        }
+      },
+      {
+        "id": "result:3",
+        "kind": "result",
+        "targetId": "subway_depth_stairs",
+        "data": {
+          "origin": "player",
+          "actorId": "player",
+          "witnessed": true,
+          "type": "INSPECT",
+          "targetId": "subway_depth_stairs",
+          "before": {
+            "firstInspection": true
+          },
+          "after": {
+            "stage": "surface",
+            "name": "지하층 계단",
+            "revealedIds": []
+          },
+          "at": 15,
+          "id": "event:6"
+        }
+      },
+      {
+        "id": "surface:subway_depth_stairs",
+        "kind": "surface",
+        "data": {
+          "name": "지하층 계단",
+          "detail": "개찰구 너머로 지하 1층에 내려가는 계단이 이어진다."
+        },
+        "targetId": "subway_depth_stairs"
+      }
+    ],
+    "optionalFacts": [],
+    "knownFacts": [],
+    "recentScenes": [
+      {
+        "zone": "concourse",
+        "intent": "대합실로 들어선다",
+        "paragraphs": [
+          "지상 계단을 내려와 대합실에 들어선다. 가까운 사물을 구별할 만큼 빛이 닿는다.",
+          "지상 계단에서 내려온 입구 오른쪽으로 역무실이 이어지고, 정면에는 개찰구가 있다. 지상 계단 입구 기준 정면 개찰구 너머에는 지하층 계단이 보인다. 지상 계단 입구 기준 정면 개찰구의 왼쪽 기둥 아래에는 슈미가 보인다. 슈미는 자리에 머물며 쉬고 있다."
+        ]
+      },
+      {
+        "zone": "concourse",
+        "intent": "슈미에게 다가가 말을 건넨다",
+        "paragraphs": [
+          "슈미 곁으로 다가가 말을 건넨다.",
+          "슈미가 고개를 들어 이쪽을 살핀다.",
+          "무슨 일이세요? 여기 구경하러 내려온 건 아닐 텐데요."
+        ]
+      },
+      {
+        "zone": "concourse",
+        "intent": "슈미와 대화한다",
+        "paragraphs": [
+          "캔 음식 1개를 건네자 슈미가 받아 든다.",
+          "슈미는 건네받은 물건을 살핀 뒤 고개를 든다.",
+          "고마워요. 이건 잘 쓸게요."
+        ]
+      }
+    ],
+    "paragraphCount": {
+      "min": 2,
+      "max": 3
+    },
+    "direction": {
+      "focusTargetId": "shumi_presence",
+      "beats": [
+        {
+          "role": "approach",
+          "resultFactIds": [
+            "result:0"
+          ],
+          "detailFactIds": []
+        },
+        {
+          "role": "change",
+          "resultFactIds": [
+            "result:1"
+          ],
+          "detailFactIds": []
+        },
+        {
+          "role": "change",
+          "resultFactIds": [
+            "result:2"
+          ],
+          "detailFactIds": []
+        },
+        {
+          "role": "contact",
+          "resultFactIds": [
+            "result:3"
+          ],
+          "detailFactIds": [
+            "surface:subway_depth_stairs"
+          ]
+        }
+      ]
+    },
+    "nextChoices": [
+      {
+        "id": "talk:shumi",
+        "label": "슈미에게 다가가 말을 건넨다",
+        "family": "SOCIAL",
+        "targetId": "shumi_presence",
+        "selectionSignature": "5755713c",
+        "defaultThought": "궁금한 걸 직접 물어보자.",
+        "labelNames": [
+          "슈미"
+        ]
+      },
+      {
+        "id": "journey:start_subway_expedition",
+        "label": "준비를 마치고 지하 1층으로 내려간다",
+        "family": "TRAVEL",
+        "targetId": "subway_depth_stairs",
+        "selectionSignature": "5755713c",
+        "defaultThought": "내려가기 전에 챙길 건 다 챙겼나.",
+        "labelNames": []
+      },
+      {
+        "id": "defocus",
+        "label": "지하층 계단에서 시선을 돌린다",
+        "family": "DEFOCUS",
+        "selectionSignature": "5755713c",
+        "defaultThought": "다른 쪽에도 볼 게 남아 있을까.",
+        "labelNames": [
+          "지하층 계단"
+        ]
+      }
+    ]
+  },
+  "raw": {
+    "paragraphs": [
+      {
+        "factIds": [
+          "result:0"
+        ],
+        "text": "지상 계단 입구 기준 정면 개찰구 너머의 지하층 계단 앞으로 걸음을 옮기는 사이, 뒤편의 기둥 쪽에 자리한 슈미가 캔 음식 1개를 받아 쥔 채 자리에 머물며 쉬고 있다."
+      },
+      {
+        "factIds": [
+          "result:1",
+          "result:2",
+          "result:3",
+          "surface:subway_depth_stairs"
+        ],
+        "text": "가까워진 지하층 계단을 눈으로 짚는다. 개찰구 너머로 지하 1층에 내려가는 계단이 이어진다."
+      }
+    ],
+    "choiceLabels": [
+      {
+        "optionId": "talk:shumi",
+        "label": "슈미에게 다가가 말을 건넨다",
+        "thought": "궁금한 걸 직접 물어보자."
+      },
+      {
+        "optionId": "journey:start_subway_expedition",
+        "label": "준비를 마치고 지하 1층으로 내려간다",
+        "thought": "내려가기 전에 챙길 건 다 챙겼나."
+      },
+      {
+        "optionId": "defocus",
+        "label": "지하층 계단에서 시선을 돌린다",
+        "thought": "다른 쪽에도 볼 게 남아 있을까."
+      }
+    ]
+  },
+  "timing": {
+    "totalMs": 2231,
+    "providerCalls": 1,
+    "rulesMs": 0,
+    "model": "gemini-3.5-flash-lite",
+    "inputCharacters": 9467,
+    "firstChunkMs": 1157,
+    "firstParagraphMs": 1411,
+    "inputTokens": 3825,
+    "outputTokens": 285,
+    "generationMs": 2230,
+    "narration": "llm"
+  },
+  "afterPromptRaw": {
+    "paragraphs": [
+      {
+        "factIds": [
+          "result:0"
+        ],
+        "text": "지상 계단 입구 기준 정면 개찰구 너머의 지하층 계단 앞으로 걸음을 옮긴다."
+      },
+      {
+        "factIds": [
+          "result:1",
+          "result:2"
+        ],
+        "text": "뒤편에서는 슈미가 캔 음식 1개를 먹으며 자리에 머물며 쉬고 있다."
+      },
+      {
+        "factIds": [
+          "result:3",
+          "surface:subway_depth_stairs"
+        ],
+        "text": "시선을 내려 개찰구 너머로 지하 1층에 내려가는 계단이 이어지는 지하층 계단을 살핀다."
+      }
+    ],
+    "choiceLabels": [
+      {
+        "optionId": "talk:shumi",
+        "label": "슈미에게 다가가 말을 건넨다",
+        "thought": "무슨 말을 더 해볼까."
+      },
+      {
+        "optionId": "journey:start_subway_expedition",
+        "label": "준비를 마치고 지하 1층으로 내려간다",
+        "thought": "이제 아래로 내려가 볼까."
+      },
+      {
+        "optionId": "defocus",
+        "label": "지하층 계단에서 시선을 돌린다",
+        "thought": "다른 곳을 둘러봐야겠어."
+      }
+    ]
+  },
+  "afterPromptTiming": {
+    "totalMs": 2196,
+    "providerCalls": 1,
+    "rulesMs": 0,
+    "model": "gemini-3.5-flash-lite",
+    "inputCharacters": 9644,
+    "firstChunkMs": 1353,
+    "firstParagraphMs": 1429,
+    "inputTokens": 3904,
+    "outputTokens": 309,
+    "generationMs": 2194,
+    "narration": "llm"
+  }
+}

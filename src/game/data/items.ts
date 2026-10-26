@@ -5,6 +5,24 @@
 import { defineItem } from "./item-helpers";
 
 export const baseItems = {
+  flashlight: defineItem({
+    id: "flashlight", name: "손전등", description: "어두운 곳을 비추는 휴대용 손전등. 아이템에서 켜거나 끌 수 있다.",
+    kind: "tool", rarity: "common", price: 0, tags: ["조명", "탐색"],
+  }),
+  ironDoorKey: defineItem({
+    id: "ironDoorKey", name: "철문 열쇠", description: "역무실 바닥에서 찾은 작은 금속 열쇠. 정비 복도로 통하는 철문의 잠금을 푼다.",
+    kind: "material", rarity: "common", price: 0, tags: ["열쇠", "탐색"],
+  }),
+  bandage: defineItem({
+    id: "bandage", name: "붕대", description: "상처를 감싸 부상을 1단계 치료한다. 체력은 회복하지 않는다.",
+    kind: "medicine", rarity: "common", price: 1800, tags: ["약품", "부상 치료"],
+    effects: { injuryRelief: 1 }, useMinutes: 5,
+  }),
+  antibiotics: defineItem({
+    id: "antibiotics", name: "항생제", description: "감염을 1단계 치료하고 다음 악화까지의 시간을 6시간으로 되돌린다.",
+    kind: "medicine", rarity: "uncommon", price: 3800, tags: ["약품", "감염 치료"],
+    effects: { infectionRelief: 1 }, useMinutes: 5,
+  }),
   emergencySnack: defineItem({
     id: "emergencySnack",
     name: "비상식량",
@@ -38,6 +56,7 @@ export const baseItems = {
   }),
   waterBottle: defineItem({
     id: "waterBottle",
+    throwable: {"unitMass":0.5,"sound":{"description":"물병이 바닥에 부딪히는 둔탁한 소리","intensity":0.8}},
     name: "물병",
     description: "목을 축이고 정신을 조금 붙잡을 수 있다.",
     kind: "drink",
@@ -74,10 +93,36 @@ export const baseItems = {
     price: 0,
     tags: ["배식", "교환"],
   }),
+  wood: defineItem({
+    id: "wood",
+    name: "목재",
+    description: "벌목으로 얻은 가공 전 목재다. 나무 판자나 땔감으로 가공할 수 있다.",
+    kind: "material",
+    rarity: "common",
+    price: 500,
+    tags: [
+      "재료",
+      "목재",
+      "가공"
+    ]
+  }),
+  firewood: defineItem({
+    id: "firewood",
+    name: "땔감",
+    description: "불을 피우기 좋게 잘게 쪼갠 목재다. 목재 1개로 4개를 만들며, 요리에 연료로 사용한다.",
+    kind: "material",
+    rarity: "common",
+    price: 100,
+    tags: [
+      "재료",
+      "목재",
+      "연료"
+    ]
+  }),
   woodPlank: defineItem({
     id: "woodPlank",
-    name: "목재 판자",
-    description: "부서진 선반이나 가구에서 뜯어 낸 판자다. 거처 보강과 불쏘시개에 쓸 수 있다.",
+    name: "나무 판자",
+    description: "목재를 평평하게 다듬은 판자다. 거처 보강과 시설, 도구 제작에 쓸 수 있다.",
     kind: "material",
     rarity: "common",
     price: 700,
@@ -85,6 +130,7 @@ export const baseItems = {
   }),
   scrapMetal: defineItem({
     id: "scrapMetal",
+    throwable: {"unitMass":0.2,"sound":{"description":"고철이 바닥에 부딪히는 금속성 소리","intensity":0.9}},
     name: "고철 조각",
     description: "휘어진 철판과 금속 부품을 모아 묶은 것이다. 간이 제작과 수리에 두루 쓰인다.",
     kind: "material",
@@ -112,6 +158,7 @@ export const baseItems = {
   }),
   crudeAxe: defineItem({
     id: "crudeAxe",
+    combat: {"kind":"attack","hitChance":85,"damage":4,"counterChance":60},
     name: "손도끼",
     description: "고철 날과 짧은 목재 손잡이를 천으로 단단히 감아 만든 조잡한 도끼다. 오래 쓰긴 어렵지만 벌목에는 확실히 낫다.",
     kind: "tool",
@@ -119,9 +166,11 @@ export const baseItems = {
     price: 0,
     tags: ["도구", "벌목", "제작"],
     maxDurability: 8,
+    toolCapabilities: { cut: 3, strike: 3, pry: 1 },
   }),
   utilityKnife: defineItem({
     id: "utilityKnife",
+    combat: {"kind":"attack","hitChance":90,"damage":3,"counterChance":50},
     name: "간이 칼",
     description: "얇은 금속 조각을 갈아 만든 작은 칼이다. 덤불과 천을 가르는 데는 충분하지만 날이 금방 무뎌진다.",
     kind: "tool",
@@ -129,6 +178,42 @@ export const baseItems = {
     price: 0,
     tags: ["도구", "수색", "제작"],
     maxDurability: 10,
+    toolCapabilities: { cut: 1 },
+  }),
+  subwayBaton: defineItem({
+    id: "subwayBaton",
+    combat: {"kind":"attack","hitChance":88,"damage":3,"counterChance":45},
+    toolCapabilities: { strike: 4, pry: 3 },
+    name: "철제 진압봉",
+    description: "지하철 보안함에서 나온 짧은 진압봉이다. 좁은 통로에서도 휘두르기 쉽고 충격이 단단히 실린다.",
+    kind: "tool",
+    rarity: "rare",
+    price: 0,
+    tags: ["도구", "전투", "지하철"],
+    maxDurability: 14,
+  }),
+  makeshiftShield: defineItem({
+    id: "makeshiftShield",
+    combat: {"kind":"guard","successChance":100,"damageReduction":0},
+    name: "철판 방패",
+    description: "개찰구 철판에 손잡이를 단 방패다. 무겁지만 정면에서 들어오는 타격을 확실히 받아 낸다.",
+    kind: "tool",
+    rarity: "rare",
+    price: 0,
+    tags: ["도구", "방어", "지하철"],
+    maxDurability: 12,
+  }),
+  breakerMachete: defineItem({
+    id: "breakerMachete",
+    toolCapabilities: { cut: 4, strike: 3 },
+    combat: {"kind":"attack","hitChance":85,"damage":5,"counterChance":45},
+    name: "절연 마체테",
+    description: "심층 구역의 지배자가 쓰던 두꺼운 마체테다. 절연 손잡이와 무거운 날이 방호구까지 가른다.",
+    kind: "tool",
+    rarity: "rare",
+    price: 0,
+    tags: ["도구", "전투", "지하철", "보스"],
+    maxDurability: 18,
   }),
   dentedPot: defineItem({
     id: "dentedPot",
@@ -152,21 +237,39 @@ export const baseItems = {
   vegetables: defineItem({
     id: "vegetables",
     name: "채소",
-    description: "요리 재료. 끓이거나 구우면 한 끼를 보탠다.",
+    description: "급식소와 숲에서 구할 수 있는 채소다. 끓이거나 구워 요리하는 식재료다.",
     kind: "food",
     rarity: "common",
     price: 600,
     tags: ["재료", "요리"],
   }),
-  wildGreens: defineItem({
-    id: "wildGreens",
-    name: "산나물",
-    description: "숲 가장자리에서 뜯어 온 먹을 수 있는 풀잎이다. 그대로 먹기엔 거칠지만 끓이면 제법 양이 난다.",
+  meat: defineItem({
+    id: "meat",
+    name: "고기",
+    description: "손질해 둔 고기다. 불에 익혀 요리하는 식재료다.",
     kind: "food",
     rarity: "common",
-    price: 400,
-    tags: ["식량", "재료", "숲"],
-    effects: { energy: 1 },
+    price: 1500,
+    tags: ["재료", "요리"],
+  }),
+  riverFish: defineItem({
+    id: "riverFish",
+    name: "민물고기",
+    description: "강에서 낚아 올린 작은 민물고기다. 손질해 불에 익히면 제법 든든한 한 끼가 된다.",
+    kind: "material",
+    rarity: "common",
+    price: 1000,
+    tags: ["식재료", "낚시", "강", "요리"],
+  }),
+  grilledFish: defineItem({
+    id: "grilledFish",
+    name: "생선구이",
+    description: "갓 잡은 민물고기를 불에 노릇하게 구웠다. 소박하지만 따뜻하고 든든하다.",
+    kind: "food",
+    rarity: "common",
+    price: 0,
+    tags: ["식량", "요리", "회복"],
+    effects: { energy: 3 },
     useMinutes: 10,
   }),
   staleBread: defineItem({

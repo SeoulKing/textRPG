@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>폐허 서울: 캠프 생존</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="styles.css?v=20261026-fireball-motion">
+  <link rel="stylesheet" href="styles.css?v=20261026-arcana-sync">
   <link rel="stylesheet" href="assets/magic-dungeon.css?v=20261026-flat-choices">
 </head>
 <body>
@@ -23,6 +23,7 @@
         <button id="home-continue" class="home-action" type="button" disabled>이어하기</button>
         <button id="home-arcana-start" class="home-action arcana" type="button">아르카나에서 시작하기</button>
         <button id="home-fullscreen-play" class="home-action fullscreen" type="button">전체화면</button>
+        <a class="home-action" href="/client/state-world.html">작은 창고 · 상태 기반 월드</a>
         <a class="home-action unity" href="/unity-web">유니티 웹</a>
         <a class="home-action studio" href="/content-editor">콘텐츠 스튜디오</a>
       </div>
@@ -63,6 +64,7 @@
             <strong id="time-indicator">D1 06:00</strong>
           </section>
         </div>
+        <div id="condition-badges" class="condition-badges" aria-label="상태 이상" hidden></div>
         <section id="encounter-status" class="encounter-status" aria-live="polite" hidden>
           <strong id="encounter-status-name" class="encounter-status-name">강도</strong>
           <progress
@@ -73,6 +75,7 @@
             aria-label="강도 체력 4 / 4"
           ></progress>
           <span id="encounter-health-value" class="encounter-health-value">4/4</span>
+          <span id="encounter-build-summary" class="encounter-build-summary"></span>
         </section>
         <div id="status-popover" class="status-popover" hidden></div>
       </header>
@@ -80,16 +83,27 @@
         <section class="scene-frame">
           <div class="scene-art-wrap">
             <img id="scene-art" src="assets/scenes/camp.svg" alt="현재 장면 일러스트">
-            <div class="scene-overlay">
-              <span id="scene-location-badge" class="pill">생존자 캠프</span>
-              <span id="scene-risk-badge" class="pill muted">안전</span>
-            </div>
+            <canvas
+              id="scene-animation"
+              class="scene-animation-canvas"
+              width="768"
+              height="224"
+              aria-hidden="true"
+              hidden
+            ></canvas>
           </div>
           <div class="scene-copy">
             <div id="scene-dev-source" class="scene-dev-source" hidden></div>
-            <div id="scene-text" class="scene-text"></div>
-            <div id="system-note" class="system-note" hidden></div>
+            <div id="scene-text" class="scene-text">
+              <div class="scene-story-block">
+                <div class="scene-story-content">
+                  <div class="scene-prose"></div>
+                  <div id="system-note" class="system-note" role="status" hidden></div>
+                </div>
+              </div>
+            </div>
             <div id="choices" class="choice-list"></div>
+            <button id="exploration-toggle" class="exploration-toggle" type="button" hidden aria-expanded="false">주변과 물건</button>
           </div>
         </section>
       </main>
@@ -124,6 +138,6 @@
 
   <script src="assets/magic-dungeon-ui.js?v=20261001-info"></script>
   <script src="assets/arcana-fireball-fx.js?v=20261026-fireball-motion"></script>
-  <script type="module" src="app-api.js?v=20261026-arcana-academy"></script>
+  <script type="module" src="app-api.js?v=20261026-arcana-sync"></script>
 </body>
 </html>

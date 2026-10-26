@@ -1,19 +1,25 @@
 export type NpcDialogueProfile = {
   id: string;
   name: string;
-  age: number;
+  age?: number;
+  acceptedGifts?: string[];
+  initialInventory?: Record<string, number>;
+  trades?: { id: string; minAffinity: number; give: { itemId: string; amount: number }; receive: { itemId: string; amount: number } }[];
   identity: string;
   homeLocationId: string;
   personality: string[];
   speechStyle: string[];
   initialRelationship: string;
   knowledgeScope: string[];
-  openingApproachNarrative: string[];
+  visibleDetails: string[];
 };
 
 export const npcDialogueProfiles: Record<string, NpcDialogueProfile> = {
   shumi: {
     id: "shumi",
+    acceptedGifts: ["waterBottle", "cannedFood"],
+    initialInventory: { radioBattery: 1 },
+    trades: [{ id: "spare_battery", minAffinity: 2, give: { itemId: "scrapMetal", amount: 2 }, receive: { itemId: "radioBattery", amount: 1 } }],
     name: "슈미",
     age: 19,
     identity: "지하철역 대합실에서 지내는 19살 여성 생존자",
@@ -35,9 +41,9 @@ export const npcDialogueProfiles: Record<string, NpcDialogueProfile> = {
       "지하철역 주변의 소리와 사람 왕래에 대한 개인적인 관찰",
       "자신의 생활과 감정은 필요할 때 조금씩만 밝힌다.",
     ],
-    openingApproachNarrative: [
-      "당신은 개찰구 옆 기둥에 기대 앉은 슈미에게 천천히 다가갔다.",
-      "슈미는 손에 쥔 작은 라디오의 전원을 끄고, 경계하는 눈으로 당신을 올려다봤다.",
+    visibleDetails: [
+      "개찰구 옆 기둥 아래에 자리를 잡고 있다.",
+      "작은 라디오를 지니고 있다.",
     ],
   },
 };

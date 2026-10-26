@@ -1,6 +1,8 @@
 import "../load-env";
 import { z } from "zod";
 import { appendDevLlmTraceForGame, toTraceRequest } from "./dev-llm-trace";
+import { currentObservation, recordActionTiming } from "./action-observation";
+import { readGeminiStream } from "./gemini-stream";
 
 type GeminiJsonOptions<T> = {
   model?: string;
@@ -8,6 +10,7 @@ type GeminiJsonOptions<T> = {
   timeoutMs?: number;
   responseSchema?: z.ZodType<T>;
   responseJsonSchema?: Record<string, unknown>;
+  onJsonProgress?: (text: string) => void;
   trace?: {
     gameId: string;
     scope: "planner" | "card" | "subway" | "dialogue";
@@ -16,6 +19,7 @@ type GeminiJsonOptions<T> = {
 };
 
 type GeminiGenerateResponse = {
+  usageMetadata?: Record<string, number>;
   candidates?: Array<{
     content?: {
       parts?: Array<{
@@ -191,9 +195,14 @@ export async function generateGeminiJson<T>(
   );
   const traceRequest = options.trace ? toTraceRequest(userPayload, systemPrompt) : "";
   let traceLogged = false;
+  const startedAt = performance.now();
+  const observation = currentObservation();
+  if (observation) observation.timing.providerCalls++;
+  recordActionTiming({ model, inputCharacters: systemPrompt.length + JSON.stringify(userPayload).length });
 
   try {
-    const response = await fetch(`${apiUrl}/models/${model}:generateContent`, {
+    const method = options.onJsonProgress ? "streamGenerateContent?alt=sse" : "generateContent";
+    const response = await fetch(`${apiUrl}/models/${model}:${method}`, {
       method: "POST",
       signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
       headers: {
@@ -242,8 +251,20 @@ export async function generateGeminiJson<T>(
       throw new Error(message);
     }
 
-    const payload = await response.json() as GeminiGenerateResponse;
-    const rawText = extractCandidateText(payload);
+    let rawText: string, usage: Record<string, number> | undefined;
+    if (options.onJsonProgress) {
+      const streamed = await readGeminiStream(response, text => {
+        if (observation) observation.timing.firstChunkMs ??= Math.round(performance.now() - startedAt);
+        options.onJsonProgress!(text);
+      });
+      rawText = streamed.rawText;
+      usage = streamed.usageMetadata;
+    } else {
+      const payload = await response.json() as GeminiGenerateResponse;
+      rawText = extractCandidateText(payload);
+      usage = payload.usageMetadata;
+    }
+    recordActionTiming({ inputTokens: usage?.promptTokenCount, outputTokens: usage?.candidatesTokenCount, thoughtTokens: usage?.thoughtsTokenCount });
     try {
       const parsed = JSON.parse(stripCodeFence(rawText)) as unknown;
       const validated = options.responseSchema
@@ -293,5 +314,5 @@ export async function generateGeminiJson<T>(
         });
     }
     throw error;
-  }
+  } finally { recordActionTiming({ generationMs: Math.round(performance.now() - startedAt) }); }
 }

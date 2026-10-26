@@ -8,6 +8,7 @@ import { forestRegion } from "./forest";
 import { hospitalRegion } from "./hospital";
 import { kitchenRegion } from "./kitchen";
 import { magicCityEntranceRegion } from "./magic-city-entrance";
+import { riverRegion } from "./river";
 import { shelterRegion } from "./shelter";
 import { subwayRegion } from "./subway";
 
@@ -16,6 +17,7 @@ export const regionModules = [
   convenienceRegion,
   kitchenRegion,
   forestRegion,
+  riverRegion,
   hospitalRegion,
   subwayRegion,
   checkpointRegion,

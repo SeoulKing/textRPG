@@ -1,3 +1,14 @@
+import { withSubwayStockRooms } from "./text-world/subway-stock-definitions";
+import { withDefaultCivicRooms } from "./text-world/civic-definitions";
+import { withDefaultShelterRooms } from "./text-world/shelter-definitions";
+import { withQuestGuidanceDefaults } from "./quest-guidance";
+import { withDefaultHospitalRooms } from "./text-world/hospital-definitions";
+import { withActivityCatalogDefaults } from "./activity-catalog-updates";
+import { withResourceCatalogDefaults } from "./resource-catalog-updates";
+import { baseItems } from "./data/items";
+import { omitRetiredActions } from "./content-retirements";
+import { applySurvivalCatalogUpdates } from "./survival-catalog-updates";
+import { versionRegistry } from "./content-versions";
 import { worldRegistry } from "./data/registry";
 import type {
   ContentRegistry,
@@ -76,7 +87,7 @@ export function mergeDynamicWorldRegistry(
 }
 
 export function buildRuntimeRegistry(
-  stateOrDynamic?: Pick<GameState, "dynamicContent"> | DynamicWorldRegistry | null,
+  stateOrDynamic?: Pick<GameState, "dynamicContent" | "contentVersionId"> | DynamicWorldRegistry | null,
 ): ContentRegistry {
   const dynamicContent =
     !stateOrDynamic
@@ -85,17 +96,19 @@ export function buildRuntimeRegistry(
         ? stateOrDynamic.dynamicContent
         : stateOrDynamic;
 
-  return {
-    items: { ...worldRegistry.items, ...dynamicContent.items },
-    people: { ...worldRegistry.people, ...dynamicContent.people },
-    locations: { ...worldRegistry.locations, ...dynamicContent.locations },
-    quests: { ...worldRegistry.quests, ...dynamicContent.quests },
-    skills: { ...worldRegistry.skills, ...dynamicContent.skills },
-    actions: { ...worldRegistry.actions, ...dynamicContent.actions },
-    choices: { ...worldRegistry.choices, ...dynamicContent.choices },
-    events: { ...worldRegistry.events, ...dynamicContent.events },
-    scenes: { ...worldRegistry.scenes, ...dynamicContent.scenes },
-  };
+  const base = stateOrDynamic && "dynamicContent" in stateOrDynamic ? (versionRegistry(stateOrDynamic.contentVersionId) ?? worldRegistry) : worldRegistry;
+  return withSubwayStockRooms(withDefaultCivicRooms(withDefaultShelterRooms(withDefaultHospitalRooms(withQuestGuidanceDefaults(omitRetiredActions(withActivityCatalogDefaults(withResourceCatalogDefaults(applySurvivalCatalogUpdates({
+    textRooms: base.textRooms,
+    items: { ironDoorKey: baseItems.ironDoorKey, flashlight: baseItems.flashlight, ...base.items, ...dynamicContent.items },
+    people: { ...base.people, ...dynamicContent.people },
+    locations: { ...base.locations, ...dynamicContent.locations },
+    quests: { ...base.quests, ...dynamicContent.quests },
+    skills: { ...base.skills, ...dynamicContent.skills },
+    actions: { ...base.actions, ...dynamicContent.actions },
+    choices: { ...base.choices, ...dynamicContent.choices },
+    events: { ...base.events, ...dynamicContent.events },
+    scenes: { ...base.scenes, ...dynamicContent.scenes },
+  }, worldRegistry), worldRegistry), worldRegistry)), worldRegistry)))));
 }
 
 function expandedFrontierSlots(state: Pick<GameState, "frontierState"> | null | undefined, locationId: string) {

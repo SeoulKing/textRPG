@@ -50,10 +50,8 @@ function scriptedResult(
     id:
       `npc-dialogue:${input.profile.id}:${input.turnNumber}:choice:${index}`,
     label: `답변 ${input.turnNumber}-${index}`,
-    postChoiceNarrative: [
-      `답변 ${index}을 조심스럽게 꺼냈다.`,
-      "대합실의 희미한 잡음이 두 사람 사이에 낮게 머물렀다.",
-    ],
+    thought: "이 얘기를 조금 더 해 볼까.",
+    thoughtSource: "llm" as const,
   }));
   return {
     scene: {
@@ -138,100 +136,21 @@ test("슈미는 지하철역 거주자로 등록되고 콘텐츠 참조가 유�
   assert.equal(getNpcDialogueProfile("shumi")?.homeLocationId, "subway");
 });
 
-test("NPC 응답과 플레이어 선택지 역할은 순서대로 대화 맥락을 전달한다", async () => {
-  const profile = getNpcDialogueProfile("shumi");
-  assert.ok(profile);
-  const roles: string[] = [];
-  const requests: NpcDialogueRoleRequest[] = [];
-  const roleClient: NpcDialogueRoleClient = async <T>(
-    request: NpcDialogueRoleRequest,
-  ) => {
-    roles.push(request.role);
-    requests.push(request);
-    if (request.role === "npc_reply") {
-      return {
-        situation: "슈미가 라디오를 끄고 고개를 들었다.",
-        dialogue: "처음 보는 분인데, 무슨 일이세요?",
-      } as T;
-    }
-    return {
-      choices: [
-        {
-          label: "이곳에서 지내는지 묻는다",
-          postChoiceNarrative: [
-            "대합실을 둘러보며 조심스럽게 물었다.",
-            "멀리서 물방울 떨어지는 소리가 들려왔다.",
-          ],
-        },
-        {
-          label: "라디오에 대해 묻는다",
-          postChoiceNarrative: [
-            "라디오 쪽으로 시선을 옮겼다.",
-            "낡은 스피커의 잡음이 짧은 침묵을 채웠다.",
-          ],
-        },
-        {
-          label: "경계하지 않아도 된다고 말한다",
-          postChoiceNarrative: [
-            "한 걸음 물러서며 빈손을 보였다.",
-            "둘 사이에 비워 둔 거리가 그대로 남았다.",
-          ],
-        },
-      ],
-    } as T;
-  };
-  const generator = createNpcDialogueGenerator(roleClient, () => true);
-
-  const opening = await generator({
-    gameId: "role-order-test",
-    profile,
-    context: dialogueContext(),
-    memory: { visitCount: 0, exchanges: [] },
-    visitCount: 1,
-    turnNumber: 0,
-    selectedChoice: null,
-  });
-
-  assert.deepEqual(roles, ["npc_reply", "player_choices"]);
-  assert.equal(
-    (requests[0]?.payload.npcProfile as { speechStyle: string[] })
-      .speechStyle[0],
-    "차갑고 거리감 있는 존댓말을 사용한다.",
-  );
-  assert.equal(
-    (requests[1]?.payload.npcReply as { dialogue: string }).dialogue,
-    "처음 보는 분인데, 무슨 일이세요?",
-  );
-  assert.equal(opening.scene.choices.length, 3);
-  assert.ok(
-    opening.scene.choices.every(
-      (choice) => choice.postChoiceNarrative.length === 2,
-    ),
-  );
-
-  const selectedChoice = opening.scene.choices[0]!;
-  requests.length = 0;
-  roles.length = 0;
-  await generator({
-    gameId: "role-order-test",
-    profile,
-    context: dialogueContext(),
-    memory: {
-      visitCount: 1,
-      exchanges: [opening.exchange],
-    },
-    visitCount: 1,
-    turnNumber: 1,
-    selectedChoice,
-  });
-  assert.deepEqual(roles, ["npc_reply", "player_choices"]);
-  assert.deepEqual(
-    requests[0]?.payload.selectedChoice,
-    {
-      label: selectedChoice.label,
-      postChoiceNarrative: selectedChoice.postChoiceNarrative,
-    },
-  );
+test("한 요청으로 NPC 반응과 다음 속말을 받고 미리 작성한 서사는 문맥에 넣지 않는다", async () => {
+ const profile=getNpcDialogueProfile("shumi");assert.ok(profile);
+ const requests:NpcDialogueRoleRequest[]=[];
+ const client:NpcDialogueRoleClient=async<T>(request:NpcDialogueRoleRequest)=>{requests.push(request);return {situation:"슈미가 고개를 들어 이쪽을 살핀다.",dialogue:"무슨 일이세요?",choices:[
+ {label:"이곳에서 지내는지 묻는다",thought:"이곳 사정은 좀 알고 있을까."},
+ {label:"라디오에 대해 묻는다",thought:"무슨 소식을 듣고 있을까."},
+ {label:"경계하지 않아도 된다고 말한다",thought:"말을 조금 더 해 보는 게 좋겠지."}]} as T;};
+ const generator=createNpcDialogueGenerator(client,()=>true);
+ const input={gameId:"dialogue-one-call",profile,context:dialogueContext(),memory:{visitCount:0,exchanges:[]},visitCount:1,turnNumber:0,selectedChoice:null};
+ const opening=await generator(input);assert.equal(requests.length,1);assert.equal(requests[0].role,"dialogue_turn");
+ assert.equal(opening.scene.choices.length,3);assert(opening.scene.choices.every(c=>c.thought&&!c.postChoiceNarrative));
+ const selected=opening.scene.choices[0];await generator({...input,turnNumber:1,selectedChoice:selected,memory:{visitCount:1,exchanges:[opening.exchange]}});
+ assert.equal(requests.length,2);assert.deepEqual(requests[1].payload.selectedChoice,{label:selected.label,thought:selected.thought});
+ assert(!JSON.stringify(requests).includes("postChoiceNarrative"));assert(!JSON.stringify(requests).includes("openingApproachNarrative"));
+ assert.equal((requests[0].payload.npcProfile as {speechStyle:string[]}).speechStyle[0],"차갑고 거리감 있는 존댓말을 사용한다.");
 });
 
 test("AI 역할 실패 시에도 슈미 기본 대사와 세 답변으로 계속한다", async () => {
@@ -257,7 +176,7 @@ test("AI 역할 실패 시에도 슈미 기본 대사와 세 답변으로 계속
   assert.equal(result.scene.source, "template");
   assert.equal(result.scene.choices.length, 3);
   assert.equal(result.diagnostics.fallback, true);
-  assert.equal(result.diagnostics.errors.length, 2);
+  assert.equal(result.diagnostics.errors.length, 1);
 });
 
 test("대화는 무료로 이어지고 종료 뒤 재방문해도 최근 기억을 유지한다", async () => {
@@ -281,7 +200,7 @@ test("대화는 무료로 이어지고 종료 뒤 재방문해도 최근 기억�
     (choice) => choice.label === "슈미와 대화하기",
   );
   assert.ok(startAction);
-  assert.deepEqual(startAction.loading, {});
+  assert.deepEqual(startAction.loading, {durationMs:500,transitionType:"activity"});
   const elapsedBefore = initial.state.worldElapsedMs;
   const statsBefore = structuredClone(initial.state.stats);
 
@@ -292,11 +211,11 @@ test("대화는 무료로 이어지고 종료 뒤 재방문해도 최근 기억�
   assert.ok(
     opening.availableActions.slice(0, 3).every(
       (choice) =>
-        choice.postChoiceNarrative?.length === 2 &&
+        !choice.postChoiceNarrative && Boolean(choice.choiceThought) &&
         choice.loading !== undefined,
     ),
   );
-  assert.equal(opening.availableActions.at(-1)?.loading, undefined);
+  assert.equal(opening.availableActions.at(-1)?.loading?.durationMs, 500);
   assert.equal(opening.state.worldElapsedMs, elapsedBefore);
   assert.deepEqual(opening.state.stats, statsBefore);
   assert.equal(generationInputs[0]?.visitCount, 1);
@@ -309,8 +228,8 @@ test("대화는 무료로 이어지고 종료 뒤 재방문해도 최근 기억�
   assert.equal(next.state.worldElapsedMs, elapsedBefore);
   assert.deepEqual(next.state.stats, statsBefore);
   assert.deepEqual(
-    generationInputs[1]?.selectedChoice?.postChoiceNarrative,
-    firstAnswer.postChoiceNarrative,
+    generationInputs[1]?.selectedChoice?.thought,
+    firstAnswer.choiceThought,
   );
 
   await assert.rejects(
@@ -346,6 +265,8 @@ test("대화는 무료로 이어지고 종료 뒤 재방문해도 최근 기억�
       (choice) => choice.label === "슈미와 대화하기",
     ),
   );
+  assert.match(returned.currentScene.paragraphs.join(" "),/대화를 마친다/);
+  const reloaded=await service.getState(session.id);assert.deepEqual(reloaded.currentScene.paragraphs,returned.currentScene.paragraphs);assert.equal(generationInputs.length,2);
   const persisted = store.read();
   assert.equal(
     persisted.state.npcDialogue.conversations.shumi?.visitCount,

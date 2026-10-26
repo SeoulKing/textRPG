@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ActivityDefinitionSchema } from "./activity";
 import { ConditionSchema } from "./condition-effect";
 import { EffectSchema } from "./condition-effect";
 import { ChoiceLoadingSchema, GameActionSchema } from "./action";
@@ -10,8 +11,10 @@ export const RiskHintSchema = z.enum(["low", "medium", "high"]);
 export const CraftingRecipeRequirementSchema = z.object({
   itemId: z.string(),
   name: z.string(),
+  sourceHints: z.array(z.string()).max(2).optional(),
   requiredAmount: z.number().int().positive(),
   ownedAmount: z.number().int().nonnegative(),
+  storedAmount: z.number().int().nonnegative().optional(),
   met: z.boolean(),
 });
 
@@ -28,9 +31,14 @@ export const CraftingRecipeSchema = z.object({
 });
 
 export const StoryChoiceSchema = z.object({
+  postChoiceNarrative: z.array(z.string().min(1).max(600)).min(1).max(2).optional(),
+  choiceThought: z.string().min(1).max(60).optional(),
+  choiceThoughtSource: z.enum(["template", "llm"]).optional(),
+  postChoiceNarrativeSource: z.enum(["template", "llm"]).optional(),
   id: z.string(),
   label: z.string(),
   outcomeHint: z.string(),
+  statusLabel: z.string().optional(),
   showOutcomeHint: z.boolean().optional(),
   remainingUses: z.number().int().nonnegative().optional(),
   loading: ChoiceLoadingSchema.optional(),
@@ -48,6 +56,9 @@ export const StoryChoiceSchema = z.object({
 });
 
 export const ActionChoiceSchema = z.object({
+  choiceThought: z.string().min(1).max(60).optional(),
+  choiceThoughtSource: z.enum(["template", "llm"]).optional(),
+  postChoiceNarrativeSource: z.enum(["template", "llm"]).optional(),
   id: z.string(),
   label: z.string(),
   outcomeHint: z.string(),
@@ -63,6 +74,7 @@ export const ActionChoiceSchema = z.object({
 });
 
 export const ChoiceDefinitionSchema = z.object({
+  activity: ActivityDefinitionSchema.nullable().optional(),
   id: z.string(),
   label: z.string(),
   outcomeHint: z.string(),

@@ -154,7 +154,12 @@ export function canonicalizeItemText(
     .sort((left, right) => right.name.length - left.name.length)
     .reduce(
       (canonical, entry) =>
-        replaceItemDisplayName(canonical, entry.itemId, entry.name),
+        // References are opaque, including ones inserted earlier in this pass.
+        // A slash phrase is still being authored: only the editor's explicit
+        // confirmation turns it into a reference. Preserve it across autosaves.
+        canonical.split(/(\{\{item:[^{}]*\}\}|(?<![^\s(\[{"'「『“‘])\/[^\/\\\r\n{}:]*)/g)
+          .map((part, index) => index % 2 ? part : replaceItemDisplayName(part, entry.itemId, entry.name))
+          .join(""),
       text,
     );
 }

@@ -20,6 +20,10 @@ The engine rolls normal floor loot from fixed depth tables and gives the model a
 
 LLM-led world expansion is deferred. It remains in the codebase as an optional development feature, but normal play uses authored/template content.
 
+## Deterministic state world
+
+The home screen now includes **작은 창고 · 상태 기반 월드**, a two-room object/placement engine that runs without LLM calls. It reuses the server, game clock and file/PostgreSQL repository while preserving the existing survival game. See [implementation, API, tests and scope](docs/state-world-engine.md).
+
 ## Run
 
 ```powershell
@@ -52,33 +56,20 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 ## Content Studio
 
-The local home screen includes a `콘텐츠 스튜디오` button. The studio runs on its own page at
-[http://127.0.0.1:3000/content-editor](http://127.0.0.1:3000/content-editor).
-
-Use it to:
-
-- create or edit items and their stat effects
-- create or edit crafting and cooking recipes
-- build regional stories from scenes and choices
-- configure choice conditions and effects without editing TypeScript
-
-The editor separates safe editing from live content:
-
-- `초안 저장` validates IDs and references and keeps the work out of the live game.
-- `게임에 공개` stores the same validated document as the published version and refreshes the
-  running game registry immediately.
-
-Local development stores the published document in `content/content-studio.json` and the draft under
-`.runtime`. Online deployment stores both versions in PostgreSQL so they survive restarts and
-redeployments. Production access requires all of:
-
-```text
-ENABLE_CONTENT_STUDIO=true
-CONTENT_STUDIO_ADMIN_TOKEN=a-long-random-password
-NEON_DATABASE_URL=postgresql-connection-string
+```powershell
+.\scripts\build-unity-preview.ps1 -ProjectPath 'D:\path\to\UnityProject'
 ```
 
-The browser keeps the administrator token only for the current tab session.
+미리보기는 본편 저장 데이터와 별개입니다. 모바일에서 공개 URL로 변경 사항을 확인하려면 생성된 `assets/unity-preview`를 저장소에 반영하고, Render가 배포하는 브랜치에 푸시해야 합니다. 로컬 빌드만으로는 공개 사이트가 갱신되지 않습니다. 현재 숲 프로토타입의 사용법은 [`unity-mvp/README.md`](unity-mvp/README.md)에 있습니다.
+
+## Content Studio
+
+The home screen links to the writer workspace at [/content-editor](http://127.0.0.1:3000/content-editor).
+Create regions and characters, write dialogue and choices, assign item rewards, connect story graphs, and test drafts without affecting player saves.
+Published content applies to new games; existing saves retain their content version.
+
+See [the writer guide and storage migration notes](CONTENT_STUDIO.md).
+Production access retains the existing ENABLE_CONTENT_STUDIO, CONTENT_STUDIO_ADMIN_TOKEN and PostgreSQL requirements.
 
 ## Deploy
 
@@ -107,6 +98,7 @@ Gemini is not required for the authored surface survival loop. The experimental 
 Optional settings:
 
 - `ENABLE_LLM_WORLD_PLANNER=true`
+- `ENABLE_LLM_BACKGROUND_GENERATION=true` opts into speculative story/floor generation (default: off). With it off, local floor templates remain ready and Gemini still narrates player-selected exploration and encounters.
 - `ENABLE_LLM_SUBWAY_EXPEDITION=false` to use built-in fallback floors after the mandatory bandit encounter
 - `GEMINI_MODEL`
 - `GEMINI_API_URL`

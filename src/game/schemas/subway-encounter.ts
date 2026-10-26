@@ -129,11 +129,9 @@ export const SubwayEncounterChoiceSchema = z.preprocess((raw) => {
           ? (choice.effect as Record<string, unknown>).description
           : ""
       ),
-    postChoiceNarrative: choice.postChoiceNarrative ??
-      choice.postChoiceScene ??
-      (typeof choice.label === "string"
-        ? [`나는 ${choice.label.replace(/[.。]$/, "")} 쪽으로 움직이기 시작했다.`]
-        : []),
+    thought: choice.thought,
+    thoughtSource: choice.thoughtSource,
+    postChoiceNarrative: choice.postChoiceNarrative ?? choice.postChoiceScene,
     intent: choice.intent ?? legacyIntent(actionToken),
     legacyActionToken: actionToken,
   };
@@ -141,7 +139,10 @@ export const SubwayEncounterChoiceSchema = z.preprocess((raw) => {
   id: z.string().min(1).max(160),
   label: z.string().min(1).max(80),
   effectDescription: z.string().max(300).default(""),
-  postChoiceNarrative: z.array(z.string().min(1).max(600)).min(1).max(2),
+  thought: z.string().max(60).optional(),
+  thoughtSource: z.enum(["template", "llm"]).optional(),
+  // Read old saves without reusing their speculative action paragraphs.
+  postChoiceNarrative: z.array(z.string().min(1).max(600)).max(2).optional(),
   intent: SubwayChoiceIntentSchema,
   legacyActionToken: SubwayEncounterActionIdSchema.optional(),
 }).strict());
@@ -206,6 +207,7 @@ export const SubwayEncounterTurnResultSchema = z.preprocess((raw) => {
   selectedEffectDescription: z.string().max(300).default(""),
   selectedActionToken: SubwayEncounterActionIdSchema.optional(),
   selectedLabel: z.string().min(1).max(80),
+  selectedThought: z.string().max(60).optional(),
   success: z.boolean(),
   rolls: SubwayEncounterRollsSchema,
   damageDealt: z.number().int().nonnegative(),

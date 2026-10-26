@@ -1,4 +1,5 @@
 import "./load-env";
+import { registerStateWorldRoutes } from "./state-world-routes";
 import crypto from "node:crypto";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
@@ -19,12 +20,17 @@ import {
   loadStoredContentStudioDocument,
   migrateRenamedItemTextReferences,
 } from "./game/content-studio";
-import { createContentStudioStore } from "./game/content-studio-store";
+import { MAX_SKILL_LEVEL, FISHING_EFFECT_PER_LEVEL_PERCENT, SKILL_EFFECT_PER_LEVEL_PERCENT } from "./game/skill-progression";
+import { inspectStudio } from "./game/studio-validation";
+import { StudioPreviewService } from "./game/studio-preview";
+import { ContentVersionStore, registerContentVersion } from "./game/content-versions";
+import { StudioConflict, createContentStudioStore } from "./game/content-studio-store";
 import { baseItems } from "./game/data/items";
 import { GameActionSchema } from "./game/schemas";
 import { FileGameRepository, type GameRepository } from "./game/repository";
 import { PostgresGameRepository } from "./game/postgres-repository";
 import { GameService } from "./game/service";
+import { sendActionStream } from "./action-stream-response";
 import { AuthController } from "./auth";
 import {
   hasGeminiConfig,
@@ -33,6 +39,7 @@ import {
 
 const app = Fastify({
   logger: true,
+  bodyLimit: 16 * 1024 * 1024,
 });
 
 const webRoot = path.resolve(__dirname, "..");
@@ -42,10 +49,14 @@ const repository: GameRepository = databaseUrl
   : new FileGameRepository(webRoot);
 const contentStudioStore = createContentStudioStore(databaseUrl, webRoot);
 const gameService = new GameService(repository);
+const contentVersions = new ContentVersionStore(databaseUrl, webRoot);
+const studioPreview = new StudioPreviewService();
+app.addHook("onClose", async () => studioPreview.dispose());
 const authController = new AuthController(repository, gameService);
 const contentStudioEnabled =
   process.env.NODE_ENV !== "production" ||
   process.env.ENABLE_CONTENT_STUDIO === "true";
+const graphicsPreviewEnabled = process.env.NODE_ENV !== "production";
 const contentStudioAdminToken = process.env.CONTENT_STUDIO_ADMIN_TOKEN?.trim() || "";
 const ActionRequestSchema = z.union([
   GameActionSchema,
@@ -138,16 +149,23 @@ async function bootstrap() {
     await contentStudioStore.publish(seed.document);
     applyPreparedContentStudioRegistry(seed.registry);
   }
+  await contentVersions.init(worldRegistry);
   validateContent();
 
   app.addHook("onSend", async (request, reply, payload) => {
-    reply.header("Cache-Control", "no-store");
-    const unityAssetPath = request.url.split("?", 1)[0];
-    if (unityAssetPath.startsWith("/assets/unity-preview/Build/") && unityAssetPath.endsWith(".br")) {
+    const pathname = request.url.split("?", 1)[0];
+    const isStaticAsset = pathname.startsWith("/assets/") || pathname.startsWith("/client/") || pathname.startsWith("/vendor/");
+    const isNarrativeStream = String(reply.getHeader("content-type") ?? "").startsWith("application/x-ndjson");
+    // Revalidate stable URLs so Studio image replacements appear on the next load.
+    // Static files retain their ETag/Last-Modified and can return an empty 304.
+    reply.header("Cache-Control", isStaticAsset && reply.statusCode < 400
+      ? "public, max-age=0, must-revalidate"
+      : isNarrativeStream ? "no-store, no-transform" : "no-store");
+    if (pathname.startsWith("/assets/unity-preview/Build/") && pathname.endsWith(".br")) {
       reply.header("Content-Encoding", "br");
-      if (unityAssetPath.endsWith(".js.br")) reply.type("application/javascript");
-      else if (unityAssetPath.endsWith(".wasm.br")) reply.type("application/wasm");
-      else if (unityAssetPath.endsWith(".json.br")) reply.type("application/json");
+      if (pathname.endsWith(".js.br")) reply.type("application/javascript");
+      else if (pathname.endsWith(".wasm.br")) reply.type("application/wasm");
+      else if (pathname.endsWith(".json.br")) reply.type("application/json");
       else reply.type("application/octet-stream");
     }
     return payload;
@@ -160,6 +178,11 @@ async function bootstrap() {
   await app.register(staticPlugin, {
     root: path.join(webRoot, "assets"),
     prefix: "/assets/",
+  });
+  await app.register(staticPlugin, {
+    root: path.join(webRoot, "client"),
+    prefix: "/client/",
+    decorateReply: false,
   });
 
   app.get("/", async (_request, reply) => {
@@ -184,10 +207,21 @@ async function bootstrap() {
     reply.type("application/javascript; charset=utf-8");
     return readFile(path.join(webRoot, "node_modules", "honeycomb-grid", "dist", "honeycomb-grid.mjs"), "utf8");
   });
+  app.get("/vendor/phaser.mjs", async (_request, reply) => {
+    reply.type("application/javascript; charset=utf-8");
+    return readFile(path.join(webRoot, "node_modules", "phaser", "dist", "phaser.esm.min.js"), "utf8");
+  });
   app.get("/styles.css", async (_request, reply) => {
     reply.type("text/css; charset=utf-8");
     return readFile(path.join(webRoot, "styles.css"), "utf8");
   });
+
+  if (graphicsPreviewEnabled) {
+    app.get("/graphics-preview", async (_request, reply) => {
+      reply.type("text/html; charset=utf-8");
+      return readFile(path.join(webRoot, "graphics-preview.html"), "utf8");
+    });
+  }
 
   if (contentStudioEnabled) {
     app.get("/content-editor", async (_request, reply) => {
@@ -203,6 +237,37 @@ async function bootstrap() {
       return readFile(path.join(webRoot, "content-editor.css"), "utf8");
     });
 
+    app.get("/content-story-library.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-story-library.js"), "utf8"); });
+    app.get("/content-scene-pool.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-scene-pool.js"), "utf8"); });
+    app.get("/content-outcome-editor.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-outcome-editor.js"), "utf8"); });
+    app.get("/content-writer.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-writer.js"), "utf8"); });
+    for (const file of ["content-room-editor.js", "content-item-text.js", "content-writer-tools.js", "content-writer-workspace.js", "content-writer-preview.js"]) {
+      app.get(`/${file}`, async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, file), "utf8"); });
+    }
+    app.get("/api/content-studio/published", async (request, reply) => {
+      if (!requireContentStudioAdmin(request, reply)) return;
+      const published = await contentStudioStore.load("published");
+      return { document: getEffectiveContentStudioDocument(published?.document ?? loadStoredContentStudioDocument()), publishedAt: published?.publishedAt ?? null };
+    });
+    app.post<{ Body: unknown }>("/api/content-studio/validate", async (request, reply) => {
+      if (!requireContentStudioAdmin(request, reply)) return;
+      return { issues: inspectStudio(request.body).issues };
+    });
+    app.post<{ Body: { document: unknown; setup?: unknown } }>("/api/content-studio/preview", async (request, reply) => {
+      if (!requireContentStudioAdmin(request, reply)) return;
+      try { return studioPreview.start(request.body.document, request.body.setup); }
+      catch (error) { return reply.code(400).send({ message: error instanceof Error ? error.message : "시험 플레이 오류" }); }
+    });
+    app.post<{ Params: { id: string }; Body: unknown }>("/api/content-studio/preview/:id", async (request, reply) => {
+      if (!requireContentStudioAdmin(request, reply)) return;
+      try { return studioPreview.step(request.params.id, request.body); }
+      catch (error) { return reply.code(400).send({ message: error instanceof Error ? error.message : "시험 플레이 오류" }); }
+    });
+    app.delete<{ Params: { id: string } }>("/api/content-studio/preview/:id", async (request, reply) => {
+      if (!requireContentStudioAdmin(request, reply)) return;
+      studioPreview.close(request.params.id);
+      return { ok:true };
+    });
     app.get("/api/content-studio", async (request, reply) => {
       if (!requireContentStudioAdmin(request, reply)) {
         return;
@@ -226,6 +291,7 @@ async function bootstrap() {
           ),
         },
         catalogs: {
+          probabilityRules: { maxLevel: MAX_SKILL_LEVEL, fishing: FISHING_EFFECT_PER_LEVEL_PERCENT, exploration: SKILL_EFFECT_PER_LEVEL_PERCENT },
           locations: Object.values(worldRegistry.locations).map((location) => ({
             id: location.id,
             name: location.name,
@@ -252,8 +318,10 @@ async function bootstrap() {
           request.body,
           await loadCurrentContentStudioDocument(),
         );
-        const prepared = prepareContentStudioDocument(migrated);
-        const stored = await contentStudioStore.saveDraft(prepared.document);
+        const prepared = { document: migrated };
+        const expected = request.headers["if-match"] === "none" ? null : request.headers["if-match"] as string | undefined;
+        if (expected === undefined) return reply.code(428).send({ message: "최신 초안을 불러온 뒤 저장해 주세요." });
+        const stored = await contentStudioStore.saveDraft(prepared.document, expected);
         return {
           ok: true,
           document: getEffectiveContentStudioDocument(prepared.document),
@@ -264,7 +332,7 @@ async function bootstrap() {
           },
         };
       } catch (error) {
-        reply.code(400);
+        reply.code(error instanceof StudioConflict ? 409 : 400);
         if (error instanceof z.ZodError) {
           return {
             error: "invalid_content",
@@ -288,8 +356,14 @@ async function bootstrap() {
           request.body,
           await loadCurrentContentStudioDocument(),
         );
+        const inspection = inspectStudio(migrated);
+        if (inspection.issues.some(issue => issue.severity === "error")) return reply.code(400).send({ message: "공개 전에 오류를 수정해 주세요.", issues: inspection.issues });
         const prepared = prepareContentStudioDocument(migrated);
-        const stored = await contentStudioStore.publish(prepared.document);
+        const expected = request.headers["if-match"] === "none" ? null : request.headers["if-match"] as string | undefined;
+        if (expected === undefined) return reply.code(428).send({ message: "최신 초안을 불러온 뒤 공개해 주세요." });
+        await contentVersions.archive(prepared.registry);
+        const stored = await contentStudioStore.publish(prepared.document, expected);
+        registerContentVersion(prepared.registry, true);
         applyPreparedContentStudioRegistry(prepared.registry);
         return {
           ok: true,
@@ -301,7 +375,7 @@ async function bootstrap() {
           },
         };
       } catch (error) {
-        reply.code(400);
+        reply.code(error instanceof StudioConflict ? 409 : 400);
         if (error instanceof z.ZodError) {
           return {
             error: "invalid_content",
@@ -390,6 +464,7 @@ async function bootstrap() {
     }
   });
 
+  registerStateWorldRoutes(app, repository);
   app.post<{ Body: unknown }>("/api/games", async (request, reply) => {
     const parsed = z.object({
       startAt: z.enum(["shelter", "arcana"]).default("shelter"),
@@ -455,8 +530,15 @@ async function bootstrap() {
       };
     }
 
+    const requestId = request.headers["x-action-id"];
+    if (parsed.data.type === "text_world" && request.headers.accept?.includes("application/x-ndjson")) {
+      if (typeof requestId !== "string" || !/^[a-zA-Z0-9-]{16,100}$/.test(requestId)) return reply.code(400).send({ message: "올바른 행동 요청 식별자가 필요합니다." });
+      return sendActionStream(reply, gameService, request.params.gameId, parsed.data, requestId);
+    }
     try {
-      return await gameService.performAction(request.params.gameId, parsed.data);
+      return await gameService.performAction(request.params.gameId, parsed.data, {
+        onTiming: timing => request.log.info({ actionType: parsed.data.type, timing }, "game action latency"),
+      });
     } catch (error) {
       reply.code(400);
       return {
@@ -464,6 +546,15 @@ async function bootstrap() {
         message: error instanceof Error ? error.message : "Unknown error",
       };
     }
+  });
+  app.get("/action-stream-client.mjs", async (_request, reply) => {
+    reply.type("application/javascript; charset=utf-8");
+    return readFile(path.join(webRoot, "action-stream-client.mjs"), "utf8");
+  });
+
+  app.get<{ Params: { gameId: string; requestId: string } }>("/api/games/:gameId/actions/:requestId", async (request, reply) => {
+    const snapshot = await gameService.recoverAction(request.params.gameId, request.params.requestId);
+    return snapshot ?? reply.code(404).send({ message: "완료된 행동 기록이 없습니다." });
   });
 
   const port = Number(process.env.PORT || 3000);
