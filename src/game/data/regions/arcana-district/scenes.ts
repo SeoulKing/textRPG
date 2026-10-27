@@ -26,9 +26,4 @@ export const arcanaDistrictScenes: SceneDefinition[] = [
     paragraphs: ["푸른 깃발을 단 돌기둥 사이로 광장의 포장길이 이어진다. 문 안쪽에는 화단과 등불이 가지런히 놓여 있고, 문턱 너머에서는 별빛풀이 바람에 흔들린다. 돌바닥이 끝나는 곳에서 평원으로 가는 흙길이 시작된다."],
     choiceIds: ["leave_arcana_place"], conditions: [{ type: "location", locationId: "arcana_city_gate" }],
   },
-  {
-    id: "arcana_academy_intro", locationId: "arcana_academy", title: "아르카나 아카데미",
-    paragraphs: ["식당 북쪽의 돌길 끝에는 푸른 첨탑을 올린 아카데미가 자리하고 있다. 책과 별을 새긴 문장 아래로 낮은 계단이 펼쳐지고, 키 큰 아치창 너머에는 서가와 수정등이 나란히 보인다. 둥근 관측탑의 황금빛 망원경은 지붕 위를 향해 기울어져 있다. 회랑을 두른 앞뜰에는 작은 화단과 돌벤치가 놓여 있고, 열린 길 너머로 광장의 분수가 보인다."],
-    choiceIds: ["leave_arcana_place"], conditions: [{ type: "location", locationId: "arcana_academy" }],
-  },
 ];

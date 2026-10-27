@@ -5,6 +5,7 @@ import { EffectSchema } from "./condition-effect";
 import { SkillUseSchema } from "./skill-progression";
 
 export const GameActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("academy_move"), roomId: z.string().min(1).max(40) }),
   z.object({ type: z.literal("world_clock"), command: z.enum(["tick", "pause"]), clientId: z.string().min(1).max(100), sequence: z.number().int().nonnegative().default(0) }),
   z.object({ type: z.literal("arcana_combat"), command: z.enum(["start", "fireball", "dodge", "potion", "retreat", "pause", "resume", "finish", "buy_potion", "rest"]), battleId: z.string().max(100).optional() }),
   z.object({

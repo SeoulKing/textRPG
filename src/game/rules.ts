@@ -1,3 +1,4 @@
+import { resolveAcademyMove } from "./academy-navigation";
 import { resolveItemText } from "./item-text";
 import { playerItemAmount, playerItemIds } from "./item-ledgers";
 import { worldDeparturePlan } from "./text-world/departure";
@@ -1355,6 +1356,12 @@ export function performAction(
       throw new Error("이 행동은 전용 서비스를 통해 처리해야 합니다.");
     case "magic_dungeon":
       throw new Error("마법도시 던전 행동은 던전 서비스를 통해 처리해야 합니다.");
+    case "academy_move": {
+      const move = resolveAcademyMove(state, action.roomId, registry);
+      if (move.minutes > 0) advanceGameMinutes(state, move.minutes, options);
+      preferredSceneId = move.sceneId;
+      break;
+    }
     case "travel": {
       const { allowed, reason, path } = resolveTravelRequirement(state, action.targetId);
       if (!allowed || !path || path.length < 2) {

@@ -1,3 +1,5 @@
+import { academyNpcProfiles } from "./regions/arcana-academy/npc-profiles";
+
 export type NpcDialogueProfile = {
   id: string;
   name: string;
@@ -12,9 +14,16 @@ export type NpcDialogueProfile = {
   initialRelationship: string;
   knowledgeScope: string[];
   visibleDetails: string[];
+  sceneIds?: string[];
+  fallbackConversation?: {
+    opening: string;
+    followUp: string;
+    topics: { label: string; thought: string; reply: string }[];
+  };
 };
 
 export const npcDialogueProfiles: Record<string, NpcDialogueProfile> = {
+  ...academyNpcProfiles,
   shumi: {
     id: "shumi",
     acceptedGifts: ["waterBottle", "cannedFood"],

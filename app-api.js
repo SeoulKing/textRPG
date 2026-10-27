@@ -1,3 +1,4 @@
+import { createAcademyMap, academyVisibleChoices } from "./client/academy-map.mjs?v=20261026-hierarchy-2";
 import { readActionStream } from "./action-stream-client.mjs";
 import { assetUrl, queueAssets, pauseAssetWarmup, prioritizeAsset } from "./client/asset-loader.mjs";
 
@@ -56,8 +57,6 @@ const MAP_TERRAIN_CELLS = {
   hospital: 5,
   checkpoint: 6,
   magic_city_entrance: 7,
-  arcana_plaza: 8,
-  arcana_hunting_ground: 9,
 };
 
 // Alpha bounds measured from each sprite; fit the complete object inside the hex.
@@ -82,8 +81,29 @@ const ARCANA_DOWNTOWN_LOCATIONS = new Set([
   "arcana_restaurant", "arcana_return_portal", "arcana_city_gate", "arcana_academy",
 ]);
 
-function hexTerrainMarkup(locationId, size) {
+function mapGroundPatternMarkup(magicWorld) {
+  // Magic maps never sample the reality world's rubble/road atlas.
+  const image = magicWorld ? "assets/scenes/arcana-front-plains.png" : "assets/map-terrain-v1.png";
+  const crop = magicWorld ? "20 225 160 109" : "300 200 100 100";
+  const width = magicWorld ? 1000 : 400, height = magicWorld ? 334 : 300;
+  return `<pattern id="map-ground" patternUnits="userSpaceOnUse" width="132" height="132">
+    <svg width="132" height="132" viewBox="${crop}" preserveAspectRatio="xMidYMid slice" overflow="hidden">
+      <image href="${assetUrl(image)}" width="${width}" height="${height}" preserveAspectRatio="none" />
+    </svg></pattern>`;
+}
+
+function hexTerrainMarkup(locationId, size, magicWorld = locationId.startsWith("arcana_")) {
   const magicLandmark = MAGIC_MAP_LANDMARKS[locationId];
+  if (magicWorld && !magicLandmark) {
+    // Use only meadow/path foreground: no city skyline, people, or legacy ruined buildings.
+    const clipId = "map-magic-field-" + locationId.replace(/[^a-z0-9_-]/gi, "-");
+    return `<g class="hex-tile-art" aria-hidden="true">
+      <defs><clipPath id="${clipId}"><polygon points="${hexPoints(0, 0, size * .985)}" /></clipPath></defs>
+      <g clip-path="url(#${clipId})"><svg x="${-size}" y="${-size}" width="${size * 2}" height="${size * 2}"
+        viewBox="260 205 480 128" preserveAspectRatio="xMidYMid slice" overflow="hidden">
+        <image href="${assetUrl("assets/scenes/arcana-front-plains.png")}" width="1000" height="334" preserveAspectRatio="none" />
+      </svg></g></g>`;
+  }
   const cell = MAP_TERRAIN_CELLS[locationId] ?? 10;
   const bounds = magicLandmark?.bounds || MAP_LANDMARK_BOUNDS[cell];
   const href = assetUrl(magicLandmark
@@ -257,7 +277,7 @@ function alignHexMapViewport(boardLayout, mapScale, currentLocationId) {
 const PANEL_CONFIG = {
   exploration: { title: "주변과 물건" },
   map: {
-    title: "이동",
+    title: "월드맵",
   },
   inventory: {
     title: "아이템",
@@ -935,7 +955,7 @@ function isMovementAction(action, loading = null) {
   if (!action) {
     return false;
   }
-  if (action.type === "travel") {
+  if (action.type === "travel" || action.type === "academy_move") {
     return true;
   }
   if (action.type === "subway_expedition") {
@@ -980,6 +1000,10 @@ function actionTransitionMessage(action, loading = null) {
     return "행동하는 중…";
   }
 
+  if (action.type === "academy_move") {
+    const room = client.snapshot?.academyMap?.rooms.find(room => room.id === action.roomId);
+    return room ? `${room.name} 쪽으로 이동하는 중…` : "학교 안에서 이동하는 중…";
+  }
   if (action.type === "travel") {
     const destination = client.snapshot?.visibleLocations?.find(
       (location) => location.id === action.targetId,
@@ -1896,6 +1920,8 @@ function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
 }
 
 function shouldContinueLocationStory(previousSnapshot, nextSnapshot) {
+  if (previousSnapshot?.academyMap && nextSnapshot?.academyMap
+    && previousSnapshot.academyMap.currentRoomId !== nextSnapshot.academyMap.currentRoomId) return false;
   if (!previousSnapshot?.currentScene || !nextSnapshot?.currentScene
     || !previousSnapshot.gameId || previousSnapshot.gameId !== nextSnapshot.gameId
     || !previousSnapshot.state?.location
@@ -2797,7 +2823,14 @@ function buildChoicePresentation(snapshot) {
     presentation.selectedRecipeId = buildCraftingChoices(snapshot, element, { isCookingMenu });
     return presentation;
   }
-  snapshot.availableActions.forEach((choice) => {
+  const choices = academyVisibleChoices(snapshot);
+  if (snapshot.academyMap && !choices.length) {
+    const hint = document.createElement("p");
+    hint.className = "academy-navigation-hint";
+    hint.textContent = "위 지도에서 공간을 선택한 뒤 이동해 주세요.";
+    element.append(hint);
+  }
+  choices.forEach((choice) => {
     const fragment = dom.choiceTemplate.content.cloneNode(true);
     const button = fragment.querySelector("button");
     const label = fragment.querySelector(".choice-label");
@@ -2879,6 +2912,36 @@ function renderChoices() {
   syncMobileChoiceZoneHeight();
 }
 
+function openWorldMap() {
+  if (!client.snapshot) return;
+  client.activePanel = "map";
+  client.isPanelOpen = true;
+  renderPanel();
+}
+
+function returnToBuildingMap() {
+  if (!client.snapshot?.academyMap) return;
+  client.isPanelOpen = false;
+  renderPanel();
+  const interior = dom.sceneFrame.querySelector(".academy-interior-map");
+  interior?.scrollIntoView({ block: "start", behavior: "auto" });
+  interior?.querySelector("[data-academy-world]")?.focus({ preventScroll: true });
+}
+
+let academyMapView = null;
+function syncAcademyMap(snapshot) {
+  dom.sceneFrame.classList.toggle("has-academy-map", Boolean(snapshot?.academyMap));
+  if (!snapshot?.academyMap) { academyMapView?.clear(); return; }
+  if (!academyMapView) {
+    const host = document.createElement("div");
+    host.className = "academy-interior-map";
+    dom.sceneArt.parentElement.append(host);
+    academyMapView = createAcademyMap(host, (action, button) => submitAction(action, button,
+      { durationMs: 250, transitionType: "region_travel" }), { onOpenWorldMap: openWorldMap });
+  }
+  academyMapView.render(snapshot, client.actionInFlight);
+}
+
 function renderScene(animateText = true, appendStory = false, scrollToStart = false, continueActionStory = false) {
   const snapshot = client.snapshot;
   const scene = snapshot?.currentScene;
@@ -2887,6 +2950,7 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
     return;
   }
 
+  syncAcademyMap(snapshot);
   document.body.classList.toggle("in-arcana-combat", Boolean(snapshot.state.arcanaCombat?.battle));
   if (!snapshot.state.arcanaCombat?.battle) dom.sceneText.parentElement.querySelector(":scope > .arcana-combat")?.remove();
   if (snapshot.state.arcanaCombat?.battle) {
@@ -3048,7 +3112,8 @@ function renderMapPanel() {
 
   const currentLocation = currentLocationCard();
   const { visible, states } = locationMap();
-  const isDowntownMap = isMagicWorldState(snapshot.state) && visible.has("arcana_plaza");
+  const magicWorld = isMagicWorldState(snapshot.state);
+  const isDowntownMap = magicWorld && visible.has("arcana_plaza");
   const boardNodes = buildBoardNodes(visible);
   const boardLayout = buildHexBoardLayout(boardNodes);
   const mapScale = currentMapScale(boardLayout);
@@ -3131,7 +3196,7 @@ function renderMapPanel() {
         aria-label="${escapeHtml(location.name)}"
         transform="translate(${position.x} ${position.y})"
       >
-        ${isDowntownMap && ARCANA_DOWNTOWN_LOCATIONS.has(node.locationId) ? "" : hexTerrainMarkup(node.locationId, boardLayout.dimensions.size)}
+        ${isDowntownMap && ARCANA_DOWNTOWN_LOCATIONS.has(node.locationId) ? "" : hexTerrainMarkup(node.locationId, boardLayout.dimensions.size, magicWorld)}
         <polygon class="hex-tile-shape" points="${hexPoints(0, 0, boardLayout.dimensions.size)}"></polygon>
         <title>${escapeHtml(location.name)}</title>
       </g>
@@ -3160,11 +3225,7 @@ function renderMapPanel() {
     : "";
   const hexMapDefs = `
     <defs>
-      <pattern id="map-ground" patternUnits="userSpaceOnUse" width="132" height="132">
-        <svg width="132" height="132" viewBox="300 200 100 100" overflow="hidden">
-          <image href="${assetUrl("assets/map-terrain-v1.png")}" width="400" height="300" preserveAspectRatio="none" />
-        </svg>
-      </pattern>
+      ${mapGroundPatternMarkup(magicWorld)}
       <filter id="map-city-current" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
         <feMorphology in="SourceAlpha" operator="dilate" radius="1.1" result="expanded" />
         <feComposite in="expanded" in2="SourceAlpha" operator="out" result="outline" />
@@ -3274,9 +3335,13 @@ function renderMapPanel() {
     `
     : `<p class="empty-state">지금 이동할 수 있는 장소가 없다.</p>`;
 
+  const worldName = magicWorld ? "아르카나" : "폐허 서울";
+  const mapHierarchy = `<nav class="map-level-header" aria-label="지도 단계"><span class="map-level-path"><span>월드맵</span><span aria-hidden="true">›</span><strong>${worldName}</strong></span>
+    ${snapshot.academyMap ? '<button type="button" data-map-return-to-building>학교 내부로</button>' : ""}</nav>`;
   const previousDestinationScroll = dom.panelContent.querySelector(".map-list")?.scrollLeft || 0;
   dom.panelContent.innerHTML = `
-    <section class="hex-map-shell">
+    <section class="hex-map-shell has-map-hierarchy">
+      ${mapHierarchy}
       <div class="hex-map-viewport">
         <div class="hex-map-board">
           <div class="hex-map-scroll-space" style="width:${scrollSpaceWidth}px; height:${scrollSpaceHeight}px;">
@@ -3307,6 +3372,7 @@ function renderMapPanel() {
   `;
   dom.panelContent.querySelector(".map-list").scrollLeft = previousDestinationScroll;
 
+  dom.panelContent.querySelector("[data-map-return-to-building]")?.addEventListener("click", returnToBuildingMap);
   setupHexMapHighlight(dom.panelContent.querySelector(".hex-map-stage"));
   alignHexMapViewport(boardLayout, mapScale, currentLocation.id);
   refreshTransientScrollbars();
@@ -4181,6 +4247,7 @@ function renderPanel() {
   }
   dom.panelShell.classList.toggle("is-open", client.isPanelOpen);
   dom.panelShell.setAttribute("aria-hidden", client.isPanelOpen ? "false" : "true");
+  dom.sceneFrame.querySelector("[data-academy-world]")?.setAttribute("aria-expanded", String(client.isPanelOpen && client.activePanel === "map"));
   dom.dockButtons.forEach((button) => {
     const isMenuContent = client.activePanel === "menu" || client.activePanel === "log" || client.activePanel === "itemCodex";
     const isActive = client.isPanelOpen && (
@@ -4247,6 +4314,7 @@ async function submitAction(
   }
   client.actionInFlight = true;
   client.pendingAction = action;
+  academyMapView?.setBusy(true);
   // Keep retired action leads out of history; the chosen thought introduces the actual result.
   const continuousNarrative = ["text_world", "npc_dialogue", "subway_expedition", "item_light"].includes(action.type)
     || Number.isInteger(action.activityRevision);
@@ -4402,6 +4470,7 @@ async function submitAction(
     presentingAction = false;
     finishActionTransition();
     client.actionInFlight = false;
+    academyMapView?.setBusy(false);
     pauseAssetWarmup(false);
     client.pendingAction = null;
   }

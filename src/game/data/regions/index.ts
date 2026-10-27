@@ -1,3 +1,4 @@
+import { arcanaAcademyRegion } from "./arcana-academy";
 import type { LocationDefinition } from "../../schemas";
 import { arcanaHuntingGroundRegion } from "./arcana-hunting-ground";
 import { arcanaPlazaRegion } from "./arcana-plaza";
@@ -24,6 +25,7 @@ export const regionModules = [
   magicCityEntranceRegion,
   arcanaPlazaRegion,
   ...arcanaDistrictRegions,
+  arcanaAcademyRegion,
   arcanaHuntingGroundRegion,
 ];
 

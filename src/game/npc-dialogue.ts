@@ -17,6 +17,10 @@ import {
 
 const MAX_STORED_EXCHANGES = 20;
 
+export function npcAvailableInScene(profile: NpcDialogueProfile, state: GameState) {
+  return !profile.sceneIds || profile.sceneIds.includes(state.sceneId ?? "");
+}
+
 export function npcDialogueMemory(
   state: GameState,
   npcId: string,

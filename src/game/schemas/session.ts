@@ -1,3 +1,4 @@
+import { AcademyMapSchema } from "./academy-map";
 import { z } from "zod";
 import { GameStateSchema } from "./game-state";
 import { LocationCardSchema } from "./location";
@@ -86,6 +87,7 @@ export const SurvivalGoalSchema = z.object({
 });
 
 export const StateSnapshotSchema = z.object({
+  academyMap: AcademyMapSchema.nullable().default(null),
   conditionCards: z.array(z.object({
     kind: z.enum(["injury", "infection", "exhaustion"]), label: z.string(), level: z.number().int().min(1).max(4),
     nextDamageMinutes: z.number().nonnegative().nullable(), nextWorseningMinutes: z.number().nonnegative().nullable(),

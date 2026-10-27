@@ -1,3 +1,4 @@
+import { withAcademyContent } from "../academy-content";
 import { validateQuestGuidance } from "../quest-guidance";
 import { withActivityDocumentDefaults } from "../activity-catalog-updates";
 import { planActivity } from "../activity";
@@ -470,7 +471,7 @@ export function buildWorldRegistryFromStudio(
     }
   });
 
-  return registry;
+  return withAcademyContent(registry);
 }
 
 function compileActivityReturns(registry: ContentRegistry) {

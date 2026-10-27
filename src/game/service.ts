@@ -1,3 +1,5 @@
+import { buildAcademyMap } from "./academy-navigation";
+import { academyKnownFacts } from "./academy-content";
 import { advanceConversation, conversationObstacle, interruptConversation } from "./text-world/conversation-flow";
 import { conversationOptions } from "./text-world/conversation-options";
 import { learnChoice } from "./text-world/choice-director";
@@ -57,6 +59,7 @@ import {
   leaveNpcDialogue,
   nextNpcDialogueTurn,
   npcDialogueMemory,
+  npcAvailableInScene,
   selectNpcDialogueChoice,
 } from "./npc-dialogue";
 import {
@@ -343,7 +346,7 @@ const STATIC_SCENE_SOURCE_PATH_BY_LOCATION: Record<string, string> = {
   arcana_shop: "src/game/data/regions/arcana-district/scenes.ts",
   arcana_inn: "src/game/data/regions/arcana-district/scenes.ts",
   arcana_restaurant: "src/game/data/regions/arcana-district/scenes.ts",
-  arcana_academy: "src/game/data/regions/arcana-district/scenes.ts",
+  arcana_academy: "src/game/data/regions/arcana-academy/scenes.ts",
   arcana_return_portal: "src/game/data/regions/arcana-district/scenes.ts",
   arcana_city_gate: "src/game/data/regions/arcana-district/scenes.ts",
   checkpoint: "src/game/data/regions/checkpoint/scenes.ts",
@@ -437,7 +440,7 @@ export class GameService {
   private npcDialogueContext(session: GameSession, npcId: string): NpcDialogueWorldContext {
     const location = this.currentLocation(session), profile = runtimeNpcDialogueProfile(npcId, this.runtimeRegistry(session));
     const actor = npcWorldContext(currentTextWorld(session.state), npcId);
-    return { actor, location: { id: location.id, name: location.name, summary: location.summary, sceneTitle: location.name, sceneParagraphs: actor ? [actor.placement] : profile?.visibleDetails ?? [] },
+    return { actor, location: { id: location.id, name: location.name, summary: location.summary, sceneTitle: location.name, sceneParagraphs: actor ? [actor.placement] : [...(profile?.visibleDetails ?? []), ...academyKnownFacts(session.state)] },
       player: { day: session.state.day, phase: PHASES[session.state.phaseIndex] ?? "unknown", recentLog: [] } };
   }
   private npcDialogueStartActions(
@@ -454,7 +457,7 @@ export class GameService {
     const location = this.currentLocation(session, registry);
     return location.residentIds.flatMap((npcId) => {
       const profile = runtimeNpcDialogueProfile(npcId, registry);
-      if (!profile || profile.homeLocationId !== location.id || !residentAtConversationLocation(currentTextWorld(session.state), npcId) || conversationObstacle(session.state, currentTextWorld(session.state), npcId)) {
+      if (!profile || !npcAvailableInScene(profile, session.state) || profile.homeLocationId !== location.id || !residentAtConversationLocation(currentTextWorld(session.state), npcId) || conversationObstacle(session.state, currentTextWorld(session.state), npcId)) {
         return [];
       }
       return [buildNpcDialogueStartAction(profile)];
@@ -1084,7 +1087,7 @@ export class GameService {
       if (action.command === "start") {
         if (workingState.npcDialogue.active) throw new Error("이미 다른 대화를 진행 중입니다.");
         const location = this.currentLocation(session, registry);
-        if (profile.homeLocationId !== workingState.location || !residentAtConversationLocation(conversationWorld, profile.id)
+        if (!npcAvailableInScene(profile, workingState) || profile.homeLocationId !== workingState.location || !residentAtConversationLocation(conversationWorld, profile.id)
           || (!conversationWorld?.active && !location.residentIds.includes(profile.id))) throw new Error("현재 위치에서는 이 인물과 대화할 수 없습니다.");
         const obstacle = advanceConversation(workingState, conversationWorld, profile.id, 0);
         if (obstacle) stop(obstacle);
@@ -2127,6 +2130,7 @@ export class GameService {
       }
     });
     const snapshot = {
+      academyMap: buildAcademyMap(session.state, registry),
       gameId: session.id,
       state: clientState,
       conditionCards: conditionCards(session.state),

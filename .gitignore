@@ -11,3 +11,5 @@ assets/optimized/
 .dev-server.*.log
 
 .runtime-studio-check/
+godot-arcana/.godot/
+.runtime-godot-*/

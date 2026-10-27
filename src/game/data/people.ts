@@ -1,8 +1,10 @@
-﻿/**
+import { academyPeople } from "./regions/arcana-academy/people";
+/**
  * NPC data
  */
 
 export const basePeople = {
+  ...academyPeople,
   shumi: {
     id: "shumi",
     name: "슈미",

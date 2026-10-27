@@ -58,7 +58,7 @@ export function questProgressFields(state: GameState, quest: QuestDefinition, re
   const localState = workState;
   const materialsReady = requirements.every(item => item.met);
   const ready = materialsReady && definition.conditions.every(condition => evaluateCondition(condition, localState)) && activityInputsAvailable(definition, localState);
-  const text = ready ? quest.guidance.ready : materialsReady
+  const text = ready ? quest.guidance.ready : materialsReady && requirements.length > 0
     ? "재료는 모였다. 목적지에서 사용할 도구와 남은 작업 조건을 확인한다."
     : quest.guidance.gathering;
   return { requirements, nextStep: resolveItemText(text, registry) };

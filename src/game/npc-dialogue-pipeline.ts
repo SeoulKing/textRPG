@@ -84,6 +84,14 @@ function fallbackReply(input: NpcDialogueGenerationInput) {
   const name = input.profile.name;
   if (input.socialOutcome) return { situation: particle(name, "은", "는") + " 건네받은 물건을 살핀 뒤 고개를 든다.",
     dialogue: input.socialOutcome.kind === "trade" ? "약속한 물건은 서로 받았네요. 잘 쓰세요." : input.socialOutcome.affinity >= 2 ? "또 챙겨 주셨네요. 고마워요. 저도 나눌 수 있는 게 있는지 볼게요." : "고마워요. 이건 잘 쓸게요." };
+  const conversation = input.profile.fallbackConversation;
+  if (conversation) {
+    const topic = conversation.topics.find(topic => topic.label === input.selectedChoice?.label);
+    return { situation: input.selectedChoice
+      ? input.selectedChoice.label.replace(/[.!?]$/, "") + ". " + particle(name, "은", "는") + " 잠깐 생각한 뒤 답한다."
+      : name + "에게 말을 건네자 하던 일을 잠깐 멈추고 이쪽을 본다.",
+      dialogue: input.selectedChoice ? topic?.reply ?? conversation.followUp : conversation.opening };
+  }
   const observed = input.memory.observations?.at(-1);
   if (!input.selectedChoice && observed?.sense === "heard") return { situation: name + "에게 말을 건네자 잠시 귀를 기울인다.", dialogue: "전에 소리가 들린 일이 있었어요. " + observed.summary + " 무슨 일이 있었나요?" };
   if (!input.selectedChoice && (input.memory.affinity ?? 0) < 0) return { situation: particle(name,"은","는") + " 거리를 둔 채 이쪽을 살핀다.", dialogue: "제 물건을 건드린 일은 기억하고 있어요. 무슨 얘기를 하려는 거죠?" };
@@ -95,6 +103,9 @@ function fallbackReply(input: NpcDialogueGenerationInput) {
     dialogue: "말씀은 들었어요. 그렇다고 제가 바로 믿겠다는 뜻은 아니니까, 계속 말해 보세요." };
 }
 function fallbackChoices(input: NpcDialogueGenerationInput) {
+  if (input.profile.fallbackConversation) return input.profile.fallbackConversation.topics.map(topic => ({
+    label: topic.label, thought: topic.thought, thoughtSource: "template" as const,
+  }));
   return ["여기서 어떻게 지내는지 물어본다", "경계할 필요는 없다고 말한다", input.profile.visibleDetails.some(detail => detail.includes("라디오")) ? "라디오에 대해 묻는다" : "주변 상황에 대해 묻는다"]
     .map(label => ({ label, thought: defaultDialogueThought(label), thoughtSource: "template" as const }));
 }

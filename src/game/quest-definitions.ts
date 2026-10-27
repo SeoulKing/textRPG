@@ -1,3 +1,4 @@
+import { academyQuests } from "./data/regions/arcana-academy/quests";
 /**
  * Quest definitions
  */
@@ -5,6 +6,7 @@
 import type { QuestDefinition } from "./schemas";
 
 export const questDefinitions: QuestDefinition[] = [
+  ...academyQuests,
   {
     id: "prepare_rescue_signal",
     title: "구조 신호 준비",

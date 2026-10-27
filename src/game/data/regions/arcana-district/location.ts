@@ -70,15 +70,4 @@ export const arcanaDistrictLocations = [
       arcana_hunting_ground: { note: "남문을 나서 별빛 초원의 평원로 향한다." },
     },
   }),
-  defineLocation({
-    id: "arcana_academy", name: "아르카나 아카데미", risk: "low",
-    mapPosition: { q: 1, r: -1 }, imagePath: "assets/scenes/arcana-academy.png",
-    summary: "식당 북쪽의 마법 교육 구역. 푸른 첨탑과 천문 관측탑, 아치형 회랑이 작은 앞뜰을 둘러싼다.",
-    tags: ["magic-city", "academy", "realm:magic"], traits: ["magic studies", "observatory", "courtyard"],
-    obtainableItemIds: [], neighbors: ["arcana_plaza", "arcana_restaurant"],
-    links: {
-      arcana_plaza: { note: "아카데미 앞뜰에서 중앙 분수가 있는 광장으로 향한다." },
-      arcana_restaurant: { note: "회랑 옆 돌길을 따라 남쪽의 식당으로 내려간다." },
-    },
-  }),
 ];

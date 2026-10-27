@@ -4183,3 +4183,77 @@ body::-webkit-scrollbar,
 .map-destination-card.is-selected h3 { color: #22659c; }
 .map-card-tags .tag-selected { background: #e1f0fc; color: #22659c; font-weight: 800; }
 .map-selection-label { display: block; margin-bottom: 3px; color: #22659c; font-size: .73rem; font-weight: 700; }
+
+/* The school's rooms share one local tile map; story decisions stay below it. */
+.scene-frame.has-academy-map .scene-art-wrap {
+  aspect-ratio: auto;
+  height: clamp(304px, 40dvh, 336px);
+  min-height: 304px;
+  max-height: none;
+  flex: 0 0 auto;
+  background: #f1f0e5;
+  border-bottom: 1px solid #d9d8c9;
+}
+.scene-frame.has-academy-map .scene-art-wrap > img,
+.scene-frame.has-academy-map .scene-animation-canvas { display: none; }
+.academy-interior-map {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 18px minmax(0, 1fr) auto;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 12px 9px;
+  color: #3d4e4d;
+  font-family: var(--font-ui, sans-serif);
+  background: radial-gradient(ellipse at 50% 43%, #f9f6e9, #e8eadf);
+}
+.academy-interior-map[hidden] { display: none; }
+.academy-map-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: .72rem; color: #66746c; }
+.academy-map-legend { display: flex; align-items: center; gap: 5px; font-size: .64rem; }
+.academy-map-legend i { width: 8px; height: 8px; display: inline-block; border: 2px solid; border-radius: 50%; }
+.academy-map-legend .is-current { border-color: #c99a3e; }
+.academy-map-legend .is-selected { margin-left: 6px; border-color: #428bbc; }
+.academy-map-board { display: block; width: 100%; height: 100%; min-height: 0; overflow: visible; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.academy-map-path { stroke: #d6ccb2; stroke-width: 10; stroke-linecap: round; pointer-events: none; }
+.academy-map-path.is-route { stroke: #94b4bd; }
+.academy-room { cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; user-select: none; }
+.academy-room-base { stroke-width: 1; stroke-linejoin: round; }
+.academy-room:hover .academy-room-base,
+.academy-room:focus-visible .academy-room-base { fill: #fff7e2; stroke: #9b9f8f; stroke-width: 2; }
+.academy-room.is-locked .academy-room-art { opacity: .48; }
+.academy-room-current,
+.academy-room-selected { fill: none; visibility: hidden; pointer-events: none; stroke-linejoin: round; }
+.academy-room.is-current .academy-room-current,
+.academy-room.is-selected .academy-room-selected { visibility: visible; }
+.academy-room:focus-visible .academy-room-selected { visibility: visible; stroke-dasharray: 4 3; }
+.academy-map-selection { display: flex; align-items: center; gap: 12px; min-width: 0; padding-top: 6px; border-top: 1px solid #d4d7c7; }
+.academy-map-detail { flex: 1 1 auto; min-width: 0; }
+.academy-map-detail strong { display: block; font-size: .8rem; line-height: 1.4; }
+.academy-map-detail small { display: block; margin-top: 2px; color: #68766e; font-size: .65rem; line-height: 1.45; overflow-wrap: anywhere; }
+.academy-map-selection button { flex: 0 0 auto; min-width: 66px; min-height: 44px; padding: 8px 10px; border: 1px solid #a2b4ac; border-radius: 4px; color: #355b55; background: #f6f8ee; font: inherit; font-size: .76rem; font-weight: 700; box-shadow: none; }
+.academy-map-selection button:disabled { color: #808b82; border-color: #ccd0c2; background: #e9ecdf; cursor: default; }
+.academy-interior-map.is-busy .academy-room { cursor: wait; }
+.academy-map-selection button:focus-visible { outline: 2px solid #428bbc; outline-offset: 2px; }
+.academy-navigation-hint { width: 100%; margin: 0; padding: 12px 4px; font-size: .78rem; color: var(--muted); text-align: center; }
+/* Map levels behave like folders: building rooms below, world map above. */
+.hex-map-shell.has-map-hierarchy { grid-template-rows: 44px minmax(80px, 1fr) auto 44px; }
+.map-level-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 0 10px; color: var(--muted); background: #f4f6ee; border-bottom: 1px solid var(--line); }
+.map-level-path { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: 0; font-size: .76rem; }
+.map-level-path strong { color: var(--text); font-weight: 700; }
+.map-level-header button { flex: 0 0 auto; min-height: 40px; padding: 6px 8px; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--accent-strong); font: inherit; font-size: .75rem; font-weight: 700; }
+.map-level-header button:hover { text-decoration: underline; }
+.map-level-header button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+.dock-button[data-panel="map"] { color: var(--accent-strong); font-weight: 700; }
+.scene-frame.has-academy-map .scene-art-wrap { height: clamp(336px, 44dvh, 368px); min-height: 336px; }
+.academy-interior-map { grid-template-rows: 44px minmax(0, 1fr) auto; scroll-margin-top: calc(var(--mobile-status-height, 44px) + 8px); }
+.academy-map-heading { gap: 8px; min-width: 0; }
+.academy-map-breadcrumb { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; column-gap: 4px; row-gap: 0; min-width: 0; font-size: .69rem; line-height: 1.35; }
+.academy-map-breadcrumb button { flex: 0 0 auto; min-width: 44px; min-height: 44px; padding: 0 3px; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: #416f7d; font: inherit; font-weight: 700; }
+.academy-map-breadcrumb button:hover { text-decoration: underline; }
+.academy-map-breadcrumb button:focus-visible { outline: 2px solid #428bbc; outline-offset: -3px; }
+.academy-map-breadcrumb strong { min-width: 0; color: #3d4e4d; font-weight: 700; overflow-wrap: anywhere; }
+.academy-map-legend { flex: 0 0 auto; white-space: nowrap; }
+/* Godot Arcana entry, separate from the text adventure start. */
+.home-action.godot{display:flex;grid-column:1 / -1;align-items:center;justify-content:center;min-height:54px;border-color:#aebc97;background:#244b46;color:#f0e2bd;text-decoration:none;letter-spacing:.03em;}
+.home-action.godot:hover,.home-action.godot:focus-visible{background:#315e54;border-color:#e0cc9c;}

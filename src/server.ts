@@ -193,6 +193,12 @@ async function bootstrap() {
     decorateReply: false,
   });
 
+  // Godot Compatibility / single-thread export needs no cross-origin isolation.
+  await app.register(staticPlugin, {
+    root: path.join(webRoot, "godot-web"),
+    prefix: "/godot/",
+    decorateReply: false,
+  });
   app.get("/", async (_request, reply) => {
     reply.type("text/html; charset=utf-8");
     return readFile(runtimeFile("index.html"), "utf8");
