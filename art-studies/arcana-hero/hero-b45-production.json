@@ -1,0 +1,37 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-10-28",
+  "selectedProportions": "B, approximately 4.5 heads",
+  "source": "art-studies/arcana-hero/hero-b45-animation-source.png",
+  "sourcePrompt": "Create a PRODUCTION PIXEL-ART CHARACTER ANIMATION SPRITE SHEET for the selected protagonist. Reference role: SAME CHARACTER AND SELECTED BODY PROPORTIONS. Use ONLY the SECOND character labeled B / 4.5 in the reference board. Preserve B's approximately 4.5-head compact adult proportions, short chestnut hair and face, teal travel coat with matching short shoulder cape, ivory shirt, slate trousers, brown boots, brass belt buckle, brown crossbody strap and square satchel. Preserve the high-quality crisp detailed pixel-art rendering of B, never turn into a crude plastic 3D figure or a child/chibi.\n\nOUTPUT: one exact regular grid of 8 COLUMNS x 4 ROWS, total 32 separate complete full-body sprites, on TRUE TRANSPARENT ALPHA. Square corners, no captions, numbers, separators, checkerboard, scenery, platforms, floor or cast shadows. Aim for a 2048 x 1536 sheet: each cell 256 x 384. Every sprite centered inside its own cell, same scale, same roughly 300-pixel body height, head and boots intact with at least 20px clear margin. All feet share the same vertical ground line within each row. No parts crossing cell borders.\nROW 1: facing SOUTH, toward viewer; readable face and shirt.\nROW 2: facing NORTH, away from viewer; back of hair, cape and coat, no face.\nROW 3: facing EAST, profile toward image RIGHT; face, crossbody bag and short coat silhouette consistent.\nROW 4: facing WEST, profile toward image LEFT; correctly reversed body perspective, consistent clothing and anatomy.\nViewpoint in all rows is the SAME subtly elevated top-down 3/4 orthographic RPG camera. The model is drawn, not a perspective illustration.\n\nCOLUMN 1 in every row: neutral standing idle, both boots grounded, arms comfortably down.\nCOLUMN 2: a second subtle standing idle, same foot placement, only tiny cloth/chest shift.\nCOLUMNS 3 through 8: SIX DISTINCT, ORDERED walking poses forming one complete seamless left-right step cycle: left contact, left down, left passing, right contact, right down, right passing. Visible genuine leg and arm counter-swing, alternating boots, stable head/torso and coat identity. Keep all six poses similar in height, no floating/bouncing mannequin. Clothes move with the legs, satchel stays on the same hip.\nPixel treatment: intentional sharp pixel clusters, dark selective contour, 3-step teal fabric shading, large chestnut hair locks, sparse brass trim, ivory shirt detail; no noisy dithering, no soft antialiasing, no motion blur. Use same outfit and quality in EVERY cell; do not omit rows or leave blank cells. This is an animation asset with exact cell spacing, NOT a decorative comparison board.",
+  "export": "godot-arcana/art/export/hero-b45.png",
+  "bakeCommand": "python scripts/bake-arcana-hero.py",
+  "runtime": "godot-arcana/scripts/sprite_actor.gd",
+  "atlas": {
+    "frame": [
+      96,
+      128
+    ],
+    "columns": 8,
+    "rows": [
+      "south",
+      "north",
+      "east",
+      "west"
+    ],
+    "idleColumns": [
+      0,
+      1
+    ],
+    "walkColumns": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "footBaseline": 121
+  },
+  "integration": "Camera-facing opaque alpha-cut quad with the existing foot-based 3D depth ordering and a separate contact shadow; four facing directions are selected from actual map motion."
+}

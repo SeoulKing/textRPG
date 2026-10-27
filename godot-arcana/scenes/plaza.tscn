@@ -1,0 +1,795 @@
+[gd_scene load_steps=3 format=3 uid="uid://ci8ykev02d60i"]
+
+[ext_resource type="Script" uid="uid://cnckeoj32oil2" path="res://scripts/plaza_layout.gd" id="1"]
+[ext_resource type="Script" uid="uid://cyo2xmrq04et0" path="res://scripts/arcana_placement.gd" id="2"]
+
+[node name="Plaza" type="Node3D"]
+script = ExtResource("1")
+plaza_radii = Vector2(9, 8)
+paved_areas = Array[Rect2]([Rect2(34.125, 9, 3.75, 38), Rect2(22, 16, 31, 3), Rect2(18, 27.5, 37, 3), Rect2(20, 41.75, 35, 3.5), Rect2(23.3, 24, 2.4, 5), Rect2(48.3, 24, 2.4, 5), Rect2(23.3, 40, 2.4, 4), Rect2(48.3, 12, 2.4, 6), Rect2(23.3, 12, 2.4, 6), Rect2(50.75, 38, 2.5, 5.5), Rect2(20.5, 22, 8, 4.5), Rect2(45.5, 22, 8, 4.5), Rect2(20.5, 38, 8, 4.5), Rect2(45.5, 10, 8, 5), Rect2(22.5, 10, 4, 5), Rect2(50, 36, 4, 5), Rect2(17.5, 27, 6, 6)])
+
+[node name="상점_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 0, 24)
+script = ExtResource("2")
+model_kind = "shop"
+gameplay_id = "arcana_shop"
+display_name = "아르카나 상점"
+interaction_kind = "building"
+collision_footprint = Rect2(-3.625, -2, 5.375, 2)
+
+[node name="Interaction" type="Marker3D" parent="상점_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
+gizmo_extents = 0.4
+
+[node name="여관_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 0, 40)
+script = ExtResource("2")
+model_kind = "inn"
+gameplay_id = "arcana_inn"
+display_name = "푸른 지붕 여관"
+interaction_kind = "building"
+collision_footprint = Rect2(-2.625, -2, 5.375, 2)
+
+[node name="Interaction" type="Marker3D" parent="여관_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
+gizmo_extents = 0.4
+
+[node name="식당_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.5, 0, 24)
+script = ExtResource("2")
+model_kind = "restaurant"
+gameplay_id = "arcana_restaurant"
+display_name = "광장 식당"
+interaction_kind = "building"
+collision_footprint = Rect2(-3.625, -2, 5.375, 2)
+
+[node name="Interaction" type="Marker3D" parent="식당_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
+gizmo_extents = 0.4
+
+[node name="분수_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, 29.625)
+script = ExtResource("2")
+model_kind = "fountain"
+collision_footprint = Rect2(-2.25, -2.95, 4.5, 4.5)
+
+[node name="벤치_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 0, 34.5)
+script = ExtResource("2")
+model_kind = "bench"
+collision_footprint = Rect2(-0.8125, -0.3125, 1.625, 0.3125)
+
+[node name="벤치_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43, 0, 34.5)
+script = ExtResource("2")
+model_kind = "bench"
+collision_footprint = Rect2(-0.8125, -0.3125, 1.625, 0.3125)
+
+[node name="화단_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 0, 36)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="화단_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43, 0, 36)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="화단_03" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 0, 20.7)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="화단_04" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.5, 0, 20.7)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="상자_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0, 28)
+script = ExtResource("2")
+collision_footprint = Rect2(-0.5, -0.5, 1, 0.5)
+
+[node name="barrels_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0, 30.5)
+script = ExtResource("2")
+model_kind = "barrels"
+collision_footprint = Rect2(-0.625, -0.5625, 1.25, 0.5625)
+
+[node name="flowerpot_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.5, 0, 24.7)
+script = ExtResource("2")
+model_kind = "flowerpot"
+
+[node name="flowerpot_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.5, 0, 24.7)
+script = ExtResource("2")
+model_kind = "flowerpot"
+
+[node name="sign_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, 25.5)
+script = ExtResource("2")
+model_kind = "sign"
+
+[node name="lantern_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.3, 0, 40.5)
+script = ExtResource("2")
+model_kind = "lantern"
+
+[node name="basket_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53, 0, 24.7)
+script = ExtResource("2")
+model_kind = "basket"
+
+[node name="handcart_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.1, 0, 26.2)
+script = ExtResource("2")
+model_kind = "handcart"
+collision_footprint = Rect2(-0.8125, -0.5625, 1.625, 0.5625)
+
+[node name="비전작업대_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 0, 29.5)
+script = ExtResource("2")
+model_kind = "workbench"
+gameplay_id = "workbench"
+display_name = "비전 작업대"
+interaction_kind = "workbench"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="Interaction" type="Marker3D" parent="비전작업대_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
+gizmo_extents = 0.4
+
+[node name="canopy_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 0, 31.8)
+script = ExtResource("2")
+model_kind = "canopy"
+
+[node name="pennant_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.2, 0, 40.5)
+script = ExtResource("2")
+model_kind = "pennant"
+
+[node name="shrub_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.5, 0, 37.5)
+script = ExtResource("2")
+model_kind = "shrub"
+
+[node name="참나무_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 19.5)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, 36)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 0, 40)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.5, 0, 12.5)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.5, 0, 12.5)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="shrub_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43, 0, 37.5)
+script = ExtResource("2")
+model_kind = "shrub"
+
+[node name="가로등_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 0, 23.5)
+script = ExtResource("2")
+model_kind = "lamp-post"
+collision_footprint = Rect2(-0.125, -0.1875, 0.25, 0.1875)
+
+[node name="가로등_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43, 0, 23.5)
+script = ExtResource("2")
+model_kind = "lamp-post"
+collision_footprint = Rect2(-0.125, -0.1875, 0.25, 0.1875)
+
+[node name="가로등_03" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, 35)
+script = ExtResource("2")
+model_kind = "lamp-post"
+collision_footprint = Rect2(-0.125, -0.1875, 0.25, 0.1875)
+
+[node name="가로등_04" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, 35)
+script = ExtResource("2")
+model_kind = "lamp-post"
+collision_footprint = Rect2(-0.125, -0.1875, 0.25, 0.1875)
+
+[node name="참나무_03" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67, 0, 40)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_03" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51, 0, 55)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, 7)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_04" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0, 81)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_03" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, 61)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_05" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 0, 65)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_04" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 78)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_04" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, 60)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_06" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61, 0, 79)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="자작나무_07" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 74)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_05" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43, 0, 48)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_05" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 40)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_06" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 58)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_08" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 82)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_07" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 61)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_06" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 53)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_08" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 86)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_09" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0, 46)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_07" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 3)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="전나무_08" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 24)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_09" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, 5)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="참나무_10" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, 0, 28)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_10" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 27)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_11" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 69)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="참나무_12" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 0, 75)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_11" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, 0, 80)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_09" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 79)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_12" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.5, 0, 41)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_10" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 0, 19)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_13" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 39)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_13" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47, 0, 69)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_11" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, 46)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_14" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 72)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_12" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 0, 22)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_15" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 18)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_14" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 0, 81)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_16" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54, 0, 79)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_15" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 0, 7)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_17" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47, 0, 82)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_16" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56, 0, 74)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_18" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 3)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_17" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 73)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_19" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 0, 50)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_18" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 0, 35)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_13" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68, 0, 51)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_20" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 23)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_14" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 70)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_19" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, 0, 27)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_15" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 30)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_21" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 35)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_20" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 0, 30)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_22" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 68)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_21" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67, 0, 42)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_16" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 40)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="전나무_17" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53, 0, 5)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_23" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, 12)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_22" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, 46)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_18" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 71)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_24" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 65)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_23" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 56)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_19" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, 56)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_24" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 46)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_20" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 9)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_25" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0, 43)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_21" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 38)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="전나무_22" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 59)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_25" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53, 0, 74)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_23" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 70)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_26" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, 72)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_26" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 60)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_24" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, 8.5)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_27" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 61)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_27" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, 46)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_25" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54, 0, 50)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_28" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55.5, 0, 12)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_28" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 22)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_29" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59, 0, 85)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_26" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 84)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_29" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 83)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_27" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 50)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_30" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 74)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_30" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 18)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_28" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 19)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_31" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, 53)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_29" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59, 0, 64)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_32" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 38)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="아카데미_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.5, 0, 12)
+script = ExtResource("2")
+model_kind = "academy"
+gameplay_id = "arcana_academy"
+display_name = "아르카나 아카데미"
+interaction_kind = "building"
+collision_footprint = Rect2(-3.25, -2.0625, 6.5, 1.8125)
+
+[node name="Interaction" type="Marker3D" parent="아카데미_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
+gizmo_extents = 0.4
+
+[node name="포탈_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 0, 12)
+script = ExtResource("2")
+model_kind = "portal"
+gameplay_id = "arcana_return_portal"
+display_name = "귀환 포탈"
+interaction_kind = "portal"
+collision_footprint = Rect2(-1.1875, -1.625, 2.375, 1.5)
+
+[node name="Interaction" type="Marker3D" parent="포탈_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.6875)
+gizmo_extents = 0.4
+
+[node name="포탈_02" type="Node3D" parent="."]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 52, 0, 38)
+script = ExtResource("2")
+model_kind = "portal"
+gameplay_id = "dungeon"
+display_name = "별빛 회랑"
+interaction_kind = "dungeon"
+
+[node name="Interaction" type="Marker3D" parent="포탈_02"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5)
+gizmo_extents = 0.4
+
+[node name="주인공_시작위치_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, 34.5)
+script = ExtResource("2")
+model_kind = "hero"
+gameplay_id = "player_spawn"
+display_name = "주인공 시작 위치"
+interaction_kind = "spawn"
+
+[node name="여행자_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 0, 33.5)
+script = ExtResource("2")
+model_kind = "traveler"
+gameplay_id = "resident"
+display_name = "여행자"
+interaction_kind = "resident"
+
+[node name="작업_카메라" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.6614379, 0.74999994, 0, -0.74999994, 0.6614379, 36, 24, 51.166)
+projection = 1
+size = 24.0
+far = 250.0

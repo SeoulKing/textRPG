@@ -1,13 +1,17 @@
 extends Node
 
 const World = preload("res://scripts/world.gd")
+const PixelWorld3D = preload("res://scripts/pixel3d_world.gd")
 const UI = preload("res://scripts/game_ui.gd")
 const SAVE_KEY = "arcana-godot-game-v1"
 const SHARED_SAVE_KEY = "ruined-seoul-stage1-manual-save-game-id-v1"
+const QUICKSLOT_KEY = "arcana-godot-quickslots-v1"
+var authored_layout: Node3D
 var world
+var world_renderer
 var ui
 var viewport: SubViewport
-var viewport_host: SubViewportContainer
+var viewport_host: TextureRect
 var snapshot: Dictionary = {}
 var game_id = ""
 var busy = false
@@ -28,27 +32,53 @@ var saved_position: Dictionary = {}
 var resume_error = ""
 var previous_enemy_hp = 30.0
 var ui_refresh = 0.0
+var frame_samples = PackedFloat64Array()
+var frame_window = 0.0
+var previous_pose_updates = 0
+var previous_frame_usec = 0
+var frame_timing: Dictionary = {}
 
 func _ready() -> void:
-	viewport_host = SubViewportContainer.new()
+	if authored_layout == null: authored_layout = get_node_or_null("Plaza")
+	if authored_layout != null and authored_layout.get_parent() != null:
+		authored_layout.get_parent().remove_child(authored_layout)
+	viewport_host = TextureRect.new()
 	viewport_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	viewport_host.stretch = true
+	viewport_host.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	viewport_host.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(viewport_host)
 	viewport = SubViewport.new()
-	viewport.disable_3d = true
+	viewport.disable_3d = false
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	viewport_host.add_child(viewport)
+	add_child(viewport)
+	viewport_host.texture = viewport.get_texture()
+	# Sample the completed world texture directly; never read/write the same viewport.
+	var world_palette = ShaderMaterial.new()
+	world_palette.shader = preload("res://art/resources/pixel3d_palette.gdshader")
+	world_palette.set_shader_parameter("palette_lut",preload("res://art/export/arcana-palette-lut.png"))
+	viewport_host.material = world_palette
 	world = World.new()
+	world.layout = authored_layout
+	if OS.has_feature("web"):
+		world.reduced_motion = bool(JavaScriptBridge.eval("matchMedia('(prefers-reduced-motion: reduce)').matches"))
 	viewport.add_child(world)
+	world.hide()
+	world.camera.enabled = false
+	world_renderer = PixelWorld3D.new()
+	world_renderer.world = world
+	viewport.add_child(world_renderer)
 	world.interacted.connect(_interact)
 	ui = UI.new()
 	add_child(ui)
 	ui.menu_requested.connect(_menu)
 	ui.interact_pressed.connect(_activate)
-	ui.magic_pressed.connect(_magic)
-	ui.move_changed.connect(func(value): world.touch_direction = value)
+	ui.quickslot_pressed.connect(_use_quickslot)
+	var slots = JSON.parse_string(_stored(QUICKSLOT_KEY))
+	if slots is Array and slots.size() == 4:
+		for i in range(4):
+			if slots[i] is String: ui.set_quickslot(i, slots[i])
+	ui.move_changed.connect(_joystick_move)
 	ui.panel_closed.connect(func(): panel_mode = ""; world.touch_direction = Vector2.ZERO; world.enabled = not busy and page_active)
 	if OS.has_feature("web"):
 		origin = str(JavaScriptBridge.eval("location.origin"))
@@ -62,13 +92,31 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_resize)
 	await _boot()
 
+func _joystick_move(value: Vector2) -> void:
+	# Match the stick angle to the projected ground, retaining analog speed.
+	world.touch_direction = Vector2(value.x, value.y / PixelWorld3D.PITCH_SINE).normalized() * value.length()
+	# Taking direct control cancels any click/map destination, including at center.
+	if ui.joystick.is_active(): world.path.clear()
+
+func _toggle_pixel_render() -> void:
+	world_renderer.pixelated = not world_renderer.pixelated
+	_resize()
+	ui.close_panel()
+
 func _resize() -> void:
 	var size = get_viewport().get_visible_rect().size
+	var stretch_scale = get_viewport().get_stretch_transform().get_scale()
+	var physical = (size*stretch_scale).round()
+	var divisor = maxi(2, int(roundf(minf(stretch_scale.x, stretch_scale.y) * 2.0))) if world_renderer == null or world_renderer.pixelated else 1
+	# Render at half resolution and enlarge with nearest filtering. Odd sizes overscan
+	# by one pixel instead of stretching source pixels by a fractional factor.
+	viewport.size = Vector2i((physical/divisor).ceil()).max(Vector2i(2,2))
 	viewport_host.position = Vector2.ZERO
-	viewport_host.size = size
-	# SubViewportContainer owns the render size when stretch is enabled.
-	viewport_host.stretch_shrink = 1
-
+	viewport_host.scale = Vector2.ONE/stretch_scale
+	viewport_host.size = Vector2(viewport.size)*divisor
+	world_renderer.display_height = size.y
+	viewport_host.material.set_shader_parameter("palette_enabled",world_renderer.pixelated)
+	world._update_camera()
 func _api(route: String, method: int = HTTPClient.METHOD_GET, data: Dictionary = {}) -> Dictionary:
 	var req = HTTPRequest.new()
 	req.timeout = 65
@@ -141,7 +189,7 @@ func _boot() -> void:
 	if not _state().get("flags", {}).get("in_magic_world", false):
 		_returned_home()
 	else:
-		ui.toast("길을 눌러 이동 · 가까이에서 살펴보기 E")
+		ui.toast("왼쪽 스틱으로 이동 · 오른쪽 버튼으로 살펴보기")
 		if _state().get("magicDungeon", {}).get("run") is Dictionary:
 			world.change_interior("dungeon")
 			_scene()
@@ -177,12 +225,13 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 				var point = Vector2(float(saved_position.get("x", 576)), float(saved_position.get("y", 500)))
 				world.player_position = world.nearest_walkable(point)
 	if _battle().get("phase", "") == "defeat" and old_location != location:
-		world.player_position = world.SPAWN
+		world.player_position = world.spawn_position
 		world.path.clear()
 	if not had_battle and _battle().get("phase", "") == "ready" and world.indoor == "":
 		if world.player_position.distance_to(Vector2(600, 1054)) < 36:
 			world.player_position = Vector2(600, 1082)
 			world.path.clear()
+	if initial: world._update_camera(true)
 	world.battle = _battle().duplicate(true)
 	var enemy_hp = float(_battle().get("enemyHp", 30))
 	if enemy_hp < previous_enemy_hp: world.effect("fireball", str(int(previous_enemy_hp - enemy_hp)))
@@ -217,8 +266,11 @@ func _update_hud() -> void:
 	ui.xp_bar.value = float(dungeon.get("xp", 0) if in_dungeon else c.get("xp", 0)) / ((40 if in_dungeon else 30) + (level - 1) * 15) * 100
 
 func _process(delta: float) -> void:
+	_record_frame(delta)
 	if not is_instance_valid(ui): return
 	world.enabled = not busy and not ui.overlay.visible and page_active and not snapshot.is_empty()
+	ui.joystick.set_enabled(page_active and not ui.overlay.visible and not snapshot.is_empty())
+	if world.enabled and ui.joystick.is_active(): _joystick_move(ui.joystick.direction)
 	if snapshot.is_empty(): return
 	heartbeat += delta
 	ui_refresh += delta
@@ -240,31 +292,62 @@ func _process(delta: float) -> void:
 		if p.y > 793 and loc != "arcana_hunting_ground": _cross_gate(true)
 		elif p.y < 781 and loc == "arcana_hunting_ground": _cross_gate(false)
 
+func _record_frame(_delta: float) -> void:
+	var now = Time.get_ticks_usec()
+	var elapsed = float(now - previous_frame_usec) / 1000000.0 if previous_frame_usec > 0 else 0.0
+	previous_frame_usec = now
+	if not page_active or elapsed <= 0.0:
+		previous_pose_updates = world_renderer.hero.pose_updates
+		frame_samples.clear()
+		frame_window = 0.0
+		return
+	# Use wall time; engine delta smoothing can hide uneven frame delivery.
+	frame_samples.append(elapsed * 1000.0)
+	frame_window += elapsed
+	if frame_window < 2.0: return
+	frame_samples.sort()
+	var slow = 0
+	for ms in frame_samples:
+		if ms > 25.0: slow += 1
+	var pose_count = world_renderer.hero.pose_updates
+	frame_timing = {"animationFps": snappedf((pose_count - previous_pose_updates) / frame_window, .1), "fps": snappedf(frame_samples.size() / frame_window, .1), "p95Ms": snappedf(frame_samples[int((frame_samples.size() - 1) * .95)], .1), "maxMs": snappedf(frame_samples[frame_samples.size() - 1], .1), "slowFrames": slow, "processMs": snappedf(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, .1), "drawCalls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))}
+	previous_pose_updates = pose_count
+	frame_samples.clear()
+	frame_window = 0.0
+
 func _refresh_controls() -> void:
 	var b = _battle()
 	var fighting = b.get("phase", "") == "battle"
 	var available = not busy and not ui.overlay.visible
 	ui.interaction.disabled = not available
-	if busy: ui.interaction.text = "진행 중…"
+	if busy: ui.interaction.text = "진행 중"
 	elif not b.is_empty():
-		ui.interaction.text = {"ready":"전투 준비  E", "battle":"전투 메뉴  E", "victory":"전리품 확인  E", "defeat":"돌아보기  E"}.get(b.get("phase", ""), "살펴보기  E")
-	elif not world.nearest.is_empty(): ui.interaction.text = "살펴보기  E"
-	else: ui.interaction.text = "주변 보기  E"
+		ui.interaction.text = {"ready":"전투 준비", "battle":"전투 메뉴", "victory":"전리품 확인", "defeat":"돌아보기"}.get(b.get("phase", ""), "상호작용")
+	else: ui.interaction.text = "상호작용"
+	ui.interaction.tooltip_text = "E / Space · " + (str(world.nearest.get("name", "주변 살펴보기")) if b.is_empty() else ui.interaction.text)
 	if not world.nearest.is_empty(): ui.hint_label.text = world.nearest.name
 	elif fighting: ui.hint_label.text = "슬라임 · 도약 예고에 맞춰 회피하세요"
 	elif world.indoor != "": ui.hint_label.text = "인물이나 문 가까이에서 살펴보세요"
-	else: ui.hint_label.text = "길을 눌러 이동 · 방향키 / WASD"
+	else: ui.hint_label.text = ""
 	var cooldowns = _combat().get("cooldowns", {})
-	for pair in [[ui.fireball, "fireball", "불꽃  1"], [ui.dodge, "dodge", "회피  2"], [ui.potion, "potion", "포션  3"]]:
-		var remaining = float(cooldowns.get(pair[1], 0))
-		pair[0].text = pair[2]
-		pair[0].disabled = not available or remaining > .01 or (not fighting and pair[1] != "potion")
-		if pair[1] == "fireball" and float(_combat().get("mp", 0)) < 4: pair[0].disabled = true
-		if pair[1] == "potion" and int(_state().get("inventory", {}).get("manaPotion", 0)) <= 0: pair[0].disabled = true
+	var in_dungeon = _state().get("magicDungeon", {}).get("run") is Dictionary
+	for i in range(ui.quickslot_buttons.size()):
+		var slot: Button = ui.quickslot_buttons[i]
+		var command: String = ui.quickslot_bindings[i]
+		var remaining = float(cooldowns.get(command, 0))
+		var count = int(_state().get("inventory", {}).get("manaPotion", 0))
+		slot.disabled = not available
+		if not command.is_empty():
+			slot.disabled = not available or in_dungeon or remaining > .01 or (not fighting and command != "potion")
+			if command == "fireball" and float(_combat().get("mp", 0)) < 4: slot.disabled = true
+			if command == "potion" and count <= 0: slot.disabled = true
+		ui.quickslot_icons[i].modulate.a = .45 if slot.disabled else 1.0
+		ui.quickslot_labels[i].modulate.a = .45 if slot.disabled else 1.0
+		ui.quickslot_counts[i].text = str(count) if command == "potion" else ""
 		# A shrinking bar conveys cooldown without a numeric countdown.
-		ui.cooldown_bars[pair[0]].visible = remaining > .01
-		ui.cooldown_bars[pair[0]].value = remaining / (3.0 if pair[1] == "fireball" else 5.0) * 100
-		pair[0].tooltip_text = "재사용 대기 중" if remaining > .01 else pair[2]
+		ui.cooldown_bars[slot].visible = remaining > .01
+		ui.cooldown_bars[slot].value = remaining / (3.0 if command == "fireball" else 5.0) * 100
+		slot.tooltip_text = "%d · %s" % [i + 1, "재사용 대기 중" if remaining > .01 else ui.SLOT_NAMES[command]]
 	ui.attack_bar.visible = fighting
 	ui.attack_bar.value = float(world.battle.get("attackIn", 6)) / 6 * 100
 
@@ -453,6 +536,31 @@ func _magic(command: String) -> void:
 		if command == "dodge": world.effect("dodge")
 		if _battle().get("phase", "") in ["victory", "defeat"]: _scene()
 
+func _use_quickslot(index: int) -> void:
+	if busy or ui.overlay.visible or snapshot.is_empty(): return
+	if ui.quickslot_bindings[index].is_empty():
+		_quickslot_picker(index)
+	elif not ui.quickslot_buttons[index].disabled:
+		_magic(ui.quickslot_bindings[index])
+
+func _quickslots_menu() -> void:
+	panel_mode = "quickslots"
+	ui.open_panel("퀵슬롯 설정")
+	ui.paragraph("슬롯을 골라 스킬이나 아이템을 배치하세요. 숫자 키 1~4로도 사용할 수 있습니다.", ui.MUTED)
+	for i in range(4):
+		ui.choice("슬롯 %d · %s" % [i + 1, ui.SLOT_NAMES[ui.quickslot_bindings[i]] if not ui.quickslot_bindings[i].is_empty() else "비어 있음"], "배치 변경", func(): _quickslot_picker(i))
+
+func _quickslot_picker(index: int) -> void:
+	panel_mode = "quickslots"
+	ui.open_panel("슬롯 %d에 배치" % (index + 1))
+	ui.paragraph("이 슬롯은 키보드 %d 키와 연결됩니다." % (index + 1), ui.MUTED)
+	for entry in [["불꽃", "fireball", "스킬 · MP 4"], ["회피", "dodge", "스킬 · 적의 공격 회피"], ["마나 포션", "potion", "아이템 · 보유 %d개" % int(_state().get("inventory", {}).get("manaPotion", 0))], ["비워 두기", "", "슬롯에서 해제"]]:
+		ui.choice(entry[0], entry[2], func():
+			ui.set_quickslot(index, entry[1])
+			_store(QUICKSLOT_KEY, JSON.stringify(ui.quickslot_bindings))
+			ui.close_panel()
+			_refresh_controls())
+
 func _menu(kind: String) -> void:
 	if busy or snapshot.is_empty(): return
 	panel_mode = kind
@@ -475,7 +583,9 @@ func _menu(kind: String) -> void:
 			ui.paragraph("아르카나 · 별빛의 도시", ui.GOLD)
 			ui.choice("진행 저장", "현재 모험과 위치를 저장합니다.", _save)
 			ui.choice("조작 방법", "터치와 키보드 안내", _help)
+			ui.choice("퀵슬롯 설정", "스킬·아이템 배치 · 숫자 키 1~4", _quickslots_menu)
 			ui.choice("전체 화면", "F · Esc로 해제", _fullscreen)
+			ui.choice("3D 원본 비교" if world_renderer.pixelated else "도트 화면으로", "64색 도트 화면과 원본 화면을 비교합니다.", _toggle_pixel_render)
 			ui.choice("낮 / 해질녘", "광장 빛 전환", func(): world.set_art_state(not world.dusk, world.effects_enabled); ui.close_panel())
 			ui.choice("환경 효과 켜기 / 끄기", "기본 그림 보기", func(): world.set_art_state(world.dusk, not world.effects_enabled); ui.close_panel())
 			ui.choice("홈으로", "저장한 뒤 홈 메뉴로 돌아갑니다.", _save_and_home)
@@ -522,9 +632,10 @@ func _inventory() -> void:
 
 func _help() -> void:
 	ui.open_panel("조작 방법")
-	ui.paragraph("화면의 길을 누르면 장애물을 피해 걸어갑니다. 왼쪽 아래 방향 버튼 또는 WASD·방향키로 직접 움직일 수도 있습니다.")
-	ui.paragraph("문·인물·작업대 가까이에서 ‘살펴보기’ 또는 E·Space를 누르세요. 학교 안에서도 각 공간으로 걸어가 상호작용할 수 있습니다.")
-	ui.paragraph("평원의 슬라임을 살펴보고 전투를 시작하세요. 1은 파이어볼, 2는 회피, 3은 마나 포션입니다. 파이어볼은 MP 4와 재사용 3초, 회피는 0.8초와 재사용 5초입니다. 적의 도약 예고는 줄어드는 바로 표시됩니다.")
+	ui.paragraph("화면의 길을 누르면 장애물을 피해 걸어갑니다. 왼쪽 아래를 누른 채 밀면 그 자리에 나타나는 조이스틱으로 움직입니다. WASD·방향키도 사용할 수 있습니다.")
+	ui.paragraph("문·인물·작업대 가까이에서 오른쪽 아래 상호작용 버튼 또는 E·Space를 누르세요. 학교 안에서도 각 공간으로 걸어가 상호작용할 수 있습니다.")
+	ui.paragraph("상호작용 버튼 주위의 네 퀵슬롯은 숫자 키 1~4와 연결됩니다. 빈 슬롯을 누르거나 메뉴의 퀵슬롯 설정에서 불꽃·회피·마나 포션을 배치하세요. 배치는 다음 접속에도 유지됩니다.")
+	ui.paragraph("평원의 슬라임을 살펴보고 전투를 시작하세요. 파이어볼은 MP 4와 재사용 3초, 회피는 0.8초와 재사용 5초입니다. 적의 도약 예고는 줄어드는 바로 표시됩니다.")
 	ui.paragraph("메뉴를 열거나 다른 창으로 전환하면 시간을 멈춥니다. 진행 저장 후 다시 들어오면 같은 모험을 이어 갑니다.")
 
 func _save() -> bool:
@@ -572,7 +683,7 @@ func _new_game() -> void:
 	game_id = data.gameId
 	saved_position = {}
 	world.change_interior("")
-	world.player_position = world.SPAWN
+	world.player_position = world.spawn_position
 	_apply(data)
 	_remember_position()
 	ui.close_panel()
@@ -592,9 +703,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		match event.physical_keycode:
 			KEY_E, KEY_SPACE:
 				if not ui.overlay.visible: _activate()
-			KEY_1: _magic("fireball")
-			KEY_2: _magic("dodge")
-			KEY_3: _magic("potion")
+			KEY_1: _use_quickslot(0)
+			KEY_2: _use_quickslot(1)
+			KEY_3: _use_quickslot(2)
+			KEY_4: _use_quickslot(3)
 			KEY_I: _menu("inventory")
 			KEY_M: _menu("map")
 			KEY_J: _menu("quests")
@@ -603,6 +715,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				else: _menu("menu")
 			KEY_F: _fullscreen()
 	if ui.overlay.visible or busy: return
+	if ui.joystick.is_active(): return
 	var position = Vector2.ZERO
 	var tapped = false
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -611,10 +724,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch and event.pressed:
 		position = event.position
 		tapped = true
-	if tapped and viewport_host.get_rect().has_point(position):
-		var local = (position - viewport_host.position) * Vector2(viewport.size) / viewport_host.size
-		var target = viewport.canvas_transform.affine_inverse() * local
-		world.walk_to(target)
+	if tapped:
+		var local = viewport_host.get_global_transform().affine_inverse() * position
+		if Rect2(Vector2.ZERO, viewport_host.size).has_point(local):
+			var target = world_renderer.pick(local*Vector2(viewport.size)/viewport_host.size)
+			world.walk_to(target)
 
 func _bridge_command(args: Array) -> void:
 	if args.is_empty(): return
@@ -622,9 +736,10 @@ func _bridge_command(args: Array) -> void:
 	if not payload is Dictionary: return
 	match payload.get("command", ""):
 		"focus":
-			page_active = bool(payload.get("active", true))
+			var active = bool(payload.get("active", true))
+			if not active or active != page_active: ui.reset_touch_controls()
+			page_active = active
 			world.enabled = page_active and not busy and not ui.overlay.visible
-			world.touch_direction = Vector2.ZERO
 			heartbeat = 1
 		"menu": _menu(payload.get("kind", "menu"))
 		"interact": _activate()
@@ -633,6 +748,6 @@ func _bridge_command(args: Array) -> void:
 		"close": ui.close_panel()
 
 func _bridge_state(_args: Array) -> void:
-	var state = {"engine":"Godot 4.5.1", "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
+	var state = {"engine":"Godot 4.5.1", "renderer":"native_3d_pixel", "characterRendering":"sprite_2d_in_3d", "characterProportions":4.5, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))

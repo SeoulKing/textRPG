@@ -13,3 +13,8 @@ assets/optimized/
 .runtime-studio-check/
 godot-arcana/.godot/
 .runtime-godot-*/
+.codex-local-server.*.log
+.codex-remote-attachments/
+.tmp-audit/
+godot-web/*.TMP
+*.blend[0-9]*

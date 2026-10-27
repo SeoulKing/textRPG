@@ -1,5 +1,7 @@
-[gd_resource type="TileSet" load_steps=3 format=3]
-[ext_resource type="Texture2D" path="res://art/export/terrain.png" id="1"]
+[gd_resource type="TileSet" load_steps=3 format=3 uid="uid://cnbr3d2t77yyf"]
+
+[ext_resource type="Texture2D" uid="uid://ce6g5v00for4w" path="res://art/export/terrain.png" id="1"]
+
 [sub_resource type="TileSetAtlasSource" id="Atlas"]
 texture = ExtResource("1")
 texture_region_size = Vector2i(32, 32)

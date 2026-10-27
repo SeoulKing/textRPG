@@ -1,0 +1,15 @@
+{
+  "blender": "4.5.15 LTS",
+  "vertices": 34504,
+  "triangles": 67768,
+  "game_triangles": 25750,
+  "bones": 16,
+  "materials": 17,
+  "actions": [
+    "Idle",
+    "Walk"
+  ],
+  "source": "hero.blend",
+  "game_asset": "godot-arcana/art/models/hero/hero.blender.glb",
+  "design": "Approved B: brown hair, teal coat/mantle, ivory shirt, leather satchel and boots"
+}

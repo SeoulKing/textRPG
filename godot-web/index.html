@@ -10,22 +10,24 @@
 
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#142e33;color:#e3e5d3}body{font-family:system-ui,sans-serif}#canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}#loading{position:fixed;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 37%,#31534e 0,#19383b 42%,#102a30 100%);padding:32px;text-align:center}#loading[hidden]{display:none}.intro{width:min(100%,340px)}.crest{width:42px;height:42px;margin:0 auto 30px;border:1px solid #899d82;transform:rotate(45deg);position:relative}.crest:after{content:'';position:absolute;inset:10px;background:#c6c79c;box-shadow:0 0 28px #b9c69d66}.eyebrow{font-size:11px;letter-spacing:.32em;color:#b9c3a4}h1{font-family:Georgia,serif;font-weight:400;letter-spacing:.2em;font-size:44px;color:#e6d8b5;margin:15px 0 8px}h2{font-size:14px;font-weight:400;color:#b6c5b9;letter-spacing:.18em;margin:0 0 46px}.progress{height:2px;background:#4e6960;margin-bottom:15px}#progress-fill{height:100%;width:0;background:#d2c59e;transition:width .2s}#status{font-size:12px;color:#b7c5b8;line-height:1.8;white-space:pre-wrap}#error-actions{margin-top:20px;display:flex;justify-content:center;gap:20px}#error-actions[hidden]{display:none}a,button{font:inherit;color:#e1d0aa;text-decoration:none;background:none;border:0;border-bottom:1px solid #7e8d74;padding:8px 4px;cursor:pointer}.footnote{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));left:16px;right:16px;font-size:10px;letter-spacing:.16em;color:#829f93}#game-state{display:none}#compat{font-size:12px;line-height:1.8}
+#frame-rate{position:fixed;right:8px;top:78px;z-index:2;pointer-events:none;color:#e3e5d3;font:11px monospace;text-shadow:0 1px 3px #142e33}
 </style>
 </head>
 <body>
 <canvas id="canvas" tabindex="0" aria-label="아르카나 도트 오픈월드 게임. 방향키로 이동, E로 상호작용.">WebGL 2를 지원하는 브라우저가 필요합니다.</canvas>
 <div id="loading" role="status" aria-live="polite"><main class="intro"><div class="crest" aria-hidden="true"></div><p class="eyebrow">A WORLD BEYOND THE PORTAL</p><h1>ARCANA</h1><h2>아르카나 · 별빛의 도시</h2><div class="progress"><div id="progress-fill"></div></div><p id="status">도시로 이어지는 길을 여는 중입니다.</p><div id="error-actions" hidden><button id="retry" type="button">다시 시도</button><a href="/">홈으로</a></div><p id="compat"></p></main><p class="footnote">작은 불빛을 따라, 당신의 속도로.</p></div>
+<output id="frame-rate" aria-label="게임 프레임 속도"></output>
 <pre id="game-state" aria-hidden="true"></pre>
 <script src="index.js"></script>
 <script>
 'use strict';
-const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":3783760,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
+const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":6267920,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
 const loader=document.getElementById('loading'), status=document.getElementById('status');
 const showError=error=>{loader.hidden=false;status.textContent='아르카나를 열지 못했습니다.\n'+(error?.message||String(error));document.getElementById('error-actions').hidden=false;};
 document.getElementById('retry').addEventListener('click',()=>location.reload());
 window.arcanaCommand=payload=>{if(typeof window.arcanaGodotCommand==='function')window.arcanaGodotCommand(JSON.stringify(payload));};
 window.render_game_to_text=()=>{if(typeof window.arcanaGodotState==='function')window.arcanaGodotState();return JSON.stringify(window.arcanaLatestState||{ready:false,engine:'Godot',status:status.textContent});};
-setInterval(()=>{if(typeof window.arcanaGodotState==='function'){window.arcanaGodotState();if(window.arcanaLatestState)document.getElementById('game-state').textContent=JSON.stringify(window.arcanaLatestState);}},500);
+setInterval(()=>{if(typeof window.arcanaGodotState==='function'){window.arcanaGodotState();if(window.arcanaLatestState){document.getElementById('game-state').textContent=JSON.stringify(window.arcanaLatestState);const t=window.arcanaLatestState.timing;if(t?.fps)document.getElementById('frame-rate').textContent=t.fps.toFixed(1)+' FPS · '+t.p95Ms.toFixed(1)+' ms';}}},500);
 window.arcanaToggleFullscreen=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){console.warn('Fullscreen unavailable',e.message);}};
 document.getElementById('canvas').addEventListener('pointerdown',()=>window.arcanaCommand({command:'focus',active:!document.hidden}));
 document.getElementById('canvas').addEventListener('keydown',()=>window.arcanaCommand({command:'focus',active:!document.hidden}));

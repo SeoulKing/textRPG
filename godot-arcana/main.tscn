@@ -1,6 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3 uid="uid://cm0bewl3e7dio"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1"]
+[ext_resource type="Script" uid="uid://dnj11i6pyck11" path="res://scripts/main.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://ci8ykev02d60i" path="res://scenes/plaza.tscn" id="2"]
 
 [node name="Arcana" type="Node"]
 script = ExtResource("1")
+
+[node name="Plaza" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2, 1)

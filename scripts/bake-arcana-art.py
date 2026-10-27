@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw
 import argparse
 import json
 import math
+import random
 
 ROOT = Path(__file__).resolve().parents[1] / 'godot-arcana/art'
 OUT = ROOT / 'export'
@@ -67,42 +68,52 @@ region = Rect2({', '.join(map(str, region))})
 '''
 
 def character(sheet, row, name):
-    # All movement frames derive from the same approved directional silhouette.
-    # Torso/head pixels never get independently regenerated from frame to frame.
-    atlas = Image.new('RGBA', (128, 384))
-    animations = []
-    resources = []
+    # Shared identity and 32x48 feet anchors; eight poses express contact/pass/lift.
+    atlas = Image.new('RGBA', (256, 384))
+    animations, resources = [], []
     directions = ['south', 'north', 'west', 'east']
     for d, direction in enumerate(directions):
         sw, sh = sheet.width // 4, sheet.height // 2
-        base = extract(sheet, (d*sw, row*sh, (d+1)*sw, (row+1)*sh), (32, 48), (24, 44))
+        base = extract(sheet, (d*sw, row*sh, (d+1)*sw, (row+1)*sh), (32,48), (24,44))
         grounded = Image.new('RGBA', (32,48))
         grounded.alpha_composite(base, (0,3))
         base = grounded
-        for f, step in enumerate([0, 1, 0, -1]):
+        # Keep the head/torso intact; animate the legs and outer sleeves separately.
+        for f in range(8):
+            phase = f * math.tau / 8
+            stride = math.sin(phase)
             frame = base.copy()
-            # The two boots exchange planted/contact phases. No torso stretch.
-            if step:
-                frame.paste((0, 0, 0, 0), (0, 38, 32, 48))
-                for left, right, dy in [(0, 16, step), (16, 32, -step)]:
-                    leg = base.crop((left, 38, right, 48))
-                    frame.alpha_composite(leg, (left, 38 + dy))
-            atlas.alpha_composite(frame, (f * 32, d * 48))
-            id_ = f'w{d}{f}'
-            resources.append(tex_sub(id_, name, [f*32, d*48, 32, 48]))
+            frame.paste((0,0,0,0), (0,36,32,48))
+            for left, right, sign in [(0,16,1),(16,32,-1)]:
+                leg = base.crop((left,36,right,47))
+                lift = round(max(0, stride*sign)*2)
+                reach = round(stride*sign*2) if d in (2,3) else 0
+                if d == 2: reach = -reach
+                frame.alpha_composite(leg, (left+reach,36-lift))
+            # Sleeves follow the opposite leg. Avoid face, torso and shoulder seams.
+            if d in (0,1):
+                for left, right, sign in [(5,11,-1),(22,27,1)]:
+                    sleeve = base.crop((left,24,right,34))
+                    frame.paste((0,0,0,0), (left,24,right,34))
+                    frame.alpha_composite(sleeve,(left,24+round(stride*sign)))
+            atlas.alpha_composite(frame,(f*32,d*48))
+            resources.append(tex_sub(f'w{d}{f}',name,[f*32,d*48,32,48]))
         for f in range(2):
+            # Feet stay planted; one shoulder pixel breath every few seconds.
             frame = base.copy()
-            # Idle is intentionally still: no sliding feet or changing body size.
-            atlas.alpha_composite(frame, (f*32, (4+d)*48))
-            resources.append(tex_sub(f'i{d}{f}', name, [f*32, (4+d)*48, 32, 48]))
-        for prefix, count, fps, label in [('w', 4, 8, 'walk'), ('i', 2, 1, 'idle')]:
+            if f == 1:
+                chest = base.crop((9,22,23,32))
+                frame.alpha_composite(chest,(9,21))
+            atlas.alpha_composite(frame,(f*32,(4+d)*48))
+            resources.append(tex_sub(f'i{d}{f}',name,[f*32,(4+d)*48,32,48]))
+        for prefix,count,fps,label in [('w',8,12,'walk'),('i',2,.6,'idle')]:
             frames = ', '.join(f'{{"duration":1.0,"texture":SubResource("{prefix}{d}{f}")}}' for f in range(count))
-            animations.append(f'{{"frames":[{frames}],"loop":true,"name":&"{label}_{direction}","speed":{fps}.0}}')
-    save(name, atlas)
-    resource = f'''[gd_resource type="SpriteFrames" load_steps=26 format=3]
+            animations.append(f'{{"frames":[{frames}],"loop":true,"name":&"{label}_{direction}","speed":{float(fps)}}}')
+    save(name,atlas)
+    resource = f'''[gd_resource type="SpriteFrames" load_steps=42 format=3]
 [ext_resource type="Texture2D" path="res://art/export/{name}.png" id="1"]
 ''' + '\n'.join(resources) + '\n[resource]\nanimations = [' + ',\n'.join(animations) + ']\n'
-    (RES / f'{name}.tres').write_text(resource, encoding='utf-8')
+    (RES/f'{name}.tres').write_text(resource,encoding='utf-8')
 
 def terrain():
     """Hand-authored material clusters + 16 corner masks, shared-edge continuity."""
@@ -121,10 +132,32 @@ def terrain():
     dirt = Image.new('RGBA', (128, 128), '#b6ab8e')
     dp = ImageDraw.Draw(dirt)
     for box in [(3, 5, 6, 5), (19, 23, 22, 23), (26, 10, 28, 10)]: dp.rectangle(box, fill='#cbbd9d')
-    grass = Image.new('RGBA', (128, 128), '#6e915e')
+    grass = Image.new('RGBA', (128,128), '#6e915e')
     gp = ImageDraw.Draw(grass)
-    for points in [[(14,30),(15,28),(17,29)],[(84,97),(85,95),(87,96)],[(110,53),(111,51),(113,52)]]:
-        gp.line(points, fill='#87a570', width=1)
+    rng = random.Random(271026)
+    # Continuous periodic clusters, not per-tile noise or a flat green rectangle.
+    for y in range(128):
+        for x in range(128):
+            cluster = math.sin(math.tau*x/128 + .8*math.sin(math.tau*y/128)) + .6*math.cos(math.tau*y/64)
+            if cluster > .95: grass.putpixel((x,y),(*RGB[35],255))
+            elif cluster < -.95: grass.putpixel((x,y),(89,125,83,255))
+    for i in range(270):
+        x, y = rng.randrange(128), rng.randrange(128)
+        height = rng.choice([2,3,3,4])
+        shadow = '#597d53'
+        light = '#87a570' if i % 5 else '#a2b980'
+        # Each tuft is a deliberate three-blade cluster, wrapping at texture edges.
+        for dx, dy, color in [(0,0,shadow),(1,-1,shadow),(-1,-height,light),(0,-height+1,light),(2,-height+2,light)]:
+            grass.putpixel(((x+dx)%128,(y+dy)%128),tuple(bytes.fromhex(color[1:]))+(255,))
+    for i in range(14):
+        x,y = rng.randrange(128),rng.randrange(128)
+        color = '#c1cc98' if i%3 else '#c7a0ab'
+        gp.point((x,y),fill=color)
+        if i%3 == 0: gp.point(((x+1)%128,y),fill='#e2bec1')
+    # Small warm earth/gravel clusters use all sixteen material variants.
+    for i in range(65):
+        x,y = rng.randrange(128),rng.randrange(128)
+        dp.line((x,y,min(127,x+1+i%3),y),fill='#a4977e' if i%3 else '#cbbd9d')
     atlas = Image.new('RGBA', (512, 1056))
     for x in range(16): atlas.paste(grass.crop((0,0,32,32)), (x*32, 0))
     # Corner bits NW NE SW SE. Bilinear value is identical on shared edges.
@@ -157,9 +190,15 @@ texture_region_size = Vector2i(32, 32)
     text += '\n[resource]\ntile_size = Vector2i(32, 32)\nsources/0 = SubResource("Atlas")\n'
     (RES/'terrain.tres').write_text(text, encoding='utf-8')
 
+def pixel_palette_shader():
+    """Keep one authoritative world palette builder, separate from legacy sprites."""
+    import runpy
+    runpy.run_path(str(Path(__file__).with_name('build-arcana-palette.py')), run_name='__main__')
+
 def bake():
     OUT.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
+    pixel_palette_shader()
     manifest = json.loads((SOURCE/'kit.json').read_text(encoding='utf-8'))
     sheets = {}
     for asset in manifest['assets']:
@@ -185,7 +224,7 @@ def bake():
 def check(manifest):
     # Local asset contract, intentionally independent from the server/game state.
     unique = set()
-    for item in manifest['assets'] + [{'id':'hero','size':[128,384]}, {'id':'traveler','size':[128,384]}, {'id':'terrain','size':[512,1056]}]:
+    for item in manifest['assets'] + [{'id':'hero','size':[256,384]}, {'id':'traveler','size':[256,384]}, {'id':'terrain','size':[512,1056]}]:
         id_ = item['id']
         if id_ in unique: raise ValueError(f'Duplicate id: {id_}')
         unique.add(id_)
@@ -200,5 +239,8 @@ def check(manifest):
 if __name__ == '__main__':
     args = argparse.ArgumentParser()
     args.add_argument('--check', action='store_true')
-    if args.parse_args().check: check(json.loads((SOURCE/'kit.json').read_text(encoding='utf-8')))
+    args.add_argument('--palette-only', action='store_true')
+    options = args.parse_args()
+    if options.palette_only: pixel_palette_shader()
+    elif options.check: check(json.loads((SOURCE/'kit.json').read_text(encoding='utf-8')))
     else: bake()
