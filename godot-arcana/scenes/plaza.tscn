@@ -6,7 +6,7 @@
 [node name="Plaza" type="Node3D"]
 script = ExtResource("1")
 plaza_radii = Vector2(9, 8)
-paved_areas = Array[Rect2]([Rect2(34.125, 9, 3.75, 38), Rect2(22, 16, 31, 3), Rect2(18, 27.5, 37, 3), Rect2(20, 41.75, 35, 3.5), Rect2(23.3, 24, 2.4, 5), Rect2(48.3, 24, 2.4, 5), Rect2(23.3, 40, 2.4, 4), Rect2(48.3, 12, 2.4, 6), Rect2(23.3, 12, 2.4, 6), Rect2(50.75, 38, 2.5, 5.5), Rect2(20.5, 22, 8, 4.5), Rect2(45.5, 22, 8, 4.5), Rect2(20.5, 38, 8, 4.5), Rect2(45.5, 10, 8, 5), Rect2(22.5, 10, 4, 5), Rect2(50, 36, 4, 5), Rect2(17.5, 27, 6, 6)])
+paved_areas = Array[Rect2]([Rect2(34.125, 16, 3.75, 31), Rect2(22, 16, 31, 3), Rect2(18, 27.5, 37, 3), Rect2(20, 41.75, 35, 3.5), Rect2(23.3, 24, 2.4, 5), Rect2(48.3, 24, 2.4, 5), Rect2(23.3, 40, 2.4, 4), Rect2(48.3, 12, 2.4, 6), Rect2(23.3, 12, 2.4, 6), Rect2(50.75, 38, 2.5, 5.5), Rect2(20.5, 22, 8, 4.5), Rect2(45.5, 22, 8, 4.5), Rect2(20.5, 38, 8, 4.5), Rect2(45.5, 10, 8, 5), Rect2(22.5, 10, 4, 5), Rect2(50, 36, 4, 5), Rect2(17.5, 27, 6, 6)])
 
 [node name="상점_01" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 0, 24)
@@ -48,10 +48,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
 gizmo_extents = 0.4
 
 [node name="분수_01" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, 29.625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, 28.925)
 script = ExtResource("2")
 model_kind = "fountain"
-collision_footprint = Rect2(-2.25, -2.95, 4.5, 4.5)
+metadata/fountain_origin_version = 2
 
 [node name="벤치_01" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 0, 34.5)

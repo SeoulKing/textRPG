@@ -16,12 +16,13 @@ uniform bool editor_preview = false;
 uniform bool ground = false;
 uniform bool terrain = false;
 uniform vec4 city_plaza = vec4(576.0,462.8,144.0,128.0);
+uniform vec2 city_mosaic_center = vec2(576.0,462.8);
 uniform vec4 city_paving[24];
 uniform int city_paving_count = 0;
 uniform bool floor_pattern = false;
-uniform vec4 paving_base : source_color = vec4(0.878431,0.819608,0.725490,1.0);
-uniform vec4 paving_light : source_color = vec4(0.933333,0.878431,0.784314,1.0);
-uniform vec4 paving_joint : source_color = vec4(0.713725,0.666667,0.650980,1.0);
+uniform vec4 paving_base : source_color = vec4(0.827451,0.760784,0.654902,1.0);
+uniform vec4 paving_light : source_color = vec4(0.878431,0.819608,0.725490,1.0);
+uniform vec4 paving_joint : source_color = vec4(0.643137,0.592157,0.494118,1.0);
 uniform vec4 mosaic_blue : source_color = vec4(0.239216,0.384314,0.741176,1.0);
 uniform vec4 mosaic_gold : source_color = vec4(0.835294,0.643137,0.309804,1.0);
 uniform sampler2D grass_tex : source_color, filter_nearest, repeat_enable;
@@ -43,7 +44,7 @@ void vertex() {
 	if (main_view && !editor_preview) {
 		vec3 anchor = entity_anchor_enabled ? entity_anchor : MODEL_MATRIX[3].xyz;
 		vec3 anchor_view = (VIEW_MATRIX * vec4(anchor, 1.0)).xyz;
-		view.z = ground ? -185.0 + world_position.y * 3.0 : -150.0 + anchor.z * .18 + (view.z - anchor_view.z) * .002;
+		view.z = ground ? -185.0 + world_position.y * 3.0 : -150.0 + dot(anchor.xz,normalize(INV_VIEW_MATRIX[2].xz)) * .18 + (view.z - anchor_view.z) * .002;
 	}
 	POSITION = PROJECTION_MATRIX * view;
 }
@@ -58,7 +59,74 @@ float city_distance(vec2 p) {
 	}
 	return distance;
 }
-vec3 paint(vec3 color) {
+// Illustrated ivory paving: fitted slabs, shallow bevels and restrained wear.
+// All marks are fixed to the authored ground, with no texture/noise overlay.
+vec3 city_stone(vec2 point, float boundary) {
+	vec2 p = floor(point);
+	float row = floor(p.y/14.0);
+	float offset = mod(row,2.0)*11.0;
+	vec2 cell = vec2(floor((p.x+offset)/22.0),row);
+	vec2 local = vec2(mod(p.x+offset,22.0),mod(p.y,14.0));
+	float seed = hash_cell(cell);
+	// Occasional half slabs interrupt the uniform brick-wall grid.
+	float width = 22.0;
+	if (seed>.72) {
+		cell.x = cell.x*2.0+floor(local.x/11.0);
+		local.x = mod(local.x,11.0);
+		width = 11.0;
+		seed = hash_cell(cell+vec2(31.0,8.0));
+	}
+	vec3 color = paving_base.rgb;
+	if (seed<.22) color = mix(paving_base.rgb,paving_joint.rgb,.43);
+	else if (seed>.68) color = paving_light.rgb;
+	else if (seed>.47) color = mix(paving_base.rgb,vec3(.827451,.694118,.462745),.16);
+	// A small inset edge makes each slab read as stone, not a flat rectangle.
+	float edge = min(min(local.x,width-1.0-local.x),min(local.y,13.0-local.y));
+	if (edge<.5) color = mix(paving_joint.rgb,paving_base.rgb,.18);
+	else if (local.x<2.0 || local.y<2.0) color = mix(color,paving_light.rgb,.32);
+	else if (local.x>width-3.0 || local.y>11.0) color = mix(color,paving_joint.rgb,.28);
+	// Broad mineral seams and short hairline cracks stay inside a few slabs.
+	float vein = local.y-local.x*.24-4.0-seed*3.0;
+	if (seed>.35 && seed<.53 && abs(vein)<.7 && edge>2.0)
+		color = mix(color,paving_joint.rgb,.23);
+	if (seed>.90 && edge>1.0) {
+		float crack = abs(local.x-(width*.55+abs(local.y-6.0)*.42));
+		if (crack<.55 && local.y>3.0 && local.y<10.0) color = mix(color,paving_joint.rgb,.65);
+	}
+	if (seed<.14 && local.x+local.y<3.0) color = paving_joint.rgb;
+	// An inset coping course follows the saved plaza and connected forecourts.
+	if (boundary> -5.0) {
+		color = mix(paving_base.rgb,paving_joint.rgb,.22);
+		if (mod(p.x+p.y,12.0)<1.0) color = paving_joint.rgb;
+		if (boundary> -1.15) color = paving_joint.rgb;
+		else if (boundary< -3.8) color = paving_light.rgb;
+	}
+	// Basin mesh, paving and round collision share the placement ground origin.
+	vec2 relative = p-city_mosaic_center;
+	float radius = length(relative);
+	float angle = atan(relative.y,relative.x);
+	// Segmented cobalt tesserae, ivory joints and double gold compass rings.
+	if (radius>43.0 && radius<67.0) {
+		if (abs(radius-44.0)<1.2 || abs(radius-66.0)<1.2) color = mosaic_gold.rgb;
+		if (radius>55.0 && radius<61.0) {
+			float segment = fract((angle+3.141593)*32.0/6.283185);
+			color = segment<.11 ? paving_light.rgb : mosaic_blue.rgb;
+		}
+		float spoke = abs(sin(angle*8.0));
+		if (radius>47.0 && radius<52.0 && spoke<.18) color = mosaic_gold.rgb;
+	}
+	// Inlaid compass diamonds repeat along the main approach, like the source art.
+	vec2 road_relative = p-city_plaza.xy;
+	vec2 motif = abs(vec2(road_relative.x,mod(road_relative.y+40.0,80.0)-40.0));
+	float diamond = motif.x+motif.y;
+	if (radius>73.0 && diamond<8.0) {
+		color = mosaic_gold.rgb;
+		if (diamond<6.0) color = mosaic_blue.rgb;
+		if (abs(motif.x-motif.y)<.8 || diamond<1.8) color = paving_light.rgb;
+	}
+	return color;
+}
+vec3 paint(vec3 color, vec2 leaf_uv) {
 	vec3 normal = abs(paint_normal);
 	vec2 uv = normal.y>.65 ? paint_position.xz : (normal.z>normal.x ? paint_position.xy : paint_position.zy);
 	vec2 texel = floor(uv*16.0);
@@ -70,6 +138,22 @@ vec3 paint(vec3 color) {
 		float seed = hash_cell(row);
 		bool tip = (pos.y==0.0 && pos.x>0.0 && pos.x<4.0) || (pos.y==1.0 && pos.x<3.0);
 		shade = tip ? (seed>.32 ? .18 : .04) : (seed>.55 ? -.10 : -.20);
+	} else if (surface_style == 8 || surface_style == 9) {
+		// Fan-local UVs survive mesh batching: leaves follow each bough rather
+		// than a world-space noise overlay. Keep the green hue in every mark.
+		bool needles = surface_style == 9;
+		vec2 p = leaf_uv * (needles ? vec2(5.0,4.0) : vec2(3.6,4.2));
+		p.x += p.y * .38;
+		float row = floor(p.y);
+		p.x += mod(row,2.0)*.5;
+		vec2 cell = floor(p);
+		vec2 leaf = fract(p)-.5;
+		float seed = hash_cell(cell);
+		// Pointed paired blades, with open green space between leaf groups.
+		float blade = abs(leaf.x+leaf.y*.5)*(needles ? 2.2 : 1.0)+abs(leaf.y)*.85;
+		bool leaf_shape = blade < (needles ? .24 : .36);
+		if (leaf_shape && seed>.38) shade = leaf.x<-.06 ? -.12 : .055;
+		else if (seed<.16 && blade<.46) shade = -.07;
 	} else if (surface_style == 2) {
 		vec2 cell = floor(vec2(texel.x+floor(texel.y/5.0)*4.0,texel.y)/vec2(8.0,5.0));
 		vec2 pos = mod(vec2(texel.x+floor(texel.y/5.0)*4.0,texel.y),vec2(8.0,5.0));
@@ -88,7 +172,7 @@ vec3 paint(vec3 color) {
 	} else if (surface_style == 7) {
 		// Fountain masonry follows the actual 20 radial coping stones. Their
 		// old subpixel gaps vanished after nearest scaling and palette mapping.
-		vec2 radial = paint_position.xz-vec2(0.0,-0.7);
+		vec2 radial = paint_position.xz;
 		float radius = length(radial);
 		float segment = (atan(radial.y,radial.x)+6.283185)*20.0/6.283185;
 		float along = fract(segment);
@@ -104,7 +188,7 @@ vec3 paint(vec3 color) {
 	return color*(1.0+shade);
 }
 void fragment() {
-	vec3 color = paint(base_color.rgb);
+	vec3 color = paint(base_color.rgb,UV);
 	if (ground && terrain) {
 		vec2 p = world_position.xz * 16.0;
 		if (p.x > 940.0 && p.y > 842.0 && p.y < 1200.0) discard;
@@ -114,20 +198,7 @@ void fragment() {
 		bool paved = paving_distance < 0.0 && p.y < 775.0;
 		bool worn = (paving_distance < 5.6 && p.y < 775.0) || (p.y >= 752.0 && p.y < 1260.0 && abs(p.x-576.0) < 44.0+fringe);
 		color = paved ? texture(stone_tex,uv).rgb : (worn ? texture(dirt_tex,uv).rgb : texture(grass_tex,uv).rgb);
-		if (paved) {
-			// Cool ivory slabs keep the plaza separate from warm dirt. Sparse
-			// blue/gold inlays echo the old city map. Saved scene defines paving.
-			vec2 slab = vec2(p.x+mod(floor(p.y/12.0),2.0)*9.0,p.y);
-			vec2 joint = mod(floor(slab),vec2(18.0,12.0));
-			float seed = hash_cell(floor(slab/vec2(18.0,12.0)));
-			color = seed>.53 ? paving_base.rgb : paving_light.rgb;
-			if (joint.x<1.0 || joint.y<1.0) color = paving_joint.rgb;
-			float radial = length(p-city_plaza.xy);
-			if (abs(radial-47.0)<.75 || abs(radial-63.0)<.65) color = mosaic_gold.rgb;
-			vec2 diamond = vec2(abs(p.x-city_plaza.x),abs(mod(p.y-city_plaza.y+40.0,80.0)-40.0));
-			if (radial>64.0 && diamond.x+diamond.y<5.0) color = mosaic_blue.rgb;
-			if (radial>64.0 && diamond.x+diamond.y<1.5) color = mosaic_gold.rgb;
-		}
+		if (paved) color = city_stone(p,paving_distance);
 	}
 	if (floor_pattern) color = texture(stone_tex,world_position.xz/2.0).rgb;
 	// Fixed world-space pixel clusters, never animated noise or row warping.
@@ -144,7 +215,7 @@ void fragment() {
 		if (mod(cell.y, 7.0) == 0.0 && mod(cell.x + floor(cell.y / 7.0) * 3.0, 13.0) < 5.0) color *= 0.82;
 	} else if (surface_pattern == 3) {
 		// Object-local, source-pixel water. The visual clock pauses with the game.
-		vec2 p = floor((paint_position.xz-vec2(0.0,-0.7))*16.0)/16.0;
+		vec2 p = floor((paint_position.xz)*16.0)/16.0;
 		float time = floor(motion_time*8.0)/8.0;
 		float radius = length(p);
 		float impact = min(min(length(p-vec2(1.32,0.0)),length(p+vec2(1.32,0.0))),min(length(p-vec2(0.0,1.32)),length(p+vec2(0.0,1.32))));
@@ -168,8 +239,8 @@ void fragment() {
 void light() {
 	float ndl = max(0.0,dot(NORMAL,LIGHT));
 	float ramp = ndl < .22 ? .22 : (ndl < .65 ? .62 : 1.0);
-	// Shadows use the same three deliberate value bands as the lit faces.
-	float shadow = ATTENUATION;
-	shadow = shadow < 0.25 ? 0.0 : (shadow < 0.75 ? 0.5 : 1.0);
+	// A single shadow boundary: no intermediate fringe that the palette can
+	// turn into a broken, pale halo around moving silhouettes.
+	float shadow = step(0.5,ATTENUATION);
 	DIFFUSE_LIGHT += ramp * shadow * LIGHT_COLOR / PI;
 }

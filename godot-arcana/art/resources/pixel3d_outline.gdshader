@@ -6,7 +6,7 @@ void vertex() {
 	vec4 view = MODELVIEW_MATRIX * vec4(VERTEX,1.0);
 	vec3 anchor = entity_anchor_enabled ? entity_anchor : MODEL_MATRIX[3].xyz;
 	vec3 center = (VIEW_MATRIX * vec4(anchor,1.0)).xyz;
-	view.z = -150.0 + anchor.z * .18 + (view.z-center.z) * .002 - .0001;
+	view.z = -150.0 + dot(anchor.xz,normalize(INV_VIEW_MATRIX[2].xz)) * .18 + (view.z-center.z) * .002 - .0001;
 	POSITION = PROJECTION_MATRIX * view;
 	// A consistent source-pixel outline instead of a world-space hull whose
 	// apparent thickness changes with the mesh scale and window size.

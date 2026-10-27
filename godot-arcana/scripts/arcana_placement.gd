@@ -2,12 +2,14 @@
 extends Node3D
 ## Move this node in X/Z. The model, door and footprint share its transform.
 const Models = preload("res://scripts/pixel3d_models.gd")
+const Fountain = preload("res://scripts/fountain_spec.gd")
 const Actor = preload("res://scripts/pixel3d_actor.gd")
-const Hero = preload("res://scripts/hero_actor.gd")
+const Hero = preload("res://scripts/blender_hero.gd")
 
 @export_enum("shop", "inn", "restaurant", "academy", "fountain", "oak", "birch", "spruce", "bench", "flowerbed", "flowers", "shrub", "flowerpot", "crate", "barrels", "basket", "sign", "lantern", "lamp-post", "handcart", "workbench", "canopy", "pennant", "portal", "hero", "traveler") var model_kind: String = "crate":
 	set(value):
 		model_kind = value
+		notify_property_list_changed()
 		if is_node_ready(): _refresh.call_deferred()
 ## Keep existing game IDs unique. Leave empty for decorative copies.
 @export var gameplay_id: String = ""
@@ -21,6 +23,10 @@ const Hero = preload("res://scripts/hero_actor.gd")
 var preview: Node3D
 var bounds = AABB(Vector3(-.4,0,-.4),Vector3(.8,1.8,.8))
 var _preview_materials: Dictionary = {}
+
+func _validate_property(property: Dictionary) -> void:
+	if model_kind == "fountain" and property.name == "collision_footprint":
+		property.usage = int(property.usage)&~PROPERTY_USAGE_EDITOR
 
 func _ready() -> void:
 	_refresh()
@@ -47,6 +53,7 @@ func _refresh() -> void:
 	update_gizmos()
 
 func _editor_materials(node: Node3D) -> void:
+	if node.get_script() == Hero: return # Preserve the Blender model's painted UV materials.
 	if node is MultiMeshInstance3D: node.hide() # Runtime pixel silhouettes are camera-specific.
 	if node is MeshInstance3D and node.material_override is ShaderMaterial:
 		var source = node.material_override
@@ -89,6 +96,8 @@ func interaction_position(layout: Node3D) -> Vector2:
 	return Vector2(point.x,point.z)*16.0
 
 func map_collision(layout: Node3D) -> Rect2:
+	# A basin has no rectangular corner collision, even with an old saved field.
+	if model_kind == "fountain": return Rect2()
 	if not collision_footprint.has_area(): return Rect2()
 	var t = layout_transform(layout)
 	var rect = Rect2()
@@ -101,6 +110,10 @@ func map_collision(layout: Node3D) -> Rect2:
 			first = false
 		else: rect = rect.expand(projected)
 	return rect
+
+func map_round_collision(layout: Node3D) -> Dictionary:
+	if model_kind != "fountain": return {}
+	return Fountain.map_shape(layout_transform(layout))
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var result = PackedStringArray()

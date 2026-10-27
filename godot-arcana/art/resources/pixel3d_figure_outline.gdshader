@@ -10,7 +10,7 @@ void vertex() {
 	vec3 anchor = entity_anchor_enabled ? entity_anchor : MODEL_MATRIX[3].xyz;
 	// All ink sits behind the whole figure, so overlapping limbs hide internal ink.
 	// Keep the same ground-anchor sorting as the scene's surface shader.
-	view.z = -150.0 + anchor.z * 0.18 - 0.02;
+	view.z = -150.0 + dot(anchor.xz,normalize(INV_VIEW_MATRIX[2].xz)) * 0.18 - 0.02;
 	POSITION = PROJECTION_MATRIX * view;
 	// Four opaque silhouette copies, shifted exactly one source pixel each.
 	// This follows coverage rather than mesh normals, including flat box faces.

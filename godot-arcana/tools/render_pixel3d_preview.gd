@@ -2,6 +2,7 @@ extends SceneTree
 # Offline art output only: no server, accounts, gameplay commands or saved progress.
 const World = preload("res://scripts/world.gd")
 const Painted = preload("res://scripts/pixel3d_world.gd")
+const Fountain = preload("res://scripts/fountain_spec.gd")
 var viewport: SubViewport
 var output: SubViewport
 var presentation: TextureRect
@@ -29,6 +30,13 @@ func _render() -> void:
 	presentation.material = palette
 	output.add_child(presentation)
 	var logic = World.new()
+	# Read the real entry scene, including instance overrides. Do not start main's
+	# network/game boot; World uses the same coordinate-frame setup as gameplay.
+	var entry_scene = load("res://main.tscn").instantiate()
+	var authored_layout = entry_scene.get_node("Plaza")
+	entry_scene.remove_child(authored_layout)
+	entry_scene.free()
+	logic.layout = authored_layout
 	viewport.add_child(logic)
 	logic.hide()
 	logic.set_process(false)
@@ -59,6 +67,32 @@ func _render() -> void:
 	fountain_detail.resize(416,448,Image.INTERPOLATE_NEAREST)
 	fountain_detail.save_png("res://art/reference/pixel3d-fountain.png")
 	print("3D art preview: ",output_path," (",error,")")
+	# Diagnostic only: actual circular footprint and common origin over the same
+	# live renderer. This overlay is never attached to the playable world.
+	var footprint = PackedVector2Array()
+	var output_scale = Vector2(output.size)/Vector2(viewport.size)
+	# Read the collider actually installed in world.gd, not a second debug shape.
+	var collider: Dictionary = logic.round_obstacles[0]
+	var local_to_map: Transform2D = collider.inverse.affine_inverse()
+	for i in range(65):
+		var angle = i*TAU/64.0
+		var map_point = local_to_map*(Vector2(cos(angle),sin(angle))*float(collider.radius))
+		var ground = scene.map_point(map_point,.04)
+		footprint.append(scene.camera.unproject_position(ground)*output_scale)
+	var center_pixel = scene.camera.unproject_position(scene.map_point(local_to_map.origin))*output_scale
+	var diagnostic = Node2D.new()
+	output.add_child(diagnostic)
+	diagnostic.draw.connect(func():
+		diagnostic.draw_polyline(footprint,Color("f06449"),2)
+		diagnostic.draw_line(center_pixel-Vector2(7,0),center_pixel+Vector2(7,0),Color("f06449"),2)
+		diagnostic.draw_line(center_pixel-Vector2(0,7),center_pixel+Vector2(0,7),Color("f06449"),2)
+	)
+	diagnostic.queue_redraw()
+	await process_frame
+	await RenderingServer.frame_post_draw
+	output.get_texture().get_image().save_png("res://art/reference/pixel3d-fountain-collision.png")
+	diagnostic.queue_free()
+	await process_frame
 	# Art QA only: real mesh headings and walk phases at game resolution.
 	var poses = Image.create(80*8,112*4,false,Image.FORMAT_RGBA8)
 	var headings = [0.0,PI,PI/2.0,-PI/2.0]

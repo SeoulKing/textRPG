@@ -18,3 +18,6 @@ godot-arcana/.godot/
 .tmp-audit/
 godot-web/*.TMP
 *.blend[0-9]*
+
+# Blender rolling save backups; the editable .blend remains a source asset.
+art-studies/**/*.blend[1-9]

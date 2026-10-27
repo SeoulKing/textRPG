@@ -58,4 +58,8 @@ Godot는 MIT 라이선스입니다. 내보낸 런타임의 고지는 `godot-web/
 
 ## 주인공 3D 모델
 
-`scenes/characters/hero.tscn`을 열면 현재 주인공의 실제 입체 모델을 볼 수 있습니다. `scripts/hero_actor.gd`가 B 비례의 머리·의상·가방·관절과 보행을 구성하고, 게임과 광장의 `hero` 미리보기에 같은 모델을 연결합니다. 기존 2D 원화·시트는 보존합니다. 네 방향 모델 확인은 `pwsh -File scripts/render-hero3d.ps1`로 출력합니다.
+`scenes/characters/hero.tscn`을 열면 현재 주인공의 실제 입체 모델을 볼 수 있습니다. 현재 `scripts/blender_hero.gd`가 Blender의 스킨 메시·텍스처·대기/걷기를 불러오며, 게임과 광장의 `hero` 미리보기에 같은 모델을 연결합니다. 편집 원본은 저장소 루트의 `art-studies/arcana-hero/blender/hero.blend`이고, `pwsh -File scripts/build-blender-hero.ps1`로 다시 출력합니다. 이전 `hero_actor.gd` 모델은 시제품으로 보존합니다. 기존 2D 원화·시트는 보존합니다. 네 방향 모델 확인은 `pwsh -File scripts/render-hero3d.ps1`로 출력합니다.
+
+## 현재 주인공 · 백발 단발 미소녀
+
+현재 hero는 사용자가 선택한 2번 원화를 따르는 여성입니다. `scenes/characters/heroine.tscn`에서 입체 모델을 볼 수 있습니다. 원본은 저장소 루트 `art-studies/arcana-hero/white-bob-heroine/blender/heroine.blend`, 재제작은 `pwsh -File scripts/build-blender-heroine.ps1`입니다. `art/models/heroine/heroine.glb`와 `scripts/blender_hero.gd`가 게임과 편집기 배치에 공통 연결됩니다. 남성 모델·원화는 이전 자료로 보존합니다.

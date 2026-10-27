@@ -19,9 +19,10 @@
 | 본편 캐릭터 초상화 | `CHARACTER_ART_GUIDE.md` | 승인 인물의 정체성과 애니메이션 선화·셀 채색 |
 | 월드맵·대표 건물 | `MAP_ART_GUIDE.md` | 지도 시점·축척·투명 객체·선택 영역 |
 | Godot 아르카나 | `ARCANA_ART_GUIDE.md`, `godot-arcana/art/PRODUCTION.md`의 최신 관련 항목 | 현재 3D 도트 렌더링과 보존된 2D 자산 규격의 구별 |
+| 아르카나 조작 UI | `ARCANA_ART_GUIDE.md`의 모바일 조작 UI, `scripts/game_ui.gd`와 조작 버튼 컴포넌트 | 아이콘 중심 원형 조작부, 주 행동·보조 행동의 크기 차이, 링 쿨타임, 모바일·와이드 배치 |
 | 서사가 붙는 장면 | 해당 미술 가이드와 `NARRATIVE_GUIDE.md` | 관찰 가능한 장면과 확정 게임 상태 |
 
-아르카나의 현재 월드는 실제 3D 장면을 저해상도 정사영으로 표시합니다. `scripts/main.gd`의 월드 출력은 정수 배율의 최근접 확대이며 HUD는 별도입니다. 주인공은 사용자가 선택한 약 4.5등신 B의 얼굴·머리·의상을 기준으로 실제 관절형 3D 모델(`hero_actor.gd`, `scenes/characters/hero.tscn`)을 사용합니다. 2026-10-28 사용자의 명시 요청으로 2D 그림판에서 전환했습니다. 이전 `sprite_actor.gd`와 `hero-b45.png`는 원본으로 보존합니다. 기본 월드 출력은 절반 해상도와 2배 최근접 확대이며 얼굴·의상 가독성은 이 도트 화면에서 확인합니다. 실제 경로는 `godot-arcana/scripts/main.gd`와 `pixel3d_world.gd`에서 확인합니다. 32×48 프레임과 이진 알파는 보존된 2D 인물 자산의 조건입니다. 3D 모델 전체에 스프라이트 프레임 규격을 강제하지 않습니다. 이 단락은 현재 경로 안내이며 세부 규격의 원본은 미술 가이드와 실제 구현입니다.
+아르카나의 현재 월드는 실제 3D 장면을 저해상도 정사영으로 표시합니다. 현재 주인공은 사용자가 선택한 백발 단발 미소녀 후보 **2번**이며, `CHARACTER_ART_GUIDE.md`의 현재 주인공 기준과 원화 시트를 우선합니다. 남성 B 모델의 머리·의상·4.5등신을 새 여성에게 복제하지 않습니다. Blender 원본은 `art-studies/arcana-hero/white-bob-heroine/blender/heroine.blend`, 제작 스크립트는 `scripts/blender/build_heroine.py`, 게임 모델은 `art/models/heroine/heroine.glb`입니다. `blender_hero.gd`가 이 스킨 메시를 게임과 편집기의 hero 배치에 공통 연결합니다. 프로젝트 내부 `.runtime/blender`의 공식 포터블을 사용하며 이전 남성 모델은 별도 파일로 보존합니다. 기본 월드 출력은 절반 해상도와 2배 최근접 확대이며, 백발·얼굴·흰 드레스의 작은 화면 가독성은 모델의 재질별 보정광과 실제 게임 크기 렌더로 확인합니다. 32×48 보존 인물 자산과 현재 입체 모델의 규격을 구별합니다.
 
 ## 실행 절차
 

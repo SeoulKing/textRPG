@@ -93,10 +93,14 @@ func _ready() -> void:
 	await _boot()
 
 func _joystick_move(value: Vector2) -> void:
-	# Match the stick angle to the projected ground, retaining analog speed.
-	world.touch_direction = Vector2(value.x, value.y / PixelWorld3D.PITCH_SINE).normalized() * value.length()
+	# world.gd projects touch and keyboard together using the active view.
+	world.touch_direction = value
 	# Taking direct control cancels any click/map destination, including at center.
 	if ui.joystick.is_active(): world.path.clear()
+
+func _toggle_camera_view() -> void:
+	world_renderer.set_quarter_view(not world_renderer.quarter_view)
+	ui.close_panel()
 
 func _toggle_pixel_render() -> void:
 	world_renderer.pixelated = not world_renderer.pixelated
@@ -323,7 +327,7 @@ func _refresh_controls() -> void:
 	if busy: ui.interaction.text = "진행 중"
 	elif not b.is_empty():
 		ui.interaction.text = {"ready":"전투 준비", "battle":"전투 메뉴", "victory":"전리품 확인", "defeat":"돌아보기"}.get(b.get("phase", ""), "상호작용")
-	else: ui.interaction.text = "상호작용"
+	else: ui.interaction.text = "살펴보기"
 	ui.interaction.tooltip_text = "E / Space · " + (str(world.nearest.get("name", "주변 살펴보기")) if b.is_empty() else ui.interaction.text)
 	if not world.nearest.is_empty(): ui.hint_label.text = world.nearest.name
 	elif fighting: ui.hint_label.text = "슬라임 · 도약 예고에 맞춰 회피하세요"
@@ -341,8 +345,8 @@ func _refresh_controls() -> void:
 			slot.disabled = not available or in_dungeon or remaining > .01 or (not fighting and command != "potion")
 			if command == "fireball" and float(_combat().get("mp", 0)) < 4: slot.disabled = true
 			if command == "potion" and count <= 0: slot.disabled = true
-		ui.quickslot_icons[i].modulate.a = .45 if slot.disabled else 1.0
-		ui.quickslot_labels[i].modulate.a = .45 if slot.disabled else 1.0
+		ui.quickslot_icons[i].modulate.a = .70 if slot.disabled else 1.0
+		ui.quickslot_labels[i].modulate.a = .70 if slot.disabled else 1.0
 		ui.quickslot_counts[i].text = str(count) if command == "potion" else ""
 		# A shrinking bar conveys cooldown without a numeric countdown.
 		ui.cooldown_bars[slot].visible = remaining > .01
@@ -585,6 +589,7 @@ func _menu(kind: String) -> void:
 			ui.choice("조작 방법", "터치와 키보드 안내", _help)
 			ui.choice("퀵슬롯 설정", "스킬·아이템 배치 · 숫자 키 1~4", _quickslots_menu)
 			ui.choice("전체 화면", "F · Esc로 해제", _fullscreen)
+			ui.choice("정면 시점으로" if world_renderer.quarter_view else "쿼터뷰로", "정면과 45도 대각선 시점을 비교합니다.", _toggle_camera_view)
 			ui.choice("3D 원본 비교" if world_renderer.pixelated else "도트 화면으로", "64색 도트 화면과 원본 화면을 비교합니다.", _toggle_pixel_render)
 			ui.choice("낮 / 해질녘", "광장 빛 전환", func(): world.set_art_state(not world.dusk, world.effects_enabled); ui.close_panel())
 			ui.choice("환경 효과 켜기 / 끄기", "기본 그림 보기", func(): world.set_art_state(world.dusk, not world.effects_enabled); ui.close_panel())

@@ -1,6 +1,6 @@
 extends SceneTree
 # Four actual mesh rotations for visual art review. No game/server state.
-const Hero = preload("res://scripts/hero_actor.gd")
+const Hero = preload("res://scripts/blender_hero.gd")
 const Models = preload("res://scripts/pixel3d_models.gd")
 func _initialize() -> void:
 	call_deferred("_render")

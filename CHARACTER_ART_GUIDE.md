@@ -94,3 +94,13 @@ Preserve the approved elderly Korean woman's identity, round face, short fluffy 
 kind slightly weary eyes, burgundy quilted vest, faded floral blouse, and floral scarf.
 Change only [requested expression, pose, or scene]; keep the approved design and anime rendering.
 ```
+
+## 현재 주인공의 확정 원화 · 백발 단발 미소녀 2번
+
+2026-10-28 사용자는 [백발 단발 후보 시트](art-studies/arcana-hero/white-bob-heroine/white-bob-candidates-v1.png)의 **가운데 2번**을 선택하고, 같은 디자인으로 캐릭터가 잘 읽히는 3D 모델 제작을 요청했습니다. 이전 남성 주인공의 외형보다 이 선택을 우선합니다. 현재 원화는 확정 레퍼런스이고 3D 조형의 최종 미술 검수는 별도입니다.
+
+- 청순하고 부드러운 일본 애니메이션풍의 청년 여성 인상. 밝은 피부, 보랏빛 눈, 작은 자연스러운 미소와 섬세한 눈매를 유지합니다.
+- 진주빛 백발의 턱선 단발과 옆으로 흐르는 앞머리. 장발·금발·남성 머리로 바꾸지 않습니다. 둥근 뒤통수와 안으로 모이는 단발 끝이 주요 실루엣입니다.
+- 상아색 높은 칼라의 드레스, 어깨를 덮는 옅은 하늘색/페리윙클 숄, 은빛 브로치와 절제된 꽃무늬, 허리의 짙은 남색 리본, 짙은 스타킹과 회갈색 앵클부츠를 사용합니다.
+- 새로운 여성 원화의 비례와 실루엣을 우선하며 이전 남성의 큰 손·네모난 부츠·곧은 통 소매를 재사용하지 않습니다. 3D는 부드러운 얼굴·연속 소매·퍼지는 치마·가느다란 발목과 둥근 부츠 앞코로 읽히게 합니다.
+- Blender 원본은 `art-studies/arcana-hero/white-bob-heroine/blender/heroine.blend`, 제작 스크립트는 `scripts/blender/build_heroine.py`입니다. 이전 남성 모델과 원화는 별도 파일로 보존합니다.

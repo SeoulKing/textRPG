@@ -8,6 +8,8 @@ signal panel_closed
 const FONT = preload("res://fonts/KoPubBatangMedium.ttf")
 const Joystick = preload("res://scripts/virtual_joystick.gd")
 const SlotIcon = preload("res://scripts/quickslot_icon.gd")
+const ActionButton = preload("res://scripts/mobile_action_button.gd")
+const SkillCooldown = preload("res://scripts/skill_cooldown.gd")
 const SLOT_NAMES = {"fireball":"불꽃", "dodge":"회피", "potion":"포션", "":"등록"}
 const INK = Color("e3e5d3")
 const MUTED = Color("a4b7ab")
@@ -31,6 +33,8 @@ var panel_title: Label
 var content: VBoxContainer
 var close_button: Button
 var interaction: Button
+var interaction_caption: Label
+var action_cluster: Control
 var quickslot_buttons: Array[Button] = []
 var quickslot_icons: Array = []
 var quickslot_labels: Array[Label] = []
@@ -124,9 +128,16 @@ func _ready() -> void:
 	var bottom = PanelContainer.new()
 	navigation = bottom
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_top = -52
+	bottom.offset_top = -56
+	bottom.offset_bottom = -10
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom.add_theme_stylebox_override("panel", style(Color.TRANSPARENT))
+	var dock_style = style(Color(.045,.10,.13,.84),Color(.70,.79,.73,.22))
+	dock_style.set_corner_radius_all(14)
+	dock_style.content_margin_left = 6
+	dock_style.content_margin_right = 6
+	dock_style.content_margin_top = 3
+	dock_style.content_margin_bottom = 3
+	bottom.add_theme_stylebox_override("panel",dock_style)
 	root.add_child(bottom)
 	var bottom_stack = VBoxContainer.new()
 	bottom_stack.add_theme_constant_override("separation", 7)
@@ -155,67 +166,66 @@ func _ready() -> void:
 	joystick.direction_changed.connect(func(value): move_changed.emit(value))
 	root.add_child(joystick)
 	var cluster = Control.new()
+	action_cluster = cluster
 	cluster.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	cluster.offset_left = -228
-	cluster.offset_top = -276
-	cluster.offset_right = -12
-	cluster.offset_bottom = -60
+	cluster.offset_left = -236
+	cluster.offset_top = -320
+	cluster.offset_right = -16
+	cluster.offset_bottom = -72
 	cluster.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(cluster)
-	interaction = button("상호작용", func(): interact_pressed.emit(), Vector2(84, 84))
-	interaction.position = Vector2(124, 124)
-	interaction.size = Vector2(84, 84)
-	interaction.focus_mode = Control.FOCUS_NONE
-	interaction.add_theme_font_size_override("font_size", 14)
-	for state in ["normal", "hover", "pressed", "disabled"]:
-		var skin = style(Color("416157") if state == "pressed" else Color(.08,.18,.20,.88), GOLD if state in ["hover", "pressed"] else Color("71867d"))
-		skin.set_corner_radius_all(42)
-		skin.content_margin_left = 4
-		skin.content_margin_right = 4
-		interaction.add_theme_stylebox_override(state, skin)
+	interaction = ActionButton.new()
+	interaction.set("primary",true)
+	interaction.set("accent",Color("e7d3a6"))
+	interaction.set("key_hint","E")
+	interaction.text = "살펴보기"
+	interaction.position = Vector2(126,112)
+	interaction.custom_minimum_size = Vector2(76,76)
+	interaction.size = Vector2(76,76)
+	interaction.pressed.connect(func(): interact_pressed.emit())
 	cluster.add_child(interaction)
-	_key_badge(interaction, "E", Vector2(64, -4))
+	var interact_icon = SlotIcon.new()
+	interact_icon.kind = "interact"
+	interact_icon.position = Vector2(20,20)
+	interact_icon.size = Vector2(36,36)
+	interaction.add_child(interact_icon)
+	interaction_caption = _action_caption("살펴보기",76)
+	interaction_caption.position.y = 79
+	interaction.add_child(interaction_caption)
 	touch_buttons.append(interaction)
-	var slot_positions = [Vector2(140,20), Vector2(80,36), Vector2(36,80), Vector2(20,140)]
+	var slot_positions = [Vector2(136,30),Vector2(68,52),Vector2(40,120),Vector2(76,192)]
 	for i in range(4):
-		var slot = button("", func(): quickslot_pressed.emit(i), Vector2(52, 52))
+		var slot = ActionButton.new()
+		slot.key_hint = str(i+1)
+		slot.pressed.connect(func(): quickslot_pressed.emit(i))
 		slot.position = slot_positions[i]
-		slot.size = Vector2(52, 52)
-		slot.focus_mode = Control.FOCUS_NONE
-		for state in ["normal", "hover", "pressed", "disabled"]:
-			var skin = style(Color("416157") if state == "pressed" else Color(.08,.18,.20,.82), GOLD if state == "hover" else Color("61786c"))
-			skin.set_corner_radius_all(8)
-			slot.add_theme_stylebox_override(state, skin)
+		slot.custom_minimum_size = Vector2(56,56)
+		slot.size = Vector2(56,56)
 		cluster.add_child(slot)
 		touch_buttons.append(slot)
 		quickslot_buttons.append(slot)
 		var icon = SlotIcon.new()
-		icon.position = Vector2(14, 5)
-		icon.size = Vector2(24, 24)
+		icon.position = Vector2(13,12)
+		icon.size = Vector2(30,30)
 		slot.add_child(icon)
 		quickslot_icons.append(icon)
-		var caption = label("", 11)
-		caption.position = Vector2(0, 31)
-		caption.size = Vector2(52, 17)
-		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var caption = _action_caption("",56)
+		caption.position.y = 58
+		caption.hide() # Icons lead; names remain in tooltips and slot management.
 		slot.add_child(caption)
 		quickslot_labels.append(caption)
-		_key_badge(slot, str(i + 1), Vector2(38, -5))
 		var count = label("", 10, GOLD)
-		count.position = Vector2(30, 18)
-		count.size = Vector2(19, 13)
+		count.position = Vector2(34,0)
+		count.size = Vector2(16,14)
+		count.add_theme_color_override("font_shadow_color",Color("142e33"))
+		count.add_theme_constant_override("shadow_outline_size",4)
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot.add_child(count)
 		quickslot_counts.append(count)
-		var cooldown = make_bar(GOLD, 2)
-		cooldown.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		cooldown.offset_top = -3
-		cooldown.offset_bottom = -1
-		cooldown.offset_left = 6
-		cooldown.offset_right = -6
-		cooldown.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var cooldown = SkillCooldown.new()
+		cooldown.size = Vector2(56,56)
+		cooldown.visible = false
 		slot.add_child(cooldown)
 		cooldown_bars[slot] = cooldown
 		set_quickslot(i, quickslot_bindings[i])
@@ -225,6 +235,7 @@ func _ready() -> void:
 	for item in [["지도", "map"], ["소지품", "inventory"], ["의뢰", "quests"], ["기록", "journal"], ["메뉴", "menu"]]:
 		var nav_button = button(item[0], func(): menu_requested.emit(item[1]), Vector2(0, 31))
 		nav_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nav_button.add_theme_font_size_override("font_size",11)
 		nav_button.add_theme_stylebox_override("normal", style(Color.TRANSPARENT))
 		nav.add_child(nav_button)
 		touch_buttons.append(nav_button)
@@ -243,6 +254,15 @@ func _ready() -> void:
 	_build_panel()
 	root.resized.connect(_layout)
 	_layout()
+
+func _action_caption(text: String, width: float) -> Label:
+	var caption = label(text,10,Color("edf0df"))
+	caption.size = Vector2(width,17)
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	caption.add_theme_color_override("font_shadow_color",Color(.02,.06,.08,.95))
+	caption.add_theme_constant_override("shadow_outline_size",1)
+	return caption
 
 func _key_badge(parent: Control, text: String, point: Vector2) -> void:
 	var badge = PanelContainer.new()
@@ -263,7 +283,9 @@ func _key_badge(parent: Control, text: String, point: Vector2) -> void:
 func set_quickslot(index: int, command: String) -> void:
 	quickslot_bindings[index] = command if SLOT_NAMES.has(command) else ""
 	quickslot_icons[index].kind = quickslot_bindings[index]
-	quickslot_labels[index].text = SLOT_NAMES[quickslot_bindings[index]]
+	quickslot_buttons[index].set("utility",quickslot_bindings[index].is_empty())
+	quickslot_labels[index].text = SLOT_NAMES[quickslot_bindings[index]] if not quickslot_bindings[index].is_empty() else ""
+	quickslot_buttons[index].set("accent",{"fireball":Color("f0c49b"),"dodge":Color("b7dfdb"),"potion":Color("a8ccea")}.get(quickslot_bindings[index],Color("a4b7ab")))
 
 func make_bar(color: Color, height: int) -> ProgressBar:
 	var bar = ProgressBar.new()
@@ -423,6 +445,7 @@ func _notification(what: int) -> void:
 func _process(delta: float) -> void:
 	toast_time = maxf(0, toast_time - delta)
 	toast_label.visible = toast_time > 0
+	interaction_caption.text = interaction.text
 
 func _layout() -> void:
 	var available = root.get_viewport_rect().size
@@ -431,7 +454,7 @@ func _layout() -> void:
 	# within comfortable reading widths. Portrait retains its original layout.
 	header.offset_left = maxf(0, (width - 720) / 2)
 	header.offset_right = -header.offset_left
-	navigation.offset_left = maxf(0, (width - 720) / 2)
+	navigation.offset_left = maxf(12, (width - 480) / 2)
 	navigation.offset_right = -navigation.offset_left
 	var panel_width = minf(720, width * .75) if width >= 900 else 480.0
 	panel.offset_left = maxf(14, (width - panel_width) / 2)

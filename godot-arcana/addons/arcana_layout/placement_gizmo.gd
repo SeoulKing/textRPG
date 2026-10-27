@@ -1,6 +1,7 @@
 @tool
 extends EditorNode3DGizmoPlugin
 const Placement = preload("res://scripts/arcana_placement.gd")
+const Fountain = preload("res://scripts/fountain_spec.gd")
 
 func _init() -> void:
 	create_material("footprint",Color(.95,.65,.25),false,true)
@@ -34,6 +35,14 @@ func _redraw(gizmo: EditorNode3DGizmo) -> void:
 				edges.append(corners[i])
 				edges.append(corners[i|bit])
 	gizmo.add_lines(edges,get_material("bounds",gizmo))
+	if node.model_kind == "fountain":
+		var circumference = PackedVector3Array()
+		for i in range(64):
+			for step in [i,i+1]:
+				var angle = step*TAU/64.0
+				circumference.append(Fountain.CENTER+Vector3(cos(angle)*Fountain.RADIUS,.03,sin(angle)*Fountain.RADIUS))
+		gizmo.add_lines(circumference,get_material("footprint",gizmo))
+		return
 	var rect = node.collision_footprint
 	if rect.has_area():
 		var points = [Vector3(rect.position.x,.03,rect.position.y),Vector3(rect.end.x,.03,rect.position.y),Vector3(rect.end.x,.03,rect.end.y),Vector3(rect.position.x,.03,rect.end.y)]

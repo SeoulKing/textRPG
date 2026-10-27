@@ -13,7 +13,7 @@ void vertex() {
 	view.xy += vec2(VERTEX.x, VERTEX.y + foot_offset) * scale;
 	// Use the existing world's foot-based depth order, so trees and buildings
 	// occlude both the character and its ink instead of a permanent front overlay.
-	if (!editor_preview) view.z = -150.0 + anchor.z * 0.18 - 0.0002;
+	if (!editor_preview) view.z = -150.0 + dot(anchor.xz,normalize(INV_VIEW_MATRIX[2].xz)) * 0.18 - 0.0002;
 	POSITION = PROJECTION_MATRIX * view;
 }
 vec4 sample_frame(vec2 uv) {

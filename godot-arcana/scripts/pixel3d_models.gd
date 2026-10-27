@@ -1,6 +1,7 @@
 @tool
 extends RefCounted
 # Native editable 3D models. Static pieces are merged by material and cached.
+const Fountain = preload("res://scripts/fountain_spec.gd")
 const SURFACE = preload("res://art/resources/pixel3d.gdshader")
 const OUTLINE = preload("res://art/resources/pixel3d_outline.gdshader")
 const FIGURE_OUTLINE = preload("res://art/resources/pixel3d_figure_outline.gdshader")
@@ -302,9 +303,19 @@ static func _tree_limb(root: Node3D, a: Vector3, b: Vector3, radius: float, tip:
 	if right.length_squared()<.01: right = Vector3.RIGHT
 	limb.basis = Basis(right,direction,right.cross(direction).normalized())
 
+# Tree foliage has one quiet, green leaf pattern. Do not stack the generic
+# wind-driven stipple and pale world-space flecks used by older vegetation.
+static func _tree_foliage(color: String, needles: bool) -> ShaderMaterial:
+	var key = "tree-leaves:"+color+str(needles)
+	if not materials.has(key):
+		var leaves = material(color,.65).duplicate()
+		leaves.set_shader_parameter("surface_style",9 if needles else 8)
+		leaves.set_shader_parameter("surface_pattern",0)
+		materials[key] = leaves
+	return materials[key]
 # Closed, angular foliage fans with a broken rim, a shallow crown and a dark
 # underside. The perimeter is geometry, so its leaf tips survive every view.
-static func _leaf_fan(root: Node3D, at: Vector3, size: Vector3, seed: int, colors: Array) -> void:
+static func _leaf_fan(root: Node3D, at: Vector3, size: Vector3, seed: int, colors: Array, needles: bool = false) -> void:
 	var upper = SurfaceTool.new()
 	var lower = SurfaceTool.new()
 	upper.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -329,9 +340,9 @@ static func _leaf_fan(root: Node3D, at: Vector3, size: Vector3, seed: int, color
 		_tree_face(upper,shoulder[i],rim[j],shoulder[j],(shoulder[i]+rim[j]+shoulder[j])*.333)
 		_tree_face(lower,base,rim[j],rim[i],Vector3.DOWN)
 	var crown = part(root,upper.commit(),at,colors[0])
-	crown.material_override = material(colors[0],.65)
+	crown.material_override = _tree_foliage(colors[0],needles)
 	var underside = part(root,lower.commit(),at,colors[1])
-	underside.material_override = material(colors[1],.65)
+	underside.material_override = _tree_foliage(colors[1],needles)
 
 static func _tree_face(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward: Vector3) -> void:
 	var normal = (b-a).cross(c-a).normalized()
@@ -339,9 +350,13 @@ static func _tree_face(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3,
 	if normal.dot(outward)<0: normal = -normal
 	surface.set_normal(normal)
 	if (b-a).cross(c-a).dot(normal)>0:
-		for point in [a,c,b]: surface.add_vertex(point)
+		for point in [a,c,b]:
+			surface.set_uv(Vector2(point.x,point.z))
+			surface.add_vertex(point)
 	else:
-		for point in [a,b,c]: surface.add_vertex(point)
+		for point in [a,b,c]:
+			surface.set_uv(Vector2(point.x,point.z))
+			surface.add_vertex(point)
 
 static func _tree(root: Node3D, kind: String) -> void:
 	var bark = "cdbeb0" if kind=="birch" else "8b6846"
@@ -364,8 +379,8 @@ static func _tree(root: Node3D, kind: String) -> void:
 				var end = direction*reach*.77+Vector3(0,height-.16,0)
 				_tree_limb(root,Vector3(0,height+.16,0),end,.044,.009,"72543c")
 				var at = direction*reach*.48+Vector3(0,height,0)
-				_leaf_fan(root,at,Vector3(reach*1.12,.62,reach*1.02),tier*7+i,["326e76","21444d"])
-		_leaf_fan(root,Vector3(.025,3.65,-.02),Vector3(.48,1.02,.46),31,["326e76","21444d"])
+				_leaf_fan(root,at,Vector3(reach*1.12,.62,reach*1.02),tier*7+i,["3e7650","253f36"],true)
+		_leaf_fan(root,Vector3(.025,3.65,-.02),Vector3(.48,1.02,.46),31,["3e7650","253f36"],true)
 	else:
 		var birch = kind=="birch"
 		# Oak spreads from low forks; birch keeps a taller, airier central leader.
@@ -393,8 +408,8 @@ static func _tree(root: Node3D, kind: String) -> void:
 	for branch in root.get_children(): branch.transform = growth*branch.transform
 static func _fountain(root: Node3D) -> void:
 	# Original illustrated Arcana landmark: gold armillary around a blue orb.
-	# Preserve the editable fountain center, -0.7 local Z and 2.25-unit basin.
-	var plinth = _fountain_profile(root,[Vector2(2.25,.04),Vector2(2.25,.16),Vector2(2.15,.24),Vector2(1.96,.24),Vector2(1.96,.04)],"958a91")
+	# The basin, paving and collision all use the placement origin.
+	var plinth = _fountain_profile(root,[Vector2(Fountain.RADIUS,.04),Vector2(Fountain.RADIUS,.16),Vector2(2.15,.24),Vector2(1.96,.24),Vector2(1.96,.04)],"958a91")
 	plinth.material_override = _fountain_stone("958a91")
 	var wall = _fountain_profile(root,[Vector2(2.13,.19),Vector2(2.16,.56),Vector2(2.09,.65),Vector2(1.91,.65),Vector2(1.87,.34),Vector2(1.87,.19)],"cdbeb0")
 	wall.material_override = _fountain_stone("cdbeb0")
@@ -405,30 +420,30 @@ static func _fountain(root: Node3D) -> void:
 		var color = ["e0d1b9","cdbeb0","eee0c8","e0d1b9"][i%4]
 		var stone = _fountain_profile(root,[Vector2(2.16,.52),Vector2(2.21,.62),Vector2(2.17,.74),Vector2(1.91,.74),Vector2(1.86,.65),Vector2(1.91,.52)],color,angle+.008,TAU/20.0-.016,2)
 		stone.material_override = _fountain_stone(color)
-	_gold_ring(root,Vector3(0,.57,-.7),2.16,Vector3.ZERO,"d5a44f",.035)
-	var pool = cylinder(root,1.90,.025,Vector3(0,.585,-.7),"327d8a",1.90,32)
+	_gold_ring(root,Vector3(0,.57,0),2.16,Vector3.ZERO,"d5a44f",.035)
+	var pool = cylinder(root,1.90,.025,Vector3(0,.585,0),"327d8a",1.90,32)
 	pool.material_override = _fountain_water(false)
 	pool.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_fountain_profile(root,[Vector2(.51,.59),Vector2(.53,.72),Vector2(.34,.83),Vector2(.27,1.18),Vector2(.43,1.37),Vector2(.72,1.46),Vector2(.72,1.55),Vector2(.30,1.55),Vector2(.18,.72)],"eee0c8",0,TAU,16)
-	cylinder(root,1.06,.12,Vector3(0,1.55,-.7),"d5a44f",1.10,16)
-	var upper = cylinder(root,1.03,.025,Vector3(0,1.62,-.7),"46a1ab",1.03,24)
+	cylinder(root,1.06,.12,Vector3(0,1.55,0),"d5a44f",1.10,16)
+	var upper = cylinder(root,1.03,.025,Vector3(0,1.62,0),"46a1ab",1.03,24)
 	upper.material_override = _fountain_water(false)
-	var orb_at = Vector3(0,2.60,-.7)
+	var orb_at = Vector3(0,2.60,0)
 	var orb = sphere(root,Vector3(.96,.96,.96),orb_at,"5077d1")
 	orb.material_override = material("5077d1",0,.45)
 	_gold_ring(root,orb_at,.94,Vector3(PI/2,0,.48),"d5a44f",.065)
 	_gold_ring(root,orb_at,.95,Vector3(.63,0,-.65),"f2cf79",.052)
 	_gold_ring(root,orb_at,.92,Vector3(.12,.5,.2),"d5a44f",.045)
 	for side in [-1,1]:
-		_beam(root,Vector3(side*.43,1.64,-.7),Vector3(side*.74,2.31,-.7),.085,"d5a44f")
-		_beam(root,Vector3(side*.74,2.31,-.7),Vector3(side*.47,3.43,-.7),.060,"f2cf79")
+		_beam(root,Vector3(side*.43,1.64,0),Vector3(side*.74,2.31,0),.085,"d5a44f")
+		_beam(root,Vector3(side*.74,2.31,0),Vector3(side*.47,3.43,0),.060,"f2cf79")
 	# Pale orbital meridians and diamond glints remain readable at 2x.
 	_gold_ring(root,orb_at+Vector3(0,0,.03),.47,Vector3(PI/2,.5,.2),"d6eee1",.022)
-	_gem(root,Vector3(0,3.64,-.7),.26)
+	_gem(root,Vector3(0,3.64,0),.26)
 	for i in range(4):
 		var angle = i*TAU/4.0
 		_fountain_stream(root,angle)
-		var at = Vector3(cos(angle)*2.15,.40,-.7+sin(angle)*2.15)
+		var at = Vector3(cos(angle)*2.15,.40,0+sin(angle)*2.15)
 		box(root,Vector3(.18,.23,.06),at,"d5a44f",Vector3(0,PI/2-angle,0))
 		box(root,Vector3(.09,.09,.07),at+Vector3(cos(angle)*.025,0,sin(angle)*.025),"5077d1",Vector3(0,PI/2-angle,PI/4))
 
@@ -479,7 +494,7 @@ static func _fountain_profile(root: Node3D, profile: Array[Vector2], color: Stri
 				for p in triangle:
 					tool.set_normal(normal)
 					tool.add_vertex(Vector3(p.x*cos(angle),p.y,p.x*sin(angle)))
-	return part(root,tool.commit(),Vector3(0,0,-.7),color)
+	return part(root,tool.commit(),Vector3(0,0,0),color)
 
 static func _fountain_stream(root: Node3D, angle: float) -> void:
 	var tool = SurfaceTool.new()
@@ -491,8 +506,8 @@ static func _fountain_stream(root: Node3D, angle: float) -> void:
 		for i in range(10):
 			var t0 = i/10.0
 			var t1 = (i+1)/10.0
-			var p0 = radial*(1.04+.28*t0)+Vector3(0,1.63-1.02*t0*t0,-.7)
-			var p1 = radial*(1.04+.28*t1)+Vector3(0,1.63-1.02*t1*t1,-.7)
+			var p0 = radial*(1.04+.28*t0)+Vector3(0,1.63-1.02*t0*t0,0)
+			var p1 = radial*(1.04+.28*t1)+Vector3(0,1.63-1.02*t1*t1,0)
 			var corners = [p0-axis*.038,p0+axis*.038,p1+axis*.045,p1-axis*.045]
 			for index in [0,1,2,0,2,3,2,1,0,3,2,0]:
 				tool.set_normal(radial)

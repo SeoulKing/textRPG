@@ -3,6 +3,7 @@ extends Node2D
 signal interacted(entity: Dictionary)
 const Pixels = preload("res://scripts/pixel_art.gd")
 const Art = preload("res://scripts/art_library.gd")
+const Fountain = preload("res://scripts/fountain_spec.gd")
 const TILE = 16
 const CELLS = Vector2i(72, 90)
 const SPAWN = Vector2(576, 500)
@@ -17,6 +18,8 @@ var direction = 0
 var anim = 0.0
 var time = 0.0
 var touch_direction = Vector2.ZERO
+# Identity keeps the preserved 2D world unchanged; the 3D camera supplies its axes.
+var input_projection = Transform2D.IDENTITY
 var enabled = true
 var indoor = ""
 var outside_position = SPAWN
@@ -24,6 +27,8 @@ var nearest: Dictionary = {}
 var entities: Array[Dictionary] = []
 var obstacles: Array[Rect2] = []
 var outside_obstacles: Array[Rect2] = []
+var round_obstacles: Array[Dictionary] = []
+var outside_round_obstacles: Array[Dictionary] = []
 var path: PackedVector2Array = []
 var grid = AStarGrid2D.new()
 var ground: TileMapLayer
@@ -69,6 +74,7 @@ func _ready() -> void:
 	ground.z_index = -10
 	add_child(ground)
 	if layout == null: layout = load("res://scenes/plaza.tscn").instantiate()
+	layout.normalize_coordinate_frame()
 	layout.refresh_plan()
 	_make_tiles()
 	objects = Node2D.new()
@@ -185,9 +191,11 @@ func _build_outdoors() -> void:
 
 func apply_layout(value: Node3D, initial: bool = false) -> void:
 	layout = value
+	layout.normalize_coordinate_frame()
 	layout.refresh_plan()
 	var next_entities: Array[Dictionary] = []
 	var next_obstacles: Array[Rect2] = []
+	var next_round_obstacles: Array[Dictionary] = []
 	var seen: Dictionary = {}
 	var next_spawn = SPAWN
 	var next_home = Vector2(534,536)
@@ -195,6 +203,8 @@ func apply_layout(value: Node3D, initial: bool = false) -> void:
 	for entry in layout.placements():
 		var hit = entry.map_collision(layout)
 		if hit.has_area(): next_obstacles.append(hit)
+		var circle = entry.map_round_collision(layout)
+		if not circle.is_empty(): next_round_obstacles.append(circle)
 		var id = entry.gameplay_id
 		if id.is_empty(): continue
 		if seen.has(id):
@@ -223,9 +233,11 @@ func apply_layout(value: Node3D, initial: bool = false) -> void:
 	spawn_position = next_spawn
 	_outdoor_entities = next_entities.duplicate(true)
 	outside_obstacles = next_obstacles.duplicate()
+	outside_round_obstacles = next_round_obstacles.duplicate(true)
 	if indoor.is_empty():
 		entities = next_entities
 		obstacles = next_obstacles
+		round_obstacles = next_round_obstacles
 		path.clear()
 		nearest = {}
 		if initial or moved_spawn: player_position = spawn_position
@@ -280,6 +292,8 @@ func _can_stand(pos: Vector2) -> bool:
 		if pos.x < 30 or pos.x > 350 or pos.y < 30 or pos.y > 326: return false
 	for rect in obstacles:
 		if rect.grow(3).has_point(pos): return false
+	for circle in round_obstacles:
+		if Fountain.contains_map_point(circle,pos): return false
 	return true
 
 func walk_to(pos: Vector2) -> void:
@@ -321,6 +335,10 @@ func _process(delta: float) -> void:
 	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN): motion.y += 1
 	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT): motion.x -= 1
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT): motion.x += 1
+	# Project direct input once, after combining touch and keyboard. Path points
+	# already use map coordinates and must never pass through this transform.
+	var input_strength = minf(motion.length(),1.0)
+	motion = (input_projection*motion).normalized()*input_strength
 	# Discard long suspension gaps rather than jumping through obstacles on resume.
 	var movement_budget = WALK_SPEED * minf(delta, .05)
 	if not enabled:
@@ -446,9 +464,11 @@ func change_interior(id: String) -> void:
 	decals.visible = id == ""
 	entities.clear()
 	obstacles.clear()
+	round_obstacles.clear()
 	if id == "":
 		entities = _outdoor_entities.duplicate(true)
 		obstacles = outside_obstacles.duplicate()
+		round_obstacles = outside_round_obstacles.duplicate(true)
 		player_position = outside_position
 	else:
 		player_position = Vector2(192, 200)

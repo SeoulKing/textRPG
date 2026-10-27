@@ -3,8 +3,12 @@ extends Node3D
 ## This saved scene is the single layout source for editor and game.
 const Models = preload("res://scripts/pixel3d_models.gd")
 const Placement = preload("res://scripts/arcana_placement.gd")
+const Fountain = preload("res://scripts/fountain_spec.gd")
+const CAMERA_PITCH_SINE = .75
 var _editor_context: Node3D
 var _editor_ground: ShaderMaterial
+var _fountain_transform = Transform3D.IDENTITY
+var _editor_plan_poll = 0.0
 ## Ground X/Z units, matching placement transforms. Roads and forecourts share
 ## this scene source in the editor, 3D game and preserved 2D terrain.
 @export var plaza_radii = Vector2(9,8):
@@ -16,12 +20,20 @@ var _editor_ground: ShaderMaterial
 		paved_areas = value
 		if _editor_ground != null: configure_ground(_editor_ground)
 var plaza_center = Vector2(36,28.925)
+var mosaic_center = Vector2(36,28.925)
+
+func normalize_coordinate_frame() -> void:
+	# Placement coordinates are the gameplay world. A wrapper-instance transform
+	# must never move only the meshes away from their paving, effects and collision.
+	transform = Transform3D.IDENTITY
 
 func refresh_plan() -> void:
 	for entry in placements():
 		if entry.model_kind == "fountain":
-			var center = entry.layout_transform(self)*Vector3(0,0,-.7)
+			_fountain_transform = entry.layout_transform(self)
+			var center = _fountain_transform*Fountain.CENTER
 			plaza_center = Vector2(center.x,center.z)
+			mosaic_center = plaza_center
 			return
 
 func configure_ground(mat: ShaderMaterial) -> void:
@@ -35,6 +47,18 @@ func configure_ground(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("city_paving",rectangles)
 	mat.set_shader_parameter("city_paving_count",count)
 	mat.set_shader_parameter("city_plaza",Vector4(plaza_center.x,plaza_center.y,plaza_radii.x,plaza_radii.y)*16.0)
+	mat.set_shader_parameter("city_mosaic_center",mosaic_center*16.0)
+
+func _process(delta: float) -> void:
+	if not Engine.is_editor_hint() or _editor_ground == null: return
+	_editor_plan_poll += delta
+	if _editor_plan_poll<.15: return
+	_editor_plan_poll = 0.0
+	for entry in placements():
+		if entry.model_kind == "fountain":
+			if not entry.layout_transform(self).is_equal_approx(_fountain_transform):
+				configure_ground(_editor_ground)
+			return
 
 func material_at(point: Vector2) -> int:
 	var p = point/16.0
@@ -90,18 +114,22 @@ func _build_editor_context() -> void:
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("78ad72")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("c1d6f2")
-	environment.ambient_light_energy = .32
+	environment.ambient_light_color = Color("afc5cf")
+	environment.ambient_light_energy = .18
 	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	var settings = WorldEnvironment.new()
 	settings.environment = environment
 	_editor_context.add_child(settings)
 	var light = DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-48,-32,0)
-	light.light_color = Color("fff5e6")
-	light.light_energy = .55
+	light.light_color = Color("fff0db")
+	light.light_energy = .48
 	light.shadow_enabled = true
 	light.shadow_blur = 0
 	light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	light.directional_shadow_max_distance = 35
+	# Camera is 32 units above the ground along its view axis. Keep the
+	# visible ground outside the distance-fade band and preserve thin shadows.
+	light.directional_shadow_max_distance = 60
+	light.directional_shadow_fade_start = 1.0
+	light.shadow_normal_bias = .6
 	_editor_context.add_child(light)

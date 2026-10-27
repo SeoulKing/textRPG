@@ -303,10 +303,10 @@ for label,count in [('Idle',61),('Walk',25)]:
             swing=sin(t)*.48
             for sign,suffix in [(1,'L'),(-1,'R')]:
                 rig.pose.bones['thigh.'+suffix].rotation_euler.x=sign*swing
-                rig.pose.bones['shin.'+suffix].rotation_euler.x=-max(0,-sign*sin(t))*.66
+                rig.pose.bones['shin.'+suffix].rotation_euler.x=max(0,sign*sin(t))*.66
                 rig.pose.bones['foot.'+suffix].rotation_euler.x=-sign*swing*.35
                 rig.pose.bones['upper_arm.'+suffix].rotation_euler.x=-sign*swing*.80-.08
-                rig.pose.bones['forearm.'+suffix].rotation_euler.x=.13+max(0,sign*swing)*.25
+                rig.pose.bones['forearm.'+suffix].rotation_euler.x=-.12-max(0,-sign*swing)*.25
             rig.pose.bones['spine'].rotation_euler.z=sin(t)*.025
             rig.pose.bones['root'].location.y=abs(sin(t))*.018
         else:
@@ -321,6 +321,7 @@ rig.animation_data.action=bpy.data.actions['Idle'];bpy.context.scene.frame_set(1
 game_body=body.copy();game_body.data=body.data.copy();character.objects.link(game_body);game_body.name='HeroGameMesh'
 bpy.ops.object.select_all(action='DESELECT');game_body.select_set(True);bpy.context.view_layer.objects.active=game_body
 reduce=game_body.modifiers.new('Game topology reduction','DECIMATE');reduce.ratio=.38;reduce.use_collapse_triangulate=True
+bpy.ops.object.modifier_move_up(modifier=reduce.name)
 bpy.ops.object.modifier_apply(modifier=reduce.name)
 game_triangles=sum(len(poly.vertices)-2 for poly in game_body.data.polygons)
 rig.select_set(True);bpy.context.view_layer.objects.active=rig
@@ -352,8 +353,8 @@ bpy.ops.object.select_all(action='DESELECT');body.select_set(True);bpy.context.v
 for screen in bpy.data.screens:
     for space in screen.areas:
         if space.type=='VIEW_3D':
-            space.spaces.active.region_3d.view_distance=3.3;space.spaces.active.region_3d.view_location=(0,0,1)
+            space.spaces.active.region_3d.view_distance=3.3;space.spaces.active.region_3d.view_location=(0,0,1);space.spaces.active.region_3d.view_rotation=camera.rotation_euler.to_quaternion()
             space.spaces.active.shading.type='MATERIAL'
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'hero.blend'))
-bpy.ops.render.render(write_still=True)
+if '--no-render' not in sys.argv: bpy.ops.render.render(write_still=True)
 print('ARCANA_HERO_PRODUCTION '+json.dumps(report),flush=True)

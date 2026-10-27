@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bt1jvd2kw1kf5"
-path="res://.godot/imported/hero_Coat_lapel_paint.png-ad6d60be9d4ca82d40ba682c61cc0936.ctex"
+path.s3tc="res://.godot/imported/hero_Coat_lapel_paint.png-ad6d60be9d4ca82d40ba682c61cc0936.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "b22685a87a3a193a4e81389284c3f053"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/hero/hero_Coat_lapel_paint.png"
-dest_files=["res://.godot/imported/hero_Coat_lapel_paint.png-ad6d60be9d4ca82d40ba682c61cc0936.ctex"]
+dest_files=["res://.godot/imported/hero_Coat_lapel_paint.png-ad6d60be9d4ca82d40ba682c61cc0936.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

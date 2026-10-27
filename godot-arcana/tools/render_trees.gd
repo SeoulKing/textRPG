@@ -32,13 +32,13 @@ func _render() -> void:
 	environment.environment.background_mode = Environment.BG_COLOR
 	environment.environment.background_color = Color("cdbeb0")
 	environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.environment.ambient_light_color = Color("c1d6f2")
-	environment.environment.ambient_light_energy = .32
+	environment.environment.ambient_light_color = Color("afc5cf")
+	environment.environment.ambient_light_energy = .18
 	stage.add_child(environment)
 	var sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48,-32,0)
-	sun.light_color = Color("fff5e6")
-	sun.light_energy = .55
+	sun.light_color = Color("fff0db")
+	sun.light_energy = .48
 	sun.shadow_enabled = true
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	stage.add_child(sun)

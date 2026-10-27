@@ -2,13 +2,15 @@ extends Node3D
 # Native 3D -> small orthographic viewport -> nearest-neighbor presentation.
 # Gameplay remains in world.gd; screen ray picking maps back to its world units.
 const Models = preload("res://scripts/pixel3d_models.gd")
+const CityLayout = preload("res://scripts/plaza_layout.gd")
 const Actor = preload("res://scripts/pixel3d_actor.gd")
-const Hero = preload("res://scripts/hero_actor.gd")
+const Hero = preload("res://scripts/blender_hero.gd")
 const PIXELS_PER_UNIT = 16.0
 const CAMERA_ZOOM = 1.35
-const PITCH_SINE = .75
+const PITCH_SINE = CityLayout.CAMERA_PITCH_SINE
 var world: Node2D
 var pixelated = true
+var quarter_view = true
 var display_height = 824.0
 var pixels_per_unit = 16.0
 var camera: Camera3D
@@ -55,24 +57,29 @@ func _ready() -> void:
 	camera.far = 250
 	camera.current = true
 	add_child(camera)
+	set_quarter_view(quarter_view)
 	environment = Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("78ad72")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("c1d6f2")
-	environment.ambient_light_energy = .32
+	environment.ambient_light_color = Color("afc5cf")
+	environment.ambient_light_energy = .18
 	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	var settings = WorldEnvironment.new()
 	settings.environment = environment
 	add_child(settings)
 	sunshine = DirectionalLight3D.new()
 	sunshine.rotation_degrees = Vector3(-48,-32,0)
-	sunshine.light_color = Color("fff5e6")
-	sunshine.light_energy = .55
+	sunshine.light_color = Color("fff0db")
+	sunshine.light_energy = .48
 	sunshine.shadow_enabled = true
 	sunshine.shadow_blur = 0
 	sunshine.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	sunshine.directional_shadow_max_distance = 35
+	# Camera is 32 units above the ground along its view axis. Keep the
+	# visible ground outside the distance-fade band and preserve thin shadows.
+	sunshine.directional_shadow_max_distance = 60
+	sunshine.directional_shadow_fade_start = 1.0
+	sunshine.shadow_normal_bias = .6
 	add_child(sunshine)
 	outside = Node3D.new()
 	add_child(outside)
@@ -272,9 +279,23 @@ func _interior(id: String) -> void:
 		_place("workbench",Vector2(192,114),inside).scale = Vector3(4,1,2)
 		for x in [70,302]: _place("bench",Vector2(x,204),inside)
 
+func view_yaw() -> float:
+	return PI/4.0 if quarter_view else 0.0
+
+func set_quarter_view(value: bool) -> void:
+	quarter_view = value
+	var yaw = view_yaw()
+	# Screen right/down mapped onto the camera's projected ground axes.
+	world.input_projection = Transform2D(Vector2(cos(yaw),-sin(yaw)),Vector2(sin(yaw),cos(yaw))/PITCH_SINE,Vector2.ZERO)
+
 func _snap_ground(point: Vector3) -> Vector3:
 	if not pixelated: return point
-	return Vector3(snappedf(point.x,1.0/pixels_per_unit),point.y,snappedf(point.z,1.0/(pixels_per_unit*PITCH_SINE)))
+	# Snap on camera axes, not map axes, so a diagonal view keeps whole pixels.
+	var ground = Vector2(point.x,point.z).rotated(view_yaw())
+	ground.x = snappedf(ground.x,1.0/pixels_per_unit)
+	ground.y = snappedf(ground.y,1.0/(pixels_per_unit*PITCH_SINE))
+	ground = ground.rotated(-view_yaw())
+	return Vector3(ground.x,point.y,ground.y)
 
 func _process(_delta: float) -> void:
 	_poll_layout(_delta)
@@ -309,16 +330,19 @@ func _process(_delta: float) -> void:
 	camera.size = view_height
 	pixels_per_unit = get_viewport().size.y/camera.size
 	var center = _snap_ground(camera_center)
-	camera.position = center+Vector3(0,24,24*sqrt(1-PITCH_SINE*PITCH_SINE)/PITCH_SINE)
+	var ground_distance = 24*sqrt(1-PITCH_SINE*PITCH_SINE)/PITCH_SINE
+	var yaw = view_yaw()
+	camera.position = center+Vector3(sin(yaw)*ground_distance,24,cos(yaw)*ground_distance)
 	camera.look_at(center)
 	camera.h_offset = (get_viewport().size.x%2)*.5/pixels_per_unit if pixelated else 0.0
 	camera.v_offset = (get_viewport().size.y%2)*.5/pixels_per_unit if pixelated else 0.0
 	for mat in Models.materials.values(): mat.set_shader_parameter("motion_time",world.time if world.effects_enabled and not world.reduced_motion else 0.0)
 	if last_dusk != int(world.dusk):
 		last_dusk = int(world.dusk)
-		sunshine.light_color = Color("f9d4a2") if world.dusk else Color("fff5e6")
-		sunshine.light_energy = .38 if world.dusk else .55
-		environment.ambient_light_color = Color("6c92df") if world.dusk else Color("c1d6f2")
+		sunshine.light_color = Color("f9d4a2") if world.dusk else Color("fff0db")
+		sunshine.light_energy = .38 if world.dusk else .48
+		environment.ambient_light_color = Color("6c92df") if world.dusk else Color("afc5cf")
+		environment.ambient_light_energy = .32 if world.dusk else .18
 	for light in lantern_lights: light.visible = world.dusk and world.effects_enabled
 	for i in range(droplets.size()):
 		var drop = droplets[i]
@@ -328,7 +352,7 @@ func _process(_delta: float) -> void:
 		var radial = Vector3(cos(angle),0,sin(angle))
 		# Small crown jets feed the upper pool; the four falling streams are
 		# attached to the editable fountain model itself, including its transform.
-		drop.position = fountain_transform*(radial*(.18+t*.45)+Vector3(0,1.67+sin(t*PI)*.47-t*.08,-.7))
+		drop.position = fountain_transform*(radial*(.18+t*.45)+Vector3(0,1.67+sin(t*PI)*.47-t*.08,0))
 		drop.scale = fountain_transform.basis.get_scale()
 		if pixelated: drop.position = drop.position.snapped(Vector3.ONE/16)
 	marker.visible = not world.nearest.is_empty()
