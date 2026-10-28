@@ -81,12 +81,15 @@ func _notification(what: int) -> void:
 func _draw() -> void:
 	if not is_active(): return
 	var center = origin
-	var gold = Color("dec99c")
-	gold.a = .85
-	draw_circle(center, 58, Color(.08, .18, .20, .66))
-	draw_arc(center, 58, 0, TAU, 64, gold, 1.5, true)
-	draw_arc(center, TRAVEL, 0, TAU, 48, Color(.64, .72, .67, .18), 1, true)
-	for axis in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-		draw_line(center + axis * 48, center + axis * 53, gold, 2, true)
-	draw_circle(center + knob_offset, 22, Color("416157"))
-	draw_arc(center + knob_offset, 22, 0, TAU, 40, gold, 1.5, true)
+	var rim = Color(.86,.86,.86,.38)
+	# Neutral translucent surfaces keep the world visible beneath the thumb.
+	draw_circle(center,58,Color(.055,.055,.055,.24),true,-1,true)
+	draw_arc(center,58,0,TAU,64,rim,1.0,true)
+	draw_arc(center,TRAVEL,0,TAU,48,Color(1,1,1,.10),1.0,true)
+	for axis in [Vector2.UP,Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT]:
+		draw_line(center+axis*49,center+axis*53,Color(1,1,1,.26),1.0,true)
+	var knob = center+knob_offset
+	draw_circle(knob+Vector2(0,2),23,Color(0,0,0,.10),true,-1,true)
+	draw_circle(knob,22,Color(.14,.14,.14,.48),true,-1,true)
+	draw_arc(knob,22,0,TAU,48,Color(.90,.90,.90,.46),1.0,true)
+	draw_arc(knob,19,-PI*.82,-PI*.18,24,Color(1,1,1,.12),.8,true)

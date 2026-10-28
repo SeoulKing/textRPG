@@ -5,15 +5,18 @@ signal interact_pressed
 signal quickslot_pressed(index: int)
 signal move_changed(direction: Vector2)
 signal panel_closed
-const FONT = preload("res://fonts/KoPubBatangMedium.ttf")
+const FONT = preload("res://fonts/NotoSansKR-Medium.tres")
+const FONT_STRONG = preload("res://fonts/NotoSansKR-SemiBold.tres")
 const Joystick = preload("res://scripts/virtual_joystick.gd")
 const SlotIcon = preload("res://scripts/quickslot_icon.gd")
 const ActionButton = preload("res://scripts/mobile_action_button.gd")
 const SkillCooldown = preload("res://scripts/skill_cooldown.gd")
-const SLOT_NAMES = {"fireball":"불꽃", "dodge":"회피", "potion":"포션", "":"등록"}
-const INK = Color("e3e5d3")
-const MUTED = Color("a4b7ab")
-const GOLD = Color("dec99c")
+const SLOT_NAMES = {"fireball":"불꽃", "dodge":"회피", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
+const INK = Color("26364d")
+const MUTED = Color("586779")
+const GOLD = Color("856129")
+const PAPER = Color("fffaf0")
+const EDGE = Color("c7cbd2")
 var root: Control
 var header: PanelContainer
 var navigation: PanelContainer
@@ -50,6 +53,7 @@ var action_touches: Dictionary = {}
 func style(background: Color, border: Color = Color.TRANSPARENT) -> StyleBoxFlat:
 	var value = StyleBoxFlat.new()
 	value.bg_color = background
+	value.set_corner_radius_all(10)
 	value.border_color = border
 	value.set_border_width_all(1 if border.a > 0 else 0)
 	value.content_margin_left = 12
@@ -58,11 +62,12 @@ func style(background: Color, border: Color = Color.TRANSPARENT) -> StyleBoxFlat
 	value.content_margin_bottom = 9
 	return value
 
-func label(text: String, size: int = 14, color: Color = INK) -> Label:
+func label(text: String, size: int = 14, color: Color = INK, emphasis: bool = false) -> Label:
 	var node = Label.new()
 	node.text = text
 	node.add_theme_font_size_override("font_size", size)
 	node.add_theme_color_override("font_color", color)
+	if emphasis: node.add_theme_font_override("font", FONT_STRONG)
 	return node
 
 func button(text: String, callback: Callable, min_size: Vector2 = Vector2(46, 40)) -> Button:
@@ -80,33 +85,48 @@ func _ready() -> void:
 	add_child(root)
 	var theme = Theme.new()
 	theme.default_font = FONT
-	theme.default_font_size = 13
+	theme.default_font_size = 14
+	theme.set_font("font", "Button", FONT_STRONG)
 	theme.set_color("font_color", "Button", INK)
-	theme.set_color("font_hover_color", "Button", GOLD)
-	theme.set_color("font_disabled_color", "Button", Color("71867d"))
-	theme.set_stylebox("normal", "Button", style(Color("203c3f"), Color("4c6862")))
-	theme.set_stylebox("hover", "Button", style(Color("2d4e4c"), GOLD))
-	theme.set_stylebox("pressed", "Button", style(Color("416157"), GOLD))
-	theme.set_stylebox("disabled", "Button", style(Color("1c3235"), Color("324e4b")))
-	theme.set_stylebox("focus", "Button", style(Color(0, 0, 0, 0), GOLD))
+	theme.set_color("font_hover_color", "Button", INK)
+	theme.set_color("font_disabled_color", "Button", Color("798291"))
+	theme.set_color("font_pressed_color", "Button", INK)
+	theme.set_color("font_focus_color", "Button", INK)
+	theme.set_stylebox("normal", "Button", style(Color("fffaf0"), Color("c7cbd2")))
+	theme.set_stylebox("hover", "Button", style(Color("e7f2ff"), GOLD))
+	theme.set_stylebox("pressed", "Button", style(Color("d5e7fb"), GOLD))
+	theme.set_stylebox("disabled", "Button", style(Color("e9e9e6"), Color("d3d7dd")))
+	theme.set_stylebox("focus", "Button", style(Color.TRANSPARENT, Color("4678b5")))
 	root.theme = theme
 	var top = PanelContainer.new()
 	header = top
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	top.offset_bottom = 72
-	top.add_theme_stylebox_override("panel", style(Color(.078,.18,.20,.87)))
+	top.offset_top = 12
+	top.offset_bottom = 102
+	var header_style = style(Color(PAPER,.97), Color(1,1,1,.95))
+	header_style.set_corner_radius_all(16)
+	header_style.shadow_color = Color(.10,.17,.28,.18)
+	header_style.shadow_size = 8
+	header_style.shadow_offset = Vector2(0,3)
+	header_style.content_margin_left = 16
+	header_style.content_margin_right = 16
+	header_style.content_margin_top = 11
+	header_style.content_margin_bottom = 11
+	top.add_theme_stylebox_override("panel", header_style)
 	root.add_child(top)
 	var stack = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 3)
+	stack.add_theme_constant_override("separation", 8)
 	top.add_child(stack)
 	var heading = HBoxContainer.new()
+	heading.add_theme_constant_override("separation",8)
 	stack.add_child(heading)
-	title_label = label("ARCANA", 13, GOLD)
+	title_label = label("ARCANA", 11, GOLD, true)
 	heading.add_child(title_label)
-	zone_label = label("분수 광장", 13)
+	zone_label = label("분수 광장", 16, INK, true)
 	zone_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	zone_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	heading.add_child(zone_label)
-	money_label = label("", 12, GOLD)
+	money_label = label("", 14, GOLD, true)
 	heading.add_child(money_label)
 	var stats = HBoxContainer.new()
 	stats.add_theme_constant_override("separation", 10)
@@ -115,24 +135,27 @@ func _ready() -> void:
 		var section = HBoxContainer.new()
 		section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		stats.add_child(section)
-		var stat = label(id, 11, MUTED)
+		var stat = label(id, 13, INK, true)
 		section.add_child(stat)
-		var bar = make_bar(Color("b69b79") if id == "HP" else Color("85b8bd"), 4)
+		var bar = make_bar(Color("df596c") if id == "HP" else Color("398bda"), 7)
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		section.add_child(bar)
 		if id == "HP": hp_label = stat; hp_bar = bar
 		else: mp_label = stat; mp_bar = bar
-	xp_bar = make_bar(Color("bdc88b"), 2)
+	xp_bar = make_bar(Color("b58b3c"), 3)
 	stack.add_child(xp_bar)
 	var bottom = PanelContainer.new()
 	navigation = bottom
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_top = -56
-	bottom.offset_bottom = -10
+	bottom.offset_top = -82
+	bottom.offset_bottom = -16
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var dock_style = style(Color(.045,.10,.13,.84),Color(.70,.79,.73,.22))
-	dock_style.set_corner_radius_all(14)
+	var dock_style = style(Color(PAPER,.97),Color(1,1,1,.95))
+	dock_style.set_corner_radius_all(18)
+	dock_style.shadow_color = Color(.10,.17,.28,.20)
+	dock_style.shadow_size = 8
+	dock_style.shadow_offset = Vector2(0,3)
 	dock_style.content_margin_left = 6
 	dock_style.content_margin_right = 6
 	dock_style.content_margin_top = 3
@@ -142,22 +165,22 @@ func _ready() -> void:
 	var bottom_stack = VBoxContainer.new()
 	bottom_stack.add_theme_constant_override("separation", 7)
 	bottom.add_child(bottom_stack)
-	hint_label = label("", 12, GOLD)
+	hint_label = label("", 13, Color("fffaf0"))
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint_label.add_theme_color_override("font_shadow_color", Color("142e33"))
 	hint_label.add_theme_constant_override("shadow_outline_size", 4)
 	hint_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	hint_label.offset_top = -310
-	hint_label.offset_bottom = -284
+	hint_label.offset_top = -370
+	hint_label.offset_bottom = -342
 	hint_label.offset_left = 16
 	hint_label.offset_right = -16
 	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hint_label)
-	attack_bar = make_bar(Color("d0a17c"), 2)
+	attack_bar = make_bar(Color("ad63d9"), 4)
 	attack_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	attack_bar.offset_top = -280
-	attack_bar.offset_bottom = -278
+	attack_bar.offset_top = -338
+	attack_bar.offset_bottom = -334
 	attack_bar.offset_left = 20
 	attack_bar.offset_right = -20
 	attack_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -169,14 +192,14 @@ func _ready() -> void:
 	action_cluster = cluster
 	cluster.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	cluster.offset_left = -236
-	cluster.offset_top = -320
+	cluster.offset_top = -342
 	cluster.offset_right = -16
-	cluster.offset_bottom = -72
+	cluster.offset_bottom = -94
 	cluster.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(cluster)
 	interaction = ActionButton.new()
 	interaction.set("primary",true)
-	interaction.set("accent",Color("e7d3a6"))
+	interaction.set("accent",Color("477db6"))
 	interaction.set("key_hint","E")
 	interaction.text = "살펴보기"
 	interaction.position = Vector2(126,112)
@@ -214,11 +237,11 @@ func _ready() -> void:
 		caption.hide() # Icons lead; names remain in tooltips and slot management.
 		slot.add_child(caption)
 		quickslot_labels.append(caption)
-		var count = label("", 10, GOLD)
+		var count = label("", 13, Color("ffffff"), true)
 		count.position = Vector2(34,0)
-		count.size = Vector2(16,14)
+		count.size = Vector2(18,18)
 		count.add_theme_color_override("font_shadow_color",Color("142e33"))
-		count.add_theme_constant_override("shadow_outline_size",4)
+		count.add_theme_constant_override("shadow_outline_size",2)
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot.add_child(count)
@@ -233,17 +256,34 @@ func _ready() -> void:
 	nav.add_theme_constant_override("separation", 0)
 	bottom_stack.add_child(nav)
 	for item in [["지도", "map"], ["소지품", "inventory"], ["의뢰", "quests"], ["기록", "journal"], ["메뉴", "menu"]]:
-		var nav_button = button(item[0], func(): menu_requested.emit(item[1]), Vector2(0, 31))
+		var nav_button = button(item[0], func(): menu_requested.emit(item[1]), Vector2(0, 54))
 		nav_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nav_button.add_theme_font_size_override("font_size",11)
+		nav_button.text = ""
+		var nav_stack = VBoxContainer.new()
+		nav_stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		nav_stack.offset_top = 5
+		nav_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		nav_stack.add_theme_constant_override("separation",2)
+		nav_button.add_child(nav_stack)
+		var nav_icon = SlotIcon.new()
+		nav_icon.kind = item[1]
+		nav_icon.custom_minimum_size = Vector2(23,23)
+		nav_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		nav_stack.add_child(nav_icon)
+		var nav_label = label(item[0],13,INK,true)
+		nav_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nav_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		nav_stack.add_child(nav_label)
+		nav_button.tooltip_text = item[0]
+		nav_button.accessibility_name = item[0]
 		nav_button.add_theme_stylebox_override("normal", style(Color.TRANSPARENT))
 		nav.add_child(nav_button)
 		touch_buttons.append(nav_button)
 	for target in touch_buttons: joystick.blocked_controls.append(target)
-	toast_label = label("", 13, GOLD)
+	toast_label = label("", 14, Color("fffaf0"))
 	toast_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	toast_label.offset_top = 82
-	toast_label.offset_bottom = 120
+	toast_label.offset_top = 116
+	toast_label.offset_bottom = 156
 	toast_label.offset_left = 18
 	toast_label.offset_right = -18
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -256,8 +296,8 @@ func _ready() -> void:
 	_layout()
 
 func _action_caption(text: String, width: float) -> Label:
-	var caption = label(text,10,Color("edf0df"))
-	caption.size = Vector2(width,17)
+	var caption = label(text,13,Color("fffaf0"),true)
+	caption.size = Vector2(width,21)
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	caption.add_theme_color_override("font_shadow_color",Color(.02,.06,.08,.95))
@@ -268,7 +308,7 @@ func _key_badge(parent: Control, text: String, point: Vector2) -> void:
 	var badge = PanelContainer.new()
 	badge.position = point
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var skin = style(Color("142e33"), Color("71867d"))
+	var skin = style(PAPER, EDGE)
 	skin.set_corner_radius_all(3)
 	skin.content_margin_left = 5
 	skin.content_margin_right = 5
@@ -276,7 +316,7 @@ func _key_badge(parent: Control, text: String, point: Vector2) -> void:
 	skin.content_margin_bottom = 1
 	badge.add_theme_stylebox_override("panel", skin)
 	parent.add_child(badge)
-	var text_label = label(text, 10, GOLD)
+	var text_label = label(text, 11, GOLD, true)
 	text_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	badge.add_child(text_label)
 
@@ -285,13 +325,13 @@ func set_quickslot(index: int, command: String) -> void:
 	quickslot_icons[index].kind = quickslot_bindings[index]
 	quickslot_buttons[index].set("utility",quickslot_bindings[index].is_empty())
 	quickslot_labels[index].text = SLOT_NAMES[quickslot_bindings[index]] if not quickslot_bindings[index].is_empty() else ""
-	quickslot_buttons[index].set("accent",{"fireball":Color("f0c49b"),"dodge":Color("b7dfdb"),"potion":Color("a8ccea")}.get(quickslot_bindings[index],Color("a4b7ab")))
+	quickslot_buttons[index].set("accent",{"fireball":Color("d96a33"),"dodge":Color("347c9c"),"potion":Color("536dcb")}.get(quickslot_bindings[index],MUTED))
 
 func make_bar(color: Color, height: int) -> ProgressBar:
 	var bar = ProgressBar.new()
 	bar.custom_minimum_size.y = height
 	bar.show_percentage = false
-	var background = style(Color("304d4d"))
+	var background = style(Color("d7dce3"))
 	var fill = style(color)
 	for value in [background, fill]:
 		value.content_margin_left = 0
@@ -316,14 +356,15 @@ func _build_panel() -> void:
 	panel.offset_right = -14
 	panel.offset_top = 165
 	panel.offset_bottom = -22
-	panel.add_theme_stylebox_override("panel", style(Color("19353a"), Color("61786c")))
+	panel.add_theme_stylebox_override("panel", style(PAPER, Color("ffffff")))
 	overlay.add_child(panel)
 	var stack = VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 12)
 	panel.add_child(stack)
 	var heading = HBoxContainer.new()
+	heading.add_theme_constant_override("separation",8)
 	stack.add_child(heading)
-	panel_title = label("아르카나", 20, GOLD)
+	panel_title = label("아르카나", 20, GOLD, true)
 	panel_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(panel_title)
 	close_button = button("닫기", close_panel, Vector2(48, 36))
@@ -367,7 +408,7 @@ func paragraph(text: String, color: Color = INK) -> void:
 
 func choice(text: String, detail: String, callback: Callable, disabled: bool = false) -> void:
 	var line = HSeparator.new()
-	line.modulate = Color("52695f")
+	line.modulate = Color("b9c2cc")
 	content.add_child(line)
 	var row = MarginContainer.new()
 	row.add_theme_constant_override("margin_left", 4)
@@ -387,12 +428,12 @@ func choice(text: String, detail: String, callback: Callable, disabled: bool = f
 	var stack = VBoxContainer.new()
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(stack)
-	var title = label(text, 14, MUTED if disabled else INK)
+	var title = label(text, 14, MUTED if disabled else INK, true)
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(title)
 	if not detail.is_empty():
-		var desc = label(detail, 11, MUTED)
+		var desc = label(detail, 12, MUTED)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		stack.add_child(desc)
@@ -452,7 +493,7 @@ func _layout() -> void:
 	var width = available.x
 	# Expand the world with the window while keeping HUD text and navigation
 	# within comfortable reading widths. Portrait retains its original layout.
-	header.offset_left = maxf(0, (width - 720) / 2)
+	header.offset_left = maxf(12, (width - 640) / 2)
 	header.offset_right = -header.offset_left
 	navigation.offset_left = maxf(12, (width - 480) / 2)
 	navigation.offset_right = -navigation.offset_left

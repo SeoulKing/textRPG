@@ -2,7 +2,7 @@ extends Button
 ## Crisp, texture-free action chrome; the world palette never processes HUD ink.
 var primary = false
 var utility = false
-var accent = Color("a9d9d2")
+var accent = Color("477db6")
 var key_hint = ""
 
 func _ready() -> void:
@@ -24,23 +24,27 @@ func _draw() -> void:
 	var radius = minf(size.x,size.y)*.5-(9.0 if utility else 3.0)
 	var down = is_pressed() and not disabled
 	var bright = (is_hovered() or down) and not disabled
-	var rim = Color("e7d3a6") if primary else Color("cfdfdc")
-	draw_circle(center+Vector2(0,2),radius+1,Color(0.02,.06,.08,.14),true,-1,true)
-	draw_circle(center,radius,Color(.04,.10,.13,.48 if primary else .36),true,-1,true)
-	draw_circle(center,radius-3,Color(accent,.13 if down else .035),true,-1,true)
-	rim.a = .92 if bright else .68 if primary else .28
-	draw_arc(center,radius,0,TAU,80,rim,1.4 if primary else 1.0,true)
-	draw_arc(center,radius-3,-PI*.84,-PI*.18,36,Color(1,1,1,.12),.7,true)
-	# Small lower accents establish hierarchy without thick decorative frames.
+	var rim = Color("94b4d8") if primary else Color("b9c4d2")
+	var surface = Color("e7f2ff") if primary else Color("fffaf0")
+	if down: surface = surface.lerp(accent,.20)
+	elif bright: surface = Color("ffffff")
+	elif disabled: surface = Color("ebece8")
+	draw_circle(center+Vector2(0,3),radius+1,Color(.10,.17,.28,.22),true,-1,true)
+	draw_circle(center,radius,Color(surface,.97 if primary else .94),true,-1,true)
+	draw_circle(center-Vector2(0,radius*.16),radius*.72,Color(1,1,1,.18),true,-1,true)
+	draw_arc(center,radius,0,TAU,80,Color("ffffff"),2.0,true)
+	draw_arc(center,radius-2.5,0,TAU,80,accent if bright else rim,1.0,true)
 	var edge = accent
-	edge.a = .30 if disabled else .85
-	draw_arc(center,radius+1.5,PI*.30,PI*.70,24,edge,1.7 if primary else 1.3,true)
+	edge.a = .35 if disabled else .90
+	draw_arc(center,radius-1,PI*.24,PI*.76,28,edge,2.6 if primary else 1.8,true)
 	if primary:
 		for side in [-1,1]:
 			var at = center+Vector2(side*(radius+1.5),0)
-			draw_colored_polygon(PackedVector2Array([at+Vector2(0,-2),at+Vector2(2,0),at+Vector2(0,2),at-Vector2(2,0)]),Color(rim,.75))
+			draw_colored_polygon(PackedVector2Array([at+Vector2(0,-3),at+Vector2(3,0),at+Vector2(0,3),at-Vector2(3,0)]),accent)
 	if not key_hint.is_empty() and not DisplayServer.is_touchscreen_available():
-		var font = get_theme_default_font()
+		var font = get_theme_font("font")
 		var at = center+Vector2(radius*.70,radius*.72)
-		draw_circle(at,6.5,Color(.04,.10,.13,.76),true,-1,true)
-		draw_string(font,at+Vector2(-2.8,3),key_hint,HORIZONTAL_ALIGNMENT_LEFT,-1,8,Color("dedfd1"))
+		draw_circle(at,8,Color("344b67"),true,-1,true)
+		draw_arc(at,8,0,TAU,28,Color("ffffff"),1,true)
+		var text_width = font.get_string_size(key_hint,HORIZONTAL_ALIGNMENT_LEFT,-1,11).x
+		draw_string(font,at+Vector2(-text_width*.5,4),key_hint,HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("ffffff"))
