@@ -1,11 +1,14 @@
 @tool
 extends RefCounted
+const CITY = preload("res://art/resources/city_center_assets.gd")
 const Prop = preload("res://scripts/illustrated_prop.gd")
 const GROUND = preload("res://art/resources/illustrated_ground.gdshader")
 const STONE = preload("res://art/export/reference/stone-a.png")
 const GRASS = preload("res://art/export/reference/grass.png")
 const SOIL = preload("res://art/export/reference/soil.png")
 const TEXTURES = {
+ "plaza-guide":preload("res://art/export/plaza-guide/plaza-guide.png"),
+ "portal":preload("res://art/export/reference/portal-2d.png"),
  "lamp-post":preload("res://art/export/reference/lamp-post-2d.png"),
  "shop":preload("res://art/export/reference/shop-2d.png"),
  "inn":preload("res://art/export/reference/inn-2d.png"),
@@ -25,20 +28,30 @@ const TEXTURES = {
  "spruce":preload("res://art/export/reference/spruce.png")
 }
 static func supports(kind: String) -> bool:
-    return kind == "fountain" or TEXTURES.has(kind)
+    return kind == "fountain" or TEXTURES.has(kind) or CITY.ITEMS.has(kind)
 static func make(kind: String) -> Node3D:
+    if kind == "plaza-guide": return preload("res://scripts/mei_sprite.gd").new()
     if kind == "fountain": return preload("res://scripts/fountain_sprite.gd").new()
+    if kind == "portal": return preload("res://scripts/portal_sprite.gd").new()
     var node = Prop.new()
-    node.asset = TEXTURES[kind]
+    node.asset = CITY.ITEMS[kind].texture if CITY.ITEMS.has(kind) else TEXTURES[kind]
     node.fade_for_player = true
     node.pixel_size = node.asset.get_size()
     node.foot = Vector2(node.pixel_size.x*.5,node.pixel_size.y-2)
     var width = float(node.pixel_size.x)/64.0
     node.shadow_size = Vector2(width*.65,width*.28)
+    if CITY.ITEMS.has(kind):
+        node.foot = CITY.ITEMS[kind].foot
+        node.shadow_size = CITY.ITEMS[kind].shadow
+        node.shadow_offset = Vector2(0,-.5)
     if kind in ["shop","inn","restaurant"]:
         node.foot = Vector2(node.pixel_size.x*.5,node.pixel_size.y-4)
         node.shadow_size = Vector2(5.2,1.8)
         node.shadow_offset = Vector2(0,-.8)
+    if kind == "plaza-guide":
+        node.foot = Vector2(48,116)
+        node.shadow_size = Vector2(.60,.36)
+        node.fade_for_player = false
     if kind == "lamp-post":
         node.foot = Vector2(node.pixel_size.x*.5,node.pixel_size.y-4)
         node.shadow_size = Vector2(.45,.28)
@@ -67,6 +80,11 @@ static func add_ground(parent: Node3D, size: Vector2, at: Vector3, layout: Node3
     mat.set_shader_parameter("stone_tex",STONE)
     mat.set_shader_parameter("grass_tex",GRASS)
     mat.set_shader_parameter("dirt_tex",SOIL)
+    mat.set_shader_parameter("city_painted_ground",true)
+    mat.set_shader_parameter("city_ground_paint",preload("res://art/export/regions/arcana-city-center/magic-ground-left.svg"))
+    mat.set_shader_parameter("city_ground_paint_split",true)
+    mat.set_shader_parameter("city_ground_paint_right",preload("res://art/export/regions/arcana-city-center/magic-ground-right.svg"))
+    mat.set_shader_parameter("city_ground_paint_bounds",Vector4(0,8,72,48))
     layout.configure_ground(mat)
     preload("res://scripts/ground_tilemap.gd").bind(mat)
     node.material_override = mat

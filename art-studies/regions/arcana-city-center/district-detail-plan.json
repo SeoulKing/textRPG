@@ -1,0 +1,13 @@
+{
+  "direction": "현재 청금 천체 방향과 배치를 유지하고 구역별로 마감을 보강합니다.",
+  "userDirection": "디테일은 또 박살 났구만 그래도 이게 낫다 저건 그냥 구역구역 디테일 추가해주자",
+  "userDetailTarget": "분수 주변에 있는 원형 장식 만큼의 디테일만해도 좋은데",
+  "reference": "godot-arcana/art/export/fountain-paving/mosaic-ring.png",
+  "pass": "district-detail-01",
+  "implementedZones": ["분수 광장", "남문으로 이어지는 큰길과 문 앞 메달"],
+  "nativeDensity": 64,
+  "finish": ["석재 면의 따뜻한 광물 무늬", "얕은 모서리 명암과 작은 깨짐", "푸른 모자이크 조각", "금속 상감 단차와 하이라이트", "별 메달 세공과 작은 보석"],
+  "nextZones": [{"id":"market-street","name":"상점·시장 앞","state":"pending"},{"id":"academy-court","name":"마법학교 앞마당","state":"pending"},{"id":"inn-lane","name":"여관·주거 골목","state":"pending"}],
+  "preserved": ["도심 배치", "현재 문양과 길의 윤곽", "건물·나무·가로등", "이동·출입·충돌"],
+  "visualApproval": "최종 미술 확인은 사용자 검토 대기"
+}

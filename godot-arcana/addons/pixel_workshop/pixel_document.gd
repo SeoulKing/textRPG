@@ -19,7 +19,7 @@ static func layer_image(data: Dictionary, layer: String) -> Image:
 			image.set_pixel(x,y,Color(data.palette[rows[y][x]]))
 	return image
 
-static func frame_image(data: Dictionary, animation: String, frame: int, patches: bool = true) -> Image:
+static func frame_image(data: Dictionary, animation: String, frame: int, patches: bool = true, lighting: int = 0) -> Image:
 	var spec: Dictionary = data.animations[animation]
 	var t = float(frame)/float(spec.count if spec.loop else maxi(1,int(spec.count)-1))
 	var keys: Array = spec.keys
@@ -43,6 +43,7 @@ static func frame_image(data: Dictionary, animation: String, frame: int, patches
 	var foot = Vector2(float(data.foot[0]),float(data.foot[1]))
 	var image = Image.create(size.x,size.y,false,Image.FORMAT_RGBA8)
 	var layers: Array = ["body","crest","shine","face_"+face]
+	if lighting > 0: layers.erase("shine")
 	for y in range(size.y):
 		for x in range(size.x):
 			var source_y = int(round((float(y)-foot.y+lift)/sy+foot.y))
@@ -54,12 +55,33 @@ static func frame_image(data: Dictionary, animation: String, frame: int, patches
 				if symbol != ".": color = symbol
 			# Stable ordered dissolve; no random redraw or translucent edge pixels.
 			if dissolve > 0 and float((x*3+y*5)%17)/17.0 < dissolve: color = "."
-			image.set_pixel(x,y,Color(data.palette[color]))
+			if lighting == 2:
+				# Data: +X right, +Y up, +Z toward camera.
+				var nx = (float(source_x)-31.5)/27.0
+				var ny = (55.0-float(source_y))/21.0
+				if data.layers.crest[source_y][source_x] != ".":
+					nx = (float(source_x)-32.0)/7.5
+					ny = (30.0-float(source_y))/7.0
+				var nz = sqrt(maxf(.06,1.0-nx*nx-ny*ny))
+				# Inverse transpose of the color pose scale and shear.
+				var normal = Vector3(nx/sx,(ny-lean*nx/(50.0*sx))/sy,nz).normalized()
+				var gloss = 0.0 if color in [".","o"] else .75*(1.0-dissolve)
+				image.set_pixel(x,y,Color(normal.x*.5+.5,normal.y*.5+.5,normal.z*.5+.5,gloss))
+			else:
+				image.set_pixel(x,y,Color(data.palette[color]))
 	var patch_key = animation+"/"+str(frame)
 	if patches and data.patches.has(patch_key):
 		for point in data.patches[patch_key]:
 			var xy = point.split(",")
-			image.set_pixel(int(xy[0]),int(xy[1]),Color(data.palette[data.patches[patch_key][point]]))
+			var px = int(xy[0])
+			var py = int(xy[1])
+			var symbol: String = data.patches[patch_key][point]
+			if lighting == 2:
+				var surface = image.get_pixel(px,py)
+				surface.a = 0.0 if symbol in [".","o"] else surface.a
+				image.set_pixel(px,py,surface)
+			else:
+				image.set_pixel(px,py,Color(data.palette[symbol]))
 	return image
 
 static func bake(data: Dictionary) -> Error:
@@ -88,4 +110,25 @@ static func bake(data: Dictionary) -> Error:
 	var file = FileAccess.open(FRAMES,FileAccess.WRITE)
 	if file == null: return FileAccess.get_open_error()
 	file.store_string(text)
+	return bake_lighting(data)
+
+
+# Rebuild lighting without rewriting the original color assets.
+static func bake_lighting(data: Dictionary) -> Error:
+	var width = int(data.size[0])
+	var height = int(data.size[1])
+	var total = 0
+	for spec in data.animations.values(): total += int(spec.count)
+	for mode in [1,2]:
+		var atlas = Image.create(width*COLUMNS,height*ceili(float(total)/COLUMNS),false,Image.FORMAT_RGBA8)
+		var index = 0
+		for animation in data.animations:
+			for frame in range(int(data.animations[animation].count)):
+				var point = Vector2i(index%COLUMNS*width,int(index/COLUMNS)*height)
+				atlas.blit_rect(frame_image(data,animation,frame,true,mode),Rect2i(0,0,width,height),point)
+				index += 1
+		# Embedded lossless data avoids import channel conversion.
+		var path = "res://art/export/monsters/slime-lit.res" if mode == 1 else "res://art/export/monsters/slime-surface.res"
+		var error = ResourceSaver.save(ImageTexture.create_from_image(atlas),path)
+		if error != OK: return error
 	return OK

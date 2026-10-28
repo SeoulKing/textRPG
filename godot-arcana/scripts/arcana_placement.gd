@@ -7,7 +7,7 @@ const Fountain = preload("res://scripts/fountain_spec.gd")
 const Actor = preload("res://scripts/pixel3d_actor.gd")
 const Hero = preload("res://scripts/heroine_sprite.gd")
 
-@export_enum("shop", "inn", "restaurant", "academy", "academy-2d", "fountain", "oak", "birch", "spruce", "bench", "flowerbed", "flowers", "shrub", "flowerpot", "crate", "barrels", "basket", "sign", "lantern", "lamp-post", "handcart", "workbench", "canopy", "pennant", "portal", "hero", "traveler") var model_kind: String = "crate":
+@export_enum("plaza-guide", "city-townhouse", "city-workshops", "city-bookshop", "city-market", "city-cafe", "city-hedge", "shop", "inn", "restaurant", "academy", "academy-2d", "fountain", "oak", "birch", "spruce", "bench", "flowerbed", "flowers", "shrub", "flowerpot", "crate", "barrels", "basket", "sign", "lantern", "lamp-post", "handcart", "workbench", "canopy", "pennant", "portal", "hero", "traveler") var model_kind: String = "crate":
 	set(value):
 		model_kind = value
 		notify_property_list_changed()
@@ -15,7 +15,7 @@ const Hero = preload("res://scripts/heroine_sprite.gd")
 ## Keep existing game IDs unique. Leave empty for decorative copies.
 @export var gameplay_id: String = ""
 @export var display_name: String = ""
-@export_enum("decoration", "building", "portal", "workbench", "resident", "spawn", "gate", "dungeon", "slime", "city", "bench") var interaction_kind: String = "decoration"
+@export_enum("decoration", "building", "portal", "workbench", "resident", "spawn", "gate", "slime", "city", "bench") var interaction_kind: String = "decoration"
 ## Ground footprint in local 3D units; X is horizontal, Y means ground Z.
 @export var collision_footprint: Rect2 = Rect2():
 	set(value):

@@ -8,14 +8,7 @@ import { SkillUseSchema } from "./skill-progression";
 export const GameActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("academy_move"), roomId: z.string().min(1).max(40) }),
   z.object({ type: z.literal("world_clock"), command: z.enum(["tick", "pause"]), clientId: z.string().min(1).max(100), sequence: z.number().int().nonnegative().default(0) }),
-  z.object({ type: z.literal("arcana_combat"), command: z.enum(["start", "fireball", "flame_wave", "flame_guard", "dodge", "potion", "retreat", "pause", "resume", "finish", "buy_potion", "rest", "spatial_sync", "learn_spell", "equip_spell", "dev_sofa_rest"]), spellId: z.enum(["fireball", "flame_wave", "flame_guard"]).optional(), slotIndex: z.number().int().min(0).max(5).optional(), battleId: z.string().max(100).optional(), spatial: z.object({ encounterId: z.literal("plaza_slime"), clientId: z.string().min(1).max(100), sequence: z.number().int().nonnegative(), position: CombatPointSchema, aim: CombatPointSchema.optional(), paused: z.boolean().default(false), developerSpeed: z.boolean().default(false) }).optional() }),
-  z.object({
-    type: z.literal("magic_dungeon"),
-    command: z.enum(["start", "class", "skill", "ultimate", "reward", "route", "event", "shop", "pause", "resume", "return", "exit"]),
-    classId: z.enum(["guardian", "archer", "rogue", "mage"]).optional(),
-    skillIndex: z.number().int().min(0).max(3).optional(),
-    optionId: z.string().max(40).optional(),
-  }),
+  z.object({ type: z.literal("arcana_combat"), command: z.enum(["start", "fireball", "flame_wave", "flame_guard", "dodge", "teleport", "potion", "retreat", "pause", "resume", "finish", "buy_potion", "rest", "spatial_sync", "learn_spell", "equip_spell", "dev_sofa_rest"]), spellId: z.enum(["fireball", "flame_wave", "flame_guard"]).optional(), slotIndex: z.number().int().min(0).max(5).optional(), battleId: z.string().max(100).optional(), spatial: z.object({ encounterId: z.literal("plaza_slime"), clientId: z.string().min(1).max(100), sequence: z.number().int().nonnegative(), position: CombatPointSchema, aim: CombatPointSchema.optional(), paused: z.boolean().default(false), developerSpeed: z.boolean().default(false) }).optional() }),
   z.object({
     type: z.literal("text_world"),
     command: z.enum(["enter", "choose"]),

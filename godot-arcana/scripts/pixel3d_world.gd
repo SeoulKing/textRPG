@@ -5,6 +5,7 @@ const Models = preload("res://scripts/pixel3d_models.gd")
 const CityLayout = preload("res://scripts/plaza_layout.gd")
 const Actor = preload("res://scripts/pixel3d_actor.gd")
 const Illustrated = preload("res://scripts/illustrated_art.gd")
+const BlinkEffect = preload("res://scripts/teleport_effect.gd")
 const Hero = preload("res://scripts/heroine_run.gd")
 const Occlusion = preload("res://scripts/environment_occlusion.gd")
 var environment_occlusion = Occlusion.new()
@@ -33,8 +34,8 @@ var sunshine: DirectionalLight3D
 var environment: Environment
 var outside: Node3D
 var inside: Node3D
+var teleport_effect: Node3D
 var hero: Node3D
-var resident: Node3D
 var slime: Node3D
 var plaza_slime: Node3D
 var hunting_slime: Node3D
@@ -48,8 +49,12 @@ var effect_pool: Array[MeshInstance3D] = []
 var lantern_lights: Array[OmniLight3D] = []
 var interior_people: Array[Node3D] = []
 var previous_player = Vector2.ZERO
-var previous_resident = Vector2.ZERO
 var camera_center = Vector3.ZERO
+const TELEPORT_CAMERA_HOLD = .12
+const TELEPORT_CAMERA_CATCHUP = .28
+var teleport_camera_age = -1.0
+var teleport_camera_from = Vector3.ZERO
+var previous_blink_age = -1.0
 var last_academy_floor: int = 0
 var last_interior = "__boot__"
 var damage_label: Label3D
@@ -67,7 +72,6 @@ var layout: Node3D
 var _layout_poll = 0.0
 var _layout_stamp = 0
 var _layout_hash = ""
-var _resident_enabled = true
 
 func set_zoom_ratio(ratio: float) -> void:
 	camera_zoom = base_camera_zoom * clampf(ratio,MIN_ZOOM_RATIO,MAX_ZOOM_RATIO)
@@ -128,14 +132,12 @@ func _ready() -> void:
 	_layout_hash = FileAccess.get_sha256("res://scenes/plaza.tscn") if OS.has_feature("editor") else ""
 	_sync_layout_anchors()
 	_build_outdoors()
+	teleport_effect=BlinkEffect.new()
+	add_child(teleport_effect)
 	hero = Hero.new()
 	add_child(hero)
-	resident = Actor.new()
-	resident.traveler = true
-	outside.add_child(resident)
 	_apply_actor_transforms()
 	previous_player = world.player_position
-	previous_resident = world.traveler_position
 	camera_center = map_point(world.player_position)
 	marker = _ring(.42,"f2cf79")
 	add_child(marker)
@@ -201,15 +203,9 @@ func _build_outdoors() -> void:
 	_floor(outside,Vector2(72,90),Vector3(36,0,45),true)
 	# Walls are authored in scenes/walls/city_walls.tscn and displayed by Plaza.
 	_sync_lantern_lights()
-	# East river is an actual recessed plane, bounded by physical bank rocks.
+	# Keep the river surface; legacy 3D bank rocks have been removed.
 	var river = Models.box(outside,Vector3(13.25,.10,22.375),Vector3(65.375,-.08,63.8125),"579da0")
 	river.material_override = Models.material("579da0",0,.10)
-	for i in range(26):
-		var rock = Node3D.new()
-		rock.position = Vector3(58.8,.0,52.8+i*.85)
-		outside.add_child(rock)
-		Models.sphere(rock,Vector3(.7,.48,.85),Vector3(0,.12,0),"8f9780" if i%3 else "b6ab8e")
-		Models._merge(rock)
 	for node in layout.find_children("*","Node3D",true,false):
 		if node.get_meta("encounter_id","") == "plaza_slime":
 			plaza_slime = node
@@ -273,9 +269,6 @@ func _interior(id: String) -> void:
 		Models.box(back_wall,Vector3(.58,1.12,.08),Vector3(x-1.30,2.10,.25),"7657a6")
 		Models.box(back_wall,Vector3(.17,.17,.10),Vector3(x-1.30,2.25,.29),"f2cf79",Vector3(0,0,PI/4))
 	Models._merge(back_wall)
-	if id == "dungeon":
-		_place("portal",Vector2(192,140),inside)
-		return
 	for x in range(42,330,46): _place("shelf",Vector2(x,66),inside)
 	for entity in world.entities:
 		if entity.kind == "exit": continue
@@ -292,7 +285,7 @@ func _interior(id: String) -> void:
 		npc.position = map_point(entity.pos-Vector2(0,14))
 		inside.add_child(npc)
 		interior_people.append(npc)
-	if id not in ["arcana_academy","dungeon"]:
+	if id != "arcana_academy":
 		_place("workbench",Vector2(192,114),inside).scale = Vector3(4,1,2)
 		for x in [70,302]: _place("bench",Vector2(x,204),inside)
 
@@ -327,20 +320,26 @@ func _process(_delta: float) -> void:
 		occlusion_dirty = true
 		environment.background_color = Color("78ad72") if outside.visible else Color("283452")
 		camera_center = map_point(world.player_position)
+		teleport_camera_age = -1.0
+		previous_blink_age = world.teleport_age
 	var motion = world.player_position-previous_player
 	hero.position = _snap_ground(map_point(world.bench_visual_position()))
 	hero.set_bench_pose(world.bench_state,world.bench_age,world.reduced_motion or not world.effects_enabled)
 	if hero.material != null:
 		hero.material.set_shader_parameter("minimum_zoom_outline",experimental_min_zoom_outline and pixelated and camera_zoom<=CAMERA_ZOOM*.5+.0001)
 	if hero.has_method("set_camera_yaw"): hero.set_camera_yaw(view_yaw())
+	hero.dash_age=world.dash_age
+	hero.dash_yaw=atan2(world.dash_direction.x,world.dash_direction.y)
 	hero.pose(world.time,world.player_gait,world.walking,motion,pixelated,world.effects_enabled and not world.reduced_motion)
 	hero.apply_bench_pose()
+	# Independent overlay/presentation only; the original pose keeps advancing.
+	var blink_age: float=world.teleport_age
+	var blink_direction=Hero.direction_for_yaw(atan2(world.teleport_direction.x,world.teleport_direction.y),view_yaw())
+	teleport_effect.update_pose(blink_age,blink_direction,_snap_ground(map_point(world.teleport_origin)),_snap_ground(map_point(world.teleport_target)),world.effects_enabled,world.reduced_motion)
+	hero.visible=not BlinkEffect.hides_character(blink_age,world.effects_enabled,world.reduced_motion)
+	if blink_age>=0 and blink_age<.02 and world.effects_enabled and not world.reduced_motion:
+		hero.position=_snap_ground(map_point(world.teleport_origin))
 	previous_player = world.player_position
-	resident.visible = _resident_enabled
-	resident.position = _snap_ground(map_point(world.traveler_position))
-	var resident_motion = world.traveler_position-previous_resident
-	resident.pose(world.time,world.traveler_gait,resident_motion.length_squared()>.0001,resident_motion,pixelated,world.effects_enabled and not world.reduced_motion)
-	previous_resident = world.traveler_position
 	for npc in interior_people: npc.pose(world.time,0,false,Vector2.ZERO,pixelated,world.effects_enabled and not world.reduced_motion)
 	var target = map_point(world.player_position)
 	var view_height = display_height / (32.0 * camera_zoom)
@@ -353,10 +352,26 @@ func _process(_delta: float) -> void:
 			var end = 19.0 if world.indoor == "arcana_academy" else 16.5
 			target.z = clampf(target.z,minf(middle,4.0+half_depth),maxf(middle,end-half_depth))
 		else: target.z = 10.75
-	if world.reduced_motion or camera_center.distance_to(target)>7: camera_center = target
+	var blink_started = blink_age>=0 and (previous_blink_age<0 or blink_age<previous_blink_age)
+	previous_blink_age = blink_age
+	if world.reduced_motion or camera_center.distance_to(target)>7:
+		camera_center = target
+		teleport_camera_age = -1.0
 	else:
-		camera_center.x = clampf(camera_center.x,target.x-.45,target.x+.45)
-		camera_center.z = clampf(camera_center.z,target.z-.7,target.z+.7)
+		if blink_started:
+			teleport_camera_from = camera_center
+			teleport_camera_age = 0.0
+		if teleport_camera_age>=0:
+			# Let the character arrive first, then catch up with a finite ease.
+			# Normal walking keeps its existing dead zone and pixel snapping.
+			if world.enabled: teleport_camera_age += maxf(0.0,_delta)
+			var progress = clampf((teleport_camera_age-TELEPORT_CAMERA_HOLD)/TELEPORT_CAMERA_CATCHUP,0.0,1.0)
+			var weight = progress*progress*(3.0-2.0*progress)
+			camera_center = teleport_camera_from.lerp(target,weight)
+			if progress>=1.0: teleport_camera_age = -1.0
+		else:
+			camera_center.x = clampf(camera_center.x,target.x-.45,target.x+.45)
+			camera_center.z = clampf(camera_center.z,target.z-.7,target.z+.7)
 	camera.size = view_height
 	pixels_per_unit = get_viewport().size.y/camera.size
 	var yaw = view_yaw()
@@ -402,6 +417,10 @@ func _process(_delta: float) -> void:
 		local_lighting.update(self,hero.global_position,world.dusk,world.effects_enabled and world.indoor.is_empty(),_delta)
 	for fountain in get_tree().get_nodes_in_group("arcana_fountain_water"):
 		fountain.sync_water(world.time,world.effects_enabled and not world.reduced_motion)
+	for npc in get_tree().get_nodes_in_group("arcana_npc_idle"):
+		npc.sync_idle(world.time,world.effects_enabled and not world.reduced_motion)
+	for portal in get_tree().get_nodes_in_group("arcana_portal_animation"):
+		portal.sync_portal(world.time,world.effects_enabled and not world.reduced_motion)
 	marker.visible = not world.nearest.is_empty()
 	if marker.visible: marker.position = map_point(world.nearest.pos)
 	target_marker.visible = not world.path.is_empty()
@@ -455,14 +474,12 @@ func _sync_layout_anchors() -> void:
 		layout.configure_ground(ground_mat)
 		_sync_lantern_lights()
 	fountain_anchor = Vector3(0,-1000,0)
-	_resident_enabled = false
 	for entry in layout.placements():
 		if entry.model_kind == "fountain" and fountain_anchor.y < -100:
 			fountain_transform = entry.layout_transform(layout)
 			fountain_anchor = fountain_transform.origin
 		if entry.gameplay_id in ["player_spawn","resident"]:
 			entry.hide()
-			if entry.gameplay_id == "resident": _resident_enabled = true
 
 	_sync_tile_reference()
 
@@ -479,7 +496,7 @@ func _sync_tile_reference() -> void:
 		material.shader = preload("res://art/resources/tile_reference.gdshader")
 		tile_reference.material_override = material
 		outside.add_child(tile_reference)
-	tile_reference.visible = fountain_anchor.y > -100
+	tile_reference.visible = layout.show_scale_reference and fountain_anchor.y > -100
 	if tile_reference.visible:
 		var basin_radius = 2.25*maxf(fountain_transform.basis.x.length(),fountain_transform.basis.z.length())
 		# Align the outline to a real grid cell immediately south of the basin.
@@ -512,7 +529,7 @@ func _apply_actor_transforms() -> void:
 	for entry in layout.placements():
 		if seen.has(entry.gameplay_id): continue
 		seen[entry.gameplay_id] = true
-		var actor = hero if entry.gameplay_id == "player_spawn" else resident if entry.gameplay_id == "resident" else null
+		var actor = hero if entry.gameplay_id == "player_spawn" else null
 		if actor != null:
 			var authored = entry.layout_transform(layout)
 			actor.scale = authored.basis.get_scale()

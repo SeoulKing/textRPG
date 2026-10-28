@@ -31,6 +31,14 @@ uniform sampler2D fountain_paving : source_color, filter_nearest, repeat_disable
 uniform sampler2D grass_tex : source_color, filter_nearest, repeat_enable;
 uniform sampler2D dirt_tex : source_color, filter_nearest, repeat_enable;
 uniform sampler2D stone_tex : source_color, filter_nearest, repeat_enable;
+// One continuous city floor painting; the tile atlas is bypassed in this mode.
+uniform bool city_painted_ground = false;
+uniform sampler2D city_ground_paint : source_color, filter_nearest, repeat_disable;
+uniform bool city_ground_paint_split = false;
+uniform sampler2D city_ground_paint_right : source_color, filter_nearest, repeat_disable;
+uniform vec4 city_ground_paint_bounds = vec4(0.0,0.0,72.0,56.0);
+uniform vec4 city_gardens[8];
+uniform int city_garden_count = 0;
 uniform bool authored_ground = false;
 uniform sampler2D ground_cells : filter_nearest, repeat_disable;
 uniform sampler2D ground_atlas : source_color, filter_nearest, repeat_disable;
@@ -254,6 +262,21 @@ vec3 ground_details(vec3 color, vec2 point, float boundary, bool paved, bool wor
  return color;
 }
 
+// Garden edges are continuous ground shapes, independent of the old cell grid.
+float city_garden_distance(vec2 point) {
+ float nearest = 10000.0;
+ for (int i=0; i<8; i++) {
+  if (i>=city_garden_count) break;
+  vec4 rect = city_gardens[i];
+  vec2 half_size = rect.zw*.5;
+  float radius = min(7.5,min(half_size.x,half_size.y)*.7);
+  vec2 q = abs(point-rect.xy-half_size)-half_size+vec2(radius);
+  float edge = length(max(q,vec2(0.0)))+min(max(q.x,q.y),0.0)-radius;
+  nearest = min(nearest,edge);
+ }
+ return nearest;
+}
+
 void fragment() {
  vec2 p=world_position.xz*16.0;
  if(p.x>940.0 && p.y>842.0 && p.y<1200.0) discard;
@@ -269,7 +292,23 @@ void fragment() {
  vec2 uv=world_position.xz/2.0;
  vec3 color=paved?texture(stone_tex,uv).rgb:(worn?texture(dirt_tex,uv).rgb:texture(grass_tex,uv).rgb);
  if(paved&&boundary> -1.5) color=mix(color,texture(dirt_tex,uv).rgb,.28);
- if (authored_ground && (has_cell || !worn)) {
+ if (city_painted_ground) {
+   // Unique authored art is sampled over the whole city, never fract()/repeated.
+   vec2 painted_uv = (world_position.xz-city_ground_paint_bounds.xy)/city_ground_paint_bounds.zw;
+   painted_uv = clamp(painted_uv,vec2(0.0),vec2(1.0));
+   vec3 painted_color;
+   if (city_ground_paint_split) {
+     if (painted_uv.x<.5) painted_color = texture(city_ground_paint,vec2(painted_uv.x*2.0,painted_uv.y)).rgb;
+     else painted_color = texture(city_ground_paint_right,vec2((painted_uv.x-.5)*2.0,painted_uv.y)).rgb;
+   } else painted_color = texture(city_ground_paint,painted_uv).rgb;
+   float painted_edge = max(boundary,-city_garden_distance(p));
+   painted_edge += sin(p.x*.43+p.y*.71)*.32;
+   float coverage = 1.0-smoothstep(-1.25,1.25,painted_edge);
+   vec3 underlay = texture(grass_tex,uv).rgb;
+   bool southern_track = p.y>=876.0 && p.y<1260.0 && abs(p.x-576.0)<44.0+fringe;
+   if (southern_track) underlay = texture(dirt_tex,uv).rgb;
+   color = mix(underlay,painted_color,coverage);
+ } else if (authored_ground && (has_cell || !worn)) {
    vec2 atlas_cell = has_cell ? cell_data.rg : vec2(mod(abs(ground_cell.x*7.0+ground_cell.y*11.0),4.0),0.0);
    vec2 local_pixel = floor(fract(world_position.xz)*vec2(64.0,45.0));
    vec2 atlas_size = vec2(textureSize(ground_atlas,0));

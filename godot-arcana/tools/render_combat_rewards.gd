@@ -70,7 +70,7 @@ func capture_all() -> void:
     controller.world_renderer = scene
     controller.viewport = small
     controller.viewport_host = present
-    controller.snapshot = {"state":{"money":6530,"arcanaCombat":{"level":1,"xp":10,"hp":100,"mp":30},"magicDungeon":{}}}
+    controller.snapshot = {"state":{"money":6530,"arcanaCombat":{"level":1,"xp":10,"hp":100,"mp":30}}}
     controller.spatial_combat = load("res://scripts/arcana_spatial.gd").new()
     controller.spatial_combat.main = controller
     var rewards = load("res://scripts/combat_rewards.gd").new()

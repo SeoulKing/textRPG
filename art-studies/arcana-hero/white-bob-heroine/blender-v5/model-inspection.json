@@ -3,96 +3,6 @@
   "mesh_count": 51,
   "meshes": [
     {
-      "name": "Face - sculpted cheeks nose jaw and real eye openings",
-      "vertices": 15786,
-      "faces": 23064,
-      "dimensions": [
-        0.66399,
-        0.50161,
-        1.035
-      ]
-    },
-    {
-      "name": "Eye L - convex almond sclera",
-      "vertices": 97,
-      "faces": 96,
-      "dimensions": [
-        0.188,
-        0.07499,
-        0.08433
-      ]
-    },
-    {
-      "name": "Eye L - painted curved violet iris",
-      "vertices": 792,
-      "faces": 720,
-      "dimensions": [
-        0.086,
-        0.02936,
-        0.09632
-      ]
-    },
-    {
-      "name": "Eye L tapered upper lash",
-      "vertices": 82,
-      "faces": 40,
-      "dimensions": [
-        0.188,
-        0.07499,
-        0.07944
-      ]
-    },
-    {
-      "name": "Eye R - convex almond sclera",
-      "vertices": 97,
-      "faces": 96,
-      "dimensions": [
-        0.188,
-        0.07499,
-        0.08433
-      ]
-    },
-    {
-      "name": "Eye R - painted curved violet iris",
-      "vertices": 792,
-      "faces": 720,
-      "dimensions": [
-        0.086,
-        0.02936,
-        0.09632
-      ]
-    },
-    {
-      "name": "Eye R tapered upper lash",
-      "vertices": 82,
-      "faces": 40,
-      "dimensions": [
-        0.188,
-        0.07499,
-        0.07944
-      ]
-    },
-    {
-      "name": "Nose subtle reflected light",
-      "vertices": 21,
-      "faces": 20,
-      "dimensions": [
-        0.018,
-        0.01672,
-        0.024
-      ]
-    },
-    {
-      "name": "Ear -1 external volume",
-      "vertices": 922,
-      "faces": 960,
-      "dimensions": [
-        0.088,
-        0.056,
-        0.16
-      ]
-    },
-    {
       "name": "Ear -1 pearl drop",
       "vertices": 922,
       "faces": 960,
@@ -100,16 +10,6 @@
         0.016,
         0.016,
         0.036
-      ]
-    },
-    {
-      "name": "Ear 1 external volume",
-      "vertices": 922,
-      "faces": 960,
-      "dimensions": [
-        0.088,
-        0.056,
-        0.16
       ]
     },
     {
@@ -137,9 +37,9 @@
       "vertices": 4144,
       "faces": 4032,
       "dimensions": [
-        0.72561,
+        0.77173,
         0.56469,
-        0.97607
+        0.94107
       ]
     },
     {
@@ -147,9 +47,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.46653,
+        0.50953,
         0.32297,
-        0.71816
+        0.69772
       ]
     },
     {
@@ -157,9 +57,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.42346,
+        0.45884,
         0.32647,
-        0.67256
+        0.6554
       ]
     },
     {
@@ -167,9 +67,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.35849,
+        0.38588,
         0.33007,
-        0.6419
+        0.62693
       ]
     },
     {
@@ -177,9 +77,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.28383,
+        0.30132,
         0.33408,
-        0.59123
+        0.57991
       ]
     },
     {
@@ -187,9 +87,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.21921,
+        0.23017,
         0.339,
-        0.52055
+        0.51434
       ]
     },
     {
@@ -197,9 +97,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.16285,
+        0.17099,
         0.34472,
-        0.44313
+        0.44253
       ]
     },
     {
@@ -207,9 +107,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.23781,
+        0.2497,
         0.25882,
-        0.517
+        0.51115
       ]
     },
     {
@@ -217,9 +117,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.23768,
+        0.24957,
         0.26537,
-        0.52954
+        0.52279
       ]
     },
     {
@@ -227,9 +127,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.23862,
+        0.25055,
         0.27193,
-        0.54212
+        0.53445
       ]
     },
     {
@@ -237,9 +137,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.13803,
+        0.149,
         0.30404,
-        0.53509
+        0.52771
       ]
     },
     {
@@ -247,9 +147,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.11527,
+        0.12103,
         0.31112,
-        0.48624
+        0.48222
       ]
     },
     {
@@ -257,9 +157,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.27851,
+        0.30908,
         0.32701,
-        0.97308
+        0.93808
       ]
     },
     {
@@ -267,9 +167,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.28595,
-        0.23672,
-        0.94116
+        0.3039,
+        0.22592,
+        0.89572
       ]
     },
     {
@@ -277,9 +177,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.29493,
+        0.34425,
         0.19781,
-        0.9572
+        0.92446
       ]
     },
     {
@@ -287,9 +187,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.28883,
-        0.20988,
-        0.99718
+        0.31156,
+        0.20985,
+        0.96697
       ]
     },
     {
@@ -297,9 +197,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.27051,
-        0.24778,
-        1.00091
+        0.2982,
+        0.24791,
+        0.96349
       ]
     },
     {
@@ -307,9 +207,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.23063,
-        0.26819,
-        0.9628
+        0.25612,
+        0.26922,
+        0.92121
       ]
     },
     {
@@ -317,9 +217,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.19053,
-        0.26415,
-        0.93997
+        0.20006,
+        0.26504,
+        0.91242
       ]
     },
     {
@@ -327,9 +227,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.18948,
-        0.26569,
-        0.96683
+        0.19896,
+        0.26567,
+        0.93668
       ]
     },
     {
@@ -337,9 +237,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.23689,
-        0.26725,
-        1.003
+        0.25804,
+        0.26666,
+        0.96393
       ]
     },
     {
@@ -347,9 +247,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.27424,
-        0.24392,
-        0.99398
+        0.30855,
+        0.24367,
+        0.95683
       ]
     },
     {
@@ -357,9 +257,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.29,
-        0.2053,
-        0.95361
+        0.3367,
+        0.20529,
+        0.92745
       ]
     },
     {
@@ -367,9 +267,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.29556,
+        0.34678,
         0.19834,
-        0.94246
+        0.90901
       ]
     },
     {
@@ -377,9 +277,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.31089,
+        0.36332,
         0.19722,
-        0.9774
+        0.93555
       ]
     },
     {
@@ -387,9 +287,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.26432,
+        0.30947,
         0.14498,
-        0.87125
+        0.83625
       ]
     },
     {
@@ -397,9 +297,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.26452,
+        0.31323,
         0.12922,
-        0.83525
+        0.80223
       ]
     },
     {
@@ -407,9 +307,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.25843,
+        0.28889,
         0.33683,
-        0.84779
+        0.81389
       ]
     },
     {
@@ -417,9 +317,9 @@
       "vertices": 588,
       "faces": 578,
       "dimensions": [
-        0.25364,
+        0.28504,
         0.26322,
-        0.82245
+        0.79036
       ]
     },
     {
@@ -510,6 +410,106 @@
         0.034,
         0.02,
         0.048
+      ]
+    },
+    {
+      "name": "Face V5 topology 0",
+      "vertices": 532,
+      "faces": 496,
+      "dimensions": [
+        0.18169,
+        0.13169,
+        0.12834
+      ]
+    },
+    {
+      "name": "Face V5 topology 1",
+      "vertices": 142,
+      "faces": 96,
+      "dimensions": [
+        0.48275,
+        0.08268,
+        0.11048
+      ]
+    },
+    {
+      "name": "Face V5 topology 2",
+      "vertices": 274,
+      "faces": 384,
+      "dimensions": [
+        0.6785,
+        0.13091,
+        0.18308
+      ]
+    },
+    {
+      "name": "Face V5 topology 3",
+      "vertices": 168,
+      "faces": 224,
+      "dimensions": [
+        0.62722,
+        0.1061,
+        0.14158
+      ]
+    },
+    {
+      "name": "Face V5 topology 4",
+      "vertices": 110,
+      "faces": 160,
+      "dimensions": [
+        0.5549,
+        0.09878,
+        0.18209
+      ]
+    },
+    {
+      "name": "Face V5 topology 5",
+      "vertices": 122,
+      "faces": 192,
+      "dimensions": [
+        0.41642,
+        0.0431,
+        0.12246
+      ]
+    },
+    {
+      "name": "Face V5 topology 6",
+      "vertices": 122,
+      "faces": 192,
+      "dimensions": [
+        0.41708,
+        0.04495,
+        0.12231
+      ]
+    },
+    {
+      "name": "Face V5 topology 7",
+      "vertices": 633,
+      "faces": 1064,
+      "dimensions": [
+        0.66784,
+        0.4082,
+        0.99104
+      ]
+    },
+    {
+      "name": "Face V5 topology 8",
+      "vertices": 186,
+      "faces": 278,
+      "dimensions": [
+        0.78295,
+        0.14154,
+        0.27669
+      ]
+    },
+    {
+      "name": "Face V5 topology 9",
+      "vertices": 50,
+      "faces": 64,
+      "dimensions": [
+        0.3706,
+        0.04162,
+        0.08784
       ]
     }
   ],

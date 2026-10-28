@@ -1,0 +1,209 @@
+{
+  "contract": "godot-arcana/art/source/heroine/animation-pipeline.json",
+  "identity": "heroine-reference-bright-v10-baseline",
+  "source": "saved native PixelPen files; no source regeneration",
+  "sourceDirectory": "godot-arcana/art/source/heroine/run-reference-v15",
+  "exportDirectory": "godot-arcana/art/export/heroine-run-reference-v15",
+  "frames": 152,
+  "clips": {
+    "idle_s": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "1fc43330814c7710c0c96ac3ee48b2862e7f18fa8f0aa705bf0c1737384a7bc4"
+    },
+    "idle_se": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "b204217b031aae0194ee731841da0abdbf1847bcb8b365ef238f27f6ead9968f"
+    },
+    "idle_e": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "1dffa62211b48da0b4f55aa839e31f4ef2b4dd735c17801b3964662fd742fdbc"
+    },
+    "idle_ne": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "5d067ef9d8247a7a332b54afc8c8d2ebe222c425e88a7ebaf0bda22d9f25cfe0"
+    },
+    "idle_n": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "fc0a896891231f4433efa7db427b2576250e8e6ad5c12cc1f5f1e780ba38405b"
+    },
+    "idle_nw": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "2ef22e9727dbf3dc3e599b3747734b6692e0bc1e7c6e861012b21466a1a21983"
+    },
+    "idle_w": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "db77e1561ad45b0f2d7bd70a79607a3bd8b5a2d432b85a604ed1c9957ad30927"
+    },
+    "idle_sw": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "311e5ffb9c9d10bbabd4b90181314505af5f18b9698da47a2ffa2136d8255202"
+    },
+    "run_s": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "405c47c19f67b0ffce66ae2812150099cc6954fc9c3dafa1d0b52b0172d8f143"
+    },
+    "run_se": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "98b488881e9d67646fb2423b46d926d5a969223bc2bf096a336fff266d2da82e"
+    },
+    "run_e": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "ffffb317785fd93ec2fe279dd92b5172c1860f1ca9e3167a3a869d2828ef8b03"
+    },
+    "run_ne": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "07837a022b7b022b8d003120a8b48e330dda3c869be6bed4f96b2d158c1f0eee"
+    },
+    "run_n": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "5a560bbf732d9742780b026a626d32271dba75f8a05ae3d098c232265625656d"
+    },
+    "run_nw": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "ca99cc01177954f23fafd3421c92004f8760a731e66aa765b47b45fa3fc8e6ad"
+    },
+    "run_w": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "2fff263a5955b656b5dd293b393c58ca53535aeb8a704ce44f0cade2999cf032"
+    },
+    "run_sw": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "2ceac28fa39102c351e799a31006490a99dc9806c19baff73b24d4db4c59ecc3"
+    },
+    "cast_s": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "cb7ae1c2d228c5d0d292e3cf34679b10f9f1ba179382ef9f36ed40d7311c2465"
+    },
+    "cast_se": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "f7398c9ff0d2839f1665501ec22f46be375a79d3567a60debb1d4f4b3d1f29c7"
+    },
+    "cast_e": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "40694382e7619e45613561a5582dcb3835db38472aa1b7e6408318f5c16df8a8"
+    },
+    "cast_ne": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "fc7b1049f2311fb8e96ead556e53f8d06175d8542ed867217e28359295d8a3ff"
+    },
+    "cast_n": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "94acaf80b7b91992295603b9d8b4268c0b66ed921cce36529b40f89085c0cc05"
+    },
+    "cast_nw": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "f8d62aafd5de8372c2ff2c65c333beda2461e031cdc4d3d93f5d9db09e8b40a7"
+    },
+    "cast_w": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "83209778badc5574e22ba3e41161efb29639d8b05f4ad8763db10ba1bb51bc53"
+    },
+    "cast_sw": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "0d8cb9cbb59712169affdd418e16127ceb3f1f6e47971528cbd39fd6e3c18310"
+    },
+    "bench_s": {
+      "frames": 8,
+      "fps": 8.0,
+      "loop": false,
+      "sourceSha256": "e7871f23a4ac3ae2a09887a1a4aa8b5fa862995638e7dd2cc30defcc9cd9e971"
+    }
+  },
+  "boundaries": {
+    "cast-enter": "equal",
+    "cast-return": "equal",
+    "bench-standing": "equal"
+  },
+  "structuralPreflight": "passed",
+  "visualReview": "required",
+  "finalArtApproval": "not-recorded",
+  "timingNote": "SpriteFrames and *-native.gif use PixelPen timeline/fps. Gameplay timing stays in renderer.",
+  "outputs": [
+    "godot-arcana/art/export/heroine-run-reference-v15/heroine-idle.png",
+    "godot-arcana/art/export/heroine-run-reference-v15/heroine-idle.tres",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle-native-all-frames.png",
+    "godot-arcana/art/export/heroine-run-reference-v15/heroine-run.png",
+    "godot-arcana/art/export/heroine-run-reference-v15/heroine-run.tres",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run-native-all-frames.png",
+    "godot-arcana/art/export/heroine-run-reference-v15/heroine-cast.png",
+    "godot-arcana/art/export/heroine-run-reference-v15/heroine-cast.tres",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast-native-all-frames.png",
+    "godot-arcana/art/export/heroine-run-reference-v15/heroine-bench.png",
+    "godot-arcana/art/export/heroine-run-reference-v15/heroine-bench.tres",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/bench-native-all-frames.png",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/native-state-flow.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle_s-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle_se-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle_e-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle_ne-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle_n-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle_nw-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle_w-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/idle_sw-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run_s-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run_se-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run_e-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run_ne-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run_n-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run_nw-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run_w-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/run_sw-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast_s-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast_se-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast_e-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast_ne-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast_n-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast_nw-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast_w-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/cast_sw-native.gif",
+    "godot-arcana/art/source/heroine/run-reference-v15/preview/bench_s-native.gif"
+  ]
+}

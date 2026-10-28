@@ -22,6 +22,11 @@ func run() -> void:
             var layer=project.animation_timeline[frame_index].frame.layers[0]
             if not layer.coor_inside_canvas(int(edit.x),int(edit.y)):abort("Pixel outside canvas");return
             if layer.get_index_on_color_map(int(edit.x),int(edit.y))!=int(edit.expected):abort("Native source changed; revise this frame");return
+        if plan.has("palette"):
+            if plan.palette.size()!=32:abort("Keep the shared32-colour budget");return
+            var colors=PackedColorArray([Color(0,0,0,0)])
+            for hex in plan.palette:colors.append(Color(str(hex)))
+            project.palette.color_index=colors
         for edit in plan.edits:
             project.animation_timeline[int(edit.frame)].frame.layers[0].set_index_on_color_map(int(edit.x),int(edit.y),int(edit.index))
         var output=str(plan.output)
@@ -30,6 +35,9 @@ func run() -> void:
         if ProjectPacker.save(project,output)!=OK:abort("PixelPen save failed");return
         project=ProjectPacker.load_project(output)
         if project==null:abort("PixelPen reload failed");return
+        if plan.has("palette"):
+            for i in range(plan.palette.size()):
+                if project.palette.color_index[i+1].to_html(false)!=Color(str(plan.palette[i])).to_html(false):abort("Saved palette mismatch");return
         for edit in plan.edits:
             if project.animation_timeline[int(edit.frame)].frame.layers[0].get_index_on_color_map(int(edit.x),int(edit.y))!=int(edit.index):abort("Saved pixel mismatch");return
         var directory=str(plan.export_dir)

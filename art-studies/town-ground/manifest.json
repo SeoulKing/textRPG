@@ -12,6 +12,13 @@
     "pitch": 45
   },
   "terrainMasks": 47,
+  "grassSource": "source/grass-short.png",
+  "grassPixelGrid": [
+    64,
+    45
+  ],
+  "grassResample": "256x180 material crop to 128x90; original color clusters retained",
+  "grassContrast": 0.9,
   "grassVariants": 4,
   "pavingVariants": 4,
   "alpha": [

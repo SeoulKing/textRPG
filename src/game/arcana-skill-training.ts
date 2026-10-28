@@ -17,7 +17,7 @@ export function equippedArcanaSkill(state: GameState, id: string) {
 }
 export function canChangeArcanaBuild(state: GameState) {
   const b = state.arcanaCombat.battle;
-  return b?.phase !== "battle" && !b?.spatial?.projectiles.length && !state.npcDialogue.active && !state.magicDungeon.run && !state.subwayExpedition.active;
+  return b?.phase !== "battle" && !b?.spatial?.projectiles.length && !state.npcDialogue.active && !state.subwayExpedition.active;
 }
 export function equipArcanaSkill(state: GameState, slot: number, id?: string) {
   if (!canChangeArcanaBuild(state)) throw new Error("전투와 대화·던전을 마친 뒤 장착을 변경해 주세요.");

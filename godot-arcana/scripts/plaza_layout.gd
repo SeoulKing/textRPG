@@ -16,12 +16,19 @@ var _fountain_transform = Transform3D.IDENTITY
 var _editor_plan_poll = 0.0
 ## Ground X/Z units, matching placement transforms. Roads and forecourts share
 ## this scene source in the editor, 3D game and preserved 2D terrain.
+## Optional art scale gauges; keep the finished city clear by default.
+@export var show_scale_reference: bool = false
 @export var plaza_radii = Vector2(9,8):
 	set(value):
 		plaza_radii = value.max(Vector2.ONE)
 		if _editor_ground != null: configure_ground(_editor_ground)
 		if _reference_ground != null: configure_ground(_reference_ground)
 		if _editor_context != null: Illustrated.build_verges(_editor_context,self)
+@export var garden_areas: Array[Rect2] = []:
+	set(value):
+		garden_areas = value
+		if _editor_ground != null: configure_ground(_editor_ground)
+		if _reference_ground != null: configure_ground(_reference_ground)
 @export var paved_areas: Array[Rect2] = []:
 	set(value):
 		paved_areas = value
@@ -57,6 +64,15 @@ func configure_ground(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("city_paving_count",count)
 	mat.set_shader_parameter("city_plaza",Vector4(plaza_center.x,plaza_center.y,plaza_radii.x,plaza_radii.y)*16.0)
 	mat.set_shader_parameter("city_mosaic_center",mosaic_center*16.0)
+	if mat.shader == Illustrated.GROUND:
+		var gardens = PackedVector4Array()
+		gardens.resize(8)
+		var garden_count = mini(garden_areas.size(),8)
+		for i in range(garden_count):
+			var rect = garden_areas[i]
+			gardens[i] = Vector4(rect.position.x,rect.position.y,rect.size.x,rect.size.y)*16.0
+		mat.set_shader_parameter("city_gardens",gardens)
+		mat.set_shader_parameter("city_garden_count",garden_count)
 
 func _process(delta: float) -> void:
 	if not Engine.is_editor_hint() or _editor_ground == null: return

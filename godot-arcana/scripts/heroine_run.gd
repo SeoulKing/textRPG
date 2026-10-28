@@ -4,11 +4,13 @@ extends Node3D
 const SPEC=preload("res://art/resources/heroine_reference_spec.gd")
 const LEGACY=preload("res://scripts/heroine_blender.gd")
 const DISPLAY=preload("res://art/resources/heroine_run.gdshader")
-const ATLAS=preload("res://art/export/heroine-fullbody-v6/heroine-run.png")
-const FRAMES=preload("res://art/export/heroine-fullbody-v6/heroine-run.tres")
-const CAST_ATLAS=preload("res://art/export/heroine-fullbody-v6/heroine-cast.png")
-const IDLE_ATLAS=preload("res://art/export/heroine-fullbody-v6/heroine-idle.png")
-const BENCH_ATLAS=preload("res://art/export/heroine-fullbody-v6/heroine-bench.png")
+const ATLAS=preload("res://art/export/heroine-run-reference-v15/heroine-run.png")
+const FRAMES=preload("res://art/export/heroine-run-reference-v15/heroine-run.tres")
+const CAST_ATLAS=preload("res://art/export/heroine-run-reference-v15/heroine-cast.png")
+const IDLE_ATLAS=preload("res://art/export/heroine-run-reference-v15/heroine-idle.png")
+const BENCH_ATLAS=preload("res://art/export/heroine-run-reference-v15/heroine-bench.png")
+const DASH_ATLAS=preload("res://art/export/heroine-dash-v1/heroine-dash.png")
+const DASH_GHOST=preload("res://art/resources/dash_ghost.gdshader")
 const SHADOW=preload("res://art/resources/heroine_shadow.gdshader")
 const DIRECTIONS=["s","se","e","ne","n","nw","w","sw"]
 const DEFAULT_OUTFIT=["dress","shawl","boots-taupe"]
@@ -32,6 +34,9 @@ var preview_frame=0
 var bench_frame=-1
 var bench_restore_texture: Texture2D
 var bench_restore_grid=Vector2.ONE
+var dash_age=-1.0
+var dash_yaw=0.0
+var dash_ghosts: Array[MeshInstance3D]=[]
 var cast_age=-1.0
 var cast_yaw=0.0
 var aim_facing=Vector2.ZERO
@@ -70,6 +75,18 @@ func begin_cast(direction: Vector2) -> void:
     cast_age=0.0
 func cancel_cast() -> void:
     cast_age=-1.0
+func make_cast_warmup_mesh() -> MeshInstance3D:
+    # Draw the real cast atlas/material during loading without touching the avatar.
+    var warm_mesh=MeshInstance3D.new()
+    warm_mesh.mesh=art.mesh
+    warm_mesh.custom_aabb=art.custom_aabb
+    warm_mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var warm_material=sprite_material.duplicate() as ShaderMaterial
+    warm_material.set_shader_parameter("avatar_texture",CAST_ATLAS)
+    warm_material.set_shader_parameter("sheet_grid",Vector2(6,8))
+    warm_material.set_shader_parameter("frame_cell",Vector2.ZERO)
+    warm_mesh.material_override=warm_material
+    return warm_mesh
 func advance_cast(delta: float,paused: bool) -> void:
     if cast_age<0 or paused:return
     cast_age+=delta
@@ -96,6 +113,18 @@ func _ready() -> void:
     shadow.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     shadow_material=ShaderMaterial.new();shadow_material.shader=SHADOW
     shadow_material.set_shader_parameter("editor_preview",Engine.is_editor_hint());shadow.material_override=shadow_material;add_child(shadow)
+    for i in range(2):
+        var ghost=MeshInstance3D.new()
+        ghost.mesh=art.mesh
+        ghost.custom_aabb=art.custom_aabb
+        ghost.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        var ghost_material=ShaderMaterial.new()
+        ghost_material.shader=DASH_GHOST
+        ghost_material.set_shader_parameter("avatar_texture",DASH_ATLAS)
+        ghost.material_override=ghost_material
+        ghost.visible=false
+        add_child(ghost)
+        dash_ghosts.append(ghost)
     set_outfit(outfit);pose(0,0,false,Vector2.ZERO,true,false)
 static func direction_for_yaw(world_yaw: float,view_yaw: float) -> int:
     return posmod(int(floor((world_yaw-view_yaw)/TAU*8.0+.5)),8)
@@ -133,7 +162,8 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,pixelated: bool,
     pose_updates+=1
     var delta=clampf(time-previous_pose_time,0,.1) if previous_pose_time>=0 else 0.0
     previous_pose_time=time
-    if cast_age>=0:last_yaw=cast_yaw
+    if dash_age>=0:last_yaw=dash_yaw
+    elif cast_age>=0:last_yaw=cast_yaw
     elif aim_facing.length_squared()>.00001:last_yaw=atan2(aim_facing.x,aim_facing.y)
     elif motion.length_squared()>.00001:last_yaw=atan2(motion.x,motion.y)
     var distance=motion.length()
@@ -159,7 +189,13 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,pixelated: bool,
         clip="run" if preview_clip=="walk" else preview_clip
         frame=preview_frame
     var casting=cast_age>=0 or preview_clip=="cast"
-    if casting:
+    var dashing=dash_age>=0 or preview_clip=="dash"
+    if dashing:
+        var dash_frame=clampi(preview_frame,0,5) if preview_clip=="dash" else dash_frame_for_age(dash_age)
+        sprite_material.set_shader_parameter("avatar_texture",DASH_ATLAS)
+        sprite_material.set_shader_parameter("sheet_grid",Vector2(6,8))
+        sprite_material.set_shader_parameter("frame_cell",Vector2(dash_frame,direction))
+    elif casting:
         sprite_material.set_shader_parameter("avatar_texture",CAST_ATLAS)
         sprite_material.set_shader_parameter("sheet_grid",Vector2(6,8))
         # Existing previews address the four action poses, excluding neutral ends.
@@ -176,10 +212,25 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,pixelated: bool,
         sprite_material.set_shader_parameter("avatar_texture",texture.atlas)
         sprite_material.set_shader_parameter("sheet_grid",Vector2(texture.atlas.get_size())/Vector2(96,136))
         sprite_material.set_shader_parameter("frame_cell",texture.region.position/Vector2(96,136))
+    for i in range(dash_ghosts.size()):
+        var ghost=dash_ghosts[i]
+        ghost.visible=dashing and art.visible and effects and dash_age<.23
+        if ghost.visible:
+            var heading=Vector3(sin(dash_yaw),0,cos(dash_yaw))
+            ghost.position=-heading*(.22+.23*i)*minf(1.0,dash_age/.045)
+            ghost.material_override.set_shader_parameter("frame_cell",Vector2(dash_frame_for_age(maxf(0,dash_age-.04*(i+1))),direction))
+            ghost.material_override.set_shader_parameter("opacity",(.32-.10*i)*clampf((.25-dash_age)/.1,0,1))
     if shadow_material!=null:shadow_material.set_shader_parameter("entity_anchor",global_position)
     if fallback!=null and fallback.visible:
         if casting:fallback.last_yaw=last_yaw
         fallback.pose(time,gait,walking,Vector2.ZERO if casting else motion,pixelated,effects)
+static func dash_frame_for_age(age: float) -> int:
+    if age<.04:return 0
+    if age<.08:return 1
+    if age<.12:return 2
+    if age<.18:return 3
+    if age<.22:return 4
+    return 5
 static func idle_frame(age: float) -> int:
     var phase=fposmod(age,4.13)
     if phase<1.15:return 0

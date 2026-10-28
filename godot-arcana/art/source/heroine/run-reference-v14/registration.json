@@ -1,0 +1,6155 @@
+{
+  "source": "saved reference-match-v9 PixelPen",
+  "palette": [
+    "#fbf7f0",
+    "#faf3e4",
+    "#f5ebe5",
+    "#f8e4d1",
+    "#ede4e1",
+    "#e8ddda",
+    "#e2d5d8",
+    "#eed4c5",
+    "#e6c7bd",
+    "#d1c4c8",
+    "#babbc9",
+    "#b9a5ad",
+    "#a98991",
+    "#7987b2",
+    "#6f6886",
+    "#665366",
+    "#4b5079",
+    "#4a3b58",
+    "#2c2d57",
+    "#171036",
+    "#fcdcc1",
+    "#fbd6bb",
+    "#fbd1b7",
+    "#fac9b0",
+    "#e8a68f",
+    "#755ad5",
+    "#7348c8",
+    "#301f96",
+    "#7c9acc",
+    "#3e5089",
+    "#f4d9a4",
+    "#d9b07e"
+  ],
+  "palette_policy": "32 shared colours sampled from approved original; no generic palette",
+  "skin_base": "#fcdcc1",
+  "run_policy": "complete approved source pose; no replacement head",
+  "frames": [
+    {
+      "clip": "bench_s",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          47,
+          49,
+          13,
+          14
+        ],
+        [
+          48,
+          49,
+          27,
+          14
+        ],
+        [
+          49,
+          49,
+          13,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          46,
+          50,
+          27,
+          14
+        ],
+        [
+          48,
+          50,
+          15,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          13,
+          14
+        ],
+        [
+          46,
+          51,
+          13,
+          14
+        ],
+        [
+          48,
+          51,
+          13,
+          14
+        ],
+        [
+          49,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "bench_s",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 15,
+      "upper_transform_full_until_y": 87,
+      "blend_end_y": 101,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          63,
+          13,
+          14
+        ],
+        [
+          45,
+          64,
+          27,
+          14
+        ],
+        [
+          47,
+          64,
+          13,
+          14
+        ],
+        [
+          48,
+          64,
+          27,
+          14
+        ],
+        [
+          49,
+          64,
+          13,
+          14
+        ],
+        [
+          50,
+          64,
+          13,
+          14
+        ],
+        [
+          45,
+          65,
+          27,
+          14
+        ],
+        [
+          46,
+          65,
+          27,
+          14
+        ],
+        [
+          48,
+          65,
+          15,
+          14
+        ],
+        [
+          50,
+          65,
+          13,
+          14
+        ],
+        [
+          45,
+          66,
+          13,
+          14
+        ],
+        [
+          46,
+          66,
+          13,
+          14
+        ],
+        [
+          48,
+          66,
+          13,
+          14
+        ],
+        [
+          49,
+          66,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "bench_s",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 20,
+      "upper_transform_full_until_y": 92,
+      "blend_end_y": 104,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          68,
+          13,
+          14
+        ],
+        [
+          45,
+          69,
+          27,
+          14
+        ],
+        [
+          47,
+          69,
+          13,
+          14
+        ],
+        [
+          48,
+          69,
+          27,
+          14
+        ],
+        [
+          49,
+          69,
+          13,
+          14
+        ],
+        [
+          50,
+          69,
+          13,
+          14
+        ],
+        [
+          45,
+          70,
+          27,
+          14
+        ],
+        [
+          46,
+          70,
+          27,
+          14
+        ],
+        [
+          48,
+          70,
+          15,
+          14
+        ],
+        [
+          50,
+          70,
+          13,
+          14
+        ],
+        [
+          45,
+          71,
+          13,
+          14
+        ],
+        [
+          46,
+          71,
+          13,
+          14
+        ],
+        [
+          48,
+          71,
+          13,
+          14
+        ],
+        [
+          49,
+          71,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "bench_s",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 20,
+      "upper_transform_full_until_y": 92,
+      "blend_end_y": 104,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          68,
+          13,
+          14
+        ],
+        [
+          45,
+          69,
+          27,
+          14
+        ],
+        [
+          47,
+          69,
+          13,
+          14
+        ],
+        [
+          48,
+          69,
+          27,
+          14
+        ],
+        [
+          49,
+          69,
+          13,
+          14
+        ],
+        [
+          50,
+          69,
+          13,
+          14
+        ],
+        [
+          45,
+          70,
+          27,
+          14
+        ],
+        [
+          46,
+          70,
+          27,
+          14
+        ],
+        [
+          48,
+          70,
+          15,
+          14
+        ],
+        [
+          50,
+          70,
+          13,
+          14
+        ],
+        [
+          45,
+          71,
+          13,
+          14
+        ],
+        [
+          46,
+          71,
+          13,
+          14
+        ],
+        [
+          48,
+          71,
+          13,
+          14
+        ],
+        [
+          49,
+          71,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "bench_s",
+      "frame": 4,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 20,
+      "upper_transform_full_until_y": 92,
+      "blend_end_y": 104,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          67,
+          13,
+          14
+        ],
+        [
+          45,
+          68,
+          27,
+          14
+        ],
+        [
+          47,
+          68,
+          13,
+          14
+        ],
+        [
+          48,
+          68,
+          27,
+          14
+        ],
+        [
+          49,
+          68,
+          13,
+          14
+        ],
+        [
+          50,
+          68,
+          13,
+          14
+        ],
+        [
+          45,
+          69,
+          27,
+          14
+        ],
+        [
+          46,
+          69,
+          27,
+          14
+        ],
+        [
+          48,
+          69,
+          15,
+          14
+        ],
+        [
+          50,
+          69,
+          13,
+          14
+        ],
+        [
+          45,
+          70,
+          13,
+          14
+        ],
+        [
+          46,
+          70,
+          13,
+          14
+        ],
+        [
+          48,
+          70,
+          13,
+          14
+        ],
+        [
+          49,
+          70,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "bench_s",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 20,
+      "upper_transform_full_until_y": 92,
+      "blend_end_y": 104,
+      "face_pixel_edits": 152,
+      "blink": true,
+      "nose_pixel_edits": [
+        [
+          48,
+          68,
+          13,
+          14
+        ],
+        [
+          45,
+          69,
+          27,
+          14
+        ],
+        [
+          47,
+          69,
+          13,
+          14
+        ],
+        [
+          48,
+          69,
+          27,
+          14
+        ],
+        [
+          49,
+          69,
+          13,
+          14
+        ],
+        [
+          50,
+          69,
+          13,
+          14
+        ],
+        [
+          45,
+          70,
+          27,
+          14
+        ],
+        [
+          46,
+          70,
+          27,
+          14
+        ],
+        [
+          48,
+          70,
+          15,
+          14
+        ],
+        [
+          50,
+          70,
+          13,
+          14
+        ],
+        [
+          45,
+          71,
+          13,
+          14
+        ],
+        [
+          46,
+          71,
+          13,
+          14
+        ],
+        [
+          48,
+          71,
+          13,
+          14
+        ],
+        [
+          49,
+          71,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "bench_s",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 17,
+      "upper_transform_full_until_y": 89,
+      "blend_end_y": 102,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          65,
+          13,
+          14
+        ],
+        [
+          45,
+          66,
+          27,
+          14
+        ],
+        [
+          47,
+          66,
+          13,
+          14
+        ],
+        [
+          48,
+          66,
+          27,
+          14
+        ],
+        [
+          49,
+          66,
+          13,
+          14
+        ],
+        [
+          50,
+          66,
+          13,
+          14
+        ],
+        [
+          45,
+          67,
+          27,
+          14
+        ],
+        [
+          46,
+          67,
+          27,
+          14
+        ],
+        [
+          48,
+          67,
+          15,
+          14
+        ],
+        [
+          50,
+          67,
+          13,
+          14
+        ],
+        [
+          45,
+          68,
+          13,
+          14
+        ],
+        [
+          46,
+          68,
+          13,
+          14
+        ],
+        [
+          48,
+          68,
+          13,
+          14
+        ],
+        [
+          49,
+          68,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "bench_s",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 8,
+      "upper_transform_full_until_y": 80,
+      "blend_end_y": 98,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          56,
+          13,
+          14
+        ],
+        [
+          45,
+          57,
+          27,
+          14
+        ],
+        [
+          47,
+          57,
+          13,
+          14
+        ],
+        [
+          48,
+          57,
+          27,
+          14
+        ],
+        [
+          49,
+          57,
+          13,
+          14
+        ],
+        [
+          50,
+          57,
+          13,
+          14
+        ],
+        [
+          45,
+          58,
+          27,
+          14
+        ],
+        [
+          46,
+          58,
+          27,
+          14
+        ],
+        [
+          48,
+          58,
+          15,
+          14
+        ],
+        [
+          50,
+          58,
+          13,
+          14
+        ],
+        [
+          45,
+          59,
+          13,
+          14
+        ],
+        [
+          46,
+          59,
+          13,
+          14
+        ],
+        [
+          48,
+          59,
+          13,
+          14
+        ],
+        [
+          49,
+          59,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_e",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          63,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          13,
+          14
+        ],
+        [
+          65,
+          49,
+          13,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          64,
+          50,
+          27,
+          14
+        ],
+        [
+          62,
+          51,
+          13,
+          14
+        ],
+        [
+          63,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_e",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          63,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          13,
+          14
+        ],
+        [
+          65,
+          49,
+          13,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          64,
+          50,
+          27,
+          14
+        ],
+        [
+          62,
+          51,
+          13,
+          14
+        ],
+        [
+          63,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_e",
+      "frame": 2,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          48,
+          13,
+          14
+        ],
+        [
+          63,
+          48,
+          13,
+          14
+        ],
+        [
+          64,
+          48,
+          13,
+          14
+        ],
+        [
+          65,
+          48,
+          13,
+          14
+        ],
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          27,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          63,
+          50,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_e",
+      "frame": 3,
+      "head_offset": [
+        0,
+        1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          63,
+          50,
+          13,
+          14
+        ],
+        [
+          64,
+          50,
+          13,
+          14
+        ],
+        [
+          65,
+          50,
+          13,
+          14
+        ],
+        [
+          62,
+          51,
+          13,
+          14
+        ],
+        [
+          64,
+          51,
+          27,
+          14
+        ],
+        [
+          62,
+          52,
+          13,
+          14
+        ],
+        [
+          63,
+          52,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_e",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          63,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          13,
+          14
+        ],
+        [
+          65,
+          49,
+          13,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          64,
+          50,
+          27,
+          14
+        ],
+        [
+          62,
+          51,
+          13,
+          14
+        ],
+        [
+          63,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_e",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          63,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          13,
+          14
+        ],
+        [
+          65,
+          49,
+          13,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          64,
+          50,
+          27,
+          14
+        ],
+        [
+          62,
+          51,
+          13,
+          14
+        ],
+        [
+          63,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_n",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_n",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_n",
+      "frame": 2,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_n",
+      "frame": 3,
+      "head_offset": [
+        0,
+        1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_n",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_n",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_ne",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_ne",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_ne",
+      "frame": 2,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_ne",
+      "frame": 3,
+      "head_offset": [
+        0,
+        1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_ne",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_ne",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_nw",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_nw",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_nw",
+      "frame": 2,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_nw",
+      "frame": 3,
+      "head_offset": [
+        0,
+        1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_nw",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_nw",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_s",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          47,
+          49,
+          13,
+          14
+        ],
+        [
+          48,
+          49,
+          27,
+          14
+        ],
+        [
+          49,
+          49,
+          13,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          46,
+          50,
+          27,
+          14
+        ],
+        [
+          48,
+          50,
+          15,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          13,
+          14
+        ],
+        [
+          46,
+          51,
+          13,
+          14
+        ],
+        [
+          48,
+          51,
+          13,
+          14
+        ],
+        [
+          49,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_s",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          47,
+          49,
+          13,
+          14
+        ],
+        [
+          48,
+          49,
+          27,
+          14
+        ],
+        [
+          49,
+          49,
+          13,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          46,
+          50,
+          27,
+          14
+        ],
+        [
+          48,
+          50,
+          15,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          13,
+          14
+        ],
+        [
+          46,
+          51,
+          13,
+          14
+        ],
+        [
+          48,
+          51,
+          13,
+          14
+        ],
+        [
+          49,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_s",
+      "frame": 2,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 172,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          47,
+          13,
+          14
+        ],
+        [
+          45,
+          48,
+          27,
+          14
+        ],
+        [
+          47,
+          48,
+          13,
+          14
+        ],
+        [
+          48,
+          48,
+          27,
+          14
+        ],
+        [
+          49,
+          48,
+          13,
+          14
+        ],
+        [
+          50,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          46,
+          49,
+          27,
+          14
+        ],
+        [
+          48,
+          49,
+          15,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          13,
+          14
+        ],
+        [
+          46,
+          50,
+          13,
+          14
+        ],
+        [
+          48,
+          50,
+          13,
+          14
+        ],
+        [
+          49,
+          50,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_s",
+      "frame": 3,
+      "head_offset": [
+        0,
+        1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 175,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          47,
+          50,
+          13,
+          14
+        ],
+        [
+          48,
+          50,
+          27,
+          14
+        ],
+        [
+          49,
+          50,
+          13,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          27,
+          14
+        ],
+        [
+          46,
+          51,
+          27,
+          14
+        ],
+        [
+          48,
+          51,
+          15,
+          14
+        ],
+        [
+          50,
+          51,
+          13,
+          14
+        ],
+        [
+          45,
+          52,
+          13,
+          14
+        ],
+        [
+          46,
+          52,
+          13,
+          14
+        ],
+        [
+          48,
+          52,
+          13,
+          14
+        ],
+        [
+          49,
+          52,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_s",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 169,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          47,
+          49,
+          13,
+          14
+        ],
+        [
+          48,
+          49,
+          27,
+          14
+        ],
+        [
+          49,
+          49,
+          13,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          46,
+          50,
+          27,
+          14
+        ],
+        [
+          48,
+          50,
+          15,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          13,
+          14
+        ],
+        [
+          46,
+          51,
+          13,
+          14
+        ],
+        [
+          48,
+          51,
+          13,
+          14
+        ],
+        [
+          49,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_s",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          47,
+          49,
+          13,
+          14
+        ],
+        [
+          48,
+          49,
+          27,
+          14
+        ],
+        [
+          49,
+          49,
+          13,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          46,
+          50,
+          27,
+          14
+        ],
+        [
+          48,
+          50,
+          15,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          13,
+          14
+        ],
+        [
+          46,
+          51,
+          13,
+          14
+        ],
+        [
+          48,
+          51,
+          13,
+          14
+        ],
+        [
+          49,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_se",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ],
+        [
+          61,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          51,
+          15,
+          14
+        ],
+        [
+          60,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_se",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 164,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ],
+        [
+          61,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          51,
+          15,
+          14
+        ],
+        [
+          60,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_se",
+      "frame": 2,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 166,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          48,
+          13,
+          14
+        ],
+        [
+          59,
+          48,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          15,
+          14
+        ],
+        [
+          60,
+          49,
+          15,
+          14
+        ],
+        [
+          61,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_se",
+      "frame": 3,
+      "head_offset": [
+        0,
+        1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 157,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          51,
+          15,
+          14
+        ],
+        [
+          60,
+          51,
+          15,
+          14
+        ],
+        [
+          61,
+          51,
+          13,
+          14
+        ],
+        [
+          59,
+          52,
+          15,
+          14
+        ],
+        [
+          60,
+          52,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_se",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ],
+        [
+          61,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          51,
+          15,
+          14
+        ],
+        [
+          60,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_se",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ],
+        [
+          61,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          51,
+          15,
+          14
+        ],
+        [
+          60,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_sw",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ],
+        [
+          35,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          51,
+          15,
+          14
+        ],
+        [
+          36,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_sw",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 164,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ],
+        [
+          35,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          51,
+          15,
+          14
+        ],
+        [
+          36,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_sw",
+      "frame": 2,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 166,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          48,
+          13,
+          14
+        ],
+        [
+          37,
+          48,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          15,
+          14
+        ],
+        [
+          36,
+          49,
+          15,
+          14
+        ],
+        [
+          35,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_sw",
+      "frame": 3,
+      "head_offset": [
+        0,
+        1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 157,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          51,
+          15,
+          14
+        ],
+        [
+          36,
+          51,
+          15,
+          14
+        ],
+        [
+          35,
+          51,
+          13,
+          14
+        ],
+        [
+          37,
+          52,
+          15,
+          14
+        ],
+        [
+          36,
+          52,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_sw",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ],
+        [
+          35,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          51,
+          15,
+          14
+        ],
+        [
+          36,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_sw",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ],
+        [
+          35,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          51,
+          15,
+          14
+        ],
+        [
+          36,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_w",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          33,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          13,
+          14
+        ],
+        [
+          31,
+          49,
+          13,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          32,
+          50,
+          27,
+          14
+        ],
+        [
+          34,
+          51,
+          13,
+          14
+        ],
+        [
+          33,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_w",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          33,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          13,
+          14
+        ],
+        [
+          31,
+          49,
+          13,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          32,
+          50,
+          27,
+          14
+        ],
+        [
+          34,
+          51,
+          13,
+          14
+        ],
+        [
+          33,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_w",
+      "frame": 2,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          48,
+          13,
+          14
+        ],
+        [
+          33,
+          48,
+          13,
+          14
+        ],
+        [
+          32,
+          48,
+          13,
+          14
+        ],
+        [
+          31,
+          48,
+          13,
+          14
+        ],
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          27,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          33,
+          50,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_w",
+      "frame": 3,
+      "head_offset": [
+        0,
+        1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          33,
+          50,
+          13,
+          14
+        ],
+        [
+          32,
+          50,
+          13,
+          14
+        ],
+        [
+          31,
+          50,
+          13,
+          14
+        ],
+        [
+          34,
+          51,
+          13,
+          14
+        ],
+        [
+          32,
+          51,
+          27,
+          14
+        ],
+        [
+          34,
+          52,
+          13,
+          14
+        ],
+        [
+          33,
+          52,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_w",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          33,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          13,
+          14
+        ],
+        [
+          31,
+          49,
+          13,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          32,
+          50,
+          27,
+          14
+        ],
+        [
+          34,
+          51,
+          13,
+          14
+        ],
+        [
+          33,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "cast_w",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          33,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          13,
+          14
+        ],
+        [
+          31,
+          49,
+          13,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          32,
+          50,
+          27,
+          14
+        ],
+        [
+          34,
+          51,
+          13,
+          14
+        ],
+        [
+          33,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_e",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          63,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          13,
+          14
+        ],
+        [
+          65,
+          49,
+          13,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          64,
+          50,
+          27,
+          14
+        ],
+        [
+          62,
+          51,
+          13,
+          14
+        ],
+        [
+          63,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_e",
+      "frame": 1,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          48,
+          13,
+          14
+        ],
+        [
+          63,
+          48,
+          13,
+          14
+        ],
+        [
+          64,
+          48,
+          13,
+          14
+        ],
+        [
+          65,
+          48,
+          13,
+          14
+        ],
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          27,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          63,
+          50,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_e",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          63,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          13,
+          14
+        ],
+        [
+          65,
+          49,
+          13,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          64,
+          50,
+          27,
+          14
+        ],
+        [
+          62,
+          51,
+          13,
+          14
+        ],
+        [
+          63,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_e",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 86,
+      "blink": true,
+      "nose_pixel_edits": [
+        [
+          62,
+          49,
+          13,
+          14
+        ],
+        [
+          63,
+          49,
+          13,
+          14
+        ],
+        [
+          64,
+          49,
+          13,
+          14
+        ],
+        [
+          65,
+          49,
+          13,
+          14
+        ],
+        [
+          62,
+          50,
+          13,
+          14
+        ],
+        [
+          64,
+          50,
+          27,
+          14
+        ],
+        [
+          62,
+          51,
+          13,
+          14
+        ],
+        [
+          63,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_n",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_n",
+      "frame": 1,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_n",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_n",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": true,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_ne",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_ne",
+      "frame": 1,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_ne",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_ne",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": true,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_nw",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_nw",
+      "frame": 1,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_nw",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": false,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_nw",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 0,
+      "blink": true,
+      "nose_pixel_edits": [],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_s",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          47,
+          49,
+          13,
+          14
+        ],
+        [
+          48,
+          49,
+          27,
+          14
+        ],
+        [
+          49,
+          49,
+          13,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          46,
+          50,
+          27,
+          14
+        ],
+        [
+          48,
+          50,
+          15,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          13,
+          14
+        ],
+        [
+          46,
+          51,
+          13,
+          14
+        ],
+        [
+          48,
+          51,
+          13,
+          14
+        ],
+        [
+          49,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_s",
+      "frame": 1,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          47,
+          13,
+          14
+        ],
+        [
+          45,
+          48,
+          27,
+          14
+        ],
+        [
+          47,
+          48,
+          13,
+          14
+        ],
+        [
+          48,
+          48,
+          27,
+          14
+        ],
+        [
+          49,
+          48,
+          13,
+          14
+        ],
+        [
+          50,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          46,
+          49,
+          27,
+          14
+        ],
+        [
+          48,
+          49,
+          15,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          13,
+          14
+        ],
+        [
+          46,
+          50,
+          13,
+          14
+        ],
+        [
+          48,
+          50,
+          13,
+          14
+        ],
+        [
+          49,
+          50,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_s",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 170,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          48,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          47,
+          49,
+          13,
+          14
+        ],
+        [
+          48,
+          49,
+          27,
+          14
+        ],
+        [
+          49,
+          49,
+          13,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          46,
+          50,
+          27,
+          14
+        ],
+        [
+          48,
+          50,
+          15,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          13,
+          14
+        ],
+        [
+          46,
+          51,
+          13,
+          14
+        ],
+        [
+          48,
+          51,
+          13,
+          14
+        ],
+        [
+          49,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_s",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 152,
+      "blink": true,
+      "nose_pixel_edits": [
+        [
+          48,
+          48,
+          13,
+          14
+        ],
+        [
+          45,
+          49,
+          27,
+          14
+        ],
+        [
+          47,
+          49,
+          13,
+          14
+        ],
+        [
+          48,
+          49,
+          27,
+          14
+        ],
+        [
+          49,
+          49,
+          13,
+          14
+        ],
+        [
+          50,
+          49,
+          13,
+          14
+        ],
+        [
+          45,
+          50,
+          27,
+          14
+        ],
+        [
+          46,
+          50,
+          27,
+          14
+        ],
+        [
+          48,
+          50,
+          15,
+          14
+        ],
+        [
+          50,
+          50,
+          13,
+          14
+        ],
+        [
+          45,
+          51,
+          13,
+          14
+        ],
+        [
+          46,
+          51,
+          13,
+          14
+        ],
+        [
+          48,
+          51,
+          13,
+          14
+        ],
+        [
+          49,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_se",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ],
+        [
+          61,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          51,
+          15,
+          14
+        ],
+        [
+          60,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_se",
+      "frame": 1,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          48,
+          13,
+          14
+        ],
+        [
+          59,
+          48,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          15,
+          14
+        ],
+        [
+          60,
+          49,
+          15,
+          14
+        ],
+        [
+          61,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_se",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          58,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ],
+        [
+          61,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          51,
+          15,
+          14
+        ],
+        [
+          60,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_se",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 141,
+      "blink": true,
+      "nose_pixel_edits": [
+        [
+          58,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          49,
+          13,
+          14
+        ],
+        [
+          59,
+          50,
+          15,
+          14
+        ],
+        [
+          60,
+          50,
+          15,
+          14
+        ],
+        [
+          61,
+          50,
+          13,
+          14
+        ],
+        [
+          59,
+          51,
+          15,
+          14
+        ],
+        [
+          60,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_sw",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ],
+        [
+          35,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          51,
+          15,
+          14
+        ],
+        [
+          36,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_sw",
+      "frame": 1,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          48,
+          13,
+          14
+        ],
+        [
+          37,
+          48,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          15,
+          14
+        ],
+        [
+          36,
+          49,
+          15,
+          14
+        ],
+        [
+          35,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_sw",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 156,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          38,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ],
+        [
+          35,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          51,
+          15,
+          14
+        ],
+        [
+          36,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_sw",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 141,
+      "blink": true,
+      "nose_pixel_edits": [
+        [
+          38,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          49,
+          13,
+          14
+        ],
+        [
+          37,
+          50,
+          15,
+          14
+        ],
+        [
+          36,
+          50,
+          15,
+          14
+        ],
+        [
+          35,
+          50,
+          13,
+          14
+        ],
+        [
+          37,
+          51,
+          15,
+          14
+        ],
+        [
+          36,
+          51,
+          15,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_w",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          33,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          13,
+          14
+        ],
+        [
+          31,
+          49,
+          13,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          32,
+          50,
+          27,
+          14
+        ],
+        [
+          34,
+          51,
+          13,
+          14
+        ],
+        [
+          33,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_w",
+      "frame": 1,
+      "head_offset": [
+        0,
+        -1
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          48,
+          13,
+          14
+        ],
+        [
+          33,
+          48,
+          13,
+          14
+        ],
+        [
+          32,
+          48,
+          13,
+          14
+        ],
+        [
+          31,
+          48,
+          13,
+          14
+        ],
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          27,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          33,
+          50,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_w",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 93,
+      "blink": false,
+      "nose_pixel_edits": [
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          33,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          13,
+          14
+        ],
+        [
+          31,
+          49,
+          13,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          32,
+          50,
+          27,
+          14
+        ],
+        [
+          34,
+          51,
+          13,
+          14
+        ],
+        [
+          33,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "idle_w",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "upper_transform_full_until_y": 72,
+      "blend_end_y": 94,
+      "face_pixel_edits": 86,
+      "blink": true,
+      "nose_pixel_edits": [
+        [
+          34,
+          49,
+          13,
+          14
+        ],
+        [
+          33,
+          49,
+          13,
+          14
+        ],
+        [
+          32,
+          49,
+          13,
+          14
+        ],
+        [
+          31,
+          49,
+          13,
+          14
+        ],
+        [
+          34,
+          50,
+          13,
+          14
+        ],
+        [
+          32,
+          50,
+          27,
+          14
+        ],
+        [
+          34,
+          51,
+          13,
+          14
+        ],
+        [
+          33,
+          51,
+          13,
+          14
+        ]
+      ],
+      "whole_reference_frame": false
+    },
+    {
+      "clip": "run_e",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": false,
+      "source_rect": [
+        0,
+        373,
+        132,
+        560
+      ],
+      "placement": [
+        23,
+        16
+      ]
+    },
+    {
+      "clip": "run_e",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": false,
+      "source_rect": [
+        132,
+        373,
+        264,
+        560
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_e",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": false,
+      "source_rect": [
+        264,
+        373,
+        395,
+        560
+      ],
+      "placement": [
+        20,
+        15
+      ]
+    },
+    {
+      "clip": "run_e",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": false,
+      "source_rect": [
+        395,
+        373,
+        527,
+        560
+      ],
+      "placement": [
+        21,
+        14
+      ]
+    },
+    {
+      "clip": "run_e",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": false,
+      "source_rect": [
+        527,
+        373,
+        659,
+        560
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_e",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": false,
+      "source_rect": [
+        659,
+        373,
+        790,
+        560
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_e",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": false,
+      "source_rect": [
+        790,
+        373,
+        922,
+        560
+      ],
+      "placement": [
+        20,
+        15
+      ]
+    },
+    {
+      "clip": "run_e",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": false,
+      "source_rect": [
+        922,
+        373,
+        1054,
+        560
+      ],
+      "placement": [
+        21,
+        14
+      ]
+    },
+    {
+      "clip": "run_n",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "n",
+      "mirrored": false,
+      "source_rect": [
+        0,
+        746,
+        132,
+        932
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_n",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "n",
+      "mirrored": false,
+      "source_rect": [
+        132,
+        746,
+        264,
+        932
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_n",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "n",
+      "mirrored": false,
+      "source_rect": [
+        264,
+        746,
+        395,
+        932
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_n",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "n",
+      "mirrored": false,
+      "source_rect": [
+        395,
+        746,
+        527,
+        932
+      ],
+      "placement": [
+        21,
+        15
+      ]
+    },
+    {
+      "clip": "run_n",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "n",
+      "mirrored": false,
+      "source_rect": [
+        527,
+        746,
+        659,
+        932
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_n",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "n",
+      "mirrored": false,
+      "source_rect": [
+        659,
+        746,
+        790,
+        932
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_n",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "n",
+      "mirrored": false,
+      "source_rect": [
+        790,
+        746,
+        922,
+        932
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_n",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "n",
+      "mirrored": false,
+      "source_rect": [
+        922,
+        746,
+        1054,
+        932
+      ],
+      "placement": [
+        22,
+        15
+      ]
+    },
+    {
+      "clip": "run_ne",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": false,
+      "source_rect": [
+        0,
+        560,
+        132,
+        746
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_ne",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": false,
+      "source_rect": [
+        132,
+        560,
+        264,
+        746
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_ne",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": false,
+      "source_rect": [
+        264,
+        560,
+        395,
+        746
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_ne",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": false,
+      "source_rect": [
+        395,
+        560,
+        527,
+        746
+      ],
+      "placement": [
+        22,
+        15
+      ]
+    },
+    {
+      "clip": "run_ne",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": false,
+      "source_rect": [
+        527,
+        560,
+        659,
+        746
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_ne",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": false,
+      "source_rect": [
+        659,
+        560,
+        790,
+        746
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_ne",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": false,
+      "source_rect": [
+        790,
+        560,
+        922,
+        746
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_ne",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": false,
+      "source_rect": [
+        922,
+        560,
+        1054,
+        746
+      ],
+      "placement": [
+        22,
+        15
+      ]
+    },
+    {
+      "clip": "run_nw",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": true,
+      "source_rect": [
+        0,
+        560,
+        132,
+        746
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_nw",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": true,
+      "source_rect": [
+        132,
+        560,
+        264,
+        746
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_nw",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": true,
+      "source_rect": [
+        264,
+        560,
+        395,
+        746
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_nw",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": true,
+      "source_rect": [
+        395,
+        560,
+        527,
+        746
+      ],
+      "placement": [
+        22,
+        15
+      ]
+    },
+    {
+      "clip": "run_nw",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": true,
+      "source_rect": [
+        527,
+        560,
+        659,
+        746
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_nw",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": true,
+      "source_rect": [
+        659,
+        560,
+        790,
+        746
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_nw",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": true,
+      "source_rect": [
+        790,
+        560,
+        922,
+        746
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_nw",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "ne",
+      "mirrored": true,
+      "source_rect": [
+        922,
+        560,
+        1054,
+        746
+      ],
+      "placement": [
+        22,
+        15
+      ]
+    },
+    {
+      "clip": "run_s",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "s",
+      "mirrored": false,
+      "source_rect": [
+        0,
+        0,
+        132,
+        186
+      ],
+      "placement": [
+        23,
+        17
+      ]
+    },
+    {
+      "clip": "run_s",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "s",
+      "mirrored": false,
+      "source_rect": [
+        132,
+        0,
+        264,
+        186
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_s",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "s",
+      "mirrored": false,
+      "source_rect": [
+        264,
+        0,
+        395,
+        186
+      ],
+      "placement": [
+        21,
+        15
+      ]
+    },
+    {
+      "clip": "run_s",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "s",
+      "mirrored": false,
+      "source_rect": [
+        395,
+        0,
+        527,
+        186
+      ],
+      "placement": [
+        20,
+        15
+      ]
+    },
+    {
+      "clip": "run_s",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "s",
+      "mirrored": false,
+      "source_rect": [
+        527,
+        0,
+        659,
+        186
+      ],
+      "placement": [
+        22,
+        17
+      ]
+    },
+    {
+      "clip": "run_s",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "s",
+      "mirrored": false,
+      "source_rect": [
+        659,
+        0,
+        790,
+        186
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_s",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "s",
+      "mirrored": false,
+      "source_rect": [
+        790,
+        0,
+        922,
+        186
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_s",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "s",
+      "mirrored": false,
+      "source_rect": [
+        922,
+        0,
+        1054,
+        186
+      ],
+      "placement": [
+        23,
+        15
+      ]
+    },
+    {
+      "clip": "run_se",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": false,
+      "source_rect": [
+        0,
+        186,
+        132,
+        373
+      ],
+      "placement": [
+        23,
+        17
+      ]
+    },
+    {
+      "clip": "run_se",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": false,
+      "source_rect": [
+        132,
+        186,
+        264,
+        373
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_se",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": false,
+      "source_rect": [
+        264,
+        186,
+        395,
+        373
+      ],
+      "placement": [
+        22,
+        16
+      ]
+    },
+    {
+      "clip": "run_se",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": false,
+      "source_rect": [
+        395,
+        186,
+        527,
+        373
+      ],
+      "placement": [
+        22,
+        15
+      ]
+    },
+    {
+      "clip": "run_se",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": false,
+      "source_rect": [
+        527,
+        186,
+        659,
+        373
+      ],
+      "placement": [
+        20,
+        17
+      ]
+    },
+    {
+      "clip": "run_se",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": false,
+      "source_rect": [
+        659,
+        186,
+        790,
+        373
+      ],
+      "placement": [
+        20,
+        17
+      ]
+    },
+    {
+      "clip": "run_se",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": false,
+      "source_rect": [
+        790,
+        186,
+        922,
+        373
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_se",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": false,
+      "source_rect": [
+        922,
+        186,
+        1054,
+        373
+      ],
+      "placement": [
+        21,
+        15
+      ]
+    },
+    {
+      "clip": "run_sw",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": true,
+      "source_rect": [
+        0,
+        186,
+        132,
+        373
+      ],
+      "placement": [
+        23,
+        17
+      ]
+    },
+    {
+      "clip": "run_sw",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": true,
+      "source_rect": [
+        132,
+        186,
+        264,
+        373
+      ],
+      "placement": [
+        21,
+        17
+      ]
+    },
+    {
+      "clip": "run_sw",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": true,
+      "source_rect": [
+        264,
+        186,
+        395,
+        373
+      ],
+      "placement": [
+        22,
+        16
+      ]
+    },
+    {
+      "clip": "run_sw",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": true,
+      "source_rect": [
+        395,
+        186,
+        527,
+        373
+      ],
+      "placement": [
+        22,
+        15
+      ]
+    },
+    {
+      "clip": "run_sw",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": true,
+      "source_rect": [
+        527,
+        186,
+        659,
+        373
+      ],
+      "placement": [
+        20,
+        17
+      ]
+    },
+    {
+      "clip": "run_sw",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": true,
+      "source_rect": [
+        659,
+        186,
+        790,
+        373
+      ],
+      "placement": [
+        20,
+        17
+      ]
+    },
+    {
+      "clip": "run_sw",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": true,
+      "source_rect": [
+        790,
+        186,
+        922,
+        373
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_sw",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "se",
+      "mirrored": true,
+      "source_rect": [
+        922,
+        186,
+        1054,
+        373
+      ],
+      "placement": [
+        21,
+        15
+      ]
+    },
+    {
+      "clip": "run_w",
+      "frame": 0,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": true,
+      "source_rect": [
+        0,
+        373,
+        132,
+        560
+      ],
+      "placement": [
+        23,
+        16
+      ]
+    },
+    {
+      "clip": "run_w",
+      "frame": 1,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": true,
+      "source_rect": [
+        132,
+        373,
+        264,
+        560
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_w",
+      "frame": 2,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": true,
+      "source_rect": [
+        264,
+        373,
+        395,
+        560
+      ],
+      "placement": [
+        20,
+        15
+      ]
+    },
+    {
+      "clip": "run_w",
+      "frame": 3,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": true,
+      "source_rect": [
+        395,
+        373,
+        527,
+        560
+      ],
+      "placement": [
+        21,
+        14
+      ]
+    },
+    {
+      "clip": "run_w",
+      "frame": 4,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": true,
+      "source_rect": [
+        527,
+        373,
+        659,
+        560
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_w",
+      "frame": 5,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": true,
+      "source_rect": [
+        659,
+        373,
+        790,
+        560
+      ],
+      "placement": [
+        21,
+        16
+      ]
+    },
+    {
+      "clip": "run_w",
+      "frame": 6,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": true,
+      "source_rect": [
+        790,
+        373,
+        922,
+        560
+      ],
+      "placement": [
+        20,
+        15
+      ]
+    },
+    {
+      "clip": "run_w",
+      "frame": 7,
+      "head_offset": [
+        0,
+        0
+      ],
+      "seat_offset": 0,
+      "whole_reference_frame": true,
+      "source_direction": "e",
+      "mirrored": true,
+      "source_rect": [
+        922,
+        373,
+        1054,
+        560
+      ],
+      "placement": [
+        21,
+        14
+      ]
+    }
+  ],
+  "skin_policy": {
+    "frames": 152,
+    "skin_pixel_edits": 16669,
+    "non_skin_pixel_edits": 0,
+    "skin_base_before": "#fac9b0",
+    "skin_base_after": "#fcdcc1",
+    "shade": "#fbd6bb",
+    "remap": {
+      "21": 21,
+      "22": 21,
+      "23": 21,
+      "24": 21,
+      "25": 22
+    }
+  }
+}

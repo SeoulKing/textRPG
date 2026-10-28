@@ -12,12 +12,13 @@ const SlotIcon = preload("res://scripts/quickslot_icon.gd")
 const NavIcon = preload("res://scripts/bottom_nav_icon.gd")
 const ActionButton = preload("res://scripts/mobile_action_button.gd")
 const SkillCooldown = preload("res://scripts/skill_cooldown.gd")
-const SLOT_NAMES = {"fireball":"불꽃탄", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"회피", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
+const SLOT_NAMES = {"fireball":"불꽃탄", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"대시", "teleport":"텔레포트", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
 const INK = Color("26364d")
 const MUTED = Color("586779")
 const GOLD = Color("856129")
 const PAPER = Color("fffaf0")
 const EDGE = Color("c7cbd2")
+var mei_nameplate: PanelContainer
 var root: Control
 var header: PanelContainer
 var navigation: PanelContainer
@@ -28,7 +29,6 @@ var hp_label: Label
 var mp_label: Label
 var hp_bar: ProgressBar
 var mp_bar: ProgressBar
-var xp_bar: ProgressBar
 var hint_label: Label
 var toast_label: Label
 var overlay: Control
@@ -37,12 +37,13 @@ var panel_title: Label
 var content: VBoxContainer
 var close_button: Button
 var interaction: Button
+var control_layouts: Dictionary = {}
 var action_cluster: Control
 var quickslot_buttons: Array[Button] = []
 var quickslot_icons: Array = []
 var quickslot_labels: Array[Label] = []
 var quickslot_counts: Array[Label] = []
-var quickslot_bindings: Array[String] = ["fireball", "dodge", "potion", ""]
+var quickslot_bindings: Array[String] = ["fireball", "teleport", "potion", ""]
 var cooldown_bars: Dictionary = {}
 var toast_time = 0.0
 var joystick
@@ -82,6 +83,20 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	mei_nameplate = PanelContainer.new()
+	mei_nameplate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var plate_style = style(Color("26364de6"), Color("c7cbd2"))
+	plate_style.content_margin_left = 9
+	plate_style.content_margin_right = 9
+	plate_style.content_margin_top = 2
+	plate_style.content_margin_bottom = 3
+	mei_nameplate.add_theme_stylebox_override("panel", plate_style)
+	var mei_label = label("메이", 13, PAPER)
+	mei_label.add_theme_font_override("font", FONT)
+	mei_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mei_nameplate.add_child(mei_label)
+	root.add_child(mei_nameplate)
+	mei_nameplate.hide()
 	var theme = Theme.new()
 	theme.default_font = FONT
 	theme.default_font_size = 14
@@ -99,9 +114,10 @@ func _ready() -> void:
 	root.theme = theme
 	var top = PanelContainer.new()
 	header = top
-	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	top.offset_top = 12
-	top.offset_bottom = 102
+	top.offset_bottom = 132
+	top.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var header_style = style(Color(PAPER,.97), Color(1,1,1,.95))
 	header_style.set_corner_radius_all(16)
 	header_style.shadow_color = Color(.10,.17,.28,.18)
@@ -114,36 +130,38 @@ func _ready() -> void:
 	top.add_theme_stylebox_override("panel", header_style)
 	root.add_child(top)
 	var stack = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 8)
+	stack.add_theme_constant_override("separation", 6)
 	top.add_child(stack)
 	var heading = HBoxContainer.new()
 	heading.add_theme_constant_override("separation",8)
 	stack.add_child(heading)
 	title_label = label("ARCANA", 11, GOLD, true)
 	heading.add_child(title_label)
-	zone_label = label("분수 광장", 16, INK, true)
+	title_label.hide() # Keep the update interface; omit redundant branding from the HUD.
+	zone_label = label("분수 광장", 18, INK, true)
 	zone_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	zone_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	heading.add_child(zone_label)
-	money_label = label("", 14, GOLD, true)
+	money_label = label("", 16, GOLD, true)
 	heading.add_child(money_label)
-	var stats = HBoxContainer.new()
-	stats.add_theme_constant_override("separation", 10)
+	money_label.hide()
+	var stats = VBoxContainer.new()
+	stats.add_theme_constant_override("separation", 4)
 	stack.add_child(stats)
 	for id in ["HP", "MP"]:
-		var section = HBoxContainer.new()
-		section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		stats.add_child(section)
-		var stat = label(id, 13, INK, true)
-		section.add_child(stat)
-		var bar = make_bar(Color("df596c") if id == "HP" else Color("398bda"), 7)
-		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		section.add_child(bar)
+		var bar = make_bar(Color("df596c") if id == "HP" else Color("398bda"), 28)
+		stats.add_child(bar)
+		var stat = label(id, 16, Color.WHITE, true)
+		stat.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		stat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stat.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		stat.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		stat.add_theme_color_override("font_outline_color", Color("26364d"))
+		stat.add_theme_constant_override("outline_size", 3)
+		stat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.add_child(stat)
 		if id == "HP": hp_label = stat; hp_bar = bar
 		else: mp_label = stat; mp_bar = bar
-	xp_bar = make_bar(Color("b58b3c"), 3)
-	stack.add_child(xp_bar)
 	var bottom = PanelContainer.new()
 	navigation = bottom
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -250,7 +268,7 @@ func _ready() -> void:
 		nav_button.text = ""
 		var nav_stack = VBoxContainer.new()
 		nav_stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		nav_stack.offset_top = 7
+		nav_stack.alignment = BoxContainer.ALIGNMENT_CENTER
 		nav_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		nav_stack.add_theme_constant_override("separation",4)
 		nav_button.add_child(nav_stack)
@@ -259,13 +277,6 @@ func _ready() -> void:
 		nav_icon.custom_minimum_size = Vector2(24,24)
 		nav_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		nav_stack.add_child(nav_icon)
-		var nav_label = label(item[0],15,INK,true)
-		nav_label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		nav_label.add_theme_constant_override("outline_size",0)
-		nav_label.add_theme_constant_override("shadow_outline_size",0)
-		nav_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nav_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		nav_stack.add_child(nav_label)
 		nav_button.tooltip_text = item[0]
 		nav_button.accessibility_name = item[0]
 		nav_button.add_theme_stylebox_override("normal", style(Color.TRANSPARENT))
@@ -316,12 +327,13 @@ func _key_badge(parent: Control, text: String, point: Vector2) -> void:
 
 func set_quickslot(index: int, command: String) -> void:
 	quickslot_bindings[index] = command if SLOT_NAMES.has(command) else ""
+	quickslot_buttons[index].action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS if command == "teleport" else BaseButton.ACTION_MODE_BUTTON_RELEASE
 	quickslot_icons[index].kind = quickslot_bindings[index]
-	quickslot_icons[index].size = Vector2(32,32) if quickslot_bindings[index] in ["fireball","flame_wave","flame_guard"] else Vector2(30,30)
-	quickslot_icons[index].position = Vector2(12,12) if quickslot_bindings[index] in ["fireball","flame_wave","flame_guard"] else Vector2(13,12)
+	quickslot_icons[index].size = Vector2(48,48) if quickslot_bindings[index] in ["fireball","flame_wave","flame_guard"] else Vector2(45,45)
+	quickslot_icons[index].position = (quickslot_buttons[index].size - quickslot_icons[index].size) * 0.5
 	quickslot_buttons[index].set("utility",quickslot_bindings[index].is_empty())
 	quickslot_labels[index].text = SLOT_NAMES[quickslot_bindings[index]] if not quickslot_bindings[index].is_empty() else ""
-	quickslot_buttons[index].set("accent",{"fireball":Color("d96a33"),"flame_wave":Color("ee7c32"),"flame_guard":Color("b66b35"),"dodge":Color("347c9c"),"potion":Color("536dcb")}.get(quickslot_bindings[index],MUTED))
+	quickslot_buttons[index].set("accent",{"fireball":Color("d96a33"),"flame_wave":Color("ee7c32"),"flame_guard":Color("b66b35"),"dodge":Color("347c9c"),"teleport":Color("657dcc"),"potion":Color("536dcb")}.get(quickslot_bindings[index],MUTED))
 
 func make_bar(color: Color, height: int) -> ProgressBar:
 	var bar = ProgressBar.new()
@@ -502,7 +514,7 @@ func _input(event: InputEvent) -> void:
 			if not event.pressed or event.canceled:
 				action_touches.erase(event.index)
 				target.set_pressed_no_signal(false)
-				if not event.canceled and not overlay.visible and not target.disabled and target.get_global_rect().has_point(event.position):
+				if target.action_mode == BaseButton.ACTION_MODE_BUTTON_RELEASE and not event.canceled and not overlay.visible and not target.disabled and target.get_global_rect().has_point(event.position):
 					target.pressed.emit()
 			get_viewport().set_input_as_handled()
 		elif event.pressed and not event.canceled and not overlay.visible:
@@ -510,6 +522,8 @@ func _input(event: InputEvent) -> void:
 				if target.is_visible_in_tree() and target.get_global_rect().has_point(event.position):
 					action_touches[event.index] = target
 					target.set_pressed_no_signal(not target.disabled)
+					if target.action_mode == BaseButton.ACTION_MODE_BUTTON_PRESS and not target.disabled:
+						target.pressed.emit()
 					get_viewport().set_input_as_handled()
 					return
 	elif event is InputEventScreenDrag and action_touches.has(event.index):
@@ -527,10 +541,13 @@ func _process(delta: float) -> void:
 func _layout() -> void:
 	var available = root.get_viewport_rect().size
 	var width = available.x
-	# Expand the world with the window while keeping HUD text and navigation
-	# within comfortable reading widths. Portrait retains its original layout.
-	header.offset_left = maxf(12, (width - 640) / 2)
-	header.offset_right = -header.offset_left
+	# Keep landscape status readable without spanning the center of the world.
+	var landscape: bool = width > available.y
+	var header_width: float = minf(320.0, width - 24.0)
+	header.scale = Vector2.ONE
+	header.offset_left = 12.0 if landscape else (width - header_width) / 2.0
+	header.offset_right = header.offset_left + header_width
+	_layout_controls()
 	navigation.offset_left = maxf(12, (width - 480) / 2)
 	navigation.offset_right = -navigation.offset_left
 	var panel_width = minf(720, width * .75) if width >= 900 else 480.0
@@ -538,3 +555,67 @@ func _layout() -> void:
 	panel.offset_right = -panel.offset_left
 	panel.offset_top = minf(165, available.y * .18)
 	reset_touch_controls()
+
+func controls_orientation() -> String:
+	var available = root.get_viewport_rect().size
+	return "landscape" if available.x > available.y else "portrait"
+
+func controls_layout() -> Dictionary:
+	var orientation = controls_orientation()
+	return control_layouts.get(orientation, {"scale": 1.25 if orientation == "landscape" else 1.0, "x": 1.0, "y": 1.0}).duplicate()
+
+func restore_controls(value: Variant) -> void:
+	if value is Dictionary:
+		for orientation in ["landscape", "portrait"]:
+			if not value.get(orientation) is Dictionary: continue
+			var entry: Dictionary = {}
+			for key in ["scale", "x", "y"]:
+				var number: Variant = value[orientation].get(key)
+				if (number is float or number is int) and is_finite(float(number)):
+					entry[key] = clampf(float(number), .75 if key == "scale" else 0.0, 2.0 if key == "scale" else 1.0)
+			control_layouts[orientation] = entry
+	_layout_controls()
+
+func adjust_controls(key: String, value: float) -> void:
+	var entry = controls_layout()
+	entry[key] = value
+	control_layouts[controls_orientation()] = entry
+	_layout_controls()
+	reset_touch_controls()
+
+func reset_controls() -> void:
+	control_layouts.erase(controls_orientation())
+	_layout_controls()
+	reset_touch_controls()
+
+func _layout_controls() -> void:
+	if not is_instance_valid(action_cluster): return
+	var available = root.get_viewport_rect().size
+	var entry = controls_layout()
+	# Reserve the bottom dock and keep every scaled touch target inside the screen.
+	var room = Vector2(maxf(1.0, available.x - 24.0), maxf(1.0, available.y - 116.0))
+	var factor: float = minf(float(entry.get("scale", 1.25 if controls_orientation() == "landscape" else 1.0)), minf(room.x / 220.0, room.y / 248.0))
+	action_cluster.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	action_cluster.size = Vector2(220, 248)
+	action_cluster.scale = Vector2.ONE * factor
+	action_cluster.position = Vector2(12, 12) + (room - action_cluster.size * factor) * Vector2(float(entry.get("x", 1.0)), float(entry.get("y", 1.0)))
+
+func setting_slider(title: String, minimum: float, maximum: float, step: float, value: float, suffix: String, changed: Callable) -> void:
+	var caption = label("%s  %d%s" % [title, roundi(value), suffix], 15, INK, true)
+	content.add_child(caption)
+	var slider = HSlider.new()
+	slider.min_value = minimum
+	slider.max_value = maximum
+	slider.step = step
+	slider.value = value
+	slider.custom_minimum_size = Vector2(0, 44)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.value_changed.connect(func(number: float):
+		caption.text = "%s  %d%s" % [title, roundi(number), suffix]
+		changed.call(number))
+	content.add_child(slider)
+
+func update_mei_nameplate(screen_position: Vector2, shown: bool) -> void:
+	mei_nameplate.visible = shown
+	if shown:
+		mei_nameplate.position = (screen_position + Vector2(-mei_nameplate.size.x * .5, 8)).round()

@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "id": "heroine-reference-bright-v10-baseline",
+  "approval": {
+    "design": "user-selected-run-sheet-with-later-explicit-corrections",
+    "finalArt": "not-recorded",
+    "note": "활성 자산의 기준 사본입니다. 해시 등록과 현재 연결은 최종 미술 승인이 아닙니다."
+  },
+  "designReference": "art-studies/arcana-hero/white-bob-heroine/pixel-run-v1/run-sheet-draft.png",
+  "correctionReferences": [
+    "godot-arcana/art/source/heroine/reference-bright-v10/README.md",
+    "godot-arcana/art/source/heroine/reference-match-v9/README.md"
+  ],
+  "palette": {
+    "path": "godot-arcana/art/source/heroine/identity-v1/palette.json",
+    "field": "colors"
+  },
+  "fixedFeatures": [
+    "백발 단발과 보랏빛 눈",
+    "하늘색 숄과 밝은 드레스의 구조",
+    "승인 전신 비례와 작은 손·가는 손목",
+    "공통 팔레트와 픽셀 밀도"
+  ],
+  "permittedMotion": [
+    "머리·목·어깨의 연결된 자세 변화",
+    "관절 각도와 원근 단축",
+    "의상 주름·치맛단·머리카락의 후행 움직임",
+    "자세에 따른 가림과 접촉점 변화"
+  ],
+  "prohibitedChanges": [
+    "머리만 교체하거나 다른 방향 신체를 가로로 잘라 합치기",
+    "코 주변 금색 반점 복원",
+    "얼굴 전체 단색화 또는 범용 눈 복제",
+    "새 동작에 맞춘 기준 외형 변경",
+    "모든 자세의 머리 좌표·외접 크기 고정"
+  ],
+  "references": [
+    {
+      "direction": "s",
+      "frame": 0,
+      "clip": "run_s",
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_s-00.png",
+      "copiedFrom": "godot-arcana/art/source/heroine/reference-bright-v10/native-frames/run_s/frame-00.png",
+      "purpose": "전신과 보이는 얼굴 비교; 뒷방향은 머리 뒤 실루엣 비교"
+    },
+    {
+      "direction": "se",
+      "frame": 0,
+      "clip": "run_se",
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_se-00.png",
+      "copiedFrom": "godot-arcana/art/source/heroine/reference-bright-v10/native-frames/run_se/frame-00.png",
+      "purpose": "전신과 보이는 얼굴 비교; 뒷방향은 머리 뒤 실루엣 비교"
+    },
+    {
+      "direction": "e",
+      "frame": 0,
+      "clip": "run_e",
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_e-00.png",
+      "copiedFrom": "godot-arcana/art/source/heroine/reference-bright-v10/native-frames/run_e/frame-00.png",
+      "purpose": "전신과 보이는 얼굴 비교; 뒷방향은 머리 뒤 실루엣 비교"
+    },
+    {
+      "direction": "ne",
+      "frame": 0,
+      "clip": "run_ne",
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_ne-00.png",
+      "copiedFrom": "godot-arcana/art/source/heroine/reference-bright-v10/native-frames/run_ne/frame-00.png",
+      "purpose": "전신과 보이는 얼굴 비교; 뒷방향은 머리 뒤 실루엣 비교"
+    },
+    {
+      "direction": "n",
+      "frame": 0,
+      "clip": "run_n",
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_n-00.png",
+      "copiedFrom": "godot-arcana/art/source/heroine/reference-bright-v10/native-frames/run_n/frame-00.png",
+      "purpose": "전신과 보이는 얼굴 비교; 뒷방향은 머리 뒤 실루엣 비교"
+    },
+    {
+      "direction": "nw",
+      "frame": 0,
+      "clip": "run_nw",
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_nw-00.png",
+      "copiedFrom": "godot-arcana/art/source/heroine/reference-bright-v10/native-frames/run_nw/frame-00.png",
+      "purpose": "전신과 보이는 얼굴 비교; 뒷방향은 머리 뒤 실루엣 비교"
+    },
+    {
+      "direction": "w",
+      "frame": 0,
+      "clip": "run_w",
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_w-00.png",
+      "copiedFrom": "godot-arcana/art/source/heroine/reference-bright-v10/native-frames/run_w/frame-00.png",
+      "purpose": "전신과 보이는 얼굴 비교; 뒷방향은 머리 뒤 실루엣 비교"
+    },
+    {
+      "direction": "sw",
+      "frame": 0,
+      "clip": "run_sw",
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_sw-00.png",
+      "copiedFrom": "godot-arcana/art/source/heroine/reference-bright-v10/native-frames/run_sw/frame-00.png",
+      "purpose": "전신과 보이는 얼굴 비교; 뒷방향은 머리 뒤 실루엣 비교"
+    }
+  ],
+  "lockedFiles": [
+    {
+      "path": "art-studies/arcana-hero/white-bob-heroine/pixel-run-v1/run-sheet-draft.png",
+      "sha256": "ed8870dc557c5fc7616edba1e07ce03d5fcf215af6dcfb5a127a13928fb3f153"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/palette.json",
+      "sha256": "958a029168a8751d74ee481cbe699f377bc44f4dee59b80209b0031a118550bb"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_s-00.png",
+      "sha256": "4e67d06b741cd63fba52557d5f5f2ea63633d39caeaa6745d0bd35f11622525c"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_se-00.png",
+      "sha256": "54cbed7a4710d2113a3338ff673e7bf4c564bb6e85e92b03412f3a3576dadae2"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_e-00.png",
+      "sha256": "001fd5f2a1284cf58db6e62dcae3539909ffaee4dc4f957f71a1d274c8db6175"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_ne-00.png",
+      "sha256": "2a49777f6342f032d2340f096b797714928efd42893c0d6bfa7d246e3e7a61dd"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_n-00.png",
+      "sha256": "90b1c158445e2cafa34bc3b3b1e93ba277162523077680388215fd23c937906a"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_nw-00.png",
+      "sha256": "d175c6b5c954c974b07b3335b62d515a8addaefcf1346e6397b946bc156859a7"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_w-00.png",
+      "sha256": "bfa5c5f53290be15ad3e70be62e6f6686f764a08cad4bf2edcf6ac200b9718c4"
+    },
+    {
+      "path": "godot-arcana/art/source/heroine/identity-v1/references/run_sw-00.png",
+      "sha256": "f2a49b3e7fef6298658169bce54b4da6fc7178d8bc3102066aa92520507232b5"
+    }
+  ],
+  "baselineUpdatePolicy": "사용자의 명시적인 디자인 변경 시 새 identity 버전을 만들고 변경 사유와 승인 근거를 기록합니다. 검사 실패를 없애기 위한 자동 해시 갱신은 금지합니다.",
+  "editableSourcePolicy": "source.directory 아래 PixelPen은 편집 대상입니다. 잠긴 기준 해시 목록에 넣지 않으며 기준 사본을 덮어쓰지 않습니다."
+}

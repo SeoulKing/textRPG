@@ -3,8 +3,12 @@ extends Node
 const EnemyHealthOverlay = preload("res://scripts/enemy_health_overlay.gd")
 var enemy_health_hud: Control
 const FlameVfx = preload("res://scripts/fireball_vfx.gd")
-const ChargeVfx = preload("res://scripts/fireball_charge.gd")
+const EffectPool = preload("res://scripts/combat_effect_pool.gd")
+var effect_pool: Node
 var pending_cast: Dictionary = {}
+# One follow-up input bridges the windup without building an endless cast backlog.
+var buffered_cast: Dictionary = {}
+var dash_pending=false
 var charge_vfx: Node3D
 var flame_bursts: Array[Node3D] = []
 const AimOverlay = preload("res://scripts/spell_aim_overlay.gd")
@@ -43,10 +47,16 @@ var visual_outcomes: Dictionary = {}
 var transient: Array[Dictionary] = []
 var reward_effects: Node
 var predicted: Dictionary = {}
+var local_shots: Dictionary = {}
+var local_shot_sequence = 0
+var movement_sequence = 0
 var displayed_enemy = Vector2.ZERO
 var observed_initial = false
 
 func _ready() -> void:
+	effect_pool = EffectPool.new()
+	add_child(effect_pool)
+	effect_pool.prepare.call_deferred(main.world_renderer,main.world_renderer.hero)
 	reward_effects = preload("res://scripts/combat_rewards.gd").new()
 	reward_effects.main = main
 	add_child(reward_effects)
@@ -88,7 +98,7 @@ func _spatial() -> Dictionary:
 	return _battle().get("spatial",{})
 
 func available() -> bool:
-	return not main.snapshot.is_empty() and main.world.indoor.is_empty() and main._state().get("flags",{}).get("in_magic_world",false) and not main._state().get("magicDungeon",{}).get("run") is Dictionary and (not _spatial().is_empty() or (main._state().get("location","") == "arcana_plaza" and _battle().is_empty()))
+	return not main.snapshot.is_empty() and main.world.indoor.is_empty() and main._state().get("flags",{}).get("in_magic_world",false) and (not _spatial().is_empty() or (main._state().get("location","") == "arcana_plaza" and _battle().is_empty()))
 
 func enemy_position() -> Vector2:
 	return _point(_spatial().get("enemy",layout.home))
@@ -121,8 +131,9 @@ func select_at(point: Vector2) -> bool:
 	return false
 
 func can_cast(command: String = "fireball") -> bool:
+	if effect_pool == null or not effect_pool.prepared: return false
 	var spell: Dictionary = main._spell(command)
-	return main.world.bench_state.is_empty() and pending_cast.is_empty() and predicted.is_empty() and not spell.is_empty() and spell.get("unlocked",false) and spell.get("equipped",false) and available() and _battle().get("phase","") not in ["victory","defeat"] and _spatial().get("behavior","") != "return" and float(main._combat().get("mp",0))>=float(spell.cost) and float(main._combat().get("cooldowns",{}).get(command,0))<=.01
+	return (command=="fireball" or (main.world.teleport_age<0 and main.world.dash_age<0)) and main.world.bench_state.is_empty() and not spell.is_empty() and spell.get("unlocked",false) and spell.get("equipped",false) and available() and _battle().get("phase","") not in ["victory","defeat"] and _spatial().get("behavior","") != "return" and float(main._combat().get("mp",0))>=float(spell.cost) and float(main._combat().get("cooldowns",{}).get(command,0))<=.01
 
 func _begin(owner: int, point: Vector2, key: int = 0, command: String = "fireball") -> void:
 	if not can_cast(command) or main.busy or main.ui.overlay.visible: return
@@ -182,23 +193,65 @@ func _auto_direction(command: String) -> Vector2:
 	var yaw = main.world_renderer.hero.last_yaw
 	return Vector2(sin(yaw),cos(yaw))
 
+func can_dash(command: String = "dodge") -> bool:
+	# Blink input depends on the local scene, never on an acknowledgement,
+	# cooldown snapshot, or the preceding blink's visual age.
+	if command == "teleport":
+		return not main.snapshot.is_empty() and not main.gate_crossing and not main.ui.overlay.visible and main.world.bench_state.is_empty() and main.page_active and _battle().get("phase","") != "defeat"
+	return not main.snapshot.is_empty() and main.world.enabled and not main.busy and not main.ui.overlay.visible and main.world.bench_state.is_empty() and (command=="teleport" or (not dash_pending and main.world.teleport_age<0 and main.world.dash_age<0)) and float(main.world.teleport_lock if command=="teleport" else main.world.dash_lock)<=.01 and float(main._combat().get("cooldowns",{}).get(command,0))<=.01 and _battle().get("phase","") not in ["victory","defeat"] and main.page_active
+
+func start_dash(command: String = "dodge") -> void:
+	if not can_dash(command):return
+	var heading: Vector2=main.world.dash_heading()
+	_cancel_pending_cast()
+	cancel_aim()
+	main.world_renderer.hero.cancel_cast()
+	if command=="teleport":main.world.begin_teleport(heading)
+	else:main.world.begin_dash(heading)
+	movement_sequence += 1
+	dash_pending=true
+	if available():
+		queue.append({"command":command,"direction":heading,"origin":main.world.dash_origin,"endpoint":main.world.dash_target,"movementSequence":movement_sequence})
+	else:
+		_standard_dash(command)
+
+func _standard_dash(command: String) -> void:
+	var sent_movement_sequence = movement_sequence
+	var action={"type":"arcana_combat","command":command}
+	if not _battle().is_empty():action.battleId=_battle().id
+	var data: Dictionary=await main._api("/api/games/"+main.game_id+"/actions",HTTPClient.METHOD_POST,action)
+	if sent_movement_sequence == movement_sequence: dash_pending=false
+	if data.has("state"):
+		if sent_movement_sequence == movement_sequence: main._apply(data)
+	elif sent_movement_sequence == movement_sequence:
+		if command == "dodge": main.world.cancel_dash()
+		main.ui.toast(data.get("message","대시를 사용할 수 없습니다."))
+
 func queue_command(command: String, direction: Vector2 = Vector2.ZERO) -> void:
+	if command in ["dodge","teleport"]:
+		start_dash(command)
+		return
 	if not available() or main.busy or main.ui.overlay.visible or not main.world.bench_state.is_empty(): return
 	if not main._spell(command).is_empty() and not can_cast(command): return
 	for pending in queue:
-		if pending.command == command: return
+		if command != "fireball" and pending.command == command: return
 	if command == "fireball":
 		direction = direction.normalized() if direction.length_squared()>.00001 else _auto_direction(command)
-		pending_cast = {"direction":direction,"elapsed":0.0}
-		main.world_renderer.hero.begin_cast(direction)
-		main.world.casting = true
-		if not is_instance_valid(charge_vfx):
-			charge_vfx = ChargeVfx.new()
-			main.world_renderer.add_child(charge_vfx)
+		if not pending_cast.is_empty():
+			buffered_cast = {"direction":direction}
+		else:
+			_start_fireball(direction)
 		return
 	queue.append({"command":command,"direction":direction})
 
+func _start_fireball(direction: Vector2) -> void:
+	pending_cast = {"direction":direction,"elapsed":0.0}
+	main.world_renderer.hero.begin_cast(direction)
+	main.world.casting = true
+	charge_vfx = effect_pool.charge
+
 func _cancel_pending_cast() -> void:
+	buffered_cast.clear()
 	if pending_cast.is_empty(): return
 	pending_cast.clear()
 	main.world.casting = false
@@ -211,7 +264,7 @@ func _update_cast(delta: float, active: bool, paused: bool) -> void:
 	hero.advance_cast(delta,paused)
 	if not pending_cast.is_empty():
 		if not paused: pending_cast.elapsed += delta
-		# Hold the gathering pose while a preceding sync is still in flight.
+		# Hold the gathering pose until the local release time.
 		hero.cast_age = minf(float(pending_cast.elapsed),hero.CAST_GATHER-.001)
 	if is_instance_valid(charge_vfx):
 		charge_vfx.enabled = main.world.effects_enabled
@@ -276,7 +329,7 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(main.ui): return
 	visual_age += delta
 	var active = available()
-	if _spatial().is_empty() and predicted.is_empty() and not request_busy:
+	if _spatial().is_empty() and local_shots.is_empty() and predicted.is_empty() and not request_busy:
 		visual_outcomes.clear()
 		main.world.predicted_enemy_damage = 0.0
 	if not observed_initial and not main.snapshot.is_empty():
@@ -289,7 +342,7 @@ func _process(delta: float) -> void:
 	_update_cast(delta,active,paused)
 	if not active or paused:
 		cancel_aim()
-		queue.clear()
+		_clear_queued_commands(active and main.page_active and not main.ui.overlay.visible)
 	if aim_owner != -1:
 		manual = manual or Time.get_ticks_msec()/1000.0-aim_started>=.2
 		if manual:
@@ -301,23 +354,32 @@ func _process(delta: float) -> void:
 			aim_overlay.queue_redraw()
 	if active and not _spatial().is_empty():
 		if not paused and not _battle().get("paused",true):
-			for key in ["fireball","flame_wave","flame_guard","dodge","potion"]:
+			for key in ["fireball","flame_wave","flame_guard","dodge","teleport","potion"]:
 				main._combat().cooldowns[key] = maxf(0,float(main._combat().cooldowns.get(key,0))-delta)
 			main.world.battle.attackIn = maxf(0,float(main.world.battle.get("attackIn",6))-delta)
 		timer += delta
+	# The animation windup is local and never waits for an HTTP response.
+	if active and not pending_cast.is_empty() and float(pending_cast.elapsed)>=.32 and not paused:
+		var direction: Vector2 = pending_cast.direction
+		pending_cast.clear()
+		main.world.casting = false
+		if can_cast("fireball"):
+			main.world_renderer.hero.cast_age = .32
+			local_shot_sequence += 1
+			var shot_id = "local_"+str(local_shot_sequence)
+			var origin: Vector2 = main.world.player_position
+			local_shots[shot_id] = {"position":origin,"direction":direction,"elapsed":0.0}
+			queue.append({"command":"fireball","direction":direction,"origin":origin,"shotId":shot_id})
+		else:
+			main.world_renderer.hero.cancel_cast()
+		if not buffered_cast.is_empty():
+			var next_direction: Vector2 = buffered_cast.direction
+			buffered_cast.clear()
+			if can_cast("fireball"): _start_fireball(next_direction)
 	if active and not request_busy and not main.clock_busy and not main.busy and Time.get_ticks_msec()/1000.0-failed_at>2:
-		if not pending_cast.is_empty() and float(pending_cast.elapsed)>=.32 and not paused:
-			var direction: Vector2 = pending_cast.direction
-			pending_cast.clear()
-			main.world.casting = false
-			if can_cast("fireball"):
-				main.world_renderer.hero.cast_age = .32
-				_request("fireball",false,direction)
-			else:
-				main.world_renderer.hero.cancel_cast()
-		elif not queue.is_empty() and not paused:
+		if not queue.is_empty() and not paused:
 			var command = queue.pop_front()
-			_request(command.command,false,command.direction)
+			_request(command.command,false,command.direction,command.get("origin",Vector2.INF),command.get("endpoint",Vector2.INF),command.get("shotId",""),int(command.get("movementSequence",0)))
 		elif _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=.1) or connection_lost):
 			_request("spatial_sync",paused or connection_lost)
 	_render(delta,active,paused)
@@ -326,23 +388,39 @@ func _restore_result_panel() -> void:
 	if _battle().get("phase","") == "defeat" and not main.busy:
 		main._scene()
 
+func _clear_queued_commands(keep_teleports: bool = false) -> void:
+	_cancel_pending_cast()
+	var retained: Array[Dictionary] = []
+	for pending in queue:
+		if keep_teleports and pending.command == "teleport":
+			retained.append(pending)
+			continue
+		var shot_id = str(pending.get("shotId",""))
+		local_shots.erase(shot_id)
+		visual_outcomes.erase(shot_id)
+		if pending.command in ["dodge","teleport"]:
+			dash_pending=false
+			main.world.cancel_dash()
+			main.world.cancel_teleport()
+	queue.assign(retained)
+	if not retained.is_empty(): dash_pending = true
+
 func before_action() -> void:
 	cancel_aim()
 	_cancel_pending_cast()
-	queue.clear()
+	_clear_queued_commands()
 	while request_busy: await get_tree().process_frame
 	if not _spatial().is_empty(): await _request("spatial_sync",true)
 
-func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO) -> void:
+func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, dash_origin: Vector2 = Vector2.INF, dash_endpoint: Vector2 = Vector2.INF, shot_id: String = "", move_sequence: int = 0) -> void:
 	request_busy = true
 	timer = 0
 	main.sequence += 1
-	var sent_position: Vector2 = main.world.player_position
+	var sent_position: Vector2 = dash_origin if dash_origin != Vector2.INF else main.world.player_position
 	var input = {"encounterId":"plaza_slime","clientId":main.client_id,"sequence":main.sequence,"position":_json(sent_position),"paused":paused,"developerSpeed":main.developer_tools and main.world.developer_speed_boost}
-	if command in ["fireball","flame_wave"]:
+	if command in ["fireball","flame_wave","dodge","teleport"]:
 		input.aim = _json(direction)
-	if command == "fireball":
-		visual_outcomes.erase("predicted")
+	if command == "fireball" and shot_id.is_empty():
 		predicted = {"position":sent_position,"direction":direction,"elapsed":0.0}
 	var action = {"type":"arcana_combat","command":command,"spatial":input}
 	if not _battle().is_empty(): action.battleId = _battle().id
@@ -371,13 +449,14 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO) 
 			var cast_id = ""
 			for event in _spatial().get("events",[]):
 				if event.kind == "cast": cast_id = str(event.get("projectileId",""))
-			if not cast_id.is_empty():
-				if visual_outcomes.has("predicted"):
-					visual_outcomes[cast_id] = visual_outcomes.predicted
-					visual_outcomes.erase("predicted")
-				if projectile_nodes.has("predicted") and not projectile_nodes.has(cast_id):
-					projectile_nodes[cast_id] = projectile_nodes.predicted
-					projectile_nodes.erase("predicted")
+			local_shots.erase(shot_id)
+			if not cast_id.is_empty() and not shot_id.is_empty():
+				if visual_outcomes.has(shot_id):
+					visual_outcomes[cast_id] = visual_outcomes[shot_id]
+					visual_outcomes.erase(shot_id)
+				if projectile_nodes.has(shot_id):
+					projectile_nodes[cast_id] = projectile_nodes[shot_id]
+					projectile_nodes.erase(shot_id)
 		var id = str(_battle().get("id",""))
 		var preserve_first_shot = previous_phase.is_empty() and command == "fireball"
 		if id != battle_id:
@@ -385,21 +464,24 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO) 
 			last_event = 0
 			if not preserve_first_shot:
 				visual_outcomes.clear()
-				for effect in transient: effect.node.queue_free()
+				for effect in transient: effect_pool.release_label(effect.node)
 				transient.clear()
-				for burst in flame_bursts: burst.queue_free()
+				for burst in flame_bursts: effect_pool.release_flame(burst)
 				flame_bursts.clear()
 		if not _spatial().is_empty():
 			var server_position = _point(_spatial().player)
-			if server_position.distance_to(sent_position)>2:
+			if command in ["dodge","teleport"]:
+				if move_sequence == movement_sequence: main.world.reconcile_dash(server_position,dash_endpoint)
+			elif not dash_pending and main.world.teleport_age<0 and main.world.dash_age<0 and server_position.distance_to(sent_position)>2:
 				main.world.player_position = main.world.nearest_walkable(server_position+(main.world.player_position-sent_position))
 			for event in _spatial().get("events",[]):
 				if int(event.id)<=last_event: continue
 				last_event = int(event.id)
 				_event(event)
+		if command in ["dodge","teleport"] and move_sequence == movement_sequence:dash_pending=false
 		_update_predicted_health()
 		if previous_phase != _battle().get("phase","") and _battle().get("phase","") in ["victory","defeat"]:
-			queue.clear()
+			_clear_queued_commands()
 			cancel_aim()
 			if _battle().get("phase","")=="victory":
 				# Rewards were granted on defeat of the enemy; finish only acknowledges.
@@ -415,15 +497,24 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO) 
 			var result: Dictionary = await main._api("/api/games/"+main.game_id+"/state")
 			if result.has("state"): main._apply(result)
 	elif data.has("error"):
-		if command == "fireball": main.world_renderer.hero.cancel_cast()
+		local_shots.erase(shot_id)
+		visual_outcomes.erase(shot_id)
+		if command in ["dodge","teleport"] and move_sequence == movement_sequence:
+			dash_pending=false
+			if command == "dodge":
+				main.world.cancel_dash()
+				if not _spatial().is_empty():main.world.player_position=main.world.nearest_walkable(_point(_spatial().player))
+			# A failed acknowledgement must not rewind a locally completed blink.
+			# The next position sync reconciles it with the server.
+		if command == "fireball" and pending_cast.is_empty(): main.world_renderer.hero.cancel_cast()
 		visual_outcomes.erase("predicted")
 		_update_predicted_health()
 		if data.get("error","") in ["network","invalid_response"]:
 			failed_at = Time.get_ticks_msec()/1000.0
 			connection_lost = true
 		main.ui.toast(data.get("message","전투 연결을 확인해 주세요."))
-		cancel_aim()
-		queue.clear()
+		# This response belongs to the failed request, not to newer local inputs.
+		# Keep later commands queued so a delayed failure cannot eat blink taps.
 	request_busy = false
 
 func _update_predicted_health() -> void:
@@ -472,10 +563,7 @@ func _event(event: Dictionary) -> void:
 		if projectile_nodes.has(shot_id): projectile_nodes[shot_id].visible = false
 
 	if event.kind in ["hit","miss"] and event.has("projectileId") and main.world.effects_enabled:
-		var burst = FlameVfx.new()
-		burst.burst = true
-		burst.dissipate = event.kind == "miss"
-		main.world_renderer.add_child(burst)
+		var burst = effect_pool.take_flame(true,event.kind == "miss")
 		burst.position = main.world_renderer.map_point(effect_point,.6)
 		flame_bursts.append(burst)
 
@@ -490,16 +578,7 @@ func _event(event: Dictionary) -> void:
 	if event.kind == "absorb": guard_flash = .15
 	if event.kind in ["hit","hurt","evade","absorb"]:
 		var text = "회피" if event.kind == "evade" else ("흡수 %d" % int(event.amount) if event.kind == "absorb" else ("%d" % int(event.amount) if event.kind == "hit" else "−%d" % int(event.amount)))
-		var label = Label3D.new()
-		label.font = preload("res://fonts/NotoSansKR-SemiBold.tres")
-		label.font_size = 22
-		label.pixel_size = .035
-		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.no_depth_test = true
-		label.text = text
-		label.modulate = Color("df596c") if event.kind in ["hit","hurt"] else Color("f9e7a6")
-		label.outline_size = 4
-		main.world_renderer.add_child(label)
+		var label = effect_pool.take_label(text,Color("df596c") if event.kind in ["hit","hurt"] else Color("f9e7a6"))
 		transient.append({"node":label,"at":enemy_position() if event.kind == "hit" and event.has("targetPosition") else effect_point,"age":0.0})
 		if event.kind == "hit":
 			var monster = main.world_renderer.plaza_slime
@@ -640,6 +719,13 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 		origins.predicted = predicted.position
 		distances.predicted = minf(reach,predicted.elapsed*speed)
 		living.predicted = predicted.position+predicted.direction*minf(float(layout.tuning.range),predicted.elapsed*float(layout.tuning.projectileSpeed))
+	for local_id in local_shots:
+		var shot: Dictionary = local_shots[local_id]
+		if not paused: shot.elapsed += delta
+		headings[local_id] = shot.direction
+		origins[local_id] = shot.position
+		distances[local_id] = minf(reach,float(shot.elapsed)*speed)
+		living[local_id] = shot.position+shot.direction*distances[local_id]
 	# Retain the animated flame across prediction -> authoritative projectile handoff.
 	if projectile_nodes.has("predicted") and not living.has("predicted") and living.size()==1:
 		var server_id = living.keys()[0]
@@ -648,12 +734,11 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 			projectile_nodes.erase("predicted")
 	for id in projectile_nodes.keys():
 		if not living.has(id):
-			projectile_nodes[id].queue_free()
+			effect_pool.release_flame(projectile_nodes[id])
 			projectile_nodes.erase(id)
 	for id in living:
 		if not projectile_nodes.has(id):
-			var node = FlameVfx.new()
-			main.world_renderer.add_child(node)
+			var node = effect_pool.take_flame()
 			projectile_nodes[id] = node
 		var node = projectile_nodes[id]
 		var heading: Vector2 = headings.get(id,Vector2.RIGHT)
@@ -690,7 +775,7 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 		burst.light_enabled = main.world.effects_enabled
 		burst.visible = active and main.world.effects_enabled
 		burst.update_pose(main.world_renderer.camera,delta,paused,main.world.reduced_motion)
-		if burst.finished(): burst.queue_free()
+		if burst.finished(): effect_pool.release_flame(burst)
 	flame_bursts = flame_bursts.filter(func(effect): return not effect.finished())
 	_update_enemy_health_hud()
 	for effect in transient:
@@ -698,7 +783,7 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 		effect.node.visible = active
 		effect.node.position = main.world_renderer.map_point(effect.at,1.1+(0.0 if main.world.reduced_motion else effect.age*.8))
 		effect.node.modulate.a = maxf(0,1-effect.age)
-		if effect.age>=1: effect.node.queue_free()
+		if effect.age>=1: effect_pool.release_label(effect.node)
 	transient = transient.filter(func(effect): return effect.age<1)
 	for wave in wave_effects:
 		if not paused: wave.age += delta

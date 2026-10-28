@@ -1,0 +1,17 @@
+{
+  "source_sha256": "5963231c2900f19c863bf5f47735c16ac2e378486cf953c4885f1fee11dd0f19",
+  "source_unmodified": true,
+  "turntable_frames": 16,
+  "game_or_browser_testing": false,
+  "source": "heroine-v7-head.blend",
+  "status": "unapproved candidate; below the approved illustration target",
+  "reference_projection_used_in_master": false,
+  "face_basis": "Sendagaya Shino CC0, modified mesh and prior painted UV",
+  "hair_basis": "Sendagaya Shibu CC0 rear foundation; newly sculpted front, framing and curls",
+  "game_integration": false,
+  "remaining_visual_gaps": [
+    "Hair clumps are broader and more uniform than the reference",
+    "Face expression and lower eyelid detail remain different",
+    "Supporting bust lacks final costume detail"
+  ]
+}

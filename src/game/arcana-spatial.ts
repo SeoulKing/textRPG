@@ -73,9 +73,20 @@ export function acceptSpatialPosition(state: GameState, point: Point, seconds: n
   if (!s) return;
   const t = spatialLayout().tuning;
   s.previousPlayer = copy(s.player);
+  // The client animates toward the authoritative dash endpoint for .18s.
+  // Ignore intermediate predicted positions so sync cannot pull it backwards.
+  if (state.arcanaCombat.cooldowns.dodge > 4.8 || state.arcanaCombat.cooldowns.teleport > 4.84) return;
   // A reconnect cannot teleport an active fighter through the enemy or terrain.
   const maxMove = resume && s.behavior === "neutral" ? Infinity : 48*speedMultiplier*Math.min(.5,Math.max(0,seconds))+.75;
   s.player = move(s.player,towards(s.player,point,maxMove),3);
+}
+export function moveSpatialSkill(state: GameState, aim: Point) {
+  const b = state.arcanaCombat.battle, s = b?.spatial;
+  if (!s) return;
+  const length = Math.hypot(aim.x, aim.y);
+  if (length < .001) throw new Error("대시 방향을 선택해 주세요.");
+  s.previousPlayer = copy(s.player);
+  s.player = move(s.player, { x: s.player.x + aim.x / length * 28, y: s.player.y + aim.y / length * 28 }, 3);
 }
 export function returnSpatialBattle(b: Battle) {
   const s = b.spatial!;
@@ -175,7 +186,7 @@ export function tickSpatialCombat(state: GameState, seconds: number) {
         s.enemy = mix(s.jumpFrom,s.jumpTo,s.jumpElapsed/t.jumpDuration);
         if (!s.jumpHit && sweptCircle(enemyBefore,s.enemy,playerBefore,player,t.enemyRadius+t.playerRadius) !== null) {
           s.jumpHit = true;
-          if (evading) { trainArcanaSkill(state,"dodge",10); spatialEvent(b,"evade",player); }
+          if (evading) { trainArcanaSkill(state,c.evadeSkill,10); spatialEvent(b,"evade",player); }
           else {
             const damage = absorbArcanaDamage(state,5);
             if (damage.absorbed) spatialEvent(b,"absorb",player,damage.absorbed);

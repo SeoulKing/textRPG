@@ -34,7 +34,6 @@ import { acceptSpatialPosition } from "./arcana-spatial";
 import { buildArcanaSpells } from "./arcana-spells";
 import { buildArcanaActions, buildArcanaScene, ensureArcanaEncounter, performArcanaAction } from "./arcana-combat";
 import { advanceGameMinutes, performWorldClockAction } from "./rules";
-import { buildMagicDungeonActions, buildMagicDungeonEntranceActions, buildMagicDungeonScene, performMagicDungeonAction, syncMagicDungeon } from "./magic-dungeon";
 import { GAME_MINUTE_MS, PHASES, SIGNAL_PART_ITEM_IDS, TARGET_RESCUE_DAY, TRAVEL_DURATION_MS, MAGIC_TRAVEL_DURATION_MS, getSkillEntries } from "./base-data";
 import {
   buildStoryChoiceFromChoice,
@@ -402,7 +401,7 @@ export class GameService {
       live = { session, savedAt: now, inputAt: 0 };
     }
     const state = live.session.state, clock = state.activeClock;
-    if (state.stateWorld || !state.flags.in_magic_world || state.magicDungeon.run || state.isGameOver || state.npcDialogue.active || state.subwayExpedition.active) throw new Error("현재는 공간 전투를 진행할 수 없습니다.");
+    if (state.stateWorld || !state.flags.in_magic_world || state.isGameOver || state.npcDialogue.active || state.subwayExpedition.active) throw new Error("현재는 공간 전투를 진행할 수 없습니다.");
     if (state.location !== "arcana_plaza" && !state.arcanaCombat.battle?.spatial) throw new Error("광장에서만 이 슬라임을 상대할 수 있습니다.");
     if (state.arcanaCombat.battle && !state.arcanaCombat.battle.spatial) throw new Error("진행 중인 전투를 먼저 마쳐 주세요.");
     const ownedElsewhere = clock.ownerId && clock.ownerId !== input.clientId && !clock.paused && now-clock.heartbeatAt <= 5000;
@@ -987,7 +986,6 @@ export class GameService {
     }
     const previousState = structuredClone(session.state);
     syncClock(session.state);
-    syncMagicDungeon(session.state);
     ensureArcanaEncounter(session.state);
     syncQuestState(session.state, previousState.quests);
     syncScene(session.state);
@@ -1046,9 +1044,8 @@ export class GameService {
     const journey = subwayJourneyOption(session.state, action, registry);
 
     syncClock(session.state);
-    syncMagicDungeon(session.state);
     ensureArcanaEncounter(session.state);
-    if (action.type === "use_item" && action.itemId === "manaPotion" && session.state.flags.in_magic_world && !session.state.magicDungeon.run) {
+    if (action.type === "use_item" && action.itemId === "manaPotion" && session.state.flags.in_magic_world) {
       action = { type: "arcana_combat", command: "potion", battleId: session.state.arcanaCombat.battle?.id };
     }
     if (action.type === "world_clock" || action.type === "arcana_combat") {
@@ -1072,26 +1069,6 @@ export class GameService {
     const arcanaBattle = session.state.arcanaCombat.battle;
     if (arcanaBattle?.spatial && arcanaBattle.phase === "ready") session.state.arcanaCombat.battle = null;
     else if (arcanaBattle) throw new Error("사냥터 전투를 마치거나 후퇴한 뒤 다른 행동을 할 수 있습니다.");
-    if (action.type === "magic_dungeon") {
-      const previousState = structuredClone(session.state);
-      const workingState = structuredClone(session.state);
-      syncClock(workingState);
-      performMagicDungeonAction(workingState, action);
-      syncQuestState(workingState);
-      syncScene(workingState);
-      applySystemNote(previousState, workingState);
-      session.state = workingState;
-      session.updatedAt = nowIso();
-      if (!workingState.magicDungeon.run) session.world.sceneCards = {};
-      await this.ensureCards(session);
-      const snapshot = this.buildSnapshot(session, null);
-      await this.repository.saveGame(session);
-      await this.repository.appendActionLog({ gameId, action, at: session.updatedAt, location: workingState.location, day: workingState.day });
-      return snapshot;
-    }
-    if (session.state.magicDungeon.run) {
-      throw new Error("마법도시 던전 탐험을 마치고 귀환한 뒤 다른 행동을 할 수 있습니다.");
-    }
 
     if (
       session.state.npcDialogue.active &&
@@ -2149,7 +2126,6 @@ export class GameService {
     const expeditionScene = buildSubwayExpeditionScene(session.state);
     ensureArcanaEncounter(session.state);
     const arcanaScene = buildArcanaScene(session.state);
-    const dungeonScene = buildMagicDungeonScene(session.state);
     const activeDialogueProfile = runtimeNpcDialogueProfile(
       session.state.npcDialogue.active?.npcId ?? "", registry,
     );
@@ -2159,8 +2135,6 @@ export class GameService {
     );
     let currentScene = arcanaScene
       ? arcanaScene
-      : dungeonScene
-      ? resolveSceneCardText(dungeonScene, registry)
       : explorationScene
       ? resolveSceneCardText(explorationScene, registry)
       : dialogueScene
@@ -2169,10 +2143,10 @@ export class GameService {
         ? resolveSceneCardText(expeditionScene, registry)
         : resolveSceneCardText(this.buildAuthoringSceneCard(session, storyMaterials, registry), registry);
     const activityScene = session.state.lastActivity;
-    if (!arcanaScene && !dungeonScene && !explorationScene && !dialogueScene && !expeditionScene && activityScene?.paragraphs?.length) {
+    if (!arcanaScene && !explorationScene && !dialogueScene && !expeditionScene && activityScene?.paragraphs?.length) {
       currentScene = { ...currentScene, id: `activity:${activityScene.definitionId}:${activityScene.revision}`, title: { rest: "휴식", craft: "제작", cook: "요리", build: "설비 작업" }[activityScene.kind], paragraphs: activityScene.paragraphs, generatedAt: activityScene.generatedAt ?? session.createdAt, source: "template", devSource: undefined };
     }
-    const presentedLatestEvent = arcanaScene || dungeonScene || explorationScene || dialogueScene
+    const presentedLatestEvent = arcanaScene || explorationScene || dialogueScene
       ? null
       : latestEvent
       ? resolveEventCardText(latestEvent, registry)
@@ -2247,8 +2221,6 @@ export class GameService {
       skillProgress: buildSkillProgressCards(session.state.skillProgress, registry.actions.fish_at_river?.effects.find(effect => effect.type === "random_outcome")?.outcomes),
       availableActions: (arcanaScene
         ? buildArcanaActions(session.state)
-        : dungeonScene
-        ? buildMagicDungeonActions(session.state)
         : explorationScene
         ? textWorldActions(session.state, registry)
         : session.state.npcDialogue.active
@@ -2257,7 +2229,6 @@ export class GameService {
           ? buildSubwayExpeditionActions(session.state)
           : [
               ...buildArcanaActions(session.state),
-              ...buildMagicDungeonEntranceActions(session.state),
               ...textWorldEntryActions(session.state, registry),
               ...this.npcDialogueStartActions(session, registry),
               ...this.buildAvailableActions(
@@ -2286,7 +2257,7 @@ export class GameService {
       survivalGoal: this.buildSurvivalGoal(session, registry),
     };
 
-    if (session.state.flags.in_magic_world && !session.state.magicDungeon.run) {
+    if (session.state.flags.in_magic_world) {
       for (const item of [...snapshot.inventoryCards, ...snapshot.itemCatalog]) {
         if (item?.id === "manaPotion") { item.effects = { ...item.effects, mind: 20 }; item.useMinutes = 0; item.price = 100; }
       }

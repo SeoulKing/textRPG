@@ -34,7 +34,7 @@ function lockedReason(room: Room, state: GameState) { return room.requirements?.
 function blockedReason(state: GameState) {
   if (state.isGameOver || state.stageClear) return "종료된 게임에서는 이동할 수 없습니다.";
   if (state.npcDialogue.active) return "대화를 먼저 마쳐 주세요.";
-  if (state.arcanaCombat.battle || state.magicDungeon.run || state.subwayExpedition.active) return "현재 진행 중인 탐험을 먼저 마쳐 주세요.";
+  if (state.arcanaCombat.battle || state.subwayExpedition.active) return "현재 진행 중인 탐험을 먼저 마쳐 주세요.";
   return "";
 }
 function routeBetween(from: string, to: string, state: GameState) {

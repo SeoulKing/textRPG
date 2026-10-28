@@ -332,14 +332,13 @@ function isMagicWorldState(state = currentState()) {
   return Boolean(state?.flags?.in_magic_world);
 }
 
-function usesArcanaStatus(state = currentState()) { return Boolean(state?.flags?.in_magic_world && state.arcanaCombat && !state.magicDungeon?.run); }
+function usesArcanaStatus(state = currentState()) { return Boolean(state?.flags?.in_magic_world && state.arcanaCombat); }
 function magicExperience(state = currentState()) {
   if (!isMagicWorldState(state)) return null;
-  const inDungeon = Boolean(state.magicDungeon?.run);
-  const growth = inDungeon ? state.magicDungeon : state.arcanaCombat;
+  const growth = state.arcanaCombat;
   if (!growth) return null;
-  const capped = inDungeon && growth.level >= 50;
-  const max = capped ? 1 : (inDungeon ? 40 : 30) + (growth.level - 1) * 15;
+  const capped = false;
+  const max = capped ? 1 : 30 + (growth.level - 1) * 15;
   return { level: growth.level, value: capped ? 1 : growth.xp, max, capped };
 }
 function statusValue(statKey, state = currentState()) {
@@ -1863,7 +1862,6 @@ function hasConsumedIntroFlag(snapshot, introFlag) {
 }
 
 function shouldAnimateScene({ source, previousSnapshot, nextSnapshot }) {
-  if (nextSnapshot?.state?.magicDungeon?.run) return false;
   if (source === "bootstrap" || source === "backgroundSync") {
     return false;
   }
@@ -1896,7 +1894,7 @@ function shouldAnimateScene({ source, previousSnapshot, nextSnapshot }) {
 }
 
 function shouldPreserveDisplayedScene(previousSnapshot, nextSnapshot) {
-  if (nextSnapshot?.state?.magicDungeon?.run || previousSnapshot?.state?.magicDungeon?.run || nextSnapshot?.state?.arcanaCombat?.battle || previousSnapshot?.state?.arcanaCombat?.battle) return false;
+  if (nextSnapshot?.state?.arcanaCombat?.battle || previousSnapshot?.state?.arcanaCombat?.battle) return false;
   if (!previousSnapshot?.currentScene || !nextSnapshot?.currentScene) {
     return false;
   }
@@ -1996,7 +1994,7 @@ function resetSceneScrollOnMobile() {
 }
 
 function syncMobileChoiceZoneHeight() {
-  if (client.snapshot?.state?.magicDungeon?.run || !window.matchMedia("(max-width: 620px)").matches || !dom.choices.childElementCount) {
+  if (!window.matchMedia("(max-width: 620px)").matches || !dom.choices.childElementCount) {
     document.documentElement.style.removeProperty("--mobile-choice-zone-height");
     return;
   }
@@ -2751,9 +2749,6 @@ function renderStatusBar() {
 
   window.ArcanaCombatUI?.updateChoices(client.snapshot, client.actionInFlight);
   if (window.ArcanaCombatUI) window.ArcanaCombatUI.onAction = action => submitAction(action);
-  window.MagicDungeonUI?.render(snapshot);
-  window.MagicDungeonUI?.updateChoices(client.snapshot, client.actionInFlight);
-  if (window.MagicDungeonUI) window.MagicDungeonUI.onAction = action => submitAction(action);
 
   renderEncounterStatus(snapshot);
   const badges = document.querySelector("#condition-badges");
@@ -2839,7 +2834,6 @@ function buildChoicePresentation(snapshot) {
     const meta = fragment.querySelector(".choice-meta");
     const isQuestChoice = choice.label.startsWith("퀘스트:");
     label.textContent = choice.label;
-    if (choice.action?.type === "magic_dungeon") button.dataset.dungeonChoice = choice.id;
     status.textContent = choice.statusLabel || "";
     status.hidden = !choice.statusLabel;
     const hasRemainingUses = Number.isInteger(choice.remainingUses);
@@ -2868,10 +2862,6 @@ function buildChoicePresentation(snapshot) {
 function renderChoices() {
   const snapshot = client.snapshot;
   if (window.ArcanaCombatUI?.updateChoices(snapshot, client.actionInFlight)) {
-    syncMobileChoiceZoneHeight();
-    return;
-  }
-  if (window.MagicDungeonUI?.updateChoices(snapshot, client.actionInFlight)) {
     syncMobileChoiceZoneHeight();
     return;
   }
@@ -2958,18 +2948,6 @@ function renderScene(animateText = true, appendStory = false, scrollToStart = fa
     window.ArcanaCombatUI.render(snapshot, dom.sceneText);
     client.renderedStorySurfaceId = scene.id;
     hideSystemNote(); renderChoices(); return;
-  }
-  if (snapshot.state.magicDungeon?.run) {
-    clearSceneAnimation();
-    if (client.renderedStorySurfaceId !== scene.id) {
-      window.MagicDungeonUI.renderNarrative(snapshot, dom.sceneText);
-      client.renderedStorySurfaceId = scene.id;
-    }
-    renderSceneDevSource(snapshot);
-    if (snapshot.state.systemNote) renderSystemNote(snapshot.state.systemNote, systemNoteKey(snapshot, snapshot.state.systemNote), snapshot.state.systemNoteEntries || []);
-    else hideSystemNote();
-    renderChoices();
-    return;
   }
 
   const story = prepareScenePresentation(snapshot).story;
@@ -3086,11 +3064,6 @@ function setupHexMapHighlight(stage) {
 function renderMapPanel() {
   const snapshot = client.snapshot;
   if (!snapshot) {
-    return;
-  }
-  if (snapshot.state.magicDungeon?.run) {
-    const run = snapshot.state.magicDungeon.run;
-    dom.panelContent.innerHTML = `<section class="map-detail-slot"><div class="map-detail-head"><h3>별빛 회랑 ${run.floor}층</h3></div><p>던전 본문의 갈림길에서 다음 경로를 선택할 수 있습니다. 귀환해 전리품을 정산한 뒤 아르카나 광장과 서울 지도로 돌아갈 수 있습니다.</p></section>`;
     return;
   }
   if (snapshot.state.subwayExpedition?.active) {
@@ -3730,7 +3703,7 @@ function skillsPanelMarkup() {
 
   return `
     <div class="skills-panel">
-      ${usesArcanaStatus() ? `<section class="skill-section"><h3 class="skill-section-title">마법 스킬</h3><div class="arcana-stat-growth"><strong>파이어볼</strong> · 피해 ${arcanaFireballDamage()} (마력의 50%)<br>MP 4 · 재사용 3초</div></section>` : ""}
+      ${usesArcanaStatus() ? `<section class="skill-section"><h3 class="skill-section-title">마법 스킬</h3><div class="arcana-stat-growth"><strong>파이어볼</strong> · 피해 ${arcanaFireballDamage()} (마력의 50%)<br>MP 0 · 재사용 0초</div></section>` : ""}
       ${!isMagicWorldState() && skillProgress.length ? `
         <section class="skill-section" aria-label="숙련도">
           <h3 class="skill-section-title">숙련도</h3>

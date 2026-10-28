@@ -1,0 +1,6 @@
+{
+  "visible_face_frames": 98,
+  "reference_pixel_errors": 0,
+  "outside_face_pixel_errors": 0,
+  "body_and_coupled_head_motion": "preserved from v6"
+}

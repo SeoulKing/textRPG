@@ -1,0 +1,205 @@
+[gd_resource type="SpriteFrames" load_steps=50 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/heroine-dash-v1/heroine-dash.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="dash_s_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_s_1"]
+atlas = ExtResource("1")
+region = Rect2(96, 0, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_s_2"]
+atlas = ExtResource("1")
+region = Rect2(192, 0, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_s_3"]
+atlas = ExtResource("1")
+region = Rect2(288, 0, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_s_4"]
+atlas = ExtResource("1")
+region = Rect2(384, 0, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_s_5"]
+atlas = ExtResource("1")
+region = Rect2(480, 0, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_se_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 136, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_se_1"]
+atlas = ExtResource("1")
+region = Rect2(96, 136, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_se_2"]
+atlas = ExtResource("1")
+region = Rect2(192, 136, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_se_3"]
+atlas = ExtResource("1")
+region = Rect2(288, 136, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_se_4"]
+atlas = ExtResource("1")
+region = Rect2(384, 136, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_se_5"]
+atlas = ExtResource("1")
+region = Rect2(480, 136, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_e_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 272, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_e_1"]
+atlas = ExtResource("1")
+region = Rect2(96, 272, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_e_2"]
+atlas = ExtResource("1")
+region = Rect2(192, 272, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_e_3"]
+atlas = ExtResource("1")
+region = Rect2(288, 272, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_e_4"]
+atlas = ExtResource("1")
+region = Rect2(384, 272, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_e_5"]
+atlas = ExtResource("1")
+region = Rect2(480, 272, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_ne_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 408, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_ne_1"]
+atlas = ExtResource("1")
+region = Rect2(96, 408, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_ne_2"]
+atlas = ExtResource("1")
+region = Rect2(192, 408, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_ne_3"]
+atlas = ExtResource("1")
+region = Rect2(288, 408, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_ne_4"]
+atlas = ExtResource("1")
+region = Rect2(384, 408, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_ne_5"]
+atlas = ExtResource("1")
+region = Rect2(480, 408, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_n_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 544, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_n_1"]
+atlas = ExtResource("1")
+region = Rect2(96, 544, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_n_2"]
+atlas = ExtResource("1")
+region = Rect2(192, 544, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_n_3"]
+atlas = ExtResource("1")
+region = Rect2(288, 544, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_n_4"]
+atlas = ExtResource("1")
+region = Rect2(384, 544, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_n_5"]
+atlas = ExtResource("1")
+region = Rect2(480, 544, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_nw_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 680, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_nw_1"]
+atlas = ExtResource("1")
+region = Rect2(96, 680, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_nw_2"]
+atlas = ExtResource("1")
+region = Rect2(192, 680, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_nw_3"]
+atlas = ExtResource("1")
+region = Rect2(288, 680, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_nw_4"]
+atlas = ExtResource("1")
+region = Rect2(384, 680, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_nw_5"]
+atlas = ExtResource("1")
+region = Rect2(480, 680, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_w_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 816, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_w_1"]
+atlas = ExtResource("1")
+region = Rect2(96, 816, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_w_2"]
+atlas = ExtResource("1")
+region = Rect2(192, 816, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_w_3"]
+atlas = ExtResource("1")
+region = Rect2(288, 816, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_w_4"]
+atlas = ExtResource("1")
+region = Rect2(384, 816, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_w_5"]
+atlas = ExtResource("1")
+region = Rect2(480, 816, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_sw_0"]
+atlas = ExtResource("1")
+region = Rect2(0, 952, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_sw_1"]
+atlas = ExtResource("1")
+region = Rect2(96, 952, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_sw_2"]
+atlas = ExtResource("1")
+region = Rect2(192, 952, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_sw_3"]
+atlas = ExtResource("1")
+region = Rect2(288, 952, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_sw_4"]
+atlas = ExtResource("1")
+region = Rect2(384, 952, 96, 136)
+
+[sub_resource type="AtlasTexture" id="dash_sw_5"]
+atlas = ExtResource("1")
+region = Rect2(480, 952, 96, 136)
+
+[resource]
+animations = [{"frames": [{"duration": 1.0, "texture": SubResource("dash_s_0") }, {"duration": 1.0, "texture": SubResource("dash_s_1") }, {"duration": 1.0, "texture": SubResource("dash_s_2") }, {"duration": 1.5, "texture": SubResource("dash_s_3") }, {"duration": 1.0, "texture": SubResource("dash_s_4") }, {"duration": 1.5, "texture": SubResource("dash_s_5") }], "loop": false, "name": &"dash_s", "speed": 25.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("dash_se_0") }, {"duration": 1.0, "texture": SubResource("dash_se_1") }, {"duration": 1.0, "texture": SubResource("dash_se_2") }, {"duration": 1.5, "texture": SubResource("dash_se_3") }, {"duration": 1.0, "texture": SubResource("dash_se_4") }, {"duration": 1.5, "texture": SubResource("dash_se_5") }], "loop": false, "name": &"dash_se", "speed": 25.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("dash_e_0") }, {"duration": 1.0, "texture": SubResource("dash_e_1") }, {"duration": 1.0, "texture": SubResource("dash_e_2") }, {"duration": 1.5, "texture": SubResource("dash_e_3") }, {"duration": 1.0, "texture": SubResource("dash_e_4") }, {"duration": 1.5, "texture": SubResource("dash_e_5") }], "loop": false, "name": &"dash_e", "speed": 25.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("dash_ne_0") }, {"duration": 1.0, "texture": SubResource("dash_ne_1") }, {"duration": 1.0, "texture": SubResource("dash_ne_2") }, {"duration": 1.5, "texture": SubResource("dash_ne_3") }, {"duration": 1.0, "texture": SubResource("dash_ne_4") }, {"duration": 1.5, "texture": SubResource("dash_ne_5") }], "loop": false, "name": &"dash_ne", "speed": 25.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("dash_n_0") }, {"duration": 1.0, "texture": SubResource("dash_n_1") }, {"duration": 1.0, "texture": SubResource("dash_n_2") }, {"duration": 1.5, "texture": SubResource("dash_n_3") }, {"duration": 1.0, "texture": SubResource("dash_n_4") }, {"duration": 1.5, "texture": SubResource("dash_n_5") }], "loop": false, "name": &"dash_n", "speed": 25.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("dash_nw_0") }, {"duration": 1.0, "texture": SubResource("dash_nw_1") }, {"duration": 1.0, "texture": SubResource("dash_nw_2") }, {"duration": 1.5, "texture": SubResource("dash_nw_3") }, {"duration": 1.0, "texture": SubResource("dash_nw_4") }, {"duration": 1.5, "texture": SubResource("dash_nw_5") }], "loop": false, "name": &"dash_nw", "speed": 25.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("dash_w_0") }, {"duration": 1.0, "texture": SubResource("dash_w_1") }, {"duration": 1.0, "texture": SubResource("dash_w_2") }, {"duration": 1.5, "texture": SubResource("dash_w_3") }, {"duration": 1.0, "texture": SubResource("dash_w_4") }, {"duration": 1.5, "texture": SubResource("dash_w_5") }], "loop": false, "name": &"dash_w", "speed": 25.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("dash_sw_0") }, {"duration": 1.0, "texture": SubResource("dash_sw_1") }, {"duration": 1.0, "texture": SubResource("dash_sw_2") }, {"duration": 1.5, "texture": SubResource("dash_sw_3") }, {"duration": 1.0, "texture": SubResource("dash_sw_4") }, {"duration": 1.5, "texture": SubResource("dash_sw_5") }], "loop": false, "name": &"dash_sw", "speed": 25.0}]

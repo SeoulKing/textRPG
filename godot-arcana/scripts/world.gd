@@ -26,6 +26,78 @@ var player_position = SPAWN
 var destination = Vector2.ZERO
 var walking = false
 var casting = false
+const DASH_DISTANCE = 28.0
+const DASH_MOVE_TIME = .18
+const DASH_POSE_TIME = .28
+var dash_age = -1.0
+var dash_direction = Vector2.DOWN
+var dash_origin = Vector2.ZERO
+var dash_target = Vector2.ZERO
+var dash_correction = Vector2.ZERO
+var dash_lock = 0.0
+var last_move_direction = Vector2.DOWN
+const TELEPORT_DURATION = .16
+var teleport_age = -1.0
+var teleport_lock = 0.0
+var teleport_direction = Vector2.DOWN
+var teleport_origin = Vector2.ZERO
+var teleport_target = Vector2.ZERO
+
+func begin_teleport(heading: Vector2) -> void:
+	teleport_direction=heading.normalized()
+	teleport_origin=player_position
+	_move_player(teleport_direction*DASH_DISTANCE)
+	teleport_target=player_position
+	# Common request origin/endpoint contract; dash animation is never started.
+	dash_origin=teleport_origin
+	dash_target=teleport_target
+	teleport_age=0.0
+	teleport_lock=0.0
+	casting=false
+	path.clear()
+	click_door_id=""
+	last_move_direction=teleport_direction
+
+func cancel_teleport() -> void:
+	teleport_age=-1.0
+	teleport_lock=0.0
+
+
+func dash_heading() -> Vector2:
+	var input = touch_direction
+	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP): input.y -= 1
+	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN): input.y += 1
+	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT): input.x -= 1
+	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT): input.x += 1
+	if input.length_squared()>.0001:return (input_projection*input).normalized()
+	if not path.is_empty() and player_position.distance_squared_to(path[0])>.0001:return (path[0]-player_position).normalized()
+	return last_move_direction
+
+func begin_dash(heading: Vector2) -> void:
+	dash_direction=heading.normalized()
+	dash_origin=player_position
+	_move_player(dash_direction*DASH_DISTANCE)
+	dash_target=player_position
+	player_position=dash_origin
+	dash_correction=Vector2.ZERO
+	dash_age=.016
+	dash_lock=5.0
+	casting=false
+	path.clear()
+	click_door_id=""
+	# First displacement happens in this input frame, without a windup.
+	_move_player((dash_target-dash_origin)/DASH_MOVE_TIME*.016)
+
+func reconcile_dash(endpoint: Vector2, expected: Vector2) -> void:
+	var correction=endpoint-expected
+	if dash_age>=0 and dash_age<DASH_MOVE_TIME:dash_correction=correction
+	else:_move_player(correction)
+
+func cancel_dash() -> void:
+	dash_age=-1.0
+	dash_lock=0.0
+	dash_correction=Vector2.ZERO
+
 # Local pose only: feet remain on a walkable point, never inside bench collision.
 var bench_state = ""
 var bench_entity: Dictionary = {}
@@ -388,7 +460,14 @@ func walk_to(pos: Vector2) -> void:
 # Movement uses manual collision checks, so update it with the rendered frame.
 # This keeps the actor, ground effects and camera on the same clock at 60/120 Hz.
 func _process(delta: float) -> void:
-	if enabled: time += delta
+	if enabled:
+		time += delta
+		dash_lock=maxf(0,dash_lock-delta)
+		teleport_lock=maxf(0,teleport_lock-delta)
+	# Blink is already committed locally; its visual must finish during API waits.
+	if teleport_age>=0:
+		teleport_age+=minf(delta,.05)
+		if teleport_age>=TELEPORT_DURATION:teleport_age=-1.0
 	for material in motion_materials: material.set_shader_parameter("motion_time",time if effects_enabled and not reduced_motion else 0.0)
 	var battle_id = str(battle.get("id",""))
 	if battle_id != visual_battle_id:
@@ -417,8 +496,15 @@ func _process(delta: float) -> void:
 				bench_has_destination = false
 				stand_from_bench()
 		advance_bench(minf(delta,.05))
-	if not enabled or casting or bench_pose_active():
+	if not enabled or casting or bench_pose_active() or (teleport_age>=0 and teleport_age<.12):
 		motion = Vector2.ZERO
+	elif dash_age>=0 and dash_age<DASH_MOVE_TIME:
+		dash_age=minf(DASH_MOVE_TIME,dash_age+minf(delta,.05))
+		var point=dash_origin.lerp(dash_target,dash_age/DASH_MOVE_TIME)
+		_move_player(point-player_position)
+		if dash_age>=DASH_MOVE_TIME:
+			_move_player(dash_correction)
+			dash_correction=Vector2.ZERO
 	elif motion.length() > .01:
 		click_door_id = ""
 		path.clear()
@@ -447,7 +533,11 @@ func _process(delta: float) -> void:
 		else:
 			bench_stalled = bench_stalled + delta if player_position.distance_squared_to(before_motion)<.0001 else 0.0
 			if path.is_empty() or bench_stalled>.6: clear_bench()
+	if enabled and dash_age>=DASH_MOVE_TIME:
+		dash_age+=minf(delta,.05)
+		if dash_age>=DASH_POSE_TIME:dash_age=-1.0
 	var actual_motion = player_position - before_motion
+	if actual_motion.length_squared()>.0001:last_move_direction=actual_motion.normalized()
 	if actual_motion.length_squared() > .0001:
 		if absf(actual_motion.x) > absf(actual_motion.y): direction = 2 if actual_motion.x < 0 else 3
 		else: direction = 1 if actual_motion.y < 0 else 0
@@ -466,7 +556,7 @@ func _process(delta: float) -> void:
 			footstep_distance = fmod(footstep_distance,8)
 			footsteps.append({"pos":player_position,"life":.38})
 	elif not walking: footstep_distance = 0
-	if indoor == "" and is_instance_valid(traveler):
+	if indoor == "" and traveler_index >= 0 and is_instance_valid(traveler):
 		var phase = fmod(time, 20.0)
 		var target = traveler_home + Vector2(20,0) if phase > 9 and phase < 18 else traveler_home
 		var before = traveler_position
@@ -708,11 +798,9 @@ func change_interior(id: String) -> void:
 		elif id == "arcana_inn":
 			var lobby = preload("res://scripts/inn_lobby.gd")
 			entities[0].pos = lobby.EXIT_POINT
-			entities.append({"id":"counter", "name":"접수대 이용하기", "kind":"scene", "pos":lobby.COUNTER_POINT})
+			entities.append({"id":"innkeeper", "name":"여관주인과 대화하기", "kind":"innkeeper", "pos":lobby.COUNTER_POINT})
 			entities.append({"id":"inn_sofa", "name":"소파에서 쉬기", "kind":"inn_sofa", "pos":lobby.SOFA_POINT, "seat_visual":lobby.SOFA_SEAT_VISUAL, "seat_room":"arcana_inn"})
 			obstacles.append_array(lobby.collision_rects())
-		elif id == "dungeon":
-			entities.append({"id":"dungeon_actions", "name":"탐험 계속하기", "kind":"scene", "pos":Vector2(192, 140)})
 		else:
 			entities.append({"id":"counter", "name":"시설 이용하기", "kind":"scene", "pos":Vector2(192, 148)})
 			obstacles.append(Rect2(110, 90, 166, 35))
@@ -770,11 +858,6 @@ func _draw_outdoors() -> void:
 		draw_rect(Rect2(x, 708, 17, 49), Color("8c9e92"))
 		draw_rect(Rect2(x + 2, 711, 4, 44), Color("b2b9a0"))
 		draw_rect(Rect2(x + 5, 702, 9, 17), Color("577c94"))
-	# Dungeon arch.
-	draw_rect(Rect2(844, 560, 48, 40), Color("5c6d6c"))
-	draw_rect(Rect2(852, 568, 32, 32), Color("243a42"))
-	draw_rect(Rect2(859, 572, 18, 28), Color("1c303a"))
-	for x in [846, 887]: draw_rect(Rect2(x, 574, 3, 9), Color("a3b6d0"))
 	# East river with stepped banks and moving glints.
 	draw_rect(Rect2(940, 842, 212, 358), Color("457d8b"))
 	for i in range(50):
@@ -810,13 +893,6 @@ func _draw_indoors() -> void:
 			draw_rect(Rect2(pos - Vector2(32, 20), Vector2(64, 34)), Color("c4bea0"))
 			draw_line(pos - Vector2(20, -3), pos + Vector2(20, 3), Color("9ca18a"), 1)
 			draw_string(world_label_font, pos - Vector2(28, 34), entity.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("e3dfbf"))
-	elif indoor == "dungeon":
-		draw_rect(Rect2(26, 34, 332, 280), Color("4b5a60"))
-		for x in [70, 300]:
-			draw_rect(Rect2(x, 60, 15, 220), Color("536a73"))
-			draw_rect(Rect2(x + 4, 65, 3, 200), Color("71868b"))
-		draw_circle(Vector2(192, 134), 24, Color("7985a5"))
-		draw_circle(Vector2(192, 134), 18, Color("333f60"))
 	else:
 		draw_rect(Rect2(107, 94, 170, 27), Color("73614c"))
 		draw_rect(Rect2(105, 89, 174, 6), Color("a58a60"))

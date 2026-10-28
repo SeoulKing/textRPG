@@ -8,6 +8,7 @@ const SpatialCombat = preload("res://scripts/arcana_spatial.gd")
 var spatial_combat
 const SAVE_KEY = "arcana-godot-game-v1"
 const SHARED_SAVE_KEY = "ruined-seoul-stage1-manual-save-game-id-v1"
+const CONTROLS_KEY = "arcana-godot-controls-v1"
 const QUICKSLOT_KEY = "arcana-godot-quickslots-v1"
 var authored_layout: Node3D
 var world
@@ -82,6 +83,7 @@ func _ready() -> void:
 	world.building_entry_intended.connect(_auto_enter_building)
 	ui = UI.new()
 	add_child(ui)
+	ui.restore_controls(JSON.parse_string(_stored(CONTROLS_KEY)))
 	ui.menu_requested.connect(_menu)
 	ui.interact_pressed.connect(_activate)
 	ui.quickslot_pressed.connect(_use_quickslot)
@@ -92,6 +94,10 @@ func _ready() -> void:
 	if slots is Array and slots.size() == 4:
 		for i in range(4):
 			if slots[i] is String: ui.set_quickslot(i, "" if slots[i]=="dev_speed" else slots[i])
+	if _stored("arcana-teleport-slot-v1")!="1":
+		ui.set_quickslot(1,"teleport")
+		_store(QUICKSLOT_KEY,JSON.stringify(ui.quickslot_bindings))
+		_store("arcana-teleport-slot-v1","1")
 	if developer_tools: ui.set_quickslot(3,"dev_speed")
 	spatial_combat = SpatialCombat.new()
 	spatial_combat.main = self
@@ -158,6 +164,9 @@ func _api(route: String, method: int = HTTPClient.METHOD_GET, data: Dictionary =
 	if not parsed is Dictionary:
 		return {"error":"invalid_response", "message":"서버 응답을 읽지 못했습니다."}
 	if reply[1] >= 400 and not parsed.has("error"): parsed.error = "request_failed"
+	if parsed.has("error") and not parsed.has("message"):
+		parsed.message = "서버가 행동을 거절했습니다: "+str(parsed.error)+" (HTTP "+str(reply[1])+")"
+		push_warning(str(parsed.message)+" "+JSON.stringify(parsed.get("details",{})))
 	return parsed
 
 func _stored(key: String) -> String:
@@ -219,11 +228,6 @@ func _boot() -> void:
 	ui.close_panel()
 	if not _state().get("flags", {}).get("in_magic_world", false):
 		_returned_home()
-	else:
-		# Restore the playable location, without reopening saved result/dialogue panels.
-		# The player can inspect those explicitly through the interaction controls.
-		if _state().get("magicDungeon", {}).get("run") is Dictionary:
-			world.change_interior("dungeon")
 
 func _state() -> Dictionary:
 	return snapshot.get("state", {})
@@ -254,7 +258,11 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 		if initial:
 			if location == "arcana_hunting_ground": world.player_position = Vector2(576, 989)
 			elif location == "arcana_city_gate": world.player_position = Vector2(576, 710)
-			elif location == "arcana_return_portal": world.player_position = Vector2(576, 241)
+			elif location == "arcana_return_portal":
+				for entity in world._outdoor_entities:
+					if entity.id == "arcana_return_portal":
+						world.player_position = world.nearest_walkable(entity.pos + Vector2(0, 7))
+						break
 			if location == "arcana_academy":
 				var room_id = str(snapshot.get("academyMap",{}).get("currentRoomId","hall"))
 				var level = world.Academy.room_floor(room_id)
@@ -292,16 +300,12 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 	_update_hud()
 
 func _update_hud() -> void:
-	var dungeon = _state().get("magicDungeon", {})
-	var run = dungeon.get("run")
-	var in_dungeon = run is Dictionary
-	var c = run if in_dungeon else _combat()
-	var level = int(dungeon.get("level", 1) if in_dungeon else c.get("level", 1))
+	var c = _combat()
 	var hp = float(c.get("hp", 100))
 	var mp = float(c.get("mp", 30))
-	var max_hp = float(run.maxHp) if in_dungeon else 100.0
-	var max_mp = float(run.maxMp) if in_dungeon else 30.0
-	ui.title_label.text = "ARCANA · " + str(level) if in_dungeon else "ARCANA"
+	var max_hp = 100.0
+	var max_mp = 30.0
+	ui.title_label.text = "ARCANA"
 	var location_name = "분수 광장"
 	for loc in snapshot.get("visibleLocations", []):
 		if loc.id == _state().get("location", ""): location_name = loc.name.trim_prefix("아르카나 ")
@@ -310,23 +314,21 @@ func _update_hud() -> void:
 		for room in school.get("rooms", []):
 			if room.isCurrent: location_name = room.name
 	if world.indoor == "arcana_academy": location_name = "마법학교 · %d층" % world.academy_floor
-	if in_dungeon: location_name = "별빛 회랑 %d층" % int(run.floor)
 	ui.zone_label.text = location_name
 	var pending_money = spatial_combat.reward_effects.pending_money if is_instance_valid(spatial_combat.reward_effects) else 0
 	ui.money_label.text = "%s원" % maxi(0,int(_state().get("money",0))-int(pending_money))
 	ui.hp_label.text = "HP  %d / %d" % [int(hp), max_hp]
-	if not in_dungeon and float(c.get("guard",{}).get("amount",0)) > 0:
+	if float(c.get("guard",{}).get("amount",0)) > 0:
 		ui.hp_label.text += " · 장막 %d" % int(c.guard.amount)
 	ui.mp_label.text = "MP  %d / %d" % [int(mp), max_mp]
 	ui.hp_bar.value = hp / max_hp * 100
 	ui.mp_bar.value = mp / max_mp * 100
-	ui.xp_bar.value = float(dungeon.get("xp", 0)) / (40 + (level - 1) * 15) * 100 if in_dungeon else float(_spell("fireball").get("mastery",0))
-	ui.xp_bar.tooltip_text = "경험치" if in_dungeon else "파이어볼 숙련도 %.2f / 100" % float(_spell("fireball").get("mastery",0))
 
 func _process(delta: float) -> void:
 	_record_frame(delta)
+	_update_mei_nameplate()
 	if not is_instance_valid(ui): return
-	world.enabled = (not busy or gate_crossing) and not ui.overlay.visible and page_active and not snapshot.is_empty() and not spatial_combat.connection_lost
+	world.enabled = (not busy or gate_crossing) and not ui.overlay.visible and page_active and not snapshot.is_empty()
 	ui.joystick.set_enabled(page_active and not ui.overlay.visible and not snapshot.is_empty())
 	if world.enabled and ui.joystick.is_active(): _joystick_move(ui.joystick.direction)
 	if snapshot.is_empty(): return
@@ -335,12 +337,12 @@ func _process(delta: float) -> void:
 	var battle = _battle()
 	if not battle.is_empty() and not battle.has("spatial") and battle.get("phase", "") == "battle" and not battle.get("paused", true) and world.enabled:
 		world.battle.attackIn = maxf(0, float(world.battle.get("attackIn", 6)) - delta)
-		for key in ["fireball", "flame_wave", "flame_guard", "dodge", "potion"]:
+		for key in ["fireball", "flame_wave", "flame_guard", "dodge", "teleport", "potion"]:
 			_combat().cooldowns[key] = maxf(0, float(_combat().cooldowns.get(key, 0)) - delta)
 	if ui_refresh > .10:
 		ui_refresh = 0
 		_refresh_controls()
-	if heartbeat >= 1.0 and not busy and not clock_busy and not spatial_combat.request_busy and not spatial_combat.connection_lost and spatial_combat.queue.is_empty() and spatial_combat.aim_owner == -1 and not battle.has("spatial"):
+	if heartbeat >= 1.0 and not busy and not clock_busy and not spatial_combat.request_busy and not spatial_combat.connection_lost and spatial_combat.queue.is_empty() and spatial_combat.aim_owner == -1 and spatial_combat.pending_cast.is_empty() and spatial_combat.buffered_cast.is_empty() and not battle.has("spatial"):
 		heartbeat = 0
 		_clock()
 	# Crossing the southern gate keeps position and commits the existing travel rule.
@@ -384,22 +386,22 @@ func _refresh_controls() -> void:
 	elif world.nearest.get("kind","") in ["bench","inn_sofa"]: interaction_name = "소파에 앉기" if world.nearest.kind=="inn_sofa" else "벤치에 앉기"
 	ui.interaction.tooltip_text = "E / Space · " + interaction_name
 	var cooldowns = _combat().get("cooldowns", {})
-	var in_dungeon = _state().get("magicDungeon", {}).get("run") is Dictionary
 	for i in range(ui.quickslot_buttons.size()):
 		var slot: Button = ui.quickslot_buttons[i]
 		var command: String = ui.quickslot_bindings[i]
-		var remaining = float(cooldowns.get(command, 0))
+		var remaining = 0.0 if command == "teleport" else float(cooldowns.get(command, 0))
 		var count = int(_state().get("inventory", {}).get("manaPotion", 0))
 		slot.disabled = not available
 		if not command.is_empty():
-			slot.disabled = not available or in_dungeon or remaining > .01 or (not fighting and command != "potion")
+			slot.disabled = not available or remaining > .01 or (not fighting and command != "potion")
 			var spell = _spell(command)
 			if not spell.is_empty():
-				slot.disabled = not available or in_dungeon or not spell.get("unlocked",false) or not spell.get("equipped",false) or remaining > .01 or float(_combat().get("mp",0)) < float(spell.cost)
+				slot.disabled = not available or not spell.get("unlocked",false) or not spell.get("equipped",false) or remaining > .01 or float(_combat().get("mp",0)) < float(spell.cost)
 				if spatial_combat.available(): slot.disabled = not available or not spatial_combat.can_cast(command)
 				elif command != "flame_guard" and not fighting: slot.disabled = true
 				elif b.get("paused",false) and fighting: slot.disabled = true
 				elif b.get("phase","") in ["victory","defeat"]: slot.disabled = true
+			if command in ["dodge","teleport"]: slot.disabled = not spatial_combat.can_dash(command)
 			if command == "potion" and count <= 0: slot.disabled = true
 		if not world.bench_state.is_empty() and command!="dev_speed": slot.disabled = true
 		if command == "dev_speed":
@@ -440,8 +442,6 @@ func _notify_spell_unlocks(previous: Array) -> void:
 
 func _clock() -> void:
 	var paused = not page_active or ui.overlay.visible
-	var dungeon = _state().get("magicDungeon", {}).get("run")
-	if panel_mode == "scene" and dungeon is Dictionary: paused = not page_active
 	if paused and last_clock_paused: return
 	clock_busy = true
 	sequence += 1
@@ -452,11 +452,6 @@ func _clock() -> void:
 		if not paused and _battle().get("phase", "") == "battle" and _battle().get("paused", false):
 			data = await _api("/api/games/" + game_id + "/actions", HTTPClient.METHOD_POST, {"type":"arcana_combat", "command":"resume", "battleId":_battle().id})
 			if data.has("state"): _apply(data)
-		var run = _state().get("magicDungeon", {}).get("run")
-		if not paused and run is Dictionary and run.get("phase", "") == "battle" and run.get("paused", false):
-			data = await _api("/api/games/" + game_id + "/actions", HTTPClient.METHOD_POST, {"type":"magic_dungeon", "command":"resume"})
-			if data.has("state"): _apply(data)
-		if run is Dictionary and panel_mode == "scene" and ui.overlay.visible: _scene(action_page)
 	else: ui.toast(data.get("message", "서버 연결을 확인해 주세요."))
 	clock_busy = false
 
@@ -535,6 +530,8 @@ func _interact(entity: Dictionary) -> void:
 	if busy: return
 	world.path.clear()
 	match entity.kind:
+		"innkeeper":
+			_innkeeper_dialogue()
 		"bench":
 			_sit_furniture(entity)
 		"building":
@@ -549,7 +546,6 @@ func _interact(entity: Dictionary) -> void:
 				ui.close_panel()
 				ui.toast("소파에서 쉬었습니다. HP · MP 모두 회복")
 		"exit":
-			if world.indoor == "dungeon": _scene(); return
 			if await _travel("arcana_plaza"):
 				world.change_interior("")
 				ui.toast("분수 광장")
@@ -586,19 +582,32 @@ func _interact(entity: Dictionary) -> void:
 				var action = _find_action("content_action", "open_arcana_workbench")
 				if not action.is_empty(): await perform(action)
 				else: _scene()
-		"dungeon":
-			if await _travel("arcana_plaza"):
-				var action = _find_action("magic_dungeon", "start")
-				if not action.is_empty():
-					if await perform(action): world.change_interior("dungeon")
-				else: _scene()
 		"resident":
-			ui.open_panel("광장의 여행자")
+			ui.open_panel(str(entity.get("name", "메이")))
 			panel_mode = "resident"
-			ui.paragraph("망토를 두른 여행자가 분수 너머의 길을 가리킵니다. 서쪽에는 상점과 여관, 동쪽에는 식당과 아카데미가 있습니다. 남문 밖은 슬라임이 나타나는 평원입니다.")
+			ui.paragraph("초록 망토를 두른 메이가 펼친 지도에서 분수를 짚습니다. “서쪽에는 상점과 여관, 북쪽에는 식당, 동쪽에는 아카데미가 있어요. 남문 밖 평원에는 슬라임이 나타나니 조심하세요.”")
 			ui.choice("길을 이어 간다", "", ui.close_panel)
 		_:
 			_scene()
+
+func _innkeeper_dialogue(topic: String = "welcome") -> void:
+	if str(_state().get("location","")) != "arcana_inn": return
+	panel_mode = "innkeeper"
+	ui.open_panel("여관주인 · 마르텐")
+	match topic:
+		"inn":
+			ui.paragraph("마르텐은 닦던 잔을 선반에 올리고 소파 쪽으로 손바닥을 펼칩니다.")
+			ui.paragraph("“오래 걸으셨다면 저쪽에 앉아 쉬세요. 벽난로 가까운 자리가 따뜻합니다. 계단 앞은 다른 손님들도 다니니 짐을 놓지 말아 주세요.”")
+		"directions":
+			ui.paragraph("“분수 광장으로 나가시면 길을 찾기 쉬울 겁니다.” 마르텐이 문 너머를 가리킵니다.")
+			ui.paragraph("“서쪽에는 상점, 동쪽에는 식당과 마법학교가 있어요. 남문 밖은 슬라임이 나타나는 평원입니다. 처음 가시는 길이면 준비부터 하고 나가세요.”")
+		_:
+			ui.paragraph("접수대 뒤의 남자가 접어 든 천을 내려놓습니다. 자주색 조끼에 달린 작은 초승달 장식이 등불을 받습니다.")
+			ui.paragraph("“어서 오세요. 여관을 맡고 있는 마르텐입니다. 쉬어 가실 건가요, 아니면 길을 찾으세요?”")
+	ui.choice("여관에 관해 묻는다", "", func(): _innkeeper_dialogue("inn"))
+	ui.choice("주변 길을 묻는다", "", func(): _innkeeper_dialogue("directions"))
+	ui.choice("여관 서비스를 이용한다", "", func(): _scene())
+	ui.choice("대화를 마친다", "", ui.close_panel)
 
 func _find_action(type: String, id: String) -> Dictionary:
 	for entry in snapshot.get("availableActions", []):
@@ -618,12 +627,6 @@ func _scene(page: int = 0) -> void:
 		scene_title = scene_title.replace("(" + pair[0] + ")", "· " + pair[1])
 	ui.open_panel(scene_title)
 	for p in scene.get("paragraphs", []): ui.paragraph(p)
-	var run = _state().get("magicDungeon", {}).get("run")
-	if run is Dictionary and run.get("phase", "") == "battle":
-		ui.paragraph("%s · HP %d / %d" % [run.enemy.name, int(run.enemy.hp), int(run.enemy.maxHp)], ui.GOLD)
-		var enemy_meter = ui.make_bar(Color("b5c58e"), 4)
-		enemy_meter.value = float(run.enemy.hp) / float(run.enemy.maxHp) * 100
-		ui.content.add_child(enemy_meter)
 	var note = str(_state().get("systemNote", ""))
 	if not note.is_empty(): ui.paragraph(note, ui.GOLD)
 	var actions = _visible_actions()
@@ -657,27 +660,32 @@ func _choose(entry: Dictionary) -> void:
 	var action: Dictionary = entry.action
 	var battle_action = action.get("type", "") == "arcana_combat"
 	var command = action.get("command", "")
+	if battle_action and command in ["dodge","teleport"]:
+		ui.close_panel()
+		spatial_combat.start_dash(command)
+		return
 	if battle_action and _battle().has("spatial"):
 		ui.close_panel()
 		if command in ["fireball","flame_wave"]: spatial_combat.cast_auto(command)
 		else: spatial_combat.queue_command(command)
 		return
-	if battle_action and command in ["start", "resume", "fireball", "flame_wave", "flame_guard", "dodge", "potion", "finish", "retreat"]:
+	if battle_action and command in ["start", "resume", "fireball", "flame_wave", "flame_guard", "dodge", "teleport", "potion", "finish", "retreat"]:
 		ui.close_panel()
 		if await perform(action, false):
 			if command == "dodge": world.effect("dodge")
 			if command == "retreat": world.player_position = Vector2(576, 910)
 	else:
-		if await perform(action):
-			if _state().get("magicDungeon", {}).get("run") == null and world.indoor == "dungeon": world.change_interior("")
+		await perform(action)
 
 func _magic(command: String) -> void:
+	if command in ["dodge","teleport"]:
+		spatial_combat.start_dash(command)
+		return
 	if busy or ui.overlay.visible or not world.bench_state.is_empty(): return
 	if spatial_combat.available():
 		if command in ["fireball","flame_wave"]: spatial_combat.cast_auto(command)
 		else: spatial_combat.queue_command(command)
 		return
-	if _state().get("magicDungeon", {}).get("run") is Dictionary: return
 	if _battle().is_empty() and command not in ["potion","flame_guard"]: return
 	var action = {"type":"arcana_combat", "command":command}
 	if not _battle().is_empty(): action.battleId = _battle().id
@@ -686,6 +694,9 @@ func _magic(command: String) -> void:
 		if _battle().get("phase", "") in ["victory", "defeat"]: _scene()
 
 func _use_quickslot(index: int) -> void:
+	if ui.quickslot_bindings[index] == "teleport":
+		spatial_combat.start_dash("teleport")
+		return
 	if busy or ui.overlay.visible or snapshot.is_empty(): return
 	if ui.quickslot_bindings[index]=="dev_speed":
 		if developer_tools and not ui.quickslot_buttons[index].disabled:
@@ -694,7 +705,8 @@ func _use_quickslot(index: int) -> void:
 		return
 	if ui.quickslot_bindings[index].is_empty():
 		_quickslot_picker(index)
-	elif not ui.quickslot_buttons[index].disabled:
+	else:
+		# The action path checks current readiness; the HUD refresh can be stale.
 		_magic(ui.quickslot_bindings[index])
 
 func _quickslots_menu() -> void:
@@ -720,7 +732,7 @@ func _quickslot_picker(index: int) -> void:
 			ui.paragraph(spell.schoolName + " 계열",ui.GOLD)
 		var command: String = spell.id
 		ui.choice(spell.name,_spell_hint(spell),func(): _assign_quickslot(index,command),not spell.get("equipped",false),command)
-	for entry in [["회피", "dodge", "스킬 · 적의 공격 회피"], ["마나 포션", "potion", "아이템 · 보유 %d개" % int(_state().get("inventory", {}).get("manaPotion", 0))], ["비워 두기", "", "슬롯에서 해제"]]:
+	for entry in [["텔레포트", "teleport", "기본 마법 · 진행 방향으로 즉시 순간이동"], ["대시", "dodge", "기본 스킬 · 진행 방향으로 즉시 이동"], ["마나 포션", "potion", "아이템 · 보유 %d개" % int(_state().get("inventory", {}).get("manaPotion", 0))], ["비워 두기", "", "슬롯에서 해제"]]:
 		ui.choice(entry[0], entry[2], func():
 			_assign_quickslot(index,entry[1]))
 
@@ -750,7 +762,8 @@ func _skills_menu() -> void:
 		if not spell.get("schoolUnlocked",true): status = spell.schoolName+" 계열 해금 필요"
 		ui.choice(spell.name,status+" · 숙련도 %.2f / 100%s" % [float(spell.get("mastery",0))," · 장착 중" if spell.get("equipped",false) else ""],func(): _skill_details(command),false,command)
 	ui.paragraph("기본 기술",ui.GOLD)
-	ui.choice("회피","습득 완료 · 0.8초 회피 · 재사용 5초",func(): _skill_slot_picker("dodge"),false,"dodge")
+	ui.choice("텔레포트","습득 완료 · 즉시 순간이동 · 0.3초 회피 · MP 0 · 재사용 0초",func(): _skill_slot_picker("teleport"),false,"teleport")
+	ui.choice("대시","습득 완료 · 즉시 전방 이동 · 0.3초 회피 · 재사용 5초",func(): _skill_slot_picker("dodge"),false,"dodge")
 	ui.choice("퀵슬롯 관리","배치 확인 · 교체 · 해제",_quickslots_menu)
 	if developer_tools: ui.paragraph("개발자 전용 이동 가속은 4번 슬롯에 고정됩니다.",ui.MUTED)
 
@@ -759,15 +772,10 @@ func _status_menu() -> void:
 	ui.open_panel("스킬 · 상태")
 	ui.section_tabs(["스킬", "상태"], 1, [_skills_menu, _status_menu])
 	var c = _combat()
-	var run = _state().get("magicDungeon", {}).get("run")
-	var stats: Dictionary = run if run is Dictionary else c
-	var in_dungeon = run is Dictionary
+	var stats: Dictionary = c
 	ui.paragraph("현재 상태", ui.GOLD)
 	ui.paragraph("HP  %d / %d\nMP  %d / %d" % [int(stats.get("hp", 0)), int(stats.get("maxHp", 100)), int(stats.get("mp", 0)), int(stats.get("maxMp", 30))])
-	if in_dungeon:
-		ui.paragraph("던전 레벨 %d · %d층" % [int(_state().get("magicDungeon", {}).get("level", 1)), int(stats.get("floor", 1))])
-	else:
-		ui.paragraph("마나 회복  시간당 %s MP" % str(c.get("manaRegenPerHour", 12)))
+	ui.paragraph("마나 회복  시간당 %s MP" % str(c.get("manaRegenPerHour", 12)))
 	var guard: Dictionary = c.get("guard", {})
 	ui.paragraph("보호막  %d · 남은 시간 %.1f초" % [int(guard.get("amount", 0)), float(guard.get("seconds", 0))] if float(guard.get("amount", 0)) > 0 else "보호막 없음", ui.MUTED)
 	ui.paragraph("스킬 성장", ui.GOLD)
@@ -797,9 +805,6 @@ func _skill_details(command: String) -> void:
 		if _state().get("npcDialogue",{}).get("active") is Dictionary:
 			can_learn = false
 			reason = "대화를 마친 뒤 배울 수 있습니다."
-		if _state().get("magicDungeon",{}).get("run") is Dictionary:
-			can_learn = false
-			reason = "던전을 나온 뒤 배울 수 있습니다."
 		ui.choice("배우기",reason,func(): _learn_skill(command),not can_learn,command)
 	ui.choice("스킬 목록으로","",_skills_menu)
 
@@ -867,6 +872,7 @@ func _menu(kind: String) -> void:
 			ui.open_panel("잠시 쉬어가기")
 			ui.paragraph("아르카나 · 별빛의 도시", ui.GOLD)
 			ui.choice("진행 저장", "현재 모험과 위치를 저장합니다.", _save)
+			ui.choice("조작 버튼 설정", "버튼 영역 크기 · 좌우 · 상하 위치", _controls_settings)
 			ui.choice("조작 방법", "터치와 키보드 안내", _help)
 			ui.choice("스킬 관리", "스킬 습득 · 설명 · 퀵슬롯 배치", _skills_menu)
 			ui.choice("전체 화면", "F · Esc로 해제", _fullscreen)
@@ -954,7 +960,7 @@ func _help() -> void:
 	ui.paragraph("화면의 길을 누르면 장애물을 피해 걸어갑니다. 왼쪽 아래를 누른 채 밀면 그 자리에 나타나는 조이스틱으로 움직입니다. WASD·방향키도 사용할 수 있습니다.")
 	ui.paragraph("문·인물·작업대 가까이에서 오른쪽 아래 상호작용 버튼 또는 E·Space를 누르세요. 학교 안에서도 각 공간으로 걸어가 상호작용할 수 있습니다.")
 	ui.paragraph("상호작용 버튼 주위의 네 퀵슬롯은 숫자 키 1~4와 연결됩니다. 빈 슬롯을 누르거나 메뉴의 퀵슬롯 설정에서 불꽃·회피·마나 포션을 배치하세요. 배치는 다음 접속에도 유지됩니다.")
-	ui.paragraph("광장 슬라임을 눌러 선택하세요. 불꽃을 짧게 누르면 자동 조준하고, 길게 누르거나 끌면 직접 조준하며 손을 떼면 발사합니다. 위쪽 취소 영역으로 끌면 취소합니다. 첫 명중 후에만 슬라임이 쫓아옵니다. 도약 경로에서 벗어나거나 회피로 몸통 박치기를 피하고, 슬라임과 멀어지면 추격이 끝납니다. 파이어볼은 MP 4·재사용 3초, 회피는 0.8초·재사용 5초입니다.")
+	ui.paragraph("광장 슬라임을 눌러 선택하세요. 불꽃을 짧게 누르면 자동 조준하고, 길게 누르거나 끌면 직접 조준하며 손을 떼면 발사합니다. 위쪽 취소 영역으로 끌면 취소합니다. 첫 명중 후에만 슬라임이 쫓아옵니다. 도약 경로에서 벗어나거나 회피로 몸통 박치기를 피하고, 슬라임과 멀어지면 추격이 끝납니다. 파이어볼은 MP 0·재사용 0초, 회피는 0.8초·재사용 5초입니다.")
 	ui.paragraph("메뉴를 열거나 다른 창으로 전환하면 시간을 멈춥니다. 진행 저장 후 다시 들어오면 같은 모험을 이어 갑니다.")
 
 func _save() -> bool:
@@ -1146,3 +1152,40 @@ func _bridge_state(_args: Array) -> void:
 	var state = {"engine":"Godot 4.5.1", "renderer":"native_3d_pixel", "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))
+
+func _controls_settings() -> void:
+	panel_mode = "controls"
+	ui.open_panel("조작 버튼 설정")
+	var orientation: String = ui.controls_orientation()
+	ui.paragraph(("가로" if orientation == "landscape" else "세로") + " 화면 설정 · 변경 즉시 적용되며 자동 저장됩니다. 가로·세로 화면은 따로 저장됩니다.")
+	var entry: Dictionary = ui.controls_layout()
+	ui.setting_slider("크기", 75, 200, 5, float(entry.get("scale", 1.25 if orientation == "landscape" else 1.0)) * 100, "%", func(value: float): _adjust_controls("scale", value / 100.0))
+	ui.setting_slider("좌우 위치 · 왼쪽 ↔ 오른쪽", 0, 100, 1, float(entry.get("x", 1.0)) * 100, "%", func(value: float): _adjust_controls("x", value / 100.0))
+	ui.setting_slider("상하 위치 · 위 ↔ 아래", 0, 100, 1, float(entry.get("y", 1.0)) * 100, "%", func(value: float): _adjust_controls("y", value / 100.0))
+	ui.choice("현재 방향 기본값 복원", "크기와 위치를 처음 상태로 되돌립니다.", func():
+		ui.reset_controls()
+		_store(CONTROLS_KEY, JSON.stringify(ui.control_layouts))
+		_controls_settings())
+	ui.choice("적용한 배치 확인", "설정을 닫고 게임으로 돌아갑니다.", ui.close_panel)
+
+func _adjust_controls(key: String, value: float) -> void:
+	ui.adjust_controls(key, value)
+	_store(CONTROLS_KEY, JSON.stringify(ui.control_layouts))
+
+func _update_mei_nameplate() -> void:
+	if not is_instance_valid(ui) or not is_instance_valid(world_renderer): return
+	var mei: Node3D = null
+	for npc in get_tree().get_nodes_in_group("arcana_npc_idle"):
+		if world_renderer.is_ancestor_of(npc) and npc.is_visible_in_tree():
+			mei = npc
+			break
+	var shown = mei != null and not snapshot.is_empty() and world.indoor.is_empty()
+	var screen_position = Vector2.ZERO
+	if shown:
+		var camera: Camera3D = world_renderer.camera
+		shown = not camera.is_position_behind(mei.global_position)
+		if shown:
+			var source_position = camera.unproject_position(mei.global_position)
+			screen_position = viewport_host.position + source_position * viewport_host.size / Vector2(viewport.size) * viewport_host.scale
+			shown = get_viewport().get_visible_rect().has_point(screen_position)
+	ui.update_mei_nameplate(screen_position, shown)

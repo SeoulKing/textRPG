@@ -45,6 +45,15 @@ func _ready() -> void:
 	_sprite("bookcase",Vector3(9.4,0,4.2))
 	_sprite("storage-bench",Vector3(12,0,5.8))
 	_sprite("counter",Vector3(16.7,0,8.2))
+	# Counter naturally occludes the legs; keep the shared character foot/scale.
+	var innkeeper = Prop.new()
+	innkeeper.name = "Innkeeper"
+	innkeeper.position = Vector3(16.7,0,5.9)
+	innkeeper.asset = load("res://art/export/innkeeper/innkeeper.png") as Texture2D
+	innkeeper.pixel_size = Vector2i(96,136)
+	innkeeper.foot = Vector2(48,116)
+	innkeeper.shadow_size = Vector2(.6,.25)
+	add_child(innkeeper)
 	_sprite("stairs",Vector3(19.7,0,7.9))
 	_sprite("lantern",Vector3(20.2,.45,7.7),false)
 	_sprite("keys",Vector3(16.7,1.35,4.05),false)

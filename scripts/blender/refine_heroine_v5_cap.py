@@ -2,7 +2,7 @@ import bpy,math,sys,numpy as np
 from pathlib import Path
 from mathutils import Vector
 R=Path(sys.argv[sys.argv.index('--')+1]);P=R/'art-studies/arcana-hero/white-bob-heroine/blender-v5'
-bpy.ops.wm.open_mainfile(filepath=str(P/'heroine-v5-head.blend'))
+bpy.ops.wm.open_mainfile(filepath=str(P/'heroine-v5-head-blockout.blend'))
 profile=np.array([(0,.020,.038),(.035,.084,.079),(.09,.158,.122),(.18,.225,.162),(.28,.285,.194),(.40,.322,.213),(.52,.332,.215),(.65,.322,.222),(.78,.303,.234),(.90,.260,.218),(1.00,.152,.145),(1.035,.010,.012)])
 slopes=np.gradient(profile[:,1:],profile[:,0],axis=0)
 def rad(z):
@@ -30,4 +30,4 @@ for lp in d.loops:layer.data[lp.index].uv=uv[lp.vertex_index]
 for poly in d.polygons:poly.use_smooth=True
 o.data=d
 if old.users==0:bpy.data.meshes.remove(old)
-bpy.ops.wm.save_as_mainfile(filepath=str(P/'heroine-v5-head.blend'));print('V5_CAP_HEM_REFINED')
+bpy.ops.wm.save_as_mainfile(filepath=str(P/'heroine-v5-head-blockout.blend'));print('V5_CAP_HEM_REFINED')

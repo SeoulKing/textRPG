@@ -1,0 +1,54 @@
+{
+  "frames": [
+    {
+      "frame": 0,
+      "reference_ground_y": 464,
+      "scale": 0.21,
+      "target_foot_y": 115
+    },
+    {
+      "frame": 1,
+      "reference_ground_y": 467,
+      "scale": 0.21,
+      "target_foot_y": 114
+    },
+    {
+      "frame": 2,
+      "reference_ground_y": 468,
+      "scale": 0.21,
+      "target_foot_y": 113
+    },
+    {
+      "frame": 3,
+      "reference_ground_y": 460,
+      "scale": 0.21,
+      "target_foot_y": 112
+    },
+    {
+      "frame": 4,
+      "reference_ground_y": 428,
+      "scale": 0.21,
+      "target_foot_y": 115
+    },
+    {
+      "frame": 5,
+      "reference_ground_y": 430,
+      "scale": 0.21,
+      "target_foot_y": 114
+    },
+    {
+      "frame": 6,
+      "reference_ground_y": 428,
+      "scale": 0.21,
+      "target_foot_y": 113
+    },
+    {
+      "frame": 7,
+      "reference_ground_y": 424,
+      "scale": 0.21,
+      "target_foot_y": 112
+    }
+  ],
+  "method": "PixelPen indexed layer corrections from motion study; upper body retained",
+  "study": "D:/BANG/project/textRPG/art-studies/arcana-hero/white-bob-heroine/run-motion-reference/generated-keyposes-v1.png"
+}

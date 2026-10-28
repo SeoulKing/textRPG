@@ -2,6 +2,8 @@
 extends Node3D
 ## One logical tile = one world unit = 64 source dots. No 3D body deformation.
 const FRAMES = preload("res://art/export/monsters/slime.tres")
+const LIT_ATLAS = preload("res://art/export/monsters/slime-lit.res")
+const SURFACE_ATLAS = preload("res://art/export/monsters/slime-surface.res")
 const SHADER = preload("res://art/resources/slime_sprite.gdshader")
 const SHADOW = preload("res://art/resources/heroine_shadow.gdshader")
 @export_enum("idle","hop","prepare","attack","hit","death") var preview_animation = "idle"
@@ -33,7 +35,8 @@ func _ready() -> void:
 	art.custom_aabb = AABB(Vector3(-.6,0,-.6),Vector3(1.2,1.5,1.2))
 	material = ShaderMaterial.new()
 	material.shader = SHADER
-	material.set_shader_parameter("sprite_sheet",FRAMES.get_frame_texture("idle",0).atlas)
+	material.set_shader_parameter("sprite_sheet",LIT_ATLAS)
+	material.set_shader_parameter("surface_sheet",SURFACE_ATLAS)
 	material.set_shader_parameter("editor_preview",Engine.is_editor_hint() or standalone_preview)
 	art.material_override = material
 	add_child(art)

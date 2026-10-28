@@ -22,6 +22,17 @@ async function main(){
   for(let i=0;i<pixels.length;i+=3){const r=Math.round(pixels[i]*31/255),g=Math.round(pixels[i+1]*31/255),b=Math.round(pixels[i+2]*31/255),j=(g*1024+b*32+r)*3;pixels.set(lut.subarray(j,j+3),i);}
   mats.push(pixels);
  }
+ // Filter source detail into the native 2x2 tile grid before palette reduction.
+ const grassPath=path.join(ROOT,'art-studies/town-ground/source/grass-short.png');
+ const grassInfo=await sharp(grassPath).metadata();
+ // Sample a material-sized region: shrinking the entire large painting erases blades.
+ const cropW=Math.min(grassInfo.width,W*4),cropH=Math.min(grassInfo.height,H*4);
+ const grass=await sharp(grassPath).extract({left:Math.floor((grassInfo.width-cropW)/2),top:Math.floor((grassInfo.height-cropH)/2),width:cropW,height:cropH}).resize(W*2,H*2,{kernel:'lanczos3'}).removeAlpha().raw().toBuffer();
+ const mean=[0,0,0];
+ for(let i=0;i<grass.length;i++)mean[i%3]+=grass[i]/(128*90);
+ // Keep the artwork's clustered blade shapes and hue shading like nearby foliage.
+ // Moderate contrast only; a fixed gray-value ramp flattened this material.
+ for(let i=0;i<grass.length;i++)grass[i]=Math.round(mean[i%3]+(grass[i]-mean[i%3])*.9);
  const soil=await sharp(path.join(ROOT,'godot-arcana/art/export/reference/soil.png')).resize(128,90,{kernel:'nearest'}).removeAlpha().raw().toBuffer();mats.push(soil);
  const sample=(q,x,y)=>{const m=mats[q],i=((y%90)*128+x%128)*3;return [...m.subarray(i,i+3),255];};
  // Shared slab geometry for EVERY terrain and alternate tile. Source colors stay
@@ -58,7 +69,11 @@ async function main(){
  for(let n=0;n<tiles.length;n++){
   const tile=tiles[n],v=tile.variant||0,ox=(v%2)*64,oy=Math.floor(v/2)*45;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-   let color=sample(2+(v%2),x+ox,y+oy);
+   // Shared opposite edge strips let any of the four variants meet cleanly.
+   const gx=(x<3||x>=W-3||y<2||y>=H-2)?x:x+ox;
+   const gy=(x<3||x>=W-3||y<2||y>=H-2)?y:y+oy;
+   const gi=(gy*128+gx)*3;
+   let color=mapColor([...grass.subarray(gi,gi+3)]);
    if(tile.kind==='soil')color=sample(4,x+ox,y+oy);
    if(tile.kind==='paving'){
     const m=tile.mask,px=x+.5,py=(y+.5)*64/45;let d=100;
@@ -79,8 +94,20 @@ async function main(){
   }
  }
  await sharp(atlas,{raw:{width:W*8,height:H*rows,channels:4}}).png().toFile(path.join(OUT,'town-ground.png'));
+ // Export actual-size editable tiles and a nearest-neighbor inspection strip.
+ const grassTiles=[];
+ for(let v=0;v<4;v++){
+  const tile=await sharp(atlas,{raw:{width:W*8,height:H*rows,channels:4}}).extract({left:v*W,top:0,width:W,height:H}).png().toBuffer();
+  grassTiles.push(tile);
+  await fs.writeFile(path.join(ROOT,'art-studies/town-ground/source/grass-tile-'+v+'.png'),tile);
+ }
+ const repeat=[];
+ for(let y=0;y<10;y++)for(let x=0;x<10;x++)repeat.push({input:grassTiles[(x*7+y*11)%4],left:x*W,top:y*H});
+ await sharp({create:{width:W*10,height:H*10,channels:4,background:'#000'}}).composite(repeat).png().toFile(path.join(ROOT,'art-studies/town-ground/grass-repeat-preview.png'));
+ const strip=await sharp({create:{width:W*4,height:H,channels:4,background:'#000'}}).composite(grassTiles.map((input,v)=>({input,left:v*W,top:0}))).png().toBuffer();
+ await sharp(strip).resize(W*4*4,H*4,{kernel:'nearest'}).png().toFile(path.join(ROOT,'art-studies/town-ground/grass-pixel-preview.png'));
  await fs.writeFile(path.join(OUT,'tiles.json'),JSON.stringify({tileSize:[W,H],columns:8,rows,tiles},null,2)+'\n');
- await fs.writeFile(path.join(ROOT,'art-studies/town-ground/manifest.json'),JSON.stringify({source:'source/materials.png',concept:'approved-concept.png',generator:'built-in image_gen',density:64,tile:[64,45],projection:{yaw:0,pitch:45},terrainMasks:masks.length,grassVariants:4,pavingVariants:4,alpha:[0,255],seams:'shared 64x45 phase; invariant variant borders; transparent ground transitions',palette:'existing world LUT',status:'approved direction; integrated assets pending user review'},null,2)+'\n');
+ await fs.writeFile(path.join(ROOT,'art-studies/town-ground/manifest.json'),JSON.stringify({source:'source/materials.png',concept:'approved-concept.png',generator:'built-in image_gen',density:64,tile:[64,45],projection:{yaw:0,pitch:45},terrainMasks:masks.length,grassSource:'source/grass-short.png',grassPixelGrid:[W,H],grassResample:'256x180 material crop to 128x90; original color clusters retained',grassContrast:.9,grassVariants:4,pavingVariants:4,alpha:[0,255],seams:'shared 64x45 phase; invariant variant borders; transparent ground transitions',palette:'existing world LUT',status:'approved direction; integrated assets pending user review'},null,2)+'\n');
  console.log(`Built ${tiles.length} tiles, ${masks.length} terrain connections, ${W*8}x${H*rows}`);
 }
 main().catch(e=>{console.error(e);process.exitCode=1});

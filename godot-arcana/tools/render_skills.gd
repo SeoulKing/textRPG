@@ -51,7 +51,6 @@ func _render() -> void:
 		ui.mp_label.text = "MP 18 / 30"
 		ui.hp_bar.value = 72
 		ui.mp_bar.value = 60
-		ui.xp_bar.value = 35
 		ui.attack_bar.hide()
 		ui.quickslot_counts[2].text = "3"
 		ui.cooldown_bars[ui.quickslot_buttons[0]].visible = true

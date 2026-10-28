@@ -707,7 +707,6 @@ export function syncClock(state: GameState, now = Date.now()) {
     if (elapsed > 5000 || now - clock.heartbeatAt > 5000) {
       clock.paused = true;
       pauseArcanaCombat(state);
-      if (state.magicDungeon.run?.phase === "battle") state.magicDungeon.run.paused = true;
     } else if (!state.isGameOver) {
       advanceGameTime(state, elapsed);
       tickArcanaCombat(state, elapsed / 1000);
@@ -727,7 +726,6 @@ export function performWorldClockAction(state: GameState, action: Extract<GameAc
   if (action.command === "pause") {
     clock.paused = true;
     pauseArcanaCombat(state);
-    if (state.magicDungeon.run?.phase === "battle") state.magicDungeon.run.paused = true;
   } else {
     clock.ownerId = action.clientId; clock.paused = false; clock.heartbeatAt = now;
   }
@@ -765,7 +763,6 @@ export function createInitialGameState(startAt: "shelter" | "arcana" = "shelter"
     money: 6500,
     skills: [],
     skillProgress: createEmptySkillProgress(),
-    magicDungeon: { level: 1, xp: 0, bestFloor: 0, runNumber: 0, run: null },
     arcanaCombat: { ...ArcanaCombatSchema.parse(undefined), learnedSpells: ["fireball"] },
     activeClock: ActiveClockSchema.parse(undefined),
     inventory: {
@@ -1357,8 +1354,6 @@ export function performAction(
     case "world_clock":
     case "arcana_combat":
       throw new Error("이 행동은 전용 서비스를 통해 처리해야 합니다.");
-    case "magic_dungeon":
-      throw new Error("마법도시 던전 행동은 던전 서비스를 통해 처리해야 합니다.");
     case "academy_move": {
       const move = resolveAcademyMove(state, action.roomId, registry);
       if (move.minutes > 0) advanceGameMinutes(state, move.minutes, options);

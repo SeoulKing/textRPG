@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "renderer": "godot-arcana/scripts/heroine_run.gd",
   "world": "godot-arcana/scripts/pixel3d_world.gd",
   "frameSize": [
@@ -22,104 +22,300 @@
     "sw"
   ],
   "cycleDistanceMapUnits": 20,
+  "identity": "godot-arcana/art/source/heroine/identity-v1/identity.json",
+  "source": {
+    "directory": "godot-arcana/art/source/heroine/run-reference-v15",
+    "registration": "registration.json",
+    "pixelpenDirectory": "pixelpen"
+  },
+  "exportDirectory": "godot-arcana/art/export/heroine-run-reference-v15",
+  "referenceSpec": "godot-arcana/art/resources/heroine_reference_spec.gd",
+  "expectedActiveFrames": 152,
+  "display": {
+    "filter": "nearest",
+    "previewScale": 2,
+    "camera": "front-three-quarter"
+  },
   "atlases": [
     {
+      "id": "idle",
+      "path": "godot-arcana/art/export/heroine-run-reference-v15/heroine-idle.png",
+      "resourceConstant": "IDLE_ATLAS",
+      "spriteFrames": "godot-arcana/art/export/heroine-run-reference-v15/heroine-idle.tres",
+      "grid": [
+        4,
+        8
+      ],
+      "directions": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
+      ],
+      "sourcePattern": "idle_{direction}.pxpen",
+      "layout": "direction-rows",
+      "frameCount": 4,
+      "authoringTiming": "pixelpen-timeline-fps",
+      "runtime": {
+        "mode": "durations",
+        "seconds": [
+          1.15,
+          1.0,
+          1.85,
+          0.13
+        ],
+        "evidence": [
+          "fposmod(age,4.13)",
+          "phase<1.15:return 0",
+          "phase<2.15:return 1",
+          "phase<4.0:return 2",
+          "posmod(frame,4)"
+        ]
+      }
+    },
+    {
       "id": "run",
-      "path": "godot-arcana/art/export/heroine-run-v1/heroine-run.png",
+      "path": "godot-arcana/art/export/heroine-run-reference-v15/heroine-run.png",
+      "resourceConstant": "ATLAS",
+      "spriteFrames": "godot-arcana/art/export/heroine-run-reference-v15/heroine-run.tres",
       "grid": [
         8,
         9
       ],
-      "clips": [
+      "directions": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
+      ],
+      "sourcePattern": "run_{direction}.pxpen",
+      "layout": "direction-rows",
+      "frameCount": 8,
+      "authoringTiming": "pixelpen-timeline-fps",
+      "spriteFramesConstant": "FRAMES",
+      "auxiliary": [
         {
-          "name": "run",
-          "layout": "direction-rows",
-          "frames": 8
-        },
-        {
-          "name": "idle-legacy",
-          "layout": "direction-columns",
+          "name": "idle",
           "row": 8,
-          "frames": 1,
-          "active": false
+          "sourceAtlas": "idle",
+          "sourceFrame": 0
         }
-      ]
+      ],
+      "runtime": {
+        "mode": "distance",
+        "cycleDistanceMapUnits": 20,
+        "evidence": [
+          "distance/20.0",
+          "walk_phase*FRAMES.get_frame_count(\"run_\"+DIRECTIONS[direction])"
+        ]
+      }
     },
     {
       "id": "cast",
-      "path": "godot-arcana/art/export/heroine-cast-v1/heroine-cast.png",
+      "path": "godot-arcana/art/export/heroine-run-reference-v15/heroine-cast.png",
+      "resourceConstant": "CAST_ATLAS",
+      "spriteFrames": "godot-arcana/art/export/heroine-run-reference-v15/heroine-cast.tres",
       "grid": [
-        4,
+        6,
         8
       ],
-      "clips": [
-        {
-          "name": "cast",
-          "layout": "direction-rows",
-          "frames": 4
-        }
-      ]
+      "directions": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
+      ],
+      "sourcePattern": "cast_{direction}.pxpen",
+      "layout": "direction-rows",
+      "frameCount": 6,
+      "authoringTiming": "pixelpen-timeline-fps",
+      "runtime": {
+        "mode": "durations",
+        "seconds": [
+          0.04,
+          0.08,
+          0.2,
+          0.16,
+          0.12,
+          0.08
+        ],
+        "evidence": [
+          "const CAST_GATHER=.32",
+          "const CAST_DURATION=.68",
+          "cast_age<.04:return 0",
+          "cast_age<.12:return 1",
+          "cast_age<CAST_GATHER:return 2",
+          "cast_age<.48:return 3",
+          "cast_age<.60:return 4",
+          "return 5"
+        ]
+      }
     },
     {
       "id": "bench",
-      "path": "godot-arcana/art/export/heroine-bench-v1/heroine-bench.png",
+      "path": "godot-arcana/art/export/heroine-run-reference-v15/heroine-bench.png",
+      "resourceConstant": "BENCH_ATLAS",
+      "spriteFrames": "godot-arcana/art/export/heroine-run-reference-v15/heroine-bench.tres",
       "grid": [
         4,
         2
       ],
-      "direction": "s",
-      "clips": [
-        {
-          "name": "sit",
-          "frames": [
-            0,
-            1,
-            2,
-            3
-          ],
-          "duration": 0.52
-        },
-        {
-          "name": "seated",
-          "frames": [
-            3,
-            4,
-            5
-          ],
-          "loop": true
-        },
-        {
-          "name": "stand",
-          "frames": [
-            3,
-            6,
-            7,
-            0
-          ],
-          "duration": 0.42
-        }
-      ]
+      "directions": [
+        "s"
+      ],
+      "sourcePattern": "bench_{direction}.pxpen",
+      "layout": "cells",
+      "frameCount": 8,
+      "authoringTiming": "pixelpen-timeline-fps",
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "runtime": {
+        "mode": "states",
+        "clips": [
+          {
+            "name": "sit",
+            "frames": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "secondsPerFrame": 0.13
+          },
+          {
+            "name": "stand",
+            "frames": [
+              3,
+              6,
+              7,
+              0
+            ],
+            "secondsPerFrame": 0.105
+          },
+          {
+            "name": "seated",
+            "frames": [
+              3,
+              4,
+              5
+            ],
+            "loop": true,
+            "blinkPeriod": 4.2,
+            "blinkAfter": 3.95,
+            "breathPeriod": 2.4,
+            "breathAfter": 1.2
+          }
+        ],
+        "evidence": [
+          "[0,1,2,3][mini(3,int(age/.13))]",
+          "[3,6,7,0][mini(3,int(age/.105))]",
+          "fposmod(age,4.2)",
+          "phase>3.95",
+          "fposmod(age,2.4)>1.2"
+        ]
+      }
+    }
+  ],
+  "boundaries": [
+    {
+      "id": "cast-enter",
+      "directions": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
+      ],
+      "left": {
+        "atlas": "idle",
+        "frame": 0
+      },
+      "right": {
+        "atlas": "cast",
+        "frame": 0
+      }
     },
     {
-      "id": "idle",
-      "path": "godot-arcana/art/export/heroine-idle-v1/heroine-idle.png",
-      "grid": [
-        4,
-        8
+      "id": "cast-return",
+      "directions": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
       ],
-      "clips": [
-        {
-          "name": "idle",
-          "layout": "direction-rows",
-          "frames": 4,
-          "durations": [
-            1.15,
-            1.0,
-            1.85,
-            0.13
-          ]
-        }
-      ]
+      "left": {
+        "atlas": "idle",
+        "frame": 0
+      },
+      "right": {
+        "atlas": "cast",
+        "frame": 5
+      }
+    },
+    {
+      "id": "bench-standing",
+      "directions": [
+        "s"
+      ],
+      "left": {
+        "atlas": "idle",
+        "frame": 0
+      },
+      "right": {
+        "atlas": "bench",
+        "frame": 0
+      }
     }
   ],
   "stages": [

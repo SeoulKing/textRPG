@@ -5,7 +5,7 @@ from mathutils import Vector
 from mathutils.geometry import delaunay_2d_cdt
 R=Path(sys.argv[sys.argv.index('--')+1]); P=R/'art-studies/arcana-hero/white-bob-heroine/blender-v5';T=P/'textures';V=P/'review'
 for p in [P,T,V]:p.mkdir(exist_ok=True)
-if (P/'heroine-v5-head.blend').exists() and '--replace-candidate' not in sys.argv:raise RuntimeError('Saved V5 exists; read/export saved source or explicitly --replace-candidate')
+if (P/'heroine-v5-head-blockout.blend').exists() and '--replace-candidate' not in sys.argv:raise RuntimeError('Saved V5 exists; read/export saved source or explicitly --replace-candidate')
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 for data in list(bpy.data.materials):bpy.data.materials.remove(data)
 C=bpy.data.collections.new('V5 EDITABLE - face hair and costume bust');bpy.context.scene.collection.children.link(C)
@@ -300,7 +300,7 @@ for screen in bpy.data.screens:
   if area.type=='VIEW_3D':area.spaces.active.region_3d.view_distance=2.9;area.spaces.active.region_3d.view_location=(0,0,.35);area.spaces.active.region_3d.view_rotation=cam.rotation_euler.to_quaternion();area.spaces.active.shading.type='MATERIAL'
 bpy.ops.object.select_all(action='DESELECT');face.select_set(True);bpy.context.view_layer.objects.active=face
 (P/'hair-lock-authoring.json').write_text(json.dumps(lockspec,indent=2),encoding='utf8')
-bpy.ops.wm.save_as_mainfile(filepath=str(P/'heroine-v5-head.blend'))
+bpy.ops.wm.save_as_mainfile(filepath=str(P/'heroine-v5-head-blockout.blend'))
 for name,pos,target,scale in [('portrait',(2.1,-6,1.06),(0,-.02,.30),1.95),('front',(0,-6,.56),(0,-.015,.35),1.80),('side',(6,-.03,.66),(0,0,.35),1.80),('three-quarter',(3,-5.2,.85),(0,-.015,.35),1.80),('rear',(0,6,.70),(0,.03,.35),1.80)]:
  cam.location=pos;cam.rotation_euler=(Vector(target)-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.ortho_scale=scale;s.render.filepath=str(V/(name+'.png'));bpy.ops.render.render(write_still=True)
 print('V5_NATIVE_HEAD_SAVED',len(parts),'parts',len(lockspec),'solid hair locks',flush=True)

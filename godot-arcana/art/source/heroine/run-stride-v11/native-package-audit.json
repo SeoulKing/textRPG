@@ -1,0 +1,209 @@
+{
+  "contract": "godot-arcana/art/source/heroine/animation-pipeline.json",
+  "identity": "heroine-reference-bright-v10-baseline",
+  "source": "saved native PixelPen files; no source regeneration",
+  "sourceDirectory": "godot-arcana/art/source/heroine/run-stride-v11",
+  "exportDirectory": "godot-arcana/art/export/heroine-run-stride-v11",
+  "frames": 152,
+  "clips": {
+    "idle_s": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "1fc43330814c7710c0c96ac3ee48b2862e7f18fa8f0aa705bf0c1737384a7bc4"
+    },
+    "idle_se": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "b204217b031aae0194ee731841da0abdbf1847bcb8b365ef238f27f6ead9968f"
+    },
+    "idle_e": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "1dffa62211b48da0b4f55aa839e31f4ef2b4dd735c17801b3964662fd742fdbc"
+    },
+    "idle_ne": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "5d067ef9d8247a7a332b54afc8c8d2ebe222c425e88a7ebaf0bda22d9f25cfe0"
+    },
+    "idle_n": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "fc0a896891231f4433efa7db427b2576250e8e6ad5c12cc1f5f1e780ba38405b"
+    },
+    "idle_nw": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "2ef22e9727dbf3dc3e599b3747734b6692e0bc1e7c6e861012b21466a1a21983"
+    },
+    "idle_w": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "db77e1561ad45b0f2d7bd70a79607a3bd8b5a2d432b85a604ed1c9957ad30927"
+    },
+    "idle_sw": {
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "sourceSha256": "311e5ffb9c9d10bbabd4b90181314505af5f18b9698da47a2ffa2136d8255202"
+    },
+    "run_s": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "e80046d089977e99e577e64441326f63c36ef7e32817bc5645506bba19d40add"
+    },
+    "run_se": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "a2e512085786599c0e5a8113ad21b4b845144f076386073fd49962b9507c6527"
+    },
+    "run_e": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "023bad04622092f76e495234c50832c7974e6c63e28022d4d0b11e3d5b2cfece"
+    },
+    "run_ne": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "50423f17363ccc41820d4b89c69b8393c2b690bdb91b1f9567ed8d82c0f81b07"
+    },
+    "run_n": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "d868b78800e79909bb6a710fe4018cb0309a07e7e12fa61bf0bc4971fd26fdae"
+    },
+    "run_nw": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "500b0a59a27004ed03494b61702ad46b2a81287d3d01413b5b803f6b97a0be7f"
+    },
+    "run_w": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "56a4d119db9f02f1d67fbe412e0f7eae6471e81c37b52a9331f0001c0455297b"
+    },
+    "run_sw": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "sourceSha256": "5b456b53872d74f729cb3a6c2c3df8d1aa45ae5261f43561f9268a7928817cf5"
+    },
+    "cast_s": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "cb7ae1c2d228c5d0d292e3cf34679b10f9f1ba179382ef9f36ed40d7311c2465"
+    },
+    "cast_se": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "f7398c9ff0d2839f1665501ec22f46be375a79d3567a60debb1d4f4b3d1f29c7"
+    },
+    "cast_e": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "40694382e7619e45613561a5582dcb3835db38472aa1b7e6408318f5c16df8a8"
+    },
+    "cast_ne": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "fc7b1049f2311fb8e96ead556e53f8d06175d8542ed867217e28359295d8a3ff"
+    },
+    "cast_n": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "94acaf80b7b91992295603b9d8b4268c0b66ed921cce36529b40f89085c0cc05"
+    },
+    "cast_nw": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "f8d62aafd5de8372c2ff2c65c333beda2461e031cdc4d3d93f5d9db09e8b40a7"
+    },
+    "cast_w": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "83209778badc5574e22ba3e41161efb29639d8b05f4ad8763db10ba1bb51bc53"
+    },
+    "cast_sw": {
+      "frames": 6,
+      "fps": 10.0,
+      "loop": false,
+      "sourceSha256": "0d8cb9cbb59712169affdd418e16127ceb3f1f6e47971528cbd39fd6e3c18310"
+    },
+    "bench_s": {
+      "frames": 8,
+      "fps": 8.0,
+      "loop": false,
+      "sourceSha256": "e7871f23a4ac3ae2a09887a1a4aa8b5fa862995638e7dd2cc30defcc9cd9e971"
+    }
+  },
+  "boundaries": {
+    "cast-enter": "equal",
+    "cast-return": "equal",
+    "bench-standing": "equal"
+  },
+  "structuralPreflight": "passed",
+  "visualReview": "required",
+  "finalArtApproval": "not-recorded",
+  "timingNote": "SpriteFrames and *-native.gif use PixelPen timeline/fps. Gameplay timing stays in renderer.",
+  "outputs": [
+    "godot-arcana/art/export/heroine-run-stride-v11/heroine-idle.png",
+    "godot-arcana/art/export/heroine-run-stride-v11/heroine-idle.tres",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle-native-all-frames.png",
+    "godot-arcana/art/export/heroine-run-stride-v11/heroine-run.png",
+    "godot-arcana/art/export/heroine-run-stride-v11/heroine-run.tres",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run-native-all-frames.png",
+    "godot-arcana/art/export/heroine-run-stride-v11/heroine-cast.png",
+    "godot-arcana/art/export/heroine-run-stride-v11/heroine-cast.tres",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast-native-all-frames.png",
+    "godot-arcana/art/export/heroine-run-stride-v11/heroine-bench.png",
+    "godot-arcana/art/export/heroine-run-stride-v11/heroine-bench.tres",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/bench-native-all-frames.png",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/native-state-flow.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle_s-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle_se-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle_e-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle_ne-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle_n-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle_nw-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle_w-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/idle_sw-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run_s-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run_se-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run_e-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run_ne-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run_n-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run_nw-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run_w-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/run_sw-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast_s-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast_se-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast_e-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast_ne-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast_n-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast_nw-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast_w-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/cast_sw-native.gif",
+    "godot-arcana/art/source/heroine/run-stride-v11/preview/bench_s-native.gif"
+  ]
+}

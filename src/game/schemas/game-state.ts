@@ -9,7 +9,6 @@ import { SubwayExpeditionStateSchema } from "./subway-expedition";
 import { SkillProgressStateSchema } from "./skill-progression";
 import { SystemNoteEntriesSchema } from "./system-note";
 import { NpcDialogueStateSchema } from "./npc-dialogue";
-import { MagicDungeonStateSchema } from "./magic-dungeon";
 import { ArcanaCombatSchema, ActiveClockSchema } from "./arcana-combat";
 import { HealthConditionsSchema } from "./health-condition";
 import { ChoicePreferencesSchema } from "./choice-preferences";
@@ -77,7 +76,6 @@ export const GameStateSchema = z.object({
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
   subwayExpedition: SubwayExpeditionStateSchema,
-  magicDungeon: MagicDungeonStateSchema,
   arcanaCombat: ArcanaCombatSchema,
   activeClock: ActiveClockSchema,
   stateWorld: SnapshotSchema.optional(),

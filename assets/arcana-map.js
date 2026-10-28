@@ -170,7 +170,7 @@
   window.ArcanaMapUI={
     create(host,onActivate){return new ArcanaMap(host,onActivate);},
     update(snapshot,busy,onActivate){
-      active=Boolean(snapshot?.state?.location==="arcana_plaza"&&!snapshot.state.magicDungeon?.run&&!snapshot.state.npcDialogue?.active&&["arcana_plaza_first_intro","arcana_plaza_repeat_intro"].includes(snapshot.currentScene?.id));
+      active=Boolean(snapshot?.state?.location==="arcana_plaza"&&!snapshot.state.npcDialogue?.active&&["arcana_plaza_first_intro","arcana_plaza_repeat_intro"].includes(snapshot.currentScene?.id));
       document.querySelector(".scene-frame")?.classList.toggle("has-arcana-map",active);
       if(!active){mainMap?.hide();return;}
       if(!mainMap){const host=document.createElement("section");host.id="arcana-map";document.querySelector(".scene-copy").before(host);mainMap=new ArcanaMap(host,onActivate);}

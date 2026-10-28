@@ -1,0 +1,11 @@
+{
+  "source": "heroine-v5-head.blend",
+  "sha256": "d05ff024939b9fbe3052de85f73fd3ac209b626e9e4b0cadeacc1db1ed74b657",
+  "native_blender_review_completed": true,
+  "reference_texture_is_not_a_face_plane": true,
+  "game_integration": false,
+  "review_frames": 24,
+  "face_topology": "pixiv Inc. Sendagaya Shino CC0, modified",
+  "hair_surface": "custom modeled 3D locks with generated UV albedo",
+  "scope": "head/hair master with supporting costume bust"
+}

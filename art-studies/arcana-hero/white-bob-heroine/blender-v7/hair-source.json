@@ -1,0 +1,232 @@
+[
+  {
+    "strip": 0,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 398
+  },
+  {
+    "strip": 1,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 404
+  },
+  {
+    "strip": 2,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 410
+  },
+  {
+    "strip": 3,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 416
+  },
+  {
+    "strip": 4,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 416
+  },
+  {
+    "strip": 5,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 416
+  },
+  {
+    "strip": 6,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 422
+  },
+  {
+    "strip": 7,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 422
+  },
+  {
+    "strip": 8,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 422
+  },
+  {
+    "strip": 9,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 422
+  },
+  {
+    "strip": 10,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 416
+  },
+  {
+    "strip": 11,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 416
+  },
+  {
+    "strip": 12,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 416
+  },
+  {
+    "strip": 13,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 410
+  },
+  {
+    "strip": 14,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 404
+  },
+  {
+    "strip": 15,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 404
+  },
+  {
+    "strip": 16,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 398
+  },
+  {
+    "strip": 17,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 392
+  },
+  {
+    "strip": 18,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 386
+  },
+  {
+    "strip": 19,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 380
+  },
+  {
+    "strip": 20,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 398
+  },
+  {
+    "strip": 21,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 386
+  },
+  {
+    "strip": 22,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 392
+  },
+  {
+    "strip": 23,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 386
+  },
+  {
+    "strip": 24,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 200
+  },
+  {
+    "strip": 25,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 356
+  },
+  {
+    "strip": 26,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 272
+  },
+  {
+    "strip": 27,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 344
+  },
+  {
+    "strip": 28,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 308
+  },
+  {
+    "strip": 29,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 254
+  },
+  {
+    "strip": 30,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 284
+  },
+  {
+    "strip": 31,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 296
+  },
+  {
+    "strip": 32,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 296
+  },
+  {
+    "strip": 33,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 302
+  },
+  {
+    "strip": 34,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 194
+  },
+  {
+    "strip": 35,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 206
+  },
+  {
+    "strip": 36,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 212
+  },
+  {
+    "strip": 37,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 224
+  },
+  {
+    "strip": 38,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 248
+  },
+  {
+    "strip": 39,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 188
+  },
+  {
+    "strip": 40,
+    "material": "F00_000_Hair_00_HAIR_02",
+    "vertices": 56
+  },
+  {
+    "strip": 41,
+    "material": "F00_000_Hair_00_HAIR_02",
+    "vertices": 50
+  },
+  {
+    "strip": 42,
+    "material": "F00_000_Hair_00_HAIR_02",
+    "vertices": 50
+  },
+  {
+    "strip": 43,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 398
+  },
+  {
+    "strip": 44,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 356
+  },
+  {
+    "strip": 45,
+    "material": "F00_000_Hair_00_HAIR_01",
+    "vertices": 380
+  }
+]

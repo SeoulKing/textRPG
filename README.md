@@ -1,5 +1,7 @@
 # textRPG
 
+작업 요청별 진입점과 원본·빌드·검증 흐름은 [작업 흐름과 프로젝트 구조](docs/WORKFLOW.md)를 확인해 주세요.
+
 Server-driven survival text RPG set in a collapsing Seoul.
 
 The current playable direction is a compact 10-day survival game: gather supplies, reinforce the shelter, collect three radio parts, assemble a rescue signal, and survive until the rescue check on day 10.
@@ -47,14 +49,6 @@ npm run start
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 홈 화면의 **유니티 웹**을 누르면 Unity 프로젝트의 WebGL 빌드가 `/unity-web`에서 열립니다. 다른 프로젝트를 빌드하려면 WebGL 모듈이 있는 Unity 에디터로 다음 명령을 실행합니다. 스크립트는 원본 프로젝트를 복사해 빌드하며, 결과를 `assets/unity-preview`에 놓습니다.
-
-```powershell
-.\scripts\build-unity-preview.ps1 -ProjectPath 'D:\path\to\UnityProject'
-```
-
-미리보기는 본편 저장 데이터와 별개입니다. 모바일에서 공개 URL로 변경 사항을 확인하려면 생성된 `assets/unity-preview`를 저장소에 반영하고, Render가 배포하는 브랜치에 푸시해야 합니다. 로컬 빌드만으로는 공개 사이트가 갱신되지 않습니다. 현재 숲 프로토타입의 사용법은 [`unity-mvp/README.md`](unity-mvp/README.md)에 있습니다.
-
-## Content Studio
 
 ```powershell
 .\scripts\build-unity-preview.ps1 -ProjectPath 'D:\path\to\UnityProject'

@@ -1,6 +1,6 @@
 extends Control
 ## F6 art preview; no server or saved-game interaction.
-const FRAMES=preload("res://art/export/heroine-fullbody-v6/heroine-run.tres")
+const FRAMES=preload("res://art/export/heroine-reference-bright-v10/heroine-run.tres")
 const DIRECTIONS=["s","se","e","ne","n","nw","w","sw"]
 func _ready() -> void:
     var background=ColorRect.new();background.color=Color("8292a7");background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(background)

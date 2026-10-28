@@ -3,7 +3,8 @@ import bpy,sys,math,json,struct,numpy as np
 from pathlib import Path
 from mathutils import Vector
 R=Path(sys.argv[sys.argv.index('--')+1]);P=R/'art-studies/arcana-hero/white-bob-heroine/blender-v5';Q=P/'reference-topology';V=P/'review'
-bpy.ops.wm.open_mainfile(filepath=str(P/'heroine-v5-head.blend'));root=bpy.data.objects['V5 HEAD MASTER - neutral axis'];C=bpy.data.collections['V5 EDITABLE - face hair and costume bust']
+if (P/'heroine-v5-head-artist-topology.blend').exists() and '--replace-candidate' not in sys.argv:raise RuntimeError('Use saved master for edits; explicit --replace-candidate required for recipe rebuild')
+bpy.ops.wm.open_mainfile(filepath=str(P/'heroine-v5-head-blockout.blend'));root=bpy.data.objects['V5 HEAD MASTER - neutral axis'];C=bpy.data.collections['V5 EDITABLE - face hair and costume bust']
 for o in list(C.objects):
  if o.name.startswith(('Face -','Eye ','Small smile','Lower lip','Subtle nose','Nose subtle','Ear ')):
   # Keep authored earrings; align to new ear position later.

@@ -38,7 +38,6 @@ import { normalizeDynamicLocationNames } from "./dynamic-location-naming";
 import { formatLogTimestamp } from "./state-utils";
 import { buildRuntimeRegistry, emptyDynamicWorldRegistry } from "./runtime-registry";
 import { normalizeSkillProgress } from "./skill-progression";
-import { normalizeMagicDungeon } from "./magic-dungeon";
 
 export type CardKind = "locationCards" | "personCards" | "itemCards" | "eventCards" | "sceneCards";
 export type StoredCard = LocationCard | PersonCard | ItemCard | EventCard | SceneCard;
@@ -364,7 +363,9 @@ function pruneState(state: unknown): GameState {
   const { validLocationIds, validQuestIds, validSceneIds, validEventFlags, validItemIds, validStockNodeLocationIds, validStockStateKeys } =
     buildValidContentIds(dynamicContent, contentVersionId);
   const rawLocation = typeof rawState.location === "string" ? rawState.location : "shelter";
-  const nextLocation = validLocationIds.has(rawLocation) ? rawLocation : "shelter";
+  // Retired dungeon saves resume in the plaza without granting unclaimed run rewards.
+  const retiredDungeonRun = Boolean((rawState.magicDungeon as { run?: unknown } | undefined)?.run);
+  const nextLocation = retiredDungeonRun ? "arcana_plaza" : validLocationIds.has(rawLocation) ? rawLocation : "shelter";
   const nextDay = normalizeInt(rawState.day, 1, 1);
   const savedVersion = normalizeInt(rawState.saveVersion, 0, 0);
   const timeScale = savedVersion < 19 || (savedVersion >= 20 && savedVersion < 22) ? 2 : 1;
@@ -376,6 +377,7 @@ function pruneState(state: unknown): GameState {
     validLocationIds,
     validEventFlags,
   );
+  if (retiredDungeonRun) nextFlags.in_magic_world = true;
   const nextQuests = pruneQuests(
     rawState.quests && typeof rawState.quests === "object"
       ? rawState.quests as Record<string, "inactive" | "active" | "completed">
@@ -430,7 +432,7 @@ function pruneState(state: unknown): GameState {
     conditions: normalizeHealthConditions(rawState.conditions),
     contentVersionId,
     location: nextLocation,
-    sceneId: typeof rawState.sceneId === "string" && validSceneIds.has(rawState.sceneId)
+    sceneId: !retiredDungeonRun && typeof rawState.sceneId === "string" && validSceneIds.has(rawState.sceneId)
       ? rawState.sceneId
       : fallbackSceneId(nextLocation, validSceneIds, dynamicContent, contentVersionId),
     activeEventId: typeof rawState.activeEventId === "string" && validEventFlags.has(`event_seen_${rawState.activeEventId}`)
@@ -452,7 +454,6 @@ function pruneState(state: unknown): GameState {
     money: normalizeInt(rawState.money, 0, 0),
     skills: normalizeStringArray(rawState.skills),
     skillProgress: normalizeSkillProgress(rawState.skillProgress),
-    magicDungeon: normalizeMagicDungeon(rawState.magicDungeon),
     arcanaCombat: normalizeArcanaCombat(rawState.arcanaCombat),
     activeClock: ActiveClockSchema.catch({ ownerId: null, heartbeatAt: 0, sequence: 0, paused: true }).parse(rawState.activeClock),
     inventory: nextInventory,

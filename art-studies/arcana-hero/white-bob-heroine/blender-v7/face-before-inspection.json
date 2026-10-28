@@ -1,0 +1,900 @@
+{
+  "1": {
+    "bounds": [
+      [
+        -0.26449379324913025,
+        0.26455962657928467
+      ],
+      [
+        -0.17174874246120453,
+        -0.09427668899297714
+      ],
+      [
+        0.31836265325546265,
+        0.43707165122032166
+      ]
+    ],
+    "materials": [
+      {
+        "name": "V5 artist topology F00_000_00_EyeWhite_00_EYE",
+        "nodes": [
+          {
+            "name": "Image Texture",
+            "type": "TEX_IMAGE",
+            "image": "F00_000_EyeWhite_00.png",
+            "inputs": [
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Emission",
+            "type": "EMISSION",
+            "image": null,
+            "inputs": [
+              [
+                "Strength",
+                "1.0"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Material Output",
+            "type": "OUTPUT_MATERIAL",
+            "image": null,
+            "inputs": [
+              [
+                "Displacement",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Thickness",
+                "0.0"
+              ]
+            ]
+          }
+        ],
+        "links": [
+          [
+            "Image Texture",
+            "Color",
+            "Emission",
+            "Color"
+          ],
+          [
+            "Emission",
+            "Emission",
+            "Material Output",
+            "Surface"
+          ]
+        ]
+      }
+    ]
+  },
+  "2": {
+    "bounds": [
+      [
+        -0.34915828704833984,
+        0.34921425580978394
+      ],
+      [
+        -0.21927157044410706,
+        -0.07954142987728119
+      ],
+      [
+        0.29485976696014404,
+        0.476580947637558
+      ]
+    ],
+    "materials": [
+      {
+        "name": "V6 painted plum lid 2",
+        "nodes": [
+          {
+            "name": "Image Texture",
+            "type": "TEX_IMAGE",
+            "image": "F00_000_FaceEyeline_00.png.001",
+            "inputs": [
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Emission",
+            "type": "EMISSION",
+            "image": null,
+            "inputs": [
+              [
+                "Strength",
+                "1.0"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Material Output",
+            "type": "OUTPUT_MATERIAL",
+            "image": null,
+            "inputs": [
+              [
+                "Displacement",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Thickness",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Mix (Legacy)",
+            "type": "MIX_RGB",
+            "image": null,
+            "inputs": [
+              [
+                "Fac",
+                "1.0"
+              ],
+              [
+                "Color2",
+                "<bpy_float[4], NodeSocketColor.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Transparent BSDF",
+            "type": "BSDF_TRANSPARENT",
+            "image": null,
+            "inputs": [
+              [
+                "Color",
+                "<bpy_float[4], NodeSocketColor.default_value>"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Mix Shader",
+            "type": "MIX_SHADER",
+            "image": null,
+            "inputs": []
+          }
+        ],
+        "links": [
+          [
+            "Image Texture",
+            "Color",
+            "Mix (Legacy)",
+            "Color1"
+          ],
+          [
+            "Mix (Legacy)",
+            "Color",
+            "Emission",
+            "Color"
+          ],
+          [
+            "Image Texture",
+            "Alpha",
+            "Mix Shader",
+            "Fac"
+          ],
+          [
+            "Transparent BSDF",
+            "BSDF",
+            "Mix Shader",
+            "Shader"
+          ],
+          [
+            "Emission",
+            "Emission",
+            "Mix Shader",
+            "Shader"
+          ],
+          [
+            "Mix Shader",
+            "Shader",
+            "Material Output",
+            "Surface"
+          ]
+        ]
+      }
+    ]
+  },
+  "3": {
+    "bounds": [
+      [
+        -0.3290470242500305,
+        0.329102486371994
+      ],
+      [
+        -0.24166063964366913,
+        -0.1239502876996994
+      ],
+      [
+        0.3128192126750946,
+        0.45993706583976746
+      ]
+    ],
+    "materials": [
+      {
+        "name": "V6 painted plum lid 3",
+        "nodes": [
+          {
+            "name": "Image Texture",
+            "type": "TEX_IMAGE",
+            "image": "F00_000_FaceEyelash_00.png.001",
+            "inputs": [
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Emission",
+            "type": "EMISSION",
+            "image": null,
+            "inputs": [
+              [
+                "Strength",
+                "1.0"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Material Output",
+            "type": "OUTPUT_MATERIAL",
+            "image": null,
+            "inputs": [
+              [
+                "Displacement",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Thickness",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Mix (Legacy)",
+            "type": "MIX_RGB",
+            "image": null,
+            "inputs": [
+              [
+                "Fac",
+                "1.0"
+              ],
+              [
+                "Color2",
+                "<bpy_float[4], NodeSocketColor.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Transparent BSDF",
+            "type": "BSDF_TRANSPARENT",
+            "image": null,
+            "inputs": [
+              [
+                "Color",
+                "<bpy_float[4], NodeSocketColor.default_value>"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Mix Shader",
+            "type": "MIX_SHADER",
+            "image": null,
+            "inputs": []
+          }
+        ],
+        "links": [
+          [
+            "Image Texture",
+            "Color",
+            "Mix (Legacy)",
+            "Color1"
+          ],
+          [
+            "Mix (Legacy)",
+            "Color",
+            "Emission",
+            "Color"
+          ],
+          [
+            "Image Texture",
+            "Alpha",
+            "Mix Shader",
+            "Fac"
+          ],
+          [
+            "Transparent BSDF",
+            "BSDF",
+            "Mix Shader",
+            "Shader"
+          ],
+          [
+            "Emission",
+            "Emission",
+            "Mix Shader",
+            "Shader"
+          ],
+          [
+            "Mix Shader",
+            "Shader",
+            "Material Output",
+            "Surface"
+          ]
+        ]
+      }
+    ]
+  },
+  "4": {
+    "bounds": [
+      [
+        -0.28657007217407227,
+        0.2866276800632477
+      ],
+      [
+        -0.21321506798267365,
+        -0.09936612099409103
+      ],
+      [
+        0.4508446156978607,
+        0.6115474104881287
+      ]
+    ],
+    "materials": [
+      {
+        "name": "V5 artist topology F00_000_00_FaceBrow_00_FACE",
+        "nodes": [
+          {
+            "name": "Image Texture",
+            "type": "TEX_IMAGE",
+            "image": "F00_000_FaceBrow_00.png",
+            "inputs": [
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Emission",
+            "type": "EMISSION",
+            "image": null,
+            "inputs": [
+              [
+                "Strength",
+                "1.0"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Material Output",
+            "type": "OUTPUT_MATERIAL",
+            "image": null,
+            "inputs": [
+              [
+                "Displacement",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Thickness",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Mix (Legacy)",
+            "type": "MIX_RGB",
+            "image": null,
+            "inputs": [
+              [
+                "Fac",
+                "1.0"
+              ],
+              [
+                "Color2",
+                "<bpy_float[4], NodeSocketColor.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Transparent BSDF",
+            "type": "BSDF_TRANSPARENT",
+            "image": null,
+            "inputs": [
+              [
+                "Color",
+                "<bpy_float[4], NodeSocketColor.default_value>"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Mix Shader",
+            "type": "MIX_SHADER",
+            "image": null,
+            "inputs": []
+          }
+        ],
+        "links": [
+          [
+            "Image Texture",
+            "Color",
+            "Mix (Legacy)",
+            "Color1"
+          ],
+          [
+            "Mix (Legacy)",
+            "Color",
+            "Emission",
+            "Color"
+          ],
+          [
+            "Image Texture",
+            "Alpha",
+            "Mix Shader",
+            "Fac"
+          ],
+          [
+            "Transparent BSDF",
+            "BSDF",
+            "Mix Shader",
+            "Shader"
+          ],
+          [
+            "Emission",
+            "Emission",
+            "Mix Shader",
+            "Shader"
+          ],
+          [
+            "Mix Shader",
+            "Shader",
+            "Material Output",
+            "Surface"
+          ]
+        ]
+      }
+    ]
+  },
+  "5": {
+    "bounds": [
+      [
+        -0.2309199720621109,
+        0.23099158704280853
+      ],
+      [
+        -0.17880745232105255,
+        -0.13202300667762756
+      ],
+      [
+        0.32319310307502747,
+        0.4485488533973694
+      ]
+    ],
+    "materials": [
+      {
+        "name": "V6 violet iris restrained highlights",
+        "nodes": [
+          {
+            "name": "Image Texture",
+            "type": "TEX_IMAGE",
+            "image": "iris-cel-v6.png",
+            "inputs": [
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Emission",
+            "type": "EMISSION",
+            "image": null,
+            "inputs": [
+              [
+                "Strength",
+                "1.0"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Material Output",
+            "type": "OUTPUT_MATERIAL",
+            "image": null,
+            "inputs": [
+              [
+                "Displacement",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Thickness",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Transparent BSDF",
+            "type": "BSDF_TRANSPARENT",
+            "image": null,
+            "inputs": [
+              [
+                "Color",
+                "<bpy_float[4], NodeSocketColor.default_value>"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Mix Shader",
+            "type": "MIX_SHADER",
+            "image": null,
+            "inputs": []
+          }
+        ],
+        "links": [
+          [
+            "Image Texture",
+            "Color",
+            "Emission",
+            "Color"
+          ],
+          [
+            "Image Texture",
+            "Alpha",
+            "Mix Shader",
+            "Fac"
+          ],
+          [
+            "Transparent BSDF",
+            "BSDF",
+            "Mix Shader",
+            "Shader"
+          ],
+          [
+            "Emission",
+            "Emission",
+            "Mix Shader",
+            "Shader"
+          ],
+          [
+            "Mix Shader",
+            "Shader",
+            "Material Output",
+            "Surface"
+          ]
+        ]
+      }
+    ],
+    "uv_sides": {
+      "-1": {
+        "u": [
+          0.5960630178451538,
+          0.9033700227737427
+        ],
+        "v": [
+          0.1866999864578247,
+          0.8279340267181396
+        ]
+      },
+      "1": {
+        "u": [
+          0.09662990272045135,
+          0.4039370119571686
+        ],
+        "v": [
+          0.1866999864578247,
+          0.8279340267181396
+        ]
+      }
+    }
+  },
+  "7": {
+    "bounds": [
+      [
+        -0.33521944284439087,
+        0.33528417348861694
+      ],
+      [
+        -0.2589459717273712,
+        0.11948023736476898
+      ],
+      [
+        0.007171532604843378,
+        0.9897350072860718
+      ]
+    ],
+    "materials": [
+      {
+        "name": "V6 delicate peach - painted 3D surface",
+        "nodes": [
+          {
+            "name": "Material Output",
+            "type": "OUTPUT_MATERIAL",
+            "image": null,
+            "inputs": [
+              [
+                "Displacement",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Thickness",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "Emission",
+            "type": "EMISSION",
+            "image": null,
+            "inputs": [
+              [
+                "Strength",
+                "1.0"
+              ],
+              [
+                "Weight",
+                "0.0"
+              ]
+            ]
+          },
+          {
+            "name": "RGB",
+            "type": "RGB",
+            "image": null,
+            "inputs": []
+          },
+          {
+            "name": "Color Attribute",
+            "type": "VERTEX_COLOR",
+            "image": null,
+            "inputs": []
+          },
+          {
+            "name": "Geometry",
+            "type": "NEW_GEOMETRY",
+            "image": null,
+            "inputs": []
+          },
+          {
+            "name": "Vector Math",
+            "type": "VECT_MATH",
+            "image": null,
+            "inputs": [
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Scale",
+                "1.0"
+              ]
+            ]
+          },
+          {
+            "name": "Color Ramp",
+            "type": "VALTORGB",
+            "image": null,
+            "inputs": []
+          },
+          {
+            "name": "Mix (Legacy)",
+            "type": "MIX_RGB",
+            "image": null,
+            "inputs": [
+              [
+                "Fac",
+                "1.0"
+              ]
+            ]
+          },
+          {
+            "name": "Image Texture",
+            "type": "TEX_IMAGE",
+            "image": "skin-cel-v6.png",
+            "inputs": [
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Texture Coordinate",
+            "type": "TEX_COORD",
+            "image": null,
+            "inputs": []
+          },
+          {
+            "name": "Vector Math.001",
+            "type": "VECT_MATH",
+            "image": null,
+            "inputs": [
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Scale",
+                "1.0"
+              ]
+            ]
+          },
+          {
+            "name": "Map Range",
+            "type": "MAP_RANGE",
+            "image": null,
+            "inputs": [
+              [
+                "From Min",
+                "0.0"
+              ],
+              [
+                "From Max",
+                "0.03500000014901161"
+              ],
+              [
+                "To Min",
+                "0.699999988079071"
+              ],
+              [
+                "To Max",
+                "0.0"
+              ],
+              [
+                "Steps",
+                "4.0"
+              ],
+              [
+                "Vector",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "From Min",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "From Max",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "To Min",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "To Max",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ],
+              [
+                "Steps",
+                "<bpy_float[3], NodeSocketVector.default_value>"
+              ]
+            ]
+          },
+          {
+            "name": "Mix (Legacy).001",
+            "type": "MIX_RGB",
+            "image": null,
+            "inputs": [
+              [
+                "Color2",
+                "<bpy_float[4], NodeSocketColor.default_value>"
+              ]
+            ]
+          }
+        ],
+        "links": [
+          [
+            "Geometry",
+            "Normal",
+            "Vector Math",
+            "Vector"
+          ],
+          [
+            "Vector Math",
+            "Value",
+            "Color Ramp",
+            "Fac"
+          ],
+          [
+            "Color Ramp",
+            "Color",
+            "Mix (Legacy)",
+            "Color2"
+          ],
+          [
+            "Emission",
+            "Emission",
+            "Material Output",
+            "Surface"
+          ],
+          [
+            "Image Texture",
+            "Color",
+            "Mix (Legacy)",
+            "Color1"
+          ],
+          [
+            "Texture Coordinate",
+            "Object",
+            "Vector Math.001",
+            "Vector"
+          ],
+          [
+            "Vector Math.001",
+            "Value",
+            "Map Range",
+            "Value"
+          ],
+          [
+            "Map Range",
+            "Result",
+            "Mix (Legacy).001",
+            "Fac"
+          ],
+          [
+            "Mix (Legacy)",
+            "Color",
+            "Mix (Legacy).001",
+            "Color1"
+          ],
+          [
+            "Mix (Legacy).001",
+            "Color",
+            "Emission",
+            "Color"
+          ]
+        ]
+      }
+    ]
+  }
+}
