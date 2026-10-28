@@ -1,0 +1,25 @@
+{
+  "after": {
+    "skeletons": 0,
+    "viewport_draw_calls": 297,
+    "viewport_primitives": 10838,
+    "visible_mesh_surfaces": 2,
+    "visible_mesh_triangles": 4
+  },
+  "atlas_rgba_bytes": 1966080,
+  "before": {
+    "skeletons": 1,
+    "viewport_draw_calls": 428,
+    "viewport_primitives": 41234,
+    "visible_mesh_surfaces": 110,
+    "visible_mesh_triangles": 140000
+  },
+  "camera_zoom": 2.02317130195288,
+  "direction_checks": 16,
+  "display_height_target": 112,
+  "evidence": "offline Godot Compatibility GPU; actual main.tscn placements; not browser/mobile gameplay",
+  "failures": [],
+  "frame_count": 96,
+  "gait_cycle": 1.929031467438,
+  "source_height": 56
+}

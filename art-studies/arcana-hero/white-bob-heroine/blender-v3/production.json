@@ -1,0 +1,46 @@
+{
+  "version": 3,
+  "source": "heroine-v3.blend",
+  "game": "heroine-v3.glb",
+  "bones": 27,
+  "control_bones": 4,
+  "mesh_items": [
+    "body",
+    "hair",
+    "dress",
+    "shawl",
+    "boots-taupe",
+    "blouse",
+    "skirt",
+    "boots-navy"
+  ],
+  "cycle_distance_world": 1.04,
+  "run_cycle_distance_world": 1.6,
+  "stretch": false,
+  "pixel_frame": [
+    96,
+    144
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "palette": "existing Arcana world palette",
+  "reference": "approved candidate 2 and heroine-pixel-gameplay-target-v1.png",
+  "mesh_triangles": {
+    "body": 29032,
+    "hair": 14976,
+    "dress": 9000,
+    "shawl": 9000,
+    "boots-taupe": 9000,
+    "blouse": 9000,
+    "skirt": 9000,
+    "boots-navy": 9000
+  },
+  "nominal_frame": [
+    96,
+    136
+  ],
+  "bottom_overscan_pixels": 8,
+  "body_coverage": "Stockings_covered surface hidden while dress/skirt is worn; complete source retained"
+}

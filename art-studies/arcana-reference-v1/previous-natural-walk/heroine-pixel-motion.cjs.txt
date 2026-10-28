@@ -1,0 +1,63 @@
+/* Registered paper-doll animation, sampled at 24 poses / 1.6s.
+ * All matching masks/garments use the same deformation; no blended raster frames.
+ */
+module.exports = function createAnimator(W,H,FOOT,walkFrames) {
+ const at=(x,y)=>(y*W+x)*4;
+ const blank=()=>Buffer.alloc(W*H*4);
+ const clamp=v=>Math.max(0,Math.min(1,v));
+ function foot(d,phase,leg) {
+   const u=(phase+ (leg<0?.5:0))%1;
+   let travel,lift;
+   if(u<.5){travel=16*(1-4*u);lift=0;} // constant-speed planted stance
+   else {const t=(u-.5)*2;travel=-16+32*t*t*(3-2*t);lift=4*Math.sin(Math.PI*t);}
+   return [Math.sin(d*Math.PI/4)*travel,Math.cos(d*Math.PI/4)*.75*travel-lift];
+ }
+ return function animate(src,d,clip,f,id) {
+   const out=blank(),phase=f/walkFrames,angle=phase*Math.PI*2;
+   const feet={'-1':foot(d,phase,-1),'1':foot(d,phase,1)};
+   const bob=-Math.round((1-Math.cos(angle*2))*.5);
+   const isBoot=id.startsWith('boots'),profile=d===2||d===6;
+   if(clip==='walk'&&isBoot) {
+     // Side views start with an overlapping pair; isolate one boot then articulate both.
+     let lo=W,hi=0;
+     for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(src[at(x,y)+3]){lo=Math.min(lo,x);hi=Math.max(hi,x);}
+     const cut=d===2?lo+Math.round((hi-lo+1)*.22):lo+Math.round((hi-lo+1)*.78);
+     const legs=[-1,1].sort((a,b)=>feet[a][1]-feet[b][1]);
+     for(const leg of legs) {
+       const [dx,dy]=feet[leg];
+       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+         const i=at(x,y);if(!src[i+3])continue;
+         if(profile ? (d===2?x<cut:x>cut) : (x<FOOT[0]?-1:1)!==leg)continue;
+         const xx=Math.round(x+dx+(profile&&leg<0?(d===2?-2:2):0)),yy=Math.round(y+dy);
+         if(xx>=0&&xx<W&&yy>=0&&yy<H)src.copy(out,at(xx,yy),i,i+4);
+       }
+     }
+     return out;
+   }
+   function field(x,y) {
+     if(clip==='idle')return [0,y<75&&f===2?-1:0];
+     if(y>=87&&(id==='body'||id==='feet-mask')){
+       const leg=x<FOOT[0]?-1:1,w=clamp((y-87)/14);
+       return [feet[leg][0]*w,feet[leg][1]*w];
+     }
+     if(y>53&&y<87&&Math.abs(x-FOOT[0])>14&&['body','dress','blouse','dress-mask','top-mask'].includes(id)){
+       const side=x<FOOT[0]?-1:1;
+       return [Math.cos(angle)*side, bob+Math.round(Math.cos(angle)*side*1.5)];
+     }
+     if(y>=63&&['dress','skirt','dress-mask','bottom-mask'].includes(id))
+       return [Math.sin(angle-.35)*clamp((y-62)/35)*2,y<77?bob:0];
+     // Pin the crown/fringe to the head; only the lower bob tips may lag.
+     // Moving the entire hair layer made it slide off the stationary face.
+     const hairSway=id==='hair'?Math.sin(angle-.45)*.6*clamp((y-30)/14):0;
+     return [hairSway,y<82?bob:0];
+   }
+   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+     let sx=x,sy=y;
+     for(let k=0;k<6;k++){const [dx,dy]=field(sx,sy);sx=x-dx;sy=y-dy;}
+     sx=Math.round(sx);sy=Math.round(sy);
+     if(sx>=0&&sx<W&&sy>=0&&sy<H)src.copy(out,at(x,y),at(sx,sy),at(sx,sy)+4);
+   }
+   return out;
+ };
+};
+

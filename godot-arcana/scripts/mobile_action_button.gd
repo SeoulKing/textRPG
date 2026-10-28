@@ -41,10 +41,22 @@ func _draw() -> void:
 		for side in [-1,1]:
 			var at = center+Vector2(side*(radius+1.5),0)
 			draw_colored_polygon(PackedVector2Array([at+Vector2(0,-3),at+Vector2(3,0),at+Vector2(0,3),at-Vector2(3,0)]),accent)
-	if not key_hint.is_empty() and not DisplayServer.is_touchscreen_available():
-		var font = get_theme_font("font")
-		var at = center+Vector2(radius*.70,radius*.72)
-		draw_circle(at,8,Color("344b67"),true,-1,true)
-		draw_arc(at,8,0,TAU,28,Color("ffffff"),1,true)
-		var text_width = font.get_string_size(key_hint,HORIZONTAL_ALIGNMENT_LEFT,-1,11).x
-		draw_string(font,at+Vector2(-text_width*.5,4),key_hint,HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("ffffff"))
+
+func add_key_hint_overlay() -> void:
+	if key_hint.is_empty() or DisplayServer.is_touchscreen_available(): return
+	# Add after the icon, cooldown and quantity so the shortcut stays readable.
+	var badge = Control.new()
+	badge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.draw.connect(_draw_key_hint.bind(badge))
+	add_child(badge)
+
+func _draw_key_hint(badge: Control) -> void:
+	var center = size*.5
+	var radius = minf(size.x,size.y)*.5-(9.0 if utility else 3.0)
+	var font = get_theme_font("font")
+	var at = center+Vector2(radius*.70,radius*.72)
+	badge.draw_circle(at,8,Color("344b67"),true,-1,true)
+	badge.draw_arc(at,8,0,TAU,28,Color("ffffff"),1,true)
+	var text_width = font.get_string_size(key_hint,HORIZONTAL_ALIGNMENT_LEFT,-1,11).x
+	badge.draw_string(font,at+Vector2(-text_width*.5,4),key_hint,HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("ffffff"))

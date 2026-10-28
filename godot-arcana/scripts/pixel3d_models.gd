@@ -534,10 +534,24 @@ static func _portal(root: Node3D) -> void:
 		box(root,Vector3(.06,.06,.035),Vector3(sin(i*2.4)*.48,yy,-.23),"d6eee1",Vector3(0,0,PI/4))
 
 static func _bench(root: Node3D) -> void:
-	for x in [-.65,.65]:
-		box(root,Vector3(.12,.8,.6),Vector3(x,.4,0),"465b55")
-	for z in [-.24,0,.24]: box(root,Vector3(1.8,.12,.19),Vector3(0,.76,z),"bc965f")
-	for y in [1.03,1.29]: box(root,Vector3(1.8,.18,.12),Vector3(0,y,-.25),"bc965f")
+	# True geometry: the active orthographic camera projects every board and leg.
+	# Honey wood, three back boards and four seat boards match the art design.
+	for x in [-.73,.73]:
+		for z in [-.25,.25]:
+			box(root,Vector3(.14,.57,.14),Vector3(x,.285,z),"8b6846")
+			box(root,Vector3(.18,.055,.18),Vector3(x,.045,z),"72543c")
+		box(root,Vector3(.14,1.13,.14),Vector3(x,.565,-.25),"a57e50")
+		box(root,Vector3(.19,.065,.19),Vector3(x,1.145,-.25),"d5a44f")
+		box(root,Vector3(.18,.10,.70),Vector3(x,.48,0),"8b6846")
+	box(root,Vector3(1.56,.10,.09),Vector3(0,.27,-.25),"8b6846")
+	for z in [-.27,-.09,.09,.27]:
+		box(root,Vector3(1.82,.085,.155),Vector3(0,.595,z),"bc965f")
+		box(root,Vector3(1.78,.015,.022),Vector3(0,.645,z-.06),"d5a44f")
+	for y in [.78,.94,1.10]:
+		box(root,Vector3(1.52,.125,.08),Vector3(0,y,-.265),"bc965f")
+		box(root,Vector3(1.49,.019,.016),Vector3(0,y+.05,-.218),"d5a44f")
+		for x in [-.69,.69]:
+			box(root,Vector3(.025,.025,.012),Vector3(x,y,-.217),"72543c")
 
 static func _garden(root: Node3D, kind: String) -> void:
 	var width = 1.6 if kind=="flowerbed" else .8

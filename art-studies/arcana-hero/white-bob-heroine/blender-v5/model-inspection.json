@@ -1,0 +1,518 @@
+{
+  "scope": "head and hair master; no game integration",
+  "mesh_count": 51,
+  "meshes": [
+    {
+      "name": "Face - sculpted cheeks nose jaw and real eye openings",
+      "vertices": 15786,
+      "faces": 23064,
+      "dimensions": [
+        0.66399,
+        0.50161,
+        1.035
+      ]
+    },
+    {
+      "name": "Eye L - convex almond sclera",
+      "vertices": 97,
+      "faces": 96,
+      "dimensions": [
+        0.188,
+        0.07499,
+        0.08433
+      ]
+    },
+    {
+      "name": "Eye L - painted curved violet iris",
+      "vertices": 792,
+      "faces": 720,
+      "dimensions": [
+        0.086,
+        0.02936,
+        0.09632
+      ]
+    },
+    {
+      "name": "Eye L tapered upper lash",
+      "vertices": 82,
+      "faces": 40,
+      "dimensions": [
+        0.188,
+        0.07499,
+        0.07944
+      ]
+    },
+    {
+      "name": "Eye R - convex almond sclera",
+      "vertices": 97,
+      "faces": 96,
+      "dimensions": [
+        0.188,
+        0.07499,
+        0.08433
+      ]
+    },
+    {
+      "name": "Eye R - painted curved violet iris",
+      "vertices": 792,
+      "faces": 720,
+      "dimensions": [
+        0.086,
+        0.02936,
+        0.09632
+      ]
+    },
+    {
+      "name": "Eye R tapered upper lash",
+      "vertices": 82,
+      "faces": 40,
+      "dimensions": [
+        0.188,
+        0.07499,
+        0.07944
+      ]
+    },
+    {
+      "name": "Nose subtle reflected light",
+      "vertices": 21,
+      "faces": 20,
+      "dimensions": [
+        0.018,
+        0.01672,
+        0.024
+      ]
+    },
+    {
+      "name": "Ear -1 external volume",
+      "vertices": 922,
+      "faces": 960,
+      "dimensions": [
+        0.088,
+        0.056,
+        0.16
+      ]
+    },
+    {
+      "name": "Ear -1 pearl drop",
+      "vertices": 922,
+      "faces": 960,
+      "dimensions": [
+        0.016,
+        0.016,
+        0.036
+      ]
+    },
+    {
+      "name": "Ear 1 external volume",
+      "vertices": 922,
+      "faces": 960,
+      "dimensions": [
+        0.088,
+        0.056,
+        0.16
+      ]
+    },
+    {
+      "name": "Ear 1 pearl drop",
+      "vertices": 922,
+      "faces": 960,
+      "dimensions": [
+        0.016,
+        0.016,
+        0.036
+      ]
+    },
+    {
+      "name": "Neck - connected under jaw",
+      "vertices": 192,
+      "faces": 144,
+      "dimensions": [
+        0.21,
+        0.182,
+        0.495
+      ]
+    },
+    {
+      "name": "Hair - recessed scalp and underbob",
+      "vertices": 4144,
+      "faces": 4032,
+      "dimensions": [
+        0.72561,
+        0.56469,
+        0.97607
+      ]
+    },
+    {
+      "name": "Hair fringe swept 0",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.46653,
+        0.32297,
+        0.71816
+      ]
+    },
+    {
+      "name": "Hair fringe swept 1",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.42346,
+        0.32647,
+        0.67256
+      ]
+    },
+    {
+      "name": "Hair fringe swept 2",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.35849,
+        0.33007,
+        0.6419
+      ]
+    },
+    {
+      "name": "Hair fringe swept 3",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.28383,
+        0.33408,
+        0.59123
+      ]
+    },
+    {
+      "name": "Hair fringe swept 4",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.21921,
+        0.339,
+        0.52055
+      ]
+    },
+    {
+      "name": "Hair fringe swept 5",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.16285,
+        0.34472,
+        0.44313
+      ]
+    },
+    {
+      "name": "Hair part right sweep 0",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.23781,
+        0.25882,
+        0.517
+      ]
+    },
+    {
+      "name": "Hair part right sweep 1",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.23768,
+        0.26537,
+        0.52954
+      ]
+    },
+    {
+      "name": "Hair part right sweep 2",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.23862,
+        0.27193,
+        0.54212
+      ]
+    },
+    {
+      "name": "Hair central right S fringe",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.13803,
+        0.30404,
+        0.53509
+      ]
+    },
+    {
+      "name": "Hair inner part fine split",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.11527,
+        0.31112,
+        0.48624
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 00",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.27851,
+        0.32701,
+        0.97308
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 01",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.28595,
+        0.23672,
+        0.94116
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 02",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.29493,
+        0.19781,
+        0.9572
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 03",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.28883,
+        0.20988,
+        0.99718
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 04",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.27051,
+        0.24778,
+        1.00091
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 05",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.23063,
+        0.26819,
+        0.9628
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 06",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.19053,
+        0.26415,
+        0.93997
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 07",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.18948,
+        0.26569,
+        0.96683
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 08",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.23689,
+        0.26725,
+        1.003
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 09",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.27424,
+        0.24392,
+        0.99398
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 10",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.29,
+        0.2053,
+        0.95361
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 11",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.29556,
+        0.19834,
+        0.94246
+      ]
+    },
+    {
+      "name": "Hair bob volume lock 12",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.31089,
+        0.19722,
+        0.9774
+      ]
+    },
+    {
+      "name": "Hair face framing -1 0",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.26432,
+        0.14498,
+        0.87125
+      ]
+    },
+    {
+      "name": "Hair face framing -1 1",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.26452,
+        0.12922,
+        0.83525
+      ]
+    },
+    {
+      "name": "Hair face framing 1 0",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.25843,
+        0.33683,
+        0.84779
+      ]
+    },
+    {
+      "name": "Hair face framing 1 1",
+      "vertices": 588,
+      "faces": 578,
+      "dimensions": [
+        0.25364,
+        0.26322,
+        0.82245
+      ]
+    },
+    {
+      "name": "Ivory blouse - cropped bust",
+      "vertices": 480,
+      "faces": 384,
+      "dimensions": [
+        0.82,
+        0.38,
+        0.5
+      ]
+    },
+    {
+      "name": "Ivory standing ruffle collar",
+      "vertices": 288,
+      "faces": 192,
+      "dimensions": [
+        0.22415,
+        0.20818,
+        0.103
+      ]
+    },
+    {
+      "name": "Periwinkle cape - thin tailored cloth",
+      "vertices": 1320,
+      "faces": 1130,
+      "dimensions": [
+        1.08,
+        0.484,
+        0.32
+      ]
+    },
+    {
+      "name": "Clasp silver flower petal 0",
+      "vertices": 30,
+      "faces": 14,
+      "dimensions": [
+        0.04,
+        0.004,
+        0.022
+      ]
+    },
+    {
+      "name": "Clasp silver flower petal 1",
+      "vertices": 30,
+      "faces": 14,
+      "dimensions": [
+        0.02298,
+        0.004,
+        0.03804
+      ]
+    },
+    {
+      "name": "Clasp silver flower petal 2",
+      "vertices": 30,
+      "faces": 14,
+      "dimensions": [
+        0.03236,
+        0.004,
+        0.02671
+      ]
+    },
+    {
+      "name": "Clasp silver flower petal 3",
+      "vertices": 30,
+      "faces": 14,
+      "dimensions": [
+        0.03236,
+        0.004,
+        0.02671
+      ]
+    },
+    {
+      "name": "Clasp silver flower petal 4",
+      "vertices": 30,
+      "faces": 14,
+      "dimensions": [
+        0.02298,
+        0.004,
+        0.03804
+      ]
+    },
+    {
+      "name": "Clasp blue cabochon",
+      "vertices": 922,
+      "faces": 960,
+      "dimensions": [
+        0.034,
+        0.02,
+        0.048
+      ]
+    }
+  ],
+  "turntable_frames": 24,
+  "reference_image_rendered": false
+}

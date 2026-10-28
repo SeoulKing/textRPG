@@ -9,9 +9,10 @@ const FONT = preload("res://fonts/NotoSansKR-Medium.tres")
 const FONT_STRONG = preload("res://fonts/NotoSansKR-SemiBold.tres")
 const Joystick = preload("res://scripts/virtual_joystick.gd")
 const SlotIcon = preload("res://scripts/quickslot_icon.gd")
+const NavIcon = preload("res://scripts/bottom_nav_icon.gd")
 const ActionButton = preload("res://scripts/mobile_action_button.gd")
 const SkillCooldown = preload("res://scripts/skill_cooldown.gd")
-const SLOT_NAMES = {"fireball":"불꽃", "dodge":"회피", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
+const SLOT_NAMES = {"fireball":"불꽃탄", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"회피", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
 const INK = Color("26364d")
 const MUTED = Color("586779")
 const GOLD = Color("856129")
@@ -36,14 +37,12 @@ var panel_title: Label
 var content: VBoxContainer
 var close_button: Button
 var interaction: Button
-var interaction_caption: Label
 var action_cluster: Control
 var quickslot_buttons: Array[Button] = []
 var quickslot_icons: Array = []
 var quickslot_labels: Array[Label] = []
 var quickslot_counts: Array[Label] = []
 var quickslot_bindings: Array[String] = ["fireball", "dodge", "potion", ""]
-var attack_bar: ProgressBar
 var cooldown_bars: Dictionary = {}
 var toast_time = 0.0
 var joystick
@@ -148,10 +147,11 @@ func _ready() -> void:
 	var bottom = PanelContainer.new()
 	navigation = bottom
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_top = -82
+	bottom.offset_top = -92
 	bottom.offset_bottom = -16
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var dock_style = style(Color(PAPER,.97),Color(1,1,1,.95))
+	bottom.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var dock_style = style(Color("fcfcfd"),Color("d9dfe7"))
 	dock_style.set_corner_radius_all(18)
 	dock_style.shadow_color = Color(.10,.17,.28,.20)
 	dock_style.shadow_size = 8
@@ -166,6 +166,8 @@ func _ready() -> void:
 	bottom_stack.add_theme_constant_override("separation", 7)
 	bottom.add_child(bottom_stack)
 	hint_label = label("", 13, Color("fffaf0"))
+	# Central persistent status captions obscure the player; use button tooltips.
+	hint_label.hide()
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint_label.add_theme_color_override("font_shadow_color", Color("142e33"))
@@ -177,14 +179,6 @@ func _ready() -> void:
 	hint_label.offset_right = -16
 	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hint_label)
-	attack_bar = make_bar(Color("ad63d9"), 4)
-	attack_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	attack_bar.offset_top = -338
-	attack_bar.offset_bottom = -334
-	attack_bar.offset_left = 20
-	attack_bar.offset_right = -20
-	attack_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(attack_bar)
 	joystick = Joystick.new()
 	joystick.direction_changed.connect(func(value): move_changed.emit(value))
 	root.add_child(joystick)
@@ -200,21 +194,13 @@ func _ready() -> void:
 	interaction = ActionButton.new()
 	interaction.set("primary",true)
 	interaction.set("accent",Color("477db6"))
-	interaction.set("key_hint","E")
-	interaction.text = "살펴보기"
+	interaction.text = "상호작용"
+	interaction.accessibility_name = "주변 사물이나 건물과 상호작용"
 	interaction.position = Vector2(126,112)
 	interaction.custom_minimum_size = Vector2(76,76)
 	interaction.size = Vector2(76,76)
 	interaction.pressed.connect(func(): interact_pressed.emit())
 	cluster.add_child(interaction)
-	var interact_icon = SlotIcon.new()
-	interact_icon.kind = "interact"
-	interact_icon.position = Vector2(20,20)
-	interact_icon.size = Vector2(36,36)
-	interaction.add_child(interact_icon)
-	interaction_caption = _action_caption("살펴보기",76)
-	interaction_caption.position.y = 79
-	interaction.add_child(interaction_caption)
 	touch_buttons.append(interaction)
 	var slot_positions = [Vector2(136,30),Vector2(68,52),Vector2(40,120),Vector2(76,192)]
 	for i in range(4):
@@ -244,6 +230,7 @@ func _ready() -> void:
 		count.add_theme_constant_override("shadow_outline_size",2)
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Layer order: surface, icon, cooldown, quantity, shortcut.
 		slot.add_child(count)
 		quickslot_counts.append(count)
 		var cooldown = SkillCooldown.new()
@@ -251,32 +238,39 @@ func _ready() -> void:
 		cooldown.visible = false
 		slot.add_child(cooldown)
 		cooldown_bars[slot] = cooldown
+		slot.move_child(count, -1)
+		slot.add_key_hint_overlay()
 		set_quickslot(i, quickslot_bindings[i])
 	var nav = HBoxContainer.new()
 	nav.add_theme_constant_override("separation", 0)
 	bottom_stack.add_child(nav)
-	for item in [["지도", "map"], ["소지품", "inventory"], ["의뢰", "quests"], ["기록", "journal"], ["메뉴", "menu"]]:
-		var nav_button = button(item[0], func(): menu_requested.emit(item[1]), Vector2(0, 54))
+	for item in [["지도", "map"], ["소지품", "inventory"], ["의뢰", "quests"], ["스킬", "skills"], ["메뉴", "menu"]]:
+		var nav_button = button(item[0], func(): menu_requested.emit(item[1]), Vector2(0, 64))
 		nav_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_button.text = ""
 		var nav_stack = VBoxContainer.new()
 		nav_stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		nav_stack.offset_top = 5
+		nav_stack.offset_top = 7
 		nav_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		nav_stack.add_theme_constant_override("separation",2)
+		nav_stack.add_theme_constant_override("separation",4)
 		nav_button.add_child(nav_stack)
-		var nav_icon = SlotIcon.new()
+		var nav_icon = NavIcon.new()
 		nav_icon.kind = item[1]
-		nav_icon.custom_minimum_size = Vector2(23,23)
+		nav_icon.custom_minimum_size = Vector2(24,24)
 		nav_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		nav_stack.add_child(nav_icon)
-		var nav_label = label(item[0],13,INK,true)
+		var nav_label = label(item[0],15,INK,true)
+		nav_label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		nav_label.add_theme_constant_override("outline_size",0)
+		nav_label.add_theme_constant_override("shadow_outline_size",0)
 		nav_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		nav_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		nav_stack.add_child(nav_label)
 		nav_button.tooltip_text = item[0]
 		nav_button.accessibility_name = item[0]
 		nav_button.add_theme_stylebox_override("normal", style(Color.TRANSPARENT))
+		nav_button.add_theme_stylebox_override("hover",style(Color("edf2f7")))
+		nav_button.add_theme_stylebox_override("pressed",style(Color("e0e8f1")))
 		nav.add_child(nav_button)
 		touch_buttons.append(nav_button)
 	for target in touch_buttons: joystick.blocked_controls.append(target)
@@ -323,9 +317,11 @@ func _key_badge(parent: Control, text: String, point: Vector2) -> void:
 func set_quickslot(index: int, command: String) -> void:
 	quickslot_bindings[index] = command if SLOT_NAMES.has(command) else ""
 	quickslot_icons[index].kind = quickslot_bindings[index]
+	quickslot_icons[index].size = Vector2(32,32) if quickslot_bindings[index] in ["fireball","flame_wave","flame_guard"] else Vector2(30,30)
+	quickslot_icons[index].position = Vector2(12,12) if quickslot_bindings[index] in ["fireball","flame_wave","flame_guard"] else Vector2(13,12)
 	quickslot_buttons[index].set("utility",quickslot_bindings[index].is_empty())
 	quickslot_labels[index].text = SLOT_NAMES[quickslot_bindings[index]] if not quickslot_bindings[index].is_empty() else ""
-	quickslot_buttons[index].set("accent",{"fireball":Color("d96a33"),"dodge":Color("347c9c"),"potion":Color("536dcb")}.get(quickslot_bindings[index],MUTED))
+	quickslot_buttons[index].set("accent",{"fireball":Color("d96a33"),"flame_wave":Color("ee7c32"),"flame_guard":Color("b66b35"),"dodge":Color("347c9c"),"potion":Color("536dcb")}.get(quickslot_bindings[index],MUTED))
 
 func make_bar(color: Color, height: int) -> ProgressBar:
 	var bar = ProgressBar.new()
@@ -385,6 +381,7 @@ func open_panel(title: String, can_close: bool = true) -> void:
 	reset_touch_controls()
 	joystick.set_enabled(false)
 	panel_title.text = title
+	content.get_parent().scroll_vertical = 0
 	close_button.visible = can_close
 	for child in content.get_children():
 		content.remove_child(child)
@@ -394,6 +391,34 @@ func open_panel(title: String, can_close: bool = true) -> void:
 func close_panel() -> void:
 	overlay.hide()
 	panel_closed.emit()
+
+func section_tabs(names: Array, selected: int, callbacks: Array) -> void:
+	var tabs = HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 8)
+	content.add_child(tabs)
+	for i in range(names.size()):
+		var tab = button(str(names[i]), callbacks[i])
+		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tab.disabled = i == selected
+		tab.add_theme_stylebox_override("disabled", style(Color("e0ebf3"), Color("a7bccf")))
+		tab.add_theme_color_override("font_disabled_color", INK)
+		tabs.add_child(tab)
+	var gap = Control.new()
+	gap.custom_minimum_size.y = 16
+	content.add_child(gap)
+
+func character_portrait(texture: Texture2D) -> void:
+	var frame = PanelContainer.new()
+	frame.add_theme_stylebox_override("panel", style(Color("eef2f5"), EDGE))
+	content.add_child(frame)
+	var portrait = TextureRect.new()
+	portrait.texture = texture
+	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.custom_minimum_size = Vector2(0, 272)
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(portrait)
 
 func paragraph(text: String, color: Color = INK) -> void:
 	var p = label(text, 14, color)
@@ -406,7 +431,7 @@ func paragraph(text: String, color: Color = INK) -> void:
 	gap.custom_minimum_size.y = 14
 	content.add_child(gap)
 
-func choice(text: String, detail: String, callback: Callable, disabled: bool = false) -> void:
+func choice(text: String, detail: String, callback: Callable, disabled: bool = false, icon_kind: String = "") -> void:
 	var line = HSeparator.new()
 	line.modulate = Color("b9c2cc")
 	content.add_child(line)
@@ -425,9 +450,21 @@ func choice(text: String, detail: String, callback: Callable, disabled: bool = f
 	target.add_theme_stylebox_override("disabled", style(Color.TRANSPARENT))
 	target.pressed.connect(callback)
 	row.add_child(target)
+	var body = HBoxContainer.new()
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_theme_constant_override("separation",8)
+	row.add_child(body)
+	if not icon_kind.is_empty():
+		var icon = SlotIcon.new()
+		icon.kind = icon_kind
+		icon.custom_minimum_size = Vector2(32,32)
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		icon.modulate.a = .45 if disabled else 1.0
+		body.add_child(icon)
 	var stack = VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(stack)
+	body.add_child(stack)
 	var title = label(text, 14, MUTED if disabled else INK, true)
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -486,7 +523,6 @@ func _notification(what: int) -> void:
 func _process(delta: float) -> void:
 	toast_time = maxf(0, toast_time - delta)
 	toast_label.visible = toast_time > 0
-	interaction_caption.text = interaction.text
 
 func _layout() -> void:
 	var available = root.get_viewport_rect().size

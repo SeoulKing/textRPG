@@ -1,0 +1,14 @@
+{
+  "thighLength": 15,
+  "shinLength": 12,
+  "scale": [
+    1,
+    1
+  ],
+  "ankleCuffs": {
+    "left": 44,
+    "right": 53
+  },
+  "shoeSurfacesPerVariant": 2,
+  "profileShoe": "one cuff, one sole, rear-shoe fragment removed"
+}

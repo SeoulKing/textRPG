@@ -1,0 +1,9 @@
+# Bench / crate front v2 — 2026-10-28
+- Built-in image_gen. Style references: current reference/barrels.png and oak.png.
+- Prompt: two isolated transparent wooden props, front orthographic 3/4 RPG, yaw 0 / downward pitch 45; horizontal X edges, vertical uprights, visible top surfaces; two-tile wooden bench and one-tile framed supply crate; warm ochre wood, upper-left light, restrained material outlines, 3–5 shade clusters, no ground/shadow/text.
+- Original: bench-crate-front-v2.png. Rebuild: node scripts/build-arcana-furniture.cjs.
+- Bench: 128×71 canvas, foot (64,69), visible width 124/64 = 1.9375 units.
+- Crate: 64×70 canvas, foot (32,68), visible width 60/64 = .9375 units.
+- Uniform nearest resizing, existing LUT fixed colors, binary alpha; transparent 2px margin.
+- Ground anchors, placements and collision remain unchanged. Front view is the art target; the comparison quarter camera uses the same billboard rather than a second directional drawing.
+- Existing source/furniture.png and bench-front.png remain preserved.

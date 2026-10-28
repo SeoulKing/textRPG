@@ -1,0 +1,67 @@
+{
+  "status": "isolated candidate; game integration held",
+  "before": {
+    "Idle": {
+      "maximum_head_tilt_degrees": 21.772397896445554,
+      "samples": 19
+    },
+    "Walk": {
+      "maximum_head_tilt_degrees": 20.340008354769953,
+      "samples": 49
+    },
+    "Run": {
+      "maximum_head_tilt_degrees": 20.340008354769953,
+      "samples": 49
+    },
+    "TurnLeft": {
+      "maximum_head_tilt_degrees": 21.772397896445554,
+      "samples": 19
+    },
+    "TurnRight": {
+      "maximum_head_tilt_degrees": 21.772397896445554,
+      "samples": 19
+    }
+  },
+  "after": {
+    "Idle": {
+      "maximum_head_tilt_degrees": 0.0,
+      "samples": 19
+    },
+    "Walk": {
+      "maximum_head_tilt_degrees": 0.0,
+      "samples": 49
+    },
+    "Run": {
+      "maximum_head_tilt_degrees": 0.0,
+      "samples": 49
+    },
+    "TurnLeft": {
+      "maximum_head_tilt_degrees": 0.0,
+      "samples": 19
+    },
+    "TurnRight": {
+      "maximum_head_tilt_degrees": 0.0,
+      "samples": 19
+    }
+  },
+  "neutral_head_control": "neck + CTRL_head_level, pose-space rotation copy; no fixed 22-degree pitch",
+  "head_samples": 155,
+  "review_dot_frame": [
+    128,
+    176
+  ],
+  "review_foot": [
+    64,
+    148
+  ],
+  "pixels_per_unit": 64,
+  "studio_views": [
+    "beauty",
+    "front face",
+    "moving run front",
+    "moving run side"
+  ],
+  "game_runtime_changed": false,
+  "web_exported": false,
+  "art_acceptance": "not final; candidate for further art review"
+}

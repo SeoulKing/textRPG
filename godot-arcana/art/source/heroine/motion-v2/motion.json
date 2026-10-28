@@ -1,0 +1,519 @@
+{
+  "size": [
+    96,
+    136
+  ],
+  "grid": [
+    16,
+    11
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "cycle_map_units": 20,
+  "clips": [
+    {
+      "name": "idle_s",
+      "ids": [
+        0
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    {
+      "name": "run_s",
+      "ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    {
+      "name": "start_s",
+      "ids": [
+        13,
+        14,
+        15
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_left_s",
+      "ids": [
+        16,
+        17,
+        18
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_right_s",
+      "ids": [
+        19,
+        20,
+        21
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "idle_se",
+      "ids": [
+        22
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    {
+      "name": "run_se",
+      "ids": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    {
+      "name": "start_se",
+      "ids": [
+        35,
+        36,
+        37
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_left_se",
+      "ids": [
+        38,
+        39,
+        40
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_right_se",
+      "ids": [
+        41,
+        42,
+        43
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "idle_e",
+      "ids": [
+        44
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    {
+      "name": "run_e",
+      "ids": [
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    {
+      "name": "start_e",
+      "ids": [
+        57,
+        58,
+        59
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_left_e",
+      "ids": [
+        60,
+        61,
+        62
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_right_e",
+      "ids": [
+        63,
+        64,
+        65
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "idle_ne",
+      "ids": [
+        66
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    {
+      "name": "run_ne",
+      "ids": [
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    {
+      "name": "start_ne",
+      "ids": [
+        79,
+        80,
+        81
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_left_ne",
+      "ids": [
+        82,
+        83,
+        84
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_right_ne",
+      "ids": [
+        85,
+        86,
+        87
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "idle_n",
+      "ids": [
+        88
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    {
+      "name": "run_n",
+      "ids": [
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    {
+      "name": "start_n",
+      "ids": [
+        101,
+        102,
+        103
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_left_n",
+      "ids": [
+        104,
+        105,
+        106
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_right_n",
+      "ids": [
+        107,
+        108,
+        109
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "idle_nw",
+      "ids": [
+        110
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    {
+      "name": "run_nw",
+      "ids": [
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    {
+      "name": "start_nw",
+      "ids": [
+        123,
+        124,
+        125
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_left_nw",
+      "ids": [
+        126,
+        127,
+        128
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_right_nw",
+      "ids": [
+        129,
+        130,
+        131
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "idle_w",
+      "ids": [
+        132
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    {
+      "name": "run_w",
+      "ids": [
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    {
+      "name": "start_w",
+      "ids": [
+        145,
+        146,
+        147
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_left_w",
+      "ids": [
+        148,
+        149,
+        150
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_right_w",
+      "ids": [
+        151,
+        152,
+        153
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "idle_sw",
+      "ids": [
+        154
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    {
+      "name": "run_sw",
+      "ids": [
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166
+      ],
+      "fps": 20,
+      "loop": true
+    },
+    {
+      "name": "start_sw",
+      "ids": [
+        167,
+        168,
+        169
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_left_sw",
+      "ids": [
+        170,
+        171,
+        172
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "stop_right_sw",
+      "ids": [
+        173,
+        174,
+        175
+      ],
+      "fps": 20,
+      "loop": false
+    }
+  ],
+  "directions": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "palette": [
+    "#302442",
+    "#493c57",
+    "#635469",
+    "#82738a",
+    "#a59aab",
+    "#c4bcc7",
+    "#ded9de",
+    "#f6f0df",
+    "#fff9e8",
+    "#dfd3bc",
+    "#baad9d",
+    "#978c89",
+    "#ffe6cf",
+    "#edc3b1",
+    "#cc968e",
+    "#a16b78",
+    "#9ebbd8",
+    "#7f9fc3",
+    "#6585ae",
+    "#4b668e",
+    "#394c70",
+    "#293a59",
+    "#192943",
+    "#b7a3d8",
+    "#8971bb",
+    "#61469a",
+    "#d4b77b",
+    "#a58958",
+    "#74646b",
+    "#554a5b",
+    "#3a3447",
+    "#232333"
+  ],
+  "source": "idle-masters.png",
+  "authoring": "Approved running upper paintings preserved. Fixed-length two-bone legs; stance .35 cycle; alternating .5-phase feet. Complete painted directional boots. Independent neutral masters."
+}

@@ -1,0 +1,53 @@
+{
+  "frames": 152,
+  "source": "saved native PixelPen files",
+  "fullbody_standard": "approved run-v1 frame 1",
+  "clips": {
+    "idle_s": 4,
+    "idle_se": 4,
+    "idle_e": 4,
+    "idle_ne": 4,
+    "idle_n": 4,
+    "idle_nw": 4,
+    "idle_w": 4,
+    "idle_sw": 4,
+    "run_s": 8,
+    "run_se": 8,
+    "run_e": 8,
+    "run_ne": 8,
+    "run_n": 8,
+    "run_nw": 8,
+    "run_w": 8,
+    "run_sw": 8,
+    "cast_s": 6,
+    "cast_se": 6,
+    "cast_e": 6,
+    "cast_ne": 6,
+    "cast_n": 6,
+    "cast_nw": 6,
+    "cast_w": 6,
+    "cast_sw": 6,
+    "bench_s": 8
+  },
+  "cast_boundary_errors": {
+    "s": 0,
+    "se": 0,
+    "e": 0,
+    "ne": 0,
+    "n": 0,
+    "nw": 0,
+    "w": 0,
+    "sw": 0
+  },
+  "cast_return_errors": {
+    "s": 0,
+    "se": 0,
+    "e": 0,
+    "ne": 0,
+    "n": 0,
+    "nw": 0,
+    "w": 0,
+    "sw": 0
+  },
+  "bench_stand_boundary_errors": 0
+}

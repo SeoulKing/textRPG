@@ -1,4 +1,4 @@
-param([string]$GodotPath = "", [switch]$Trees, [switch]$Hud)
+param([string]$GodotPath = "", [switch]$Trees, [switch]$Hud, [switch]$Heroine)
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $GodotPath) { $GodotPath = Join-Path $projectRoot '.runtime/godot/Godot_v4.5.1-stable_win64_console.exe' }
@@ -17,7 +17,7 @@ $startInfo.RedirectStandardOutput = $true
 $startInfo.RedirectStandardError = $true
 $startInfo.EnvironmentVariables['APPDATA'] = $appDataRoot
 $startInfo.EnvironmentVariables['LOCALAPPDATA'] = $localDataRoot
-$previewScript = if ($Hud) { 'res://tools/render_hud.gd' } elseif ($Trees) { 'res://tools/render_trees.gd' } else { 'res://tools/render_pixel3d_preview.gd' }
+$previewScript = if ($Heroine) { 'res://tools/render_reference_scene.gd' } elseif ($Hud) { 'res://tools/render_hud.gd' } elseif ($Trees) { 'res://tools/render_trees.gd' } else { 'res://tools/render_pixel3d_preview.gd' }
 foreach ($argument in @('--path','godot-arcana','--log-file',(Join-Path $renderRoot 'pixel3d-engine.log'),'--rendering-method','gl_compatibility','--script',$previewScript)) {
     $startInfo.ArgumentList.Add($argument)
 }
@@ -30,6 +30,7 @@ $logPath = Join-Path $renderRoot 'pixel3d-preview.log'
 [IO.File]::WriteAllText($logPath,$renderLog)
 $errors = $renderLog -split "`n" | Where-Object { $_ -match 'SCRIPT ERROR|Parse Error|ERROR:' -and $_ -notmatch '^ERROR: Failed to read the root certificate store\.' }
 if ($renderProcess.ExitCode -ne 0 -or $errors) { $errors | Select-Object -First 8 | Write-Output; throw "Offline art rendering failed; see $logPath" }
+if ($Heroine) { Write-Output 'Rendered layered heroine / scene comparison: godot-arcana/art/reference/reference-scene/'; return }
 if ($Hud) { Write-Output 'Rendered HUD: godot-arcana/art/reference/hud-mobile.png, hud-wide.png'; return }
 if ($Trees) { Write-Output 'Rendered offline tree study: godot-arcana/art/reference/trees-3d-study.png'; return }
 Write-Output 'Rendered offline art: godot-arcana/art/reference/pixel3d-plaza.png, pixel3d-plaza-native.png, pixel3d-city-overview.png, pixel3d-interior.png, pixel3d-garden.png, pixel3d-character-detail.png, pixel3d-fountain.png'

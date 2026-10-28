@@ -14,6 +14,7 @@
     "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\"",
     "test:arcana": "tsx --test tests/arcana-combat.test.ts",
     "assets:validate": "node scripts/validate-cooking-sprites.mjs",
+    "art:animation:validate": "node scripts/validate-heroine-animation.cjs",
     "test:studio": "npm run build && node --test tests/content-studio.test.cjs tests/content-story-library.test.cjs tests/studio-outcomes.test.cjs tests/studio-hex-map.test.cjs tests/content-writer-workspace.test.cjs tests/studio-scene-pool.test.cjs tests/studio-stock-rewards.test.cjs"
   },
   "repository": {

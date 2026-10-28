@@ -49,7 +49,9 @@
 ## 게임 개발과 그래픽 역할
 
 - 게임 제작 방향과 완료 기준은 [GAME_DEVELOPMENT_PRINCIPLES.md](GAME_DEVELOPMENT_PRINCIPLES.md)를 따릅니다.
+- Godot 아르카나의 구현·설계·문제 해결 작업은 프로젝트 전용 [godot-arcana-development 스킬](skills/godot-arcana-development/SKILL.md)을 먼저 읽고, 해당 작업에 필요한 항목만 적용합니다.
 - 캐릭터·배경·지도·모델·애니메이션·시각 효과 등 그래픽을 제작하거나 수정할 때는 먼저 [GRAPHICS_AGENT.md](GRAPHICS_AGENT.md)를 읽고 그래픽 담당 역할과 작업 흐름을 적용합니다. 그 문서에서 대상별 미술 가이드와 기준 이미지로 이동합니다.
+- 맵 제작 역할 지정, 건물 시안, 새 지역 제작·연결 요청에는 [맵 제작 담당](MAP_AGENT.md)과 프로젝트 전용 [arcana-map-builder 스킬](skills/arcana-map-builder/SKILL.md)을 적용합니다. 지역별 작업 명세로 시안 승인과 제작·배치·연결 상태를 이어갑니다.
 - 미술 규격은 해당 가이드에서 관리합니다. 새 역할 문서를 이유로 기존 확정 디자인이나 현재 렌더링 방식을 임의로 바꾸지 않습니다.
 
 ## 캐릭터 아트

@@ -1,0 +1,68 @@
+@tool
+extends Node3D
+## Blender-baked, retouched 8-direction heroine; same pose() contract as the mesh.
+const TEXTURE = preload("res://art/export/heroine-pixel.png")
+const SPEC = preload("res://art/resources/heroine_sprite_spec.gd")
+const SHADER = preload("res://art/resources/heroine_sprite.gdshader")
+const SHADOW = preload("res://art/resources/heroine_shadow.gdshader")
+var pose_updates = 0
+var last_yaw = 0.0
+var camera_yaw = 0.0
+var facing = 0
+var current_frame = Vector2i(-1,-1)
+var art: MeshInstance3D
+var material: ShaderMaterial
+var shadow_material: ShaderMaterial
+
+func _ready() -> void:
+    art = MeshInstance3D.new()
+    art.name = "BakedHeroine"
+    var quad = QuadMesh.new()
+    quad.size = Vector2(SPEC.FRAME_SIZE)/SPEC.PIXELS_PER_UNIT
+    art.mesh = quad
+    art.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    # The shader anchors at the feet; conservative bounds prevent edge culling.
+    art.custom_aabb = AABB(Vector3(-1,0,-1),Vector3(2,2.8,2))
+    material = ShaderMaterial.new()
+    material.shader = SHADER
+    material.set_shader_parameter("sprite_sheet",TEXTURE)
+    material.set_shader_parameter("sheet_grid",Vector2(SPEC.ATLAS_GRID))
+    material.set_shader_parameter("foot_offset",(SPEC.FOOT.y-SPEC.FRAME_SIZE.y*.5)/SPEC.PIXELS_PER_UNIT)
+    material.set_shader_parameter("editor_preview",Engine.is_editor_hint())
+    art.material_override = material
+    add_child(art)
+    var shadow = MeshInstance3D.new()
+    shadow.name = "ContactShadow"
+    var plane = PlaneMesh.new()
+    plane.size = Vector2(.60,.36)
+    shadow.mesh = plane
+    shadow.position.y = .015
+    shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    shadow_material = ShaderMaterial.new()
+    shadow_material.shader = SHADOW
+    shadow_material.set_shader_parameter("editor_preview",Engine.is_editor_hint())
+    shadow.material_override = shadow_material
+    add_child(shadow)
+    pose(0,0,false,Vector2.ZERO,true,false)
+
+static func direction_for_yaw(world_yaw: float, view_yaw: float) -> int:
+    # S,SE,E,NE,N,NW,W,SW; camera yaw is subtracted, not added.
+    return posmod(int(floor((world_yaw-view_yaw)/TAU*8.0+.5)),8)
+
+func set_camera_yaw(value: float) -> void:
+    camera_yaw = value
+
+func pose(time: float, gait: float, walking: bool, motion: Vector2, _pixelated: bool, effects: bool) -> void:
+    pose_updates += 1
+    if motion.length_squared()>.00001:
+        last_yaw = atan2(motion.x,motion.y)
+    facing = direction_for_yaw(last_yaw,camera_yaw)
+    var frame = 4+posmod(int(floor(gait*8.0/SPEC.GAIT_CYCLE)),8) if walking else posmod(int(floor(time*2.0)),4) if effects else 0
+    var index = facing*12+frame
+    var cell = Vector2i(index%SPEC.ATLAS_GRID.x,index/SPEC.ATLAS_GRID.x)
+    if material != null and cell != current_frame:
+        material.set_shader_parameter("frame_cell",Vector2(cell))
+        current_frame = cell
+    if shadow_material != null:
+        shadow_material.set_shader_parameter("entity_anchor",global_position)
+

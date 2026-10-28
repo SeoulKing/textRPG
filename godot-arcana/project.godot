@@ -27,7 +27,7 @@ window/handheld/orientation=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/arcana_layout/plugin.cfg")
+enabled=PackedStringArray("res://addons/arcana_layout/plugin.cfg", "res://addons/pixel_workshop/plugin.cfg", "res://addons/net.yarvis.pixel_pen/plugin.cfg", "res://addons/heroine_workshop/plugin.cfg")
 
 [filesystem]
 
@@ -38,6 +38,6 @@ import/blender/enabled=false
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-lights_and_shadows/directional_shadow/16_bits=false
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
+lights_and_shadows/directional_shadow/16_bits=false
 environment/defaults/default_clear_color=Color(0.055, 0.09, 0.1, 1)

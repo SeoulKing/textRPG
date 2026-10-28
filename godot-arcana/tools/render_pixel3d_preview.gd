@@ -58,8 +58,8 @@ func _render() -> void:
 	var error = image.save_png(output_path)
 	# A nearest-neighbor detail for reviewing ink; not a new character asset.
 	var feet = Vector2i(scene.camera.unproject_position(scene.hero.global_position)*Vector2(output.size)/Vector2(viewport.size))
-	var detail = image.get_region(Rect2i(feet-Vector2i(40,104),Vector2i(80,112)))
-	detail.resize(320,448,Image.INTERPOLATE_NEAREST)
+	var detail = image.get_region(Rect2i(feet-Vector2i(48,128),Vector2i(96,144)))
+	detail.resize(384,576,Image.INTERPOLATE_NEAREST)
 	detail.save_png("res://art/reference/pixel3d-character-detail.png")
 	var fountain_feet = Vector2i(scene.camera.unproject_position(scene.fountain_anchor)*Vector2(output.size)/Vector2(viewport.size))
 	# Include the full base and raised ornament at the current camera zoom.
@@ -94,7 +94,7 @@ func _render() -> void:
 	diagnostic.queue_free()
 	await process_frame
 	# Art QA only: real mesh headings and walk phases at game resolution.
-	var poses = Image.create(80*8,112*4,false,Image.FORMAT_RGBA8)
+	var poses = Image.create(96*8,144*4,false,Image.FORMAT_RGBA8)
 	var headings = [0.0,PI,PI/2.0,-PI/2.0]
 	for row in range(4):
 		scene.hero.last_yaw = headings[row]
@@ -106,7 +106,7 @@ func _render() -> void:
 			await RenderingServer.frame_post_draw
 			var frame_image = output.get_texture().get_image()
 			var at = Vector2i(scene.camera.unproject_position(scene.hero.global_position)*Vector2(output.size)/Vector2(viewport.size))
-			poses.blit_rect(frame_image,Rect2i(at-Vector2i(40,104),Vector2i(80,112)),Vector2i(column*80,row*112))
+			poses.blit_rect(frame_image,Rect2i(at-Vector2i(48,128),Vector2i(96,144)),Vector2i(column*96,row*144))
 	poses.save_png("res://art/reference/hero-3d-rendered-poses.png")
 	logic.walking = false
 	logic.player_gait = 0.0

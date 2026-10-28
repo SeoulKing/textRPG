@@ -306,7 +306,10 @@ function summarizeSystemNoteEntries(
       const delta = Math.round((nextState.arcanaCombat[key] - previousState.arcanaCombat[key]) * 10) / 10;
       if (delta) entries.push({ type: "delta", subject: "stat", label: key === "hp" ? "HP" : "MP", amount: delta });
     }
-    if (nextState.arcanaCombat.level > previousState.arcanaCombat.level) entries.push({ type: "text", text: "레벨업 · Lv." + nextState.arcanaCombat.level, tone: "positive" });
+    for (const [id, entry] of Object.entries(nextState.arcanaCombat.skillTraining)) {
+      const before = previousState.arcanaCombat.skillTraining[id]?.xp ?? 0;
+      if (entry.xp > before) entries.push({ type: "text", text: `${id === "dodge" ? "회피" : id === "fireball" ? "파이어볼" : id === "flame_wave" ? "화염파" : "불꽃 장막"} 숙련 경험치 +${Math.round((entry.xp - before) * 100) / 100}`, tone: "positive" });
+    }
   }
   const moneyDelta = nextState.money - previousState.money;
   if (moneyDelta !== 0) {
@@ -763,7 +766,7 @@ export function createInitialGameState(startAt: "shelter" | "arcana" = "shelter"
     skills: [],
     skillProgress: createEmptySkillProgress(),
     magicDungeon: { level: 1, xp: 0, bestFloor: 0, runNumber: 0, run: null },
-    arcanaCombat: ArcanaCombatSchema.parse(undefined),
+    arcanaCombat: { ...ArcanaCombatSchema.parse(undefined), learnedSpells: ["fireball"] },
     activeClock: ActiveClockSchema.parse(undefined),
     inventory: {
       emergencySnack: 1,

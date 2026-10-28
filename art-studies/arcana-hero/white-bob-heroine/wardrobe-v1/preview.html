@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>백발 주인공 · 레이어 의상 시안</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,'Malgun Gothic',sans-serif;background:#202833;color:#f2eee6}*{box-sizing:border-box}body{margin:0 auto;max-width:1220px;padding:28px 20px}h1{font-size:24px;margin:0 0 10px}p{color:#c9d1db;line-height:1.65}fieldset{border:1px solid #617084;border-radius:6px;margin:24px 0;padding:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}legend{padding:0 8px}label{display:flex;align-items:center;gap:8px}select{font:inherit;padding:8px;background:#303c4c;color:#fff;border:1px solid #8391a4;border-radius:3px}input{accent-color:#b9cbee;width:18px;height:18px}.views{display:grid;grid-template-columns:repeat(auto-fit,minmax(256px,1fr));gap:12px}.view{margin:0;min-width:0;text-align:center;background:#718399;border:1px solid #8796a7;padding:12px 0 8px}.zoom{width:256px;height:320px;max-width:100%;object-fit:contain;image-rendering:pixelated;display:block;margin:auto}.native{width:64px;height:80px;image-rendering:pixelated;display:block;margin:8px auto}figcaption{color:white;font-weight:600;font-size:14px;margin:6px}a{color:#c3d7ff}#status{min-height:1.8em}.legend{font-size:13px}button{font:inherit;padding:7px 12px;background:#34455b;color:white;border:1px solid #9aaac0;cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #f5de9c;outline-offset:3px}@media(max-width:760px){body{padding:20px 12px}}@media(max-width:360px){.views{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>백발 주인공 · 레이어 의상 시안</h1>
+<p>같은 몸체와 머리에 의상 레이어를 조립합니다. 위는 최근접 4배 확대, 아래는 원본 64×80 크기입니다.<br>네 방향의 정지 시안이며 게임에 적용되지 않은 후보입니다.</p>
+<fieldset><legend>의상 조합</legend>
+<label>옷 <select id="outfit"><option value="dress">원화 드레스</option><option value="separates">블라우스 + 치마</option></select></label>
+<label><input id="shawl" type="checkbox" checked>하늘색 숄</label>
+<label>신발 <select id="shoes"><option value="boots-taupe">회갈색 앵클부츠</option><option value="boots-navy">남색 낮은 부츠</option></select></label>
+<label><input id="hair" type="checkbox" checked>백발 단발</label>
+<button id="base" type="button" aria-pressed="false">공통 몸체 보기</button>
+</fieldset>
+<p id="status" role="status" aria-live="polite">레이어를 불러오는 중입니다.</p>
+<div class="views" id="views"></div>
+<p class="legend">열 순서: 앞 / 뒤 / 왼쪽 / 오른쪽. 드레스는 상의·하의 슬롯을 함께 사용합니다. 숄과 신발은 독립적으로 교체됩니다.</p>
+<p><a href="preview/comparison-1x.png">전체 조합 · 원본</a> · <a href="preview/comparison-4x.png">전체 조합 · 4배</a> · <a href="preview/components-4x.png">분리 레이어</a> · <a href="README.md">명세와 한계</a></p>
+<script>
+'use strict';
+const directions=['front','back','left','right'];
+const names=['앞','뒤','왼쪽','오른쪽'];
+const controls=['outfit','shawl','shoes','hair'].map(id=>document.getElementById(id));
+const cache=new Map(),views=[];
+let revision=0,baseOnly=false;
+function load(file){if(!cache.has(file))cache.set(file,new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>{cache.delete(file);reject(Error('불러오지 못한 파일: '+file));};img.src=file;}));return cache.get(file);}
+for(let d=0;d<4;d++){
+ const figure=document.createElement('figure');figure.className='view';
+ const zoom=document.createElement('canvas'),native=document.createElement('canvas');
+ for(const canvas of [zoom,native]){canvas.width=64;canvas.height=80;canvas.setAttribute('role','img');canvas.setAttribute('aria-label',names[d]+' 방향 의상 조합');figure.append(canvas);}
+ zoom.className='zoom';native.className='native';
+ const caption=document.createElement('figcaption');caption.textContent=names[d];figure.append(caption);
+ document.getElementById('views').append(figure);views.push([zoom,native]);
+}
+async function render(){
+ const version=++revision;
+ const dress=document.getElementById('outfit').value==='dress',shawl=document.getElementById('shawl').checked,hair=document.getElementById('hair').checked;
+ const items=baseOnly?[]:[document.getElementById('shoes').value,...(dress?['dress']:['skirt','blouse']),...(shawl?['shawl']:[])];
+ const maskIds=baseOnly?[]:['feet',...(dress?['dress']:['bottom','top'])];
+ const frames=await Promise.all(directions.map(async d=>{
+   const [body,masks,layers,hairImage]=await Promise.all([load('layers/body-'+d+'.png'),Promise.all(maskIds.map(m=>load('masks/'+m+'-'+d+'.png'))),Promise.all(items.map(id=>load('layers/'+id+'-'+d+'.png'))),hair?load('layers/hair-'+d+'.png'):Promise.resolve(null)]);
+   return {body,masks,layers,hairImage};
+ }));
+ if(version!==revision)return;
+ frames.forEach((frame,d)=>{for(const canvas of views[d]){
+   const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,64,80);ctx.globalCompositeOperation='source-over';ctx.drawImage(frame.body,0,0);
+   ctx.globalCompositeOperation='destination-out';for(const mask of frame.masks)ctx.drawImage(mask,0,0);
+   ctx.globalCompositeOperation='source-over';for(const layer of frame.layers)ctx.drawImage(layer,0,0);if(frame.hairImage)ctx.drawImage(frame.hairImage,0,0);
+ }});
+ document.getElementById('status').textContent=baseOnly?'공통 몸체 + 선택한 머리 레이어입니다.':(dress?'드레스':'블라우스 + 치마')+' / '+(shawl?'숄 착용':'숄 제거')+' / '+document.getElementById('shoes').selectedOptions[0].text;
+}
+function refresh(){render().catch(error=>{document.getElementById('status').textContent=error.message;});}
+for(const control of controls)control.addEventListener('change',refresh);
+document.getElementById('base').addEventListener('click',event=>{baseOnly=!baseOnly;event.currentTarget.setAttribute('aria-pressed',String(baseOnly));event.currentTarget.textContent=baseOnly?'의상 조합 보기':'공통 몸체 보기';refresh();});
+refresh();
+</script>
+</body></html>

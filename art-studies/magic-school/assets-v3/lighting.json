@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "source": "assets-v3/academy-source.png",
+  "size": [
+    1280,
+    1152
+  ],
+  "foot": [
+    640,
+    1088
+  ],
+  "pixelsPerUnit": 64,
+  "heightRange": 16,
+  "channels": {
+    "r": "height / 16",
+    "g": "normal X * .5 + .5",
+    "b": "normal Y * .5 + .5"
+  },
+  "method": "authored facade/roof/tower zones; approximate, no shadow map",
+  "lights": [
+    {
+      "pixel": [
+        546,
+        965
+      ],
+      "range": 4,
+      "strength": 2.4,
+      "kind": "lamp"
+    },
+    {
+      "pixel": [
+        737,
+        965
+      ],
+      "range": 4,
+      "strength": 2.4,
+      "kind": "lamp"
+    },
+    {
+      "pixel": [
+        452,
+        995
+      ],
+      "range": 3.5,
+      "strength": 1.6,
+      "kind": "window"
+    },
+    {
+      "pixel": [
+        829,
+        995
+      ],
+      "range": 3.5,
+      "strength": 1.6,
+      "kind": "window"
+    },
+    {
+      "pixel": [
+        452,
+        885
+      ],
+      "range": 3.5,
+      "strength": 1.6,
+      "kind": "window"
+    },
+    {
+      "pixel": [
+        829,
+        885
+      ],
+      "range": 3.5,
+      "strength": 1.6,
+      "kind": "window"
+    }
+  ]
+}

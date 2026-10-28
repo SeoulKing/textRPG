@@ -104,3 +104,20 @@ Change only [requested expression, pose, or scene]; keep the approved design and
 - 상아색 높은 칼라의 드레스, 어깨를 덮는 옅은 하늘색/페리윙클 숄, 은빛 브로치와 절제된 꽃무늬, 허리의 짙은 남색 리본, 짙은 스타킹과 회갈색 앵클부츠를 사용합니다.
 - 새로운 여성 원화의 비례와 실루엣을 우선하며 이전 남성의 큰 손·네모난 부츠·곧은 통 소매를 재사용하지 않습니다. 3D는 부드러운 얼굴·연속 소매·퍼지는 치마·가느다란 발목과 둥근 부츠 앞코로 읽히게 합니다.
 - Blender 원본은 `art-studies/arcana-hero/white-bob-heroine/blender/heroine.blend`, 제작 스크립트는 `scripts/blender/build_heroine.py`입니다. 이전 남성 모델과 원화는 별도 파일로 보존합니다.
+
+### 현재 게임 표시 · 참고 원화 기반 레이어 도트
+
+2026-10-28 사용자는 첨부 원화 오른쪽 아래 인게임 장면을 구현하도록 요청했습니다. 현재 주인공은 동일 인물의 새 96×128 원본, 발 기준 (48,116), 8방향 대기/걷기 레이어 아틀라스를 사용합니다. 백발 단발·보랏빛 눈·하늘색 숄·상아색 드레스·남색 리본·짙은 스타킹·회갈색 부츠를 유지합니다. 몸·머리·옷·신발과 몸체 가림 정보를 분리하며, 드레스는 상의·하의를 함께 점유합니다.
+
+기본 정면뷰에서 인물 높이 약 220픽셀을 확보합니다. 현재 원본과 프롬프트는 `art-studies/arcana-reference-v1/source/`, 재제작은 `scripts/build-arcana-reference-art.cjs`, 게임 표시는 `heroine_sprite.gd`와 `art/export/reference/hero-*.png`입니다. 실제 결과는 `godot-arcana/art/reference/reference-scene/`를 따르며 미술 승인 전 구현 결과입니다. 기존 64×80 도트 및 Blender 원형은 보존 자료입니다.
+### 현재 캐릭터 도트 품질 v2
+
+사용자가 지정한 현재 나무의 품질에 맞춰 64원본 픽셀/단위를 유지하고, 백발의 잡선과 지워진 하이라이트를 정리했습니다. 얼굴은 보랏빛 눈·밝은 피부로, 머리는 진주백색과 차가운 회색 명암으로, 숄은 하늘색으로 구분합니다. 새 분리 원본은 arcana-reference-v1/source/hero-*-clusters-v2.png입니다. 인물 높이는 유지하고 앞으로 뻗은 발의 여백만 추가해 프레임은 96×136/발 (48,116)입니다. 방향별 정지 4장·걷기 24장·좌/우 정착 각 4장을 사용합니다. 최대 이동은 초당 3칸이며, 실제 이동 1.25칸마다 두 걸음의 24자세를 순환합니다. 공통 원본은 godot-arcana/art/source/heroine/masters/, 프레임별 수정은 workshop.json에 보존합니다. 편집 절차는 같은 폴더 README.md를 따릅니다.
+
+
+현재 주인공 보행은 공통 Godot 2D 스켈레톤에서 제작하고 도트 프레임으로 출력합니다. 서로 다른 방향의 머리/몸통/다리를 섞지 않습니다. 연결부의 숨은 그림을 채운 원본·native 편집 장면·프레임 좌표 수정은 godot-arcana/art/source/heroine/README.md를 따릅니다. 기본288장 주소에 정지회전64장을 추가한352프레임이며 기존 인물 디자인·원본 크기·발 기준은 유지합니다.
+
+
+### 최신 활성 원본 · Blender v3
+
+사용자가 현재 인물의 느낌을 유지하는 Blender3D 재제작을 요청했습니다. 활성 원본은 art-studies/arcana-hero/white-bob-heroine/blender-v3/heroine-v3.blend이며 기존 모델과2D 그림은 보존합니다. 얼굴·눈매·백발 단발·가는 어깨와 손목·작은 손·상아색 드레스/하늘색 숄/남색 리본을 기준으로 조형합니다. 게임은 heroine_blender.gd에서 같은3D 모델/뼈대를 매 프레임96×144(기준96×136 + 아래 투명 여백8픽셀) 도트로 표시합니다. 이전 프레임별2D 제작 설명과 구별하고 원본의 수동 편집은 blender-v3/README.md의 재출력 경로로 보존합니다. 모델의 미술 승인은 실제 화면으로 별도 확인합니다.

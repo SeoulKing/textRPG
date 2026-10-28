@@ -1,11 +1,16 @@
 @tool
 extends Node3D
 ## This saved scene is the single layout source for editor and game.
+const Illustrated = preload("res://scripts/illustrated_art.gd")
 const Models = preload("res://scripts/pixel3d_models.gd")
 const Placement = preload("res://scripts/arcana_placement.gd")
+const FountainGround = preload("res://art/resources/fountain_ground.generated.gd")
 const Fountain = preload("res://scripts/fountain_spec.gd")
-const CAMERA_PITCH_SINE = .75
+const CAMERA_PITCH_DEGREES = 45.0
+const CAMERA_PITCH_SINE = sin(deg_to_rad(CAMERA_PITCH_DEGREES))
+const GroundTiles = preload("res://scripts/ground_tilemap.gd")
 var _editor_context: Node3D
+var _reference_ground: ShaderMaterial
 var _editor_ground: ShaderMaterial
 var _fountain_transform = Transform3D.IDENTITY
 var _editor_plan_poll = 0.0
@@ -15,6 +20,8 @@ var _editor_plan_poll = 0.0
 	set(value):
 		plaza_radii = value.max(Vector2.ONE)
 		if _editor_ground != null: configure_ground(_editor_ground)
+		if _reference_ground != null: configure_ground(_reference_ground)
+		if _editor_context != null: Illustrated.build_verges(_editor_context,self)
 @export var paved_areas: Array[Rect2] = []:
 	set(value):
 		paved_areas = value
@@ -37,6 +44,8 @@ func refresh_plan() -> void:
 			return
 
 func configure_ground(mat: ShaderMaterial) -> void:
+	# Match the painted basin ellipse without moving the saved fountain origin.
+	mat.set_shader_parameter("fountain_paving_span",Vector2(8.5,8.5*FountainGround.BASIN_RATIO/CAMERA_PITCH_SINE))
 	refresh_plan()
 	var rectangles = PackedVector4Array()
 	rectangles.resize(24)
@@ -54,13 +63,20 @@ func _process(delta: float) -> void:
 	_editor_plan_poll += delta
 	if _editor_plan_poll<.15: return
 	_editor_plan_poll = 0.0
+	if GroundTiles.refresh() and _reference_ground != null:
+		GroundTiles.bind(_reference_ground)
+		if _editor_context != null: Illustrated.build_verges(_editor_context,self)
 	for entry in placements():
 		if entry.model_kind == "fountain":
 			if not entry.layout_transform(self).is_equal_approx(_fountain_transform):
 				configure_ground(_editor_ground)
+				if _reference_ground != null: configure_ground(_reference_ground)
+				if _editor_context != null: Illustrated.build_verges(_editor_context,self)
 			return
 
 func material_at(point: Vector2) -> int:
+	var authored = GroundTiles.surface_at(point/16.0)
+	if authored >= 0: return authored
 	var p = point/16.0
 	var distance = ((p-plaza_center)/plaza_radii).length()-1.0
 	distance *= minf(plaza_radii.x,plaza_radii.y)
@@ -72,6 +88,13 @@ func material_at(point: Vector2) -> int:
 	if p.y<48.4375 and distance<.35: return 1
 	if p.y>=47 and p.y<78.75 and absf(p.x-36)<2.75: return 1
 	return 0
+
+func wall_collision_rects() -> Array[Rect2]:
+	var rectangles: Array[Rect2] = []
+	for node in find_children("*","Node3D",true,false):
+		if node.has_method("collision_rects") and node.get_script() == preload("res://scripts/wall_tilemap.gd"):
+			rectangles.append_array(node.collision_rects(self))
+	return rectangles
 
 func placements() -> Array:
 	return find_children("*","Node3D",true,false).filter(func(node): return node.get_script() == Placement)
@@ -108,6 +131,8 @@ func _build_editor_context() -> void:
 	_editor_ground = mat
 	floor_node.material_override = mat
 	_editor_context.add_child(floor_node)
+	_reference_ground = Illustrated.add_ground(_editor_context,plane.size,floor_node.position,self)
+	Illustrated.build_verges(_editor_context,self)
 	# Use the game's daytime lighting alongside the same model materials.
 	# The editor remains freely navigable; F6/F5 uses the game's pixel camera.
 	var environment = Environment.new()

@@ -1,0 +1,751 @@
+{
+  "kind": "asset preparation invariants; not a game playtest",
+  "layers": [
+    {
+      "item": "body",
+      "direction": "front",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 20,
+        "top": 7,
+        "width": 24,
+        "height": 66
+      }
+    },
+    {
+      "item": "body",
+      "direction": "back",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 20,
+        "top": 7,
+        "width": 24,
+        "height": 66
+      }
+    },
+    {
+      "item": "body",
+      "direction": "left",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 25,
+        "top": 7,
+        "width": 14,
+        "height": 66
+      }
+    },
+    {
+      "item": "body",
+      "direction": "right",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 25,
+        "top": 7,
+        "width": 14,
+        "height": 66
+      }
+    },
+    {
+      "item": "hair",
+      "direction": "front",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 17,
+        "top": 5,
+        "width": 30,
+        "height": 24
+      }
+    },
+    {
+      "item": "hair",
+      "direction": "back",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 17,
+        "top": 5,
+        "width": 31,
+        "height": 24
+      }
+    },
+    {
+      "item": "hair",
+      "direction": "left",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 22,
+        "top": 5,
+        "width": 29,
+        "height": 24
+      }
+    },
+    {
+      "item": "hair",
+      "direction": "right",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 12,
+        "top": 5,
+        "width": 29,
+        "height": 24
+      }
+    },
+    {
+      "item": "dress",
+      "direction": "front",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 14,
+        "top": 26,
+        "width": 36,
+        "height": 37
+      }
+    },
+    {
+      "item": "dress",
+      "direction": "back",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 14,
+        "top": 26,
+        "width": 36,
+        "height": 37
+      }
+    },
+    {
+      "item": "dress",
+      "direction": "left",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 17,
+        "top": 26,
+        "width": 30,
+        "height": 37
+      }
+    },
+    {
+      "item": "dress",
+      "direction": "right",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 18,
+        "top": 26,
+        "width": 29,
+        "height": 37
+      }
+    },
+    {
+      "item": "shawl",
+      "direction": "front",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 17,
+        "top": 27,
+        "width": 30,
+        "height": 15
+      }
+    },
+    {
+      "item": "shawl",
+      "direction": "back",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 17,
+        "top": 27,
+        "width": 30,
+        "height": 15
+      }
+    },
+    {
+      "item": "shawl",
+      "direction": "left",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 21,
+        "top": 27,
+        "width": 23,
+        "height": 15
+      }
+    },
+    {
+      "item": "shawl",
+      "direction": "right",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 21,
+        "top": 27,
+        "width": 23,
+        "height": 15
+      }
+    },
+    {
+      "item": "boots-taupe",
+      "direction": "front",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 26,
+        "top": 60,
+        "width": 13,
+        "height": 13
+      }
+    },
+    {
+      "item": "boots-taupe",
+      "direction": "back",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 27,
+        "top": 60,
+        "width": 11,
+        "height": 13
+      }
+    },
+    {
+      "item": "boots-taupe",
+      "direction": "left",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 26,
+        "top": 60,
+        "width": 12,
+        "height": 13
+      }
+    },
+    {
+      "item": "boots-taupe",
+      "direction": "right",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 26,
+        "top": 60,
+        "width": 12,
+        "height": 13
+      }
+    },
+    {
+      "item": "blouse",
+      "direction": "front",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 16,
+        "top": 26,
+        "width": 32,
+        "height": 26
+      }
+    },
+    {
+      "item": "blouse",
+      "direction": "back",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 16,
+        "top": 26,
+        "width": 32,
+        "height": 26
+      }
+    },
+    {
+      "item": "blouse",
+      "direction": "left",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 21,
+        "top": 26,
+        "width": 24,
+        "height": 26
+      }
+    },
+    {
+      "item": "blouse",
+      "direction": "right",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 20,
+        "top": 26,
+        "width": 25,
+        "height": 26
+      }
+    },
+    {
+      "item": "skirt",
+      "direction": "front",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 14,
+        "top": 37,
+        "width": 36,
+        "height": 27
+      }
+    },
+    {
+      "item": "skirt",
+      "direction": "back",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 14,
+        "top": 37,
+        "width": 36,
+        "height": 27
+      }
+    },
+    {
+      "item": "skirt",
+      "direction": "left",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 17,
+        "top": 37,
+        "width": 30,
+        "height": 27
+      }
+    },
+    {
+      "item": "skirt",
+      "direction": "right",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 17,
+        "top": 37,
+        "width": 30,
+        "height": 27
+      }
+    },
+    {
+      "item": "boots-navy",
+      "direction": "front",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 26,
+        "top": 60,
+        "width": 13,
+        "height": 13
+      }
+    },
+    {
+      "item": "boots-navy",
+      "direction": "back",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 27,
+        "top": 61,
+        "width": 11,
+        "height": 12
+      }
+    },
+    {
+      "item": "boots-navy",
+      "direction": "left",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 26,
+        "top": 60,
+        "width": 12,
+        "height": 13
+      }
+    },
+    {
+      "item": "boots-navy",
+      "direction": "right",
+      "size": [
+        64,
+        80
+      ],
+      "binaryAlpha": true,
+      "bounds": {
+        "left": 26,
+        "top": 60,
+        "width": 12,
+        "height": 13
+      }
+    }
+  ],
+  "composites": [
+    {
+      "combination": "original",
+      "direction": "front",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "original",
+      "direction": "back",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "original",
+      "direction": "left",
+      "bounds": {
+        "left": 17,
+        "top": 5,
+        "width": 34,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "original",
+      "direction": "right",
+      "bounds": {
+        "left": 12,
+        "top": 5,
+        "width": 35,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "no-shawl",
+      "direction": "front",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "no-shawl",
+      "direction": "back",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "no-shawl",
+      "direction": "left",
+      "bounds": {
+        "left": 17,
+        "top": 5,
+        "width": 34,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "no-shawl",
+      "direction": "right",
+      "bounds": {
+        "left": 12,
+        "top": 5,
+        "width": 35,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate",
+      "direction": "front",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate",
+      "direction": "back",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate",
+      "direction": "left",
+      "bounds": {
+        "left": 17,
+        "top": 5,
+        "width": 34,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate",
+      "direction": "right",
+      "bounds": {
+        "left": 12,
+        "top": 5,
+        "width": 35,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate-no-shawl",
+      "direction": "front",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate-no-shawl",
+      "direction": "back",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate-no-shawl",
+      "direction": "left",
+      "bounds": {
+        "left": 17,
+        "top": 5,
+        "width": 34,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate-no-shawl",
+      "direction": "right",
+      "bounds": {
+        "left": 12,
+        "top": 5,
+        "width": 35,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "shoe-swap",
+      "direction": "front",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "shoe-swap",
+      "direction": "back",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "shoe-swap",
+      "direction": "left",
+      "bounds": {
+        "left": 17,
+        "top": 5,
+        "width": 34,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "shoe-swap",
+      "direction": "right",
+      "bounds": {
+        "left": 12,
+        "top": 5,
+        "width": 35,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate-shoes",
+      "direction": "front",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate-shoes",
+      "direction": "back",
+      "bounds": {
+        "left": 14,
+        "top": 5,
+        "width": 36,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate-shoes",
+      "direction": "left",
+      "bounds": {
+        "left": 17,
+        "top": 5,
+        "width": 34,
+        "height": 68
+      },
+      "baseline": 72
+    },
+    {
+      "combination": "alternate-shoes",
+      "direction": "right",
+      "bounds": {
+        "left": 12,
+        "top": 5,
+        "width": 35,
+        "height": 68
+      },
+      "baseline": 72
+    }
+  ]
+}

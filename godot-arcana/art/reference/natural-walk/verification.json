@@ -1,0 +1,57 @@
+{
+  "frame_size": [
+    96,
+    136
+  ],
+  "frames": 352,
+  "walk_frames": 24,
+  "stop_frames_per_foot": 4,
+  "cycle_distance_map_units": 20,
+  "max_map_units_per_second": 48,
+  "max_tiles_per_second": 3,
+  "full_speed_cycle_seconds": 0.4166666666666667,
+  "walk_unique_poses_by_direction": [
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24
+  ],
+  "packed_masks_exact": true,
+  "binary_alpha": true,
+  "shared_palette": true,
+  "no_clipped_frames": true,
+  "no_detached_lower_body": true,
+  "pipeline": "Native Skeleton2D / Bone2D / Polygon2D / AnimationPlayer, single whole-body frame",
+  "skeleton_bones": 17,
+  "native_pose_count": 352,
+  "turn_frames": 64,
+  "prior_snapshot_differences": [
+    "godot-arcana/art/export/reference/bench.png",
+    "godot-arcana/art/export/reference/crate.png",
+    "godot-arcana/art/export/reference/planter.png",
+    "godot-arcana/scripts/pixel3d_models.gd",
+    "godot-arcana/scenes/plaza.tscn"
+  ],
+  "prior_snapshot_note": "Scene, models and bench were edited in separate work. This animation task does not regenerate or overwrite them.",
+  "appearance_and_mask_atlases_loaded": 12,
+  "uncompressed_atlas_mib": 210.375,
+  "evidence": "offline Godot Compatibility GPU and asset inspection; browser/mobile play not performed",
+  "arm_cutouts_per_side": 4,
+  "arm_cutouts": [
+    "upper",
+    "fore",
+    "cuff",
+    "hand"
+  ],
+  "arm_art_revision": 3,
+  "arm_piece_weights": "one rigid joint per cutout, shared Skeleton2D; two-pixel painted seam overlap",
+  "actual_gpu_evidence": [
+    "slender-arms-walk.gif",
+    "slender-arms-turn.gif",
+    "after-directions.png"
+  ]
+}

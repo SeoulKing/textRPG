@@ -30,6 +30,8 @@ import { narrateTextWorld, type TextWorldNarrator } from "./text-world/narrator"
 import { conditionCards } from "./health-conditions";
 import { forecastShelterSleep } from "./rules";
 import { createHash, randomUUID } from "node:crypto";
+import { acceptSpatialPosition } from "./arcana-spatial";
+import { buildArcanaSpells } from "./arcana-spells";
 import { buildArcanaActions, buildArcanaScene, ensureArcanaEncounter, performArcanaAction } from "./arcana-combat";
 import { advanceGameMinutes, performWorldClockAction } from "./rules";
 import { buildMagicDungeonActions, buildMagicDungeonEntranceActions, buildMagicDungeonScene, performMagicDungeonAction, syncMagicDungeon } from "./magic-dungeon";
@@ -377,6 +379,79 @@ function sceneDevSource(sceneDef: SceneDefinition) {
 export class GameService {
   private readonly subwayFloorGenerationTasks = new Map<string, Promise<void>>();
   private readonly gameMutationTails = new Map<string, Promise<void>>();
+  private readonly arcanaFlushTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly arcanaLiveSessions = new Map<string, { session: GameSession; savedAt: number; inputAt: number }>();
+
+  private async loadGameWithCombat(gameId: string) {
+    const live = this.arcanaLiveSessions.get(gameId);
+    if (!live) return this.repository.loadGame(gameId);
+    await this.repository.saveGame(live.session);
+    this.arcanaLiveSessions.delete(gameId);
+    clearTimeout(this.arcanaFlushTimers.get(gameId));
+    this.arcanaFlushTimers.delete(gameId);
+    return live.session;
+  }
+
+  private async performSpatialActionUnlocked(gameId: string, action: Extract<GameAction, { type: "arcana_combat" }>) {
+    const input = action.spatial;
+    if (!input) throw new Error("공간 전투 입력이 필요합니다.");
+    const now = Date.now();
+    let live = this.arcanaLiveSessions.get(gameId);
+    if (!live) {
+      const session = await this.repository.loadGame(gameId);
+      live = { session, savedAt: now, inputAt: 0 };
+    }
+    const state = live.session.state, clock = state.activeClock;
+    if (state.stateWorld || !state.flags.in_magic_world || state.magicDungeon.run || state.isGameOver || state.npcDialogue.active || state.subwayExpedition.active) throw new Error("현재는 공간 전투를 진행할 수 없습니다.");
+    if (state.location !== "arcana_plaza" && !state.arcanaCombat.battle?.spatial) throw new Error("광장에서만 이 슬라임을 상대할 수 있습니다.");
+    if (state.arcanaCombat.battle && !state.arcanaCombat.battle.spatial) throw new Error("진행 중인 전투를 먼저 마쳐 주세요.");
+    const ownedElsewhere = clock.ownerId && clock.ownerId !== input.clientId && !clock.paused && now-clock.heartbeatAt <= 5000;
+    if (ownedElsewhere) throw new Error("다른 창에서 모험을 진행 중입니다.");
+    if (clock.ownerId === input.clientId && input.sequence <= clock.sequence) return this.spatialReply(live.session, clock.sequence);
+    if (action.command === "spatial_sync" && !input.paused && now-live.inputAt < 95) return this.spatialReply(live.session, clock.sequence);
+    // Work on a copy: a rejected cast must not consume time, mana or cached state.
+    const session = structuredClone(live.session), working = session.state;
+    const elapsed = Math.max(0,(now-working.lastRealTimestamp)/1000);
+    const resuming = working.activeClock.paused || elapsed > 5;
+    acceptSpatialPosition(working,input.position,resuming ? 0 : elapsed,resuming,input.developerSpeed && process.env.NODE_ENV !== "production" ? 3 : 1);
+    syncClock(working, now);
+    performWorldClockAction(working,{type:"world_clock",command:input.paused ? "pause" : "tick",clientId:input.clientId,sequence:input.sequence},now);
+    if (working.arcanaCombat.battle?.spatial) working.arcanaCombat.battle.paused = input.paused || ["victory","defeat"].includes(working.arcanaCombat.battle.phase);
+    performArcanaAction(working,action);
+    session.updatedAt = nowIso();
+    const terminal = ["victory","defeat"].includes(working.arcanaCombat.battle?.phase ?? "");
+    if (terminal) { syncQuestState(working); syncScene(working); }
+    const save = action.command !== "spatial_sync" || input.paused || terminal || now-live.savedAt >= 1000;
+    if (save) await this.repository.saveGame(session);
+    this.arcanaLiveSessions.set(gameId,{session,savedAt:save ? now : live.savedAt,inputAt:now});
+    if (action.command !== "spatial_sync") await this.repository.appendActionLog({gameId,action,at:session.updatedAt,location:working.location,day:working.day});
+    this.armCombatFlush(gameId);
+    return this.spatialReply(session,input.sequence);
+  }
+
+  private armCombatFlush(gameId: string) {
+    if (this.arcanaFlushTimers.has(gameId)) return;
+    const timer = setTimeout(() => {
+      this.arcanaFlushTimers.delete(gameId);
+      void this.withGameMutation(gameId, async () => {
+        const entry = this.arcanaLiveSessions.get(gameId);
+        if (!entry) return;
+        await this.repository.saveGame(entry.session);
+        entry.savedAt = Date.now();
+        if (Date.now()-entry.inputAt >= 1000) this.arcanaLiveSessions.delete(gameId);
+        else this.armCombatFlush(gameId);
+      }).catch(error => {
+        console.error("Arcana combat autosave failed", error);
+        if (this.arcanaLiveSessions.has(gameId)) this.armCombatFlush(gameId);
+      });
+    }, 1000);
+    timer.unref();
+    this.arcanaFlushTimers.set(gameId,timer);
+  }
+
+  private spatialReply(session: GameSession, sequence: number) {
+    return { spatialCombat: true, sequence, arcanaSpells: buildArcanaSpells(session.state), availableActions: buildArcanaActions(session.state), currentScene: buildArcanaScene(session.state), state: { arcanaCombat: session.state.arcanaCombat, activeClock: session.state.activeClock, location: session.state.location, sceneId: session.state.sceneId, money: session.state.money, inventory: session.state.inventory, flags: session.state.flags } };
+  }
 
   constructor(
     private readonly repository: GameRepository,
@@ -756,7 +831,7 @@ export class GameService {
     error: unknown,
   ) {
     await this.withGameMutation(gameId, async () => {
-      const latest = await this.repository.loadGame(gameId);
+      const latest = await this.loadGameWithCombat(gameId);
       const latestContext = this.subwayPreparationContext(latest.state);
       const prepared = latest.state.subwayExpedition.preparedNextFloor;
       if (
@@ -816,7 +891,7 @@ export class GameService {
     const floor = await generateSubwayFloorBundle(generationSpec);
 
     await this.withGameMutation(gameId, async () => {
-      const latest = await this.repository.loadGame(gameId);
+      const latest = await this.loadGameWithCombat(gameId);
       const latestContext = this.subwayPreparationContext(latest.state);
       const prepared = latest.state.subwayExpedition.preparedNextFloor;
       // The next floor is intentionally branch-neutral. Do not recompute its hash
@@ -902,8 +977,14 @@ export class GameService {
   }
 
   private async getStateUnlocked(gameId: string) {
-    const session = await this.repository.loadGame(gameId);
+    const session = await this.loadGameWithCombat(gameId);
     if (session.state.stateWorld) throw new Error("상태 기반 월드 화면에서 이어가 주세요.");
+    // A fresh page resumes explicitly; loading a save never deals accumulated offline damage.
+    if (session.state.arcanaCombat.battle?.spatial) {
+      session.state.activeClock.paused = true;
+      session.state.arcanaCombat.battle.paused = true;
+      session.state.lastRealTimestamp = Date.now();
+    }
     const previousState = structuredClone(session.state);
     syncClock(session.state);
     syncMagicDungeon(session.state);
@@ -930,7 +1011,7 @@ export class GameService {
 
   async recoverAction(gameId: string, requestId: string) {
     return this.withGameMutation(gameId, async () => {
-      const session = await this.repository.loadGame(gameId);
+      const session = await this.loadGameWithCombat(gameId);
       const world = currentTextWorld(session.state);
       const dialogue = session.state.npcDialogue.lastRequest;
       const turn = session.state.npcDialogue.active?.turnNumber ?? session.state.npcDialogue.conversations[dialogue?.npcId ?? ""]?.exchanges.at(-1)?.turnNumber ?? -1;
@@ -940,7 +1021,8 @@ export class GameService {
   }
 
   private async performActionUnlocked(gameId: string, action: GameAction) {
-    const session = await this.repository.loadGame(gameId);
+    if (action.type === "arcana_combat" && action.spatial) return this.performSpatialActionUnlocked(gameId, action);
+    const session = await this.loadGameWithCombat(gameId);
     if (session.state.stateWorld) throw new Error("상태 기반 월드 화면에서 이어가 주세요.");
     markAction("loadMs");
     const requestId = currentObservation()?.observer.requestId;
@@ -987,7 +1069,9 @@ export class GameService {
       if (action.type !== "world_clock") await this.repository.appendActionLog({ gameId, action, at: session.updatedAt, location: workingState.location, day: workingState.day });
       return snapshot;
     }
-    if (session.state.arcanaCombat.battle) throw new Error("사냥터 전투를 마치거나 후퇴한 뒤 다른 행동을 할 수 있습니다.");
+    const arcanaBattle = session.state.arcanaCombat.battle;
+    if (arcanaBattle?.spatial && arcanaBattle.phase === "ready") session.state.arcanaCombat.battle = null;
+    else if (arcanaBattle) throw new Error("사냥터 전투를 마치거나 후퇴한 뒤 다른 행동을 할 수 있습니다.");
     if (action.type === "magic_dungeon") {
       const previousState = structuredClone(session.state);
       const workingState = structuredClone(session.state);
@@ -1357,7 +1441,7 @@ export class GameService {
   }
 
   private async getMapUnlocked(gameId: string) {
-    const session = await this.repository.loadGame(gameId);
+    const session = await this.loadGameWithCombat(gameId);
     const previousDay = session.state.day;
     syncClock(session.state);
     syncQuestState(session.state);
@@ -1380,7 +1464,7 @@ export class GameService {
   }
 
   private async getInventoryUnlocked(gameId: string) {
-    const session = await this.repository.loadGame(gameId);
+    const session = await this.loadGameWithCombat(gameId);
     const previousDay = session.state.day;
     syncClock(session.state);
     syncQuestState(session.state);
@@ -1412,7 +1496,7 @@ export class GameService {
   }
 
   private async saveManualGameUnlocked(gameId: string, ownerId: string | null = null) {
-    const session = await this.repository.loadGame(gameId);
+    const session = await this.loadGameWithCombat(gameId);
     const previousDay = session.state.day;
     syncClock(session.state);
     syncQuestState(session.state);
@@ -1437,6 +1521,7 @@ export class GameService {
       throw new Error("저장된 게임을 찾을 수 없습니다.");
     }
 
+    this.arcanaLiveSessions.delete(record.session.id);
     const session = record.session;
     session.state.activeClock.paused = true;
     if (session.state.arcanaCombat.battle?.phase === "battle") session.state.arcanaCombat.battle.paused = true;
@@ -1461,6 +1546,7 @@ export class GameService {
     }
 
     return this.withGameMutation(record.session.id, async () => {
+      this.arcanaLiveSessions.delete(record.session.id);
       const session = record.session;
       session.state.activeClock.paused = true;
       if (session.state.arcanaCombat.battle?.phase === "battle") session.state.arcanaCombat.battle.paused = true;
@@ -2131,6 +2217,7 @@ export class GameService {
     });
     const snapshot = {
       academyMap: buildAcademyMap(session.state, registry),
+      arcanaSpells: buildArcanaSpells(session.state),
       gameId: session.id,
       state: clientState,
       conditionCards: conditionCards(session.state),
@@ -2503,7 +2590,7 @@ export class GameService {
   private async preGenerateNarrativeBeats(gameId: string) {
     if (!this.backgroundGenerationEnabled()) return;
     const preparation = await this.withGameMutation(gameId, async () => {
-      const session = await this.repository.loadGame(gameId);
+      const session = await this.loadGameWithCombat(gameId);
       const registry = this.runtimeRegistry(session);
       const candidates = this.narrativeContinuationChoices(session, registry).slice(0, 1);
       if (candidates.length === 0) {
@@ -2554,7 +2641,7 @@ export class GameService {
           await this.planner.generateSceneDraft(plannerRequest),
         );
         await this.withGameMutation(gameId, async () => {
-          const latest = await this.repository.loadGame(gameId);
+          const latest = await this.loadGameWithCombat(gameId);
           latest.state.narrativeState.pregenerated[entry.key] = {
             key: entry.key,
             locationId: entry.request.locationId,

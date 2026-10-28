@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=4]
+
+[ext_resource type="TileSet" path="res://art/resources/wall_tileset.tres" id="1"]
+
+[node name="CityWalls" type="Node2D"]
+
+[node name="Walls" type="TileMapLayer" parent="."]
+y_sort_enabled = true
+texture_filter = 1
+tile_map_data = PackedByteArray("AAAAAAAAAAABAAAAAAABAAAAAAAFAAEAAAACAAAAAAAFAAIAAAADAAAAAAAFAAMAAAAEAAAAAAAFAAAAAAAFAAAAAAAFAAEAAAAGAAAAAAAFAAIAAAAHAAAAAAAFAAMAAAAIAAAAAAAFAAAAAAAJAAAAAAAFAAEAAAAKAAAAAAAEAAIAAAAMAAAAAAABAAAAAAANAAAAAAAFAAEAAAAOAAAAAAAFAAIAAAAPAAAAAAAFAAMAAAAQAAAAAAAFAAAAAAARAAAAAAAFAAEAAAASAAAAAAAFAAIAAAATAAAAAAAFAAMAAAAUAAAAAAAFAAAAAAAVAAAAAAAFAAEAAAAWAAAAAAAEAAIAAAA=")
+tile_set = ExtResource("1")
+metadata/bay_grid_version = 2
+
+[node name="Towers" type="TileMapLayer" parent="."]
+y_sort_enabled = true
+texture_filter = 1
+tile_map_data = PackedByteArray("AAAKAAAAAQAAAAAAAAAMAAAAAQAAAAAAAAA=")
+tile_set = ExtResource("1")

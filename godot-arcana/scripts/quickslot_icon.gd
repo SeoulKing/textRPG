@@ -1,5 +1,8 @@
 extends Control
 
+const SPELL_TEXTURES = {"fireball":"res://art/export/spells/fireball.png", "flame_wave":"res://art/export/spells/flame-wave.png", "flame_guard":"res://art/export/spells/flame-guard.png"}
+static var spell_textures: Dictionary = {}
+
 var kind = "":
 	set(value):
 		kind = value
@@ -9,6 +12,11 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _draw() -> void:
+	if SPELL_TEXTURES.has(kind):
+		if not spell_textures.has(kind): spell_textures[kind] = load(SPELL_TEXTURES[kind])
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		draw_texture_rect(spell_textures[kind], Rect2(Vector2.ZERO,size), false)
+		return
 	draw_set_transform(Vector2.ZERO,0,size/24.0)
 	match kind:
 		"dev_speed":

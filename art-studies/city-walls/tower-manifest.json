@@ -1,0 +1,27 @@
+{
+  "source": "art-studies/city-walls/source/gate-tower.png",
+  "sourceCrop": [
+    229,
+    69,
+    440,
+    1569
+  ],
+  "size": [
+    192,
+    512
+  ],
+  "foot": [
+    96,
+    480
+  ],
+  "pixelsPerUnit": 64,
+  "alpha": [
+    0,
+    255
+  ],
+  "paletteColors": 41,
+  "generator": "built-in image_gen",
+  "reference": "godot-arcana/art/reference/street-lamp/district-overview.png",
+  "runtime": "godot-arcana/art/export/walls/gate-tower.png",
+  "status": "approved-concept-rescaled-to-four-hero-heights"
+}

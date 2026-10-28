@@ -87,6 +87,15 @@ export const SurvivalGoalSchema = z.object({
 });
 
 export const StateSnapshotSchema = z.object({
+  arcanaSpells: z.array(z.object({
+    id: z.enum(["fireball", "flame_wave", "flame_guard"]),
+    name: z.string(), school: z.string(), schoolName: z.string(),
+    unlockLevel: z.number(), cost: z.number(), cooldown: z.number(), ratio: z.number(),
+    targeting: z.enum(["projectile", "cone", "self"]), thumbnail: z.string(),
+    rangeTiles: z.number(), angle: z.number(), duration: z.number(),
+    equipped: z.boolean(), mastery: z.number(), masteryXp: z.number(),
+    unlocked: z.boolean(), learnable: z.boolean(), schoolUnlocked: z.boolean(), magnitude: z.number(),
+  })).default([]),
   academyMap: AcademyMapSchema.nullable().default(null),
   conditionCards: z.array(z.object({
     kind: z.enum(["injury", "infection", "exhaustion"]), label: z.string(), level: z.number().int().min(1).max(4),

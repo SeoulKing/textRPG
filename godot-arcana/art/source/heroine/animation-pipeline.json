@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "renderer": "godot-arcana/scripts/heroine_run.gd",
+  "world": "godot-arcana/scripts/pixel3d_world.gd",
+  "frameSize": [
+    96,
+    136
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "pixelsPerUnit": 64,
+  "directions": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "cycleDistanceMapUnits": 20,
+  "atlases": [
+    {
+      "id": "run",
+      "path": "godot-arcana/art/export/heroine-run-v1/heroine-run.png",
+      "grid": [
+        8,
+        9
+      ],
+      "clips": [
+        {
+          "name": "run",
+          "layout": "direction-rows",
+          "frames": 8
+        },
+        {
+          "name": "idle-legacy",
+          "layout": "direction-columns",
+          "row": 8,
+          "frames": 1,
+          "active": false
+        }
+      ]
+    },
+    {
+      "id": "cast",
+      "path": "godot-arcana/art/export/heroine-cast-v1/heroine-cast.png",
+      "grid": [
+        4,
+        8
+      ],
+      "clips": [
+        {
+          "name": "cast",
+          "layout": "direction-rows",
+          "frames": 4
+        }
+      ]
+    },
+    {
+      "id": "bench",
+      "path": "godot-arcana/art/export/heroine-bench-v1/heroine-bench.png",
+      "grid": [
+        4,
+        2
+      ],
+      "direction": "s",
+      "clips": [
+        {
+          "name": "sit",
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "duration": 0.52
+        },
+        {
+          "name": "seated",
+          "frames": [
+            3,
+            4,
+            5
+          ],
+          "loop": true
+        },
+        {
+          "name": "stand",
+          "frames": [
+            3,
+            6,
+            7,
+            0
+          ],
+          "duration": 0.42
+        }
+      ]
+    },
+    {
+      "id": "idle",
+      "path": "godot-arcana/art/export/heroine-idle-v1/heroine-idle.png",
+      "grid": [
+        4,
+        8
+      ],
+      "clips": [
+        {
+          "name": "idle",
+          "layout": "direction-rows",
+          "frames": 4,
+          "durations": [
+            1.15,
+            1.0,
+            1.85,
+            0.13
+          ]
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "id": "eight-directions",
+      "status": "active"
+    },
+    {
+      "id": "distance-phase",
+      "status": "active"
+    },
+    {
+      "id": "separate-walk-run",
+      "status": "pending-assets"
+    },
+    {
+      "id": "start-stop-turn",
+      "status": "pending-assets"
+    },
+    {
+      "id": "shared-equipment-layers",
+      "status": "pending-integration"
+    },
+    {
+      "id": "secondary-motion-poses",
+      "status": "pending-assets"
+    }
+  ]
+}

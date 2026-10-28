@@ -1,12 +1,13 @@
 @tool
 extends Node3D
 ## Move this node in X/Z. The model, door and footprint share its transform.
+const Illustrated = preload("res://scripts/illustrated_art.gd")
 const Models = preload("res://scripts/pixel3d_models.gd")
 const Fountain = preload("res://scripts/fountain_spec.gd")
 const Actor = preload("res://scripts/pixel3d_actor.gd")
-const Hero = preload("res://scripts/blender_hero.gd")
+const Hero = preload("res://scripts/heroine_sprite.gd")
 
-@export_enum("shop", "inn", "restaurant", "academy", "fountain", "oak", "birch", "spruce", "bench", "flowerbed", "flowers", "shrub", "flowerpot", "crate", "barrels", "basket", "sign", "lantern", "lamp-post", "handcart", "workbench", "canopy", "pennant", "portal", "hero", "traveler") var model_kind: String = "crate":
+@export_enum("shop", "inn", "restaurant", "academy", "academy-2d", "fountain", "oak", "birch", "spruce", "bench", "flowerbed", "flowers", "shrub", "flowerpot", "crate", "barrels", "basket", "sign", "lantern", "lamp-post", "handcart", "workbench", "canopy", "pennant", "portal", "hero", "traveler") var model_kind: String = "crate":
 	set(value):
 		model_kind = value
 		notify_property_list_changed()
@@ -14,13 +15,19 @@ const Hero = preload("res://scripts/blender_hero.gd")
 ## Keep existing game IDs unique. Leave empty for decorative copies.
 @export var gameplay_id: String = ""
 @export var display_name: String = ""
-@export_enum("decoration", "building", "portal", "workbench", "resident", "spawn", "gate", "dungeon", "slime", "city") var interaction_kind: String = "decoration"
+@export_enum("decoration", "building", "portal", "workbench", "resident", "spawn", "gate", "dungeon", "slime", "city", "bench") var interaction_kind: String = "decoration"
 ## Ground footprint in local 3D units; X is horizontal, Y means ground Z.
 @export var collision_footprint: Rect2 = Rect2():
 	set(value):
 		collision_footprint = value
 		if is_inside_tree(): update_gizmos()
 var preview: Node3D
+## Local X/Z opening in the footprint for stairs and porches.
+@export var walkable_cutout = Rect2()
+@export var entrance_id = ""
+@export var entrance_area = Rect2()
+@export var entrance_enabled = false
+@export var entrance_target = ""
 var bounds = AABB(Vector3(-.4,0,-.4),Vector3(.8,1.8,.8))
 var _preview_materials: Dictionary = {}
 
@@ -41,7 +48,9 @@ func _refresh() -> void:
 	elif model_kind == "traveler":
 		preview = Actor.new()
 		preview.traveler = true
+	elif Illustrated.supports(model_kind): preview = Illustrated.make(model_kind)
 	else: preview = Models.model(model_kind)
+	if Illustrated.supports(model_kind): preview.opaque_walkable_area = walkable_cutout
 	preview.name = "GeneratedModel"
 	add_child(preview, false, Node.INTERNAL_MODE_BACK)
 	if Engine.is_editor_hint():
@@ -53,7 +62,7 @@ func _refresh() -> void:
 	update_gizmos()
 
 func _editor_materials(node: Node3D) -> void:
-	if node.get_script() == Hero: return # Preserve the Blender model's painted UV materials.
+	if node.get_script() == Hero: return # Preserve the baked heroine's palette and foot-anchored sprite material.
 	if node is MultiMeshInstance3D: node.hide() # Runtime pixel silhouettes are camera-specific.
 	if node is MeshInstance3D and node.material_override is ShaderMaterial:
 		var source = node.material_override
@@ -99,10 +108,29 @@ func map_collision(layout: Node3D) -> Rect2:
 	# A basin has no rectangular corner collision, even with an old saved field.
 	if model_kind == "fountain": return Rect2()
 	if not collision_footprint.has_area(): return Rect2()
+	return _map_rect(layout,collision_footprint)
+
+func map_collision_parts(layout: Node3D) -> Array[Rect2]:
+	var result: Array[Rect2] = []
+	if model_kind == "fountain" or not collision_footprint.has_area(): return result
+	var cut = collision_footprint.intersection(walkable_cutout)
+	if not cut.has_area():
+		result.append(map_collision(layout))
+		return result
+	var r = collision_footprint
+	for piece in [Rect2(r.position,Vector2(r.size.x,cut.position.y-r.position.y)),Rect2(Vector2(r.position.x,cut.end.y),Vector2(r.size.x,r.end.y-cut.end.y)),Rect2(Vector2(r.position.x,cut.position.y),Vector2(cut.position.x-r.position.x,cut.size.y)),Rect2(Vector2(cut.end.x,cut.position.y),Vector2(r.end.x-cut.end.x,cut.size.y))]:
+		if piece.has_area(): result.append(_map_rect(layout,piece))
+	return result
+
+func map_entrance(layout: Node3D) -> Dictionary:
+	if entrance_id.is_empty() or not entrance_area.has_area(): return {}
+	return {"id":entrance_id,"area":_map_rect(layout,entrance_area),"enabled":entrance_enabled,"target":entrance_target}
+
+func _map_rect(layout: Node3D, local_rect: Rect2) -> Rect2:
 	var t = layout_transform(layout)
 	var rect = Rect2()
 	var first = true
-	for point in [collision_footprint.position,Vector2(collision_footprint.end.x,collision_footprint.position.y),collision_footprint.end,Vector2(collision_footprint.position.x,collision_footprint.end.y)]:
+	for point in [local_rect.position,Vector2(local_rect.end.x,local_rect.position.y),local_rect.end,Vector2(local_rect.position.x,local_rect.end.y)]:
 		var at = t * Vector3(point.x,0,point.y)
 		var projected = Vector2(at.x,at.z)*16.0
 		if first:

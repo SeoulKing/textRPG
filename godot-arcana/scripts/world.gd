@@ -1,19 +1,41 @@
 extends Node2D
 
 signal interacted(entity: Dictionary)
+signal building_entry_intended(entity: Dictionary)
+var click_door_id = ""
+var door_intent_id = ""
+var door_intent_time = 0.0
+var entered_door_id = ""
+## Contact hook only; future scene transitions must be connected explicitly.
+signal entrance_contacted(entrance: Dictionary)
+var entrances: Array[Dictionary] = []
+var current_entrance: Dictionary = {}
 const Pixels = preload("res://scripts/pixel_art.gd")
 const Art = preload("res://scripts/art_library.gd")
 const Fountain = preload("res://scripts/fountain_spec.gd")
 const TILE = 16
 const CELLS = Vector2i(72, 90)
 const SPAWN = Vector2(576, 500)
-const WALK_SPEED = 84.0
+# Full input moves three navigation tiles per second.
+const WALK_SPEED = TILE * 3.0
+var developer_speed_boost = false
 const CAMERA_MARGIN = Vector2(16, 24)
 var spawn_position = SPAWN
 var layout: Node3D
 var player_position = SPAWN
 var destination = Vector2.ZERO
 var walking = false
+var casting = false
+# Local pose only: feet remain on a walkable point, never inside bench collision.
+var bench_state = ""
+var bench_entity: Dictionary = {}
+var bench_age = 0.0
+var bench_stalled = 0.0
+var bench_wants_stand = false
+var bench_destination = Vector2.ZERO
+var bench_has_destination = false
+const BENCH_SIT_DURATION = .52
+const BENCH_STAND_DURATION = .42
 var direction = 0
 var anim = 0.0
 var time = 0.0
@@ -22,6 +44,8 @@ var touch_direction = Vector2.ZERO
 var input_projection = Transform2D.IDENTITY
 var enabled = true
 var indoor = ""
+var academy_floor: int = 1
+const Academy = preload("res://scripts/academy_interior.gd")
 var outside_position = SPAWN
 var nearest: Dictionary = {}
 var entities: Array[Dictionary] = []
@@ -48,6 +72,7 @@ var fountain: Sprite2D
 var water: Node2D
 var slime_frames: Array[Texture2D] = []
 var battle: Dictionary = {}
+var spatial_selected = false
 var particles: Array[Dictionary] = []
 var world_label_font = preload("res://fonts/KoPubBatangMedium.ttf")
 var _outdoor_entities: Array[Dictionary] = []
@@ -66,6 +91,7 @@ var footstep_distance = 0.0
 var footsteps: Array[Dictionary] = []
 var visual_battle_id = ""
 var enemy_visual_hp = 30.0
+var predicted_enemy_damage = 0.0
 var impact_remaining = 0.0
 
 func _ready() -> void:
@@ -190,19 +216,23 @@ func _build_outdoors() -> void:
 	apply_layout(layout,true)
 
 func apply_layout(value: Node3D, initial: bool = false) -> void:
+	clear_bench()
 	layout = value
 	layout.normalize_coordinate_frame()
 	layout.refresh_plan()
 	var next_entities: Array[Dictionary] = []
-	var next_obstacles: Array[Rect2] = []
+	var next_obstacles: Array[Rect2] = layout.wall_collision_rects()
 	var next_round_obstacles: Array[Dictionary] = []
 	var seen: Dictionary = {}
 	var next_spawn = SPAWN
 	var next_home = Vector2(534,536)
 	var has_resident = false
+	entrances.clear()
+	current_entrance = {}
 	for entry in layout.placements():
-		var hit = entry.map_collision(layout)
-		if hit.has_area(): next_obstacles.append(hit)
+		next_obstacles.append_array(entry.map_collision_parts(layout))
+		var entrance = entry.map_entrance(layout)
+		if not entrance.is_empty(): entrances.append(entrance)
 		var circle = entry.map_round_collision(layout)
 		if not circle.is_empty(): next_round_obstacles.append(circle)
 		var id = entry.gameplay_id
@@ -217,7 +247,18 @@ func apply_layout(value: Node3D, initial: bool = false) -> void:
 			next_home = entry.map_position(layout)
 			has_resident = true
 		else:
-			next_entities.append({"id":id,"name":entry.display_name,"kind":entry.interaction_kind,"pos":entry.interaction_position(layout)})
+			var entity = {"id":id,"name":entry.display_name,"kind":entry.interaction_kind,"pos":entry.interaction_position(layout)}
+			if entry.interaction_kind=="bench":
+				# Bench art is a front-facing billboard; register boots at its foot.
+				var origin: Vector2 = entry.map_position(layout)
+				entity.pos = origin + Vector2(0,8)
+				entity.seat_visual = origin + Vector2(0,.5)
+			if entry.interaction_kind=="building":
+				var basis = entry.layout_transform(layout).basis
+				entity.inward = Vector2(-basis.z.x,-basis.z.z).normalized()
+				entity.door_width = maxf(.6,basis.x.length()*.6)*TILE
+				entity.auto_enter = entry.entrance_id.is_empty() or entry.entrance_enabled
+			next_entities.append(entity)
 	# Regions outside the editable plaza retain their original transition rules.
 	next_entities.append({"id":"arcana_city_gate","name":"남문 · 별빛 평원","kind":"gate","pos":Vector2(576,768)})
 	next_entities.append({"id":"slime","name":"슬라임의 흔적","kind":"slime","pos":Vector2(600,1054)})
@@ -282,11 +323,20 @@ func _rebuild_grid() -> void:
 			var p = Vector2(x * TILE + 8, y * TILE + 8)
 			if not _can_stand(p): grid.set_point_solid(Vector2i(x, y))
 
+func _update_entrance_contact() -> void:
+	var contact: Dictionary = {}
+	if indoor.is_empty():
+		for entrance in entrances:
+			if entrance.area.has_point(player_position):
+				contact = entrance
+				break
+	var changed = str(contact.get("id","")) != str(current_entrance.get("id",""))
+	current_entrance = contact
+	if changed and not contact.is_empty(): entrance_contacted.emit(contact.duplicate(true))
+
 func _can_stand(pos: Vector2) -> bool:
 	if indoor == "":
 		if pos.x < 32 or pos.y < 48 or pos.x > 1110 or pos.y > 1400: return false
-		# City walls have one open southern gate.
-		if pos.y > 741 and pos.y < 775 and (pos.x < 546 or pos.x > 606): return false
 		if pos.x > 930 and pos.y > 840 and pos.y < 1200: return false
 	else:
 		if pos.x < 30 or pos.x > 350 or pos.y < 30 or pos.y > 326: return false
@@ -298,6 +348,24 @@ func _can_stand(pos: Vector2) -> bool:
 
 func walk_to(pos: Vector2) -> void:
 	if not enabled: return
+	if not bench_state.is_empty():
+		if bench_state == "approach": clear_bench()
+		else:
+			bench_destination = pos
+			bench_has_destination = true
+			stand_from_bench()
+			return
+	click_door_id = ""
+	if indoor.is_empty():
+		for entity in entities:
+			if entity.kind!="building" or not entity.get("auto_enter",false): continue
+			var delta = pos-entity.pos
+			var inward: Vector2 = entity.inward
+			var side = Vector2(inward.y,-inward.x)
+			if absf(delta.dot(side))<=float(entity.door_width) and delta.dot(inward)>=-6 and delta.dot(inward)<=48:
+				click_door_id = entity.id
+				pos = entity.pos
+				break
 	var from = Vector2i(player_position / TILE)
 	var to = Vector2i(pos / TILE)
 	if not grid.is_in_boundsv(to) or grid.is_point_solid(to):
@@ -328,7 +396,7 @@ func _process(delta: float) -> void:
 		impact_remaining = 0.0
 		enemy_visual_hp = float(battle.get("enemyHp",30))
 	impact_remaining = maxf(0,impact_remaining-delta)
-	if impact_remaining <= 0: enemy_visual_hp = float(battle.get("enemyHp",30))
+	if impact_remaining <= 0: enemy_visual_hp = maxf(1.0 if battle.has("spatial") and battle.get("phase","") not in ["victory","defeat"] else 0.0,float(battle.get("enemyHp",30))-predicted_enemy_damage)
 	var before_motion = player_position
 	var motion = touch_direction
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP): motion.y -= 1
@@ -340,10 +408,19 @@ func _process(delta: float) -> void:
 	var input_strength = minf(motion.length(),1.0)
 	motion = (input_projection*motion).normalized()*input_strength
 	# Discard long suspension gaps rather than jumping through obstacles on resume.
-	var movement_budget = WALK_SPEED * minf(delta, .05)
-	if not enabled:
+	var movement_budget = WALK_SPEED * (3.0 if developer_speed_boost else 1.0) * minf(delta, .05)
+	if not bench_state.is_empty() and (indoor!=str(bench_entity.get("seat_room","")) or not battle.is_empty()): clear_bench()
+	if enabled:
+		if motion.length()>.01:
+			if bench_state=="approach": clear_bench()
+			elif bench_pose_active():
+				bench_has_destination = false
+				stand_from_bench()
+		advance_bench(minf(delta,.05))
+	if not enabled or casting or bench_pose_active():
 		motion = Vector2.ZERO
 	elif motion.length() > .01:
+		click_door_id = ""
 		path.clear()
 		_move_player(motion.limit_length() * movement_budget)
 	else:
@@ -360,6 +437,16 @@ func _process(delta: float) -> void:
 			movement_budget -= step
 			if player_position.distance_squared_to(before_step) < .000001: break
 			if player_position.distance_squared_to(path[0]) <= .000001: path.remove_at(0)
+	if enabled and bench_state=="approach":
+		if player_position.distance_to(bench_entity.pos)<.5:
+			player_position = bench_entity.pos
+			path.clear()
+			bench_state = "sit"
+			bench_age = 0.0
+			direction = 0
+		else:
+			bench_stalled = bench_stalled + delta if player_position.distance_squared_to(before_motion)<.0001 else 0.0
+			if path.is_empty() or bench_stalled>.6: clear_bench()
 	var actual_motion = player_position - before_motion
 	if actual_motion.length_squared() > .0001:
 		if absf(actual_motion.x) > absf(actual_motion.y): direction = 2 if actual_motion.x < 0 else 3
@@ -367,14 +454,16 @@ func _process(delta: float) -> void:
 		anim += delta * 9
 	else: anim = 0
 	walking = player_position.distance_squared_to(before_motion) > .0001
+	_update_door_intent(Vector2.ZERO if bench_pose_active() else motion,delta)
+	_update_entrance_contact()
 	player.position = (player_position * 2).round() / 2
 	var facing = ["south","north","west","east"][direction]
 	var traveled = player_position.distance_to(before_motion)
 	player_gait = _animate_actor(player,walking,facing,traveled,player_gait)
 	if walking and effects_enabled and not reduced_motion:
 		footstep_distance += traveled
-		if footstep_distance >= 7:
-			footstep_distance = fmod(footstep_distance,7)
+		if footstep_distance >= 8:
+			footstep_distance = fmod(footstep_distance,8)
 			footsteps.append({"pos":player_position,"life":.38})
 	elif not walking: footstep_distance = 0
 	if indoor == "" and is_instance_valid(traveler):
@@ -397,6 +486,7 @@ func _process(delta: float) -> void:
 		if dist < closest:
 			closest = dist
 			nearest = entity
+	if bench_pose_active(): nearest = bench_entity
 	for p in footsteps: p.life -= delta if enabled else 0.0
 	footsteps = footsteps.filter(func(p): return p.life > 0)
 	for p in particles: p.life -= delta
@@ -405,11 +495,55 @@ func _process(delta: float) -> void:
 	if is_instance_valid(effects_layer): effects_layer.queue_redraw()
 	queue_redraw()
 
+func _update_door_intent(motion: Vector2, delta: float) -> void:
+	if not enabled or not indoor.is_empty():
+		door_intent_id = ""
+		door_intent_time = 0.0
+		return
+	var candidate: Dictionary = {}
+	var still_near_latched = false
+	for entity in entities:
+		if entity.kind!="building" or not entity.get("auto_enter",false): continue
+		var offset = player_position-entity.pos
+		if entity.id==entered_door_id and offset.length()<TILE*1.4: still_near_latched = true
+		var inward: Vector2 = entity.inward
+		var side = Vector2(inward.y,-inward.x)
+		# Feet at the door, rather than the broad interaction radius.
+		if absf(offset.dot(side))>float(entity.door_width) or offset.dot(inward)<-.5 or offset.dot(inward)>10: continue
+		var walking_in = motion.length()>.01 and motion.normalized().dot(inward)>.65
+		if walking_in or click_door_id==entity.id:
+			candidate = entity
+			break
+	if not still_near_latched and not entered_door_id.is_empty():
+		# Candidate might have been reached before the latched entry in the list.
+		for entity in entities:
+			if entity.id==entered_door_id and player_position.distance_to(entity.pos)<TILE*1.4: still_near_latched = true
+		if not still_near_latched: entered_door_id = ""
+	var id = str(candidate.get("id",""))
+	if id.is_empty() or id==entered_door_id:
+		door_intent_id = ""
+		door_intent_time = 0.0
+		return
+	if id!=door_intent_id:
+		door_intent_id = id
+		door_intent_time = 0.0
+	door_intent_time += minf(delta,.05)
+	if door_intent_time>=.12:
+		entered_door_id = id
+		click_door_id = ""
+		door_intent_time = 0.0
+		path.clear()
+		building_entry_intended.emit(candidate.duplicate())
+
 func _move_player(offset: Vector2) -> void:
-	var next = player_position + Vector2(offset.x, 0)
-	if _can_stand(next): player_position.x = next.x
-	next = player_position + Vector2(0, offset.y)
-	if _can_stand(next): player_position.y = next.y
+	# Keep boosted movement from skipping narrow collision boundaries.
+	var steps = maxi(1,int(ceil(offset.length()/3.0)))
+	var step = offset/float(steps)
+	for i in range(steps):
+		var next = player_position + Vector2(step.x,0)
+		if _can_stand(next): player_position.x = next.x
+		next = player_position + Vector2(0,step.y)
+		if _can_stand(next): player_position.y = next.y
 
 func _update_camera(reset: bool = false) -> void:
 	var visible_size = get_viewport_rect().size / camera.zoom
@@ -446,12 +580,102 @@ func _animate_actor(actor: AnimatedSprite2D, moving: bool, facing: String, dista
 		actor.speed_scale = 1.0 if enabled and not reduced_motion else 0.0
 	return phase
 
+func bench_pose_active() -> bool:
+	return bench_state in ["sit","seated","stand"]
+
+func clear_bench() -> void:
+	if bench_state=="approach": path.clear()
+	bench_state = ""
+	bench_entity = {}
+	bench_age = 0.0
+	bench_stalled = 0.0
+	bench_wants_stand = false
+	bench_has_destination = false
+
+func sit_on_bench(entity: Dictionary) -> bool:
+	if not enabled or casting or not battle.is_empty(): return false
+	if indoor!=str(entity.get("seat_room","")): return false
+	if entity.get("kind","") not in ["bench","inn_sofa"] or not _can_stand(entity.pos): return false
+	clear_bench()
+	click_door_id = ""
+	path = _seat_route(entity.pos)
+	if path.is_empty(): return false
+	bench_entity = entity.duplicate(true)
+	bench_state = "approach"
+	return true
+
+# Seat fronts may sit between two solid grid-cell centers (bench and flowerbed).
+# Connect a collision-checked final segment instead of routing through either prop.
+func _seat_segment_clear(from: Vector2,to: Vector2) -> bool:
+	var steps = maxi(1,int(ceil(from.distance_to(to)/2.0)))
+	for i in range(steps+1):
+		if not _can_stand(from.lerp(to,float(i)/float(steps))): return false
+	return true
+
+func _seat_route(to: Vector2) -> PackedVector2Array:
+	if _seat_segment_clear(player_position,to): return PackedVector2Array([to])
+	var result = PackedVector2Array()
+	var best = INF
+	var target_cell = Vector2i(to/TILE)
+	var from_cell = Vector2i(player_position/TILE)
+	for dx in range(-2,3):
+		for dy in range(-2,3):
+			var cell = target_cell+Vector2i(dx,dy)
+			if not grid.is_in_boundsv(cell) or grid.is_point_solid(cell): continue
+			var at = Vector2(cell*TILE)+Vector2(8,8)
+			if not _seat_segment_clear(at,to): continue
+			var route = grid.get_point_path(from_cell,cell)
+			if route.is_empty() or not _seat_segment_clear(player_position,route[0]): continue
+			var distance = player_position.distance_to(route[0])+at.distance_to(to)
+			for i in range(1,route.size()): distance += route[i-1].distance_to(route[i])
+			if distance>=best: continue
+			best = distance
+			result = route
+			result.append(to)
+	return result
+
+func stand_from_bench() -> void:
+	if bench_state=="sit": bench_wants_stand = true
+	elif bench_state=="seated":
+		bench_state = "stand"
+		bench_age = 0.0
+	elif bench_state=="approach": clear_bench()
+
+func advance_bench(delta: float) -> void:
+	if not bench_pose_active(): return
+	bench_age += delta
+	if bench_state=="sit" and bench_age>=BENCH_SIT_DURATION:
+		bench_state = "seated"
+		bench_age = 0.0
+		if bench_wants_stand: stand_from_bench()
+	elif bench_state=="stand" and bench_age>=BENCH_STAND_DURATION:
+		var resume = bench_has_destination
+		var destination_after_stand = bench_destination
+		clear_bench()
+		if resume: walk_to(destination_after_stand)
+
+func bench_visual_position() -> Vector2:
+	if not bench_pose_active(): return player_position
+	var blend = 1.0
+	if bench_state=="sit": blend = clampf(bench_age/BENCH_SIT_DURATION,0,1)
+	elif bench_state=="stand": blend = 1.0-clampf(bench_age/BENCH_STAND_DURATION,0,1)
+	if reduced_motion: blend = 0.0 if bench_state=="stand" else 1.0
+	return player_position.lerp(bench_entity.seat_visual,smoothstep(0,1,blend))
+
 func interact() -> void:
-	if enabled and not nearest.is_empty(): interacted.emit(nearest)
+	if not enabled: return
+	if not bench_state.is_empty():
+		stand_from_bench()
+	elif not nearest.is_empty(): interacted.emit(nearest)
 
 func change_interior(id: String) -> void:
+	clear_bench()
 	if indoor == "": outside_position = player_position
+	if id == "arcana_academy" and indoor != id: academy_floor = 1
 	indoor = id
+	nearest = {}
+	touch_direction = Vector2.ZERO
+	walking = false
 	path.clear()
 	footsteps.clear()
 	particles.clear()
@@ -474,11 +698,19 @@ func change_interior(id: String) -> void:
 		player_position = Vector2(192, 200)
 		entities.append({"id":"exit", "name":"밖으로 나가기", "kind":"exit", "pos":Vector2(192, 308)})
 		if id == "arcana_academy":
-			var rooms = [{"id":"courtyard", "name":"학교 앞뜰", "pos":Vector2(192, 280)}, {"id":"headmaster", "name":"교장실", "pos":Vector2(75, 82)}, {"id":"library", "name":"도서관", "pos":Vector2(300, 82)}, {"id":"classroom", "name":"기초 강의실", "pos":Vector2(75, 158)}, {"id":"practice", "name":"수정 실습실", "pos":Vector2(300, 158)}, {"id":"garden", "name":"별빛 정원", "pos":Vector2(75, 244)}, {"id":"observatory", "name":"천문 관측탑", "pos":Vector2(300, 244)}, {"id":"hall", "name":"중앙 회랑", "pos":Vector2(192, 126)}]
-			for room in rooms:
-				entities.append({"id":room.id, "name":room.name, "kind":"academy_room", "pos":room.pos})
-				var hair = "c6c4d1" if room.id == "garden" else "7c6457"
-				if room.id != "courtyard": _sprite(Pixels.person("8b819c", hair, 0, 0), room.pos - Vector2(0, 14), true)
+			entities.clear()
+			entities.append_array(Academy.rooms(academy_floor))
+			entities.append({"id":"academy_stairs","name":"2층으로 올라가기" if academy_floor == 1 else "1층으로 내려가기","kind":"academy_stairs","pos":Academy.stair_point(academy_floor)})
+			if academy_floor == 1:
+				entities.append({"id":"exit","name":"밖으로 나가기","kind":"exit","pos":Vector2(192,304)})
+			obstacles.append_array(Academy.collision_rects(academy_floor))
+			player_position = Vector2(192,260) if academy_floor == 1 else Academy.arrival_point(2)
+		elif id == "arcana_inn":
+			var lobby = preload("res://scripts/inn_lobby.gd")
+			entities[0].pos = lobby.EXIT_POINT
+			entities.append({"id":"counter", "name":"접수대 이용하기", "kind":"scene", "pos":lobby.COUNTER_POINT})
+			entities.append({"id":"inn_sofa", "name":"소파에서 쉬기", "kind":"inn_sofa", "pos":lobby.SOFA_POINT, "seat_visual":lobby.SOFA_SEAT_VISUAL, "seat_room":"arcana_inn"})
+			obstacles.append_array(lobby.collision_rects())
 		elif id == "dungeon":
 			entities.append({"id":"dungeon_actions", "name":"탐험 계속하기", "kind":"scene", "pos":Vector2(192, 140)})
 		else:
@@ -489,6 +721,15 @@ func change_interior(id: String) -> void:
 	_update_camera(true)
 	set_art_state(dusk, effects_enabled)
 	_rebuild_grid()
+
+func change_academy_floor(level: int) -> void:
+	if indoor != "arcana_academy": return
+	academy_floor = clampi(level,1,2)
+	change_interior("arcana_academy")
+	player_position = nearest_walkable(Academy.arrival_point(academy_floor))
+	player.position = player_position
+	_update_camera(true)
+
 
 func effect(kind: String, amount: String = "") -> void:
 	if kind == "fireball":

@@ -16,6 +16,12 @@ $ErrorActionPreference = 'Stop'
 $importOutput | Set-Content -Encoding utf8 (Join-Path $projectRoot '.runtime/godot/import.log')
 if ($importCode -ne 0 -or ($importOutput -match 'SCRIPT ERROR|Parse Error|Failed to load script')) { $importOutput | Write-Output; throw 'Godot import failed.' }
 $ErrorActionPreference = 'Continue'
+$layoutOutput = @(& $GodotPath --headless --path $sourcePath --log-file (Join-Path $toolDataPath 'combat-layout-export.log') --script res://tools/export_combat_layout.gd 2>&1 | ForEach-Object { "$_" })
+$layoutCode = $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+$layoutErrors = $layoutOutput | Where-Object { $_ -match 'SCRIPT ERROR|Parse Error|ERROR:' -and $_ -notmatch '^ERROR: Failed to read the root certificate store\.$' }
+if ($layoutCode -ne 0 -or $layoutErrors) { $layoutOutput | Write-Output; throw 'Combat layout export failed.' }
+$ErrorActionPreference = 'Continue'
 $exportOutput = @(& $GodotPath --headless --path $sourcePath --export-release Web (Join-Path $outputPath 'index.html') 2>&1 | ForEach-Object { "$_" })
 $exportCode = $LASTEXITCODE
 $ErrorActionPreference = 'Stop'

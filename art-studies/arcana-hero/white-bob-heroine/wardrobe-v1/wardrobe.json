@@ -1,0 +1,394 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate-static-not-integrated",
+  "frameSize": [
+    64,
+    80
+  ],
+  "foot": [
+    32,
+    72
+  ],
+  "directions": [
+    "front",
+    "back",
+    "left",
+    "right"
+  ],
+  "lighting": "upper left; baked, neutral",
+  "alpha": "binary 0/255",
+  "palette": [
+    [
+      48,
+      44,
+      67
+    ],
+    [
+      73,
+      66,
+      85
+    ],
+    [
+      100,
+      92,
+      107
+    ],
+    [
+      128,
+      119,
+      136
+    ],
+    [
+      164,
+      154,
+      171
+    ],
+    [
+      196,
+      185,
+      203
+    ],
+    [
+      224,
+      215,
+      225
+    ],
+    [
+      248,
+      240,
+      229
+    ],
+    [
+      244,
+      211,
+      192
+    ],
+    [
+      223,
+      173,
+      159
+    ],
+    [
+      186,
+      134,
+      132
+    ],
+    [
+      148,
+      95,
+      109
+    ],
+    [
+      117,
+      95,
+      145
+    ],
+    [
+      163,
+      138,
+      187
+    ],
+    [
+      208,
+      181,
+      214
+    ],
+    [
+      40,
+      54,
+      77
+    ],
+    [
+      60,
+      77,
+      108
+    ],
+    [
+      86,
+      107,
+      139
+    ],
+    [
+      113,
+      134,
+      170
+    ],
+    [
+      145,
+      163,
+      195
+    ],
+    [
+      180,
+      193,
+      212
+    ],
+    [
+      119,
+      102,
+      95
+    ],
+    [
+      160,
+      139,
+      123
+    ],
+    [
+      194,
+      173,
+      152
+    ],
+    [
+      223,
+      205,
+      179
+    ],
+    [
+      239,
+      226,
+      205
+    ],
+    [
+      195,
+      183,
+      172
+    ],
+    [
+      165,
+      154,
+      153
+    ],
+    [
+      86,
+      81,
+      90
+    ],
+    [
+      113,
+      103,
+      115
+    ],
+    [
+      146,
+      132,
+      142
+    ],
+    [
+      187,
+      176,
+      180
+    ]
+  ],
+  "layerOrder": [
+    "body",
+    "feet",
+    "bottom",
+    "dress",
+    "top",
+    "shoulders",
+    "hair"
+  ],
+  "items": [
+    {
+      "id": "hair",
+      "occupies": [
+        "hair"
+      ],
+      "layers": {
+        "front": "layers/hair-front.png",
+        "back": "layers/hair-back.png",
+        "left": "layers/hair-left.png",
+        "right": "layers/hair-right.png"
+      },
+      "bodyOcclusion": null
+    },
+    {
+      "id": "dress",
+      "occupies": [
+        "top",
+        "bottom"
+      ],
+      "layers": {
+        "front": "layers/dress-front.png",
+        "back": "layers/dress-back.png",
+        "left": "layers/dress-left.png",
+        "right": "layers/dress-right.png"
+      },
+      "bodyOcclusion": {
+        "front": "masks/dress-front.png",
+        "back": "masks/dress-back.png",
+        "left": "masks/dress-left.png",
+        "right": "masks/dress-right.png"
+      }
+    },
+    {
+      "id": "shawl",
+      "occupies": [
+        "shoulders"
+      ],
+      "layers": {
+        "front": "layers/shawl-front.png",
+        "back": "layers/shawl-back.png",
+        "left": "layers/shawl-left.png",
+        "right": "layers/shawl-right.png"
+      },
+      "bodyOcclusion": null
+    },
+    {
+      "id": "boots-taupe",
+      "occupies": [
+        "feet"
+      ],
+      "layers": {
+        "front": "layers/boots-taupe-front.png",
+        "back": "layers/boots-taupe-back.png",
+        "left": "layers/boots-taupe-left.png",
+        "right": "layers/boots-taupe-right.png"
+      },
+      "bodyOcclusion": {
+        "front": "masks/feet-front.png",
+        "back": "masks/feet-back.png",
+        "left": "masks/feet-left.png",
+        "right": "masks/feet-right.png"
+      }
+    },
+    {
+      "id": "blouse",
+      "occupies": [
+        "top"
+      ],
+      "layers": {
+        "front": "layers/blouse-front.png",
+        "back": "layers/blouse-back.png",
+        "left": "layers/blouse-left.png",
+        "right": "layers/blouse-right.png"
+      },
+      "bodyOcclusion": {
+        "front": "masks/top-front.png",
+        "back": "masks/top-back.png",
+        "left": "masks/top-left.png",
+        "right": "masks/top-right.png"
+      }
+    },
+    {
+      "id": "skirt",
+      "occupies": [
+        "bottom"
+      ],
+      "layers": {
+        "front": "layers/skirt-front.png",
+        "back": "layers/skirt-back.png",
+        "left": "layers/skirt-left.png",
+        "right": "layers/skirt-right.png"
+      },
+      "bodyOcclusion": {
+        "front": "masks/bottom-front.png",
+        "back": "masks/bottom-back.png",
+        "left": "masks/bottom-left.png",
+        "right": "masks/bottom-right.png"
+      }
+    },
+    {
+      "id": "boots-navy",
+      "occupies": [
+        "feet"
+      ],
+      "layers": {
+        "front": "layers/boots-navy-front.png",
+        "back": "layers/boots-navy-back.png",
+        "left": "layers/boots-navy-left.png",
+        "right": "layers/boots-navy-right.png"
+      },
+      "bodyOcclusion": {
+        "front": "masks/feet-front.png",
+        "back": "masks/feet-back.png",
+        "left": "masks/feet-left.png",
+        "right": "masks/feet-right.png"
+      }
+    }
+  ],
+  "body": {
+    "front": "layers/body-front.png",
+    "back": "layers/body-back.png",
+    "left": "layers/body-left.png",
+    "right": "layers/body-right.png"
+  },
+  "rules": [
+    "Reject conflicting occupied slots; dress occupies top and bottom.",
+    "Apply the UNION of selected body-occlusion masks to BODY ONLY before composing. White/opaque mask pixels hide body.",
+    "Never apply body masks to other garments.",
+    "Use complete upper+lower coverage, or dress, for dressed previews.",
+    "Garment shapes are directional; side views cannot be substituted by scaling front views."
+  ],
+  "combinations": [
+    {
+      "id": "original",
+      "label": "Original dress",
+      "items": [
+        "dress",
+        "shawl",
+        "boots-taupe"
+      ]
+    },
+    {
+      "id": "no-shawl",
+      "label": "Dress / no shawl",
+      "items": [
+        "dress",
+        "boots-taupe"
+      ]
+    },
+    {
+      "id": "alternate",
+      "label": "Blouse + skirt",
+      "items": [
+        "blouse",
+        "skirt",
+        "shawl",
+        "boots-taupe"
+      ]
+    },
+    {
+      "id": "alternate-no-shawl",
+      "label": "Blouse + skirt / no shawl",
+      "items": [
+        "blouse",
+        "skirt",
+        "boots-taupe"
+      ]
+    },
+    {
+      "id": "shoe-swap",
+      "label": "Dress / navy boots",
+      "items": [
+        "dress",
+        "shawl",
+        "boots-navy"
+      ]
+    },
+    {
+      "id": "alternate-shoes",
+      "label": "Blouse + skirt / navy boots",
+      "items": [
+        "blouse",
+        "skirt",
+        "shawl",
+        "boots-navy"
+      ]
+    }
+  ],
+  "provenance": {
+    "tool": "built-in image_gen",
+    "source": "source/generated-components.png",
+    "prompt": "source/prompt.txt",
+    "preparation": "scripts/build-heroine-wardrobe.cjs",
+    "calibration": "source/registration.json",
+    "note": "Generated atlas is unregistered. Cropping/nearest resizing/palette and alpha cleanup are deterministic preparation. Candidate style palette is not the world 64-color LUT."
+  },
+  "limitations": [
+    "Four static directions only.",
+    "No game equipment/save integration or animation.",
+    "Each new garment needs matching directional artwork; free combinations require overlap review.",
+    "Static mask templates must be reauthored for animated poses or significantly shorter garments."
+  ]
+}

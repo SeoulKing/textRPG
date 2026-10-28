@@ -1,0 +1,40 @@
+{
+  "pipeline": "Editable Blender 3D rig -> live transparent 3D viewport -> pixel display",
+  "nominal_frame": [
+    96,
+    136
+  ],
+  "render_frame": [
+    96,
+    144
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "bottom_overscan": 8,
+  "pixels_per_unit": 64,
+  "max_tiles_per_second": 3,
+  "source_bones": 27,
+  "runtime_deform_bones": 23,
+  "native_pose_count": 384,
+  "max_blender_leg_length_error": 9.125947098009846e-07,
+  "max_native_leg_length_error": 9.23871994018555e-07,
+  "max_ik_target_error": 7.449558344390054e-05,
+  "minimum_boot_height": 0.0015662116929888725,
+  "clothing_body_coverage": "Stockings_covered; hidden only while dress/skirt worn; full body retained",
+  "saved_source_export_preserved": true,
+  "web_package_matches_server": true,
+  "gpu_views": [
+    "654x410",
+    "384x824",
+    "eight directions",
+    "slow walk",
+    "full speed run",
+    "turn",
+    "start and stop",
+    "outfit variants"
+  ],
+  "evidence": "offline game GPU renders; no browser interaction or automated gameplay",
+  "visual_status": "new 3D version based on approved identity; final user art acceptance remains separate"
+}

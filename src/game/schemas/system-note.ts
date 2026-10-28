@@ -17,9 +17,12 @@ export const SystemNoteEntrySchema = z.discriminatedUnion("type", [
     type: z.literal("delta"),
     subject: SystemNoteDeltaSubjectSchema,
     label: z.string().min(1),
-    amount: z.number().int().refine((value) => value !== 0),
+    amount: z.number().refine((value) => value !== 0),
     itemId: z.string().min(1).optional(),
-  }).strict(),
+  }).strict().refine((entry) => entry.subject === "stat" || Number.isSafeInteger(entry.amount), {
+    path: ["amount"],
+    message: "아이템, 돈, 내구도 변화량은 정수여야 합니다.",
+  }),
   z.object({
     type: z.literal("damage"),
     target: z.string().min(1),

@@ -4,13 +4,28 @@ extends Node3D
 const Models = preload("res://scripts/pixel3d_models.gd")
 const CityLayout = preload("res://scripts/plaza_layout.gd")
 const Actor = preload("res://scripts/pixel3d_actor.gd")
-const Hero = preload("res://scripts/blender_hero.gd")
+const Illustrated = preload("res://scripts/illustrated_art.gd")
+const Hero = preload("res://scripts/heroine_run.gd")
+const Occlusion = preload("res://scripts/environment_occlusion.gd")
+var environment_occlusion = Occlusion.new()
+var occlusion_dirty = true
+var inn_lighting = preload("res://scripts/local_lighting.gd").new()
+var local_lighting = preload("res://scripts/local_lighting.gd").new()
+const Slime = preload("res://scripts/slime_sprite.gd")
 const PIXELS_PER_UNIT = 16.0
-const CAMERA_ZOOM = 1.35
+const CAMERA_ZOOM = Hero.SPEC.PIXELS_PER_UNIT / 16.0
+var camera_zoom = CAMERA_ZOOM
+var base_camera_zoom = CAMERA_ZOOM
+const PORTRAIT_ZOOM_SCALE = .5
+const MIN_ZOOM_RATIO = .5 / 1.12
+## User-approved one-dot inner silhouette at the former 50% size or smaller.
+var experimental_min_zoom_outline = true
+const MAX_ZOOM_RATIO = 2.0
+var center_on_character = true
 const PITCH_SINE = CityLayout.CAMERA_PITCH_SINE
 var world: Node2D
 var pixelated = true
-var quarter_view = true
+var quarter_view = false
 var display_height = 824.0
 var pixels_per_unit = 16.0
 var camera: Camera3D
@@ -21,23 +36,31 @@ var inside: Node3D
 var hero: Node3D
 var resident: Node3D
 var slime: Node3D
+var plaza_slime: Node3D
+var hunting_slime: Node3D
 var marker: Node3D
 var target_marker: Node3D
+var tile_reference: MeshInstance3D
+var height_reference: MeshInstance3D
 var fountain_anchor = Vector3(36,0,28.625)
 var fountain_transform = Transform3D(Basis.IDENTITY,Vector3(36,0,28.625))
-var droplets: Array[MeshInstance3D] = []
 var effect_pool: Array[MeshInstance3D] = []
 var lantern_lights: Array[OmniLight3D] = []
 var interior_people: Array[Node3D] = []
 var previous_player = Vector2.ZERO
 var previous_resident = Vector2.ZERO
 var camera_center = Vector3.ZERO
+var last_academy_floor: int = 0
 var last_interior = "__boot__"
 var damage_label: Label3D
-var enemy_hp: MeshInstance3D
-var attack_bar: MeshInstance3D
+const ENEMY_BAR_WIDTH = 0.9
+var enemy_meter_visible = false
+var enemy_trail_hp = 30.0
+var enemy_last_hp = 30.0
+var enemy_trail_hold = 0.0
+var enemy_meter_id = "__boot__"
+var reference_ground_mat: ShaderMaterial
 var ground_mat: ShaderMaterial
-var water_material: ShaderMaterial
 var transient_material: ShaderMaterial
 var last_dusk = -1
 var layout: Node3D
@@ -45,6 +68,19 @@ var _layout_poll = 0.0
 var _layout_stamp = 0
 var _layout_hash = ""
 var _resident_enabled = true
+
+func set_zoom_ratio(ratio: float) -> void:
+	camera_zoom = base_camera_zoom * clampf(ratio,MIN_ZOOM_RATIO,MAX_ZOOM_RATIO)
+
+func get_zoom_ratio() -> float:
+	return camera_zoom / base_camera_zoom
+
+func set_display_size(size: Vector2) -> void:
+	var ratio = get_zoom_ratio()
+	display_height = size.y
+	# Portrait 100% uses the former 50% framing; preserve user zoom on resize.
+	base_camera_zoom = CAMERA_ZOOM * (PORTRAIT_ZOOM_SCALE if size.x < size.y else 1.0)
+	set_zoom_ratio(ratio)
 
 func map_point(point: Vector2, height: float = 0.0) -> Vector3:
 	return Vector3(point.x/16.0,height,point.y/16.0)
@@ -115,7 +151,7 @@ func _ready() -> void:
 		node.visible = false
 		effect_pool.append(node)
 	damage_label = Label3D.new()
-	damage_label.font = preload("res://fonts/KoPubBatangMedium.ttf")
+	damage_label.font = preload("res://fonts/NotoSansKR-SemiBold.tres")
 	damage_label.font_size = 22
 	damage_label.pixel_size = .035
 	damage_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -153,34 +189,17 @@ func _floor(parent: Node3D, size: Vector2, at: Vector3, terrain: bool = false) -
 		mat.set_shader_parameter("floor_pattern",true)
 		mat.set_shader_parameter("stone_tex",ImageTexture.create_from_image(pattern))
 	parent.add_child(node)
+	if terrain: reference_ground_mat = Illustrated.add_ground(parent,size,at,layout)
 
 func _place(kind: String, point: Vector2, parent: Node3D = null) -> Node3D:
-	var node = Models.model(kind)
+	var node = Illustrated.make(kind) if Illustrated.supports(kind) else Models.model(kind)
 	node.position = map_point(point)
 	(parent if parent != null else outside).add_child(node)
 	return node
 
 func _build_outdoors() -> void:
 	_floor(outside,Vector2(72,90),Vector3(36,0,45),true)
-	# City wall segments are fully modeled, with the original southern opening.
-	for entry in [[32,510],[610,510]]:
-		var root = Node3D.new()
-		root.position = map_point(Vector2(entry[0]+entry[1]/2.0,752))
-		outside.add_child(root)
-		Models.box(root,Vector3(entry[1]/16.0,1.1,.7),Vector3(0,.55,0),"e0d1b9")
-		Models.box(root,Vector3(entry[1]/16.0,.08,.76),Vector3(0,1.03,0),"d5a44f")
-		for x in range(int(entry[1]/16.0)):
-			Models.box(root,Vector3(.62,.3,.75),Vector3(-entry[1]/32.0+x+.5,1.2,0),"eee0c8")
-			if x%4==0:
-				Models.box(root,Vector3(.36,.65,.05),Vector3(-entry[1]/32.0+x+.5,.65,.38),"304f9c")
-				Models.box(root,Vector3(.12,.12,.06),Vector3(-entry[1]/32.0+x+.5,.73,.40),"f2cf79",Vector3(0,0,PI/4))
-		Models._merge(root)
-	for x in [535,618]:
-		var tower = Node3D.new()
-		tower.position = map_point(Vector2(x,751))
-		outside.add_child(tower)
-		Models._spire(tower,Vector3.ZERO,.80,3.6)
-		Models._merge(tower)
+	# Walls are authored in scenes/walls/city_walls.tscn and displayed by Plaza.
 	_sync_lantern_lights()
 	# East river is an actual recessed plane, bounded by physical bank rocks.
 	var river = Models.box(outside,Vector3(13.25,.10,22.375),Vector3(65.375,-.08,63.8125),"579da0")
@@ -191,26 +210,14 @@ func _build_outdoors() -> void:
 		outside.add_child(rock)
 		Models.sphere(rock,Vector3(.7,.48,.85),Vector3(0,.12,0),"8f9780" if i%3 else "b6ab8e")
 		Models._merge(rock)
-	water_material = Models.material("9cdbd3",0,.25).duplicate()
-	water_material.set_shader_parameter("entity_anchor_enabled",true)
-	water_material.set_shader_parameter("entity_anchor",fountain_anchor+Vector3(0,0,.08))
-	for i in range(18):
-		var drop = Models.box(outside,Vector3(.0625,.13,.0625),Vector3.ZERO,"9cdbd3")
-		drop.material_override = water_material
-		drop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		droplets.append(drop)
-	slime = Node3D.new()
-	slime.position = map_point(Vector2(600,1054))
-	outside.add_child(slime)
-	Models.sphere(slime,Vector3(1.3,.85,1.05),Vector3(0,.38,0),"75b5b2")
-	Models.sphere(slime,Vector3(.80,.42,.70),Vector3(-.1,.57,.05),"9acac0")
-	for x in [-.22,.22]: Models.sphere(slime,Vector3(.08,.13,.07),Vector3(x,.44,.47),"253c40")
-	Models.sphere(slime,Vector3(.23,.09,.16),Vector3(-.22,.72,.22),"d6eee1")
-	Models._merge(slime,true,true)
-	enemy_hp = Models.box(outside,Vector3(1.8,.07,.05),slime.position+Vector3(0,1.25,0),"c78a68")
-	enemy_hp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	attack_bar = Models.box(outside,Vector3(1.8,.045,.05),slime.position+Vector3(0,1.14,0),"c7a0ab")
-	attack_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for node in layout.find_children("*","Node3D",true,false):
+		if node.get_meta("encounter_id","") == "plaza_slime":
+			plaza_slime = node
+			plaza_slime.ambient_preview = false
+	hunting_slime = Slime.new()
+	hunting_slime.position = map_point(Vector2(600,1054))
+	outside.add_child(hunting_slime)
+	slime = hunting_slime
 
 func _sync_lantern_lights() -> void:
 	for light in lantern_lights:
@@ -243,6 +250,16 @@ func _interior(id: String) -> void:
 		child.queue_free()
 	interior_people.clear()
 	if id.is_empty(): return
+	if id == "arcana_academy":
+		var school = (preload("res://scenes/academy_second_floor.tscn") if world.academy_floor == 2 else preload("res://scenes/academy_first_floor.tscn")).instantiate()
+		inside.add_child(school)
+		inn_lighting.configure_inn(school.light_sources,.98)
+		return
+	if id == "arcana_inn":
+		var lobby = preload("res://scenes/inn_lobby.tscn").instantiate()
+		inside.add_child(lobby)
+		inn_lighting.configure_inn(lobby.light_sources)
+		return
 	_floor(inside,Vector2(21,19.5),Vector3(12,0,10.75))
 	var back_wall = Node3D.new()
 	back_wall.position = Vector3(12,0,1.4)
@@ -300,16 +317,24 @@ func _snap_ground(point: Vector3) -> Vector3:
 func _process(_delta: float) -> void:
 	_poll_layout(_delta)
 	if world == null or not is_instance_valid(world.player): return
-	if world.indoor != last_interior:
+	if world.indoor != last_interior or (world.indoor == "arcana_academy" and world.academy_floor != last_academy_floor):
 		last_interior = world.indoor
+		last_academy_floor = world.academy_floor
 		outside.visible = last_interior.is_empty()
 		inside.visible = not outside.visible
 		_interior(last_interior)
+		last_dusk = -1
+		occlusion_dirty = true
 		environment.background_color = Color("78ad72") if outside.visible else Color("283452")
 		camera_center = map_point(world.player_position)
 	var motion = world.player_position-previous_player
-	hero.position = _snap_ground(map_point(world.player_position))
+	hero.position = _snap_ground(map_point(world.bench_visual_position()))
+	hero.set_bench_pose(world.bench_state,world.bench_age,world.reduced_motion or not world.effects_enabled)
+	if hero.material != null:
+		hero.material.set_shader_parameter("minimum_zoom_outline",experimental_min_zoom_outline and pixelated and camera_zoom<=CAMERA_ZOOM*.5+.0001)
+	if hero.has_method("set_camera_yaw"): hero.set_camera_yaw(view_yaw())
 	hero.pose(world.time,world.player_gait,world.walking,motion,pixelated,world.effects_enabled and not world.reduced_motion)
+	hero.apply_bench_pose()
 	previous_player = world.player_position
 	resident.visible = _resident_enabled
 	resident.position = _snap_ground(map_point(world.traveler_position))
@@ -318,22 +343,32 @@ func _process(_delta: float) -> void:
 	previous_resident = world.traveler_position
 	for npc in interior_people: npc.pose(world.time,0,false,Vector2.ZERO,pixelated,world.effects_enabled and not world.reduced_motion)
 	var target = map_point(world.player_position)
-	var view_height = display_height / (32.0 * CAMERA_ZOOM)
+	var view_height = display_height / (32.0 * camera_zoom)
 	if not world.indoor.is_empty():
 		var half_width = view_height*get_viewport().size.x/get_viewport().size.y/2.0
 		target.x = clampf(target.x,minf(12.0,1.5+half_width),maxf(12.0,22.5-half_width))
-		target.z = 10.75
+		if world.indoor in ["arcana_inn","arcana_academy"]:
+			var half_depth = view_height/(2.0*PITCH_SINE)
+			var middle = 11.5 if world.indoor == "arcana_academy" else 10.25
+			var end = 19.0 if world.indoor == "arcana_academy" else 16.5
+			target.z = clampf(target.z,minf(middle,4.0+half_depth),maxf(middle,end-half_depth))
+		else: target.z = 10.75
 	if world.reduced_motion or camera_center.distance_to(target)>7: camera_center = target
 	else:
 		camera_center.x = clampf(camera_center.x,target.x-.45,target.x+.45)
 		camera_center.z = clampf(camera_center.z,target.z-.7,target.z+.7)
 	camera.size = view_height
 	pixels_per_unit = get_viewport().size.y/camera.size
-	var center = _snap_ground(camera_center)
-	var ground_distance = 24*sqrt(1-PITCH_SINE*PITCH_SINE)/PITCH_SINE
 	var yaw = view_yaw()
+	var aim = camera_center
+	if center_on_character:
+		var half_body = float(Hero.SPEC.SOURCE_HEIGHT)/(2.0*Hero.SPEC.PIXELS_PER_UNIT*PITCH_SINE)
+		aim -= Vector3(sin(yaw),0,cos(yaw))*half_body
+	var center = _snap_ground(aim)
+	var ground_distance = 24*sqrt(1-PITCH_SINE*PITCH_SINE)/PITCH_SINE
 	camera.position = center+Vector3(sin(yaw)*ground_distance,24,cos(yaw)*ground_distance)
 	camera.look_at(center)
+	_update_object_occlusion(_delta)
 	camera.h_offset = (get_viewport().size.x%2)*.5/pixels_per_unit if pixelated else 0.0
 	camera.v_offset = (get_viewport().size.y%2)*.5/pixels_per_unit if pixelated else 0.0
 	for mat in Models.materials.values(): mat.set_shader_parameter("motion_time",world.time if world.effects_enabled and not world.reduced_motion else 0.0)
@@ -343,33 +378,66 @@ func _process(_delta: float) -> void:
 		sunshine.light_energy = .38 if world.dusk else .48
 		environment.ambient_light_color = Color("6c92df") if world.dusk else Color("afc5cf")
 		environment.ambient_light_energy = .32 if world.dusk else .18
+	if world.indoor in ["arcana_inn","arcana_academy"]:
+		environment.background_color = Color("352c38")
+		environment.ambient_light_color = Color("ead3ad")
+		environment.ambient_light_energy = .36
+		sunshine.light_color = Color("ffe3b1")
+		sunshine.light_energy = .42
+	if world.indoor == "arcana_academy":
+		environment.ambient_light_color = Color("fff3dc")
+		environment.ambient_light_energy = .48
+		sunshine.light_color = Color("fff1d8")
+		sunshine.light_energy = .47
 	for light in lantern_lights: light.visible = world.dusk and world.effects_enabled
-	for i in range(droplets.size()):
-		var drop = droplets[i]
-		drop.visible = outside.visible and world.effects_enabled and not world.reduced_motion and fountain_anchor.y > -100
-		var t = fmod(world.time*.8+(i%6)/6.0,1.0)
-		var angle = (i/6)*TAU/3.0
-		var radial = Vector3(cos(angle),0,sin(angle))
-		# Small crown jets feed the upper pool; the four falling streams are
-		# attached to the editable fountain model itself, including its transform.
-		drop.position = fountain_transform*(radial*(.18+t*.45)+Vector3(0,1.67+sin(t*PI)*.47-t*.08,0))
-		drop.scale = fountain_transform.basis.get_scale()
-		if pixelated: drop.position = drop.position.snapped(Vector3.ONE/16)
+	if world.indoor == "arcana_inn":
+		var animate_fire = world.effects_enabled and not world.reduced_motion
+		for hearth in get_tree().get_nodes_in_group("arcana_inn_fire"):
+			hearth.sync_fire(world.time,animate_fire)
+		inn_lighting.set_fireplace_time(world.time,animate_fire)
+		inn_lighting.update(self,hero.global_position,true,world.effects_enabled,_delta)
+	elif world.indoor == "arcana_academy":
+		inn_lighting.update(self,hero.global_position,true,world.effects_enabled,_delta)
+	else:
+		local_lighting.update(self,hero.global_position,world.dusk,world.effects_enabled and world.indoor.is_empty(),_delta)
+	for fountain in get_tree().get_nodes_in_group("arcana_fountain_water"):
+		fountain.sync_water(world.time,world.effects_enabled and not world.reduced_motion)
 	marker.visible = not world.nearest.is_empty()
 	if marker.visible: marker.position = map_point(world.nearest.pos)
 	target_marker.visible = not world.path.is_empty()
 	if target_marker.visible: target_marker.position = map_point(world.path[world.path.size()-1])
-	var living = world.battle.get("phase","") not in ["victory","defeat"] or world.impact_remaining>0
-	slime.visible = living
-	var pulse = sin(world.time*2.5)*.035 if world.effects_enabled and not world.reduced_motion else 0.0
-	slime.scale = Vector3(1+pulse,1-pulse,1+pulse)
-	enemy_hp.visible = not world.battle.is_empty() and living
-	enemy_hp.scale.x = maxf(.001,float(world.enemy_visual_hp)/30)
-	enemy_hp.position.x = slime.position.x-.9+.9*enemy_hp.scale.x
-	attack_bar.visible = enemy_hp.visible and float(world.battle.get("attackIn",6))<=3
-	attack_bar.scale.x = maxf(.001,clampf(float(world.battle.get("attackIn",6))/3,0,1))
-	attack_bar.position.x = slime.position.x-.9+.9*attack_bar.scale.x
+	var spatial = world.battle.has("spatial")
+	slime = plaza_slime if spatial or (world.spatial_selected and world.battle.is_empty()) else hunting_slime
+	plaza_slime.sync(world.time,world.battle if spatial else {},world.enemy_visual_hp if spatial else 30.0,false,world.effects_enabled and not world.reduced_motion)
+	hunting_slime.sync(world.time,{} if spatial else world.battle,30.0 if spatial else world.enemy_visual_hp,world.impact_remaining>0,world.effects_enabled and not world.reduced_motion)
+	var hp = clampf(float(world.enemy_visual_hp),0,30)
+	var meter_id = str(world.battle.get("id",""))
+	if meter_id != enemy_meter_id or hp > enemy_last_hp:
+		enemy_meter_id = meter_id
+		enemy_trail_hp = hp
+		enemy_trail_hold = 0
+	elif hp < enemy_last_hp:
+		enemy_trail_hp = maxf(enemy_trail_hp,enemy_last_hp)
+		enemy_trail_hold = .25
+	enemy_last_hp = hp
+	if world.enabled:
+		enemy_trail_hold = maxf(0,enemy_trail_hold-_delta)
+		if enemy_trail_hold<=0: enemy_trail_hp = move_toward(enemy_trail_hp,hp,_delta*22)
+	var living = slime.visible and world.battle.get("phase","") != "defeat" and (hp>0 or enemy_trail_hp>0)
+	var show_meter = (not world.battle.is_empty() or world.spatial_selected) and living
+	enemy_meter_visible = show_meter
 	_effects()
+
+func _update_object_occlusion(delta: float) -> void:
+	if occlusion_dirty:
+		environment_occlusion.rebuild([outside,inside])
+		occlusion_dirty = false
+	var body_size = Vector2(float(Hero.SPEC.FRAME_SIZE.x)*.55,float(Hero.SPEC.SOURCE_HEIGHT))/Hero.SPEC.PIXELS_PER_UNIT
+	body_size *= Vector2(hero.global_basis.x.length(),hero.global_basis.y.length())
+	for tree in get_tree().get_nodes_in_group("arcana_prop_occluders"):
+		if outside.is_ancestor_of(tree) or inside.is_ancestor_of(tree):
+			tree.update_player_occlusion(camera,hero.global_position,body_size,delta,tree.is_visible_in_tree(),world.reduced_motion)
+	environment_occlusion.update(camera,hero.global_position,body_size,delta,world.reduced_motion)
 
 func _activate_follow_camera() -> void:
 	# A layout camera can become current before the scene is reparented here.
@@ -379,6 +447,10 @@ func _activate_follow_camera() -> void:
 	camera.make_current()
 
 func _sync_layout_anchors() -> void:
+	local_lighting.configure(layout,outside)
+	occlusion_dirty = true
+	Illustrated.build_verges(outside,layout)
+	if reference_ground_mat != null: layout.configure_ground(reference_ground_mat)
 	if ground_mat != null:
 		layout.configure_ground(ground_mat)
 		_sync_lantern_lights()
@@ -391,6 +463,49 @@ func _sync_layout_anchors() -> void:
 		if entry.gameplay_id in ["player_spawn","resident"]:
 			entry.hide()
 			if entry.gameplay_id == "resident": _resident_enabled = true
+
+	_sync_tile_reference()
+
+func _sync_tile_reference() -> void:
+	if tile_reference == null:
+		tile_reference = MeshInstance3D.new()
+		tile_reference.name = "OneTileReference"
+		var plane = PlaneMesh.new()
+		# World.TILE (16 logical coordinates) equals exactly one 3D ground unit.
+		plane.size = Vector2.ONE
+		tile_reference.mesh = plane
+		tile_reference.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var material = ShaderMaterial.new()
+		material.shader = preload("res://art/resources/tile_reference.gdshader")
+		tile_reference.material_override = material
+		outside.add_child(tile_reference)
+	tile_reference.visible = fountain_anchor.y > -100
+	if tile_reference.visible:
+		var basin_radius = 2.25*maxf(fountain_transform.basis.x.length(),fountain_transform.basis.z.length())
+		# Align the outline to a real grid cell immediately south of the basin.
+		tile_reference.position = Vector3(floorf(fountain_anchor.x)+.5,.04,
+			floorf(fountain_anchor.z+basin_radius+.4)+.5)
+	_sync_height_reference()
+
+func _sync_height_reference() -> void:
+	if height_reference == null:
+		height_reference = MeshInstance3D.new()
+		height_reference.name = "OneByOneByThreeReference"
+		var box = BoxMesh.new()
+		box.size = Vector3(1,3,1)
+		height_reference.mesh = box
+		var material = ShaderMaterial.new()
+		material.shader = preload("res://art/resources/pixel3d.gdshader")
+		material.set_shader_parameter("base_color",Color("9cdbd3"))
+		material.set_shader_parameter("entity_anchor_enabled",true)
+		height_reference.material_override = material
+		outside.add_child(height_reference)
+	height_reference.visible = tile_reference.visible
+	if height_reference.visible:
+		# Same grid column, three ground cells south; base sits on the floor.
+		var base = Vector3(tile_reference.position.x,0,tile_reference.position.z+3)
+		height_reference.position = base+Vector3(0,1.5,0)
+		height_reference.material_override.set_shader_parameter("entity_anchor",base)
 
 func _apply_actor_transforms() -> void:
 	var seen: Dictionary = {}
@@ -428,7 +543,6 @@ func _poll_layout(delta: float) -> void:
 	world.apply_layout(layout)
 	_sync_layout_anchors()
 	_apply_actor_transforms()
-	if water_material != null: water_material.set_shader_parameter("entity_anchor",fountain_anchor+Vector3(0,0,.08))
 	outside.remove_child(previous)
 	previous.queue_free()
 	print("광장 배치 갱신: ",layout.placements().size(),"개 · 저장한 장면을 적용했습니다.")

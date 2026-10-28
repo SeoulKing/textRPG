@@ -13,7 +13,7 @@ export const arcanaDistrictScenes: SceneDefinition[] = [
   },
   {
     id: "arcana_inn_intro", locationId: "arcana_inn", title: "광장의 여관",
-    paragraphs: ["두꺼운 문 안쪽에는 닳은 나무 바닥과 작은 접수대가 자리하고 있다. 벽에 걸린 열쇠들이 금빛 조명 아래 나란히 빛나고, 푸른 융단을 깐 계단이 위층 객실로 이어진다. 문밖의 분수 소리는 이곳에 닿으면 한결 작아진다."],
+    paragraphs: ["문을 닫자 분수 소리가 잦아들고, 벽난로에서 장작 타는 소리가 들린다. 꿀빛 나무 바닥 위로 보랏빛 러그가 펼쳐져 있고, 소파에는 크림색 쿠션과 푸른 담요가 놓여 있다. 낮은 탁자의 찻잔 옆으로 불빛이 흔들린다. 접수대 뒤에는 객실 열쇠가 가지런히 걸려 있고, 푸른 융단을 두른 계단이 위층으로 이어진다."],
     choiceIds: ["leave_arcana_place"], conditions: [{ type: "location", locationId: "arcana_inn" }],
   },
   {
