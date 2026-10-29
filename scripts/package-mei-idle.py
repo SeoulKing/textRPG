@@ -19,11 +19,15 @@ digest = hashlib.md5(resource.encode()).hexdigest()
 template = (OUT / "plaza-guide.png.import").read_text(encoding="utf-8")
 template = template.replace("res://art/export/plaza-guide/plaza-guide.png", resource).replace("plaza-guide.png-10f7bc0db83246187c6cdaf7b80e0dd0", "mei-idle.png-" + digest)
 (OUT / "mei-idle.png.import").write_text(template, encoding="utf-8")
-lines = [f'[gd_resource type="SpriteFrames" load_steps={spec["poses"]+2} format=3]',
-         f'[ext_resource type="Texture2D" path="{resource}" id="1"]']
-for i in range(spec["poses"]):
-    lines += [f'[sub_resource type="AtlasTexture" id="pose_{i}"]', 'atlas = ExtResource("1")', f'region = Rect2({i*96}, 0, 96, 136)']
-cells = ',\n'.join('{"duration": 1.0, "texture": SubResource("pose_%d")}' % i for i in spec["sequence"])
+# Export full frame textures at build time. WebGL playback must never read
+# pixels back from a GPU atlas to construct ImageTextures while animating.
+frame_out = OUT / "mei-idle-frames"
+frame_out.mkdir(exist_ok=True)
+lines = [f'[gd_resource type="SpriteFrames" load_steps={spec["poses"]+1} format=3]']
+for i, frame in enumerate(frames):
+    frame.save(frame_out / f"pose-{i:02}.png")
+    lines += [f'[ext_resource type="Texture2D" path="res://art/export/plaza-guide/mei-idle-frames/pose-{i:02}.png" id="pose_{i}"]']
+cells = ',\n'.join('{"duration": 1.0, "texture": ExtResource("pose_%d")}' % i for i in spec["sequence"])
 lines += ['[resource]', 'animations = [{"frames": ['+cells+'], "loop": true, "name": &"idle", "speed": '+str(spec['fps'])+'}]']
 (OUT / "mei-idle.tres").write_text('\n\n'.join(lines)+'\n', encoding="utf-8")
 preview = []

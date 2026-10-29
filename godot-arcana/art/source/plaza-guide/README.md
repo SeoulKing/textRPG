@@ -28,3 +28,8 @@ v2 제작 지시는 약 2.3등신, 머리 높이 약 42%, 큰 머리와 짧은 �
 사용자는 `approved-standard-proportions-4x.png`의 메이를 게임에 사용할 버전으로 재확정하고, 이 비교 이미지의 신체 비율을 일반 캐릭터의 기본으로 지정했습니다. 활성 PNG와 비교 이미지 오른쪽의 픽셀이 같은 배율에서 일치함을 확인했습니다. 제작 공통 기준은 ARCANA_ART_GUIDE.md의 일반 캐릭터 확정 비율을 따릅니다.
 
 웹 반영 완료: 승인된 v3 메이 PNG를 포함한 별도 런타임 사본에서 가져오기와 Web 내보내기를 완료하고 godot-web에 교체했습니다. PCK 인덱스의 메이 자산과 빌드 사본/원본 PNG 해시 일치, localhost:3000/godot/index.pck의 HTTP 200 및 디스크/서버 SHA256 일치를 확인했습니다. PCK SHA256: a3f467293d056edc1070c7211a07a61cc0ed6c1c82463a79ec8f127299f2c89d. 브라우저 플레이는 실행하지 않았습니다.
+
+
+## 웹 애니메이션 프레임 로딩
+
+메이의 대기는 "scripts/package-mei-idle.py"가 내보낸 "art/export/plaza-guide/mei-idle-frames/pose-*.png"를 SpriteFrames에서 직접 참조합니다. 실행 중 AtlasTexture.get_image()로 GPU 픽셀을 읽거나 ImageTexture를 생성하지 않습니다. 기존 PixelPen 원본·시트·96칸 타임라인·12FPS·발 기준점을 유지하며, 원본 수정 뒤에는 같은 패키저를 실행합니다.
