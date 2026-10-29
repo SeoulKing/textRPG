@@ -130,8 +130,7 @@ func enemy_position() -> Vector2:
 	return _point(_spatial().get("enemy",layout.home))
 
 func _screen(point: Vector2, height: float = 0.0) -> Vector2:
-	var camera: Camera3D = main.world_renderer.camera
-	var rendered = camera.unproject_position(main.world_renderer.map_point(point,height))
+	var rendered: Vector2 = main.world_renderer.screen_point(point,height)
 	var local = rendered*main.viewport_host.size/Vector2(main.viewport.size)
 	return main.viewport_host.get_global_transform()*local
 
@@ -140,6 +139,7 @@ func _world(point: Vector2) -> Vector2:
 	return main.world_renderer.pick(local*Vector2(main.viewport.size)/main.viewport_host.size)
 
 func visible_enemy() -> bool:
+	if main.online_world and float(_battle().get("enemyHp",30))<=0: return false
 	var point = _screen(enemy_position(),.5)
 	return Rect2(Vector2.ZERO,main.get_viewport().get_visible_rect().size).has_point(point) and _battle().get("phase","") not in ["victory","defeat"]
 
@@ -281,10 +281,17 @@ func _standard_dash(command: String) -> void:
 	var sent_movement_sequence = movement_sequence
 	var action={"type":"arcana_combat","command":command}
 	if not _battle().is_empty():action.battleId=_battle().id
-	var data: Dictionary=await main._api("/api/games/"+main.game_id+"/actions",HTTPClient.METHOD_POST,action)
+	var data: Dictionary
+	if main.online_world:
+		main.sequence += 1
+		action.spatial = {"sequence":main.sequence,"aim":_json(main.world.dash_heading()),"position":_json(main.world.teleport_origin if command=="teleport" else main.world.dash_origin)}
+		data = await main.combat_socket.request(action)
+	else:
+		data = await main._api("/api/games/"+main.game_id+"/actions",HTTPClient.METHOD_POST,action)
 	if sent_movement_sequence == movement_sequence: dash_pending=false
 	if data.has("state"):
-		if sent_movement_sequence == movement_sequence: main._apply(data)
+		if main.online_world: main._accept_online_result(data)
+		elif sent_movement_sequence == movement_sequence: main._apply(data)
 	elif sent_movement_sequence == movement_sequence:
 		if command == "dodge": main.world.cancel_dash()
 		main.ui.toast(data.get("message","대시를 사용할 수 없습니다."))
@@ -450,9 +457,9 @@ func _process(delta: float) -> void:
 				if command.command in ["dodge","teleport"] and int(command.get("movementSequence",0)) == movement_sequence: dash_pending = false
 				return
 			_request(command.command,false,command.direction,command.get("origin",Vector2.INF),command.get("endpoint",Vector2.INF),command.get("shotId",""),int(command.get("movementSequence",0)),command.get("target",Vector2.INF))
-		elif not request_busy and _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or _battle().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=sync_interval) or connection_lost):
+		elif not main.online_world and not request_busy and _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or _battle().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=sync_interval) or connection_lost):
 			_request("spatial_sync",paused or connection_lost)
-	_render(delta,active,paused)
+	_render(delta,active,false if main.online_world else paused)
 
 func _restore_result_panel() -> void:
 	if _battle().get("phase","") == "defeat" and not main.busy:
@@ -475,12 +482,14 @@ func _clear_queued_commands(keep_teleports: bool = false) -> void:
 	queue.assign(retained)
 	if not retained.is_empty(): dash_pending = true
 
-func before_action() -> void:
+func before_action() -> bool:
 	cancel_aim()
 	_cancel_pending_cast()
 	_clear_queued_commands()
 	while request_busy: await get_tree().process_frame
+	if main.online_world: return await main.combat_socket.synchronize()
 	if not _spatial().is_empty(): await _request("spatial_sync",true)
+	return true
 
 func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, dash_origin: Vector2 = Vector2.INF, dash_endpoint: Vector2 = Vector2.INF, shot_id: String = "", move_sequence: int = 0, target: Vector2 = Vector2.INF) -> void:
 	in_flight += 1
@@ -505,8 +514,9 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 	var data: Dictionary = await main.combat_socket.request(action)
 	if command == "fireball": predicted = {}
 	pending_commands.erase(sent_sequence)
-	if settling or (data.has("spatialCombat") and int(data.get("sequence",-1)) < applied_sequence):
+	if settling or (main.online_world and data.has("spatialCombat") and int(data.get("worldRevision",0)) < main.online_presence.revision) or (data.has("spatialCombat") and int(data.get("sequence",-1)) < applied_sequence):
 		local_shots.erase(shot_id)
+		if command in ["dodge","teleport"] and move_sequence == movement_sequence: dash_pending = false
 		in_flight -= 1
 		request_busy = in_flight > 0
 		if not request_busy: settling = false
@@ -521,9 +531,10 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 		main.snapshot.state.merge(data.state,true)
 		main.snapshot.arcanaSpells = data.get("arcanaSpells",main.snapshot.get("arcanaSpells",[]))
 		main._notify_spell_unlocks(previous_spells)
-		main.snapshot.availableActions = data.get("availableActions",[])
+		main.snapshot.availableActions = data.get("availableActions",main.snapshot.get("availableActions",[]))
 		if data.get("currentScene") is Dictionary: main.snapshot.currentScene = data.currentScene
 		main.world.battle = _battle().duplicate(true)
+		if main.online_world and float(main.world.battle.get("enemyHp",30))<=0: main.world.battle.phase = "victory"
 		main.world.enemy_visual_hp = float(_battle().get("enemyHp",30))
 		main.world.impact_remaining = 0
 		main.previous_enemy_hp = main.world.enemy_visual_hp
@@ -646,6 +657,7 @@ func _event(event: Dictionary) -> void:
 		flame_bursts.append(burst)
 	if event.kind in ["enemy_down","victory"] and is_instance_valid(reward_effects):
 		var amounts: Dictionary = event.get("rewards",{})
+		if int(amounts.get("slimeMucus",0))>0: reward_effects.show_slime_loot(str(_battle().get("id",""))+":"+str(event.id),int(amounts.slimeMucus))
 		if int(amounts.get("money",0))>0: reward_effects.show_reward(str(_battle().get("id",""))+":"+str(event.id),point,int(amounts.get("xp",0)),int(amounts.money))
 	if event.kind == "wave" and main.world.effects_enabled:
 		var wave = _line(Color(1.0,.45,.12,.65))
@@ -656,7 +668,8 @@ func _event(event: Dictionary) -> void:
 	if event.kind == "hurt" and float(event.get("amount",0))>0:
 		var incoming = main.world.player_position-enemy_position()
 		main.world_renderer.hero.play_hurt(incoming)
-	if event.kind in ["hit","hurt","evade","absorb"]:
+	# Movement acknowledgements reuse evade; only avoided attacks show the label.
+	if event.kind in ["hit","hurt","evade","absorb"] and not (event.kind == "evade" and event.has("movement")):
 		var text = "회피" if event.kind=="evade" else "흡수 %d" % int(event.amount) if event.kind=="absorb" else "%d" % int(event.amount) if event.kind=="hit" else "−%d" % int(event.amount)
 		var value = effect_pool.take_label(text,Color("df596c") if event.kind in ["hit","hurt"] else Color("f9e7a6"))
 		transient.append({"node":value,"at":point,"age":0.0})

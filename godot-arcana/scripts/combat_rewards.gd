@@ -33,6 +33,11 @@ func show_reward(key: String, at: Vector2, xp: int, money: int) -> void:
 			coins.append(coin)
 		drops.append({"coins":coins,"at":at,"age":0.0,"money":money})
 	main._update_hud()
+func show_slime_loot(key: String, amount: int) -> void:
+	if seen.has(key) or amount <= 0: return
+	seen[key] = true
+	texts.append({"node":_label("+%d 슬라임의 점액질" % amount,Color("d0efad")),"age":0.0})
+
 func _process(delta: float) -> void:
 	if not is_instance_valid(main) or not is_instance_valid(main.ui): return
 	var visible = main.page_active and main.world.indoor.is_empty()
@@ -62,6 +67,6 @@ func _process(delta: float) -> void:
 		if drop.age>=1.15:
 			pending_money = maxi(0,pending_money-int(drop.money))
 			for coin in drop.coins: coin.queue_free()
-			texts.append({"node":_label("+%d원" % int(drop.money),Color("ffe5a0")),"age":0.0})
+			texts.append({"node":_label("+%d골드" % int(drop.money),Color("ffe5a0")),"age":0.0})
 			main._update_hud()
 	drops = drops.filter(func(drop): return drop.age<1.15)

@@ -25,6 +25,7 @@ var experimental_min_zoom_outline = true
 const MAX_ZOOM_RATIO = 2.0
 var center_on_character = true
 const PITCH_SINE = CityLayout.CAMERA_PITCH_SINE
+var shop2d: Node2D
 var world: Node2D
 var pixelated = true
 var quarter_view = false
@@ -244,6 +245,13 @@ func _ring(radius: float, color: String) -> Node3D:
 	return root
 
 func _interior(id: String) -> void:
+	get_viewport().disable_3d = id == "arcana_shop"
+	if is_instance_valid(shop2d):
+		shop2d.visible = id == "arcana_shop"
+		shop2d.follow_camera.enabled = id == "arcana_shop"
+	if id != "arcana_shop":
+		get_viewport().canvas_transform = Transform2D.IDENTITY
+		set_quarter_view(quarter_view)
 	for child in inside.get_children():
 		inside.remove_child(child)
 		child.queue_free()
@@ -255,9 +263,11 @@ func _interior(id: String) -> void:
 		inn_lighting.configure_inn(school.light_sources,.98)
 		return
 	if id == "arcana_shop":
-		var shop = preload("res://scenes/shop_interior.tscn").instantiate()
-		inside.add_child(shop)
-		inn_lighting.configure_inn(shop.light_sources,.98)
+		if not is_instance_valid(shop2d):
+			shop2d = load("res://scenes/shop_2d.tscn").instantiate()
+			add_child(shop2d)
+		shop2d.visible = true
+		shop2d.follow_camera.enabled = true
 		return
 	if id == "arcana_inn":
 		var lobby = preload("res://scenes/inn_lobby.tscn").instantiate()
@@ -298,6 +308,7 @@ func _interior(id: String) -> void:
 		for x in [70,302]: _place("bench",Vector2(x,204),inside)
 
 func view_yaw() -> float:
+	if world != null and world.indoor == "arcana_shop": return 0.0
 	return PI/4.0 if quarter_view else 0.0
 
 func set_quarter_view(value: bool) -> void:
@@ -326,7 +337,7 @@ func _process(_delta: float) -> void:
 		_interior(last_interior)
 		last_dusk = -1
 		occlusion_dirty = true
-		environment.background_color = Color("78ad72") if outside.visible else Color("283452")
+		environment.background_color = Color("78ad72") if outside.visible else (Color.BLACK if world.indoor == "arcana_shop" else Color("283452"))
 		camera_center = map_point(world.player_position)
 		teleport_camera_age = -1.0
 		previous_blink_age = world.teleport_age
@@ -348,21 +359,42 @@ func _process(_delta: float) -> void:
 	if blink_age>=0 and blink_age<.02 and world.effects_enabled and not world.reduced_motion:
 		hero.position=_snap_ground(map_point(world.teleport_origin))
 	previous_player = world.player_position
+	if world.indoor == "arcana_shop" and is_instance_valid(shop2d):
+		world.input_projection = Transform2D(Vector2(1,0),Vector2(0,1.0/PITCH_SINE),Vector2.ZERO)
+		shop2d.sync(world,hero,get_zoom_ratio(),_delta)
+		camera_updated.emit()
+		return
 	for npc in interior_people: npc.pose(world.time,0,false,Vector2.ZERO,pixelated,world.effects_enabled and not world.reduced_motion)
+	var indoor_follow: float = 0.0
 	var target = map_point(world.player_position)
 	var view_height = display_height / (32.0 * camera_zoom)
 	if not world.indoor.is_empty():
-		var half_width = view_height*get_viewport().size.x/get_viewport().size.y/2.0
-		target.x = clampf(target.x,minf(12.0,1.5+half_width),maxf(12.0,22.5-half_width))
-		if world.indoor in ["arcana_inn","arcana_academy"]:
-			var half_depth = view_height/(2.0*PITCH_SINE)
-			var middle = 11.5 if world.indoor == "arcana_academy" else 10.25
-			var end = 19.0 if world.indoor == "arcana_academy" else 16.5
-			target.z = clampf(target.z,minf(middle,4.0+half_depth),maxf(middle,end-half_depth))
-		else: target.z = 10.75
+		var room_center = Vector3(12,0,9.5)
+		var room_height = 17.0
+		var room_width = 22.0
+		match world.indoor:
+			"arcana_shop":
+				room_center.z = 5.85
+				room_height = 11.5
+				room_width = 15.0
+			"arcana_inn":
+				room_center.z = 7.85
+				room_height = 13.5
+				room_width = 19.0
+			"arcana_academy":
+				room_center.z = 9.0
+				room_height = 15.0
+				room_width = 22.0
+		var aspect = float(get_viewport().size.x)/float(get_viewport().size.y)
+		var fit_height = maxf(room_height,room_width/aspect)
+		if aspect >= 1.0: room_height = fit_height
+		view_height = maxf(display_height/(32.0*base_camera_zoom),room_height)/get_zoom_ratio()
+		# Follow whenever either room dimension exceeds the visible viewport.
+		indoor_follow = 1.0 if view_height < fit_height - 0.0001 else 0.0
+		target = room_center.lerp(map_point(world.player_position),indoor_follow)
 	var blink_started = blink_age>=0 and (previous_blink_age<0 or blink_age<previous_blink_age)
 	previous_blink_age = blink_age
-	if world.reduced_motion or camera_center.distance_to(target)>7:
+	if not world.indoor.is_empty() or world.reduced_motion or camera_center.distance_to(target)>7:
 		camera_center = target
 		teleport_camera_age = -1.0
 	else:
@@ -386,7 +418,8 @@ func _process(_delta: float) -> void:
 	var aim = camera_center
 	if center_on_character:
 		var half_body = float(Hero.SPEC.SOURCE_HEIGHT)/(2.0*Hero.SPEC.PIXELS_PER_UNIT*PITCH_SINE)
-		aim -= Vector3(sin(yaw),0,cos(yaw))*half_body
+		var follow_weight = indoor_follow if not world.indoor.is_empty() else 1.0
+		aim -= Vector3(sin(yaw),0,cos(yaw))*half_body*follow_weight
 	var center = _snap_ground(aim)
 	var ground_distance = 24*sqrt(1-PITCH_SINE*PITCH_SINE)/PITCH_SINE
 	camera.position = center+Vector3(sin(yaw)*ground_distance,24,cos(yaw)*ground_distance)
@@ -431,7 +464,13 @@ func _process(_delta: float) -> void:
 		npc.sync_idle(world.time,world.effects_enabled and not world.reduced_motion)
 	for portal in get_tree().get_nodes_in_group("arcana_portal_animation"):
 		portal.sync_portal(world.time,world.effects_enabled and not world.reduced_motion)
-	marker.visible = not world.nearest.is_empty()
+	var highlighted_id = str(world.nearest.get("id","")) if world.enabled else ""
+	var has_object = false
+	for prop in get_tree().get_nodes_in_group("arcana_interaction_art"):
+		var active = prop.is_visible_in_tree() and not prop.interaction_id.is_empty() and prop.interaction_id == highlighted_id
+		prop.set_interaction_highlight(active)
+		if active: has_object = true
+	marker.visible = not world.nearest.is_empty() and not has_object
 	if marker.visible: marker.position = map_point(world.nearest.pos)
 	target_marker.visible = not world.path.is_empty()
 	if target_marker.visible: target_marker.position = map_point(world.path[world.path.size()-1])
@@ -617,7 +656,25 @@ func _effects() -> void:
 				node.scale = Vector3.ONE*(1-age)
 				node.visible = true
 
+func pick_interaction(screen_point: Vector2) -> Dictionary:
+	if world.indoor == "arcana_shop" and is_instance_valid(shop2d): return shop2d.pick_interaction(screen_point,world)
+	var picked: Variant = null
+	var closest_depth = -INF
+	var toward_camera = Vector2(camera.global_basis.z.x,camera.global_basis.z.z).normalized()
+	for prop in get_tree().get_nodes_in_group("arcana_interaction_art"):
+		if not prop.hit_test(camera,screen_point): continue
+		var anchor: Vector3 = prop.global_transform*prop.depth_anchor_offset
+		var depth = Vector2(anchor.x,anchor.z).dot(toward_camera)
+		if depth > closest_depth:
+			closest_depth = depth
+			picked = prop
+	if picked != null and picked.hit_test(camera,screen_point,true):
+		for entity in world.entities:
+			if entity.id == picked.interaction_id: return entity
+	return {}
+
 func pick(screen_point: Vector2) -> Vector2:
+	if world.indoor == "arcana_shop" and is_instance_valid(shop2d): return shop2d.pick(screen_point)
 	var origin = camera.project_ray_origin(screen_point)
 	var normal = camera.project_ray_normal(screen_point)
 	var point = Plane(Vector3.UP,0).intersects_ray(origin,normal)
@@ -626,3 +683,7 @@ func pick(screen_point: Vector2) -> Vector2:
 
 func _exit_tree() -> void:
 	Models.clear_templates()
+
+func screen_point(point: Vector2, height: float = 0.0) -> Vector2:
+	if world.indoor == "arcana_shop" and is_instance_valid(shop2d): return shop2d.screen_point(point,height)
+	return camera.unproject_position(map_point(point,height))

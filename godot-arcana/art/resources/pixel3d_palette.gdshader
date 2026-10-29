@@ -4,7 +4,7 @@ uniform sampler2D palette_lut : filter_nearest, repeat_disable;
 uniform bool palette_enabled = true;
 void fragment() {
     vec4 world = texture(TEXTURE, UV);
-    if (palette_enabled) {
+    if (palette_enabled && any(greaterThan(world.rgb, vec3(0.0)))) {
         vec3 source = clamp(world.rgb, vec3(0.0), vec3(1.0));
         vec3 cell = floor(source * 31.0 + 0.5);
         vec2 uv = vec2((cell.b * 32.0 + cell.r + 0.5) / 1024.0, (cell.g + 0.5) / 32.0);

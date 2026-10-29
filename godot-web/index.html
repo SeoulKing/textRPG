@@ -21,7 +21,7 @@
 <script src="index.js"></script>
 <script>
 'use strict';
-const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":32944232,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
+const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":26107884,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
 const loader=document.getElementById('loading'), status=document.getElementById('status');
 const showError=error=>{loader.hidden=false;status.textContent='아르카나를 열지 못했습니다.\n'+(error?.message||String(error));document.getElementById('error-actions').hidden=false;};
 document.getElementById('retry').addEventListener('click',()=>location.reload());

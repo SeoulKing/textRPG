@@ -12,7 +12,10 @@ uniform bool world_pixel_grid_enabled = false;
 uniform vec2 world_pixel_grid = vec2(1.0);
 uniform vec2 authored_pixel_size = vec2(1.0);
 uniform float world_pixel_foot_y = 0.0;
+uniform bool interaction_highlight = false;
+uniform bool inn_plain_wall = false;
 uniform vec3 depth_anchor_offset = vec3(0.0);
+#include "res://art/resources/interaction_outline.gdshaderinc"
 void vertex() {
     vec3 anchor = MODEL_MATRIX[3].xyz;
     light_anchor=anchor;
@@ -32,7 +35,13 @@ void fragment() {
     vec2 size = vec2(textureSize(sprite_sheet,0))/sheet_grid;
     vec2 sample_uv = world_pixel_grid_enabled ? (floor(UV*world_pixel_grid)+vec2(.5))/world_pixel_grid : UV;
     vec2 uv = clamp(sample_uv,vec2(.5)/size,vec2(1.0)-vec2(.5)/size);
-    vec4 color = texture(sprite_sheet,(frame_cell+uv)/sheet_grid);
+    vec2 paint_uv = uv;
+    // Inn wall: replace the window, curtains and flowers with the adjacent plaster.
+    // Keep native texel density and the existing upper/lower timber framing.
+    vec2 pixel = floor(uv*size);
+    if (inn_plain_wall && pixel.x >= 66.0 && pixel.x < 210.0 && pixel.y >= 22.0 && pixel.y < 169.0)
+        paint_uv.x = (40.5+mod(pixel.x-66.0,26.0))/size.x;
+    vec4 color = texture(sprite_sheet,(frame_cell+paint_uv)/sheet_grid);
     if (color.a < .5) discard;
     vec4 fire=vec4(color.rgb,0.0);
     if (inn_fire_enabled) {
@@ -42,5 +51,6 @@ void fragment() {
     vec2 lighting_size = world_pixel_grid_enabled ? world_pixel_grid : size;
     float lighting_foot = world_pixel_grid_enabled ? world_pixel_foot_y : size.y*.5+foot_offset*64.0;
     ALBEDO = max(sprite_lit(fire.rgb,uv,lighting_size,lighting_foot),fire.rgb*fire.a);
+    ALBEDO = interaction_outline(ALBEDO,uv,world_pixel_grid_enabled ? authored_pixel_size : size);
 }
 

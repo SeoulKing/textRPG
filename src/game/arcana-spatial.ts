@@ -1,3 +1,4 @@
+import { awardSlimeLoot } from "./arcana-economy";
 import { fireballSpecialization } from "./arcana-skill-tree";
 import { trainArcanaSkill } from "./arcana-skill-training";
 import { readFileSync } from "node:fs";
@@ -59,7 +60,7 @@ function wallFraction(a: Point, b: Point, radius: number): number | null {
   for (let i=0;i<=steps;i++) if (blocked(mix(a,b,i/steps),radius)) return i/steps;
   return null;
 }
-export function spatialEvent(b: Battle, kind: ArcanaSpatial["events"][number]["kind"], position: Point, amount = 0, projectileId?: string, direction?: Point, rewards?: { xp: number; money: number }, targetPosition?: Point, enemyId?: string) {
+export function spatialEvent(b: Battle, kind: ArcanaSpatial["events"][number]["kind"], position: Point, amount = 0, projectileId?: string, direction?: Point, rewards?: { xp: number; money: number; slimeMucus?: number }, targetPosition?: Point, enemyId?: string) {
   const s = b.spatial!;
   s.events.push({ id: ++s.revision, kind, position:copy(position), amount, ...(projectileId ? {projectileId} : {}), ...(direction ? {direction:copy(direction)} : {}), ...(rewards ? {rewards} : {}), ...(targetPosition ? {targetPosition:copy(targetPosition)} : {}),...(enemyId ? {enemyId}: {}) });
   s.events = s.events.slice(-32);
@@ -168,15 +169,15 @@ function damageEnemy(state:GameState,b:Battle,e:SpatialEnemy,amount:number,proje
   spatialEvent(b,"hit",impact ?? e.position,damage,projectileId,direction,undefined,e.position,e.id);
   if(e.behavior==="neutral") {e.behavior="chase";e.attackIn=spatialLayout().tuning.attackInterval;b.phase="battle";}
   if(e.hp<=0 && !e.rewarded) {
-    e.rewarded=true;state.money+=30;
-    spatialEvent(b,"enemy_down",e.position,0,undefined,undefined,{xp:0,money:30},undefined,e.id);
+    e.rewarded=true;awardSlimeLoot(state);
+    spatialEvent(b,"enemy_down",e.position,0,undefined,undefined,{xp:0,money:0,slimeMucus:1},undefined,e.id);
   }
   return damage;
 }
 function finishVictory(state:GameState,b:Battle) {
   const s=b.spatial!;if(s.enemies.some(e=>e.hp>0) || b.phase==="victory") return;
   b.phase="victory";b.paused=true;s.projectiles=[];s.meteors=[];s.barrage=null;clearFlameGuard(state);
-  appendLogEntry(state,"슬라임 무리를 처치했다. 처치한 적마다 소지금 30원을 획득했다.");
+  appendLogEntry(state,"슬라임 무리를 처치했다. 처치한 적마다 슬라임의 점액질 1개를 획득했다.");
   spatialEvent(b,"victory",s.enemy);refreshProjection(b);
 }
 // Exact closest point on a circular sector, including its two radial edges.
@@ -375,3 +376,6 @@ function returnWaypoint(from: Point, goal: Point, budget: number, radius: number
   for (const point of route) { if (wallFraction(from,point,radius)!==null) break; waypoint = point; }
   return waypoint ? move(from,towards(from,waypoint,budget),radius) : move(from,towards(from,center(start),budget),radius);
 }
+
+// Shared-world simulation uses the same collision and path rules.
+export { move as spatialMove, wallFraction as spatialWall, returnWaypoint as spatialRoute };

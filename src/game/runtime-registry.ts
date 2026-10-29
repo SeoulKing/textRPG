@@ -110,6 +110,7 @@ export function buildRuntimeRegistry(
     events: { ...base.events, ...dynamicContent.events },
     scenes: { ...base.scenes, ...dynamicContent.scenes },
   }, worldRegistry), worldRegistry), worldRegistry)), worldRegistry)))));
+  registry.items.slimeMucus = baseItems.slimeMucus;
   return withAcademyContent(registry);
 }
 

@@ -1,3 +1,4 @@
+import { slimeQuestCard } from "./arcana-economy";
 import { buildAcademyMap } from "./academy-navigation";
 import { academyKnownFacts } from "./academy-content";
 import { advanceConversation, conversationObstacle, interruptConversation } from "./text-world/conversation-flow";
@@ -12,7 +13,7 @@ import { worldDeparturePlan } from "./text-world/departure";
 import { isSubwayStockMenuAction } from "./text-world/subway-stock";
 import { nearbyWorldNpc, residentAtConversationLocation, npcWorldContext } from "./text-world/observers";
 import { runtimeSocialProfile, performNpcSocialAction, validateNpcSocialAction } from "./npc-social";
-import { questProgressFields } from "./quest-guidance";
+import { questProgressFields, arcanaQuestPresentation } from "./quest-guidance";
 import { activityConditionState, localWorkEnvironment } from "./work-environment";
 import { planActivity } from "./activity";
 import { materialSourceHints } from "./material-guidance";
@@ -463,6 +464,23 @@ export class GameService {
     }, 1000);
     timer.unref();
     this.arcanaFlushTimers.set(gameId,timer);
+  }
+
+  snapshotForOnline(session: GameSession) { return this.buildSnapshot(session, null); }
+
+  async detachedOnlineAction(source: GameSession, action: GameAction) {
+    let result = structuredClone(source);
+    const underlying = this.repository;
+    const isolated = new Proxy(underlying, { get(target, property) {
+      if (property === "loadGame") return async (id: string) => id === source.id ? structuredClone(result) : underlying.loadGame(id);
+      if (property === "saveGame") return async (game: GameSession) => { if (game.id !== source.id) throw new Error("Unexpected detached game write"); result = structuredClone(game); };
+      if (property === "withGameLock") return async (_id: string, operation: () => Promise<unknown>) => operation();
+      const value = Reflect.get(target, property);
+      return typeof value === "function" ? value.bind(target) : value;
+    }});
+    const detached = new GameService(isolated, this.templateGenerator, this.planner, this.encounterSceneGenerator, this.npcDialogueGenerator, this.textWorldNarrator);
+    await detached.performAction(source.id, action);
+    return result;
   }
 
   private spatialReply(session: GameSession, sequence: number) {
@@ -2233,6 +2251,7 @@ export class GameService {
         summary: quest.description,
         status: session.state.quests[quest.id] ?? "inactive",
         ...questProgressFields(session.state, quest, registry, RECIPE_MENU_SCENE_IDS),
+        ...arcanaQuestPresentation(session.state, quest, registry),
       })),
       skills: getSkillEntries().filter((skill) => session.state.skills.includes(skill.id)),
       skillProgress: buildSkillProgressCards(session.state.skillProgress, registry.actions.fish_at_river?.effects.find(effect => effect.type === "random_outcome")?.outcomes),
@@ -2275,8 +2294,9 @@ export class GameService {
     };
 
     if (session.state.flags.in_magic_world) {
+      snapshot.quests.push({ ...slimeQuestCard(session.state), requirements: [] });
       for (const item of [...snapshot.inventoryCards, ...snapshot.itemCatalog]) {
-        if (item?.id === "manaPotion") { item.effects = { ...item.effects, mind: 20 }; item.useMinutes = 0; item.price = 100; }
+        if (item?.id === "manaPotion") { item.effects = { ...item.effects, mind: 20 }; item.useMinutes = 0; item.price = 10; }
       }
     }
     return StateSnapshotSchema.parse(snapshot);

@@ -35,6 +35,10 @@ import { PostgresGameRepository } from "./game/postgres-repository";
 import { GameService } from "./game/service";
 import { sendActionStream } from "./action-stream-response";
 import { AuthController } from "./auth";
+import { OnlineStore } from "./online/store";
+import { OnlineAccounts, OnlineError } from "./online/accounts";
+import { ArcanaWorld } from "./online/world";
+import { registerOnlineRoutes } from "./online/routes";
 import {
   hasGeminiConfig,
   testGeminiConnection,
@@ -59,7 +63,19 @@ const gameService = new GameService(repository);
 const contentVersions = new ContentVersionStore(databaseUrl, webRoot);
 const studioPreview = new StudioPreviewService();
 app.addHook("onClose", async () => studioPreview.dispose());
-const authController = new AuthController(repository, gameService);
+const onlineStore = new OnlineStore(databaseUrl, webRoot, repository);
+const onlineAccounts = new OnlineAccounts(onlineStore, repository, gameService);
+const authController = new AuthController(onlineAccounts, gameService, repository);
+const arcanaWorld = new ArcanaWorld(onlineStore, onlineAccounts, repository, gameService);
+onlineAccounts.onRevoke = id => arcanaWorld.revoke(id);
+onlineAccounts.onCharactersChanged = ids => arcanaWorld.refreshCharacters(ids);
+app.setErrorHandler((error, request, reply) => {
+  if (error instanceof OnlineError) return reply.code(error.status).send({error:error.code,message:error.message});
+  if (error instanceof z.ZodError) return reply.code(400).send({error:"invalid_request",message:"입력 내용을 확인해 주세요."});
+  request.log.error(error);
+  return reply.code((error as {statusCode?:number}).statusCode || 500).send({error:"request_failed",message:"요청을 처리하지 못했습니다."});
+});
+app.addHook("onClose", async () => { await arcanaWorld.stop(); await onlineStore.close(); });
 const contentStudioEnabled =
   process.env.NODE_ENV !== "production" ||
   process.env.ENABLE_CONTENT_STUDIO === "true";
@@ -120,7 +136,9 @@ async function loadCurrentContentStudioDocument() {
 }
 
 async function bootstrap() {
+  if (process.env.NODE_ENV === "production" && (!databaseUrl || !process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32 || !process.env.PUBLIC_BASE_URL?.startsWith("https://"))) throw new Error("Production requires PostgreSQL, AUTH_SECRET (32+ characters), and HTTPS PUBLIC_BASE_URL");
   await repository.init();
+  await onlineStore.init();
   await contentStudioStore.init();
 
   const [storedPublished, storedDraft] = await Promise.all([
@@ -185,9 +203,14 @@ async function bootstrap() {
   });
 
   await app.register(websocket, { options: { maxPayload: 16 * 1024, perMessageDeflate: false } });
+  registerOnlineRoutes(app, onlineAccounts, authController, arcanaWorld);
   registerArcanaCombatSocket(app, gameService);
   await app.register(cors, {
-    origin: true,
+    origin: (origin, callback) => {
+      const allowed = (process.env.ALLOWED_ORIGINS || process.env.PUBLIC_BASE_URL || "").split(",").map(value => value.trim());
+      callback(null, !origin || allowed.includes(origin) || (process.env.NODE_ENV !== "production" && /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)));
+    },
+    credentials: true,
   });
 
   await app.register(staticPlugin, {
@@ -212,6 +235,8 @@ async function bootstrap() {
     reply.type("text/html; charset=utf-8");
     return readFile(runtimeFile("index.html"), "utf8");
   });
+  app.get("/account.html", async (_request, reply) => reply.type("text/html; charset=utf-8").send(await readFile(path.join(webRoot,"account.html"),"utf8")));
+  app.get("/account.js", async (_request, reply) => reply.type("application/javascript").send(await readFile(path.join(webRoot,"account.js"),"utf8")));
   app.get("/index.html", async (_request, reply) => {
     reply.type("text/html; charset=utf-8");
     return readFile(runtimeFile("index.html"), "utf8");
@@ -426,6 +451,8 @@ async function bootstrap() {
   app.get("/api/health", async () => ({
     ok: true,
     service: "textrpg",
+    arcanaProtocol: 3,
+    arcanaLocationRevision: 1,
   }));
 
   app.post("/api/gemini/test", async (_request, reply) => {
@@ -460,8 +487,8 @@ async function bootstrap() {
     }
   });
 
-  app.get("/api/auth/me", async (request) => {
-    return authController.status(request);
+  app.get("/api/auth/me", async (request, reply) => {
+    return authController.status(request, reply);
   });
 
   app.get("/api/auth/kakao/start", async (request, reply) => {
@@ -486,6 +513,7 @@ async function bootstrap() {
     }
 
     try {
+      if (await onlineAccounts.character(await onlineAccounts.require(request))) throw new OnlineError("online_restore_disabled", "아르카나 화면에서 공용 세계에 입장해 주세요.");
       return await gameService.restoreManualGameForUser(user.id);
     } catch (error) {
       reply.code(404);
@@ -496,7 +524,7 @@ async function bootstrap() {
     }
   });
 
-  registerStateWorldRoutes(app, repository);
+  registerStateWorldRoutes(app, repository, onlineAccounts);
   app.post<{ Body: unknown }>("/api/games", async (request, reply) => {
     const parsed = z.object({
       startAt: z.enum(["shelter", "arcana"]).default("shelter"),
@@ -506,13 +534,17 @@ async function bootstrap() {
       return { error: "invalid_start_location", details: z.treeifyError(parsed.error) };
     }
     const started = performance.now();
-    const snapshot = await gameService.createGame(parsed.data.startAt);
+    const issued = await onlineAccounts.guest(request, reply);
+    const character = parsed.data.startAt === "arcana" ? await onlineAccounts.ensureCharacter(issued.principal) : null;
+    const snapshot = character ? await gameService.getState(character.gameId) : await gameService.createGame(parsed.data.startAt);
+    if (!character) await onlineAccounts.bindGame(snapshot.gameId, issued.principal);
     reply.header("Server-Timing", `game;dur=${(performance.now() - started).toFixed(1)}`);
     return snapshot;
   });
 
   app.get<{ Params: { gameId: string } }>("/api/games/:gameId/state", async (request) => {
-    return gameService.getState(request.params.gameId);
+    const principal = await onlineAccounts.require(request);
+    return await arcanaWorld.state(principal, request.params.gameId) || gameService.getState(request.params.gameId);
   });
 
   app.get<{ Params: { gameId: string } }>("/api/games/:gameId/map", async (request) => {
@@ -529,8 +561,10 @@ async function bootstrap() {
 
   app.post<{ Params: { gameId: string } }>("/api/games/:gameId/save", async (request, reply) => {
     try {
-      const user = await authController.currentUser(request);
-      return await gameService.saveManualGame(request.params.gameId, user?.id ?? null);
+      const principal = await onlineAccounts.require(request);
+      const owner = await onlineAccounts.authorize(request.params.gameId, principal);
+      if (owner.characterId) return arcanaWorld.save(principal, request.params.gameId);
+      return await gameService.saveManualGame(request.params.gameId, principal.accountId);
     } catch (error) {
       reply.code(400);
       return {
@@ -542,6 +576,8 @@ async function bootstrap() {
 
   app.post<{ Params: { gameId: string } }>("/api/games/:gameId/restore", async (request, reply) => {
     try {
+      const owner = await onlineAccounts.authorize(request.params.gameId, await onlineAccounts.require(request));
+      if (owner.characterId) throw new OnlineError("online_restore_disabled", "공용 세계의 진행은 과거 저장으로 되돌릴 수 없습니다.");
       return await gameService.restoreManualGame(request.params.gameId);
     } catch (error) {
       reply.code(404);
@@ -565,6 +601,9 @@ async function bootstrap() {
       };
     }
 
+    const principal = await onlineAccounts.require(request);
+    const owner = await onlineAccounts.authorize(request.params.gameId, principal);
+    if (owner.characterId) return arcanaWorld.personal(principal, request.params.gameId, parsed.data);
     const requestId = request.headers["x-action-id"];
     if (parsed.data.type === "text_world" && request.headers.accept?.includes("application/x-ndjson")) {
       if (typeof requestId !== "string" || !/^[a-zA-Z0-9-]{16,100}$/.test(requestId)) return reply.code(400).send({ message: "올바른 행동 요청 식별자가 필요합니다." });
@@ -606,6 +645,13 @@ async function bootstrap() {
     host: "0.0.0.0",
   });
 }
+
+let shuttingDown = false;
+for (const signal of ["SIGTERM", "SIGINT"] as const) process.once(signal, () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  void app.close().then(() => process.exit(0), error => { app.log.error(error); process.exit(1); });
+});
 
 bootstrap().catch((error) => {
   app.log.error(error);

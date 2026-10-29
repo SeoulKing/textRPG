@@ -2,7 +2,7 @@ import type { ActionChoice, GameState } from "./schemas";
 import { appendLogEntry } from "./state-utils";
 
 export const ARCANA_SHOP_GOODS = [
-  { itemId: "manaPotion", name: "마나 포션", buy: 100, sell: 40, detail: "MP 20 회복" },
+  { itemId: "manaPotion", name: "마나 포션", buy: 10, sell: 4, detail: "MP 20 회복" },
   { itemId: "moonHerb", name: "달빛 약초", buy: 30, sell: 10, detail: "연금 재료" },
   { itemId: "arcaneDust", name: "비전 가루", buy: 60, sell: 20, detail: "마도구 제작 재료" },
   { itemId: "manaShard", name: "마력 결정 파편", buy: 0, sell: 80, detail: "매입 전용 · 제작 재료" },
@@ -24,7 +24,7 @@ export function tradeArcanaShop(state: GameState, side: "buy_item" | "sell_item"
   const remaining = count + (buying ? quantity : -quantity);
   if (remaining > 0) state.inventory[itemId] = remaining;
   else delete state.inventory[itemId];
-  appendLogEntry(state, `${good.name} ${quantity}개를 ${total}원에 ${buying ? "구입했다" : "판매했다"}.`);
+  appendLogEntry(state, `${good.name} ${quantity}개를 ${total}골드에 ${buying ? "구입했다" : "판매했다"}.`);
 }
 
 export function buildArcanaShopActions(state: GameState): ActionChoice[] {
@@ -33,13 +33,13 @@ export function buildArcanaShopActions(state: GameState): ActionChoice[] {
     const count = state.inventory[good.itemId] ?? 0;
     if (good.buy > 0) actions.push({
       id: "arcana:shop:buy:" + good.itemId, label: good.name + " 구매",
-      outcomeHint: `${good.buy}원/개 · ${good.detail} · 보유 ${count}개 · 상시 판매`, showOutcomeHint: true,
+      outcomeHint: `${good.buy}골드/개 · ${good.detail} · 보유 ${count}개 · 상시 판매`, showOutcomeHint: true,
       isAvailable: state.money >= good.buy,
       action: { type: "arcana_combat", command: "buy_item", itemId: good.itemId, quantity: 1 },
     });
     if (count > 0) actions.push({
       id: "arcana:shop:sell:" + good.itemId, label: good.name + " 판매",
-      outcomeHint: `${good.sell}원/개 · 보유 ${count}개`, showOutcomeHint: true, isAvailable: true,
+      outcomeHint: `${good.sell}골드/개 · 보유 ${count}개`, showOutcomeHint: true, isAvailable: true,
       action: { type: "arcana_combat", command: "sell_item", itemId: good.itemId, quantity: 1 },
     });
   }

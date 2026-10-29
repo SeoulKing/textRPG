@@ -1,0 +1,679 @@
+[gd_scene load_steps=18 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/04409a47a1a7e35fcf2379a64c7da622a77533e5035f3ac3a9fb35a0741d62f9.res" id="1_2x0b4"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/249c87ca96fddb3b68816fd2af9a7b4489edb4319fb073aeb03f9f1e5e8955ea.res" id="2_j1ufc"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/e85f2e40c16baa014bce12dfef22dbd0f56c5baf254099a058b81e44fd8d219f.res" id="3_li5qq"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/9675174401c22d1d25432955dffa8152ee727777eaa2f533e9d6c4b586ad5333.res" id="4_x3kem"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/b46b0c891a40b5a68c54559c93930a1245df9144f9c61c66e5c2cb69a8595bba.res" id="5_o6x51"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/b9a6bee8ad9814fec825d4f5f34140dcb845ff56079602bf2f50508c39d60c0a.res" id="6_ioeqt"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/6ba16c4b5e06247eded55263dea0a0bafe528576f7321ce13c39adb3f7882183.res" id="7_svfl4"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/c4cb53be7bfb983603b1efb1ae6d7d20f0089d776ac9690254cf94311bffd638.res" id="8_obgwy"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4d352656e8eaef0cb80ff6393f6ad3466ebe34bd441a6b73799bd31e64fac53b.res" id="9_evbsj"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/f95f195b0f17cf7c8f0118f4dbec202c8f4f5b0f7ecf4b2fd8f7744f95135d79.res" id="10_hjte5"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/bf04ec141161257927ecedf89fba7af566ee6091f06ecc79fdbd2e95e4397f9c.res" id="11_1voub"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/3074b5576dc84673e592304e4d596d7033251cf1b7721f0c28fde4136aea99be.res" id="12_w8tn6"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/0092b1551fa46aef6d92752b7d0be63b6e39877b6bf4f2c203d0cc4385d84055.res" id="13_oskv6"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res" id="14_gv162"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/8989324e4efe7aae67827d3836defc5802c3b6a134478a32b630a8edae448e51.res" id="15_niofa"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/a3c6cfadd9ae1e5bfd267b9e0bfc47f2620b4969096635ea46d32df46228cd73.res" id="16_smum4"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/08334b10f7513bbcbd698ee1ac48b52455b350d6a666ba5fd53f29720b803ec8.res" id="17_v2hga"]
+
+[node name="AcademyFirstFloor2D" type="Node2D"]
+texture_filter = 1
+
+[node name="PaintedRoomFloor38" type="Sprite2D" parent="."]
+z_index = -30
+texture = ExtResource("1_2x0b4")
+centered = false
+offset = Vector2(192, 256)
+
+[node name="Academy_wall39" type="Sprite2D" parent="."]
+texture = ExtResource("2_j1ufc")
+centered = false
+offset = Vector2(188, -69)
+metadata/foot = Vector2(336, 256)
+metadata/interaction_id = ""
+
+[node name="_Node3D_8340" type="Sprite2D" parent="."]
+texture = ExtResource("2_j1ufc")
+centered = false
+offset = Vector2(476, -69)
+metadata/foot = Vector2(624, 256)
+metadata/interaction_id = ""
+
+[node name="_Node3D_8641" type="Sprite2D" parent="."]
+texture = ExtResource("2_j1ufc")
+centered = false
+offset = Vector2(764, -69)
+metadata/foot = Vector2(912, 256)
+metadata/interaction_id = ""
+
+[node name="_Node3D_8942" type="Sprite2D" parent="."]
+texture = ExtResource("2_j1ufc")
+centered = false
+offset = Vector2(1052, -69)
+metadata/foot = Vector2(1200, 256)
+metadata/interaction_id = ""
+
+[node name="Academy_stairs_up43" type="Sprite2D" parent="."]
+texture = ExtResource("3_li5qq")
+centered = false
+offset = Vector2(620, 82)
+metadata/foot = Vector2(768, 422.4)
+metadata/interaction_id = ""
+
+[node name="Academy_bookcase44" type="Sprite2D" parent="."]
+texture = ExtResource("4_x3kem")
+centered = false
+offset = Vector2(233, 170)
+metadata/foot = Vector2(332.8, 377.6)
+metadata/interaction_id = ""
+
+[node name="Academy_desk45" type="Sprite2D" parent="."]
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(272, 382)
+metadata/foot = Vector2(352, 537.6)
+metadata/interaction_id = ""
+
+[node name="Academy_blackboard46" type="Sprite2D" parent="."]
+texture = ExtResource("6_ioeqt")
+centered = false
+offset = Vector2(1015, 201)
+metadata/foot = Vector2(1139.2, 422.4)
+metadata/interaction_id = ""
+
+[node name="_Node3D_10047" type="Sprite2D" parent="."]
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(1059, 458)
+metadata/foot = Vector2(1139.2, 614.4)
+metadata/interaction_id = ""
+
+[node name="_Node3D_10348" type="Sprite2D" parent="."]
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(1059, 727)
+metadata/foot = Vector2(1139.2, 883.2)
+metadata/interaction_id = ""
+
+[node name="Academy_orrery49" type="Sprite2D" parent="."]
+texture = ExtResource("7_svfl4")
+centered = false
+offset = Vector2(668, 517)
+metadata/foot = Vector2(768, 736)
+metadata/interaction_id = ""
+
+[node name="Academy_reading_table50" type="Sprite2D" parent="."]
+texture = ExtResource("8_obgwy")
+centered = false
+offset = Vector2(298, 728)
+metadata/foot = Vector2(390.4, 844.8)
+metadata/interaction_id = ""
+
+[node name="Academy_book_trolley51" type="Sprite2D" parent="."]
+texture = ExtResource("9_evbsj")
+centered = false
+offset = Vector2(202, 588)
+metadata/foot = Vector2(256, 704)
+metadata/interaction_id = ""
+
+[node name="_Node3D_11252" type="Sprite2D" parent="."]
+texture = ExtResource("9_evbsj")
+centered = false
+offset = Vector2(1232, 678)
+metadata/foot = Vector2(1286.4, 793.6)
+metadata/interaction_id = ""
+
+[node name="Academy_floor_lamp53" type="Sprite2D" parent="."]
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(515, 490)
+metadata/foot = Vector2(544, 627.2)
+metadata/interaction_id = ""
+
+[node name="_Node3D_11754" type="Sprite2D" parent="."]
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(1251, 484)
+metadata/foot = Vector2(1280, 620.8)
+metadata/interaction_id = ""
+
+[node name="Academy_bench55" type="Sprite2D" parent="."]
+texture = ExtResource("11_1voub")
+centered = false
+offset = Vector2(261, 1029)
+metadata/foot = Vector2(364.8, 1158.4)
+metadata/interaction_id = ""
+
+[node name="_Node3D_12256" type="Sprite2D" parent="."]
+texture = ExtResource("11_1voub")
+centered = false
+offset = Vector2(1067, 1029)
+metadata/foot = Vector2(1171.2, 1158.4)
+metadata/interaction_id = ""
+
+[node name="Academy_plant57" type="Sprite2D" parent="."]
+texture = ExtResource("12_w8tn6")
+centered = false
+offset = Vector2(191, 688)
+metadata/foot = Vector2(243.2, 889.6)
+metadata/interaction_id = ""
+
+[node name="_Node3D_12758" type="Sprite2D" parent="."]
+texture = ExtResource("12_w8tn6")
+centered = false
+offset = Vector2(1241, 739)
+metadata/foot = Vector2(1292.8, 940.8)
+metadata/interaction_id = ""
+
+[node name="RoomWall59" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 204)
+metadata/foot = Vector2(192, 320)
+metadata/interaction_id = ""
+
+[node name="_Node3D_13260" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 268)
+metadata/foot = Vector2(192, 384)
+metadata/interaction_id = ""
+
+[node name="_Node3D_13561" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 332)
+metadata/foot = Vector2(192, 448)
+metadata/interaction_id = ""
+
+[node name="_Node3D_13862" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 396)
+metadata/foot = Vector2(192, 512)
+metadata/interaction_id = ""
+
+[node name="_Node3D_14163" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 460)
+metadata/foot = Vector2(192, 576)
+metadata/interaction_id = ""
+
+[node name="_Node3D_14464" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 524)
+metadata/foot = Vector2(192, 640)
+metadata/interaction_id = ""
+
+[node name="_Node3D_14765" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 588)
+metadata/foot = Vector2(192, 704)
+metadata/interaction_id = ""
+
+[node name="_Node3D_15066" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 652)
+metadata/foot = Vector2(192, 768)
+metadata/interaction_id = ""
+
+[node name="_Node3D_15367" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 716)
+metadata/foot = Vector2(192, 832)
+metadata/interaction_id = ""
+
+[node name="_Node3D_15668" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 780)
+metadata/foot = Vector2(192, 896)
+metadata/interaction_id = ""
+
+[node name="_Node3D_15969" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(178, 844)
+metadata/foot = Vector2(192, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_16270" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 204)
+metadata/foot = Vector2(608, 320)
+metadata/interaction_id = ""
+
+[node name="_Node3D_16571" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 268)
+metadata/foot = Vector2(608, 384)
+metadata/interaction_id = ""
+
+[node name="_Node3D_16872" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 332)
+metadata/foot = Vector2(608, 448)
+metadata/interaction_id = ""
+
+[node name="_Node3D_17173" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 396)
+metadata/foot = Vector2(608, 512)
+metadata/interaction_id = ""
+
+[node name="_Node3D_17474" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 460)
+metadata/foot = Vector2(608, 576)
+metadata/interaction_id = ""
+
+[node name="_Node3D_17775" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 524)
+metadata/foot = Vector2(608, 640)
+metadata/interaction_id = ""
+
+[node name="_Node3D_18076" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 588)
+metadata/foot = Vector2(608, 704)
+metadata/interaction_id = ""
+
+[node name="_Node3D_18377" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 652)
+metadata/foot = Vector2(608, 768)
+metadata/interaction_id = ""
+
+[node name="_Node3D_18678" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 716)
+metadata/foot = Vector2(608, 832)
+metadata/interaction_id = ""
+
+[node name="_Node3D_18979" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 780)
+metadata/foot = Vector2(608, 896)
+metadata/interaction_id = ""
+
+[node name="_Node3D_19280" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(594, 844)
+metadata/foot = Vector2(608, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_19581" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(192, 901)
+metadata/foot = Vector2(224, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_19882" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(256, 901)
+metadata/foot = Vector2(288, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_20183" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(480, 901)
+metadata/foot = Vector2(512, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_20484" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(544, 901)
+metadata/foot = Vector2(576, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_20785" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 204)
+metadata/foot = Vector2(1344, 320)
+metadata/interaction_id = ""
+
+[node name="_Node3D_21086" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 268)
+metadata/foot = Vector2(1344, 384)
+metadata/interaction_id = ""
+
+[node name="_Node3D_21387" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 332)
+metadata/foot = Vector2(1344, 448)
+metadata/interaction_id = ""
+
+[node name="_Node3D_21688" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 396)
+metadata/foot = Vector2(1344, 512)
+metadata/interaction_id = ""
+
+[node name="_Node3D_21989" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 460)
+metadata/foot = Vector2(1344, 576)
+metadata/interaction_id = ""
+
+[node name="_Node3D_22290" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 524)
+metadata/foot = Vector2(1344, 640)
+metadata/interaction_id = ""
+
+[node name="_Node3D_22591" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 588)
+metadata/foot = Vector2(1344, 704)
+metadata/interaction_id = ""
+
+[node name="_Node3D_22892" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 652)
+metadata/foot = Vector2(1344, 768)
+metadata/interaction_id = ""
+
+[node name="_Node3D_23193" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 716)
+metadata/foot = Vector2(1344, 832)
+metadata/interaction_id = ""
+
+[node name="_Node3D_23494" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 780)
+metadata/foot = Vector2(1344, 896)
+metadata/interaction_id = ""
+
+[node name="_Node3D_23795" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 844)
+metadata/foot = Vector2(1344, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_24096" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 908)
+metadata/foot = Vector2(1344, 1024)
+metadata/interaction_id = ""
+
+[node name="_Node3D_24397" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(1330, 940)
+metadata/foot = Vector2(1344, 1056)
+metadata/interaction_id = ""
+
+[node name="_Node3D_24698" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(946, 204)
+metadata/foot = Vector2(960, 320)
+metadata/interaction_id = ""
+
+[node name="_Node3D_24999" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(946, 268)
+metadata/foot = Vector2(960, 384)
+metadata/interaction_id = ""
+
+[node name="_Node3D_252100" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(946, 332)
+metadata/foot = Vector2(960, 448)
+metadata/interaction_id = ""
+
+[node name="_Node3D_255101" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(946, 364)
+metadata/foot = Vector2(960, 480)
+metadata/interaction_id = ""
+
+[node name="_Node3D_258102" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(946, 620)
+metadata/foot = Vector2(960, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_261103" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(946, 684)
+metadata/foot = Vector2(960, 800)
+metadata/interaction_id = ""
+
+[node name="_Node3D_264104" type="Sprite2D" parent="."]
+texture = ExtResource("13_oskv6")
+centered = false
+offset = Vector2(946, 940)
+metadata/foot = Vector2(960, 1056)
+metadata/interaction_id = ""
+
+[node name="_Node3D_267105" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(960, 677)
+metadata/foot = Vector2(992, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_270106" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1024, 677)
+metadata/foot = Vector2(1056, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_273107" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1088, 677)
+metadata/foot = Vector2(1120, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_276108" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1152, 677)
+metadata/foot = Vector2(1184, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_279109" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1216, 677)
+metadata/foot = Vector2(1248, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_282110" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1280, 677)
+metadata/foot = Vector2(1312, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_285111" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(960, 997)
+metadata/foot = Vector2(992, 1056)
+metadata/interaction_id = ""
+
+[node name="_Node3D_288112" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1024, 997)
+metadata/foot = Vector2(1056, 1056)
+metadata/interaction_id = ""
+
+[node name="_Node3D_291113" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1088, 997)
+metadata/foot = Vector2(1120, 1056)
+metadata/interaction_id = ""
+
+[node name="_Node3D_294114" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1152, 997)
+metadata/foot = Vector2(1184, 1056)
+metadata/interaction_id = ""
+
+[node name="_Node3D_297115" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1216, 997)
+metadata/foot = Vector2(1248, 1056)
+metadata/interaction_id = ""
+
+[node name="_Node3D_300116" type="Sprite2D" parent="."]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(1280, 997)
+metadata/foot = Vector2(1312, 1056)
+metadata/interaction_id = ""
+
+[node name="Academy_partition_pier117" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(174, 878)
+metadata/foot = Vector2(192, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_305118" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(590, 878)
+metadata/foot = Vector2(608, 960)
+metadata/interaction_id = ""
+
+[node name="_Node3D_308119" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(942, 398)
+metadata/foot = Vector2(960, 480)
+metadata/interaction_id = ""
+
+[node name="_Node3D_311120" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(942, 590)
+metadata/foot = Vector2(960, 672)
+metadata/interaction_id = ""
+
+[node name="_Node3D_314121" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(942, 654)
+metadata/foot = Vector2(960, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_317122" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(942, 718)
+metadata/foot = Vector2(960, 800)
+metadata/interaction_id = ""
+
+[node name="_Node3D_320123" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(942, 910)
+metadata/foot = Vector2(960, 992)
+metadata/interaction_id = ""
+
+[node name="_Node3D_323124" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(942, 974)
+metadata/foot = Vector2(960, 1056)
+metadata/interaction_id = ""
+
+[node name="_Node3D_326125" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(1326, 654)
+metadata/foot = Vector2(1344, 736)
+metadata/interaction_id = ""
+
+[node name="_Node3D_329126" type="Sprite2D" parent="."]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(1326, 974)
+metadata/foot = Vector2(1344, 1056)
+metadata/interaction_id = ""
+
+[node name="Academy_room_arch127" type="Sprite2D" parent="."]
+texture = ExtResource("16_smum4")
+centered = false
+offset = Vector2(276, 728)
+metadata/foot = Vector2(400, 960)
+metadata/interaction_id = ""
+
+[node name="Academy_front_wall128" type="Sprite2D" parent="."]
+texture = ExtResource("17_v2hga")
+centered = false
+offset = Vector2(220, 1110)
+metadata/foot = Vector2(320, 1216)
+metadata/interaction_id = ""
+
+[node name="_Node3D_336129" type="Sprite2D" parent="."]
+texture = ExtResource("17_v2hga")
+centered = false
+offset = Vector2(412, 1110)
+metadata/foot = Vector2(512, 1216)
+metadata/interaction_id = ""
+
+[node name="_Node3D_339130" type="Sprite2D" parent="."]
+texture = ExtResource("17_v2hga")
+centered = false
+offset = Vector2(924, 1110)
+metadata/foot = Vector2(1024, 1216)
+metadata/interaction_id = ""
+
+[node name="_Node3D_342131" type="Sprite2D" parent="."]
+texture = ExtResource("17_v2hga")
+centered = false
+offset = Vector2(1116, 1110)
+metadata/foot = Vector2(1216, 1216)
+metadata/interaction_id = ""

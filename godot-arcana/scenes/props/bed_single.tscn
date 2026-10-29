@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/bed_prop_single.gd" id="1_bed"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bed"]
+size = Vector3(1, 0.5, 3)
+
+[node name="ArcanaSingleBed" type="Node3D"]
+script = ExtResource("1_bed")
+metadata/footprint_tiles = Vector2i(1, 3)
+metadata/footprint_rect = Rect2(-0.5, -3, 1, 3)
+metadata/source_pixelpen = "res://art/source/props/bed-single-v3/bed.pxpen"
+
+[node name="Footprint" type="StaticBody3D" parent="."]
+position = Vector3(0, 0.25, -1.5)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Footprint"]
+shape = SubResource("BoxShape3D_bed")

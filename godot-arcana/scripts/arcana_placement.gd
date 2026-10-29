@@ -21,6 +21,13 @@ const Hero = preload("res://scripts/heroine_sprite.gd")
 	set(value):
 		collision_footprint = value
 		if is_inside_tree(): update_gizmos()
+# Door pixels in the existing source texture; building scale follows this node.
+const DOOR_REGIONS = {
+	"shop":Rect2(216,203,57,116),
+	"inn":Rect2(212,286,62,103),
+	"restaurant":Rect2(216,182,58,110),
+	"academy-2d":Rect2(592,894,96,122)
+}
 var preview: Node3D
 ## Local X/Z opening in the footprint for stairs and porches.
 @export var walkable_cutout = Rect2()
@@ -51,6 +58,11 @@ func _refresh() -> void:
 	elif Illustrated.supports(model_kind): preview = Illustrated.make(model_kind)
 	else: preview = Models.model(model_kind)
 	if Illustrated.supports(model_kind): preview.opaque_walkable_area = walkable_cutout
+	if preview.has_method("set_interaction_highlight") and interaction_kind != "decoration":
+		preview.set("interaction_id",gameplay_id)
+		if interaction_kind == "building":
+			if DOOR_REGIONS.has(model_kind): preview.set("interaction_region",DOOR_REGIONS[model_kind])
+			else: preview.set("interaction_id","")
 	preview.name = "GeneratedModel"
 	add_child(preview, false, Node.INTERNAL_MODE_BACK)
 	if Engine.is_editor_hint():

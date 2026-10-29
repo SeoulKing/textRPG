@@ -343,6 +343,11 @@ export const baseItems = {
     price: 0,
     tags: ["마법세계", "비전", "제작"],
   }),
+  slimeMucus: defineItem({
+    id: "slimeMucus", name: "슬라임의 점액질",
+    description: "슬라임을 처치하고 얻은 반투명한 점액질이다.",
+    kind: "material", rarity: "common", price: 0, tags: ["마법세계", "전리품"],
+  }),
   manaPotion: defineItem({
     id: "manaPotion",
     name: "마나 포션",

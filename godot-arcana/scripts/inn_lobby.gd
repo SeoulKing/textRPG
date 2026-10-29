@@ -7,6 +7,8 @@ const SOFA_POINT = Vector2(112,164)
 # Boots below the central cushion; navigation remains in front of its collision.
 const SOFA_SEAT_VISUAL = Vector2(112,158)
 const COUNTER_POINT = Vector2(267,148)
+const QUEST_BOARD_ANCHOR = Vector3(14,1.1,4.05)
+const QUEST_BOARD_POINT = Vector2(QUEST_BOARD_ANCHOR.x*16,(QUEST_BOARD_ANCHOR.z+1.15)*16)
 const EXIT_POINT = Vector2(192,248)
 const FRONT_EDGE = 16.5
 const DATA = "res://art/export/inn-lobby/manifest.json"
@@ -20,7 +22,7 @@ static func collision_rects() -> Array[Rect2]:
 	# Feet in logical pixels (16/world unit). The return forms an L, not a solid sofa box.
 	return [Rect2(68,119,92,39),Rect2(68,157,25,16),
 		Rect2(101,195,42,21),Rect2(161,181,24,22),
-		Rect2(64,55,54,28),Rect2(139,42,23,25),
+		Rect2(64,55,54,28),Rect2(139,58,23,25),
 		Rect2(165,75,54,18),Rect2(240,101,55,31),Rect2(299,44,36,81),
 		Rect2(58,184,18,18),Rect2(157,127,18,18),
 		Rect2(251,219,58,17),Rect2(307,152,26,19),Rect2(296,188,18,18),
@@ -40,20 +42,37 @@ func _ready() -> void:
 	_ground("ReceptionRug","small-rug",Vector3(16.7,.025,9.5),Vector2(200,128)/64.0)
 	_ground("WindowRug","small-rug",Vector3(12,.025,7.0),Vector2(200,128)/64.0)
 	for x in [5.1,9.3,13.5,17.7]:
-		_sprite("wall",Vector3(x,0,4.0),false)
+		_sprite("wall-solid",Vector3(x,0,4.0),false)
 	_sprite("fireplace",Vector3(5.7,0,5.2))
-	_sprite("bookcase",Vector3(9.4,0,4.2))
+	_sprite("bookcase",Vector3(9.4,0,5.2))
 	_sprite("storage-bench",Vector3(12,0,5.8))
 	_sprite("counter",Vector3(16.7,0,8.2))
 	# Counter naturally occludes the legs; keep the shared character foot/scale.
 	var innkeeper = Prop.new()
 	innkeeper.name = "Innkeeper"
+	innkeeper.interaction_id = "innkeeper"
 	innkeeper.position = Vector3(16.7,0,5.9)
 	innkeeper.asset = load("res://art/export/innkeeper/innkeeper.png") as Texture2D
 	innkeeper.pixel_size = Vector2i(96,136)
 	innkeeper.foot = Vector2(48,116)
 	innkeeper.shadow_size = Vector2(.6,.25)
 	add_child(innkeeper)
+	if not Engine.is_editor_hint():
+		var marker = preload("res://scripts/quest_marker.gd").new()
+		marker.name = "QuestQuestion"
+		marker.quest_id = "arcana_inn_slimes"
+		marker.progress_flag = "arcana_inn_slime_kills"
+		innkeeper.add_child(marker)
+	var quest_board = Prop.new()
+	quest_board.name = "InnQuestBoard"
+	quest_board.position = QUEST_BOARD_ANCHOR
+	quest_board.interaction_id = "inn_quest_board"
+	quest_board.asset = load("res://art/export/inn-quest-board/inn-quest-board.png") as Texture2D
+	quest_board.pixel_size = Vector2i(128,160)
+	quest_board.foot = Vector2(64,128)
+	quest_board.shadow_size = Vector2.ZERO
+	quest_board.fade_for_player = true
+	add_child(quest_board)
 	_sprite("stairs",Vector3(19.7,0,7.9))
 	_sprite("lantern",Vector3(20.2,.45,7.7),false)
 	_sprite("keys",Vector3(16.7,1.35,4.05),false)
@@ -100,6 +119,7 @@ func _sprite(id: String, at: Vector3, fade: bool = true) -> Node3D:
 	var spec: Dictionary = assets[id]
 	var prop = Prop.new()
 	prop.name = "Inn_"+id.replace("-","_")
+	if id == "corner-sofa": prop.interaction_id = "inn_sofa"
 	prop.position = at
 	prop.asset = load(spec.file) as Texture2D
 	prop.pixel_size = Vector2i(int(spec.size[0]),int(spec.size[1]))
@@ -117,6 +137,8 @@ func _sprite(id: String, at: Vector3, fade: bool = true) -> Node3D:
 	var width = float(spec.size[0])/64.0
 	prop.shadow_size = Vector2(width*.70,width*.23) if fade and id != "front-wall" else Vector2.ZERO
 	add_child(prop)
+	if id == "wall":
+		prop.sprite_material.set_shader_parameter("inn_plain_wall",true)
 	if id == "fireplace":
 		fireplaces.append(prop)
 		for material in [prop.sprite_material,prop.fade_material]:

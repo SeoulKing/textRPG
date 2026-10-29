@@ -471,6 +471,7 @@ export function buildWorldRegistryFromStudio(
     }
   });
 
+  registry.items.slimeMucus = baseItems.slimeMucus;
   return withAcademyContent(registry);
 }
 

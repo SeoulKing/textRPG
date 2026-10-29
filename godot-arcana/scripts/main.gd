@@ -2,22 +2,22 @@ extends Node
 
 const World = preload("res://scripts/world.gd")
 const HeroSpec = preload("res://art/resources/heroine_reference_spec.gd")
-const PixelWorld3D = preload("res://scripts/pixel3d_world.gd")
+const PixelWorld3D = preload("res://scripts/native_2d_world.gd")
 const UI = preload("res://scripts/game_ui.gd")
-const SpatialCombat = preload("res://scripts/arcana_spatial.gd")
+const SpatialCombat = preload("res://scripts/native_2d_spatial.gd")
 var spatial_combat
 var combat_socket: Node
 const SAVE_KEY = "arcana-godot-game-v1"
 const SHARED_SAVE_KEY = "ruined-seoul-stage1-manual-save-game-id-v1"
 const CONTROLS_KEY = "arcana-godot-controls-v1"
 const QUICKSLOT_KEY = "arcana-godot-quickslots-v1"
-var authored_layout: Node3D
+var authored_layout: Node
 var world
 var world_renderer
 var ui
 var viewport: SubViewport
 var viewport_host: TextureRect
-var mei_nameplate_target: Node3D
+var mei_nameplate_target: Node2D
 var mei_projection_valid = false
 var mei_camera_transform: Transform3D
 var mei_camera_settings: Vector3
@@ -28,6 +28,9 @@ var mei_pixel_origin: Vector2
 var mei_quarter_view = false
 var snapshot: Dictionary = {}
 var game_id = ""
+var online_world: bool = false
+var online_presence: Node
+var session_token: String = ""
 var busy = false
 # Gate travel serializes server actions, but never pauses outdoor locomotion.
 var gate_crossing = false
@@ -75,7 +78,7 @@ func _ready() -> void:
 	viewport_host.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(viewport_host)
 	viewport = SubViewport.new()
-	viewport.disable_3d = false
+	viewport.disable_3d = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	add_child(viewport)
@@ -122,6 +125,9 @@ func _ready() -> void:
 	spatial_combat = SpatialCombat.new()
 	spatial_combat.main = self
 	add_child(spatial_combat)
+	online_presence = preload("res://scripts/native_2d_presence.gd").new()
+	online_presence.main = self
+	add_child(online_presence)
 	ui.move_changed.connect(_joystick_move)
 	ui.panel_closed.connect(func(): panel_mode = ""; world.touch_direction = Vector2.ZERO; world.enabled = (not busy or gate_crossing) and page_active)
 	if OS.has_feature("web"):
@@ -132,6 +138,10 @@ func _ready() -> void:
 		window.arcanaGodotCommand = bridge_callback
 		window.arcanaGodotState = state_callback
 		JavaScriptBridge.eval("window.arcanaReady = true; window.dispatchEvent(new Event('arcana-ready'));")
+	if OS.has_feature("web"):
+		client_id = str(JavaScriptBridge.eval("globalThis.crypto?.randomUUID?.() || ('tab-'+Date.now()+'-'+Math.random().toString(36).slice(2))"))
+	else:
+		session_token = _stored("arcana-native-session")
 	_resize()
 	get_viewport().size_changed.connect(_resize)
 	await _boot()
@@ -140,7 +150,9 @@ func _joystick_move(value: Vector2) -> void:
 	# world.gd projects touch and keyboard together using the active view.
 	world.touch_direction = value
 	# Taking direct control cancels any click/map destination, including at center.
-	if ui.joystick.is_active(): world.path.clear()
+	if ui.joystick.is_active():
+		world.clicked_interaction_id = ""
+		world.path.clear()
 
 func _toggle_camera_view() -> void:
 	world_renderer.set_quarter_view(not world_renderer.quarter_view)
@@ -179,11 +191,14 @@ func _api(route: String, method: int = HTTPClient.METHOD_GET, data: Dictionary =
 	return response
 
 func _api_once(route: String, method: int, data: Dictionary) -> Dictionary:
+	if OS.has_feature("web"): return await preload("res://scripts/browser_api.gd").request(self,route,method,data)
 	var started_at: int = Time.get_ticks_msec()
 	var req = HTTPRequest.new()
 	req.timeout = 20 if method == HTTPClient.METHOD_GET or data.get("type", "") in ["world_clock", "arcana_combat"] else 65
 	add_child(req)
 	var headers = PackedStringArray(["Content-Type: application/json", "Accept: application/json"])
+	headers.append("X-Arcana-Native: 1")
+	if not session_token.is_empty(): headers.append("Authorization: Bearer "+session_token)
 	var result = req.request(origin + route, headers, method, JSON.stringify(data) if method != HTTPClient.METHOD_GET else "")
 	if result != OK:
 		_record_network(started_at, 0, false)
@@ -230,57 +245,62 @@ func _store(key: String, value: String) -> void:
 		var file = FileAccess.open("user://" + key + ".txt", FileAccess.WRITE)
 		if file: file.store_string(value)
 
-func _boot() -> void:
+func _boot(takeover: bool = false) -> void:
 	busy = true
+	online_world = false
+	combat_socket.blocked = true
 	ui.close_panel()
 	world.enabled = false
-	game_id = _stored(SAVE_KEY)
-	var position_text = _stored(SAVE_KEY + "-position")
-	var restore_position = JSON.parse_string(position_text) if not position_text.is_empty() else null
-	if restore_position is Dictionary: saved_position = restore_position
-	var loaded: Dictionary = {}
-	if not game_id.is_empty():
-		loaded = await _api("/api/games/" + game_id + "/state")
-		if loaded.has("error") or not loaded.has("state"):
-			busy = false
-			ui.open_panel("진행 불러오기", false)
-			ui.paragraph(loaded.get("message", "저장된 진행을 불러오지 못했습니다. 서버 연결을 확인해 주세요."))
-			ui.choice("다시 불러오기", "", _boot)
-			ui.choice("홈으로", "", _home)
-			return
-	else:
-		var shared = _stored(SHARED_SAVE_KEY)
-		if not shared.is_empty():
-			var candidate = await _api("/api/games/" + shared + "/state")
-			if candidate.has("error"):
-				busy = false
-				ui.open_panel("진행 불러오기", false)
-				ui.paragraph(candidate.get("message", "기존 진행을 확인하지 못했습니다."))
-				ui.choice("다시 불러오기", "", _boot)
-				ui.choice("홈으로", "", _home)
-				return
-			if candidate.get("state", {}).get("flags", {}).get("in_magic_world", false): loaded = candidate
-		if loaded.is_empty(): loaded = await _api("/api/games", HTTPClient.METHOD_POST, {"startAt":"arcana"})
-	busy = false
-	if not loaded.has("state"):
-		ui.open_panel("연결을 확인해 주세요", false)
-		ui.paragraph(loaded.get("message", "게임 서버에 연결하지 못했습니다."))
-		ui.choice("다시 연결하기", "", _boot)
-		ui.choice("홈으로", "", _home)
-		return
-	game_id = loaded.gameId
-	_store(SAVE_KEY, game_id)
-	# Finished encounters must not keep the next session's spell controls locked.
-	var restored_battle = loaded.state.get("arcanaCombat",{}).get("battle")
-	if restored_battle is Dictionary and restored_battle.get("phase","") in ["victory","defeat"]:
-		busy = true
-		var finished = await _api("/api/games/"+game_id+"/actions",HTTPClient.METHOD_POST,{"type":"arcana_combat","command":"finish","battleId":restored_battle.id})
+	# This also upgrades an authenticated legacy save before a guest is created.
+	var account: Dictionary = await _api("/api/auth/me")
+	if account.has("error"):
 		busy = false
-		if finished.has("state"): loaded = finished
-	_apply(loaded, true)
+		_online_error(account)
+		return
+	if not account.get("characterChoices",[]).is_empty():
+		busy = false
+		_online_error({"error":"character_choice_required","message":"계정 화면에서 이어갈 캐릭터를 선택해 주세요."})
+		return
+	var guest: Dictionary = await _api("/api/auth/guest",HTTPClient.METHOD_POST)
+	if guest.has("sessionToken"):
+		session_token = str(guest.sessionToken)
+		_store("arcana-native-session",session_token)
+	if guest.has("error"):
+		busy = false
+		_online_error(guest)
+		return
+	var joined: Dictionary = await _api("/api/arcana/join",HTTPClient.METHOD_POST,{"controller":client_id,"takeover":takeover})
+	busy = false
+	if joined.has("error"):
+		_online_error(joined)
+		return
+	game_id = str(joined.gameId)
+	saved_position = {"location":joined.place.location,"x":joined.position.x,"y":joined.position.y,"academyFloor":joined.place.floor}
+	online_world = true
+	_apply(joined.snapshot,true)
+	online_presence.character_id = str(joined.characterId)
+	online_presence.revision = -1
+	online_presence.accept(joined.world)
+	combat_socket.reset()
 	ui.close_panel()
-	if not _state().get("flags", {}).get("in_magic_world", false):
-		_returned_home()
+
+func _online_error(data: Dictionary) -> void:
+	world.enabled = false
+	ui.open_panel("아르카나 세계 입장",false)
+	ui.paragraph(str(data.get("message","서버가 준비 중입니다. 잠시 후 다시 시도해 주세요.")))
+	if data.get("error","") == "already_connected":
+		ui.choice("현재 접속을 종료하고 이어받기","",func(): _boot(true))
+	ui.choice("다시 입장하기","",_boot)
+	ui.choice("계정 · 캐릭터 등록","",_account)
+	ui.choice("홈으로","",_home)
+
+func _online_fighting() -> bool:
+	return bool(snapshot.get("onlineFighting",false))
+
+func _account() -> void:
+	if online_world: await _api("/api/arcana/leave",HTTPClient.METHOD_POST)
+	if OS.has_feature("web"): JavaScriptBridge.eval("location.href='/account.html'")
+	else: ui.toast("계정 연결은 웹 게임에서 이용해 주세요.")
 
 func _state() -> Dictionary:
 	return snapshot.get("state", {})
@@ -293,6 +313,8 @@ func _battle() -> Dictionary:
 	return value if value is Dictionary else {}
 
 func _apply(value: Dictionary, initial: bool = false) -> void:
+	var previous_place_revision: int = int(snapshot.get("onlinePlaceRevision",0))
+	if value.has("placeRevision"): value.onlinePlaceRevision = int(value.placeRevision)
 	var old_school_room = str(snapshot.get("academyMap",{}).get("currentRoomId","")) if snapshot.get("academyMap") is Dictionary else ""
 	var old_location = str(_state().get("location", ""))
 	var had_battle = not _battle().is_empty()
@@ -301,7 +323,9 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 	snapshot = value
 	if notify_unlocks: _notify_spell_unlocks(previous_spells)
 	var location = str(_state().get("location", "arcana_plaza"))
-	if initial or location != old_location:
+	# Online position packets may update snapshot.location before the HTTP reply.
+	var expected_interior = location if location in ["arcana_shop","arcana_inn","arcana_restaurant","arcana_academy"] else ""
+	if initial or location != old_location or world.indoor != expected_interior:
 		if location in ["arcana_shop", "arcana_inn", "arcana_restaurant", "arcana_academy"]:
 			world.change_interior(location)
 			if initial:
@@ -346,6 +370,9 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 		world.player_position = world.nearest_walkable(Vector2(float(point.x),float(point.y)))
 		world.path.clear()
 		world._update_camera(true)
+	if online_world and value.get("position") is Dictionary and (initial or int(value.get("onlinePlaceRevision",0))!=previous_place_revision):
+		world.player_position = world.nearest_walkable(Vector2(float(value.position.x),float(value.position.y)))
+		world.path.clear()
 	world.battle = _battle().duplicate(true)
 	var enemy_hp = float(_battle().get("enemyHp", 30))
 	if enemy_hp < previous_enemy_hp and not _battle().has("spatial"): world.effect("fireball", str(int(previous_enemy_hp - enemy_hp)))
@@ -369,7 +396,7 @@ func _update_hud() -> void:
 	if world.indoor == "arcana_academy": location_name = "마법학교 · %d층" % world.academy_floor
 	ui.zone_label.text = location_name
 	var pending_money = spatial_combat.reward_effects.pending_money if is_instance_valid(spatial_combat.reward_effects) else 0
-	ui.money_label.text = "%s원" % maxi(0,int(_state().get("money",0))-int(pending_money))
+	ui.money_label.text = "%s골드" % maxi(0,int(_state().get("money",0))-int(pending_money))
 	ui.hp_label.text = "HP  %d / %d" % [int(hp), max_hp]
 	if float(c.get("guard",{}).get("amount",0)) > 0:
 		ui.hp_label.text += " · 장막 %d" % int(c.guard.amount)
@@ -394,6 +421,8 @@ func _process(delta: float) -> void:
 	if ui_refresh > .10:
 		ui_refresh = 0
 		_refresh_controls()
+		for marker in get_tree().get_nodes_in_group("arcana_quest_markers"):
+			marker.sync_quest(_state(),snapshot.get("quests",[]))
 	if heartbeat >= 1.0 and not busy and not clock_busy and not spatial_combat.request_busy and not spatial_combat.connection_lost and spatial_combat.queue.is_empty() and spatial_combat.aim_owner == -1 and spatial_combat.pending_cast.is_empty() and spatial_combat.buffered_cast.is_empty() and not battle.has("spatial") and not spatial_combat.available():
 		heartbeat = 0
 		_clock()
@@ -494,6 +523,7 @@ func _notify_spell_unlocks(previous: Array) -> void:
 	if not names.is_empty(): ui.toast("새 주문 습득 · " + " · ".join(names))
 
 func _clock() -> void:
+	if online_world: return
 	if Time.get_ticks_msec() < clock_retry_at: return
 	var paused = not page_active or ui.overlay.visible
 	if paused and last_clock_paused: return
@@ -515,13 +545,18 @@ func _clock() -> void:
 	clock_busy = false
 
 func perform(action: Dictionary, show_result: bool = true) -> bool:
+	if online_world and action.get("type","") == "arcana_combat" and action.get("command","") in ["potion","flame_guard"]:
+		return await _online_instant(str(action.command))
 	if busy: return false
 	var previous_combat = _combat().duplicate(true)
 	var previous_battle_phase = previous_combat.battle.get("phase","") if previous_combat.get("battle") is Dictionary else ""
-	var previous_money = int(_state().get("money",0))
+	var previous_mucus = int(_state().get("inventory",{}).get("slimeMucus",0))
 	busy = true
 	while clock_busy: await get_tree().process_frame
-	await spatial_combat.before_action()
+	if not await spatial_combat.before_action():
+		busy = false
+		ui.toast("서버에 다시 연결하고 있습니다. 잠시 후 이용해 주세요.")
+		return false
 	if not gate_crossing:
 		world.touch_direction = Vector2.ZERO
 		ui.toast("진행 중…")
@@ -532,7 +567,7 @@ func perform(action: Dictionary, show_result: bool = true) -> bool:
 		return false
 	_apply(data)
 	if _battle().get("phase","")=="victory" and not _battle().has("spatial") and previous_battle_phase!="victory" and is_instance_valid(spatial_combat.reward_effects):
-		spatial_combat.reward_effects.show_reward(str(_battle().id)+":classic",Vector2(600,1054),0,maxi(0,int(_state().get("money",0))-previous_money))
+		spatial_combat.reward_effects.show_slime_loot(str(_battle().id)+":classic",maxi(0,int(_state().get("inventory",{}).get("slimeMucus",0))-previous_mucus))
 	_remember_position()
 	var note = str(_state().get("systemNote", ""))
 	if not note.is_empty(): ui.toast(note)
@@ -542,7 +577,9 @@ func perform(action: Dictionary, show_result: bool = true) -> bool:
 	return true
 
 func _travel(target: String) -> bool:
-	if _state().get("location", "") == target: return true
+	if _state().get("location", "") == target:
+		_apply(snapshot)
+		return true
 	return await perform({"type":"travel", "targetId":target}, false)
 
 func _cross_gate(outbound: bool) -> void:
@@ -564,7 +601,7 @@ func _activate() -> void:
 	if not world.nearest.is_empty() or not world.bench_state.is_empty(): world.interact()
 
 func _auto_enter_building(entity: Dictionary) -> void:
-	if busy or not page_active or ui.overlay.visible or not world.indoor.is_empty() or _battle().get("phase","")=="battle":
+	if busy or not page_active or ui.overlay.visible or not world.indoor.is_empty() or (_online_fighting() if online_world else _battle().get("phase","")=="battle"):
 		world.entered_door_id = ""
 		return
 	if spatial_combat.request_busy or spatial_combat.aim_owner!=-1:
@@ -576,7 +613,7 @@ func _auto_enter_building(entity: Dictionary) -> void:
 	world.enabled = not busy and page_active and not ui.overlay.visible
 
 func _sit_furniture(entity: Dictionary) -> bool:
-	if not _battle().is_empty() or spatial_combat.request_busy or spatial_combat.aim_owner!=-1 or not spatial_combat.queue.is_empty() or not spatial_combat.pending_cast.is_empty(): return false
+	if (not online_world and not _battle().is_empty()) or (online_world and _online_fighting()) or spatial_combat.request_busy or spatial_combat.aim_owner!=-1 or not spatial_combat.queue.is_empty() or not spatial_combat.pending_cast.is_empty(): return false
 	if not world_renderer.hero.supports_bench_pose():
 		ui.toast("현재 의상에는 앉기 모션이 준비되지 않았습니다.")
 		return false
@@ -593,6 +630,8 @@ func _interact(entity: Dictionary) -> void:
 			_shop_menu()
 		"innkeeper":
 			_innkeeper_dialogue()
+		"quest_board":
+			_inn_quest_board()
 		"bench":
 			_sit_furniture(entity)
 		"building":
@@ -608,7 +647,6 @@ func _interact(entity: Dictionary) -> void:
 				ui.toast("소파에서 쉬었습니다. HP · MP 모두 회복")
 		"exit":
 			if await _travel("arcana_plaza"):
-				world.change_interior("")
 				ui.toast("분수 광장")
 		"academy_stairs":
 			var school = snapshot.get("academyMap",{})
@@ -665,10 +703,44 @@ func _innkeeper_dialogue(topic: String = "welcome") -> void:
 		_:
 			ui.paragraph("접수대 뒤의 남자가 접어 든 천을 내려놓습니다. 자주색 조끼에 달린 작은 초승달 장식이 등불을 받습니다.")
 			ui.paragraph("“어서 오세요. 여관을 맡고 있는 마르텐입니다. 쉬어 가실 건가요, 아니면 길을 찾으세요?”")
+	var quest_status = str(_state().get("quests",{}).get("arcana_inn_slimes","inactive"))
+	var kills = mini(10,int(_state().get("flags",{}).get("arcana_inn_slime_kills",0)))
+	if quest_status == "inactive":
+		ui.paragraph("마르텐이 접수대 옆 게시판을 가리킵니다. “슬라임 퇴치 의뢰를 붙여 두었습니다. 맡으시려면 저쪽에서 확인해 주세요.”")
+		ui.choice("퀘스트판을 확인한다", "슬라임 10마리 처치 · 보상 10골드", func(): ui.close_panel(); world.walk_to(preload("res://scripts/inn_lobby.gd").QUEST_BOARD_POINT))
+	elif quest_status == "active":
+		ui.paragraph("슬라임 퇴치 %d/10마리 · 보상 10골드" % kills,ui.GOLD)
+		ui.choice("슬라임 퇴치를 보고한다", "10골드 수령", func(): _inn_slime_quest("claim_slime_quest"), kills < 10)
+	else:
+		ui.paragraph("마르텐이 고개를 숙입니다. “슬라임을 정리해 주셔서 고맙습니다.”")
 	ui.choice("여관에 관해 묻는다", "", func(): _innkeeper_dialogue("inn"))
 	ui.choice("주변 길을 묻는다", "", func(): _innkeeper_dialogue("directions"))
 	ui.choice("여관 서비스를 이용한다", "", func(): _scene())
 	ui.choice("대화를 마친다", "", ui.close_panel)
+
+func _inn_quest_board() -> void:
+	if world.indoor != "arcana_inn": return
+	panel_mode = "quest_board"
+	ui.open_panel("여관 퀘스트판")
+	var status: String = str(_state().get("quests",{}).get("arcana_inn_slimes","inactive"))
+	var kills: int = mini(10,int(_state().get("flags",{}).get("arcana_inn_slime_kills",0)))
+	ui.paragraph("슬라임 퇴치 · 의뢰인 마르텐",ui.GOLD)
+	ui.paragraph("남문 밖의 슬라임 10마리를 처치한 뒤 여관 주인에게 보고해 주세요. 보상은 10골드입니다.")
+	if status == "inactive":
+		ui.choice("의뢰를 받는다", "수락 후 처치부터 집계 · 0/10마리", func(): _inn_slime_quest("accept_slime_quest"))
+	elif status == "active":
+		ui.paragraph("진행 %d/10마리" % kills,ui.GOLD)
+		ui.paragraph("마르텐에게 보고하고 10골드를 받으세요." if kills >= 10 else "의뢰를 받은 뒤 처치한 슬라임만 집계됩니다.")
+	else:
+		ui.paragraph("완료 · 보상 수령 완료",ui.MUTED)
+	ui.choice("그만 본다", "", ui.close_panel)
+
+func _inn_slime_quest(command: String) -> void:
+	var success = await perform({"type":"arcana_combat","command":command},false)
+	if str(_state().get("location","")) == "arcana_inn":
+		if command == "accept_slime_quest": _inn_quest_board()
+		else: _innkeeper_dialogue()
+		if success: ui.toast("의뢰를 받았습니다." if command == "accept_slime_quest" else "의뢰 보상 10골드를 받았습니다.")
 
 func _find_action(type: String, id: String) -> Dictionary:
 	for entry in snapshot.get("availableActions", []):
@@ -679,48 +751,7 @@ func _find_action(type: String, id: String) -> Dictionary:
 func _shop_menu(selling: bool = false) -> void:
 	if world.indoor != "arcana_shop": return
 	panel_mode = "shop"
-	ui.open_panel("아르카나 상점 · " + ("판매" if selling else "구매"))
-	ui.section_tabs(["구매","판매"],1 if selling else 0,[func(): _shop_menu(false),func(): _shop_menu(true)])
-	ui.paragraph("상인이 장부를 펼칩니다. “필요한 물건을 골라 주세요. 약초와 마력 재료도 매입하고 있어요.”")
-	ui.paragraph("소지금 %d원" % int(_state().get("money",0)),ui.GOLD)
-	var count = 0
-	for entry in snapshot.get("availableActions",[]):
-		var action: Dictionary = entry.get("action",{})
-		if action.get("command","") != ("sell_item" if selling else "buy_item"): continue
-		count += 1
-		var icon = "manaPotion" if action.get("itemId","") == "manaPotion" else ""
-		ui.choice(entry.label,entry.get("outcomeHint",""),func(): _shop_quantity(entry,selling),not entry.get("isAvailable",true),icon)
-	if count == 0: ui.paragraph("현재 상점에서 매입할 수 있는 물품을 가지고 있지 않습니다.",ui.MUTED)
-	ui.choice("거래 마치기","상점 안을 둘러봅니다.",func(): ui.close_panel())
-
-func _shop_quantity(entry: Dictionary, selling: bool) -> void:
-	if busy or world.indoor != "arcana_shop": return
-	var action: Dictionary = entry.action
-	var unit_price = str(entry.get("outcomeHint","0")).get_slice("원",0).to_int()
-	if unit_price <= 0: return
-	var available: int = int(_state().get("inventory",{}).get(action.itemId,0)) if selling else floori(float(_state().get("money",0))/unit_price)
-	var maximum = mini(99,int(available))
-	if maximum < 1:
-		ui.toast("판매할 물품이나 소지금이 부족합니다.")
-		_shop_menu(selling)
-		return
-	panel_mode = "shop_quantity"
-	ui.open_panel(entry.label)
-	ui.paragraph(entry.get("outcomeHint",""))
-	ui.paragraph("소지금 %d원 · 거래 가능 %d개" % [int(_state().get("money",0)),maximum],ui.GOLD)
-	var quantity = SpinBox.new()
-	quantity.min_value = 1
-	quantity.max_value = maximum
-	quantity.step = 1
-	quantity.value = 1
-	quantity.rounded = true
-	quantity.custom_minimum_size = Vector2(180,48)
-	ui.content.add_child(quantity)
-	var total = ui.label("합계 %d원" % unit_price,16,ui.GOLD)
-	ui.content.add_child(total)
-	quantity.value_changed.connect(func(value: float): total.text = "합계 %d원" % (unit_price*int(value)))
-	ui.choice("판매 확정" if selling else "구매 확정","선택한 수량과 합계로 거래합니다.",func(): _shop_trade(action,int(quantity.value),selling),false, "manaPotion" if action.itemId == "manaPotion" else "")
-	ui.choice("목록으로 돌아가기","",func(): _shop_menu(selling))
+	ui.open_shop(snapshot.get("availableActions", []), _state().get("inventory", {}), int(_state().get("money", 0)), selling, _shop_trade)
 
 func _shop_trade(template: Dictionary, quantity: int, selling: bool) -> void:
 	if busy or world.indoor != "arcana_shop": return
@@ -796,7 +827,25 @@ func _choose(entry: Dictionary) -> void:
 	else:
 		await perform(action)
 
+func _online_instant(command: String) -> bool:
+	sequence += 1
+	var result: Dictionary = await combat_socket.request({"type":"arcana_combat","command":command,"spatial":{"sequence":sequence}})
+	if result.has("error"):
+		ui.toast(str(result.get("message","사용하지 못했습니다.")))
+		return false
+	_accept_online_result(result)
+	return true
+
+func _accept_online_result(result: Dictionary) -> void:
+	var update: Dictionary = online_presence.packet.duplicate(true)
+	update.self = result
+	update.revision = int(result.get("worldRevision",0))
+	online_presence.accept(update)
+
 func _magic(command: String) -> void:
+	if online_world and command in ["potion","flame_guard"]:
+		await _online_instant(command)
+		return
 	if command in ["dodge","teleport"]:
 		spatial_combat.start_dash(command)
 		return
@@ -1014,11 +1063,10 @@ func _menu(kind: String) -> void:
 		"map": _map()
 		"inventory": _inventory()
 		"quests":
-			ui.open_panel("의뢰")
+			var quests: Array = []
 			for quest in snapshot.get("quests", []):
-				if not quest.id.begins_with("academy_"): continue
-				ui.paragraph(quest.name + " · " + {"inactive":"미수락", "active":"진행 중", "completed":"완료", "failed":"실패"}.get(quest.status, quest.status), ui.GOLD)
-				ui.paragraph(quest.get("nextStep", quest.summary))
+				if quest.id.begins_with("academy_") or quest.id == "arcana_inn_slimes": quests.append(quest)
+			ui.open_quests(quests, func(): _menu("map"))
 		"journal":
 			_skills_menu()
 		"menu":
@@ -1032,12 +1080,10 @@ func _menu(kind: String) -> void:
 			ui.choice("화면 확대", "+ · 휠 위 / 두 손가락 벌리기", func(): _menu_zoom(1.12))
 			ui.choice("화면 축소", "− · 휠 아래 / 두 손가락 모으기", func(): _menu_zoom(1.0/1.12))
 			ui.choice("기본 화면 크기", "0 · 현재 %d%%" % roundi(world_renderer.get_zoom_ratio()*100), func(): _menu_zoom(0.0))
-			ui.choice("정면 시점으로" if world_renderer.quarter_view else "쿼터뷰로", "정면과 45도 대각선 시점을 비교합니다.", _toggle_camera_view)
-			ui.choice("3D 원본 비교" if world_renderer.pixelated else "도트 화면으로", "64색 도트 화면과 원본 화면을 비교합니다.", _toggle_pixel_render)
 			ui.choice("낮 / 해질녘", "광장 빛 전환", func(): world.set_art_state(not world.dusk, world.effects_enabled); ui.close_panel())
 			ui.choice("환경 효과 켜기 / 끄기", "기본 그림 보기", func(): world.set_art_state(world.dusk, not world.effects_enabled); ui.close_panel())
 			ui.choice("홈으로", "저장한 뒤 홈 메뉴로 돌아갑니다.", _save_and_home)
-			ui.choice("새 모험", "현재 모험을 유지할지 먼저 확인합니다.", _confirm_new)
+			ui.choice("계정 · 캐릭터 등록", "이름 등록 · 카카오·구글 연결", _account)
 
 func _map() -> void:
 	ui.open_panel("아르카나 지도")
@@ -1071,7 +1117,7 @@ func _inventory() -> void:
 	panel_mode = "inventory"
 	ui.open_panel("소지품")
 	ui.section_tabs(["아이템", "장비"], 0, [_inventory, _equipment_menu])
-	ui.paragraph("소지금 %d원" % int(_state().get("money", 0)), ui.GOLD)
+	ui.paragraph("소지금 %d골드" % int(_state().get("money", 0)), ui.GOLD)
 	var bag = _state().get("inventory", {})
 	if bag.is_empty(): ui.paragraph("가방이 비어 있습니다.")
 	for item in snapshot.get("inventoryCards", []):
@@ -1114,7 +1160,7 @@ func _help() -> void:
 	ui.paragraph("문·인물·작업대 가까이에서 오른쪽 아래 상호작용 버튼 또는 E·Space를 누르세요. 학교 안에서도 각 공간으로 걸어가 상호작용할 수 있습니다.")
 	ui.paragraph("상호작용 버튼 주위의 네 퀵슬롯은 숫자 키 1~4와 연결됩니다. 빈 슬롯을 누르거나 메뉴의 퀵슬롯 설정에서 불꽃·회피·마나 포션을 배치하세요. 배치는 다음 접속에도 유지됩니다.")
 	ui.paragraph("광장 슬라임을 눌러 선택하세요. 불꽃을 짧게 누르면 자동 조준하고, 길게 누르거나 끌면 직접 조준하며 손을 떼면 발사합니다. 위쪽 취소 영역으로 끌면 취소합니다. 첫 명중 후에만 슬라임이 쫓아옵니다. 도약 경로에서 벗어나거나 회피로 몸통 박치기를 피하고, 슬라임과 멀어지면 추격이 끝납니다. 파이어볼은 MP 0·재사용 0초, 회피는 0.8초·재사용 5초입니다.")
-	ui.paragraph("메뉴를 열거나 다른 창으로 전환하면 시간을 멈춥니다. 진행 저장 후 다시 들어오면 같은 모험을 이어 갑니다.")
+	ui.paragraph("아르카나 세계는 메뉴를 열거나 다른 창으로 전환해도 계속 진행됩니다. 진행은 자동 저장되며 연결이 끊겨도 30초 안에 돌아오면 같은 자리에서 이어갑니다.")
 
 func _save() -> bool:
 	if busy: return false
@@ -1138,6 +1184,9 @@ func _save_and_home() -> void:
 	if await _save(): _home()
 
 func _home() -> void:
+	if online_world:
+		await _api("/api/arcana/leave",HTTPClient.METHOD_POST)
+		online_world = false
 	if OS.has_feature("web"): JavaScriptBridge.eval("location.href='/'")
 	else: get_tree().quit()
 
@@ -1154,6 +1203,9 @@ func _confirm_new() -> void:
 	ui.choice("새 아르카나 모험 시작", "", _new_game)
 
 func _new_game() -> void:
+	if online_world:
+		ui.toast("정식 계정은 하나의 캐릭터로 모험을 이어갑니다.")
+		return
 	# Explicit new game must not automatically attach an older shared save.
 	busy = true
 	var data = await _api("/api/games", HTTPClient.METHOD_POST, {"startAt":"arcana"})
@@ -1280,7 +1332,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not gate_crossing and spatial_combat.select_at(position): return
 		var local = viewport_host.get_global_transform().affine_inverse() * position
 		if Rect2(Vector2.ZERO, viewport_host.size).has_point(local):
-			var target = world_renderer.pick(local*Vector2(viewport.size)/viewport_host.size)
+			var render_point = local*Vector2(viewport.size)/viewport_host.size
+			var object = world_renderer.pick_interaction(render_point)
+			if not object.is_empty() and not gate_crossing and page_active and not spatial_combat.request_busy and spatial_combat.aim_owner == -1:
+				world.interact_with(object)
+				return
+			var target = world_renderer.pick(render_point)
 			world.walk_to(target)
 
 func _bridge_command(args: Array) -> void:
@@ -1302,7 +1359,7 @@ func _bridge_command(args: Array) -> void:
 		"close": ui.close_panel()
 
 func _bridge_state(_args: Array) -> void:
-	var state = {"engine":"Godot 4.5.1", "renderer":"native_3d_pixel", "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
+	var state = {"engine":"Godot 4.5.1", "renderer":"native_2d", "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))
 
@@ -1326,38 +1383,14 @@ func _adjust_controls(key: String, value: float) -> void:
 	_store(CONTROLS_KEY, JSON.stringify(ui.control_layouts))
 
 func _update_mei_nameplate() -> void:
-	if not is_instance_valid(ui) or not is_instance_valid(world_renderer): return
-	# Keep the static NPC reference; resolve again only after a layout replacement.
-	if not is_instance_valid(mei_nameplate_target):
-		mei_projection_valid = false
-		if not snapshot.is_empty() and world.indoor.is_empty():
-			for npc in get_tree().get_nodes_in_group("arcana_npc_idle"):
-				if world_renderer.is_ancestor_of(npc):
-					mei_nameplate_target = npc
-					break
-	var mei = mei_nameplate_target
-	var shown = is_instance_valid(mei) and not snapshot.is_empty() and world.indoor.is_empty() and mei.is_visible_in_tree()
-	var screen_position = Vector2.ZERO
+	if not is_instance_valid(ui) or not is_instance_valid(world_renderer):return
+	var shown=not snapshot.is_empty() and world.indoor.is_empty()
+	var point=Vector2.ZERO
 	if shown:
-		var camera: Camera3D = world_renderer.camera
-		shown = not camera.is_position_behind(mei.global_position)
-		if shown:
-			var camera_settings = Vector3(camera.size, camera.h_offset, camera.v_offset)
-			var reset_pixel_origin = not mei_projection_valid or mei_camera_settings != camera_settings or mei_viewport_size != viewport.size or mei_quarter_view != world_renderer.quarter_view
-			if reset_pixel_origin or mei_camera_transform != camera.global_transform or mei_camera_settings != camera_settings or mei_viewport_size != viewport.size or mei_world_position != mei.global_position:
-				mei_camera_transform = camera.global_transform
-				mei_camera_settings = camera_settings
-				mei_viewport_size = viewport.size
-				mei_world_position = mei.global_position
-				mei_source_position = camera.unproject_position(mei_world_position)
-				if reset_pixel_origin:
-					mei_pixel_origin = mei_source_position
-					mei_quarter_view = world_renderer.quarter_view
-				mei_projection_valid = true
-			var source_position = mei_source_position
-			# Measure whole-pixel camera travel from a fixed subpixel phase.
-			# Absolute rounding can flip at a boundary due to camera float noise.
-			if world_renderer.pixelated: source_position = mei_pixel_origin.floor() + (source_position - mei_pixel_origin).round()
-			screen_position = viewport_host.position + source_position * viewport_host.size / Vector2(viewport.size) * viewport_host.scale
-			shown = get_viewport().get_visible_rect().has_point(screen_position)
-	ui.update_mei_nameplate(screen_position, shown)
+		for entry in world_renderer.sprites:
+			if entry.kind=="plaza-guide":
+				var logical=entry.anchor/4.0
+				point=world_renderer.screen_point(logical,2.1)
+				point=viewport_host.position+point*viewport_host.size/Vector2(viewport.size)*viewport_host.scale
+				break
+	ui.update_mei_nameplate(point,shown)

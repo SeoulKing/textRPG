@@ -700,6 +700,7 @@ function advanceTravelTime(state: GameState) {
 }
 
 export function syncClock(state: GameState, now = Date.now()) {
+  if (state.flags.arcana_online) { state.lastRealTimestamp = now; return; }
   const elapsed = Math.max(0, now - state.lastRealTimestamp);
   const clock = state.activeClock;
   state.lastRealTimestamp = now;

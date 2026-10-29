@@ -17,6 +17,11 @@ var opaque_visual: MeshInstance3D
 var faded_visual: MeshInstance3D
 var fade_material: ShaderMaterial
 const SHADOW = preload("res://art/resources/heroine_shadow.gdshader")
+var interaction_id: String = ""
+var interaction_region = Rect2()
+var interaction_arch_ratio = .25
+var interaction_highlighted = false
+var hit_image: Image
 var asset: Texture2D
 var pixel_size = Vector2i(64,80)
 var foot = Vector2(32,78)
@@ -34,6 +39,7 @@ func _ready() -> void:
         asset = OUTDOOR_ART.ITEMS[asset.resource_path]
     else:
         use_outdoor_art = false
+    if not Engine.is_editor_hint(): add_to_group("arcana_interaction_art")
     var visual = MeshInstance3D.new()
     var quad = QuadMesh.new()
     quad.size = Vector2(pixel_size)/64.0
@@ -51,6 +57,8 @@ func _ready() -> void:
     sprite_material.set_shader_parameter("frame_cell",Vector2.ZERO)
     sprite_material.set_shader_parameter("foot_offset",(foot.y-float(pixel_size.y)*.5)/64.0)
     sprite_material.set_shader_parameter("editor_preview",Engine.is_editor_hint())
+    sprite_material.set_shader_parameter("interaction_region",Vector4(interaction_region.position.x,interaction_region.position.y,interaction_region.size.x,interaction_region.size.y))
+    sprite_material.set_shader_parameter("interaction_arch_ratio",interaction_arch_ratio)
     sprite_material.set_shader_parameter("depth_anchor_offset",global_basis*depth_anchor_offset)
     if spatial_map != null:
         sprite_material.set_shader_parameter("spatial_map_enabled",true)
@@ -67,7 +75,7 @@ func _ready() -> void:
         faded_visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
         fade_material = sprite_material.duplicate()
         fade_material.shader = TREE_FADE
-        for parameter in ["sprite_sheet","sheet_grid","frame_cell","foot_offset","editor_preview","spatial_map_enabled","spatial_map","spatial_emission_mask","depth_anchor_offset"]:
+        for parameter in ["sprite_sheet","sheet_grid","frame_cell","foot_offset","editor_preview","spatial_map_enabled","spatial_map","spatial_emission_mask","depth_anchor_offset","interaction_region","interaction_arch_ratio"]:
             fade_material.set_shader_parameter(parameter,sprite_material.get_shader_parameter(parameter))
         faded_visual.material_override = fade_material
         faded_visual.visible = false
@@ -125,6 +133,35 @@ func update_player_occlusion(camera: Camera3D, player_anchor: Vector3, player_si
     opaque_visual.visible = tree_opacity>=.999
     faded_visual.visible = not opaque_visual.visible
     fade_material.set_shader_parameter("tree_opacity",tree_opacity)
+
+func set_interaction_highlight(active: bool) -> void:
+    if interaction_highlighted == active: return
+    interaction_highlighted = active
+    for material in [sprite_material,fade_material]:
+        if material != null: material.set_shader_parameter("interaction_highlight",active)
+
+func hit_test(camera: Camera3D, screen_point: Vector2, interaction_only: bool = false) -> bool:
+    if not is_visible_in_tree() or camera.is_position_behind(global_position): return false
+    var ppu = float(camera.get_viewport().size.y)/camera.size
+    var scale_xy = Vector2(global_basis.x.length(),global_basis.y.length())*ppu/64.0
+    var top_left = camera.unproject_position(global_position)-Vector2(pixel_size.x*.5,foot.y)*scale_xy
+    var rect = Rect2(top_left,Vector2(pixel_size)*scale_xy)
+    if not rect.has_point(screen_point): return false
+    if hit_image == null: hit_image = asset.get_image()
+    if hit_image == null or hit_image.is_empty(): return false
+    var grid: Vector2 = sprite_material.get_shader_parameter("sheet_grid")
+    var cell: Vector2 = sprite_material.get_shader_parameter("frame_cell")
+    var uv = (cell+(screen_point-top_left)/rect.size)/grid
+    var texel = Vector2i((uv*Vector2(hit_image.get_size())).floor())
+    if interaction_only and interaction_region.has_area():
+        var pixel = (screen_point-top_left)/rect.size*Vector2(pixel_size)
+        if not interaction_region.has_point(pixel): return false
+        var p = pixel-interaction_region.position
+        var cap = interaction_region.size.y*interaction_arch_ratio
+        if p.y < cap:
+            var arc = Vector2((p.x-interaction_region.size.x*.5)/(interaction_region.size.x*.5),(p.y-cap)/cap)
+            if arc.length_squared() > 1.0: return false
+    return hit_image.get_pixel(texel.x,texel.y).a >= .5
 
 func _on_walkable_area(player_anchor: Vector3) -> bool:
     if not opaque_walkable_area.has_area(): return false

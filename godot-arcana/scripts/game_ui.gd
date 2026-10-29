@@ -13,6 +13,8 @@ const NavIcon = preload("res://scripts/bottom_nav_icon.gd")
 const ActionButton = preload("res://scripts/mobile_action_button.gd")
 const SkillTreeView = preload("res://scripts/skill_tree_view.gd")
 var skill_tree_view: Control
+var shop_view: Control
+var quest_view: Control
 const SkillCooldown = preload("res://scripts/skill_cooldown.gd")
 const SLOT_NAMES = {"meteor":"메테오","giant_fireball":"거대화염구","flame_barrage":"화염난사","fireball":"불꽃탄", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"대시", "teleport":"텔레포트", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
 const INK = Color("26364d")
@@ -411,6 +413,8 @@ func open_skill_tree(spell: Dictionary, selected: String, invest: Callable, rese
 	overlay.add_child(skill_tree_view)
 
 func open_panel(title: String, can_close: bool = true) -> void:
+	_clear_shop()
+	_clear_quests()
 	if is_instance_valid(skill_tree_view):
 		skill_tree_view.queue_free()
 		skill_tree_view = null
@@ -426,6 +430,8 @@ func open_panel(title: String, can_close: bool = true) -> void:
 	overlay.show()
 
 func close_panel() -> void:
+	_clear_shop()
+	_clear_quests()
 	if is_instance_valid(skill_tree_view):
 		skill_tree_view.queue_free()
 		skill_tree_view = null
@@ -659,3 +665,35 @@ func update_mei_nameplate(screen_position: Vector2, shown: bool) -> void:
 		var target_position = (pixel_anchor + mei_nameplate_pixel_offset) / pixel_scale
 		if mei_nameplate_anchor.position != target_position:
 			mei_nameplate_anchor.position = target_position
+func _clear_shop() -> void:
+	if is_instance_valid(shop_view):
+		shop_view.hide()
+		shop_view.queue_free()
+		shop_view = null
+
+func open_shop(entries: Array, inventory: Dictionary, money: int, selling: bool, trade: Callable) -> void:
+	open_panel("아르카나 잡화점")
+	panel.hide()
+	shop_view = preload("res://scripts/shop_view.gd").new()
+	shop_view.entries = entries
+	shop_view.inventory = inventory
+	shop_view.money = money
+	shop_view.selling = selling
+	shop_view.trade_requested.connect(func(action: Dictionary, quantity: int): trade.call(action, quantity, shop_view.selling))
+	shop_view.close_requested.connect(close_panel)
+	overlay.add_child(shop_view)
+
+func _clear_quests() -> void:
+	if is_instance_valid(quest_view):
+		quest_view.hide()
+		quest_view.queue_free()
+		quest_view = null
+
+func open_quests(entries: Array, show_map: Callable) -> void:
+	open_panel("퀘스트")
+	panel.hide()
+	quest_view = preload("res://scripts/quest_view.gd").new()
+	quest_view.quests = entries
+	quest_view.close_requested.connect(close_panel)
+	quest_view.map_requested.connect(show_map)
+	overlay.add_child(quest_view)

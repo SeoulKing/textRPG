@@ -1,11 +1,17 @@
 import type { FastifyInstance } from "fastify";
+import type { OnlineAccounts } from "./online/accounts";
 import type { GameRepository } from "./game/repository";
 import { StateWorldService } from "./game/state-world/service";
 import { InvalidCommand } from "./game/state-world/actions";
 
-export function registerStateWorldRoutes(app: FastifyInstance, repository: GameRepository) {
+export function registerStateWorldRoutes(app: FastifyInstance, repository: GameRepository, accounts?: OnlineAccounts) {
   const service = new StateWorldService(repository);
-  app.post("/api/state-world/games", () => service.create());
+  app.post("/api/state-world/games", async (request,reply) => {
+    const identity=accounts?await accounts.guest(request,reply):null;
+    const snapshot=await service.create();
+    if(identity)await accounts!.bindGame(snapshot.gameId,identity.principal);
+    return snapshot;
+  });
   app.get<{ Params: { gameId: string }; Querystring: { page?: string } }>("/api/state-world/games/:gameId", async (request, reply) => {
     const page = Number(request.query.page ?? 0);
     if (!Number.isSafeInteger(page) || page < 0) return reply.code(400).send({ message: "페이지 번호가 올바르지 않습니다." });

@@ -1416,7 +1416,11 @@ function renderHomeScreen() {
 
   const user = client.authInfo?.user;
   const kakaoConfigured = Boolean(client.authInfo?.kakaoConfigured);
-  if (user) {
+  if (client.authInfo?.developmentAccess) {
+    dom.homeAuthStatus.textContent = "개발 중에는 로그인 없이 바로 플레이하실 수 있습니다.";
+    dom.homeKakaoLogin.hidden = true;
+    dom.homeLogout.hidden = !user;
+  } else if (user) {
     dom.homeAuthStatus.textContent = `${user.nickname || "카카오 사용자"} 계정으로 로그인 중`;
     dom.homeKakaoLogin.hidden = true;
     dom.homeKakaoLogin.setAttribute("aria-disabled", "true");

@@ -12,8 +12,10 @@ uniform bool world_pixel_grid_enabled = false;
 uniform vec2 world_pixel_grid = vec2(1.0);
 uniform vec2 authored_pixel_size = vec2(1.0);
 uniform float world_pixel_foot_y = 0.0;
+uniform bool interaction_highlight = false;
 uniform vec3 depth_anchor_offset = vec3(0.0);
 uniform float tree_opacity : hint_range(0.0,1.0) = 1.0;
+#include "res://art/resources/interaction_outline.gdshaderinc"
 void vertex() {
     vec3 anchor = MODEL_MATRIX[3].xyz;
     light_anchor=anchor;
@@ -43,6 +45,7 @@ void fragment() {
     vec2 lighting_size = world_pixel_grid_enabled ? world_pixel_grid : size;
     float lighting_foot = world_pixel_grid_enabled ? world_pixel_foot_y : size.y*.5+foot_offset*64.0;
     ALBEDO = max(sprite_lit(fire.rgb,uv,lighting_size,lighting_foot),fire.rgb*fire.a);
+    ALBEDO = interaction_outline(ALBEDO,uv,world_pixel_grid_enabled ? authored_pixel_size : size);
     ALPHA = tree_opacity; // This mesh is used only during the temporary occlusion fade.
 }
 

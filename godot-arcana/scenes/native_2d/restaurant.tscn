@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/restaurant-surfaces.res" id="1_pvejn"]
+
+[node name="Restaurant2D" type="Node2D"]
+
+[node name="RestaurantSurfaces" type="Sprite2D" parent="."]
+z_index = -25
+texture = ExtResource("1_pvejn")
+centered = false
+offset = Vector2(0, -256)

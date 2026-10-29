@@ -1,15 +1,15 @@
-[gd_resource type="TileSet" load_steps=3 format=3]
+[gd_resource type="TileSet" load_steps=3 format=3 uid="uid://dl16lj4a2bn58"]
 
-[ext_resource type="Texture2D" path="res://art/export/reference/heroine-preview-floor.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://bh78rdmywc1ol" path="res://art/export/reference/heroine-preview-floor.png" id="1"]
 
 [sub_resource type="TileSetAtlasSource" id="S"]
 texture = ExtResource("1")
-texture_region_size = Vector2i(64,45)
+texture_region_size = Vector2i(64, 45)
 0:0/0 = 0
 1:0/0 = 0
 0:1/0 = 0
 1:1/0 = 0
 
 [resource]
-tile_size = Vector2i(64,45)
+tile_size = Vector2i(64, 45)
 sources/0 = SubResource("S")

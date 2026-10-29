@@ -829,6 +829,30 @@
         2,
         2
       ]
+    },
+    "wall-solid": {
+      "file": "res://art/export/inn-lobby/wall-solid.png",
+      "size": [
+        276,
+        216
+      ],
+      "foot": [
+        138,
+        212
+      ],
+      "colors": 41,
+      "source": "art-studies/interiors/solid-walls-v1/inn-master.png",
+      "crop": [
+        12,
+        11,
+        1393,
+        1081
+      ],
+      "role": "sprite",
+      "surfaceProfile": {
+        "height": 5
+      },
+      "windowless": true
     }
   },
   "lighting": {

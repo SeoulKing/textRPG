@@ -13,6 +13,8 @@ var current_entrance: Dictionary = {}
 const Pixels = preload("res://scripts/pixel_art.gd")
 const Art = preload("res://scripts/art_library.gd")
 const Fountain = preload("res://scripts/fountain_spec.gd")
+const Shop2D = preload("res://scripts/shop_layout_2d.gd")
+var shop_layout: Dictionary = {}
 const TILE = 16
 const CELLS = Vector2i(72, 90)
 const SPAWN = Vector2(576, 500)
@@ -21,7 +23,7 @@ const WALK_SPEED = TILE * 3.0
 var developer_speed_boost = false
 const CAMERA_MARGIN = Vector2(16, 24)
 var spawn_position = SPAWN
-var layout: Node3D
+var layout: Node
 var player_position = SPAWN
 var destination = Vector2.ZERO
 var walking = false
@@ -120,6 +122,7 @@ var academy_floor: int = 1
 const Academy = preload("res://scripts/academy_interior.gd")
 var outside_position = SPAWN
 var nearest: Dictionary = {}
+var clicked_interaction_id: String = ""
 var entities: Array[Dictionary] = []
 var obstacles: Array[Rect2] = []
 var outside_obstacles: Array[Rect2] = []
@@ -171,14 +174,14 @@ func _ready() -> void:
 	ground = TileMapLayer.new()
 	ground.z_index = -10
 	add_child(ground)
-	if layout == null: layout = load("res://scenes/plaza.tscn").instantiate()
+	if layout == null: layout = load("res://scenes/native_2d/plaza.tscn").instantiate()
 	layout.normalize_coordinate_frame()
 	layout.refresh_plan()
 	_make_tiles()
 	objects = Node2D.new()
 	objects.y_sort_enabled = true
 	add_child(objects)
-	if layout == null: layout = load("res://scenes/plaza.tscn").instantiate()
+	if layout == null: layout = load("res://scenes/native_2d/plaza.tscn").instantiate()
 	_build_outdoors()
 	_outdoor_entities = entities.duplicate(true)
 	outside_obstacles = obstacles.duplicate()
@@ -287,7 +290,7 @@ func _build_outdoors() -> void:
 	objects.add_child(traveler)
 	apply_layout(layout,true)
 
-func apply_layout(value: Node3D, initial: bool = false) -> void:
+func apply_layout(value: Node, initial: bool = false) -> void:
 	clear_bench()
 	layout = value
 	layout.normalize_coordinate_frame()
@@ -329,6 +332,7 @@ func apply_layout(value: Node3D, initial: bool = false) -> void:
 				var basis = entry.layout_transform(layout).basis
 				entity.inward = Vector2(-basis.z.x,-basis.z.z).normalized()
 				entity.door_width = maxf(.6,basis.x.length()*.6)*TILE
+				entity.interaction_radius = 20.0
 				entity.auto_enter = entry.entrance_id.is_empty() or entry.entrance_enabled
 			next_entities.append(entity)
 	# Regions outside the editable plaza retain their original transition rules.
@@ -407,6 +411,7 @@ func _update_entrance_contact() -> void:
 	if changed and not contact.is_empty(): entrance_contacted.emit(contact.duplicate(true))
 
 func _can_stand(pos: Vector2) -> bool:
+	if indoor == "arcana_shop": return Shop2D.can_stand(shop_layout,pos)
 	if indoor == "":
 		if pos.x < 32 or pos.y < 48 or pos.x > 1110 or pos.y > 1400: return false
 		if pos.x > 930 and pos.y > 840 and pos.y < 1200: return false
@@ -419,6 +424,7 @@ func _can_stand(pos: Vector2) -> bool:
 	return true
 
 func walk_to(pos: Vector2) -> void:
+	clicked_interaction_id = ""
 	if not enabled: return
 	if not bench_state.is_empty():
 		if bench_state == "approach": clear_bench()
@@ -488,7 +494,7 @@ func _process(delta: float) -> void:
 	motion = (input_projection*motion).normalized()*input_strength
 	# Discard long suspension gaps rather than jumping through obstacles on resume.
 	var movement_budget = WALK_SPEED * (3.0 if developer_speed_boost else 1.0) * minf(delta, .05)
-	if not bench_state.is_empty() and (indoor!=str(bench_entity.get("seat_room","")) or not battle.is_empty()): clear_bench()
+	if not bench_state.is_empty() and (indoor!=str(bench_entity.get("seat_room","")) or (not battle.is_empty() and (not battle.get("online",false) or battle.get("selfCombat",false)))): clear_bench()
 	if enabled:
 		if motion.length()>.01:
 			if bench_state=="approach": clear_bench()
@@ -506,6 +512,7 @@ func _process(delta: float) -> void:
 			_move_player(dash_correction)
 			dash_correction=Vector2.ZERO
 	elif motion.length() > .01:
+		clicked_interaction_id = ""
 		click_door_id = ""
 		path.clear()
 		_move_player(motion.limit_length() * movement_budget)
@@ -573,9 +580,19 @@ func _process(delta: float) -> void:
 	var closest = 34.0
 	for entity in entities:
 		var dist = player_position.distance_to(entity.pos)
-		if dist < closest:
+		if dist < closest and dist < float(entity.get("interaction_radius",34.0)):
 			closest = dist
 			nearest = entity
+	if enabled and not clicked_interaction_id.is_empty():
+		for entity in entities:
+			if entity.id != clicked_interaction_id: continue
+			if player_position.distance_to(entity.pos) < float(entity.get("interaction_radius",34.0)):
+				clicked_interaction_id = ""
+				path.clear()
+				nearest = entity
+				interacted.emit(entity)
+			elif path.is_empty(): clicked_interaction_id = ""
+			break
 	if bench_pose_active(): nearest = bench_entity
 	for p in footsteps: p.life -= delta if enabled else 0.0
 	footsteps = footsteps.filter(func(p): return p.life > 0)
@@ -752,6 +769,20 @@ func bench_visual_position() -> Vector2:
 	if reduced_motion: blend = 0.0 if bench_state=="stand" else 1.0
 	return player_position.lerp(bench_entity.seat_visual,smoothstep(0,1,blend))
 
+func interact_with(entity: Dictionary) -> void:
+	if not enabled or not bench_state.is_empty(): return
+	if entity.kind == "building" and entity.get("auto_enter",false):
+		walk_to(entity.pos)
+		return
+	if player_position.distance_to(entity.pos) < float(entity.get("interaction_radius",34.0)):
+		clicked_interaction_id = ""
+		path.clear()
+		nearest = entity
+		interacted.emit(entity)
+	else:
+		walk_to(entity.pos)
+		if not path.is_empty(): clicked_interaction_id = str(entity.id)
+
 func interact() -> void:
 	if not enabled: return
 	if not bench_state.is_empty():
@@ -759,6 +790,7 @@ func interact() -> void:
 	elif not nearest.is_empty(): interacted.emit(nearest)
 
 func change_interior(id: String) -> void:
+	clicked_interaction_id = ""
 	clear_bench()
 	if indoor == "": outside_position = player_position
 	if id == "arcana_academy" and indoor != id: academy_floor = 1
@@ -796,14 +828,18 @@ func change_interior(id: String) -> void:
 			obstacles.append_array(Academy.collision_rects(academy_floor))
 			player_position = Vector2(192,260) if academy_floor == 1 else Academy.arrival_point(2)
 		elif id == "arcana_shop":
-			var shop = preload("res://scripts/shop_interior.gd")
-			entities[0].pos = shop.EXIT_POINT
-			entities.append({"id":"merchant","name":"상인과 거래하기","kind":"merchant","pos":shop.COUNTER_POINT})
-			obstacles.append_array(shop.collision_rects())
-			player_position = Vector2(192,232)
+			shop_layout = Shop2D.load_layout()
+			if not shop_layout.get("valid",false):
+				push_error("Shop TileMap requires one counter, one doorway and floor cells.")
+				return
+			entities[0].pos = shop_layout.markers.exit
+			entities.append({"id":"merchant","name":"상인과 거래하기","kind":"merchant","pos":shop_layout.markers.merchant})
+			obstacles.append_array(shop_layout.rectangles)
+			player_position = shop_layout.markers.arrival
 		elif id == "arcana_inn":
 			var lobby = preload("res://scripts/inn_lobby.gd")
 			entities[0].pos = lobby.EXIT_POINT
+			entities.append({"id":"inn_quest_board", "name":"퀘스트판 살펴보기", "kind":"quest_board", "pos":lobby.QUEST_BOARD_POINT, "interaction_radius":26.0})
 			entities.append({"id":"innkeeper", "name":"여관주인과 대화하기", "kind":"innkeeper", "pos":lobby.COUNTER_POINT})
 			entities.append({"id":"inn_sofa", "name":"소파에서 쉬기", "kind":"inn_sofa", "pos":lobby.SOFA_POINT, "seat_visual":lobby.SOFA_SEAT_VISUAL, "seat_room":"arcana_inn"})
 			obstacles.append_array(lobby.collision_rects())

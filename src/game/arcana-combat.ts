@@ -1,3 +1,4 @@
+import { awardSlimeLoot, performSlimeQuest, SLIME_QUEST_ID, slimeQuestProgress } from "./arcana-economy";
 import { buildArcanaShopActions, tradeArcanaShop } from "./arcana-shop";
 import { investSkillTree, resetSkillTree, normalizeFireballTraining } from "./arcana-skill-tree";
 import { equipArcanaSkill, trainArcanaSkill, equippedArcanaSkill } from "./arcana-skill-training";
@@ -95,6 +96,7 @@ export function useArcanaPotion(state: GameState) {
 export function performArcanaAction(state: GameState, action: Command) {
   const c = state.arcanaCombat;
   if (!usesArcanaStats(state) || state.isGameOver || state.subwayExpedition.active || state.npcDialogue.active) throw new Error("현재는 평원 전투 행동을 할 수 없습니다.");
+  if (action.command === "accept_slime_quest" || action.command === "claim_slime_quest") { performSlimeQuest(state, action.command === "claim_slime_quest"); return; }
   if (action.command === "dev_sofa_rest") {
     if (process.env.NODE_ENV === "production") throw new Error("개발 환경에서만 사용할 수 있습니다.");
     if (state.location !== "arcana_inn" || c.battle) throw new Error("전투를 마친 뒤 여관 로비의 소파에서 쉬어 주세요.");
@@ -143,11 +145,11 @@ export function performArcanaAction(state: GameState, action: Command) {
     const shop = action.command === "buy_potion";
     if (b || state.location !== (shop ? "arcana_shop" : "arcana_inn")) throw new Error("해당 시설에서 이용해 주세요.");
     if (!shop && c.hp >= arcanaStats(state).maxHp) throw new Error("HP가 이미 가득 찼습니다.");
-    if (state.money < 100) throw new Error("소지금 100원이 필요합니다.");
-    state.money -= 100;
+    if (state.money < (shop ? 10 : 100)) throw new Error(`소지금 ${shop ? 10 : 100}골드가 필요합니다.`);
+    state.money -= shop ? 10 : 100;
     if (shop) state.inventory.manaPotion = (state.inventory.manaPotion || 0) + 1;
     else c.hp = arcanaStats(state).maxHp;
-    appendLogEntry(state, shop ? "100원으로 마나 포션 1개를 구입했다." : "여관에서 상처를 치료했다. HP 완전 회복"); return;
+    appendLogEntry(state, shop ? "10골드로 마나 포션 1개를 구입했다." : "여관에서 상처를 치료했다. HP 완전 회복"); return;
   }
   if (action.command === "potion" && !b) { useArcanaPotion(state); return; }
   if (action.command === "flame_guard" && !b) { castFlameGuard(state); return; }
@@ -219,8 +221,8 @@ export function performArcanaAction(state: GameState, action: Command) {
     if (b.enemyHp > 0) return;
     b.phase = "victory"; b.paused = true; state.flags.arcana_slime_encounter_active = false;
     clearFlameGuard(state);
-    state.money += 30;
-    line(state, "승리 · 소지금 +30원"); appendLogEntry(state, "슬라임 처치 · 소지금 +30원"); return;
+    awardSlimeLoot(state);
+    line(state, "승리 · +1 슬라임의 점액질"); appendLogEntry(state, "슬라임 처치 · +1 슬라임의 점액질"); return;
   }
   throw new Error("알 수 없는 전투 행동입니다.");
 }
@@ -234,8 +236,11 @@ export function buildArcanaActions(state: GameState): ActionChoice[] {
   if (!b) {
     if (state.location === "arcana_shop") return buildArcanaShopActions(state);
     if (state.location === "arcana_inn") return [
+      ...(state.quests[SLIME_QUEST_ID] === "completed" ? [] : [state.quests[SLIME_QUEST_ID] === "active"
+        ? choice(state, "claim_slime_quest", "마르텐에게 슬라임 퇴치 보고", `${slimeQuestProgress(state)}/10마리 · 보상 10골드`, slimeQuestProgress(state) >= 10)
+        : choice(state, "accept_slime_quest", "퀘스트판 · 슬라임 퇴치 의뢰", "수락 후 10마리 처치 · 보상 10골드")]),
       ...(process.env.NODE_ENV !== "production" ? [choice(state, "dev_sofa_rest", "로비 소파에서 쉰다", "개발용 · 무료 · HP / MP 완전 회복")] : []),
-      choice(state, "rest", "여관에서 치료받는다", "100원 · 10분 · HP 완전 회복", state.money >= 100 && c.hp < arcanaStats(state).maxHp),
+      choice(state, "rest", "여관에서 치료받는다", "100골드 · 10분 · HP 완전 회복", state.money >= 100 && c.hp < arcanaStats(state).maxHp),
     ];
     return [];
   }

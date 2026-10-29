@@ -63,3 +63,34 @@ export function questProgressFields(state: GameState, quest: QuestDefinition, re
     : quest.guidance.gathering;
   return { requirements, nextStep: resolveItemText(text, registry) };
 }
+
+/** Presentation only: readiness still comes from the real report operation. */
+export function arcanaQuestPresentation(state: GameState, quest: QuestDefinition, registry: ContentRegistry) {
+  if (!quest.id.startsWith("academy_")) return {};
+  const names: Record<string, string> = {
+    academy_theory_completed: "기초 이론",
+    academy_practical_passed: "수정 실습",
+    academy_library_briefed: "도서관 안내",
+    academy_astrarium_inspected: "천문판 조사",
+    academy_observatory_repaired: "천문판 고리 정렬",
+  };
+  const definition = questCompletionDefinition(quest, registry);
+  const completed = state.quests[quest.id] === "completed";
+  const localState = definition ? activityConditionState(definition, {
+    ...state, location: quest.guidance?.completion.locationId ?? state.location,
+  }) : state;
+  const objectives = Object.entries(names)
+    .filter(([flag]) => definition?.conditions.some(condition => condition.type === "flag" && condition.flag === flag)
+      || (quest.id === "academy_silent_observatory" && flag === "academy_astrarium_inspected"))
+    .map(([flag, name]) => ({ name, amount: 1, ownedAmount: completed || evaluateCondition({ type: "flag", flag }, state) ? 1 : 0 }));
+  const readyToReport = state.quests[quest.id] === "active" && !!definition
+    && definition.conditions.every(condition => evaluateCondition(condition, localState))
+    && activityInputsAvailable(definition, localState);
+  const rewardText = quest.rewards.flatMap(reward => {
+    if (reward.type === "money") return [`${reward.amount}골드`];
+    if (reward.type === "add_item") return [`${(registry.items[reward.itemId] as { name?: string } | undefined)?.name ?? reward.itemId} × ${reward.amount}`];
+    return [];
+  }).join(" · ");
+  return { objectives, readyToReport, rewardText,
+    reportTo: quest.id === "academy_first_lesson" ? "마법학교 교장실 · 교장" : "마법학교 도서관 · 노엘" };
+}

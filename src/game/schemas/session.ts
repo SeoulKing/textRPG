@@ -127,6 +127,14 @@ export const StateSnapshotSchema = z.object({
       summary: z.string(),
       status: QuestStateSchema,
       nextStep: z.string().optional(),
+      readyToReport: z.boolean().optional(),
+      reportTo: z.string().optional(),
+      rewardText: z.string().optional(),
+      objectives: z.array(z.object({
+        name: z.string(),
+        amount: z.number().int().positive(),
+        ownedAmount: z.number().int().nonnegative(),
+      })).optional(),
       requirements: z.array(
         z.object({
           itemId: z.string(),
