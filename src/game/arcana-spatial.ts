@@ -1,11 +1,12 @@
+import { fireballSpecialization } from "./arcana-skill-tree";
 import { trainArcanaSkill } from "./arcana-skill-training";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { GameState } from "./schemas";
-import type { ArcanaSpatial, CombatPoint as Point } from "./schemas/arcana-spatial";
+import type { ArcanaSpatial, SpatialEnemy, CombatPoint as Point } from "./schemas/arcana-spatial";
 import { appendLogEntry } from "./state-utils";
-import { ARCANA_SPELLS, absorbArcanaDamage, clearFlameGuard, spellMagnitude, spendSpell, tickSpellTimers } from "./arcana-spells";
+import { ARCANA_SPELLS, isUltimate, type ArcanaSpellId, effectiveSpell, absorbArcanaDamage, clearFlameGuard, spellMagnitude, spendSpell, tickSpellTimers } from "./arcana-spells";
 
 type Battle = NonNullable<GameState["arcanaCombat"]["battle"]>;
 type Layout = { home: Point; spawn: Point; rectangles: { x: number; y: number; w: number; h: number }[]; circles: (Point & { radius: number; localRadius: number; inverse: number[] })[]; bounds: { x: number; y: number; w: number; h: number }; tuning: { tile: number; range: number; projectileSpeed: number; projectileRadius: number; enemyRadius: number; playerRadius: number; chaseLimit: number; chaseSpeed: number; returnSpeed: number; jumpRange: number; jumpDuration: number; attackInterval: number } };
@@ -58,15 +59,18 @@ function wallFraction(a: Point, b: Point, radius: number): number | null {
   for (let i=0;i<=steps;i++) if (blocked(mix(a,b,i/steps),radius)) return i/steps;
   return null;
 }
-export function spatialEvent(b: Battle, kind: ArcanaSpatial["events"][number]["kind"], position: Point, amount = 0, projectileId?: string, direction?: Point, rewards?: { xp: number; money: number }, targetPosition?: Point) {
+export function spatialEvent(b: Battle, kind: ArcanaSpatial["events"][number]["kind"], position: Point, amount = 0, projectileId?: string, direction?: Point, rewards?: { xp: number; money: number }, targetPosition?: Point, enemyId?: string) {
   const s = b.spatial!;
-  s.events.push({ id: ++s.revision, kind, position:copy(position), amount, ...(projectileId ? {projectileId} : {}), ...(direction ? {direction:copy(direction)} : {}), ...(rewards ? {rewards} : {}), ...(targetPosition ? {targetPosition:copy(targetPosition)} : {}) });
+  s.events.push({ id: ++s.revision, kind, position:copy(position), amount, ...(projectileId ? {projectileId} : {}), ...(direction ? {direction:copy(direction)} : {}), ...(rewards ? {rewards} : {}), ...(targetPosition ? {targetPosition:copy(targetPosition)} : {}),...(enemyId ? {enemyId}: {}) });
   s.events = s.events.slice(-32);
 }
 export function createSpatialBattle(state: GameState, player: Point) {
   const home = spatialLayout().home;
   if (blocked(player, 3) || distance(player,home)>spatialLayout().tuning.chaseLimit) throw new Error("슬라임 가까이의 이동 가능한 위치에서 사용해 주세요.");
-  state.arcanaCombat.battle = { id:randomUUID(),phase:"ready",enemyHp:30,attackIn:6,paused:false,log:[],spatial:{ encounterId:"plaza_slime",enemy:copy(home),home:copy(home),player:copy(player),previousPlayer:copy(player),behavior:"neutral",jumpFrom:copy(home),jumpTo:copy(home),jumpHit:false,jumpElapsed:0,targetLocked:false,elapsed:0,revision:0,projectiles:[],events:[] } };
+  state.arcanaCombat.battle = { id:randomUUID(),phase:"ready",enemyHp:30,attackIn:6,paused:false,log:[],spatial:{ encounterId:"plaza_slime",enemy:copy(home),home:copy(home),player:copy(player),previousPlayer:copy(player),behavior:"neutral",jumpFrom:copy(home),jumpTo:copy(home),jumpHit:false,jumpElapsed:0,targetLocked:false,elapsed:0,revision:0,enemies:[],primaryEnemyId:"slime_0",meteors:[],barrage:null,projectiles:[],events:[] } };
+  // Combat activates the slime already visible in the plaza.
+  ensureSpatialEnemies(state.arcanaCombat.battle!);
+
 }
 export function acceptSpatialPosition(state: GameState, point: Point, seconds: number, resume = false, speedMultiplier = 1) {
   const s = state.arcanaCombat.battle?.spatial;
@@ -88,22 +92,92 @@ export function moveSpatialSkill(state: GameState, aim: Point) {
   s.previousPlayer = copy(s.player);
   s.player = move(s.player, { x: s.player.x + aim.x / length * 28, y: s.player.y + aim.y / length * 28 }, 3);
 }
-export function returnSpatialBattle(b: Battle) {
-  const s = b.spatial!;
-  if (s.behavior === "return") return;
-  s.behavior = "return"; s.projectiles = []; s.targetLocked = false; s.jumpHit = false;
-  b.phase = "ready"; b.attackIn = 6;
+function makeEnemy(id:string, point:Point):SpatialEnemy {
+  return {id,position:copy(point),home:copy(point),hp:30,maxHp:30,attackIn:6,behavior:"neutral",jumpFrom:copy(point),jumpTo:copy(point),jumpHit:false,jumpElapsed:0,targetLocked:false,rewarded:false};
+}
+export function ensureSpatialEnemies(b:Battle) {
+  const s=b.spatial;
+  if (!s) return;
+  if (!s.enemies.length) s.enemies=[{...makeEnemy("slime_0",s.home),position:copy(s.enemy),hp:b.enemyHp,attackIn:b.attackIn,behavior:s.behavior,jumpFrom:copy(s.jumpFrom),jumpTo:copy(s.jumpTo),jumpHit:s.jumpHit,jumpElapsed:s.jumpElapsed,targetLocked:s.targetLocked,rewarded:b.enemyHp<=0}];
+  // Repair saved plaza encounters created with two unintended extra slimes.
+  // Keep the displayed primary enemy's health, position and attack progress.
+  if (s.encounterId === "plaza_slime" && s.enemies.length > 1) {
+    const primary = s.enemies.find(e => e.id === s.primaryEnemyId) ?? s.enemies[0];
+    s.enemies = [primary];
+    selectProjection(b, primary);
+  }
+  for (const p of s.projectiles) {p.hitIds ??=[];p.spellId ??="fireball";p.pierce ??=1;p.explode ??=false;p.masteryAwarded ??=false;}
+}
+function selectProjection(b:Battle,e:SpatialEnemy) {
+  const s=b.spatial!;
+  s.primaryEnemyId=e.id;s.enemy=copy(e.position);s.home=copy(e.home);s.behavior=e.behavior;s.jumpFrom=copy(e.jumpFrom);s.jumpTo=copy(e.jumpTo);s.jumpHit=e.jumpHit;s.jumpElapsed=e.jumpElapsed;s.targetLocked=e.targetLocked;b.enemyHp=e.hp;b.attackIn=e.attackIn;
+}
+function storeProjection(b:Battle,e:SpatialEnemy) {
+  const s=b.spatial!;
+  e.position=copy(s.enemy);e.hp=b.enemyHp;e.attackIn=b.attackIn;e.behavior=s.behavior;e.jumpFrom=copy(s.jumpFrom);e.jumpTo=copy(s.jumpTo);e.jumpHit=s.jumpHit;e.jumpElapsed=s.jumpElapsed;e.targetLocked=s.targetLocked;
+}
+function refreshProjection(b:Battle) {const s=b.spatial!; const e=s.enemies.find(enemy=>enemy.hp>0) ?? s.enemies[0];if(e) selectProjection(b,e);}
+export function returnSpatialBattle(b:Battle) {
+  const s=b.spatial!;
+  ensureSpatialEnemies(b);
+  s.projectiles=[];s.meteors=[];s.barrage=null;
+  for(const e of s.enemies) if(e.hp>0) {e.behavior="return";e.targetLocked=false;e.jumpHit=false;}
+  s.behavior="return";s.targetLocked=false;s.jumpHit=false;b.phase="ready";b.attackIn=6;
   spatialEvent(b,"return",s.enemy);
 }
-export function castSpatialFireball(state: GameState, aim: Point) {
-  const b = state.arcanaCombat.battle!, s = b.spatial!, c = state.arcanaCombat;
-  if (b.paused || s.behavior === "return" || ["victory","defeat"].includes(b.phase)) throw new Error("현재는 마법을 발사할 수 없습니다.");
-  const length = Math.hypot(aim.x,aim.y);
-  if (length < .001) throw new Error("발사 방향을 선택해 주세요.");
-  spendSpell(state,"fireball");
-  const p = {id:randomUUID(),position:copy(s.player),direction:{x:aim.x/length,y:aim.y/length},remaining:spatialLayout().tuning.range,damage:spellMagnitude(state,"fireball")};
-  s.projectiles.push(p);
-  spatialEvent(b,"cast",s.player,0,p.id);
+function validTargets(b:Battle, origin:Point, range:number) {
+  return b.spatial!.enemies.filter(e=>e.hp>0 && e.behavior!=="return" && distance(origin,e.position)<=range && wallFraction(origin,e.position,0)===null);
+}
+function nextBarrageTarget(b:Battle, origin:Point) {
+  return validTargets(b,origin,8*spatialLayout().tuning.tile).filter(e=>!b.spatial!.visibleEnemyIds || b.spatial!.visibleEnemyIds.includes(e.id)).sort((a,b)=>a.hp-b.hp || distance(origin,a.position)-distance(origin,b.position))[0];
+}
+function projectile(state:GameState, id:"fireball"|"giant_fireball"|"flame_barrage", direction:Point, damage:number,targetId?:string) {
+  const b=state.arcanaCombat.battle!,s=b.spatial!,t=spatialLayout().tuning;
+  const length=Math.hypot(direction.x,direction.y);
+  const p={id:randomUUID(),position:copy(s.player),origin:copy(s.player),direction:{x:length>.001?direction.x/length:1,y:length>.001?direction.y/length:0},remaining:effectiveSpell(state,id).rangeTiles*t.tile,damage,spellId:id,radius:t.projectileRadius*(id==="giant_fireball"?2:1),hitIds:[] as string[],masteryAwarded:false,pierce:id==="fireball" && fireballSpecialization(state,"reach")?3:1,explode:id==="fireball" && fireballSpecialization(state,"burst"),...(targetId?{targetId}:{})};
+  s.projectiles.push(p);spatialEvent(b,"cast",s.player,0,p.id,p.direction);
+}
+export function castSpatialFireball(state:GameState,aim:Point) {
+  const b=state.arcanaCombat.battle!,s=b.spatial!;
+  if(b.paused || s.behavior==="return" || ["victory","defeat"].includes(b.phase)) throw new Error("현재는 마법을 발사할 수 없습니다.");
+  if(Math.hypot(aim.x,aim.y)<.001) throw new Error("발사 방향을 선택해 주세요.");
+  ensureSpatialEnemies(b);spendSpell(state,"fireball");projectile(state,"fireball",aim,spellMagnitude(state,"fireball"));
+}
+export function castSpatialUltimate(state:GameState,id:ArcanaSpellId,aim?:Point,target?:Point) {
+  const b=state.arcanaCombat.battle!,s=b.spatial!,range=8*spatialLayout().tuning.tile;
+  if(!isUltimate(id) || b.paused || s.behavior==="return" || ["victory","defeat"].includes(b.phase)) throw new Error("현재는 궁극기를 사용할 수 없습니다.");
+  ensureSpatialEnemies(b);
+  const targets=validTargets(b,s.player,range).sort((a,b)=>distance(s.player,a.position)-distance(s.player,b.position));
+  if(id==="meteor") {
+    const point=target ?? targets[0]?.position;
+    if(!point || distance(s.player,point)>range+.01 || blocked(point,0) || wallFraction(s.player,point,0)!==null) throw new Error("사거리 안의 유효한 낙하 지점을 선택해 주세요.");
+    spendSpell(state,id);const meteor={id:randomUUID(),position:copy(point),remaining:1,damage:spellMagnitude(state,id)};
+    s.meteors.push(meteor);spatialEvent(b,"meteor_warning",point,0,meteor.id);
+  } else if(id==="giant_fireball") {
+    const direction=aim ?? (targets[0]?{x:targets[0].position.x-s.player.x,y:targets[0].position.y-s.player.y}:undefined);
+    if(!direction || Math.hypot(direction.x,direction.y)<.001) throw new Error("유효한 발사 방향을 선택해 주세요.");
+    spendSpell(state,id);projectile(state,id,direction,spellMagnitude(state,id));
+  } else {
+    if(!nextBarrageTarget(b,s.player)) throw new Error("사거리 안에 보이는 적이 없습니다.");
+    spendSpell(state,id);s.barrage={remaining:12,nextIn:0,damage:spellMagnitude(state,id)};
+  }
+}
+function damageEnemy(state:GameState,b:Battle,e:SpatialEnemy,amount:number,projectileId?:string,direction?:Point,impact?:Point) {
+  if(e.hp<=0 || e.behavior==="return") return 0;
+  const damage=Math.min(e.hp,amount);e.hp=Math.max(0,e.hp-amount);
+  spatialEvent(b,"hit",impact ?? e.position,damage,projectileId,direction,undefined,e.position,e.id);
+  if(e.behavior==="neutral") {e.behavior="chase";e.attackIn=spatialLayout().tuning.attackInterval;b.phase="battle";}
+  if(e.hp<=0 && !e.rewarded) {
+    e.rewarded=true;state.money+=30;
+    spatialEvent(b,"enemy_down",e.position,0,undefined,undefined,{xp:0,money:30},undefined,e.id);
+  }
+  return damage;
+}
+function finishVictory(state:GameState,b:Battle) {
+  const s=b.spatial!;if(s.enemies.some(e=>e.hp>0) || b.phase==="victory") return;
+  b.phase="victory";b.paused=true;s.projectiles=[];s.meteors=[];s.barrage=null;clearFlameGuard(state);
+  appendLogEntry(state,"슬라임 무리를 처치했다. 처치한 적마다 소지금 30원을 획득했다.");
+  spatialEvent(b,"victory",s.enemy);refreshProjection(b);
 }
 // Exact closest point on a circular sector, including its two radial edges.
 export function circleIntersectsCone(origin: Point, direction: Point, center: Point, radius: number, range: number, angleDegrees = 90) {
@@ -124,25 +198,15 @@ export function castSpatialFlameWave(state: GameState, aim: Point) {
   const direction = {x:aim.x/length,y:aim.y/length};
   spendSpell(state,"flame_wave");
   spatialEvent(b,"wave",s.player,0,undefined,direction);
-  if (!circleIntersectsCone(s.player,direction,s.enemy,t.enemyRadius,ARCANA_SPELLS.flame_wave.rangeTiles*t.tile,ARCANA_SPELLS.flame_wave.angle) || wallFraction(s.player,s.enemy,0) !== null) return;
-  const damage = spellMagnitude(state,"flame_wave");
-  trainArcanaSkill(state,"flame_wave",Math.min(b.enemyHp,damage));
-  b.enemyHp = Math.max(0,b.enemyHp-damage);
-  spatialEvent(b,"hit",s.enemy,damage);
-  if (s.behavior === "neutral") { b.phase = "battle"; s.behavior = "chase"; b.attackIn = t.attackInterval; }
-  if (b.enemyHp <= 0) victory(state,b);
-}
-function victory(state: GameState, b: Battle) {
-  const c = state.arcanaCombat, s = b.spatial!;
-  b.phase = "victory"; b.paused = true; s.projectiles = [];
-  clearFlameGuard(state);
-  state.money += 30;
-  b.log.push("슬라임 처치 · 소지금 +30원");
-  appendLogEntry(state,b.log.at(-1)!); spatialEvent(b,"victory",s.enemy,0,undefined,undefined,{xp:0,money:30});
+  ensureSpatialEnemies(b);
+  let contribution=0;
+  for(const e of s.enemies) if(circleIntersectsCone(s.player,direction,e.position,t.enemyRadius,effectiveSpell(state,"flame_wave").rangeTiles*t.tile,ARCANA_SPELLS.flame_wave.angle) && wallFraction(s.player,e.position,0)===null) contribution+=damageEnemy(state,b,e,spellMagnitude(state,"flame_wave"));
+  trainArcanaSkill(state,"flame_wave",contribution);finishVictory(state,b);refreshProjection(b);
 }
 export function tickSpatialCombat(state: GameState, seconds: number) {
   const b = state.arcanaCombat.battle!, s = b.spatial!, c = state.arcanaCombat, t = spatialLayout().tuning;
   if (b.paused || b.phase === "victory" || b.phase === "defeat") return;
+  ensureSpatialEnemies(b);
   const start = copy(s.previousPlayer), end = copy(s.player);
   let elapsed = 0;
   while (elapsed < seconds-1e-8) {
@@ -152,6 +216,10 @@ export function tickSpatialCombat(state: GameState, seconds: number) {
     tickSpellTimers(state,dt);
     const evading = c.evadeSeconds > 0;
     c.evadeSeconds = Math.max(0,c.evadeSeconds-dt);
+    const beforePositions = new Map(s.enemies.map(e=>[e.id,copy(e.position)]));
+    for (const enemy of s.enemies) {
+      if(enemy.hp<=0) continue;
+      selectProjection(b,enemy);
     if (!["neutral","return"].includes(s.behavior) && distance(player,s.enemy) > t.chaseLimit) { clearFlameGuard(state); returnSpatialBattle(b); }
     const enemyBefore = copy(s.enemy);
     if (s.behavior === "return") {
@@ -208,27 +276,60 @@ export function tickSpatialCombat(state: GameState, seconds: number) {
         }
       }
     }
-    for (const p of [...s.projectiles]) {
-      const travel = Math.min(p.remaining,t.projectileSpeed*dt), next = {x:p.position.x+p.direction.x*travel,y:p.position.y+p.direction.y*travel};
-      const wall = wallFraction(p.position,next,t.projectileRadius);
-      const hit = s.behavior !== "return" ? sweptCircle(p.position,next,enemyBefore,s.enemy,t.enemyRadius+t.projectileRadius) : null;
-      if (hit !== null && (wall === null || hit < wall)) {
-        const impact = mix(p.position,next,hit);
-        trainArcanaSkill(state,"fireball",Math.min(b.enemyHp,p.damage));
-        b.enemyHp = Math.max(0,b.enemyHp-p.damage);
-        s.projectiles = s.projectiles.filter(q => q.id !== p.id);
-        spatialEvent(b,"hit",impact,p.damage,p.id,p.direction,undefined,mix(enemyBefore,s.enemy,hit));
-        if (s.behavior === "neutral") { b.phase = "battle"; s.behavior = "chase"; b.attackIn = t.attackInterval; }
-        if (b.enemyHp <= 0) { victory(state,b); break; }
-      } else {
-        p.position = next; p.remaining = Math.max(0,p.remaining-travel);
-        if (wall !== null || p.remaining <= 1e-8) {
-          spatialEvent(b,"miss",wall === null ? next : mix({x:next.x-p.direction.x*travel,y:next.y-p.direction.y*travel},next,wall),0,p.id);
-          s.projectiles = s.projectiles.filter(q => q.id !== p.id);
-        }
+      storeProjection(b,enemy);
+    }
+    if(b.phase === "defeat") {s.meteors=[];s.barrage=null;break;}
+    refreshProjection(b);
+    for(const meteor of [...s.meteors]) {
+      meteor.remaining=Math.max(0,meteor.remaining-dt);
+      if(meteor.remaining<=1e-8) {
+        spatialEvent(b,"meteor",meteor.position,0,meteor.id);
+        for(const e of s.enemies) if(distance(e.position,meteor.position)<=2*t.tile+t.enemyRadius && wallFraction(meteor.position,e.position,0)===null) damageEnemy(state,b,e,meteor.damage);
+        s.meteors=s.meteors.filter(m=>m.id!==meteor.id);
       }
     }
-    if (b.enemyHp <= 0) break;
+    if(s.barrage) {
+      s.barrage.nextIn-=dt;
+      while(s.barrage && s.barrage.nextIn<=1e-8 && s.barrage.remaining>0) {
+        const target=nextBarrageTarget(b,player);
+        if(target) projectile(state,"flame_barrage",{x:target.position.x-player.x,y:target.position.y-player.y},s.barrage.damage,target.id);
+        s.barrage.remaining--;s.barrage.nextIn+=.2;
+        if(!s.barrage.remaining) s.barrage=null;
+      }
+    }
+    for(const p of [...s.projectiles]) {
+      if(p.spellId==="flame_barrage") {
+        const current=s.enemies.find(e=>e.id===p.targetId && e.hp>0 && e.behavior!=="return" && distance(player,e.position)<=8*t.tile);
+        const target=current ?? nextBarrageTarget(b,player);
+        if(!target) {s.projectiles=s.projectiles.filter(q=>q.id!==p.id);spatialEvent(b,"miss",p.position,0,p.id);continue;}
+        p.targetId=target.id;
+        const length=distance(p.position,target.position);
+        if(length>.001) p.direction={x:(target.position.x-p.position.x)/length,y:(target.position.y-p.position.y)/length};
+      }
+      const travel=Math.min(p.remaining,t.projectileSpeed*dt), next={x:p.position.x+p.direction.x*travel,y:p.position.y+p.direction.y*travel};
+      const radius=p.radius ?? t.projectileRadius, wall=wallFraction(p.position,next,radius);
+      const hits=s.enemies.filter(e=>e.hp>0 && e.behavior!=="return" && !p.hitIds.includes(e.id)).map(e=>({e,fraction:sweptCircle(p.position,next,beforePositions.get(e.id) ?? e.position,e.position,t.enemyRadius+radius)})).filter((hit):hit is {e:SpatialEnemy;fraction:number} => hit.fraction!==null && (wall===null || hit.fraction<wall)).sort((a,b)=>a.fraction-b.fraction);
+      let spent=false;
+      for(const hit of hits) {
+        if(hit.e.hp<=0) continue;
+        const impact=mix(p.position,next,hit.fraction);
+        let contribution=damageEnemy(state,b,hit.e,p.damage,p.id,p.direction,impact);
+        p.hitIds.push(hit.e.id);
+        if(p.explode) {
+          spatialEvent(b,"explosion",hit.e.position,0,p.id);
+          for(const e of s.enemies) if(e.id!==hit.e.id && distance(e.position,hit.e.position)<=t.tile+t.enemyRadius && wallFraction(hit.e.position,e.position,0)===null) contribution+=damageEnemy(state,b,e,Math.floor(p.damage*.5));
+        }
+        if(p.spellId==="fireball" && contribution>0 && !p.masteryAwarded) {trainArcanaSkill(state,"fireball",10);p.masteryAwarded=true;}
+        if(p.hitIds.length>=p.pierce) {spent=true;break;}
+      }
+      p.position=next;p.remaining=Math.max(0,p.remaining-travel);
+      if(spent || wall!==null || p.remaining<=1e-8) {
+        if(!spent) spatialEvent(b,"miss",wall===null?next:mix({x:next.x-p.direction.x*travel,y:next.y-p.direction.y*travel},next,wall),0,p.id);
+        s.projectiles=s.projectiles.filter(q=>q.id!==p.id);
+      }
+    }
+    finishVictory(state,b);refreshProjection(b);
+    if(!s.enemies.some(e=>e.hp>0)) break;
   }
   s.previousPlayer = copy(s.player);
 }

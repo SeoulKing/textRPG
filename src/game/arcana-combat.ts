@@ -1,12 +1,14 @@
+import { buildArcanaShopActions, tradeArcanaShop } from "./arcana-shop";
+import { investSkillTree, resetSkillTree, normalizeFireballTraining } from "./arcana-skill-tree";
 import { equipArcanaSkill, trainArcanaSkill, equippedArcanaSkill } from "./arcana-skill-training";
 import { randomUUID } from "node:crypto";
-import { moveSpatialSkill, castSpatialFireball, castSpatialFlameWave, createSpatialBattle, returnSpatialBattle, spatialEvent, tickSpatialCombat } from "./arcana-spatial";
+import { moveSpatialSkill, castSpatialFireball, castSpatialUltimate, ensureSpatialEnemies, castSpatialFlameWave, createSpatialBattle, returnSpatialBattle, spatialEvent, tickSpatialCombat } from "./arcana-spatial";
 import { GAME_HOUR_MS } from "./base-data";
 import { ArcanaCombatSchema } from "./schemas/arcana-combat";
 import type { ActionChoice, GameAction, GameState, SceneCard } from "./schemas";
 import { appendLogEntry } from "./state-utils";
 import { slimeMonster } from "./data/regions/arcana-hunting-ground/monsters";
-import { ARCANA_SPELLS, absorbArcanaDamage, assertSpellReady, buildArcanaSpells, castFlameGuard, clearFlameGuard, isArcanaSpell, learnArcanaSpell, spellUnlocked, spellMagnitude, spendSpell, tickSpellTimers } from "./arcana-spells";
+import { ARCANA_SPELLS, isUltimate, absorbArcanaDamage, assertSpellReady, buildArcanaSpells, castFlameGuard, clearFlameGuard, isArcanaSpell, learnArcanaSpell, spellUnlocked, spellMagnitude, spendSpell, tickSpellTimers } from "./arcana-spells";
 
 type Command = Extract<GameAction, { type: "arcana_combat" }>;
 export function arcanaStats(state: GameState) {
@@ -16,17 +18,19 @@ export function usesArcanaStats(state: GameState) { return Boolean(state.flags.i
 export function normalizeArcanaCombat(raw: unknown) {
   const parsed = ArcanaCombatSchema.safeParse(raw);
   const value = parsed.success ? parsed.data : ArcanaCombatSchema.parse(undefined);
-  value.learnedSpells ??= Object.values(ARCANA_SPELLS).filter(spell => value.unlockedSchools.includes(spell.school) && value.level >= spell.unlockLevel).map(spell => spell.id);
+  value.learnedSpells ??= Object.values(ARCANA_SPELLS).filter(spell => !isUltimate(spell.id) && value.unlockedSchools.includes(spell.school) && value.level >= spell.unlockLevel).map(spell => spell.id);
   if (!value.skillSystemVersion) {
     const earned = value.xp + 30 * (value.level - 1) + 15 * (value.level - 1) * (value.level - 2) / 2;
     for (const id of value.learnedSpells) value.skillTraining[id] ??= { xp: Math.min(10000, earned / Math.max(1, value.learnedSpells.length)), specializations: [], activeSpecialization: null };
     value.skillSystemVersion = 1;
   }
+  normalizeFireballTraining(value);
   const seen = new Set<string>();
   value.activeSkills = (value.activeSkills ?? [...value.learnedSpells, null, null, null, null, null, null].slice(0, 6)).map(id => {
     if (!id || !value.learnedSpells!.some(skill => skill === id) || seen.has(id)) return null;
     seen.add(id); return id;
   });
+  if(value.battle?.spatial) ensureSpatialEnemies(value.battle);
   value.hp = Math.min(value.hp, 100);
   value.mp = Math.min(value.mp, 30);
   if (value.guard.seconds <= 1e-8 || value.guard.amount <= 0 || ["victory","defeat"].includes(value.battle?.phase ?? "")) value.guard = { amount: 0, seconds: 0 };
@@ -100,6 +104,12 @@ export function performArcanaAction(state: GameState, action: Command) {
     if (changed) appendLogEntry(state, "벽난로 곁 소파에서 쉬었다. HP와 MP가 모두 회복되었다.");
     return;
   }
+  if (action.command === "invest_skill" || action.command === "reset_skill_tree") {
+    if (!action.spellId || !isArcanaSpell(action.spellId)) throw new Error("스킬을 선택해 주세요.");
+    if (action.command === "invest_skill") investSkillTree(state,action.spellId,action.nodeId ?? "");
+    else resetSkillTree(state,action.spellId);
+    return;
+  }
   if (action.command === "equip_spell") {
     if (action.slotIndex === undefined) throw new Error("변경할 슬롯을 선택해 주세요.");
     equipArcanaSkill(state, action.slotIndex, action.spellId);
@@ -113,17 +123,22 @@ export function performArcanaAction(state: GameState, action: Command) {
     return;
   }
   if (isArcanaSpell(action.command)) assertSpellReady(state,action.command);
-  if (action.spatial && (action.command === "fireball" || action.command === "flame_wave") && (!action.spatial.aim || Math.hypot(action.spatial.aim.x,action.spatial.aim.y) < .001)) throw new Error("발사 방향을 선택해 주세요.");
+  if (action.spatial && !isUltimate(action.command) && (action.command === "fireball" || action.command === "flame_wave" || isUltimate(action.command)) && (!action.spatial.aim || Math.hypot(action.spatial.aim.x,action.spatial.aim.y) < .001)) throw new Error("발사 방향을 선택해 주세요.");
   const movementSkill = action.command === "teleport" ? "teleport" : "dodge";
   const movementName = movementSkill === "teleport" ? "텔레포트" : "대시";
   ensureArcanaEncounter(state);
-  if (!c.battle && action.spatial && (action.command === "fireball" || action.command === "flame_wave")) {
+  if (!c.battle && action.spatial && (action.command === "fireball" || action.command === "flame_wave" || isUltimate(action.command))) {
     if (state.location !== "arcana_plaza") throw new Error("광장에서만 이 슬라임을 상대할 수 있습니다.");
     createSpatialBattle(state, action.spatial.position);
     action = { ...action, battleId: c.battle!.id };
   }
   const b = c.battle;
   if (action.command === "spatial_sync") return;
+  if (isUltimate(action.command) && !b?.spatial) throw new Error("궁극기는 공간 전투에서 사용해 주세요.");
+  if (action.command === "buy_item" || action.command === "sell_item") {
+    tradeArcanaShop(state, action.command, action.itemId ?? "", action.quantity ?? 1);
+    return;
+  }
   if (action.command === "buy_potion" || action.command === "rest") {
     const shop = action.command === "buy_potion";
     if (b || state.location !== (shop ? "arcana_shop" : "arcana_inn")) throw new Error("해당 시설에서 이용해 주세요.");
@@ -148,6 +163,8 @@ export function performArcanaAction(state: GameState, action: Command) {
     state.sceneId = state.location === "arcana_plaza" ? "arcana_plaza_repeat_intro" : "arcana_hunting_ground_repeat_intro"; return;
   }
   if (b.spatial) {
+    if (action.spatial?.visibleEnemyIds) b.spatial.visibleEnemyIds=action.spatial.visibleEnemyIds;
+    if (isUltimate(action.command)) {castSpatialUltimate(state,action.command,action.spatial?.aim,action.spatial?.target);return;}
     if ((action.command === "dodge" || action.command === "teleport")) {
       if (b.paused || ["victory","defeat"].includes(b.phase)) throw new Error(`현재는 ${movementName}를 사용할 수 없습니다.`);
       if (c.cooldowns[movementSkill] > 1e-8) throw new Error(`${movementName} 재사용 대기 중입니다.`);
@@ -193,11 +210,11 @@ export function performArcanaAction(state: GameState, action: Command) {
     if (c.cooldowns[movementSkill] > 1e-8) throw new Error(`${movementName} 재사용 대기 중입니다.`);
     c.evadeSeconds = .3; c.evadeSkill = movementSkill; c.cooldowns[movementSkill] = movementSkill === "teleport" ? 0 : 5; line(state, `${movementName} · 진행 방향으로 이동하며 0.3초 동안 공격을 피합니다.`); return;
   }
-  if (action.command === "fireball" || action.command === "flame_wave") {
+  if (action.command === "fireball" || action.command === "flame_wave" || isUltimate(action.command)) {
     spendSpell(state,action.command);
     const damage = spellMagnitude(state,action.command);
     const before = b.enemyHp; b.enemyHp = Math.max(0, b.enemyHp - damage);
-    trainArcanaSkill(state, action.command, Math.min(before, damage));
+    trainArcanaSkill(state, action.command, action.command === "fireball" ? (before>0 ? 10 : 0) : Math.min(before, damage));
     line(state, ARCANA_SPELLS[action.command].name + " · " + damage + " 피해 · 슬라임 HP " + before + " → " + b.enemyHp);
     if (b.enemyHp > 0) return;
     b.phase = "victory"; b.paused = true; state.flags.arcana_slime_encounter_active = false;
@@ -215,7 +232,7 @@ export function buildArcanaActions(state: GameState): ActionChoice[] {
   const c = state.arcanaCombat, b = c.battle;
   if (!usesArcanaStats(state)) return [];
   if (!b) {
-    if (state.location === "arcana_shop") return [choice(state, "buy_potion", "마나 포션을 구입한다", "100원 · MP 20 회복 · 보유 " + (state.inventory.manaPotion || 0) + "개", state.money >= 100)];
+    if (state.location === "arcana_shop") return buildArcanaShopActions(state);
     if (state.location === "arcana_inn") return [
       ...(process.env.NODE_ENV !== "production" ? [choice(state, "dev_sofa_rest", "로비 소파에서 쉰다", "개발용 · 무료 · HP / MP 완전 회복")] : []),
       choice(state, "rest", "여관에서 치료받는다", "100원 · 10분 · HP 완전 회복", state.money >= 100 && c.hp < arcanaStats(state).maxHp),

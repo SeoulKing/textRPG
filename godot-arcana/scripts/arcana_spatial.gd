@@ -17,6 +17,12 @@ var main
 var layout: Dictionary = {}
 var selected = false
 var request_busy = false
+var in_flight: int = 0
+var pending_commands: Dictionary = {}
+var settling: bool = false
+var applied_sequence: int = -1
+const MAX_IN_FLIGHT: int = 4
+const INPUT_MAX_AGE_MS: int = 500
 var connection_lost = false
 # Commands and pause transitions bypass the background position interval.
 const SYNC_INTERVAL: float = 0.25
@@ -56,8 +62,13 @@ var local_shot_sequence = 0
 var movement_sequence = 0
 var displayed_enemy = Vector2.ZERO
 var observed_initial = false
+var additional_visuals: Node
+const UltimateVisuals = preload("res://scripts/arcana_ultimate_visuals.gd")
 
 func _ready() -> void:
+	additional_visuals = UltimateVisuals.new()
+	additional_visuals.combat = self
+	add_child(additional_visuals)
 	effect_pool = EffectPool.new()
 	add_child(effect_pool)
 	effect_pool.prepare.call_deferred(main.world_renderer,main.world_renderer.hero)
@@ -104,6 +115,17 @@ func _spatial() -> Dictionary:
 func available() -> bool:
 	return not main.snapshot.is_empty() and main.world.indoor.is_empty() and main._state().get("flags",{}).get("in_magic_world",false) and (not _spatial().is_empty() or (main._state().get("location","") == "arcana_plaza" and _battle().is_empty()))
 
+func _visible_targets(command: String = "fireball") -> Array:
+	var result: Array = []
+	var screen = main.get_viewport().get_visible_rect()
+	var candidates: Array = _spatial().get("enemies",[])
+	if candidates.is_empty() and _spatial().is_empty(): candidates = [{"id":"slime_0","position":layout.home,"hp":30}]
+	for enemy in candidates:
+		var point = _point(enemy.position)
+		if float(enemy.hp)>0 and screen.has_point(_screen(point,.5)) and main.world.player_position.distance_to(point)<=_spell_range(command)+float(layout.tuning.enemyRadius): result.append(enemy)
+	result.sort_custom(func(a,b): return main.world.player_position.distance_squared_to(_point(a.position))<main.world.player_position.distance_squared_to(_point(b.position)))
+	return result
+
 func enemy_position() -> Vector2:
 	return _point(_spatial().get("enemy",layout.home))
 
@@ -134,10 +156,31 @@ func select_at(point: Vector2) -> bool:
 		return true
 	return false
 
-func can_cast(command: String = "fireball") -> bool:
-	if effect_pool == null or not effect_pool.prepared: return false
+func _reserved_cost() -> float:
+	var cost: float = 0.0
+	for pending in queue:
+		cost += float(main._spell(str(pending.command)).get("cost",0))
+	for command in pending_commands.values():
+		cost += float(main._spell(str(command)).get("cost",0))
+	return cost
+
+func _command_pending(command: String) -> bool:
 	var spell: Dictionary = main._spell(command)
-	return (command=="fireball" or (main.world.teleport_age<0 and main.world.dash_age<0)) and main.world.bench_state.is_empty() and not spell.is_empty() and spell.get("unlocked",false) and spell.get("equipped",false) and available() and _battle().get("phase","") not in ["victory","defeat"] and _spatial().get("behavior","") != "return" and float(main._combat().get("mp",0))>=float(spell.cost) and float(main._combat().get("cooldowns",{}).get(command,0))<=.01
+	# Zero-cooldown spells may be pipelined; do not turn network RTT into
+	# an unintended cooldown. Resource reservations still apply.
+	if not spell.is_empty() and float(spell.get("cooldown",0)) <= 0: return false
+	if command in ["meteor","giant_fireball","flame_barrage"]:
+		for value in pending_commands.values():
+			if value in ["meteor","giant_fireball","flame_barrage"]: return true
+	if pending_commands.values().has(command): return true
+	for pending in queue:
+		if pending.command == command: return true
+	return false
+
+func can_cast(command: String = "fireball") -> bool:
+	if effect_pool == null or not effect_pool.prepared or connection_lost or settling or queue.size() >= 8 or _command_pending(command): return false
+	var spell: Dictionary = main._spell(command)
+	return (command=="fireball" or (main.world.teleport_age<0 and main.world.dash_age<0)) and main.world.bench_state.is_empty() and not spell.is_empty() and spell.get("unlocked",false) and spell.get("equipped",false) and available() and _battle().get("phase","") not in ["victory","defeat"] and _spatial().get("behavior","") != "return" and float(main._combat().get("mp",0))-_reserved_cost()>=float(spell.cost) and float(main._combat().get("cooldowns",{}).get(command,0))<=.01
 
 func _begin(owner: int, point: Vector2, key: int = 0, command: String = "fireball") -> void:
 	if not can_cast(command) or main.busy or main.ui.overlay.visible: return
@@ -181,19 +224,31 @@ func _finish(cancelled: bool = false) -> void:
 	if abort: return
 	if not direct:
 		direction = _auto_direction(command)
-	queue_command(command,direction)
+	if command == "giant_fireball" and not direct and _visible_targets(command).is_empty(): return
+	if command == "meteor":
+		var targets = _visible_targets(command)
+		if not direct and targets.is_empty(): return
+		var target = main.world.player_position+direction*_spell_range(command)*clampf(aim_pointer.distance_to(aim_origin)/80.0,0,1) if direct else _point(targets[0].position)
+		queue_command(command,direction,target)
+	else: queue_command(command,direction)
 
 func _spell_range(command: String) -> float:
 	return float(main._spell(command).get("rangeTiles",6))*float(layout.tuning.tile)
 
 func cast_auto(command: String = "fireball") -> void:
 	if not can_cast(command): return
-	queue_command(command,_auto_direction(command))
+	if command == "giant_fireball" and _visible_targets(command).is_empty(): return
+	if command == "meteor":
+		var targets = _visible_targets(command)
+		if targets.is_empty(): return
+		queue_command(command,_auto_direction(command),_point(targets[0].position))
+	else: queue_command(command,_auto_direction(command))
 
 func _auto_direction(command: String) -> Vector2:
-	if visible_enemy() and main.world.player_position.distance_to(enemy_position())<=_spell_range(command)+float(layout.tuning.enemyRadius):
+	var targets = _visible_targets(command)
+	if not targets.is_empty():
 		selected = true
-		return (enemy_position()-main.world.player_position).normalized()
+		return (_point(targets[0].position)-main.world.player_position).normalized()
 	var yaw = main.world_renderer.hero.last_yaw
 	return Vector2(sin(yaw),cos(yaw))
 
@@ -202,7 +257,7 @@ func can_dash(command: String = "dodge") -> bool:
 	# cooldown snapshot, or the preceding blink's visual age.
 	if command == "teleport":
 		return not main.snapshot.is_empty() and not main.gate_crossing and not main.ui.overlay.visible and main.world.bench_state.is_empty() and main.page_active and _battle().get("phase","") != "defeat"
-	return not main.snapshot.is_empty() and main.world.enabled and not main.busy and not main.ui.overlay.visible and main.world.bench_state.is_empty() and (command=="teleport" or (not dash_pending and main.world.teleport_age<0 and main.world.dash_age<0)) and float(main.world.teleport_lock if command=="teleport" else main.world.dash_lock)<=.01 and float(main._combat().get("cooldowns",{}).get(command,0))<=.01 and _battle().get("phase","") not in ["victory","defeat"] and main.page_active
+	return not connection_lost and not settling and not _command_pending(command) and queue.size() < 8 and not main.snapshot.is_empty() and main.world.enabled and not main.busy and not main.ui.overlay.visible and main.world.bench_state.is_empty() and (command=="teleport" or (not dash_pending and main.world.teleport_age<0 and main.world.dash_age<0)) and float(main.world.teleport_lock if command=="teleport" else main.world.dash_lock)<=.01 and float(main._combat().get("cooldowns",{}).get(command,0))<=.01 and _battle().get("phase","") not in ["victory","defeat"] and main.page_active
 
 func start_dash(command: String = "dodge") -> void:
 	if not can_dash(command):return
@@ -215,7 +270,10 @@ func start_dash(command: String = "dodge") -> void:
 	movement_sequence += 1
 	dash_pending=true
 	if available():
-		queue.append({"command":command,"direction":heading,"origin":main.world.dash_origin,"endpoint":main.world.dash_target,"movementSequence":movement_sequence})
+		if connection_lost or settling or queue.size() >= 8:
+			dash_pending = false
+			return
+		queue.append({"queuedAt":Time.get_ticks_msec(),"command":command,"direction":heading,"origin":main.world.dash_origin,"endpoint":main.world.dash_target,"movementSequence":movement_sequence})
 	else:
 		_standard_dash(command)
 
@@ -231,11 +289,11 @@ func _standard_dash(command: String) -> void:
 		if command == "dodge": main.world.cancel_dash()
 		main.ui.toast(data.get("message","대시를 사용할 수 없습니다."))
 
-func queue_command(command: String, direction: Vector2 = Vector2.ZERO) -> void:
+func queue_command(command: String, direction: Vector2 = Vector2.ZERO, target: Vector2 = Vector2.INF) -> void:
 	if command in ["dodge","teleport"]:
 		start_dash(command)
 		return
-	if not available() or main.busy or main.ui.overlay.visible or not main.world.bench_state.is_empty(): return
+	if not available() or connection_lost or settling or queue.size() >= 8 or _command_pending(command) or main.busy or main.ui.overlay.visible or not main.world.bench_state.is_empty(): return
 	if not main._spell(command).is_empty() and not can_cast(command): return
 	for pending in queue:
 		if command != "fireball" and pending.command == command: return
@@ -246,7 +304,7 @@ func queue_command(command: String, direction: Vector2 = Vector2.ZERO) -> void:
 		else:
 			_start_fireball(direction)
 		return
-	queue.append({"command":command,"direction":direction})
+	queue.append({"queuedAt":Time.get_ticks_msec(),"command":command,"direction":direction,"target":target})
 
 func _start_fireball(direction: Vector2) -> void:
 	pending_cast = {"direction":direction,"elapsed":0.0}
@@ -279,7 +337,7 @@ func _update_cast(delta: float, active: bool, paused: bool) -> void:
 
 func _aim_slot(point: Vector2) -> String:
 	for i in range(main.ui.quickslot_buttons.size()):
-		if main.ui.quickslot_bindings[i] in ["fireball","flame_wave"] and main.ui.quickslot_buttons[i].get_global_rect().has_point(point): return main.ui.quickslot_bindings[i]
+		if main.ui.quickslot_bindings[i] in ["fireball","flame_wave","meteor","giant_fireball"] and main.ui.quickslot_buttons[i].get_global_rect().has_point(point): return main.ui.quickslot_bindings[i]
 	return ""
 
 func _input(event: InputEvent) -> void:
@@ -294,7 +352,7 @@ func _input(event: InputEvent) -> void:
 	var handled = false
 	if event is InputEventKey and not event.echo:
 		var keys = [KEY_1,KEY_2,KEY_3,KEY_4]
-		if event.physical_keycode in keys and main.ui.quickslot_bindings[keys.find(event.physical_keycode)] in ["fireball","flame_wave"]:
+		if event.physical_keycode in keys and main.ui.quickslot_bindings[keys.find(event.physical_keycode)] in ["fireball","flame_wave","meteor","giant_fireball"]:
 			if event.pressed and aim_owner == -1: _begin(-3,main.get_viewport().get_mouse_position(),event.physical_keycode,main.ui.quickslot_bindings[keys.find(event.physical_keycode)])
 			elif not event.pressed and aim_owner == -3 and aim_key == event.physical_keycode: _finish()
 			handled = true
@@ -356,9 +414,9 @@ func _process(delta: float) -> void:
 			aim_overlay.cancelled = aim_pointer.distance_to(aim_overlay.cancel_center)<=40
 			aim_overlay.show()
 			aim_overlay.queue_redraw()
-	if active and not _spatial().is_empty():
-		if not paused and not _battle().get("paused",true):
-			for key in ["fireball","flame_wave","flame_guard","dodge","teleport","potion"]:
+	if active:
+		if not _spatial().is_empty() and not paused and not _battle().get("paused",true):
+			for key in ["fireball","flame_wave","flame_guard","meteor","giant_fireball","flame_barrage","ultimate","dodge","teleport","potion"]:
 				main._combat().cooldowns[key] = maxf(0,float(main._combat().cooldowns.get(key,0))-delta)
 			main.world.battle.attackIn = maxf(0,float(main.world.battle.get("attackIn",6))-delta)
 		timer += delta
@@ -373,18 +431,26 @@ func _process(delta: float) -> void:
 			var shot_id = "local_"+str(local_shot_sequence)
 			var origin: Vector2 = main.world.player_position
 			local_shots[shot_id] = {"position":origin,"direction":direction,"elapsed":0.0}
-			queue.append({"command":"fireball","direction":direction,"origin":origin,"shotId":shot_id})
+			queue.append({"queuedAt":Time.get_ticks_msec(),"command":"fireball","direction":direction,"origin":origin,"shotId":shot_id})
 		else:
 			main.world_renderer.hero.cancel_cast()
 		if not buffered_cast.is_empty():
 			var next_direction: Vector2 = buffered_cast.direction
 			buffered_cast.clear()
 			if can_cast("fireball"): _start_fireball(next_direction)
-	if active and not request_busy and not main.clock_busy and not main.busy and Time.get_ticks_msec()/1000.0-failed_at>retry_delay:
+	var sync_interval: float = 1.0 if _spatial().is_empty() else SYNC_INTERVAL
+	if active and main.combat_socket.socket_ready and not settling and in_flight < MAX_IN_FLIGHT and not main.clock_busy and not main.busy and Time.get_ticks_msec()/1000.0-failed_at>retry_delay:
 		if not queue.is_empty() and not paused and not connection_lost:
 			var command = queue.pop_front()
-			_request(command.command,false,command.direction,command.get("origin",Vector2.INF),command.get("endpoint",Vector2.INF),command.get("shotId",""),int(command.get("movementSequence",0)))
-		elif _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=SYNC_INTERVAL) or connection_lost):
+			if Time.get_ticks_msec()-int(command.get("queuedAt",0)) > INPUT_MAX_AGE_MS:
+				var expired_shot: String = str(command.get("shotId",""))
+				local_shots.erase(expired_shot)
+				visual_outcomes.erase(expired_shot)
+				_update_predicted_health()
+				if command.command in ["dodge","teleport"] and int(command.get("movementSequence",0)) == movement_sequence: dash_pending = false
+				return
+			_request(command.command,false,command.direction,command.get("origin",Vector2.INF),command.get("endpoint",Vector2.INF),command.get("shotId",""),int(command.get("movementSequence",0)),command.get("target",Vector2.INF))
+		elif not request_busy and _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or _battle().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=sync_interval) or connection_lost):
 			_request("spatial_sync",paused or connection_lost)
 	_render(delta,active,paused)
 
@@ -416,21 +482,37 @@ func before_action() -> void:
 	while request_busy: await get_tree().process_frame
 	if not _spatial().is_empty(): await _request("spatial_sync",true)
 
-func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, dash_origin: Vector2 = Vector2.INF, dash_endpoint: Vector2 = Vector2.INF, shot_id: String = "", move_sequence: int = 0) -> void:
+func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, dash_origin: Vector2 = Vector2.INF, dash_endpoint: Vector2 = Vector2.INF, shot_id: String = "", move_sequence: int = 0, target: Vector2 = Vector2.INF) -> void:
+	in_flight += 1
 	request_busy = true
 	timer = 0
 	main.sequence += 1
+	var sent_sequence: int = main.sequence
+	pending_commands[sent_sequence] = command
 	var sent_position: Vector2 = dash_origin if dash_origin != Vector2.INF else main.world.player_position
 	var input = {"encounterId":"plaza_slime","clientId":main.client_id,"sequence":main.sequence,"position":_json(sent_position),"paused":paused,"developerSpeed":main.developer_tools and main.world.developer_speed_boost}
-	if command in ["fireball","flame_wave","dodge","teleport"]:
+	input.visibleEnemyIds = []
+	for enemy in _spatial().get("enemies",[]):
+		if float(enemy.hp)>0 and main.get_viewport().get_visible_rect().has_point(_screen(_point(enemy.position),.5)): input.visibleEnemyIds.append(str(enemy.id))
+	if _spatial().is_empty(): input.visibleEnemyIds = ["slime_0"]
+	if command in ["fireball","flame_wave","giant_fireball","dodge","teleport"]:
 		input.aim = _json(direction)
+	if command == "meteor" and target != Vector2.INF: input.target = _json(target)
 	if command == "fireball" and shot_id.is_empty():
 		predicted = {"position":sent_position,"direction":direction,"elapsed":0.0}
 	var action = {"type":"arcana_combat","command":command,"spatial":input}
 	if not _battle().is_empty(): action.battleId = _battle().id
-	var data: Dictionary = await main._api("/api/games/"+main.game_id+"/actions",HTTPClient.METHOD_POST,action)
-	predicted = {}
+	var data: Dictionary = await main.combat_socket.request(action)
+	if command == "fireball": predicted = {}
+	pending_commands.erase(sent_sequence)
+	if settling or (data.has("spatialCombat") and int(data.get("sequence",-1)) < applied_sequence):
+		local_shots.erase(shot_id)
+		in_flight -= 1
+		request_busy = in_flight > 0
+		if not request_busy: settling = false
+		return
 	if data.has("spatialCombat"):
+		applied_sequence = int(data.get("sequence",sent_sequence))
 		connection_lost = false
 		connection_failures = 0
 		retry_delay = 2.0
@@ -487,11 +569,17 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 		if command in ["dodge","teleport"] and move_sequence == movement_sequence:dash_pending=false
 		_update_predicted_health()
 		if previous_phase != _battle().get("phase","") and _battle().get("phase","") in ["victory","defeat"]:
+			settling = true
 			_clear_queued_commands()
 			cancel_aim()
 			if _battle().get("phase","")=="victory":
+				# A fast finish response must not erase zero HP and the death pose before rendering.
+				var death_started_at: int = Time.get_ticks_msec()
+				var death_duration: float = .9 if main.world.effects_enabled and not main.world.reduced_motion else .1
 				# Rewards were granted on defeat of the enemy; finish only acknowledges.
 				var result: Dictionary = await main._api("/api/games/"+main.game_id+"/actions",HTTPClient.METHOD_POST,{"type":"arcana_combat","command":"finish","battleId":_battle().id})
+				var remaining: float = death_duration-float(Time.get_ticks_msec()-death_started_at)/1000.0
+				if remaining>0: await get_tree().create_timer(remaining).timeout
 				if result.has("state"): main._apply(result)
 				else: main.ui.toast(result.get("message","전투 종료를 확인하지 못했습니다."))
 				selected = false
@@ -518,20 +606,23 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 		if data.get("error","") in ["network","invalid_response"]:
 			failed_at = Time.get_ticks_msec()/1000.0
 			connection_lost = true
+			_clear_queued_commands()
 			connection_failures = mini(connection_failures + 1, 5)
 			retry_delay = minf(30.0, pow(2.0, connection_failures))
 		if connection_failures <= 1: main.ui.toast(data.get("message","전투 연결을 확인해 주세요."))
-		# This response belongs to the failed request, not to newer local inputs.
-		# Keep later commands queued so a delayed failure cannot eat blink taps.
-	request_busy = false
+		# Never replay uncertain actions after disconnect. A paused sync reads
+		# the server result before new combat inputs are admitted.
+	in_flight -= 1
+	request_busy = in_flight > 0
+	if not request_busy: settling = false
 
 func _update_predicted_health() -> void:
 	var pending = 0.0
 	for outcome in visual_outcomes.values():
 		if not outcome.settled: pending += float(outcome.damage)
 	main.world.predicted_enemy_damage = pending
-	var minimum = 1.0 if _battle().get("phase","") not in ["victory","defeat"] else 0.0
-	main.world.enemy_visual_hp = maxf(minimum,float(_battle().get("enemyHp",30))-pending)
+	# Prediction can empty the meter; only the server confirms death and rewards.
+	main.world.enemy_visual_hp = maxf(0.0,float(_battle().get("enemyHp",30))-pending)
 
 func _present_contact(id: String, kind: String, point: Vector2) -> void:
 	if visual_outcomes.has(id): return
@@ -547,56 +638,34 @@ func _present_contact(id: String, kind: String, point: Vector2) -> void:
 	_event({"kind":kind,"position":_json(point),"amount":damage,"projectileId":id,"_predicted":true})
 
 func _event(event: Dictionary) -> void:
-	var local = bool(event.get("_predicted",false))
-	if not local and event.kind in ["hit","miss"] and event.has("projectileId"):
-		var id = str(event.projectileId)
-		if visual_outcomes.has(id):
-			var presented_kind = str(visual_outcomes[id].kind)
-			visual_outcomes[id].settled = true
-			_update_predicted_health()
-			# Confirmed hits only need a new impact if the prediction was a miss.
-			if presented_kind == "hit" or event.kind == "miss": return
-	if not local and event.kind in ["return","reset","victory","defeat"]:
-		for outcome in visual_outcomes.values(): outcome.settled = true
-		_update_predicted_health()
-	var effect_point = _point(event.position)
-	if not local and event.kind == "hit" and event.has("targetPosition"):
-		# Exact server contact offset, translated to the receiver's current visual pose.
-		effect_point = enemy_position()+(_point(event.position)-_point(event.targetPosition))
-	if not local and event.kind == "hit" and event.has("projectileId"):
-		# Reconcile the receiver and impact on the same authoritative snapshot.
-		displayed_enemy = enemy_position()
-		main.world_renderer.plaza_slime.position = main.world_renderer.map_point(displayed_enemy)
-		var shot_id = str(event.projectileId)
-		if projectile_nodes.has(shot_id): projectile_nodes[shot_id].visible = false
-
-	if event.kind in ["hit","miss"] and event.has("projectileId") and main.world.effects_enabled:
-		var burst = effect_pool.take_flame(true,event.kind == "miss")
-		burst.position = main.world_renderer.map_point(effect_point,.6)
+	var point = _point(event.get("targetPosition",event.position))
+	if event.kind in ["hit","miss","explosion","meteor"] and main.world.effects_enabled:
+		var burst: Node3D = effect_pool.take_flame(true,event.kind == "miss")
+		burst.position = main.world_renderer.map_point(_point(event.position),.6)
+		burst.scale = Vector3.ONE*(3.0 if event.kind=="meteor" else 2.0 if event.kind=="explosion" else 1.0)
 		flame_bursts.append(burst)
-
-	if event.kind == "victory" and is_instance_valid(reward_effects):
+	if event.kind in ["enemy_down","victory"] and is_instance_valid(reward_effects):
 		var amounts: Dictionary = event.get("rewards",{})
-		reward_effects.show_reward(str(_battle().get("id",""))+":"+str(event.id),_point(event.position),int(amounts.get("xp",0)),int(amounts.get("money",0)))
+		if int(amounts.get("money",0))>0: reward_effects.show_reward(str(_battle().get("id",""))+":"+str(event.id),point,int(amounts.get("xp",0)),int(amounts.money))
 	if event.kind == "wave" and main.world.effects_enabled:
 		var wave = _line(Color(1.0,.45,.12,.65))
 		wave.material_override.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		wave.material_override.cull_mode = BaseMaterial3D.CULL_DISABLED
-		wave_effects.append({"node":wave,"at":_point(event.position),"direction":_point(event.get("direction",{"x":0,"y":-1})),"age":0.0})
+		wave_effects.append({"node":wave,"at":point,"direction":_point(event.get("direction",{"x":0,"y":-1})),"age":0.0})
 	if event.kind == "absorb": guard_flash = .15
+	if event.kind == "hurt" and float(event.get("amount",0))>0:
+		var incoming = main.world.player_position-enemy_position()
+		main.world_renderer.hero.play_hurt(incoming)
 	if event.kind in ["hit","hurt","evade","absorb"]:
-		var text = "회피" if event.kind == "evade" else ("흡수 %d" % int(event.amount) if event.kind == "absorb" else ("%d" % int(event.amount) if event.kind == "hit" else "−%d" % int(event.amount)))
-		var label = effect_pool.take_label(text,Color("df596c") if event.kind in ["hit","hurt"] else Color("f9e7a6"))
-		transient.append({"node":label,"at":enemy_position() if event.kind == "hit" and event.has("targetPosition") else effect_point,"age":0.0})
-		if event.kind == "hit":
-			var monster = main.world_renderer.plaza_slime
-			monster.play_hit()
-			if float(_battle().get("enemyHp",30))<=0: monster.death_at = monster.local_clock
-	if event.kind == "defeat":
+		var text = "회피" if event.kind=="evade" else "흡수 %d" % int(event.amount) if event.kind=="absorb" else "%d" % int(event.amount) if event.kind=="hit" else "−%d" % int(event.amount)
+		var value = effect_pool.take_label(text,Color("df596c") if event.kind in ["hit","hurt"] else Color("f9e7a6"))
+		transient.append({"node":value,"at":point,"age":0.0})
+		if event.kind=="hit": additional_visuals.hit_enemy(str(event.get("enemyId","")))
+	if event.kind=="defeat":
 		main.world.player_position = main.world.spawn_position
 		main.world.path.clear()
 		main.world.touch_direction = Vector2.ZERO
-	if event.kind == "reset": selected = false
+	if event.kind=="reset": selected = false
 
 func _line(color: Color) -> MeshInstance3D:
 	var node = MeshInstance3D.new()
@@ -681,7 +750,7 @@ func _update_enemy_health_hud() -> void:
 func _render(delta: float, active: bool, paused: bool) -> void:
 	main.world.spatial_selected = active and selected
 	selected_ring.visible = active and selected and visible_enemy()
-	aim_line.visible = active and manual and aim_owner != -1 and aim_spell == "fireball"
+	aim_line.visible = active and manual and aim_owner != -1 and aim_spell in ["fireball","giant_fireball"]
 	aim_cone.visible = active and manual and aim_owner != -1 and aim_spell == "flame_wave"
 	aim_end_ring.visible = aim_line.visible
 	guard_ring.visible = not main.snapshot.is_empty() and float(main._combat().get("guard",{}).get("amount",0))>0 and main.world.indoor.is_empty()
@@ -706,84 +775,41 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 	if jump_line.visible:
 		_draw_line(jump_line,_point(_spatial().jumpFrom),_point(_spatial().jumpTo),float(layout.tuning.enemyRadius))
 	var living: Dictionary = {}
-	var headings: Dictionary = {}
-	var origins: Dictionary = {}
-	var distances: Dictionary = {}
-	var reach = float(layout.tuning.range)
-	var speed = float(layout.tuning.projectileSpeed)
-	for p in _spatial().get("projectiles",[]):
-		var position = _point(p.position)
-		if not paused: position += _point(p.direction)*minf(float(p.remaining),float(layout.tuning.projectileSpeed)*minf(visual_age,.15))
-		living[str(p.id)] = position
-		headings[str(p.id)] = _point(p.direction)
-		origins[str(p.id)] = _point(p.position)-_point(p.direction)*(reach-float(p.remaining))
-		distances[str(p.id)] = reach-float(p.remaining)
-	if not predicted.is_empty():
-		# Prefer the new local shot over any stale pre-cast snapshot.
-		living.clear()
-		headings.clear()
-		if not paused: predicted.elapsed += delta
-		headings.predicted = predicted.direction
-		origins.predicted = predicted.position
-		distances.predicted = minf(reach,predicted.elapsed*speed)
-		living.predicted = predicted.position+predicted.direction*minf(float(layout.tuning.range),predicted.elapsed*float(layout.tuning.projectileSpeed))
-	for local_id in local_shots:
-		var shot: Dictionary = local_shots[local_id]
+	for shot in _spatial().get("projectiles",[]):
+		var data: Dictionary = shot.duplicate(true)
+		var point = _point(shot.position)
+		if not paused: point += _point(shot.direction)*minf(float(shot.remaining),float(layout.tuning.projectileSpeed)*minf(visual_age,.1))
+		data.position = _json(point)
+		living[str(shot.id)] = data
+	for id in local_shots:
+		var shot: Dictionary = local_shots[id]
 		if not paused: shot.elapsed += delta
-		headings[local_id] = shot.direction
-		origins[local_id] = shot.position
-		distances[local_id] = minf(reach,float(shot.elapsed)*speed)
-		living[local_id] = shot.position+shot.direction*distances[local_id]
-	# Retain the animated flame across prediction -> authoritative projectile handoff.
-	if projectile_nodes.has("predicted") and not living.has("predicted") and living.size()==1:
-		var server_id = living.keys()[0]
-		if not projectile_nodes.has(server_id):
-			projectile_nodes[server_id] = projectile_nodes.predicted
-			projectile_nodes.erase("predicted")
+		var point: Vector2 = shot.position+shot.direction*minf(_spell_range("fireball"),float(shot.elapsed)*float(layout.tuning.projectileSpeed))
+		living[id] = {"position":_json(point),"direction":_json(shot.direction),"spellId":"fireball"}
 	for id in projectile_nodes.keys():
 		if not living.has(id):
+			projectile_nodes[id].scale = Vector3.ONE
 			effect_pool.release_flame(projectile_nodes[id])
 			projectile_nodes.erase(id)
 	for id in living:
-		if not projectile_nodes.has(id):
-			var node = effect_pool.take_flame()
-			projectile_nodes[id] = node
-		var node = projectile_nodes[id]
-		var heading: Vector2 = headings.get(id,Vector2.RIGHT)
-		if visual_outcomes.has(id):
-			node.visible = false
-			continue
-		var reported = float(distances[id])
-		var start_distance = maxf(node.flight_distance,reported) if node.flight_started else reported
-		var end_distance = minf(reach,maxf(node.flight_distance+speed*delta,reported)) if node.flight_started else reported
-		if not paused and _battle().get("phase","") not in ["victory","defeat"] and _spatial().get("behavior","") != "return":
-			var origin: Vector2 = origins[id]
-			var fraction = _swept_contact(origin+heading*start_distance,origin+heading*end_distance,previous_enemy_position,displayed_enemy,float(layout.tuning.enemyRadius)+float(layout.tuning.projectileRadius))
-			if fraction>=0:
-				var contact = origin+heading*lerpf(start_distance,end_distance,fraction)
-				node.visible = false
-				_present_contact(str(id),"hit",contact)
-				continue
-		var traveled: float = node.advance_flight(reported,speed,reach,delta,paused)
-		if not paused and traveled>=reach-.001:
-			node.visible = false
-			_present_contact(str(id),"miss",origins[id]+heading*reach)
-			continue
-		# Keep an expired prediction until its acknowledgement is reconciled, hidden.
-		# Recreating it here would make a single cast appear to launch twice.
-		node.light_enabled = main.world.effects_enabled
-		node.visible = active and traveled<reach-.001
-		# Leave the same palm point as the gathered flame, then settle to flight height.
-		var display_distance = minf(reach,maxf(traveled,7.0))
-		var flight_height = lerpf(1.25,.6,clampf(traveled/48.0,0,1))
-		node.position = main.world_renderer.map_point(origins[id]+heading*display_distance,flight_height)
+		if not projectile_nodes.has(id): projectile_nodes[id] = effect_pool.take_flame()
+		var node: Node3D = projectile_nodes[id]
+		var shot: Dictionary = living[id]
+		var heading = _point(shot.direction)
+		node.visible = active
+		node.scale = Vector3.ONE*(2.0 if shot.get("spellId","")=="giant_fireball" else 1.0)
+		node.position = main.world_renderer.map_point(_point(shot.position),.75)
 		node.direction = Vector3(heading.x,0,heading.y)
+		node.light_enabled = main.world.effects_enabled
 		node.update_pose(main.world_renderer.camera,delta,paused,main.world.reduced_motion)
+	additional_visuals.render(delta,active,paused)
 	for burst in flame_bursts:
 		burst.light_enabled = main.world.effects_enabled
 		burst.visible = active and main.world.effects_enabled
 		burst.update_pose(main.world_renderer.camera,delta,paused,main.world.reduced_motion)
-		if burst.finished(): effect_pool.release_flame(burst)
+		if burst.finished():
+			burst.scale = Vector3.ONE
+			effect_pool.release_flame(burst)
 	flame_bursts = flame_bursts.filter(func(effect): return not effect.finished())
 	_update_enemy_health_hud()
 	for effect in transient:

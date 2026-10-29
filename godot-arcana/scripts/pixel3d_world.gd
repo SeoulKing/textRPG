@@ -1,4 +1,5 @@
 extends Node3D
+signal camera_updated
 # Native 3D -> small orthographic viewport -> nearest-neighbor presentation.
 # Gameplay remains in world.gd; screen ray picking maps back to its world units.
 const Models = preload("res://scripts/pixel3d_models.gd")
@@ -251,6 +252,11 @@ func _interior(id: String) -> void:
 		inside.add_child(school)
 		inn_lighting.configure_inn(school.light_sources,.98)
 		return
+	if id == "arcana_shop":
+		var shop = preload("res://scenes/shop_interior.tscn").instantiate()
+		inside.add_child(shop)
+		inn_lighting.configure_inn(shop.light_sources,.98)
+		return
 	if id == "arcana_inn":
 		var lobby = preload("res://scenes/inn_lobby.tscn").instantiate()
 		inside.add_child(lobby)
@@ -386,6 +392,8 @@ func _process(_delta: float) -> void:
 	_update_object_occlusion(_delta)
 	camera.h_offset = (get_viewport().size.x%2)*.5/pixels_per_unit if pixelated else 0.0
 	camera.v_offset = (get_viewport().size.y%2)*.5/pixels_per_unit if pixelated else 0.0
+	# Screen overlays must use this frame's final snapped camera.
+	camera_updated.emit()
 	for mat in Models.materials.values(): mat.set_shader_parameter("motion_time",world.time if world.effects_enabled and not world.reduced_motion else 0.0)
 	if last_dusk != int(world.dusk):
 		last_dusk = int(world.dusk)
@@ -411,7 +419,7 @@ func _process(_delta: float) -> void:
 			hearth.sync_fire(world.time,animate_fire)
 		inn_lighting.set_fireplace_time(world.time,animate_fire)
 		inn_lighting.update(self,hero.global_position,true,world.effects_enabled,_delta)
-	elif world.indoor == "arcana_academy":
+	elif world.indoor in ["arcana_academy","arcana_shop"]:
 		inn_lighting.update(self,hero.global_position,true,world.effects_enabled,_delta)
 	else:
 		local_lighting.update(self,hero.global_position,world.dusk,world.effects_enabled and world.indoor.is_empty(),_delta)

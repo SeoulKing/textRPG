@@ -1,6 +1,6 @@
 extends Control
 
-const SPELL_TEXTURES = {"teleport":"res://art/export/spells/teleport.png", "dodge":"res://art/export/spells/dash.png", "fireball":"res://art/export/spells/fireball.png", "flame_wave":"res://art/export/spells/flame-wave.png", "flame_guard":"res://art/export/spells/flame-guard.png"}
+const SPELL_TEXTURES = {"potion":"res://art/export/items/mana-potion.png","manaPotion":"res://art/export/items/mana-potion.png","meteor":"res://art/export/spells/fireball.png","giant_fireball":"res://art/export/spells/fireball.png","flame_barrage":"res://art/export/spells/flame-wave.png","teleport":"res://art/export/spells/teleport.png", "dodge":"res://art/export/spells/dash.png", "fireball":"res://art/export/spells/fireball.png", "flame_wave":"res://art/export/spells/flame-wave.png", "flame_guard":"res://art/export/spells/flame-guard.png"}
 static var spell_textures: Dictionary = {}
 
 var kind = "":

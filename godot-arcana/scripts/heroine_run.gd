@@ -40,6 +40,9 @@ var dash_ghosts: Array[MeshInstance3D]=[]
 var cast_age=-1.0
 var cast_yaw=0.0
 var aim_facing=Vector2.ZERO
+const HURT_DURATION: float = .30
+var hurt_age: float = -1.0
+var hurt_direction: Vector2 = Vector2.ZERO
 const CAST_GATHER=.32
 const CAST_DURATION=.68
 func supports_bench_pose() -> bool:
@@ -75,6 +78,29 @@ func begin_cast(direction: Vector2) -> void:
     cast_age=0.0
 func cancel_cast() -> void:
     cast_age=-1.0
+# Presentation only: never displace the gameplay anchor or interrupt an input.
+func play_hurt(direction: Vector2) -> void:
+    hurt_age=0.0
+    hurt_direction=direction.normalized()
+func update_hurt(delta: float,effects: bool) -> void:
+    var recoil: float = 0.0
+    var flash: float = 0.0
+    if hurt_age>=0:
+        # Fast impact, a small settling rebound, then a complete recovery.
+        var phase: float = clampf(hurt_age/HURT_DURATION,0,1)
+        if phase<.18:recoil=sin(phase/.18*PI*.5)
+        elif phase<.70:recoil=cos((phase-.18)/.52*PI*.5)
+        else:recoil=-.16*sin((phase-.70)/.30*PI)
+        flash=maxf(0,1.0-hurt_age/.14)
+        hurt_age+=delta
+        if hurt_age>=HURT_DURATION:hurt_age=-1.0
+    var sideways: float = hurt_direction.x*cos(camera_yaw)-hurt_direction.y*sin(camera_yaw)
+    var depth: float = hurt_direction.x*sin(camera_yaw)+hurt_direction.y*cos(camera_yaw)
+    var offset: Vector2 = Vector2(sideways*.09,-depth*.055)*recoil if effects else Vector2.ZERO
+    # Whole source pixels keep the original sprite crisp at the shared density.
+    sprite_material.set_shader_parameter("hurt_offset",offset.snapped(Vector2.ONE/64.0))
+    sprite_material.set_shader_parameter("hurt_angle",-sideways*.075*recoil if effects else 0.0)
+    sprite_material.set_shader_parameter("hurt_flash",flash if effects else 0.0)
 func make_cast_warmup_mesh() -> MeshInstance3D:
     # Draw the real cast atlas/material during loading without touching the avatar.
     var warm_mesh=MeshInstance3D.new()
@@ -162,6 +188,7 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,pixelated: bool,
     pose_updates+=1
     var delta=clampf(time-previous_pose_time,0,.1) if previous_pose_time>=0 else 0.0
     previous_pose_time=time
+    update_hurt(delta,effects)
     if dash_age>=0:last_yaw=dash_yaw
     elif cast_age>=0:last_yaw=cast_yaw
     elif aim_facing.length_squared()>.00001:last_yaw=atan2(aim_facing.x,aim_facing.y)

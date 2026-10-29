@@ -11,14 +11,20 @@ const Joystick = preload("res://scripts/virtual_joystick.gd")
 const SlotIcon = preload("res://scripts/quickslot_icon.gd")
 const NavIcon = preload("res://scripts/bottom_nav_icon.gd")
 const ActionButton = preload("res://scripts/mobile_action_button.gd")
+const SkillTreeView = preload("res://scripts/skill_tree_view.gd")
+var skill_tree_view: Control
 const SkillCooldown = preload("res://scripts/skill_cooldown.gd")
-const SLOT_NAMES = {"fireball":"불꽃탄", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"대시", "teleport":"텔레포트", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
+const SLOT_NAMES = {"meteor":"메테오","giant_fireball":"거대화염구","flame_barrage":"화염난사","fireball":"불꽃탄", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"대시", "teleport":"텔레포트", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
 const INK = Color("26364d")
 const MUTED = Color("586779")
 const GOLD = Color("856129")
 const PAPER = Color("fffaf0")
 const EDGE = Color("c7cbd2")
 var mei_nameplate: PanelContainer
+var mei_nameplate_anchor: Node2D
+var mei_nameplate_pixel_scale = Vector2.ZERO
+var mei_nameplate_layout_size = Vector2.ZERO
+var mei_nameplate_pixel_offset = Vector2.ZERO
 var root: Control
 var header: PanelContainer
 var navigation: PanelContainer
@@ -83,6 +89,10 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	# Controls snap their local transforms in the renderer, even when position
+	# reports fractions. Move a Node2D carrier so physical-pixel placement survives.
+	mei_nameplate_anchor = Node2D.new()
+	root.add_child(mei_nameplate_anchor)
 	mei_nameplate = PanelContainer.new()
 	mei_nameplate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var plate_style = style(Color("26364de6"), Color("c7cbd2"))
@@ -95,8 +105,8 @@ func _ready() -> void:
 	mei_label.add_theme_font_override("font", FONT)
 	mei_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mei_nameplate.add_child(mei_label)
-	root.add_child(mei_nameplate)
-	mei_nameplate.hide()
+	mei_nameplate_anchor.add_child(mei_nameplate)
+	mei_nameplate_anchor.hide()
 	var theme = Theme.new()
 	theme.default_font = FONT
 	theme.default_font_size = 14
@@ -134,7 +144,6 @@ func _ready() -> void:
 	top.add_child(stack)
 	var heading = HBoxContainer.new()
 	heading.add_theme_constant_override("separation",8)
-	stack.add_child(heading)
 	title_label = label("ARCANA", 11, GOLD, true)
 	heading.add_child(title_label)
 	title_label.hide() # Keep the update interface; omit redundant branding from the HUD.
@@ -162,6 +171,7 @@ func _ready() -> void:
 		bar.add_child(stat)
 		if id == "HP": hp_label = stat; hp_bar = bar
 		else: mp_label = stat; mp_bar = bar
+	stack.add_child(heading)
 	var bottom = PanelContainer.new()
 	navigation = bottom
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -389,7 +399,22 @@ func _build_panel() -> void:
 	scroll.add_child(content)
 	overlay.hide()
 
+func open_skill_tree(spell: Dictionary, selected: String, invest: Callable, reset: Callable, back: Callable) -> void:
+	open_panel(str(spell.get("name","스킬")))
+	panel.hide()
+	skill_tree_view = SkillTreeView.new()
+	skill_tree_view.spell = spell
+	skill_tree_view.selected_id = selected
+	skill_tree_view.invest_requested.connect(invest)
+	skill_tree_view.reset_requested.connect(reset)
+	skill_tree_view.close_requested.connect(back)
+	overlay.add_child(skill_tree_view)
+
 func open_panel(title: String, can_close: bool = true) -> void:
+	if is_instance_valid(skill_tree_view):
+		skill_tree_view.queue_free()
+		skill_tree_view = null
+	panel.show()
 	reset_touch_controls()
 	joystick.set_enabled(false)
 	panel_title.text = title
@@ -401,6 +426,10 @@ func open_panel(title: String, can_close: bool = true) -> void:
 	overlay.show()
 
 func close_panel() -> void:
+	if is_instance_valid(skill_tree_view):
+		skill_tree_view.queue_free()
+		skill_tree_view = null
+	panel.show()
 	overlay.hide()
 	panel_closed.emit()
 
@@ -541,11 +570,10 @@ func _process(delta: float) -> void:
 func _layout() -> void:
 	var available = root.get_viewport_rect().size
 	var width = available.x
-	# Keep landscape status readable without spanning the center of the world.
-	var landscape: bool = width > available.y
+	# Keep the status panel at the upper left in either orientation.
 	var header_width: float = minf(320.0, width - 24.0)
 	header.scale = Vector2.ONE
-	header.offset_left = 12.0 if landscape else (width - header_width) / 2.0
+	header.offset_left = 12.0
 	header.offset_right = header.offset_left + header_width
 	_layout_controls()
 	navigation.offset_left = maxf(12, (width - 480) / 2)
@@ -616,6 +644,18 @@ func setting_slider(title: String, minimum: float, maximum: float, step: float, 
 	content.add_child(slider)
 
 func update_mei_nameplate(screen_position: Vector2, shown: bool) -> void:
-	mei_nameplate.visible = shown
+	if mei_nameplate_anchor.visible != shown:
+		mei_nameplate_anchor.visible = shown
 	if shown:
-		mei_nameplate.position = (screen_position + Vector2(-mei_nameplate.size.x * .5, 8)).round()
+		# The world is enlarged in physical pixels and cancels the UI stretch.
+		# Rounding in UI units would make the plate drift against those pixels.
+		var pixel_scale = get_viewport().get_stretch_transform().get_scale()
+		if mei_nameplate_pixel_scale != pixel_scale or mei_nameplate_layout_size != mei_nameplate.size:
+			mei_nameplate_pixel_scale = pixel_scale
+			mei_nameplate_layout_size = mei_nameplate.size
+			# Keep the centering/gap fixed on that grid; glyphs are never rebuilt.
+			mei_nameplate_pixel_offset = (Vector2(-mei_nameplate.size.x * .5, 8) * pixel_scale).round()
+		var pixel_anchor = (screen_position * pixel_scale).round()
+		var target_position = (pixel_anchor + mei_nameplate_pixel_offset) / pixel_scale
+		if mei_nameplate_anchor.position != target_position:
+			mei_nameplate_anchor.position = target_position

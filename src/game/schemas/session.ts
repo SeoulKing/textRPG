@@ -88,11 +88,12 @@ export const SurvivalGoalSchema = z.object({
 
 export const StateSnapshotSchema = z.object({
   arcanaSpells: z.array(z.object({
-    id: z.enum(["fireball", "flame_wave", "flame_guard"]),
-    name: z.string(), school: z.string(), schoolName: z.string(),
+    id: z.enum(["fireball", "flame_wave", "flame_guard", "meteor", "giant_fireball", "flame_barrage"]),
+    parentSkill:z.string().optional(), name: z.string(), school: z.string(), schoolName: z.string(),
     unlockLevel: z.number(), cost: z.number(), cooldown: z.number(), ratio: z.number(),
     targeting: z.enum(["projectile", "cone", "self"]), thumbnail: z.string(),
     rangeTiles: z.number(), angle: z.number(), duration: z.number(),
+    tree: z.object({selectedUltimates:z.array(z.string()).optional(),maxLevel:z.number().optional(),master:z.boolean().optional(),selectedUltimate:z.string().nullable().optional(),level:z.number(),xp:z.number(),xpRequired:z.number(),points:z.number(),spent:z.number(),editable:z.boolean(),nodes:z.array(z.object({id:z.string(),name:z.string(),maxRank:z.number(),row:z.number(),column:z.number(),parents:z.array(z.string()),level:z.number(),effect:z.string(),amount:z.number(),pointCost:z.number().optional(),automatic:z.boolean().optional(),specialization:z.string().optional(),rank:z.number(),available:z.boolean(),reason:z.string(),current:z.string(),next:z.string()}))}).optional(),
     equipped: z.boolean(), mastery: z.number(), masteryXp: z.number(),
     unlocked: z.boolean(), learnable: z.boolean(), schoolUnlocked: z.boolean(), magnitude: z.number(),
   })).default([]),

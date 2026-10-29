@@ -8,12 +8,12 @@ export const ArcanaCombatSchema = z.object({
   mp: z.number().nonnegative().default(30),
   manaRegenPerHour: z.number().nonnegative().default(12),
   unlockedSchools: z.array(z.string().min(1)).default(["fire"]),
-  learnedSpells: z.array(z.enum(["fireball", "flame_wave", "flame_guard"])).optional(),
+  learnedSpells: z.array(z.enum(["fireball", "flame_wave", "flame_guard", "meteor", "giant_fireball", "flame_barrage"])).optional(),
   skillSystemVersion: z.literal(1).optional(),
-  skillTraining: z.record(z.string(), z.object({ xp: z.number().finite().min(0).max(10000), specializations: z.array(z.string()).default([]), activeSpecialization: z.string().nullable().default(null) })).default({}),
+  skillTraining: z.record(z.string(), z.object({ xp: z.number().finite().min(0).max(Number.MAX_SAFE_INTEGER), specializations: z.array(z.string()).default([]), activeSpecialization: z.string().nullable().default(null), treeVersion:z.union([z.literal(2),z.literal(3)]).optional(), ultimates:z.array(z.enum(["meteor","giant_fireball","flame_barrage"])).optional(), ultimate:z.enum(["meteor","giant_fireball","flame_barrage"]).nullable().optional(), treeRanks: z.record(z.string(), z.number().int().min(0).max(3)).optional() })).default({}),
   activeSkills: z.array(z.string().nullable()).length(6).optional(),
   passiveSkills: z.array(z.string().nullable()).length(2).default([null, null]),
-  cooldowns: z.object({ fireball: z.number().nonnegative().default(0), flame_wave: z.number().nonnegative().default(0), flame_guard: z.number().nonnegative().default(0), dodge: z.number().nonnegative().default(0), teleport: z.number().nonnegative().default(0), potion: z.number().nonnegative().default(0) }).default({ fireball: 0, flame_wave: 0, flame_guard: 0, dodge: 0, teleport: 0, potion: 0 }),
+  cooldowns: z.object({ ultimate:z.number().nonnegative().default(0), meteor:z.number().nonnegative().default(0), giant_fireball:z.number().nonnegative().default(0), flame_barrage:z.number().nonnegative().default(0), fireball: z.number().nonnegative().default(0), flame_wave: z.number().nonnegative().default(0), flame_guard: z.number().nonnegative().default(0), dodge: z.number().nonnegative().default(0), teleport: z.number().nonnegative().default(0), potion: z.number().nonnegative().default(0) }).default({ ultimate:0, meteor:0, giant_fireball:0, flame_barrage:0, fireball: 0, flame_wave: 0, flame_guard: 0, dodge: 0, teleport: 0, potion: 0 }),
   guard: z.object({ amount: z.number().nonnegative().default(0), seconds: z.number().nonnegative().default(0) }).default({ amount: 0, seconds: 0 }),
   evadeSkill: z.enum(["dodge", "teleport"]).default("dodge"),
   evadeSeconds: z.number().nonnegative().default(0),
@@ -26,7 +26,7 @@ export const ArcanaCombatSchema = z.object({
     log: z.array(z.string()),
     spatial: ArcanaSpatialSchema.optional(),
   }).nullable().default(null),
-}).default({ skillSystemVersion: 1, skillTraining: {}, activeSkills: ["fireball", null, null, null, null, null], passiveSkills: [null, null], level: 1, xp: 0, hp: 100, mp: 30, manaRegenPerHour: 12, unlockedSchools: ["fire"], cooldowns: { fireball: 0, flame_wave: 0, flame_guard: 0, dodge: 0, teleport: 0, potion: 0 }, guard: { amount: 0, seconds: 0 }, evadeSkill: "dodge", evadeSeconds: 0, battle: null });
+}).default({ skillSystemVersion: 1, skillTraining: {}, activeSkills: ["fireball", null, null, null, null, null], passiveSkills: [null, null], level: 1, xp: 0, hp: 100, mp: 30, manaRegenPerHour: 12, unlockedSchools: ["fire"], cooldowns: { ultimate:0, meteor:0, giant_fireball:0, flame_barrage:0, fireball: 0, flame_wave: 0, flame_guard: 0, dodge: 0, teleport: 0, potion: 0 }, guard: { amount: 0, seconds: 0 }, evadeSkill: "dodge", evadeSeconds: 0, battle: null });
 
 export const ActiveClockSchema = z.object({
   ownerId: z.string().nullable().default(null),

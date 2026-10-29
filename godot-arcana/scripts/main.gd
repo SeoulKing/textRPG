@@ -6,6 +6,7 @@ const PixelWorld3D = preload("res://scripts/pixel3d_world.gd")
 const UI = preload("res://scripts/game_ui.gd")
 const SpatialCombat = preload("res://scripts/arcana_spatial.gd")
 var spatial_combat
+var combat_socket: Node
 const SAVE_KEY = "arcana-godot-game-v1"
 const SHARED_SAVE_KEY = "ruined-seoul-stage1-manual-save-game-id-v1"
 const CONTROLS_KEY = "arcana-godot-controls-v1"
@@ -16,6 +17,15 @@ var world_renderer
 var ui
 var viewport: SubViewport
 var viewport_host: TextureRect
+var mei_nameplate_target: Node3D
+var mei_projection_valid = false
+var mei_camera_transform: Transform3D
+var mei_camera_settings: Vector3
+var mei_viewport_size: Vector2i
+var mei_world_position: Vector3
+var mei_source_position: Vector2
+var mei_pixel_origin: Vector2
+var mei_quarter_view = false
 var snapshot: Dictionary = {}
 var game_id = ""
 var busy = false
@@ -85,6 +95,7 @@ func _ready() -> void:
 	world_renderer = PixelWorld3D.new()
 	world_renderer.world = world
 	viewport.add_child(world_renderer)
+	world_renderer.camera_updated.connect(_update_mei_nameplate)
 	world.interacted.connect(_interact)
 	world.building_entry_intended.connect(_auto_enter_building)
 	ui = UI.new()
@@ -105,6 +116,9 @@ func _ready() -> void:
 		_store(QUICKSLOT_KEY,JSON.stringify(ui.quickslot_bindings))
 		_store("arcana-teleport-slot-v1","1")
 	if developer_tools: ui.set_quickslot(3,"dev_speed")
+	combat_socket = preload("res://scripts/combat_socket.gd").new()
+	combat_socket.main = self
+	add_child(combat_socket)
 	spatial_combat = SpatialCombat.new()
 	spatial_combat.main = self
 	add_child(spatial_combat)
@@ -365,7 +379,6 @@ func _update_hud() -> void:
 
 func _process(delta: float) -> void:
 	_record_frame(delta)
-	_update_mei_nameplate()
 	if not is_instance_valid(ui): return
 	world.enabled = (not busy or gate_crossing) and not ui.overlay.visible and page_active and not snapshot.is_empty()
 	ui.joystick.set_enabled(page_active and not ui.overlay.visible and not snapshot.is_empty())
@@ -376,12 +389,12 @@ func _process(delta: float) -> void:
 	var battle = _battle()
 	if not battle.is_empty() and not battle.has("spatial") and battle.get("phase", "") == "battle" and not battle.get("paused", true) and world.enabled:
 		world.battle.attackIn = maxf(0, float(world.battle.get("attackIn", 6)) - delta)
-		for key in ["fireball", "flame_wave", "flame_guard", "dodge", "teleport", "potion"]:
+		for key in ["fireball", "flame_wave", "flame_guard", "meteor", "giant_fireball", "flame_barrage", "ultimate", "dodge", "teleport", "potion"]:
 			_combat().cooldowns[key] = maxf(0, float(_combat().cooldowns.get(key, 0)) - delta)
 	if ui_refresh > .10:
 		ui_refresh = 0
 		_refresh_controls()
-	if heartbeat >= 1.0 and not busy and not clock_busy and not spatial_combat.request_busy and not spatial_combat.connection_lost and spatial_combat.queue.is_empty() and spatial_combat.aim_owner == -1 and spatial_combat.pending_cast.is_empty() and spatial_combat.buffered_cast.is_empty() and not battle.has("spatial"):
+	if heartbeat >= 1.0 and not busy and not clock_busy and not spatial_combat.request_busy and not spatial_combat.connection_lost and spatial_combat.queue.is_empty() and spatial_combat.aim_owner == -1 and spatial_combat.pending_cast.is_empty() and spatial_combat.buffered_cast.is_empty() and not battle.has("spatial") and not spatial_combat.available():
 		heartbeat = 0
 		_clock()
 	# Crossing the southern gate keeps position and commits the existing travel rule.
@@ -463,6 +476,7 @@ func _spell(command: String) -> Dictionary:
 	return {}
 
 func _spell_hint(spell: Dictionary) -> String:
+	if spell.get("parentSkill","")=="fireball": return "%s · 피해 %d · MP 30 · 재사용 60초" % [spell.name,int(spell.magnitude)]
 	var effect = "4초간 보호막 %d" % int(spell.magnitude) if spell.targeting == "self" else "피해 %d" % int(spell.magnitude)
 	if spell.targeting == "cone": effect = "전방 90도 · 2칸 · " + effect
 	return "%s · %s · MP %d · 재사용 %d초%s" % [spell.name,effect,int(spell.cost),int(spell.cooldown),"" if spell.get("unlocked",false) else " · 스킬 탭에서 습득"]
@@ -575,6 +589,8 @@ func _interact(entity: Dictionary) -> void:
 	if busy: return
 	world.path.clear()
 	match entity.kind:
+		"merchant":
+			_shop_menu()
 		"innkeeper":
 			_innkeeper_dialogue()
 		"bench":
@@ -583,7 +599,7 @@ func _interact(entity: Dictionary) -> void:
 			if await _travel(entity.id):
 				if entity.id == "arcana_academy":
 					ui.toast("학교 안에서 인물과 각 공간을 찾아가 보세요.")
-				elif entity.id != "arcana_inn": _scene()
+				elif entity.id not in ["arcana_inn","arcana_shop"]: _scene()
 		"inn_sofa":
 			if not _sit_furniture(entity): return
 			if not developer_tools: return
@@ -660,7 +676,65 @@ func _find_action(type: String, id: String) -> Dictionary:
 		if a.get("type", "") == type and (a.get("actionId", "") == id or a.get("command", "") == id): return a
 	return {}
 
+func _shop_menu(selling: bool = false) -> void:
+	if world.indoor != "arcana_shop": return
+	panel_mode = "shop"
+	ui.open_panel("아르카나 상점 · " + ("판매" if selling else "구매"))
+	ui.section_tabs(["구매","판매"],1 if selling else 0,[func(): _shop_menu(false),func(): _shop_menu(true)])
+	ui.paragraph("상인이 장부를 펼칩니다. “필요한 물건을 골라 주세요. 약초와 마력 재료도 매입하고 있어요.”")
+	ui.paragraph("소지금 %d원" % int(_state().get("money",0)),ui.GOLD)
+	var count = 0
+	for entry in snapshot.get("availableActions",[]):
+		var action: Dictionary = entry.get("action",{})
+		if action.get("command","") != ("sell_item" if selling else "buy_item"): continue
+		count += 1
+		var icon = "manaPotion" if action.get("itemId","") == "manaPotion" else ""
+		ui.choice(entry.label,entry.get("outcomeHint",""),func(): _shop_quantity(entry,selling),not entry.get("isAvailable",true),icon)
+	if count == 0: ui.paragraph("현재 상점에서 매입할 수 있는 물품을 가지고 있지 않습니다.",ui.MUTED)
+	ui.choice("거래 마치기","상점 안을 둘러봅니다.",func(): ui.close_panel())
+
+func _shop_quantity(entry: Dictionary, selling: bool) -> void:
+	if busy or world.indoor != "arcana_shop": return
+	var action: Dictionary = entry.action
+	var unit_price = str(entry.get("outcomeHint","0")).get_slice("원",0).to_int()
+	if unit_price <= 0: return
+	var available: int = int(_state().get("inventory",{}).get(action.itemId,0)) if selling else floori(float(_state().get("money",0))/unit_price)
+	var maximum = mini(99,int(available))
+	if maximum < 1:
+		ui.toast("판매할 물품이나 소지금이 부족합니다.")
+		_shop_menu(selling)
+		return
+	panel_mode = "shop_quantity"
+	ui.open_panel(entry.label)
+	ui.paragraph(entry.get("outcomeHint",""))
+	ui.paragraph("소지금 %d원 · 거래 가능 %d개" % [int(_state().get("money",0)),maximum],ui.GOLD)
+	var quantity = SpinBox.new()
+	quantity.min_value = 1
+	quantity.max_value = maximum
+	quantity.step = 1
+	quantity.value = 1
+	quantity.rounded = true
+	quantity.custom_minimum_size = Vector2(180,48)
+	ui.content.add_child(quantity)
+	var total = ui.label("합계 %d원" % unit_price,16,ui.GOLD)
+	ui.content.add_child(total)
+	quantity.value_changed.connect(func(value: float): total.text = "합계 %d원" % (unit_price*int(value)))
+	ui.choice("판매 확정" if selling else "구매 확정","선택한 수량과 합계로 거래합니다.",func(): _shop_trade(action,int(quantity.value),selling),false, "manaPotion" if action.itemId == "manaPotion" else "")
+	ui.choice("목록으로 돌아가기","",func(): _shop_menu(selling))
+
+func _shop_trade(template: Dictionary, quantity: int, selling: bool) -> void:
+	if busy or world.indoor != "arcana_shop": return
+	var action = template.duplicate(true)
+	action.quantity = quantity
+	var success = await perform(action,false)
+	if world.indoor == "arcana_shop":
+		_shop_menu(selling)
+		if success: ui.toast("거래를 마쳤습니다.")
+
 func _scene(page: int = 0) -> void:
+	if world.indoor == "arcana_shop":
+		_shop_menu()
+		return
 	if _battle().get("phase","")=="victory":
 		_finish_victory_quietly.call_deferred()
 		return
@@ -711,7 +785,7 @@ func _choose(entry: Dictionary) -> void:
 		return
 	if battle_action and _battle().has("spatial"):
 		ui.close_panel()
-		if command in ["fireball","flame_wave"]: spatial_combat.cast_auto(command)
+		if command in ["fireball","flame_wave","meteor","giant_fireball"]: spatial_combat.cast_auto(command)
 		else: spatial_combat.queue_command(command)
 		return
 	if battle_action and command in ["start", "resume", "fireball", "flame_wave", "flame_guard", "dodge", "teleport", "potion", "finish", "retreat"]:
@@ -728,7 +802,7 @@ func _magic(command: String) -> void:
 		return
 	if busy or ui.overlay.visible or not world.bench_state.is_empty(): return
 	if spatial_combat.available():
-		if command in ["fireball","flame_wave"]: spatial_combat.cast_auto(command)
+		if command in ["fireball","flame_wave","meteor","giant_fireball"]: spatial_combat.cast_auto(command)
 		else: spatial_combat.queue_command(command)
 		return
 	if _battle().is_empty() and command not in ["potion","flame_guard"]: return
@@ -794,7 +868,7 @@ func _skills_menu() -> void:
 	panel_mode = "skills"
 	ui.open_panel("스킬")
 	ui.section_tabs(["스킬", "상태"], 0, [_skills_menu, _status_menu])
-	ui.paragraph("스킬별 숙련도 0~100 · 액티브 6칸 + 패시브 2칸",ui.MUTED)
+	ui.paragraph("액티브 6칸 · 패시브 2칸",ui.MUTED)
 	ui.paragraph("모든 스킬을 배울 수 있으며, 장착한 전투 스킬만 사용할 수 있습니다.",ui.MUTED)
 	ui.choice("장착 구성","주력 4칸 · 자유 2칸 · 패시브 2칸",_loadout_menu)
 	var school = ""
@@ -805,7 +879,7 @@ func _skills_menu() -> void:
 		var command: String = spell.id
 		var status = "습득 완료" if spell.get("unlocked",false) else "배우기 가능" if spell.get("learnable",false) else "습득 조건 확인"
 		if not spell.get("schoolUnlocked",true): status = spell.schoolName+" 계열 해금 필요"
-		ui.choice(spell.name,status+" · 숙련도 %.2f / 100%s" % [float(spell.get("mastery",0))," · 장착 중" if spell.get("equipped",false) else ""],func(): _skill_details(command),false,command)
+		ui.choice(spell.name,status+(" · 파이어볼 궁극기" if spell.get("parentSkill","")=="fireball" else " · 스킬 레벨 %d" % int(spell.get("tree",{}).get("level",1)))+(" · 장착 중" if spell.get("equipped",false) else ""),func(): _skill_details(command),false,command)
 	ui.paragraph("기본 기술",ui.GOLD)
 	ui.choice("텔레포트","습득 완료 · 즉시 순간이동 · 0.3초 회피 · MP 0 · 재사용 0초",func(): _skill_slot_picker("teleport"),false,"teleport")
 	ui.choice("대시","습득 완료 · 즉시 전방 이동 · 0.3초 회피 · 재사용 5초",func(): _skill_slot_picker("dodge"),false,"dodge")
@@ -826,12 +900,36 @@ func _status_menu() -> void:
 	ui.paragraph("스킬 성장", ui.GOLD)
 	for spell in snapshot.get("arcanaSpells", []):
 		if spell.get("unlocked", false):
-			ui.paragraph("%s · 숙련도 %.2f / 100%s" % [spell.name, float(spell.get("mastery", 0)), " · 장착 중" if spell.get("equipped", false) else ""])
+			ui.paragraph("%s · 스킬 레벨 %d%s" % [spell.name, int(spell.get("tree",{}).get("level",1)), " · 장착 중" if spell.get("equipped", false) else ""])
 	ui.choice("장착 구성", "액티브 · 패시브 슬롯 확인", _loadout_menu)
+
+func _skill_tree_action(command: String, node_id: String, reset: bool = false) -> void:
+	if busy: return
+	var action = {"type":"arcana_combat","command":"reset_skill_tree" if reset else "invest_skill","spellId":command}
+	if not reset: action.nodeId = node_id
+	var source_view = ui.skill_tree_view
+	await perform(action,false)
+	if is_instance_valid(source_view) and ui.skill_tree_view == source_view and ui.overlay.visible:
+		_show_skill_tree(command,node_id if not node_id.is_empty() else "power")
+
+func _show_skill_tree(command: String, selected: String = "power") -> void:
+	panel_mode = "skills"
+	ui.open_skill_tree(_spell(command),selected,func(node_id: String): _skill_tree_action(command,node_id),func(): _skill_tree_action(command,"",true),_skills_menu)
 
 func _skill_details(command: String) -> void:
 	var spell = _spell(command)
 	if spell.is_empty(): return
+	if spell.get("parentSkill","")=="fireball":
+		panel_mode = "skills"
+		ui.open_panel(spell.name)
+		ui.paragraph(_spell_hint(spell))
+		ui.choice("액티브 장착 위치 선택","",func(): _equip_picker(command),false,command)
+		ui.choice("퀵슬롯에 배치","",func(): _skill_slot_picker(command),not spell.get("equipped",false),command)
+		ui.choice("파이어볼 트리","",func(): _show_skill_tree("fireball"))
+		return
+	if spell.get("unlocked",false) and spell.has("tree"):
+		_show_skill_tree(command)
+		return
 	panel_mode = "skills"
 	ui.open_panel(spell.name)
 	ui.paragraph(_spell_hint(spell))
@@ -861,10 +959,20 @@ func _loadout_menu() -> void:
 	for i in range(6):
 		var id = str(slots[i]) if slots.size()>i and slots[i]!=null else ""
 		var label = "주력 %d" % (i+1) if i<4 else "자유 %d" % (i-3)
-		ui.choice(label+" · "+str(_spell(id).get("name","비어 있음")),"누르면 장착 해제",func(): _equip_skill(i,""),id.is_empty())
+		ui.choice(label+" · "+str(_spell(id).get("name","비어 있음")),"장착 변경 · 해제",func(): _loadout_slot_picker(i))
 	ui.paragraph("패시브 1 · 비어 있음 / 패시브 2 · 비어 있음",ui.MUTED)
 	ui.paragraph("패시브·발견·융합·생활 스킬은 이후 정의되는 항목부터 연결합니다. 기본 회피는 슬롯 없이 사용할 수 있습니다.",ui.MUTED)
 	ui.choice("스킬 목록으로","",_skills_menu)
+
+func _loadout_slot_picker(index: int) -> void:
+	panel_mode = "skills"
+	ui.open_panel("액티브 %d번 슬롯" % (index+1))
+	for spell in snapshot.get("arcanaSpells",[]):
+		if not spell.get("unlocked",false): continue
+		var command: String = spell.id
+		ui.choice(spell.name,"이 슬롯에 장착",func(): _equip_skill(index,command),false,command)
+	ui.choice("비우기","장착 해제",func(): _equip_skill(index,""))
+	ui.choice("장착 구성으로","",_loadout_menu)
 
 func _equip_picker(command: String) -> void:
 	panel_mode = "skills"
@@ -973,7 +1081,7 @@ func _inventory() -> void:
 		if item.id == "manaPotion" and not _battle().is_empty(): action.battleId = _battle().id
 		var usable = item.kind in ["food", "drink", "medicine"]
 		ui.choice("%s × %d" % [item.name, count], item.description, func():
-			if await perform(action, false): _inventory(), not usable)
+			if await perform(action, false): _inventory(), not usable, "manaPotion" if item.id == "manaPotion" else "")
 
 func _equipment_menu() -> void:
 	panel_mode = "inventory"
@@ -1194,7 +1302,7 @@ func _bridge_command(args: Array) -> void:
 		"close": ui.close_panel()
 
 func _bridge_state(_args: Array) -> void:
-	var state = {"engine":"Godot 4.5.1", "renderer":"native_3d_pixel", "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
+	var state = {"engine":"Godot 4.5.1", "renderer":"native_3d_pixel", "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))
 
@@ -1219,18 +1327,37 @@ func _adjust_controls(key: String, value: float) -> void:
 
 func _update_mei_nameplate() -> void:
 	if not is_instance_valid(ui) or not is_instance_valid(world_renderer): return
-	var mei: Node3D = null
-	for npc in get_tree().get_nodes_in_group("arcana_npc_idle"):
-		if world_renderer.is_ancestor_of(npc) and npc.is_visible_in_tree():
-			mei = npc
-			break
-	var shown = mei != null and not snapshot.is_empty() and world.indoor.is_empty()
+	# Keep the static NPC reference; resolve again only after a layout replacement.
+	if not is_instance_valid(mei_nameplate_target):
+		mei_projection_valid = false
+		if not snapshot.is_empty() and world.indoor.is_empty():
+			for npc in get_tree().get_nodes_in_group("arcana_npc_idle"):
+				if world_renderer.is_ancestor_of(npc):
+					mei_nameplate_target = npc
+					break
+	var mei = mei_nameplate_target
+	var shown = is_instance_valid(mei) and not snapshot.is_empty() and world.indoor.is_empty() and mei.is_visible_in_tree()
 	var screen_position = Vector2.ZERO
 	if shown:
 		var camera: Camera3D = world_renderer.camera
 		shown = not camera.is_position_behind(mei.global_position)
 		if shown:
-			var source_position = camera.unproject_position(mei.global_position)
+			var camera_settings = Vector3(camera.size, camera.h_offset, camera.v_offset)
+			var reset_pixel_origin = not mei_projection_valid or mei_camera_settings != camera_settings or mei_viewport_size != viewport.size or mei_quarter_view != world_renderer.quarter_view
+			if reset_pixel_origin or mei_camera_transform != camera.global_transform or mei_camera_settings != camera_settings or mei_viewport_size != viewport.size or mei_world_position != mei.global_position:
+				mei_camera_transform = camera.global_transform
+				mei_camera_settings = camera_settings
+				mei_viewport_size = viewport.size
+				mei_world_position = mei.global_position
+				mei_source_position = camera.unproject_position(mei_world_position)
+				if reset_pixel_origin:
+					mei_pixel_origin = mei_source_position
+					mei_quarter_view = world_renderer.quarter_view
+				mei_projection_valid = true
+			var source_position = mei_source_position
+			# Measure whole-pixel camera travel from a fixed subpixel phase.
+			# Absolute rounding can flip at a boundary due to camera float noise.
+			if world_renderer.pixelated: source_position = mei_pixel_origin.floor() + (source_position - mei_pixel_origin).round()
 			screen_position = viewport_host.position + source_position * viewport_host.size / Vector2(viewport.size) * viewport_host.scale
 			shown = get_viewport().get_visible_rect().has_point(screen_position)
 	ui.update_mei_nameplate(screen_position, shown)

@@ -32,4 +32,4 @@ v2 제작 지시는 약 2.3등신, 머리 높이 약 42%, 큰 머리와 짧은 �
 
 ## 웹 애니메이션 프레임 로딩
 
-메이의 대기는 "scripts/package-mei-idle.py"가 내보낸 "art/export/plaza-guide/mei-idle-frames/pose-*.png"를 SpriteFrames에서 직접 참조합니다. 실행 중 AtlasTexture.get_image()로 GPU 픽셀을 읽거나 ImageTexture를 생성하지 않습니다. 기존 PixelPen 원본·시트·96칸 타임라인·12FPS·발 기준점을 유지하며, 원본 수정 뒤에는 같은 패키저를 실행합니다.
+메이의 대기는 `scripts/package-mei-idle.py`가 저장된 native-frames로 묶은 `art/export/plaza-guide/mei-idle.png` 한 장을 사용합니다. SpriteFrames는 같은 시트의 10개 AtlasTexture 영역으로 96칸 타임라인을 유지하고, `mei_sprite.gd`는 재생 중 `frame_cell`만 바꿉니다. GPU 픽셀 읽기·ImageTexture 생성·재생 중 sampler 교체를 하지 않습니다. 개별 pose PNG도 기존 참조를 위해 보존합니다. PixelPen 원본·12FPS·발 기준점은 유지하며, 원본 수정 뒤에는 같은 패키저를 실행합니다. PixelPen 저장본을 네이티브 API로 다시 열어 10자세의 레이어·알파·96칸 참조를 확인했습니다. 모두 3,092 불투명 픽셀이며 기존 출력과 일치합니다. 검사 근거와 비교판은 `idle-v2/frame-audit/`에 있습니다. 정적 PNG와 시트의 중복 UID를 분리하고 패키저의 UID 복사를 제거했습니다. 수정 표시기와 내보낸 PCK의 96칸 GPU 출력은 모두 12,368 불투명 픽셀(2배 출력)로 유지되고, 반복 시작·동작 줄이기도 중립 프레임과 일치합니다. 웹 내보내기를 완료하여 godot-web에 반영했습니다. 브라우저 플레이는 실행하지 않았으며 당시 localhost:3000은 연결이 거부되어 서버 제공 여부는 확인하지 못했습니다.

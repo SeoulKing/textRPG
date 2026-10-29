@@ -6,6 +6,8 @@ import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
+import websocket from "@fastify/websocket";
+import { registerArcanaCombatSocket } from "./arcana-combat-socket";
 import staticPlugin from "@fastify/static";
 import { z } from "zod";
 import {
@@ -182,6 +184,8 @@ async function bootstrap() {
     return payload;
   });
 
+  await app.register(websocket, { options: { maxPayload: 16 * 1024, perMessageDeflate: false } });
+  registerArcanaCombatSocket(app, gameService);
   await app.register(cors, {
     origin: true,
   });

@@ -1,7 +1,7 @@
 """First dash authoring only. Subsequent edits: saved PixelPen -> --sync."""
 import importlib.util,json,argparse
 from pathlib import Path
-from PIL import Image,ImageDraw
+from PIL import Image
 ROOT=Path(__file__).resolve().parent.parent
 spec=importlib.util.spec_from_file_location('c',ROOT/'scripts/author-heroine-continuity.py');c=importlib.util.module_from_spec(spec);spec.loader.exec_module(c)
 SRC=c.BASE/'dash-v1';REF=c.BASE/'reference-bright-v10';OUT=ROOT/'godot-arcana/art/export/heroine-dash-v1'
@@ -49,10 +49,12 @@ def sync():
         for row,d in enumerate(c.DIRS):board.alpha_composite(clips[d][n],((row%4)*96,(row//4)*136))
         previews.append(board.resize((768,544),Image.Resampling.NEAREST).convert('RGB'))
     previews[0].save(SRC/'preview/dash-eight-directions.gif',save_all=True,append_images=previews[1:]+[previews[-1]],duration=DUR+[650],loop=0)
-    # Thumbnail uses the saved native dash frame; no independent character design.
-    icon=Image.new('RGBA',(48,48));draw=ImageDraw.Draw(icon)
-    for y,x,length,col in [(13,1,21,'#517aab'),(19,0,25,'#81c5e8'),(24,1,20,'#d5f5ff'),(31,0,18,'#81c5e8')]:draw.rectangle((x,y,x+length,y+1),fill=col)
-    char=clips['e'][1].crop((10,10,89,119));char.thumbnail((34,43),Image.Resampling.NEAREST);icon.alpha_composite(char,(48-char.width-2,3));icon.save(ROOT/'godot-arcana/art/export/spells/dash.png')
+    # The independently approved icon is maintained in PixelPen, not in dash poses.
+    from shutil import copyfile
+    thumbnail=ROOT/'godot-arcana/art/source/spells/dash-thumbnail-v2/dash.png'
+    if not thumbnail.is_file():
+        raise FileNotFoundError('Export dash-thumbnail-v2/dash.pxpen from PixelPen first')
+    copyfile(thumbnail,ROOT/'godot-arcana/art/export/spells/dash.png')
     (SRC/'native-package-audit.json').write_text(json.dumps(audit,indent=2),encoding='utf8')
     (SRC/'registration.json').write_text(json.dumps({'reference':'reference-bright-v10/pixelpen','canvas':[96,136],'foot':[48,116],'directions':c.DIRS,'frames':6,'durations_ms':DUR,'movement_seconds':.18,'distance':28,'windup_seconds':0,'palette':[f'#{r:02x}{g:02x}{b:02x}' for r,g,b,a in c.RGB[1:]],'runtime':'res://art/export/heroine-dash-v1/heroine-dash.png'},indent=2),encoding='utf8')
     resources=['[gd_resource type="SpriteFrames" load_steps=50 format=3]', '', '[ext_resource type="Texture2D" path="res://art/export/heroine-dash-v1/heroine-dash.png" id="1"]']

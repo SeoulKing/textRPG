@@ -1,0 +1,170 @@
+{
+  "pixelsPerUnit": 64,
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "palette": "arcana-palette-lut.png",
+  "alpha": [
+    0,
+    255
+  ],
+  "assets": {
+    "potion-arch": {
+      "file": "res://art/export/shop-interior/potion-arch.png",
+      "size": [
+        136,
+        213
+      ],
+      "foot": [
+        68,
+        209
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        120,
+        16,
+        325,
+        521
+      ],
+      "worldWidth": 2.125,
+      "sourcePixelsPerUnit": 64
+    },
+    "herb-cabinet": {
+      "file": "res://art/export/shop-interior/herb-cabinet.png",
+      "size": [
+        136,
+        201
+      ],
+      "foot": [
+        68,
+        197
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        605,
+        33,
+        331,
+        498
+      ],
+      "worldWidth": 2.125,
+      "sourcePixelsPerUnit": 64
+    },
+    "travel-cabinet": {
+      "file": "res://art/export/shop-interior/travel-cabinet.png",
+      "size": [
+        152,
+        212
+      ],
+      "foot": [
+        76,
+        208
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        1104,
+        33,
+        352,
+        498
+      ],
+      "worldWidth": 2.375,
+      "sourcePixelsPerUnit": 64
+    },
+    "counter": {
+      "file": "res://art/export/shop-interior/counter.png",
+      "size": [
+        296,
+        98
+      ],
+      "foot": [
+        148,
+        94
+      ],
+      "source": "counter-master.png",
+      "crop": [
+        95,
+        111,
+        1769,
+        552
+      ],
+      "worldWidth": 4.625,
+      "sourcePixelsPerUnit": 64
+    },
+    "potion-island": {
+      "file": "res://art/export/shop-interior/potion-island.png",
+      "size": [
+        104,
+        93
+      ],
+      "foot": [
+        52,
+        89
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        634,
+        572,
+        412,
+        365
+      ],
+      "worldWidth": 1.625,
+      "sourcePixelsPerUnit": 64
+    },
+    "travel-island": {
+      "file": "res://art/export/shop-interior/travel-island.png",
+      "size": [
+        104,
+        90
+      ],
+      "foot": [
+        52,
+        86
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        1085,
+        593,
+        404,
+        345
+      ],
+      "worldWidth": 1.625,
+      "sourcePixelsPerUnit": 64
+    },
+    "merchant": {
+      "file": "res://art/export/shop-interior/merchant.png",
+      "size": [
+        96,
+        136
+      ],
+      "foot": [
+        48,
+        116
+      ],
+      "source": "merchant-master.png",
+      "crop": [
+        295,
+        226,
+        497,
+        1113
+      ],
+      "worldWidth": 1.5,
+      "sourcePixelsPerUnit": 64
+    }
+  },
+  "itemIcon": {
+    "file": "res://art/export/items/mana-potion.png",
+    "size": [
+      64,
+      64
+    ],
+    "margin": 8,
+    "purpose": "UI thumbnail, not a world-scale object",
+    "source": "mana-potion-master.png",
+    "crop": [
+      378,
+      253,
+      552,
+      710
+    ]
+  }
+}

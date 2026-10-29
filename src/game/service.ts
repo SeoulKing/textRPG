@@ -418,6 +418,7 @@ export class GameService {
     const rulesStarted = performance.now();
     const elapsed = Math.max(0,(now-working.lastRealTimestamp)/1000);
     const resuming = working.activeClock.paused || elapsed > 5;
+    if(working.arcanaCombat.battle?.spatial && input.visibleEnemyIds) working.arcanaCombat.battle.spatial.visibleEnemyIds=input.visibleEnemyIds;
     acceptSpatialPosition(working,input.position,resuming ? 0 : elapsed,resuming,input.developerSpeed && process.env.NODE_ENV !== "production" ? 3 : 1);
     syncClock(working, now);
     performWorldClockAction(working,{type:"world_clock",command:input.paused ? "pause" : "tick",clientId:input.clientId,sequence:input.sequence},now);

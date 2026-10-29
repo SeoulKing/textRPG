@@ -1,12 +1,13 @@
 @tool
 extends "res://scripts/illustrated_prop.gd"
-## Imported full-frame textures: no GPU readback or texture creation during playback.
+## Keep one imported atlas bound; animation changes only the sampled cell.
 const FRAMES = preload("res://art/export/plaza-guide/mei-idle.tres")
 var preview_clock = 0.0
-var current_texture: Texture2D
+var current_cell = Vector2(-1,-1)
 
 func _init() -> void:
-    asset = FRAMES.get_frame_texture("idle",0)
+    var first = FRAMES.get_frame_texture("idle",0) as AtlasTexture
+    asset = first.atlas
     pixel_size = Vector2i(96,136)
     foot = Vector2(48,116)
     shadow_size = Vector2(.60,.36)
@@ -14,8 +15,11 @@ func _init() -> void:
 
 func _ready() -> void:
     super._ready()
-    add_to_group("arcana_npc_idle")
+    sprite_material.set_shader_parameter("sheet_grid",asset.get_size()/Vector2(pixel_size))
+    # _ready can run again in an editor preview; initialize the new material too.
+    current_cell = Vector2(-1,-1)
     sync_idle(0.0,true)
+    add_to_group("arcana_npc_idle")
 
 func _process(delta: float) -> void:
     super._process(delta)
@@ -24,8 +28,9 @@ func _process(delta: float) -> void:
         sync_idle(preview_clock,true)
 
 func sync_idle(time: float, animated: bool) -> void:
-    var cell = int(maxf(0.0,time)*FRAMES.get_animation_speed("idle"))%FRAMES.get_frame_count("idle") if animated else 0
-    var texture: Texture2D = FRAMES.get_frame_texture("idle",cell)
-    if texture == current_texture: return
-    current_texture = texture
-    sprite_material.set_shader_parameter("sprite_sheet",texture)
+    var frame = int(maxf(0.0,time)*FRAMES.get_animation_speed("idle"))%FRAMES.get_frame_count("idle") if animated else 0
+    var texture = FRAMES.get_frame_texture("idle",frame) as AtlasTexture
+    var cell = texture.region.position/Vector2(pixel_size)
+    if cell == current_cell: return
+    current_cell = cell
+    sprite_material.set_shader_parameter("frame_cell",cell)

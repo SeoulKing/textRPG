@@ -8,6 +8,7 @@ uniform float gloss_strength : hint_range(0.0,1.0) = 0.48;
 uniform float gloss_sharpness : hint_range(8.0,96.0) = 40.0;
 uniform vec2 frame_cell = vec2(0.0);
 uniform vec2 sheet_grid = vec2(16.0,8.0);
+uniform float sprite_lift = 0.0;
 uniform float foot_offset = 0.53125;
 uniform bool editor_preview = false;
 uniform float hit_flash : hint_range(0.0,1.0) = 0.0;
@@ -18,7 +19,7 @@ void vertex() {
 	light_forward=normalize(vec3(INV_VIEW_MATRIX[2].x,0.0,INV_VIEW_MATRIX[2].z));
 	vec4 view = VIEW_MATRIX*vec4(anchor,1.0);
 	vec2 scale = vec2(length(MODEL_MATRIX[0].xyz),length(MODEL_MATRIX[1].xyz));
-	view.xy += vec2(VERTEX.x,VERTEX.y+foot_offset)*scale;
+	view.xy += vec2(VERTEX.x,VERTEX.y+foot_offset+sprite_lift)*scale;
 	if (!editor_preview) view.z = -150.0+dot(anchor.xz,normalize(INV_VIEW_MATRIX[2].xz))*.18-.0002;
 	POSITION = PROJECTION_MATRIX*view;
 }

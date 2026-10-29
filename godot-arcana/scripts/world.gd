@@ -475,7 +475,7 @@ func _process(delta: float) -> void:
 		impact_remaining = 0.0
 		enemy_visual_hp = float(battle.get("enemyHp",30))
 	impact_remaining = maxf(0,impact_remaining-delta)
-	if impact_remaining <= 0: enemy_visual_hp = maxf(1.0 if battle.has("spatial") and battle.get("phase","") not in ["victory","defeat"] else 0.0,float(battle.get("enemyHp",30))-predicted_enemy_damage)
+	if impact_remaining <= 0: enemy_visual_hp = maxf(0.0,float(battle.get("enemyHp",30))-predicted_enemy_damage)
 	var before_motion = player_position
 	var motion = touch_direction
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP): motion.y -= 1
@@ -795,6 +795,12 @@ func change_interior(id: String) -> void:
 				entities.append({"id":"exit","name":"밖으로 나가기","kind":"exit","pos":Vector2(192,304)})
 			obstacles.append_array(Academy.collision_rects(academy_floor))
 			player_position = Vector2(192,260) if academy_floor == 1 else Academy.arrival_point(2)
+		elif id == "arcana_shop":
+			var shop = preload("res://scripts/shop_interior.gd")
+			entities[0].pos = shop.EXIT_POINT
+			entities.append({"id":"merchant","name":"상인과 거래하기","kind":"merchant","pos":shop.COUNTER_POINT})
+			obstacles.append_array(shop.collision_rects())
+			player_position = Vector2(192,232)
 		elif id == "arcana_inn":
 			var lobby = preload("res://scripts/inn_lobby.gd")
 			entities[0].pos = lobby.EXIT_POINT

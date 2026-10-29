@@ -2,8 +2,9 @@ import type { GameState } from "./schemas";
 
 // Prototype tuning: 100 XP per mastery point, 0..100. Effective contribution,
 // capped by remaining HP/shield, prevents overkill and empty casts farming XP.
+// Legacy mastery remains 0..100; fireball uses its own rising level thresholds.
 export const ARCANA_MASTERY_XP_PER_POINT = 100;
-export const ARCANA_MASTERY_XP_CAP = 10000;
+export const ARCANA_MASTERY_XP_CAP = Number.MAX_SAFE_INTEGER;
 export function skillMastery(state: GameState, id: string) {
   return Math.min(100, (state.arcanaCombat.skillTraining[id]?.xp ?? 0) / ARCANA_MASTERY_XP_PER_POINT);
 }
