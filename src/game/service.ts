@@ -379,12 +379,12 @@ export class GameService {
   private readonly subwayFloorGenerationTasks = new Map<string, Promise<void>>();
   private readonly gameMutationTails = new Map<string, Promise<void>>();
   private readonly arcanaFlushTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  private readonly arcanaLiveSessions = new Map<string, { session: GameSession; savedAt: number; inputAt: number }>();
+  private readonly arcanaLiveSessions = new Map<string, { session: GameSession; savedAt: number; inputAt: number; dirty: boolean }>();
 
   private async loadGameWithCombat(gameId: string) {
     const live = this.arcanaLiveSessions.get(gameId);
     if (!live) return this.repository.loadGame(gameId);
-    await this.repository.saveGame(live.session);
+    if (live.dirty) await this.repository.saveGame(live.session);
     this.arcanaLiveSessions.delete(gameId);
     clearTimeout(this.arcanaFlushTimers.get(gameId));
     this.arcanaFlushTimers.delete(gameId);
@@ -395,11 +395,13 @@ export class GameService {
     const input = action.spatial;
     if (!input) throw new Error("공간 전투 입력이 필요합니다.");
     const now = Date.now();
+    const loadStarted = performance.now();
     let live = this.arcanaLiveSessions.get(gameId);
     if (!live) {
       const session = await this.repository.loadGame(gameId);
-      live = { session, savedAt: now, inputAt: 0 };
+      live = { session, savedAt: now, inputAt: 0, dirty: false };
     }
+    recordActionTiming({ loadMs: Math.round(performance.now() - loadStarted) });
     const state = live.session.state, clock = state.activeClock;
     if (state.stateWorld || !state.flags.in_magic_world || state.isGameOver || state.npcDialogue.active || state.subwayExpedition.active) throw new Error("현재는 공간 전투를 진행할 수 없습니다.");
     if (state.location !== "arcana_plaza" && !state.arcanaCombat.battle?.spatial) throw new Error("광장에서만 이 슬라임을 상대할 수 있습니다.");
@@ -409,7 +411,11 @@ export class GameService {
     if (clock.ownerId === input.clientId && input.sequence <= clock.sequence) return this.spatialReply(live.session, clock.sequence);
     if (action.command === "spatial_sync" && !input.paused && now-live.inputAt < 95) return this.spatialReply(live.session, clock.sequence);
     // Work on a copy: a rejected cast must not consume time, mana or cached state.
-    const session = structuredClone(live.session), working = session.state;
+    const cloneStarted = performance.now();
+    // Spatial rules mutate state only; world cards are read-only on this path.
+    const session = { ...live.session, state: structuredClone(live.session.state) }, working = session.state;
+    recordActionTiming({ cloneMs: Math.round(performance.now() - cloneStarted) });
+    const rulesStarted = performance.now();
     const elapsed = Math.max(0,(now-working.lastRealTimestamp)/1000);
     const resuming = working.activeClock.paused || elapsed > 5;
     acceptSpatialPosition(working,input.position,resuming ? 0 : elapsed,resuming,input.developerSpeed && process.env.NODE_ENV !== "production" ? 3 : 1);
@@ -421,11 +427,17 @@ export class GameService {
     const terminal = ["victory","defeat"].includes(working.arcanaCombat.battle?.phase ?? "");
     if (terminal) { syncQuestState(working); syncScene(working); }
     const save = action.command !== "spatial_sync" || input.paused || terminal || now-live.savedAt >= 1000;
+    recordActionTiming({ rulesMs: Math.round(performance.now() - rulesStarted), saved: save });
+    const saveStarted = performance.now();
     if (save) await this.repository.saveGame(session);
-    this.arcanaLiveSessions.set(gameId,{session,savedAt:save ? now : live.savedAt,inputAt:now});
+    recordActionTiming({ saveMs: Math.round(performance.now() - saveStarted) });
+    this.arcanaLiveSessions.set(gameId,{session,savedAt:save ? now : live.savedAt,inputAt:now,dirty:!save});
     if (action.command !== "spatial_sync") await this.repository.appendActionLog({gameId,action,at:session.updatedAt,location:working.location,day:working.day});
     this.armCombatFlush(gameId);
-    return this.spatialReply(session,input.sequence);
+    const replyStarted = performance.now();
+    const reply = this.spatialReply(session,input.sequence);
+    recordActionTiming({ snapshotMs: Math.round(performance.now() - replyStarted) });
+    return reply;
   }
 
   private armCombatFlush(gameId: string) {
@@ -435,7 +447,11 @@ export class GameService {
       void this.withGameMutation(gameId, async () => {
         const entry = this.arcanaLiveSessions.get(gameId);
         if (!entry) return;
-        await this.repository.saveGame(entry.session);
+        // An action may already have persisted this exact cached revision.
+        if (entry.dirty) {
+          await this.repository.saveGame(entry.session);
+          entry.dirty = false;
+        }
         entry.savedAt = Date.now();
         if (Date.now()-entry.inputAt >= 1000) this.arcanaLiveSessions.delete(gameId);
         else this.armCombatFlush(gameId);

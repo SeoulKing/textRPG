@@ -159,7 +159,10 @@ async function bootstrap() {
 
   app.addHook("onSend", async (request, reply, payload) => {
     const pathname = request.url.split("?", 1)[0];
-    const isStaticAsset = pathname.startsWith("/assets/") || pathname.startsWith("/client/") || pathname.startsWith("/vendor/");
+    const isStaticAsset = pathname.startsWith("/assets/") || pathname.startsWith("/client/") || pathname.startsWith("/vendor/") || /^\/godot\/.+\.(wasm|pck|js|png|svg)$/.test(pathname);
+    if (pathname.startsWith("/godot/")) {
+      reply.header("Vary", [reply.getHeader("Vary"), "Accept-Encoding"].filter(Boolean).join(", "));
+    }
     const isNarrativeStream = String(reply.getHeader("content-type") ?? "").startsWith("application/x-ndjson");
     // Revalidate stable URLs so Studio image replacements appear on the next load.
     // Static files retain their ETag/Last-Modified and can return an empty 304.
@@ -195,8 +198,10 @@ async function bootstrap() {
 
   // Godot Compatibility / single-thread export needs no cross-origin isolation.
   await app.register(staticPlugin, {
-    root: path.join(webRoot, "godot-web"),
+    root: process.env.NODE_ENV === "production" && existsSync(path.join(webRoot, ".server-dist", "godot"))
+      ? path.join(webRoot, ".server-dist", "godot") : path.join(webRoot, "godot-web"),
     prefix: "/godot/",
+    preCompressed: true,
     decorateReply: false,
   });
   app.get("/", async (_request, reply) => {
@@ -563,7 +568,15 @@ async function bootstrap() {
     }
     try {
       return await gameService.performAction(request.params.gameId, parsed.data, {
-        onTiming: timing => request.log.info({ actionType: parsed.data.type, timing }, "game action latency"),
+        onTiming: timing => {
+          request.log.info({ actionType: parsed.data.type, command: "command" in parsed.data ? parsed.data.command : undefined, timing }, "game action latency");
+          reply.header("Server-Timing", [
+            `game;dur=${timing.totalMs}`,
+            ...(["queueMs", "loadMs", "cloneMs", "rulesMs", "saveMs", "snapshotMs"] as const)
+              .filter(key => timing[key] !== undefined)
+              .map(key => `${key.replace("Ms", "")};dur=${timing[key]}`),
+          ].join(", "));
+        },
       });
     } catch (error) {
       reply.code(400);

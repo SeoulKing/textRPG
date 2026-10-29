@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { createDatabasePool } from "../db/pool";
 import { ContentRegistrySchema, type ContentRegistry } from "./schemas/content";
 
 const versions = new Map<string, ContentRegistry>();
@@ -42,7 +43,7 @@ export class ContentVersionStore {
   private pool?: Pool;
   private directory: string;
   constructor(databaseUrl: string | undefined, root: string) {
-    if (databaseUrl) this.pool = new Pool({ connectionString: databaseUrl, ssl: databaseUrl.includes("supabase.co") ? { rejectUnauthorized: false } : undefined });
+    if (databaseUrl) this.pool = createDatabasePool(databaseUrl);
     this.directory = path.join(process.env.RUNTIME_DIR ? path.resolve(root, process.env.RUNTIME_DIR) : path.join(root, ".runtime"), "content-versions");
   }
   async init(current: ContentRegistry) {

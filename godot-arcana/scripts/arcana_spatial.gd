@@ -18,11 +18,15 @@ var layout: Dictionary = {}
 var selected = false
 var request_busy = false
 var connection_lost = false
+# Commands and pause transitions bypass the background position interval.
+const SYNC_INTERVAL: float = 0.25
 var timer = 0.0
 var visual_age = 0.0
 var last_event = 0
 var battle_id = ""
 var failed_at = -100.0
+var connection_failures: int = 0
+var retry_delay: float = 2.0
 var paused_sent = true
 var queue: Array[Dictionary] = []
 var aim_owner = -1 # touch index, -2 mouse, -3 keyboard
@@ -376,11 +380,11 @@ func _process(delta: float) -> void:
 			var next_direction: Vector2 = buffered_cast.direction
 			buffered_cast.clear()
 			if can_cast("fireball"): _start_fireball(next_direction)
-	if active and not request_busy and not main.clock_busy and not main.busy and Time.get_ticks_msec()/1000.0-failed_at>2:
-		if not queue.is_empty() and not paused:
+	if active and not request_busy and not main.clock_busy and not main.busy and Time.get_ticks_msec()/1000.0-failed_at>retry_delay:
+		if not queue.is_empty() and not paused and not connection_lost:
 			var command = queue.pop_front()
 			_request(command.command,false,command.direction,command.get("origin",Vector2.INF),command.get("endpoint",Vector2.INF),command.get("shotId",""),int(command.get("movementSequence",0)))
-		elif _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=.1) or connection_lost):
+		elif _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=SYNC_INTERVAL) or connection_lost):
 			_request("spatial_sync",paused or connection_lost)
 	_render(delta,active,paused)
 
@@ -428,6 +432,8 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 	predicted = {}
 	if data.has("spatialCombat"):
 		connection_lost = false
+		connection_failures = 0
+		retry_delay = 2.0
 		var previous_phase = str(_battle().get("phase",""))
 		var previous_spells: Array = main._unlocked_spell_ids()
 		main.snapshot.state.merge(data.state,true)
@@ -512,7 +518,9 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 		if data.get("error","") in ["network","invalid_response"]:
 			failed_at = Time.get_ticks_msec()/1000.0
 			connection_lost = true
-		main.ui.toast(data.get("message","전투 연결을 확인해 주세요."))
+			connection_failures = mini(connection_failures + 1, 5)
+			retry_delay = minf(30.0, pow(2.0, connection_failures))
+		if connection_failures <= 1: main.ui.toast(data.get("message","전투 연결을 확인해 주세요."))
 		# This response belongs to the failed request, not to newer local inputs.
 		# Keep later commands queued so a delayed failure cannot eat blink taps.
 	request_busy = false

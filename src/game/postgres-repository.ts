@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { createDatabasePool } from "../db/pool";
 import type { GameSession, ProtagonistCard, TemplateStore } from "./schemas";
 import type { AuthUser, AuthUserInput, CardKind, GameRepository, ManualSaveRecord, StoredCard } from "./repository";
 import { buildManualSaveInfo, emptyTemplateStore, normalizeGameSession, normalizeTemplateStore } from "./repository";
@@ -11,17 +12,9 @@ export class PostgresGameRepository implements GameRepository {
   private readonly schemaPath: string;
 
   constructor(databaseUrl: string, rootDir: string) {
-    const connectionOptions = {
-      connectionString: databaseUrl,
-      ssl: databaseUrl.includes("supabase.co") ? { rejectUnauthorized: false } : undefined,
-    };
-    this.pool = new Pool(connectionOptions);
-    // Lock waiters use a separate, small pool so they cannot occupy every data
-    // connection while the lock holder is trying to load or save the session.
-    this.lockPool = new Pool({
-      ...connectionOptions,
-      max: 4,
-    });
+    this.pool = createDatabasePool(databaseUrl);
+    // Lock waiters must not consume the connections used to load/save games.
+    this.lockPool = createDatabasePool(databaseUrl, { max: 4 });
     this.schemaPath = path.join(rootDir, "src", "db", "schema.sql");
   }
 

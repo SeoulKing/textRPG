@@ -4,7 +4,7 @@
   "description": "Choice-driven survival text RPG MVP.",
   "main": "src/server.ts",
   "scripts": {
-    "build": "tsc --outDir .server-dist --rootDir src && node scripts/optimize-scene-images.mjs && node scripts/build-runtime-performance.mjs",
+    "build": "tsc --outDir .server-dist --rootDir src && node scripts/optimize-scene-images.mjs && node scripts/build-runtime-performance.mjs && node scripts/build-godot-delivery.mjs",
     "dev": "tsx watch src/server.ts",
     "start": "npm run build && node .server-dist/server.js",
     "typecheck": "tsc --noEmit",

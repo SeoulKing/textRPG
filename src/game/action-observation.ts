@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 export type NarrativeParagraph = { type: "paragraph"; index: number; text: string; source: "llm" | "template" };
 export type ActionTiming = {
   totalMs: number; queueMs?: number; loadMs?: number; rulesMs?: number; saveMs?: number;
+  cloneMs?: number; snapshotMs?: number; saved?: boolean;
   firstParagraphMs?: number; generationMs?: number; firstChunkMs?: number;
   model?: string; providerCalls: number; inputCharacters?: number; inputTokens?: number;
   outputTokens?: number; thoughtTokens?: number; narration?: "llm" | "template" | "mixed";

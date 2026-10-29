@@ -1,7 +1,8 @@
 import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { createDatabasePool } from "../db/pool";
 import { CONTENT_STUDIO_PATH, parseContentStudioDocument, type ContentStudioDocument } from "./content-studio";
 export type ContentStudioStage = "draft" | "published";
 export type StoredContentStudioDocument = { document: ContentStudioDocument; updatedAt: string; publishedAt: string | null };
@@ -60,7 +61,7 @@ class FileContentStudioStore implements ContentStudioStore {
 }
 class PostgresContentStudioStore implements ContentStudioStore {
   private pool: Pool;
-  constructor(url: string) { this.pool = new Pool({ connectionString: url, ssl: url.includes("supabase.co") ? { rejectUnauthorized: false } : undefined }); }
+  constructor(url: string) { this.pool = createDatabasePool(url); }
   async init() {
     await this.pool.query("create table if not exists content_studio_documents (stage text primary key check (stage in ('draft','published')), payload jsonb not null, updated_at timestamptz not null default now(), published_at timestamptz)");
   }

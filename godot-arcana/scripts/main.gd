@@ -26,6 +26,8 @@ var origin = "http://localhost:3000"
 var client_id = "godot-" + str(Time.get_ticks_usec()) + "-" + str(randi())
 var sequence = 0
 var heartbeat = 0.0
+var clock_failures: int = 0
+var clock_retry_at: int = 0
 var last_clock_paused = true
 var page_active = true
 var panel_mode = ""
@@ -44,6 +46,10 @@ var frame_window = 0.0
 var previous_pose_updates = 0
 var previous_frame_usec = 0
 var frame_timing: Dictionary = {}
+var network_timing: Dictionary = {}
+var network_samples: Array[float] = []
+var network_requests: int = 0
+var network_failures: int = 0
 var zoom_touches: Dictionary = {}
 var zoom_pinching = false
 var zoom_distance = 0.0
@@ -148,18 +154,34 @@ func _resize() -> void:
 	viewport_host.material.set_shader_parameter("palette_enabled",world_renderer.pixelated)
 	world._update_camera()
 func _api(route: String, method: int = HTTPClient.METHOD_GET, data: Dictionary = {}) -> Dictionary:
+	# Only reads may be replayed: a lost POST response can already be committed.
+	var attempts: int = 3 if method == HTTPClient.METHOD_GET else 1
+	var response: Dictionary = {}
+	for attempt in range(attempts):
+		if attempt > 0:
+			await get_tree().create_timer(pow(2.0, attempt - 1) + randf() * 0.25).timeout
+		response = await _api_once(route, method, data)
+		if not response.get("retryable", false): return response
+	return response
+
+func _api_once(route: String, method: int, data: Dictionary) -> Dictionary:
+	var started_at: int = Time.get_ticks_msec()
 	var req = HTTPRequest.new()
-	req.timeout = 65
+	req.timeout = 20 if method == HTTPClient.METHOD_GET or data.get("type", "") in ["world_clock", "arcana_combat"] else 65
 	add_child(req)
 	var headers = PackedStringArray(["Content-Type: application/json", "Accept: application/json"])
 	var result = req.request(origin + route, headers, method, JSON.stringify(data) if method != HTTPClient.METHOD_GET else "")
 	if result != OK:
+		_record_network(started_at, 0, false)
 		req.queue_free()
-		return {"error":"network", "message":"서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."}
+		return {"error":"network", "retryable":true, "message":"서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."}
 	var reply = await req.request_completed
+	_record_network(started_at, int(reply[1]), reply[0] == HTTPRequest.RESULT_SUCCESS)
 	req.queue_free()
 	if reply[0] != HTTPRequest.RESULT_SUCCESS:
-		return {"error":"network", "message":"서버 응답을 받지 못했습니다. 진행은 유지됩니다."}
+		return {"error":"network", "retryable":true, "message":"서버 응답을 받지 못했습니다. 행동이 처리되었을 수 있으니 진행을 확인해 주세요."}
+	if int(reply[1]) in [502, 503, 504]:
+		return {"error":"network", "retryable":true, "message":"서버 연결이 일시적으로 지연되고 있습니다. 잠시 후 다시 확인해 주세요."}
 	var parsed = JSON.parse_string(reply[3].get_string_from_utf8())
 	if not parsed is Dictionary:
 		return {"error":"invalid_response", "message":"서버 응답을 읽지 못했습니다."}
@@ -168,6 +190,16 @@ func _api(route: String, method: int = HTTPClient.METHOD_GET, data: Dictionary =
 		parsed.message = "서버가 행동을 거절했습니다: "+str(parsed.error)+" (HTTP "+str(reply[1])+")"
 		push_warning(str(parsed.message)+" "+JSON.stringify(parsed.get("details",{})))
 	return parsed
+
+func _record_network(started_at: int, status: int, received: bool) -> void:
+	var elapsed: float = float(Time.get_ticks_msec() - started_at)
+	network_requests += 1
+	if not received or status >= 400: network_failures += 1
+	network_samples.append(elapsed)
+	if network_samples.size() > 100: network_samples.pop_front()
+	var ordered: Array[float] = network_samples.duplicate()
+	ordered.sort()
+	network_timing = {"requests":network_requests, "failures":network_failures, "lastMs":elapsed, "p95Ms":ordered[int((ordered.size()-1)*0.95)], "httpStatus":status, "windowSize":ordered.size()}
 
 func _stored(key: String) -> String:
 	if OS.has_feature("web"):
@@ -206,6 +238,13 @@ func _boot() -> void:
 		var shared = _stored(SHARED_SAVE_KEY)
 		if not shared.is_empty():
 			var candidate = await _api("/api/games/" + shared + "/state")
+			if candidate.has("error"):
+				busy = false
+				ui.open_panel("진행 불러오기", false)
+				ui.paragraph(candidate.get("message", "기존 진행을 확인하지 못했습니다."))
+				ui.choice("다시 불러오기", "", _boot)
+				ui.choice("홈으로", "", _home)
+				return
 			if candidate.get("state", {}).get("flags", {}).get("in_magic_world", false): loaded = candidate
 		if loaded.is_empty(): loaded = await _api("/api/games", HTTPClient.METHOD_POST, {"startAt":"arcana"})
 	busy = false
@@ -441,6 +480,7 @@ func _notify_spell_unlocks(previous: Array) -> void:
 	if not names.is_empty(): ui.toast("새 주문 습득 · " + " · ".join(names))
 
 func _clock() -> void:
+	if Time.get_ticks_msec() < clock_retry_at: return
 	var paused = not page_active or ui.overlay.visible
 	if paused and last_clock_paused: return
 	clock_busy = true
@@ -449,10 +489,15 @@ func _clock() -> void:
 	if data.has("state"):
 		_apply(data)
 		last_clock_paused = paused
+		clock_failures = 0
+		clock_retry_at = 0
 		if not paused and _battle().get("phase", "") == "battle" and _battle().get("paused", false):
 			data = await _api("/api/games/" + game_id + "/actions", HTTPClient.METHOD_POST, {"type":"arcana_combat", "command":"resume", "battleId":_battle().id})
 			if data.has("state"): _apply(data)
-	else: ui.toast(data.get("message", "서버 연결을 확인해 주세요."))
+	else:
+		clock_failures = mini(clock_failures + 1, 5)
+		clock_retry_at = Time.get_ticks_msec() + int(minf(30.0, pow(2.0, clock_failures)) * 1000)
+		if clock_failures == 1: ui.toast(data.get("message", "서버 연결을 확인해 주세요."))
 	clock_busy = false
 
 func perform(action: Dictionary, show_result: bool = true) -> bool:
@@ -1149,7 +1194,7 @@ func _bridge_command(args: Array) -> void:
 		"close": ui.close_panel()
 
 func _bridge_state(_args: Array) -> void:
-	var state = {"engine":"Godot 4.5.1", "renderer":"native_3d_pixel", "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
+	var state = {"engine":"Godot 4.5.1", "renderer":"native_3d_pixel", "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))
 
