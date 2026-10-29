@@ -7,6 +7,11 @@ uniform vec2 frame_cell = vec2(0.0);
 uniform vec2 sheet_grid = vec2(16.0,6.0);
 uniform float foot_offset = 0.988547;
 uniform bool editor_preview = false;
+// Outdoor art samples one common 1/64-world-unit grid after placement scaling.
+uniform bool world_pixel_grid_enabled = false;
+uniform vec2 world_pixel_grid = vec2(1.0);
+uniform vec2 authored_pixel_size = vec2(1.0);
+uniform float world_pixel_foot_y = 0.0;
 uniform vec3 depth_anchor_offset = vec3(0.0);
 void vertex() {
     vec3 anchor = MODEL_MATRIX[3].xyz;
@@ -25,7 +30,8 @@ void vertex() {
 void fragment() {
     // Clamp to texel centers to prevent neighboring-frame bleed at the quad edge.
     vec2 size = vec2(textureSize(sprite_sheet,0))/sheet_grid;
-    vec2 uv = clamp(UV,vec2(.5)/size,vec2(1.0)-vec2(.5)/size);
+    vec2 sample_uv = world_pixel_grid_enabled ? (floor(UV*world_pixel_grid)+vec2(.5))/world_pixel_grid : UV;
+    vec2 uv = clamp(sample_uv,vec2(.5)/size,vec2(1.0)-vec2(.5)/size);
     vec4 color = texture(sprite_sheet,(frame_cell+uv)/sheet_grid);
     if (color.a < .5) discard;
     vec4 fire=vec4(color.rgb,0.0);
@@ -33,6 +39,8 @@ void fragment() {
         vec3 painted=texture(sprite_sheet,(frame_cell+inn_fire_uv(floor(uv*size),size))/sheet_grid).rgb;
         fire=inn_fire_sample(painted,floor(uv*size));
     }
-    ALBEDO = max(sprite_lit(fire.rgb,uv,size,size.y*.5+foot_offset*64.0),fire.rgb*fire.a);
+    vec2 lighting_size = world_pixel_grid_enabled ? world_pixel_grid : size;
+    float lighting_foot = world_pixel_grid_enabled ? world_pixel_foot_y : size.y*.5+foot_offset*64.0;
+    ALBEDO = max(sprite_lit(fire.rgb,uv,lighting_size,lighting_foot),fire.rgb*fire.a);
 }
 

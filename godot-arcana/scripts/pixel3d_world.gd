@@ -197,6 +197,8 @@ func _floor(parent: Node3D, size: Vector2, at: Vector3, terrain: bool = false) -
 func _place(kind: String, point: Vector2, parent: Node3D = null) -> Node3D:
 	var node = Illustrated.make(kind) if Illustrated.supports(kind) else Models.model(kind)
 	node.position = map_point(point)
+	if parent == inside and node.get_script() == preload("res://scripts/illustrated_prop.gd"):
+		node.use_outdoor_art = false
 	(parent if parent != null else outside).add_child(node)
 	return node
 

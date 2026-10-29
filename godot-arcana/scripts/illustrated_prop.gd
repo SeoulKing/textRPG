@@ -3,6 +3,9 @@ extends Node3D
 ## Camera-facing, foot-registered 2D art on the unchanged 3D layout.
 const SHADER = preload("res://art/resources/heroine_sprite.gdshader")
 const TREE_FADE = preload("res://art/resources/tree_fade.gdshader")
+const OUTDOOR_ART = preload("res://art/resources/outdoor_art.gd")
+var use_outdoor_art = false
+var _world_grid = Vector2.ZERO
 const PROP_GROUP = "arcana_prop_occluders"
 static var occlusion_masks: Dictionary = {}
 const OCCLUDED_OPACITY = .45
@@ -26,6 +29,11 @@ var spatial_emission_mask = false
 var sprite_material: ShaderMaterial
 var contact_material: ShaderMaterial
 func _ready() -> void:
+    # Keep the original logical canvas, pivot and transforms; replace only outdoor paint.
+    if use_outdoor_art and OUTDOOR_ART.ITEMS.has(asset.resource_path):
+        asset = OUTDOOR_ART.ITEMS[asset.resource_path]
+    else:
+        use_outdoor_art = false
     var visual = MeshInstance3D.new()
     var quad = QuadMesh.new()
     quad.size = Vector2(pixel_size)/64.0
@@ -81,7 +89,23 @@ func _ready() -> void:
     contact_material.set_shader_parameter("editor_preview",Engine.is_editor_hint())
     contact.material_override = contact_material
     add_child(contact)
+    _sync_world_pixel_grid()
+
+func _sync_world_pixel_grid() -> void:
+    if not use_outdoor_art: return
+    var art_scale = Vector2(global_basis.x.length(),global_basis.y.length())
+    var grid = (Vector2(pixel_size)*art_scale).max(Vector2.ONE)
+    if grid.is_equal_approx(_world_grid): return
+    _world_grid = grid
+    for material in [sprite_material,fade_material]:
+        if material == null: continue
+        material.set_shader_parameter("world_pixel_grid_enabled",true)
+        material.set_shader_parameter("world_pixel_grid",grid)
+        material.set_shader_parameter("authored_pixel_size",Vector2(pixel_size))
+        material.set_shader_parameter("world_pixel_foot_y",foot.y*art_scale.y)
+
 func _process(_delta: float) -> void:
+    _sync_world_pixel_grid()
     if contact_material != null: contact_material.set_shader_parameter("entity_anchor",global_position+global_basis*depth_anchor_offset)
 
 
@@ -126,6 +150,7 @@ func _covers_player(camera: Camera3D, player_anchor: Vector3, player_size: Vecto
         for side in [-.35,0.0,.35]:
             var point = player_foot+Vector2(float(side)*player_size.x,-float(height)*player_size.y)*ppu
             if not tree_rect.has_point(point): continue
-            var texel = Vector2i(((point-tree_rect.position)/dot_scale).floor())
+            var mask_uv = (point-tree_rect.position)/tree_rect.size
+            var texel = Vector2i((mask_uv*Vector2(occlusion_mask.get_size())).floor())
             if occlusion_mask.get_pixel(texel.x,texel.y).a>=.5: return true
     return false

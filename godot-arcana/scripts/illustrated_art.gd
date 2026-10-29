@@ -36,6 +36,7 @@ static func make(kind: String) -> Node3D:
     var node = Prop.new()
     node.asset = CITY.ITEMS[kind].texture if CITY.ITEMS.has(kind) else TEXTURES[kind]
     node.fade_for_player = true
+    node.use_outdoor_art = true
     node.pixel_size = node.asset.get_size()
     node.foot = Vector2(node.pixel_size.x*.5,node.pixel_size.y-2)
     var width = float(node.pixel_size.x)/64.0
