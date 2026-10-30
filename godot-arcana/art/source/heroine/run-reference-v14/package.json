@@ -1,0 +1,18 @@
+{
+  "edited_clip": "run_e",
+  "frames": 8,
+  "fps": 12.0,
+  "authoring": "PixelPen native indexed layer API; saved and reopened",
+  "reference": "godot-arcana\\art\\source\\heroine\\run-stride-v11\\pixelpen\\idle_e.pxpen",
+  "reference_sha256": "1dffa62211b48da0b4f55aa839e31f4ef2b4dd735c17801b3964662fd742fdbc",
+  "before_sha256": "4f6cd730132d7b44fefb137768ef6b303a8b7eaaf55596045f82c51845f61dc0",
+  "saved_candidate_sha256": "ffffb317785fd93ec2fe279dd92b5172c1860f1ca9e3167a3a869d2828ef8b03",
+  "upper_84_rows_unchanged": true,
+  "palette_unchanged": true,
+  "study_scale": 0.21,
+  "boot": "complete lower-body silhouettes transferred from generated-keyposes-v1",
+  "motion_reference": "art-studies/arcana-hero/white-bob-heroine/run-motion-reference/generated-keyposes-v1.png",
+  "runtime_connected": true,
+  "gameplay_test": "not run",
+  "art_approval": "user-approved right-facing run"
+}

@@ -1,0 +1,6 @@
+{
+  "pipeline": "native Skeleton2D GPU output vs authored feet transformed by actual Bone2D poses",
+  "checks": 384,
+  "minimumAreaRatio": 0.9140625,
+  "wholeShoes": true
+}

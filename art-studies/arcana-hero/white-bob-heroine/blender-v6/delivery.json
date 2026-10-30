@@ -1,0 +1,53 @@
+{
+  "source": "heroine-v6-head.blend",
+  "source_sha256": "1422d7be37986dd002bd1056f0e3bdd9ae378387ad67208a48b310733e4005c5",
+  "rendered_from_saved_native_model": true,
+  "turntable_frames": 24,
+  "scope": "head and bob hair with supporting costume bust",
+  "game_integration": false,
+  "browser_or_gameplay_testing": false,
+  "new_primary_hair_flows": 23,
+  "independent_split_ends": 46,
+  "textures": {
+    "hair-longitudinal-v6.png": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGB",
+      "alpha_extrema": null
+    },
+    "iris-cel-v6.png": {
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    "iris-violet-v6.png": {
+      "size": [
+        768,
+        768
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    "skin-cel-v6.png": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGB",
+      "alpha_extrema": null
+    }
+  },
+  "reference_image_is_editor_only": true,
+  "pose_registration_is_not_art_approval": true
+}

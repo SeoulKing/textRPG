@@ -117,7 +117,7 @@ import { sceneChoice } from "../../scene-choice-helpers";
 export const hospitalChoiceDefinitions = [
   sceneChoice({
     id: "collect_pain_relief_from_hospital",
-    label: "진통제를 챙긴다",
+    label: "{{item:painRelief|을를}} 챙긴다",
     effects: [
       { type: "advance_time", minutes: 15 },
       { type: "add_item", itemId: "painRelief", amount: 1 },
@@ -135,11 +135,11 @@ const medicineCabinet = { locationId: "hospital", nodeId: "hospital_medicine_cab
 
 sceneChoice({
   id: "collect_pain_relief_from_hospital",
-  label: "진통제를 챙긴다",
+  label: "{{item:painRelief|을를}} 챙긴다",
   ...collectStockItemChoiceParts({
     ...medicineCabinet,
     itemId: "painRelief",
-    logMessage: "당신은 상자에 남은 진통제를 조심스럽게 챙긴다.",
+    logMessage: "당신은 상자에 남은 {{item:painRelief|을를}} 조심스럽게 챙긴다.",
     minutes: 15,
   }),
 });
@@ -151,9 +151,53 @@ sceneChoice({
 });
 ```
 
+## 아이템 이름이 들어가는 선택지와 씬
+
+선택지의 `label`, `outcomeHint`, 실패 안내와 로그뿐 아니라 씬의 `title`, `paragraphs`에서도 아이템 표시 이름 대신 `{{item:itemId}}`를 사용합니다.
+
+```ts
+const scene = {
+  title: "{{item:waterBottle}} 발견",
+  paragraphs: [
+    "선반 아래에 {{item:waterBottle|이가}} 한 병 남아 있다.",
+  ],
+};
+
+const choice = sceneChoice({
+  id: "take_water",
+  label: "{{item:waterBottle|을를}} 챙긴다",
+  outcomeHint: "+1 {{item:waterBottle}} / +5분",
+  effects: [
+    { type: "add_item", itemId: "waterBottle", amount: 1 },
+    { type: "log", message: "{{item:waterBottle|을를}} 가방에 넣었다." },
+  ],
+});
+```
+
+문자열을 조립해야 한다면 `itemTextReference()`를 사용할 수 있습니다.
+
+```ts
+import { itemTextReference } from "../../../item-text";
+
+const water = itemTextReference("waterBottle", "을를");
+const label = `${water} 챙긴다`;
+```
+
+정적 지역 콘텐츠는 registry에 등록될 때, 콘텐츠 스튜디오의 새 이야기·씬·선택지는 저장하거나 공개할 때 현재 아이템 이름을 ID 참조로 자동 정규화합니다. LLM이 만든 씬과 선택지도 컴파일 단계에서 같은 정규화를 거칩니다. 자동 정규화는 안전장치이므로, 소스에는 처음부터 ID 참조를 쓰는 것을 기본 규칙으로 합니다.
+
 ## 선택지 힌트 포맷
 
-선택지 아래에 실제 효과를 보여줘야 할 때만 `showOutcomeHint: true`를 켭니다. 이때 `outcomeHint`는 자동 생성하지 않고, 콘텐츠 작성자가 직접 아래 순서로 씁니다.
+선택지의 금액, 능력치, 아이템, 도구 내구도, 시간 변화는 `effects`에서 자동으로 계산해 `outcomeHint`보다 우선 표시합니다. 따라서 같은 수치를 `outcomeHint`에 다시 적지 않습니다. 남은 물자를 전부 챙기는 선택지는 현재 재고 수량까지 실행 시점에 계산합니다.
+
+`outcomeHint`는 수치로 요약할 효과가 없는 이동·조사·서사 선택지의 보조 설명에만 사용합니다. 이 경우에만 `showOutcomeHint: true`를 직접 켭니다. 아이템의 표시 이름은 직접 쓰지 않고 `{{item:itemId}}`로 참조합니다. 그러면 콘텐츠 스튜디오에서 아이템 이름을 바꿔도 선택지, 힌트, 실패 안내, 로그가 현재 이름을 사용합니다.
+
+```ts
+label: "{{item:waterBottle|을를}} 챙긴다",
+outcomeHint: "+1 {{item:waterBottle}} / +5분",
+failureNote: "{{item:waterBottle|이가}} 필요하다.",
+```
+
+한국어 조사는 `을를`, `은는`, `이가`, `과와`, `으로로`를 지원합니다. 예를 들어 `{{item:waterBottle|을를}}`는 이름이 `물병`이면 `물병을`, `생수`이면 `생수를`로 표시됩니다. 콘텐츠 스튜디오에서는 텍스트 입력란 아래의 `아이템 이름 연결` 도구로 이 참조를 삽입할 수 있습니다.
 
 ```text
 소모하거나 내는 것 / 얻거나 회복하는 것 / 걸리는 시간
@@ -163,11 +207,25 @@ sceneChoice({
 
 ```ts
 outcomeHint: "-1,800원 / +2 체력 / +15분",
-outcomeHint: "-4,500원 / +1 따뜻한 식사 / +15분",
-outcomeHint: "+3 목재 판자 / +30분",
+outcomeHint: "-4,500원 / +1 {{item:hotMeal}} / +15분",
+outcomeHint: "+3 {{item:woodPlank}} / +30분",
 ```
 
-돈, 아이템, 체력, 정신력, 기력처럼 플레이어가 바로 판단해야 하는 값만 짧게 적습니다. 시간은 항상 맨 마지막에 둡니다. 확률과 허탕 가능성은 선택지 힌트에 표시하지 않고, 찾을 수 있는 것만 적습니다. 서사 설명이나 분위기 문장은 선택지 힌트가 아니라 씬 본문과 로그에 둡니다.
+자동 힌트에는 돈, 아이템, 체력, 정신력, 기력처럼 플레이어가 바로 판단해야 하는 값만 들어갑니다. 시간은 항상 맨 마지막에 표시됩니다. 무작위 효과는 가능한 결과를 `또는`으로 묶습니다. 서사 설명이나 분위기 문장은 선택지 힌트가 아니라 씬 본문과 로그에 둡니다.
+
+## 선택지 로딩 설정
+
+장소 상호작용과 씬 선택지는 모두 `loading`으로 로딩 표시 시간을 설정할 수 있습니다. `loading`이 없으면 로딩 없이 즉시 처리합니다.
+
+```ts
+// 기본 500ms
+loading: {},
+
+// 원하는 시간으로 변경
+loading: { durationMs: 1200 },
+```
+
+로딩을 사용하지 않는 선택지에는 `loading`을 적지 않습니다.
 
 ## 검증
 
@@ -178,3 +236,19 @@ npm.cmd run typecheck
 npm.cmd run content:validate
 npm.cmd run build
 ```
+
+## 수집·탐색·낚시 숙련도 태그
+
+숙련도 경험치를 주는 행동과 선택지에만 `skillUse`를 선언합니다.
+
+```ts
+skillUse: { skillId: "collection" }
+skillUse: { skillId: "exploration" }
+skillUse: { skillId: "fishing" }
+```
+
+- `collection`은 직접 `add_item`, `collect_stock_item(_all)`, `collect_stock_money(_all)` 중 하나를 실행해야 합니다. 재고 아이템 선택지는 `collectStockItemChoiceParts()`가 태그를 자동으로 붙입니다.
+- `exploration`은 정확히 하나의 `random_outcome`을 가져야 합니다. 각 결과에 `result: "success"` 또는 `result: "failure"`를 붙이고, 성공과 실패를 각각 하나 이상 작성합니다.
+- `fishing`도 성공·실패가 선언된 `random_outcome` 하나를 사용하며, 레벨이 오를수록 어획 성공률이 10%p씩 높아집니다.
+- 세 숙련도 행동 모두 보정 전 시간을 나타내는 직접 `advance_time` 효과가 정확히 하나 필요합니다. `advance_to_daybreak`는 숙련도 행동에 사용할 수 없습니다.
+- 숙련도 대상이 아닌 확률 행동에는 `skillUse`와 `result` 표식을 추가하지 않아도 됩니다.

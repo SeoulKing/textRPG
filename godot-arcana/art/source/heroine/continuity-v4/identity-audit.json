@@ -1,0 +1,22 @@
+{
+  "frames": 152,
+  "shared_head_checks": 112,
+  "shared_head_pixel_errors": 0,
+  "alpha_errors": 0,
+  "palette_errors": 0,
+  "body_pose_pixel_errors_below_neck": 0,
+  "idle_bench_40_frames_vs_shared_reference_errors": 0,
+  "visual_boards_reviewed": [
+    "idle-all-poses.png",
+    "run-all-poses.png",
+    "cast-all-poses.png",
+    "bench-all-poses.png"
+  ],
+  "gpu_scene_reviewed": [
+    "neutral",
+    "inhale",
+    "release",
+    "approved-run"
+  ],
+  "served_pck_sha256": "b680f4bf89cd9e333213a0847270f6f083b81596caec189d2200dcccd1d1fd85"
+}

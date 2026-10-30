@@ -1,9 +1,12 @@
 import { z } from "zod";
+import { ConditionSchema } from "./condition-effect";
 import { RiskSchema } from "./base";
 import { ActionDefinitionSchema } from "./action";
 import { ChoiceDefinitionSchema } from "./choice";
 import { EventDefinitionSchema } from "./event";
 import { SceneDefinitionSchema } from "./scene";
+import { MonsterDefinitionSchema } from "./monster";
+import { TextRoomSchema } from "./text-world";
 
 export const LinkDefinitionSchema = z.object({
   note: z.string(),
@@ -25,8 +28,19 @@ export const StockNodeDefinitionSchema = z.object({
   id: z.string(),
   name: z.string(),
   summary: z.string(),
+  depletionBehavior: z.enum(["remain", "disappear"]).default("remain"),
   money: z.number().int().nonnegative().default(0),
   items: z.array(StockNodeItemDefinitionSchema).default([]),
+});
+
+export const ResourceSiteDefinitionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  capacity: z.number().int().positive(),
+  // Repeatable work ignores capacity and saved depletion when unlimited.
+  unlimited: z.boolean().optional(),
+  // One work opportunity recovers each interval. Omission means finite material.
+  recoveryMinutes: z.number().positive().optional(),
 });
 
 export const LocationDefinitionSchema = z.object({
@@ -34,6 +48,7 @@ export const LocationDefinitionSchema = z.object({
   name: z.string(),
   risk: RiskSchema,
   mapPosition: AxialCoordSchema.optional(),
+  discoveryConditions: z.array(ConditionSchema).optional(),
   imagePath: z.string().nullable(),
   summary: z.string(),
   tags: z.array(z.string()),
@@ -46,9 +61,12 @@ export const LocationDefinitionSchema = z.object({
   eventIds: z.array(z.string()).default([]),
   links: z.record(z.string(), LinkDefinitionSchema),
   stockNodes: z.array(StockNodeDefinitionSchema).default([]),
+  resourceSites: z.array(ResourceSiteDefinitionSchema).optional(),
+  monsters: z.array(MonsterDefinitionSchema).default([]),
 });
 
 export const ContentRegistrySchema = z.object({
+  textRooms: z.array(TextRoomSchema).optional(),
   locations: z.record(z.string(), LocationDefinitionSchema),
   items: z.record(z.string(), z.unknown()),
   people: z.record(z.string(), z.unknown()),
@@ -64,4 +82,5 @@ export type LinkDefinition = z.infer<typeof LinkDefinitionSchema>;
 export type StockNodeItemDefinition = z.infer<typeof StockNodeItemDefinitionSchema>;
 export type StockNodeDefinition = z.infer<typeof StockNodeDefinitionSchema>;
 export type LocationDefinition = z.infer<typeof LocationDefinitionSchema>;
+export type ResourceSiteDefinition = z.infer<typeof ResourceSiteDefinitionSchema>;
 export type ContentRegistry = z.infer<typeof ContentRegistrySchema>;

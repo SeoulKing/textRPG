@@ -3,6 +3,16 @@ import { defineLocation, interactionFor, stockNode } from "../../location-helper
 
 export const subwayChoices: ActionDefinition[] = [
   interactionFor("subway", {
+    id: "start_subway_expedition",
+    label: "준비를 마치고 지하 1층으로 내려간다",
+    type: "explore",
+    outcomeHint: "+10분",
+    showOutcomeHint: true,
+    effects: [],
+    tags: ["subway-expedition-start", "repeatable", "risk"],
+    riskHint: "high",
+  }),
+  interactionFor("subway", {
     id: "go_to_subway_signal_box",
     label: "역무실 신호함으로 간다",
     type: "search",
@@ -14,21 +24,41 @@ export const subwayChoices: ActionDefinition[] = [
     tags: ["signal", "search"],
     riskHint: "medium",
   }),
-];
+  interactionFor("subway", {
+    id: "trace_day6_station_notice",
+    label: "6일차 역무실 안내문을 대조한다",
+    type: "search",
+    outcomeHint: "대합실의 구조 안내문에서 검문소 통신 차량의 위치를 확인한다. {{item:cordage}} 1개 / +90분",
+    showOutcomeHint: true,
+    conditions: [
+      { type: "flag", flag: "day6_subway_hint" },
+      { type: "flag_not", flag: "station_notice_checked" },
+    ],
+    effects: [
+      { type: "advance_time", minutes: 90 },
+      { type: "add_item", itemId: "cordage", amount: 1 },
+      { type: "set_flag", flag: "station_notice_checked" },
+      { type: "log", message: "대합실 안내문에 역무실 신호함의 안테나와 검문소 통신 차량의 위치가 함께 적혀 있다." },
+    ],
+    tags: ["hint", "signal", "resource"],
+    riskHint: "low",
+  }),];
 
 export const subwayLocation = defineLocation({
   id: "subway",
   name: "지하철역",
   risk: "high",
-  mapPosition: { q: 2, r: 0 },
+  mapPosition: { q: 1, r: -1 },
   imagePath: "assets/scenes/subway.svg",
-  summary: "전기가 끊긴 승강장과 어두운 역무실이 남은 지하철역이다. 신호 장비를 뜯어 쓸 수 있지만, 오래 머물수록 정신이 닳는다.",
+  summary: "지상과 연결된 대합실과 어두운 역무실이 남은 지하철역이다. 이곳에서 장비를 정비한 뒤 지하 1층부터 심층 탐험을 시작할 수 있다.",
   tags: ["signal", "underground", "day6"],
-  traits: ["antenna", "metal", "stress"],
-  obtainableItemIds: ["radioAntenna", "scrapMetal", "waterBottle"],
-  neighbors: ["kitchen", "checkpoint"],
+  traits: ["antenna", "concourse", "expedition staging"],
+  residentIds: ["shumi"],
+  obtainableItemIds: ["radioAntenna", "scrapMetal", "cordage", "waterBottle"],
+  neighbors: ["shelter", "kitchen", "checkpoint"],
   interactionChoices: subwayChoices,
   links: {
+    shelter: { note: "지상으로 올라가 왼쪽 아래의 임시 거처로 돌아간다." },
     kitchen: { note: "급식소 뒤편 계단으로 되돌아간다." },
     checkpoint: {
       note: "반대편 출구를 지나 구조대 무전 소문이 도는 검문소 쪽으로 간다.",

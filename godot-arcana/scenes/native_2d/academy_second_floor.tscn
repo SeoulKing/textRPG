@@ -1,0 +1,185 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/56488b58ea564644d16d21ebed23caa10a6c3421da32408ea105200a6c4b5ed2.res" id="1_3n4d6"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/249c87ca96fddb3b68816fd2af9a7b4489edb4319fb073aeb03f9f1e5e8955ea.res" id="2_vkq88"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/6f8d1d49d7df3755abbf2ed6fac7b191c43adfecf0803b8942d63c0ead2cb9a0.res" id="3_20nkm"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/b46b0c891a40b5a68c54559c93930a1245df9144f9c61c66e5c2cb69a8595bba.res" id="4_q1ehs"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/ba024c0c820a2bd9c80edef067eae76e26f61b0b8abd6a6659b80fc2c2e2ed32.res" id="5_p6moh"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/9675174401c22d1d25432955dffa8152ee727777eaa2f533e9d6c4b586ad5333.res" id="6_88oo0"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/bf04ec141161257927ecedf89fba7af566ee6091f06ecc79fdbd2e95e4397f9c.res" id="7_qnj1y"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/3074b5576dc84673e592304e4d596d7033251cf1b7721f0c28fde4136aea99be.res" id="8_ev5eu"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/a4f62592eb8d1869f3343063daad6fe011fc55468096a677defc72bdc2d7563f.res" id="9_r6pry"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/c4cb53be7bfb983603b1efb1ae6d7d20f0089d776ac9690254cf94311bffd638.res" id="10_sr1iy"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4d352656e8eaef0cb80ff6393f6ad3466ebe34bd441a6b73799bd31e64fac53b.res" id="11_igkpq"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/f95f195b0f17cf7c8f0118f4dbec202c8f4f5b0f7ecf4b2fd8f7744f95135d79.res" id="12_per27"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/08334b10f7513bbcbd698ee1ac48b52455b350d6a666ba5fd53f29720b803ec8.res" id="13_jnm85"]
+
+[node name="AcademySecondFloor2D" type="Node2D"]
+texture_filter = 1
+
+[node name="PaintedRoomFloor132" type="Sprite2D" parent="."]
+z_index = -30
+texture = ExtResource("1_3n4d6")
+centered = false
+offset = Vector2(192, 256)
+
+[node name="Academy_wall133" type="Sprite2D" parent="."]
+texture = ExtResource("2_vkq88")
+centered = false
+offset = Vector2(188, -69)
+metadata/foot = Vector2(336, 256)
+metadata/interaction_id = ""
+
+[node name="_Node3D_347134" type="Sprite2D" parent="."]
+texture = ExtResource("2_vkq88")
+centered = false
+offset = Vector2(476, -69)
+metadata/foot = Vector2(624, 256)
+metadata/interaction_id = ""
+
+[node name="_Node3D_350135" type="Sprite2D" parent="."]
+texture = ExtResource("2_vkq88")
+centered = false
+offset = Vector2(764, -69)
+metadata/foot = Vector2(912, 256)
+metadata/interaction_id = ""
+
+[node name="_Node3D_353136" type="Sprite2D" parent="."]
+texture = ExtResource("2_vkq88")
+centered = false
+offset = Vector2(1052, -69)
+metadata/foot = Vector2(1200, 256)
+metadata/interaction_id = ""
+
+[node name="Academy_office_door137" type="Sprite2D" parent="."]
+texture = ExtResource("3_20nkm")
+centered = false
+offset = Vector2(280, 153)
+metadata/foot = Vector2(384, 352)
+metadata/interaction_id = ""
+
+[node name="Academy_desk138" type="Sprite2D" parent="."]
+texture = ExtResource("4_q1ehs")
+centered = false
+offset = Vector2(304, 452)
+metadata/foot = Vector2(384, 608)
+metadata/interaction_id = ""
+
+[node name="Academy_telescope139" type="Sprite2D" parent="."]
+texture = ExtResource("5_p6moh")
+centered = false
+offset = Vector2(1032, 323)
+metadata/foot = Vector2(1120, 544)
+metadata/interaction_id = ""
+
+[node name="Academy_bookcase140" type="Sprite2D" parent="."]
+texture = ExtResource("6_88oo0")
+centered = false
+offset = Vector2(1135, 144)
+metadata/foot = Vector2(1235.2, 352)
+metadata/interaction_id = ""
+
+[node name="Academy_bench141" type="Sprite2D" parent="."]
+texture = ExtResource("7_qnj1y")
+centered = false
+offset = Vector2(280, 825)
+metadata/foot = Vector2(384, 953.6)
+metadata/interaction_id = ""
+
+[node name="Academy_plant142" type="Sprite2D" parent="."]
+texture = ExtResource("8_ev5eu")
+centered = false
+offset = Vector2(191, 688)
+metadata/foot = Vector2(243.2, 889.6)
+metadata/interaction_id = ""
+
+[node name="_Node3D_368143" type="Sprite2D" parent="."]
+texture = ExtResource("8_ev5eu")
+centered = false
+offset = Vector2(479, 688)
+metadata/foot = Vector2(531.2, 889.6)
+metadata/interaction_id = ""
+
+[node name="Academy_stairs_down144" type="Sprite2D" parent="."]
+texture = ExtResource("9_r6pry")
+centered = false
+offset = Vector2(644, 909)
+metadata/foot = Vector2(768, 1094.4)
+metadata/interaction_id = ""
+
+[node name="Academy_reading_table145" type="Sprite2D" parent="."]
+texture = ExtResource("10_sr1iy")
+centered = false
+offset = Vector2(1047, 869)
+metadata/foot = Vector2(1139.2, 985.6)
+metadata/interaction_id = ""
+
+[node name="Academy_book_trolley146" type="Sprite2D" parent="."]
+texture = ExtResource("11_igkpq")
+centered = false
+offset = Vector2(484, 895)
+metadata/foot = Vector2(537.6, 1011.2)
+metadata/interaction_id = ""
+
+[node name="Academy_floor_lamp147" type="Sprite2D" parent="."]
+texture = ExtResource("12_per27")
+centered = false
+offset = Vector2(208, 887)
+metadata/foot = Vector2(236.8, 1024)
+metadata/interaction_id = ""
+
+[node name="_Node3D_379148" type="Sprite2D" parent="."]
+texture = ExtResource("12_per27")
+centered = false
+offset = Vector2(1251, 810)
+metadata/foot = Vector2(1280, 947.2)
+metadata/interaction_id = ""
+
+[node name="_Node3D_382149" type="Sprite2D" parent="."]
+texture = ExtResource("8_ev5eu")
+centered = false
+offset = Vector2(255, 963)
+metadata/foot = Vector2(307.2, 1164.8)
+metadata/interaction_id = ""
+
+[node name="_Node3D_385150" type="Sprite2D" parent="."]
+texture = ExtResource("8_ev5eu")
+centered = false
+offset = Vector2(1177, 963)
+metadata/foot = Vector2(1228.8, 1164.8)
+metadata/interaction_id = ""
+
+[node name="Academy_front_wall151" type="Sprite2D" parent="."]
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(220, 1110)
+metadata/foot = Vector2(320, 1216)
+metadata/interaction_id = ""
+
+[node name="_Node3D_390152" type="Sprite2D" parent="."]
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(412, 1110)
+metadata/foot = Vector2(512, 1216)
+metadata/interaction_id = ""
+
+[node name="_Node3D_393153" type="Sprite2D" parent="."]
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(924, 1110)
+metadata/foot = Vector2(1024, 1216)
+metadata/interaction_id = ""
+
+[node name="_Node3D_396154" type="Sprite2D" parent="."]
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(1116, 1110)
+metadata/foot = Vector2(1216, 1216)
+metadata/interaction_id = ""
+
+[node name="_Node3D_399155" type="Sprite2D" parent="."]
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(668, 1110)
+metadata/foot = Vector2(768, 1216)
+metadata/interaction_id = ""

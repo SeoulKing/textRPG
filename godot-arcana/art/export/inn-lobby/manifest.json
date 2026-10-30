@@ -1,0 +1,868 @@
+{
+  "pixelsPerUnit": 64,
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "palette": "arcana-palette-lut.png",
+  "alpha": [
+    0,
+    255
+  ],
+  "assets": {
+    "corner-sofa": {
+      "file": "res://art/export/inn-lobby/corner-sofa.png",
+      "size": [
+        360,
+        165
+      ],
+      "foot": [
+        180,
+        161
+      ],
+      "colors": 34,
+      "source": "sofa-front-v3.png",
+      "crop": [
+        86,
+        131,
+        1540,
+        687
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/corner-sofa-spatial.png",
+      "surfaceProfile": {
+        "height": 1.65,
+        "surfaces": [
+          {
+            "box": [
+              0.31,
+              0.31,
+              0.61,
+              0.19
+            ],
+            "height": 0.8,
+            "normal": [
+              0,
+              0.98
+            ]
+          },
+          {
+            "box": [
+              0.1,
+              0.46,
+              0.22,
+              0.2
+            ],
+            "height": 0.8,
+            "normal": [
+              0,
+              0.98
+            ]
+          },
+          {
+            "box": [
+              0.02,
+              0.22,
+              0.07,
+              0.68
+            ],
+            "normal": [
+              0,
+              0.14
+            ]
+          },
+          {
+            "box": [
+              0.92,
+              0.22,
+              0.06,
+              0.42
+            ],
+            "normal": [
+              0,
+              0.14
+            ]
+          }
+        ]
+      }
+    },
+    "bookcase": {
+      "file": "res://art/export/inn-lobby/bookcase.png",
+      "size": [
+        176,
+        246
+      ],
+      "foot": [
+        88,
+        242
+      ],
+      "colors": 44,
+      "source": "furniture-v2.png",
+      "crop": [
+        1049,
+        14,
+        418,
+        591
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/bookcase-spatial.png",
+      "surfaceProfile": {
+        "height": 5.4,
+        "surfaces": [
+          {
+            "box": [
+              0.08,
+              0.265,
+              0.85,
+              0.025
+            ],
+            "height": 3.72,
+            "normal": [
+              0,
+              0.99
+            ]
+          },
+          {
+            "box": [
+              0.08,
+              0.465,
+              0.85,
+              0.025
+            ],
+            "height": 2.6,
+            "normal": [
+              0,
+              0.99
+            ]
+          },
+          {
+            "box": [
+              0.08,
+              0.655,
+              0.85,
+              0.025
+            ],
+            "height": 1.54,
+            "normal": [
+              0,
+              0.99
+            ]
+          },
+          {
+            "box": [
+              0.02,
+              0.08,
+              0.07,
+              0.86
+            ],
+            "normal": [
+              -0.6,
+              0.08
+            ]
+          },
+          {
+            "box": [
+              0.91,
+              0.08,
+              0.07,
+              0.86
+            ],
+            "normal": [
+              0.6,
+              0.08
+            ]
+          }
+        ]
+      }
+    },
+    "storage-bench": {
+      "file": "res://art/export/inn-lobby/storage-bench.png",
+      "size": [
+        240,
+        96
+      ],
+      "foot": [
+        120,
+        92
+      ],
+      "colors": 31,
+      "source": "furniture-v2.png",
+      "crop": [
+        107,
+        655,
+        843,
+        321
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/storage-bench-spatial.png",
+      "surfaceProfile": {
+        "height": 1.45,
+        "surfaces": [
+          {
+            "box": [
+              0.09,
+              0.39,
+              0.82,
+              0.23
+            ],
+            "height": 0.83,
+            "normal": [
+              0,
+              0.98
+            ]
+          }
+        ]
+      }
+    },
+    "luggage": {
+      "file": "res://art/export/inn-lobby/luggage.png",
+      "size": [
+        112,
+        90
+      ],
+      "foot": [
+        56,
+        86
+      ],
+      "colors": 34,
+      "source": "furniture-v2.png",
+      "crop": [
+        1044,
+        627,
+        432,
+        341
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/luggage-spatial.png",
+      "surfaceProfile": {
+        "height": 1.65,
+        "surfaces": [
+          {
+            "box": [
+              0.06,
+              0.63,
+              0.72,
+              0.08
+            ],
+            "height": 0.62,
+            "normal": [
+              0,
+              0.98
+            ]
+          },
+          {
+            "box": [
+              0.12,
+              0.28,
+              0.6,
+              0.08
+            ],
+            "height": 1.15,
+            "normal": [
+              0,
+              0.98
+            ]
+          }
+        ]
+      }
+    },
+    "sofa": {
+      "file": "res://art/export/inn-lobby/sofa.png",
+      "size": [
+        272,
+        136
+      ],
+      "foot": [
+        136,
+        132
+      ],
+      "colors": 40,
+      "source": "furniture-sheet-v1.png",
+      "crop": [
+        47,
+        121,
+        482,
+        234
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/sofa-spatial.png",
+      "surfaceProfile": {
+        "height": 1.5,
+        "surfaces": [
+          {
+            "box": [
+              0.17,
+              0.47,
+              0.66,
+              0.2
+            ],
+            "height": 0.74,
+            "normal": [
+              0,
+              0.97
+            ]
+          }
+        ]
+      }
+    },
+    "fireplace": {
+      "file": "res://art/export/inn-lobby/fireplace.png",
+      "size": [
+        272,
+        256
+      ],
+      "foot": [
+        136,
+        252
+      ],
+      "colors": 52,
+      "source": "furniture-sheet-v1.png",
+      "crop": [
+        565,
+        0,
+        409,
+        384
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/fireplace-spatial.png",
+      "surfaceProfile": {
+        "height": 4.6,
+        "surfaces": [
+          {
+            "box": [
+              0.03,
+              0.3,
+              0.94,
+              0.06
+            ],
+            "height": 3.2,
+            "normal": [
+              0,
+              0.99
+            ]
+          },
+          {
+            "box": [
+              0.03,
+              0.87,
+              0.94,
+              0.07
+            ],
+            "height": 0.2,
+            "normal": [
+              0,
+              0.99
+            ]
+          },
+          {
+            "box": [
+              0.03,
+              0.36,
+              0.12,
+              0.5
+            ],
+            "normal": [
+              -0.72,
+              0.05
+            ]
+          },
+          {
+            "box": [
+              0.84,
+              0.36,
+              0.12,
+              0.5
+            ],
+            "normal": [
+              0.72,
+              0.05
+            ]
+          }
+        ],
+        "light": [
+          0.5,
+          0.72,
+          5,
+          3.3,
+          "ffae58"
+        ]
+      },
+      "light": {
+        "offset": [
+          0.0078125,
+          1.5058823529411764,
+          0.014328986375802825
+        ],
+        "range": 5,
+        "strength": 3.3,
+        "color": "ffae58"
+      }
+    },
+    "counter": {
+      "file": "res://art/export/inn-lobby/counter.png",
+      "size": [
+        288,
+        190
+      ],
+      "foot": [
+        144,
+        186
+      ],
+      "colors": 42,
+      "source": "counter-front-v2.png",
+      "crop": [
+        147,
+        86,
+        1243,
+        807
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/counter-spatial.png",
+      "surfaceProfile": {
+        "height": 3.2,
+        "surfaces": [
+          {
+            "box": [
+              0.04,
+              0.32,
+              0.92,
+              0.17
+            ],
+            "height": 1.6,
+            "normal": [
+              0,
+              0.99
+            ]
+          },
+          {
+            "box": [
+              0.03,
+              0.5,
+              0.1,
+              0.42
+            ],
+            "normal": [
+              -0.68,
+              0.06
+            ]
+          },
+          {
+            "box": [
+              0.88,
+              0.5,
+              0.09,
+              0.42
+            ],
+            "normal": [
+              0.68,
+              0.06
+            ]
+          }
+        ],
+        "light": [
+          0.14,
+          0.22,
+          4.3,
+          2.5,
+          "ffd391"
+        ]
+      },
+      "light": {
+        "offset": [
+          -1.6171875,
+          3.2,
+          0.00697094120449693
+        ],
+        "range": 4.3,
+        "strength": 2.5,
+        "color": "ffd391"
+      }
+    },
+    "stairs": {
+      "file": "res://art/export/inn-lobby/stairs.png",
+      "size": [
+        192,
+        195
+      ],
+      "foot": [
+        96,
+        191
+      ],
+      "colors": 25,
+      "source": "furniture-sheet-v1.png",
+      "crop": [
+        138,
+        385,
+        300,
+        305
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/stairs-spatial.png",
+      "surfaceProfile": {
+        "height": 3.5,
+        "stairs": true
+      }
+    },
+    "tea-table": {
+      "file": "res://art/export/inn-lobby/tea-table.png",
+      "size": [
+        180,
+        108
+      ],
+      "foot": [
+        90,
+        104
+      ],
+      "colors": 54,
+      "source": "furniture-sheet-v1.png",
+      "crop": [
+        591,
+        474,
+        356,
+        208
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/tea-table-spatial.png",
+      "surfaceProfile": {
+        "height": 0.72,
+        "surfaces": [
+          {
+            "box": [
+              0.04,
+              0.2,
+              0.92,
+              0.38
+            ],
+            "height": 0.72,
+            "normal": [
+              0,
+              0.995
+            ]
+          }
+        ]
+      }
+    },
+    "plant": {
+      "file": "res://art/export/inn-lobby/plant.png",
+      "size": [
+        88,
+        93
+      ],
+      "foot": [
+        44,
+        89
+      ],
+      "colors": 31,
+      "source": "furniture-sheet-v1.png",
+      "crop": [
+        1153,
+        420,
+        252,
+        267
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/plant-spatial.png",
+      "surfaceProfile": {
+        "height": 1.8,
+        "round": true
+      }
+    },
+    "armchair": {
+      "file": "res://art/export/inn-lobby/armchair.png",
+      "size": [
+        116,
+        115
+      ],
+      "foot": [
+        58,
+        111
+      ],
+      "colors": 18,
+      "source": "furniture-sheet-v1.png",
+      "crop": [
+        160,
+        719,
+        256,
+        253
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/armchair-spatial.png",
+      "surfaceProfile": {
+        "height": 1.7,
+        "surfaces": [
+          {
+            "box": [
+              0.2,
+              0.48,
+              0.6,
+              0.18
+            ],
+            "height": 0.8,
+            "normal": [
+              0,
+              0.98
+            ]
+          }
+        ]
+      }
+    },
+    "lantern": {
+      "file": "res://art/export/inn-lobby/lantern.png",
+      "size": [
+        46,
+        73
+      ],
+      "foot": [
+        23,
+        69
+      ],
+      "colors": 16,
+      "source": "furniture-sheet-v1.png",
+      "crop": [
+        707,
+        748,
+        116,
+        199
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/lantern-spatial.png",
+      "surfaceProfile": {
+        "height": 1.05,
+        "light": [
+          0.5,
+          0.48,
+          3.5,
+          1.7,
+          "ffd08b"
+        ]
+      },
+      "light": {
+        "offset": [
+          0.0078125,
+          0.7529411764705882,
+          0.012688764915921314
+        ],
+        "range": 3.5,
+        "strength": 1.7,
+        "color": "ffd08b"
+      }
+    },
+    "lamp-table": {
+      "file": "res://art/export/inn-lobby/lamp-table.png",
+      "size": [
+        84,
+        124
+      ],
+      "foot": [
+        42,
+        120
+      ],
+      "colors": 35,
+      "source": "furniture-sheet-v1.png",
+      "crop": [
+        1190,
+        716,
+        174,
+        266
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/lamp-table-spatial.png",
+      "surfaceProfile": {
+        "height": 1.9,
+        "surfaces": [
+          {
+            "box": [
+              0.08,
+              0.52,
+              0.84,
+              0.16
+            ],
+            "height": 0.85,
+            "normal": [
+              0,
+              0.99
+            ]
+          }
+        ],
+        "light": [
+          0.53,
+          0.21,
+          5,
+          2.6,
+          "ffd595"
+        ]
+      },
+      "light": {
+        "offset": [
+          0.0390625,
+          1.8823529411764706,
+          -0.18372468510297282
+        ],
+        "range": 5,
+        "strength": 2.6,
+        "color": "ffd595"
+      }
+    },
+    "wall": {
+      "file": "res://art/export/inn-lobby/wall.png",
+      "size": [
+        276,
+        216
+      ],
+      "foot": [
+        138,
+        212
+      ],
+      "colors": 41,
+      "source": "architecture-sheet-v1.png",
+      "crop": [
+        67,
+        24,
+        636,
+        493
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/wall-spatial.png",
+      "surfaceProfile": {
+        "height": 5
+      }
+    },
+    "rug": {
+      "file": "res://art/export/inn-lobby/rug.png",
+      "size": [
+        456,
+        287
+      ],
+      "foot": [
+        228,
+        283
+      ],
+      "colors": 19,
+      "source": "architecture-sheet-v1.png",
+      "crop": [
+        824,
+        96,
+        628,
+        391
+      ],
+      "role": "ground"
+    },
+    "keys": {
+      "file": "res://art/export/inn-lobby/keys.png",
+      "size": [
+        108,
+        122
+      ],
+      "foot": [
+        54,
+        118
+      ],
+      "colors": 18,
+      "source": "architecture-sheet-v1.png",
+      "crop": [
+        217,
+        570,
+        367,
+        417
+      ],
+      "role": "sprite",
+      "spatialMap": "res://art/export/inn-lobby/keys-spatial.png",
+      "surfaceProfile": {
+        "height": 2.6
+      }
+    },
+    "small-rug": {
+      "file": "res://art/export/inn-lobby/small-rug.png",
+      "size": [
+        200,
+        128
+      ],
+      "foot": [
+        100,
+        124
+      ],
+      "colors": 17,
+      "source": "architecture-sheet-v1.png",
+      "crop": [
+        824,
+        96,
+        628,
+        391
+      ],
+      "role": "ground"
+    },
+    "front-wall": {
+      "file": "res://art/export/inn-lobby/front-wall.png",
+      "size": [
+        480,
+        52
+      ],
+      "foot": [
+        240,
+        48
+      ],
+      "colors": 13,
+      "source": "wall.png lower wainscot",
+      "role": "sprite",
+      "worldWidth": 7.5
+    },
+    "oak-floor": {
+      "file": "res://art/export/inn-lobby/oak-floor.png",
+      "size": [
+        128,
+        128
+      ],
+      "foot": [
+        64,
+        124
+      ],
+      "colors": 13,
+      "source": "architecture-sheet-v1.png",
+      "crop": [
+        925,
+        566,
+        426,
+        426
+      ],
+      "role": "tile",
+      "tileWorldSize": [
+        2,
+        2
+      ]
+    },
+    "wall-solid": {
+      "file": "res://art/export/inn-lobby/wall-solid.png",
+      "size": [
+        276,
+        216
+      ],
+      "foot": [
+        138,
+        212
+      ],
+      "colors": 41,
+      "source": "art-studies/interiors/solid-walls-v1/inn-master.png",
+      "crop": [
+        12,
+        11,
+        1393,
+        1081
+      ],
+      "role": "sprite",
+      "surfaceProfile": {
+        "height": 5
+      },
+      "windowless": true
+    }
+  },
+  "lighting": {
+    "channels": {
+      "r": "height / 16",
+      "g": "normal X * .5 + .5",
+      "b": "normal Y * .5 + .5",
+      "a": "authored flame/bulb emission mask"
+    },
+    "method": "authored surface regions, no luminance-to-height",
+    "normalSpace": "sprite right / up / forward"
+  }
+}

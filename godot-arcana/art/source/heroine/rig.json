@@ -1,0 +1,682 @@
+{
+  "version": 1,
+  "foot": [
+    48,
+    116
+  ],
+  "ankleY": 101,
+  "parts": {
+    "boots-taupe-s-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "s"
+    },
+    "boots-taupe-s-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "s"
+    },
+    "boots-taupe-se-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "se"
+    },
+    "boots-taupe-se-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "se"
+    },
+    "boots-taupe-e-left.png": {
+      "ankle": [
+        48,
+        101
+      ],
+      "sole": [
+        48,
+        116
+      ],
+      "leg": "left",
+      "direction": "e"
+    },
+    "boots-taupe-e-right.png": {
+      "ankle": [
+        50,
+        101
+      ],
+      "sole": [
+        50,
+        116
+      ],
+      "leg": "right",
+      "direction": "e"
+    },
+    "boots-taupe-ne-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "ne"
+    },
+    "boots-taupe-ne-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "ne"
+    },
+    "boots-taupe-n-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "n"
+    },
+    "boots-taupe-n-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "n"
+    },
+    "boots-taupe-nw-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "nw"
+    },
+    "boots-taupe-nw-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "nw"
+    },
+    "boots-taupe-w-left.png": {
+      "ankle": [
+        48,
+        101
+      ],
+      "sole": [
+        48,
+        116
+      ],
+      "leg": "left",
+      "direction": "w"
+    },
+    "boots-taupe-w-right.png": {
+      "ankle": [
+        50,
+        101
+      ],
+      "sole": [
+        50,
+        116
+      ],
+      "leg": "right",
+      "direction": "w"
+    },
+    "boots-taupe-sw-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "sw"
+    },
+    "boots-taupe-sw-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "sw"
+    },
+    "boots-navy-s-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "s"
+    },
+    "boots-navy-s-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "s"
+    },
+    "boots-navy-se-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "se"
+    },
+    "boots-navy-se-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "se"
+    },
+    "boots-navy-e-left.png": {
+      "ankle": [
+        48,
+        101
+      ],
+      "sole": [
+        48,
+        116
+      ],
+      "leg": "left",
+      "direction": "e"
+    },
+    "boots-navy-e-right.png": {
+      "ankle": [
+        50,
+        101
+      ],
+      "sole": [
+        50,
+        116
+      ],
+      "leg": "right",
+      "direction": "e"
+    },
+    "boots-navy-ne-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "ne"
+    },
+    "boots-navy-ne-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "ne"
+    },
+    "boots-navy-n-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "n"
+    },
+    "boots-navy-n-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "n"
+    },
+    "boots-navy-nw-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "nw"
+    },
+    "boots-navy-nw-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "nw"
+    },
+    "boots-navy-w-left.png": {
+      "ankle": [
+        48,
+        101
+      ],
+      "sole": [
+        48,
+        116
+      ],
+      "leg": "left",
+      "direction": "w"
+    },
+    "boots-navy-w-right.png": {
+      "ankle": [
+        50,
+        101
+      ],
+      "sole": [
+        50,
+        116
+      ],
+      "leg": "right",
+      "direction": "w"
+    },
+    "boots-navy-sw-left.png": {
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ],
+      "leg": "left",
+      "direction": "sw"
+    },
+    "boots-navy-sw-right.png": {
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ],
+      "leg": "right",
+      "direction": "sw"
+    },
+    "body-s-left.png": {
+      "hip": [
+        45,
+        87
+      ],
+      "knee": [
+        45,
+        94
+      ],
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ]
+    },
+    "body-s-right.png": {
+      "hip": [
+        52,
+        87
+      ],
+      "knee": [
+        52,
+        94
+      ],
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ]
+    },
+    "body-se-left.png": {
+      "hip": [
+        45,
+        87
+      ],
+      "knee": [
+        45,
+        94
+      ],
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ]
+    },
+    "body-se-right.png": {
+      "hip": [
+        52,
+        87
+      ],
+      "knee": [
+        52,
+        94
+      ],
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ]
+    },
+    "body-e-left.png": {
+      "hip": [
+        48,
+        87
+      ],
+      "knee": [
+        48,
+        94
+      ],
+      "ankle": [
+        48,
+        101
+      ],
+      "sole": [
+        48,
+        116
+      ]
+    },
+    "body-e-right.png": {
+      "hip": [
+        50,
+        87
+      ],
+      "knee": [
+        50,
+        94
+      ],
+      "ankle": [
+        50,
+        101
+      ],
+      "sole": [
+        50,
+        116
+      ]
+    },
+    "body-ne-left.png": {
+      "hip": [
+        45,
+        87
+      ],
+      "knee": [
+        45,
+        94
+      ],
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ]
+    },
+    "body-ne-right.png": {
+      "hip": [
+        52,
+        87
+      ],
+      "knee": [
+        52,
+        94
+      ],
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ]
+    },
+    "body-n-left.png": {
+      "hip": [
+        45,
+        87
+      ],
+      "knee": [
+        45,
+        94
+      ],
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ]
+    },
+    "body-n-right.png": {
+      "hip": [
+        52,
+        87
+      ],
+      "knee": [
+        52,
+        94
+      ],
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ]
+    },
+    "body-nw-left.png": {
+      "hip": [
+        45,
+        87
+      ],
+      "knee": [
+        45,
+        94
+      ],
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ]
+    },
+    "body-nw-right.png": {
+      "hip": [
+        52,
+        87
+      ],
+      "knee": [
+        52,
+        94
+      ],
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ]
+    },
+    "body-w-left.png": {
+      "hip": [
+        48,
+        87
+      ],
+      "knee": [
+        48,
+        94
+      ],
+      "ankle": [
+        48,
+        101
+      ],
+      "sole": [
+        48,
+        116
+      ]
+    },
+    "body-w-right.png": {
+      "hip": [
+        50,
+        87
+      ],
+      "knee": [
+        50,
+        94
+      ],
+      "ankle": [
+        50,
+        101
+      ],
+      "sole": [
+        50,
+        116
+      ]
+    },
+    "body-sw-left.png": {
+      "hip": [
+        45,
+        87
+      ],
+      "knee": [
+        45,
+        94
+      ],
+      "ankle": [
+        45,
+        101
+      ],
+      "sole": [
+        45,
+        116
+      ]
+    },
+    "body-sw-right.png": {
+      "hip": [
+        52,
+        87
+      ],
+      "knee": [
+        52,
+        94
+      ],
+      "ankle": [
+        52,
+        101
+      ],
+      "sole": [
+        52,
+        116
+      ]
+    }
+  }
+}

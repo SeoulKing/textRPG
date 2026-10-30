@@ -1,0 +1,16 @@
+{
+  "source_sha256": "eb88304d08ed7ea6c24b642d2836ebb4e823e2f2643e9e9abea3a4c23afd7d06",
+  "baseline_sha256": "5963231c2900f19c863bf5f47735c16ac2e378486cf953c4885f1fee11dd0f19",
+  "source_and_baseline_unchanged": true,
+  "fixed_cameras": true,
+  "baseline_render_reused": true,
+  "game_or_browser_testing": false,
+  "images_are_native_blender_renders": true,
+  "hair_geometry_unchanged": true,
+  "hair_geometry_sha256": "333e7a7004c9472b847433096ebbbbc5ca8c2176da70a9ae8fc82b6519f4467f",
+  "source": "heroine-face.blend",
+  "scope": "Face-only geometry, eye materials and line finish; hair geometry preserved",
+  "game_integration": false,
+  "status": "Refined native model candidate for visual review",
+  "shape_key_control": "V7 MASTER[face_refinement_weight]"
+}

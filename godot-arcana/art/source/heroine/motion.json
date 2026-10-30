@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "footTravelPixels": 24,
+  "stanceFraction": 0.6,
+  "liftPixels": 5,
+  "pitchSine": 0.7071067811865476,
+  "armSwingPixels": 2.2,
+  "clothLagCycles": 0.08,
+  "previewMapUnitsPerSecond": 24,
+  "settleSeconds": 0.16
+}

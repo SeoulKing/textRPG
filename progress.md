@@ -1138,6 +1138,16 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
 
+- 2026-07-09 movement destination vertical centering:
+  fixed movement destination cards by making each card a flex container and centering its metadata row vertically.
+  kept the compact card height while preserving the destination name, risk tag, and travel-time tag layout.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
 - 2026-06-23 shelter recovery choice hints:
   enabled visible outcome hints for the shelter `휴식하기` and `취침하기` actions.
   `휴식하기` now shows `+1 체력 / +1 정신력 / +15분`.
@@ -1201,3 +1211,610 @@ Original prompt: 편의점 폐허에 진열대 말고 다른 곳도 추가해보
   `git diff --check`
   local API smoke confirmed `forage_forest_food` returns the probability-free `outcomeHint` with `showOutcomeHint: true`.
   Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-06-23 shelter crafting/cooking split:
+  split the shelter recipe flow into separate top-level actions: `open_shelter_crafting` for crafting/upgrades/tools/radio and `open_shelter_cooking` for food recipes.
+  added `shelter_cooking_menu` and `shelter_cooking_menu_repeat`, with cooking recipes returning to the cooking menu after use.
+  updated the shared recipe-card UI and server metadata so cooking menus use the same detail panel, with cooking submit buttons labeled `요리`.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed shelter top-level actions show both `제작하기` and `요리하기`, crafting menus hide `cook_*` actions, cooking menus hide `craft_*`/radio actions, and cooking recipes use the `요리` action label.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-06-23 generic recipe-card rendering:
+  changed the frontend recipe-card switch from a hardcoded shelter scene-id list to the presence of `craftingRecipe` metadata on available actions.
+  This makes `요리하기` use the same recipe detail panel and compact recipe-card layout as `제작하기`, and keeps the UI reusable for future recipe menus.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  local API smoke confirmed `shelter_cooking_menu` returns four recipe actions with `craftingRecipe` metadata and the `요리` action label.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-08 prologue-to-shelter mobile scroll stabilization:
+  reduced mobile scroll jumping during scene transitions by resetting the app shell scroll position when the rendered story surface changes.
+  changed the automatic bottom pinning so it only applies when the user is already near the bottom, and removed per-character scroll pinning during typewriter text.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed `prologue_old_woman_visit -> shelter_first_intro` still transitions correctly.
+  Browser visual verification could not run because the in-app browser endpoint was unavailable in this session, and Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package.
+
+- 2026-07-08 movement sheet map-first compact list:
+  removed the current-location summary card from the movement sheet so the hex map is the first visible section.
+  moved the zoom toolbar below the map board to keep the map itself at the top.
+  reduced movement destination cards with tighter padding, smaller title text, and smaller tags so the list uses roughly half the previous vertical space.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-02 kitchen ration-ticket exchange:
+  added a `배식권을 식사로 바꾼다` 급식소 action that appears when the player has `rationTicket`.
+  The exchange consumes 1 `rationTicket`, grants 1 `hotMeal`, marks the day's meal as secured, advances 10 minutes, and routes to a short `kitchen_ration_ticket_exchange` result scene.
+  Updated `CONTENT_LEDGER.md` so `rationTicket`, cooking ingredients, and stock-node quantities match the current authored content.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is available with a ration ticket, then produces `kitchen_ration_ticket_exchange`, consumes the ticket, adds a hot meal, and disappears after use.
+  local server smoke confirmed `/api/health` and `/` both return 200 on `http://127.0.0.1:3000`.
+  Playwright web-game smoke still cannot run because the local skill script cannot resolve the `playwright` package in this environment.
+
+- 2026-07-09 kitchen repeat work activity:
+  added a reusable `stat_gte` condition so content can require minimum hp/mind/energy before showing an action.
+  added the `배식소 일을 돕는다` kitchen action as a repeatable low-risk work loop: it requires at least 1 energy, spends 1 energy and 40 minutes, then randomly rewards either 1,200원, a ration ticket, a hot meal, or a water bottle.
+  added four short result scenes for the possible kitchen work outcomes so the reward appears as narrative body text instead of only as a system/log change.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the kitchen with energy, spends exactly 40 game minutes, reduces energy by 1, changes reward state, routes to a `kitchen_work_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 hospital triage work activity:
+  added the `임시 처치대를 돕는다` hospital action as a repeatable medium-risk support loop.
+  The action requires at least 1 energy, spends 1 energy and 35 minutes, then randomly rewards pain relief, cloth scrap, cordage, or a small hp treatment.
+  Added four `hospital_triage_*` result scenes so the outcome is shown through narrative body text.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the hospital with energy, spends exactly 35 game minutes, reduces energy by 1, changes reward state, routes to a `hospital_triage_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 subway platform salvage activity:
+  added the `승강장 자재를 회수한다` subway action as a repeatable high-risk salvage loop.
+  The action requires at least 1 energy, spends 1 energy and 40 minutes, then rewards scrap metal, cordage, or a water bottle, with a small injury outcome that still yields scrap.
+  Added four `subway_platform_*` result scenes to make the subway feel more alive through platform sounds, darkness, physical handling, and injury risk instead of only item log output.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the action is visible at the subway with energy, spends exactly 40 game minutes, reduces energy by 1, changes reward/risk state, routes to a `subway_platform_*` result scene, and hides when energy is 0.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 checkpoint perimeter patrol activity:
+  added the `초소 주변을 정찰한다` checkpoint action as a repeatable high-risk patrol loop.
+  The action requires at least 1 energy, spends 1 energy and 35 minutes, then rewards scrap metal, cordage, or a ration ticket, with a small injury outcome.
+  Added four `checkpoint_perimeter_*` result scenes so the checkpoint patrol resolves through location prose instead of dangling scene references.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+
+- 2026-07-10 kitchen rumor activities:
+  added `작은 병원 소문을 묻는다` as a one-time kitchen talk action that spends 20 minutes, sets `hospital_lead_checked` and `known_hospital`, and routes to `kitchen_rumor_hospital`.
+  added `배식줄 소문을 듣는다` as a repeatable 15-minute low-risk world flavor action with random results about food prices, subway sounds, checkpoint radio rumors, and night weather.
+  Added five `kitchen_rumor_*` scenes so world information appears as scene prose and not just system notes.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  direct engine smoke confirmed the one-time hospital rumor sets the knowledge flags, advances exactly 20 game minutes, disappears after use, and the repeatable line rumor advances exactly 15 game minutes and routes to a `kitchen_rumor_*` result scene.
+  Playwright web-game smoke could not run because the local skill script still cannot resolve the `playwright` package in this environment.
+
+- 2026-07-10 mobile story/choice scroll flow:
+  changed the mobile scene layout so choices are no longer fixed above the bottom dock or measured as a separate reserved zone.
+  Choices now render in the same `.scene-copy` document flow underneath the narrative, so scrolling moves the narrative and choices together.
+  While typewriter narration is still running, the choice list stays empty and the story area can use the full app viewport above the dock.
+  When narration finishes or is skipped, the app scrolls the shared story flow to the bottom once so the revealed choices push the completed narrative upward.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed after installing local `playwright` and Chromium for validation.
+  Additional 390px mobile Playwright probe confirmed typing state had 0 choices, revealed choices used `position: static` under `.scene-copy`, max scroll moved to the bottom, and a manual app-shell scroll moved story text and choices as one shared scroll flow.
+  TODO: if future scenes add much taller choice menus, re-check crafting menus on small screens to tune choice button density without reintroducing fixed positioning.
+
+- 2026-07-10 inventory card size consistency:
+  fixed the mobile inventory panel so one-line item cards use a uniform fixed card height regardless of whether the card has a money tag, use button, or no trailing control.
+  Inventory card titles now stay on one line with ellipsis to prevent wrapped text from changing card height.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed.
+  390px mobile Playwright inventory probe rendered 10 sample cards and confirmed all card heights were 64px and all widths were 166px with no console errors.
+
+- 2026-07-27 action transition prefetch:
+  added a minimum 1-second transition for every gameplay action while the browser sends the action request in parallel.
+  the selected control now shows a left-to-right progress bar, with contextual copy above it such as `걸어가는 중…`, `주변을 살피는 중…`, or `다음 층으로 내려가는 중…`.
+  the returned next-scene snapshot stays in memory and its scene image is preloaded before the new scene is rendered.
+  slow requests keep the completed bar visible and change the status to `장면을 준비하는 중…`.
+  subway descent continues to use the server's one-floor-ahead generation cache underneath this browser transition.
+  Initial verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  Playwright web-game client smoke passed using the installed desktop Chrome because the bundled Chromium executable was unavailable.
+  a focused 390px mobile probe exercised the complete flow through `폐자재 더미로 간다`:
+  at 364ms the status was `걸어가는 중…` and the bar measured about 30%;
+  with an artificial 1700ms API delay, the bar reached 100% and the status changed to `장면을 준비하는 중…`;
+  the completed response switched directly to `kitchen_scrap_heap_full` with its image already visible.
+  the normal fast action still held the transition for 1195ms, and the browser reported no console errors.
+
+- 2026-07-27 action transition timing split:
+  changed ordinary gameplay actions to a 500ms minimum transition while keeping physical movement at 1000ms.
+  movement includes map travel, `go_to_` / physical `leave_` / `push_beyond_` actions, and subway start, descend, and return commands; leaving shelter crafting/cooking menus stays a 500ms UI action.
+  the progress bar now receives the same per-action duration as the transition wait, and `render_game_to_text` exposes `durationMs` for verification.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npx.cmd tsc --outDir .tmp-action-transition-build --rootDir src`
+  `git diff --check`
+  the required web-game client smoke passed through installed Chrome.
+  a focused 390px Playwright probe confirmed `opening_commit` reports 500ms with a 0.5s progress animation and map travel to the convenience store reports 1000ms with a 1s progress animation.
+  both actions completed into their expected scenes; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-27 structured LLM subway expedition:
+  limited LLM direction to one subway expedition run at a time while leaving the authored concourse and 10-day survival game unchanged.
+  added a run plan, compact story memory, one major event per floor, two pre-generated outcome variants per choice, three fixed-manifest loot spots, dedicated event/loot result scenes, and explicit result acknowledgement phases.
+  the engine now rolls depth-table loot and supplies an exact mechanics envelope; invalid model output receives at most two repair prompts, then falls back to a visibly labeled template without clamping model values.
+  event choices are only enabled when both their clean and costly variants can be paid exactly; resolution rechecks that guard and applies the declared values without the global depleted-stat fallback.
+  replaced the process-only next-floor cache with a persisted template-first wrapper carrying run/source/depth/hash metadata. Start and descent consume it immediately, while a background task conditionally upgrades the same manifest and envelope with LLM prose.
+  added per-game mutation serialization for service saves, branch-neutral next-floor generation with selected-result bridge injection, unique-loot reservation, and client redaction of future floors, unresolved outcomes, and unsearched contents.
+  enabled the subway generator in `render.yaml` while keeping the world planner disabled; `GEMINI_API_KEY` remains a deployment secret.
+  Verification passed:
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  isolated TypeScript build
+  `node --check app-api.js`
+  `git diff --check`
+  live Gemini probes passed with `gemini-3.1-flash-lite-preview`: the run plan returned an LLM source with three motifs/escalation notes, and a depth-1 floor returned an LLM source with two event choices, both outcome branches, and three loot spots.
+  service/repository integration probe passed persisted restart consumption, event/result/loot phases, exact one-time effects, next-depth preparation, bridge insertion, return settlement, and next-run reset.
+  the required web-game Playwright client passed against the current build using desktop Chrome.
+  a focused browser flow confirmed the `템플릿 층` badge, 1000ms start transition, 500ms event transition, event result scene, loot result scene, and correct 06:30 → 07:25 clock display; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 opening quest deployment-loop fix:
+  found that `saveVersion` is a server persistence schema version, but the browser treated any mismatch as an incompatible client response and immediately created another new game.
+  during a rolling deployment, an open v15 client receiving a normal v16 `opening_commit` response discarded the activated rescue quest and returned to a fresh `prologue_opening`, producing the reported infinite loop.
+  changed the client freshness check to validate snapshot shape only and added a versioned `app-api.js` URL so a refresh cannot reuse the pre-fix script.
+  wrapped every per-game service mutation in the repository lock contract; Postgres now uses a game-id advisory lock across the complete load/modify/save operation so old and new Render instances cannot overwrite each other's quest state during a rolling deployment.
+  added an `opening_seen` guard to the first quest choice so a stale/retried `opening_commit` request cannot consume later shelter scenes repeatedly.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh prologue successfully.
+  a focused browser regression rewrote the first action response to `saveVersion: 999`; the same game id advanced from `prologue_opening` to `prologue_old_woman_visit`, activated the rescue quest, and exposed the canned-food quest without console errors.
+  a direct engine probe confirmed the first `opening_commit` activates the rescue quest and an immediate replay is rejected without mutating the story state.
+
+- 2026-07-28 choice transition copy removal:
+  removed the `결정하는 중…` status line from `content_choice` transitions while retaining the 500ms in-button progress bar and response preloading.
+  choices also stay text-free on slow responses instead of changing to a secondary loading sentence.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `git diff --check`
+  the required web-game Playwright client passed.
+  a focused browser probe at 129ms confirmed zero `.action-transition-status` elements, one progress bar, an empty transition message, and successful advancement to `prologue_old_woman_visit`; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 item-use transition placement:
+  removed the `물건을 사용하는 중…` status line while retaining the 500ms minimum transition and response preloading.
+  item-use progress and pending emphasis now cover the complete inventory card instead of the small `사용` button.
+  inventory card selection is ignored while an item action is pending so rerendering cannot interrupt the card-level progress feedback.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a focused browser probe confirmed no status copy, one card progress bar, no button progress bar, card-only pending emphasis, a 500ms duration, uninterrupted feedback after a second card click, cleanup after completion, and the water bottle count changing from one to zero; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 crafting transition placement:
+  moved crafting progress and pending emphasis from the small `제작` button to the matching `.crafting-choice-select` item-name area.
+  the item-name controls are disabled with the crafting buttons while an action is pending, preventing selection rerenders from interrupting feedback.
+  the existing absolutely positioned progress track remains clipped inside the name area and does not participate in layout.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  focused desktop and 390px browser probes confirmed one progress bar in the item-name area, zero progress bars in the `제작` button, a 500ms transition, and exact zero-pixel changes to the name area, recipe card, submit button, choices container, and scroll height while the progress bar was visible.
+
+- 2026-07-28 item-name reference migration (in progress):
+  added `src/game/item-text.ts` with runtime `{{item:itemId}}` references and Korean particle forms such as `{{item:waterBottle|을를}}`.
+  wired item reference resolution into snapshot choices, recipe presentation, scene/event cards, authored logs, and fallback system notes so the current runtime registry is the display-name source.
+  added content validation for unknown item references and unsupported particle forms across actions, choices, logs, scenes, and events.
+  Initial `npm.cmd run typecheck` and `npm.cmd run content:validate` passed before migrating authored strings.
+  migrated built-in region actions/choices and persisted content-studio recipes away from duplicated item display names.
+  content studio recipe/story fields now include an item-reference picker, while recipe headers and lists preview the resolved display name instead of raw token text.
+  saving or publishing after an item rename automatically converts occurrences of the previous item name in recipe/story presentation fields into stable item references.
+  post-migration checks passed: `node --check content-editor.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, and `git diff --check` (line-ending warnings only).
+
+- 2026-07-28 movement transition restoration:
+  movement actions now receive a client-enforced 1000ms transition even when their authored choice or map button has no `loading` metadata.
+  ordinary choices without `loading` metadata remain immediate, while explicitly authored non-movement loading durations still work.
+  bumped the `app-api.js` query version so deployed browsers fetch the restored behavior.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a focused browser probe confirmed the opening quest choice showed no loading UI while its response was deliberately delayed, map travel kept the movement overlay through 913ms and completed at 1054ms, and the internal `진열대로 간다` choice kept it through 912ms and completed at 1052ms.
+  the movement overlay was visually inspected and correctly showed the destination, movement label, blurred scene, and progress bar; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 activity transition rules:
+  clarified the transition categories so 1000ms is reserved for actual region travel, including map travel and authored choices with a `travel` effect.
+  investigation actions and choices with `advance_time` / `advance_to_daybreak` now receive 500ms loading metadata automatically.
+  action-catalog construction reapplies the rule from preserved choice effects, so previously cached event choices also receive the correct activity loading.
+  same-region detail choices such as `go_to_convenience_shelf` are no longer classified as 1000ms movement merely from their ID.
+  added a `transitionType` marker to loading metadata so the client can distinguish regional travel from ordinary activity without guessing from labels.
+  Verification passed:
+  `node --check app-api.js`
+  `npm.cmd run typecheck`
+  `npm.cmd run content:validate`
+  `npm.cmd run build`
+  `git diff --check`
+  the required web-game Playwright client rendered a fresh game successfully using installed desktop Chrome.
+  a definition-level probe confirmed `buy_meal_at_kitchen` and `discover_magic_city_entrance` resolve to 500ms activity loading, `go_to_convenience_shelf` has no loading, and the portal choice with a real `travel` effect resolves to 1000ms regional loading.
+  focused browser checks confirmed map travel still reports 1000ms, the convenience investigation reports 500ms and advances the clock from 06:15 to 06:25, and same-region return/detail choices show no loading UI.
+  the 500ms activity overlay was visually inspected; the only console error was the pre-existing missing `/favicon.ico` request.
+
+- 2026-07-28 item-name reference migration completed:
+  API rename regression changed `cannedFood` from `캔 음식` to `응급 식량` in an isolated test document and confirmed the next quest choice and outcome hint used the renamed value with zero unresolved item tokens in the snapshot.
+  resolved authored log effects inside presented scene/event choice data so raw references do not leak through nested snapshot metadata.
+  the required web-game Playwright client completed successfully with installed desktop Chrome.
+  focused browser verification confirmed `응급 식량` appeared in the rendered quest choice, no raw `{{item:...}}` reference appeared in the page or HTML, and there were no console or failed-resource errors.
+  content-studio browser verification confirmed the item-reference controls render for recipe presentation fields and insert `{{item:cannedFood}}` at the current cursor position.
+  added inline empty favicons to the game and content studio to eliminate the previously unrelated `/favicon.ico` 404 during browser checks.
+  final verification passed: `node --check content-editor.js`, `node --check app-api.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, and `git diff --check`.
+
+- 2026-07-28 future scene and choice item-reference authoring:
+  added shared item-name canonicalization so plain display names in new scene titles, paragraphs, choice labels, outcome hints, failure notes, and log effects become stable `{{item:itemId}}` references with Korean particle forms.
+  built-in region content is canonicalized when its registry is assembled, Content Studio normalizes new stories/scenes/choices on save or publish, and generated narrative drafts are normalized while compiling.
+  the Content Studio story editor now exposes item-reference controls for scene titles as well as entry, paragraph, and choice presentation fields, with inline guidance explaining the automatic conversion.
+  Gemini planner prompts now receive the current item catalog and explicitly request ID references; the region authoring guide documents the same default structure and helper API.
+  direct regressions passed for particle conversion, plural wording, renamed-item rendering, malformed references, built-in scene normalization, and Content Studio document normalization.
+  the required web-game Playwright client rendered a fresh game successfully with installed desktop Chrome.
+  focused browser verification created a new story, scene, and choice, confirmed six item-reference pickers and the automatic-conversion guidance, and the isolated Content Studio API save returned normalized ID references.
+
+- 2026-07-28 inline choice activity transition:
+  limited the scene-wide popup overlay to actual region travel transitions; ordinary timed activities and subway-internal movement no longer create a popup or status message.
+  choice-triggered activities now fill the selected choice from left to right across its full height with a neutral gray that is darker than the resting choice background.
+  subway loot searches receive the same 500ms inline choice fill even though their generated actions do not carry authored loading metadata.
+  preserved the existing inline progress placement for inventory use and crafting controls, and kept the regional travel overlay unchanged.
+  bumped the client script version so deployed browsers fetch the updated transition behavior.
+  the required web-game Playwright client rendered a fresh game successfully with installed desktop Chrome.
+  focused 390px browser verification confirmed the stale-bread choice had no overlay, filled roughly 51% after 260ms with `rgba(31, 41, 55, 0.12)`, retained exact width and height, completed with two stale breads in inventory, and regional travel still used the popup overlay.
+  a generated subway-floor probe confirmed `search_loot` receives a 500ms full-choice gray fill with no popup while the loot action completes normally.
+
+- 2026-07-28 standardized choice outcome hints:
+  added a shared formatter that derives money, stat, item, tool-durability, random-result, and time hints directly from authored effects instead of relying on duplicated manual descriptions.
+  connected the formatter to location actions, scene choices, and event choices; generated mechanical hints are shown automatically and time is always placed last.
+  stock collection hints use the remaining runtime quantity, so the stale-bread choice changes from `눅눅한 빵 +2 / +5분` to `눅눅한 빵 +1 / +5분` after one unit remains.
+  changed the kitchen work reward and log to 6,000 won, producing the exact visible hint `+6,000원 / +60분`.
+  standardized generated subway-expedition hint separators and hid the non-mechanical result acknowledgement note.
+  updated the region authoring guide and Content Studio guidance so future content treats `outcomeHint` as a fallback for non-mechanical descriptions.
+  verification passed: `node --check content-editor.js`, `npm.cmd run typecheck`, `npm.cmd run content:validate`, `npm.cmd run build`, and `git diff --check`.
+  a 67-definition audit found no generated `보상:` / `효과:` prose or time token before the final position; focused checks passed for kitchen work, first aid, axe logging, random triage rewards, and runtime stock counts.
+  the required web-game Playwright client rendered the saved kitchen scene at 390×844 with no console errors; focused DOM verification confirmed `배식소 일을 돕는다` displays exactly `+6,000원 / +60분`.
+
+- 2026-07-28 outcome-hint quantity-first correction:
+  corrected the universal mechanical token order to `sign + quantity + target`.
+  item, durability, energy, random-reward, and generated subway hints now render as `+5 목재 판자`, `-1 손도끼 내구도`, `-1 기력`, and `+1 진통제`.
+  tool creation shows the actual durability delta from the current state, such as `+8 손도끼 내구도`.
+  updated all authoring-guide examples to use quantity-first item tokens.
+  a 67-definition audit confirmed every generated slash-delimited token starts with a signed quantity or the explicit `다음 날` time marker.
+  the required web-game Playwright client and 390×844 screenshot confirmed `-4,500원 / +1 따뜻한 식사 / +15분` and `+6,000원 / +60분` render correctly with no console errors.
+
+- 2026-07-29 collection/exploration skill progression:
+  fixed the v1 rules at five levels with total-XP thresholds `0 / 50 / 120 / 210 / 320`, one XP per started five authored minutes, and a 10% per-level collection-time / exploration-failure reduction.
+  tagged regular stock pickups, cash collection, direct gathering, three forest chance searches, and checkpoint patrol with explicit `skillUse` metadata; exploration outcomes now declare success or failure.
+  added content validation and authoring guidance for skill time costs, collection effects, and fully marked exploration outcomes.
+  added the first skill-panel presentation with collection/exploration cards, level and XP meters, current effect text, MAX handling, legacy trait separation, and skill progression in `render_game_to_text`.
+  added save-v17 normalization, legacy-trait compatibility, authored-time XP rewards, effective collection timing, proportional exploration outcome reweighting, and level-up-only notes/logs.
+  focused regressions cover thresholds, exact outcome ratios, legacy saves, stock item/cash collection, invalid actions, Lv2 authored-XP versus effective-time behavior, exploration success/failure, level-up notices, and snapshot cards.
+  final verification passed: `test:skills` 12/12, `typecheck`, `content:validate`, `build`, `node --check app-api.js`, and `git diff --check`.
+  the required web-game Playwright client completed with installed Chrome; focused desktop and 390px checks confirmed Lv1, Lv2, MAX, save/restore, effective `+27분`, original-time `+6 XP`, accessible meters, mobile scrolling, no horizontal overflow, and no console/page/resource errors.
+
+- 2026-07-29 item-use full-card transition restoration:
+  restored the client-enforced 500ms transition for `use_item` actions.
+  item use now reuses the choice-style neutral gray surface fill across the complete inventory card while keeping the card contents above the fill.
+  bumped the client script query version so browsers fetch the restored behavior.
+  `node --check app-api.js` and `git diff --check` passed.
+  the required web-game Playwright client completed successfully with installed Chrome.
+  focused desktop and 390px verification confirmed a single full-card fill, no button-level bar or scene overlay, a 500ms duration, preserved card dimensions, the exact choice gray `rgba(31, 41, 55, 0.12)`, content above the fill, item consumption after completion, no horizontal overflow, and no console/page/resource errors.
+
+- 2026-07-29 clock chip alignment and time-advance emphasis:
+  fixed the clock text line-height so its shared vertical padding resolves to the same desktop and mobile chip heights as the three status controls.
+  added a short red border/background/text emphasis that runs only when `worldElapsedMs` increases, then restores the normal clock appearance.
+  reset the comparison state when returning home, starting a new game, or restoring a save so initial rendering does not flash.
+  bumped the client script query version.
+  `node --check app-api.js` and `git diff --check` passed.
+  the required web-game Playwright client completed successfully with installed Chrome.
+  focused verification measured exact clock/status alignment at 30px with 4px vertical padding on desktop and 26px with 3px vertical padding at 390px.
+  two consecutive rest actions confirmed `06:00 → 06:15 → 06:30`, restarted the 820ms red emphasis each time, restored the original colors, matched `render_game_to_text`, introduced no horizontal overflow, and produced no console/page/resource errors.
+
+- 2026-07-29 home action visibility and travel copy:
+  gave the enabled Continue button the same white surface as New Game and Content Studio a blue surface so both actions stand out against the cover.
+  kept the no-save Continue state on the existing subdued disabled styling by applying the new color only to `:not(:disabled)`.
+  removed the delayed `장면을 준비하는 중…` replacement from region travel; the destination-aware movement message now remains unchanged until travel completes.
+  `node --check app-api.js` and `git diff --check` passed.
+  the bundled web-game Playwright client could not start because `playwright` is not installed; the in-app browser runtime also failed to initialize with `Cannot redefine property: process`, so no dependency was added solely for verification.
+  focused 390px Chrome verification confirmed the disabled no-save Continue appearance, the earlier enabled Continue surface, the blue Content Studio surface, and readable text contrast.
+  a delayed-response travel probe kept `편의점 폐허 쪽으로 이동하는 중…` visible after 1.35 seconds, never showed the removed scene-preparation copy, completed at the convenience store, and produced no console or page errors.
+  follow-up changed enabled Continue from lime to the same white as New Game; verification was intentionally skipped at the user's request.
+
+- 2026-07-29 compact inventory with fixed detail dock:
+  reduced inventory cards to thin two-column rows while preserving their existing item-name font size.
+  moved item descriptions, effect hints, and the contextual Use button into a non-scrolling detail dock below the independently scrolling item list.
+  the first owned item is selected automatically, selection and scroll position persist while browsing, and consuming the last copy falls forward to the next available item.
+  item-use progress now fills the fixed detail dock instead of a list card.
+  `node --check app-api.js` and `git diff --check` passed.
+  focused 390px Chrome verification measured 36px cards with the unchanged 15.2px item-name font, confirmed zero per-card Use buttons, and placed the contextual Use button 11px from the detail dock's right edge.
+  an expanded-list scroll probe produced 469px of list scrolling while the panel content stayed at 0 and the detail dock moved 0px.
+  selecting and consuming the water bottle filled about half of the detail dock at 250ms, removed the consumed card, selected emergency food next, preserved zero horizontal overflow, and produced no console or page errors.
+
+- 2026-07-29 runtime item-card synchronization:
+  inventory cards now refresh their complete presentation and effect data from the current runtime Content Studio definition while preserving only generation metadata from stored cards.
+  this prevents old session or template cards from displaying stale effect hints such as warm meal energy `+4` after the Studio value changes to `+6`.
+  focused regression verification passed: `test:skills` 13/13, `npm.cmd run typecheck`, and `git diff --check`.
+
+- 2026-07-29 stable mobile story scrolling:
+  removed the mobile story auto-follow that moved the viewport downward for every typed character and again when choices appeared.
+  scene changes still begin at the top, while the viewport now stays there until the player scrolls manually.
+  bumped the client script query version so browsers fetch the corrected behavior.
+  `node --check app-api.js` and `git diff --check` passed.
+  focused in-app browser verification at 390px confirmed a same-region shelter scene started at `scrollTop=0` and stayed at `0` after the completed content overflowed the viewport (`scrollHeight=642`, `clientHeight=398`) and four choices appeared; no console errors were reported.
+
+- 2026-07-29 skipped-story choice reveal:
+  skipping an active typewriter now completes only the narrative text immediately and explicitly restarts the existing choice-list `fade-up` animation.
+  the choice reveal keeps the same 220ms timing and motion as an unskipped story completion.
+  bumped the client script query version so browsers fetch the corrected behavior.
+  `node --check app-api.js` and `git diff --check` passed.
+  focused 390px in-app browser verification skipped `prologue_old_woman_visit` mid-sentence and confirmed the completed narrative, one revealed choice, the shared `fade-up` animation at `0.22s`, and no console errors.
+- 2026-07-30 subway encounter choice-count cleanup:
+  reduced normal encounter choices to 3 core actions (attack, one rotating situational tactic, retreat),
+  allows at most 2 currently held item/tool actions for an absolute total of 5,
+  and caps rendered legacy encounter scenes at 5 choices for existing saves.
+  `.\node_modules\.bin\tsx.cmd --test tests\subway-encounter.test.ts` passed all 16 tests.
+- 2026-07-30 subway encounter choice-count cleanup:
+  reduced normal encounter choices to 3 core actions (attack, one rotating situational tactic, retreat),
+  allows at most 2 currently held item/tool actions for an absolute total of 5,
+  and caps rendered legacy encounter scenes at 5 choices for existing saves.
+  `.\node_modules\.bin\tsx.cmd --test tests\subway-encounter.test.ts` passed all 16 tests.
+
+- 2026-10-26 Arcana interactive quarter-view district:
+  user request: replace the illustrated district map with clickable 2D quarter-view graphics and remove people.
+  added assets/arcana-map.js and .css: geometry-only canvas buildings, paths, fountain, meadow portal, vegetation, native accessible destination buttons, and reduced-motion support.
+  integrated the map into plaza intro scenes, reusing authoritative hunting-ground travel and portal return actions; added shop/restaurant/inn scene entry and return without inventing commerce, food or lodging mechanics.
+  assets/arcana-map-preview.html displays the same renderer with selectable location descriptions.
+  syntax checks and server compilation passed; automated gameplay/browser tests were not run, per user preference.
+  manual checks: select each destination; enter and leave shop/restaurant/inn; travel to the hunting ground and return through the portal; check narrow-screen labels and keyboard selection.
+- 2026-10-26 Arcana illustrated object sprites:
+  replaced primitive geometry with seven individually generated transparent sprites: shop, inn, restaurant, hunting gate, fountain, return portal and reusable garden.
+  all prompts share a mathematical 2:1 orthographic projection guide (yaw 45 degrees, elevation 30 degrees) and the selected anime map art reference.
+  retained code-drawn paving and light/water effects; sprites use uniform scaling and opaque foundation registration points; canvas picking uses reduced alpha masks and the same draw order/placement.
+  native destination labels and authoritative travel remain unchanged. Sprite metadata, generation prompts and camera guide are saved in assets/arcana-map/sprites/.
+  verified alpha transparency and source syntax. Gameplay/browser tests remain delegated to the user.
+- 2026-10-26 shared reality/magic hex map:
+  user request: give the magic world the same map method as the reality world.
+  reused the existing hex map, terrain, fog, zoom, tooltips, travel controls and current-location border; removed the standalone Arcana canvas script and hooks from the main game.
+  registered shop, inn, restaurant and return portal as real magic-realm locations with reciprocal plaza links and adjacent axial coordinates; added discovery flags and moved the legacy place scenes to their matching locations.
+  reused generated transparent landmarks in the shared tile renderer; moved the reality-return action into the portal region.
+  existing saves with legacy plaza place scenes resolve to valid plaza scenes; no new save schema is needed.
+  JavaScript syntax and TypeScript server compilation passed. Gameplay/browser testing remains with the user.
+- 2026-10-26 city paving: added a shared 2:1 stone-paving pattern under magic-city tiles; kept reality and outdoor hunting terrain unchanged. JavaScript syntax passed; no gameplay/browser tests run.
+
+- 2026-10-26 painted city ground: replaced the procedural paving grid with an opaque hand-painted stone texture referenced from the actual shop sprite; cover the whole city map once to avoid repeat seams, preserving the existing city mask and outdoor/reality ground. Added subtle city-landmark contact shadows. Syntax check passed; gameplay/browser tests omitted per preference.
+
+- 2026-10-26 paving scale correction: tie the painted ground repeat period to hex size (0.85 x radius), rather than stretching the source texture across the board. Buildings and pavers share the map zoom transform and stable relative scale. JavaScript syntax passed; no gameplay/browser tests run.
+
+- 2026-10-26 Arcana realtime hunting combat: added separate HP/MP, fireball/dodge/potion/retreat, slime HP 30 and attack 5, XP and automatic level growth, shop purchases and inn healing. Active clock now uses a 30-minute day with owner leases, visibility pause, stale-signal protection and v18 time migration. Mana regeneration uses game hours (12 MP/hour). Main TypeScript and frontend syntax checks passed before final integration; gameplay tests are left to the user as requested.
+- Final integration: server build and app-api.js syntax check passed. Added tests/arcana-combat.test.ts and test:arcana script without running gameplay tests. Restarted the compiled local server; port 3000 and /api/health confirmed available. Browser interaction remains for the user.
+
+- 2026-10-26 unified Arcana downtown: replaced the center and six surrounding cells with one generated transparent illustration, keeping coherent paving, fountain, shop, inn, restaurant, portal, garden and south gate. Retained accessible destination hit areas and select-then-move controls; hid internal city hex borders. Added a south-gate location and moved hunting to (0,2), linked through the gate. Frontend syntax and TypeScript server compilation passed; gameplay/browser testing remains with the user.
+- 2026-10-26: renamed the hunting-ground display name and route copy to 도시 앞 평원; removed the slime and its shadow/highlights from the existing SVG, retaining the night sky and grassland. Build and syntax checks passed; local server restarted. Browser testing left to the user.
+
+- 2026-10-26 Arcana home start: added a dedicated home button and validated optional startAt on game creation. Arcana starts at the plaza first-intro scene with magic-world, first-entry and plaza-visit flags set before knowledge/scene/quest synchronization. Default survival start and manual saves remain unchanged. Frontend syntax and server compilation passed; no gameplay/browser tests run per user preference.
+- 2026-10-26: generated a new panoramic anime-style Arcana exterior plain (empty meadow, path to the southern gate, distant ivory city at twilight; no monsters or people) using built-in image_gen. Saved assets/scenes/arcana-front-plains.png and its .prompt.txt, linked the location, built and restarted the local server. Browser testing left to the user.
+
+- 2026-10-26 slime combat meters: replaced the native green enemy HP meter with a red current-HP layer and an orange damage trail (600 ms hold, 500 ms catch-up). Trail state is keyed by battle ID and actual HP changes, survives victory, and resets for new encounters. Replaced numeric attack countdown with a left-anchored shrinking preparation bar, final-1.5-second warning, pause handling and zero-hold until server confirmation. Added progressbar accessibility and reduced-motion handling. Combat rules and save format are unchanged. JavaScript syntax check passed; gameplay/browser tests were not run per user preference.
+- 2026-10-26 Arcana choice spacing: hid the start-button enemy-stat hint, kept separators only between action rows, removed mobile choice container vertical padding and gaps, and equalized row sizing with a 56px minimum touch height. The custom combat branch now synchronizes the mobile choice-zone height. Frontend syntax passed; no gameplay/browser tests run per user preference.
+
+- 2026-10-26 player combat HP and fireball tuning: added current/max player HP and a live red bar above the opponent, using the existing Arcana HP state and level-adjusted maximum. Fireball damage and action hint now share a fixed value of 8. Updated existing combat expectations for four-hit slime kills without executing tests. Frontend syntax and server compilation passed; gameplay/browser tests remain with the user.
+
+- 2026-10-26 magic power scaling: set base power to 10, retaining +2 per level. Fireball now deals floor(current power * 0.5), shared between damage resolution and action hints. Updated frontend power, stat explanation and skill description to match. Existing damage/level-up test expectations were adjusted without executing tests. Frontend syntax and server compilation passed; no save migration is needed because power is derived from level.
+
+- 2026-10-26 opaque home buttons: Arcana uses solid purple, fullscreen uses solid lime with dark text/icon, and disabled continue uses solid gray at full opacity. Updated the base button surface and stylesheet cache version. Rechecked changed CSS values; no gameplay/browser tests run.
+
+- 2026-10-26 action cooldown bars: added left-anchored shrinking bars inside fireball (3 seconds) and dodge (5 seconds) buttons, driven by authoritative cooldown snapshots and the existing animation loop. Bars freeze during pause and disappear at readiness; dynamic second labels for these two commands now read 재사용 대기. Bars are decorative alongside the existing accessible button state and do not change row height or combat rules. JavaScript syntax passed; no gameplay/browser tests run per user preference.
+
+- 2026-10-26 cooldown background correction: the common choice-content selector overrode the cooldown container's absolute positioning. Added a more specific scoped selector, full-button background coverage behind text, a muted gray-green fill and full opacity during cooldown. Fireball and dodge share the same subtle background bar; existing timers and left-anchored shrink behavior are unchanged. Rechecked the CSS cascade and refreshed the stylesheet version; no browser/gameplay tests run.
+
+- 2026-10-26 player damage trail and earlier warning: player HP now uses the same orange damage trail timing as the enemy (600 ms hold, 500 ms catch-up), with independent state per battle and health increases/max-HP changes resetting the trail. The shared animation loop handles both bars and reduced motion. Enemy attack warning now begins with 3 seconds remaining, while preserving the 6-second attack cycle and existing dodge rules. JavaScript syntax passed; no gameplay/browser tests run per user preference.
+
+- 2026-10-26 staged attack text: keep attack text empty before the final 3 seconds, show 도약 준비 중 from 3 seconds, then 도약 임박 from 1 second. Removed the dodge preparation instruction; urgent styling also starts at 1 second. JavaScript syntax passed; no gameplay/browser tests run.
+
+- 2026-10-26 three-second attack bar: hide the purple attack preparation bar until 3 seconds remain, then shrink from full over that 3-second window. Preserve pause behavior, zero-hold while awaiting the server, and the 1-second imminent warning. JavaScript syntax passed; no gameplay/browser tests run.
+- 2026-10-26: generated assets/monsters/arcana-slime-prepare.png (transparent crouched leap preparation sprite) with built-in image_gen, preserving the idle slime identity. Added portrait preloading and preparation/warning state switching with hit/death priority. Saved the generation prompt; JavaScript syntax and image alpha checked. Browser gameplay confirmation remains with the user.
+
+- 2026-10-26 silent fireball motion: added assets/arcana-fireball-fx.js with a pointer-transparent SVG layer for 100 ms charge, 200 ms curved flight, a small 150 ms portrait shake, impact flash/ring/sparks and an actual HP-loss number fading over 500 ms. Effects trigger once on confirmed enemy HP loss, not clicks or periodic snapshots. Enemy visual HP and hit/death portrait switch at impact; the existing orange trail follows from that moment. Server outcomes/cooldowns remain unchanged. New battles, leaving combat, hidden tabs, scrolling and resizing clean up the effect. Reduced motion skips flight, shake and moving particles. No sound, dependencies or raster generation. Both modified JavaScript files passed syntax checks; browser/gameplay testing remains with the user. Manual checks: cast normally and for the killing blow, reject a cooldown cast, pause/resume, leave combat, and repeat with reduced motion enabled.
+
+- 2026-10-26 Arcana academy district: added arcana_academy at (1,-1), directly north of the restaurant, replacing the synthetic garden-only slot with a real selectable location. Connected academy/plaza and academy/restaurant bidirectionally; added discovery flags, a persistent introductory description and scene-source mapping. Updated plaza/restaurant summaries so existing cached cards refresh their connections. Edited the unified district illustration with built-in image_gen, adding an academy hall and observatory to the upper-right while preserving the remaining city; saved v2 artwork and edit prompt. Frontend syntax and server compilation passed; no gameplay/browser tests run per user preference.
+
+- 2026-10-26 publish integration: preserved local Arcana/city/combat/effect work in b744fca and merged the existing remote branch history. Kept both food definitions while aligning legacy forest ingredient references to the already-established vegetables ID. Combined schema variants, scene routing, active clock polling, meal bonuses, remote exploration/condition UI and cached state handling; save version 22 preserves local v19 clock scaling and migrates earlier/remote v20-21 clocks to the 30-minute day. Consolidated overlapping lesson rows to 20. ESM frontend syntax, TypeScript compilation and content registry validation passed. Runtime logs and temporary/attachment files are excluded from Git; gameplay/browser tests remain with the user.
+
+- 2026-10-26 live startup performance:
+  - Replaced build-time source patching with explicit runtime outputs: content-hashed WebP/WOFF2 assets, a manifest, versioned CSS/HTML and a prioritized home image.
+  - Made shelter animation loading lazy, stopped rendering closed panels, and warmed current-region maps/neighbors/monster art sequentially after the visible scene.
+  - Added a 64 MiB/80-entry immutable-art service-worker cache; game/account APIs bypass it, storage failure falls back to network, actions pause background downloads.
+  - Reused the request registry for location-card templates without regenerating story/action inputs for every map location; added new-game Server-Timing.
+  - Verified production build, 31 focused tests, and local browser home -> Arcana -> map with no console errors. Home art 7197 -> 99 KiB; plaza 3354 -> 192 KiB; slime portraits total 4301 -> 134 KiB.
+  - Live deployment verification follows the push. Original art and gameplay/save formats remain unchanged.
+- 2026-10-26 deployed black map-tile fix:
+  - Confirmed the live Render JS creates a topmost hex-tile-outline polygon, but live CSS has no matching rule, so SVG's default black fill covers the hovered/focused tile and intercepts input.
+  - Restored a transparent, pointer-transparent hover/focus border with explicit visibility; added SVG presentation attributes so missing/delayed CSS cannot restore a black overlay. Gold current-location and blue selected-destination markers remain intact.
+  - Client JavaScript syntax and production build passed; generated CSS includes transparency, pointer-event and visibility rules, and generated HTML uses a fresh asset hash. Live deployment verification follows the push. Gameplay/browser tests remain with the user per repository preference.
+- 2026-10-26 playable Arcana academy:
+  - Replaced the empty school with a dedicated region: 24 authored scenes, 30 choices, headmaster Edwin, student/friend Stella (20), practical instructor Rine, and librarian Noel.
+  - Added free enrollment, theory, safely retryable crystal control practice, library orientation and a report-based first-lesson quest; added an observatory alignment investigation with disclosed clues, retry and a separate reward report. Quest guards prevent duplicate rewards.
+  - Added scene-scoped NPC conversations, character-specific offline topics, and authoritative school/friendship facts in dialogue context. Friendship and study partnership require explicit choices.
+  - Upgraded empty schools in published Studio registries and version-pinned saves without modifying archived content. Flag-only quest guidance now shows its actual next step.
+  - TypeScript compilation and content reference validation passed; compiled output was applied to the local server and /api/health returned OK after startup. Added tests/academy-content.test.cjs for lesson/reward flow, observatory retry, Stella conversation scopes and pinned-save upgrades; gameplay tests were not executed per user preference.
+  - Manual checks: map -> academy -> headmaster registration -> theory/practice/library -> report; introduce yourself to Stella and study together; accept and solve the observatory request -> report; reload and confirm rewards are not repeated.
+- 2026-10-26 academy interior tile navigation:
+  - Added an eight-room local hex map above the school narrative: courtyard, central hall, headmaster office, classroom, crystal practice room, library, observatory and Stella's garden. Rooms use coherent code-drawn cutaway artwork without people or text inside the tiles; gold marks current position and blue marks selection.
+  - Added authoritative academy_move routing, one game minute per corridor step, room-entry gates, dialogue/input locks and a nullable map snapshot. Room position is derived from saved scene IDs, so old saves need no new state fields.
+  - Added neutral room-entry scenes; entering a classroom does not start a lesson, and accepting the observatory task does not teleport the player upstairs. Legacy menu navigation is hidden while the map is available. Actual lessons, NPC conversations and reward reports remain explicit actions.
+  - Extended focused coverage for map gates, routes, persistence and activity-only rows; gameplay/browser tests were not executed per user preference. Frontend syntax, production server compilation, 28-scene content reference validation and runtime CSS/HTML generation passed.
+  - Manual checks: select a room then Move; verify locked classroom/practice/observatory reasons; enroll and study to open rooms; complete a dialogue before moving; reload inside a room; use the main world map to leave the school.
+- 2026-10-26 Arcana world-map asset separation:
+  - Reproduced the overlap report in the existing in-app browser: active-realm location IDs were already correct, but the outside plain and shared ground still sampled the old reality/placeholder atlas.
+  - Magic outdoor/unknown tiles now use only the meadow/path foreground from the approved arcana-front-plains art; magic ground also uses its grass foreground. Reality-map assets and the unified Arcana downtown remain separately selected by realm, with no skyline duplicated into the plain tile.
+  - Frontend syntax and runtime HTML/CSS generation passed. Verified a fresh Arcana map at 384 x 824 in one browser session, with no reality-atlas image URLs inside its SVG and no console warnings/errors. Kept the user's original active game tab unchanged; a temporary game was used for verification.
+  - Screenshot: .tmp-audit/arcana-map-fixed.png. Changes are local; deployment was not requested.
+- 2026-10-26 world/building map hierarchy:
+  - Made the world map the leftmost footer button; moved Menu to the right. Inside the school, the default illustration is its cutaway room tile map with the breadcrumb World Map > Academy > actual current room.
+  - Added parent-map navigation from the breadcrumb and a School Interior return control on the world map. Viewing either level does not perform travel, reset the room, or start activities. Added an enclosing floor/wall outline to make the map read as the building interior.
+  - Fixed the parent breadcrumb click bubbling into the document's outside-click closer. Frontend syntax and generated runtime HTML/CSS passed.
+  - Verified at 384 x 824 in a temporary browser game: world map -> academy -> office, leftmost world-map access, return to the same office; then rechecked the repaired breadcrumb -> world -> same interior path. No console errors/warnings. No broad gameplay tests were run.
+  - Screenshot: .tmp-audit/academy-map-hierarchy.png. Applied locally; production deployment was not requested.
+- 2026-10-27 Godot Arcana client:
+  - Added `godot-arcana` (Godot 4.5.1 / Compatibility) and a checked-in single-thread web export in `godot-web`, served at `/godot/` with a separate home entry.
+  - The continuous pixel world supports pointer pathfinding, keyboard/touch movement, building interiors and academy spaces. Existing snapshot/actions APIs remain authoritative for combat, magic, purchases, rest, crafting, dialogue, academy quests and dungeon choices. Godot progress/position use a separate browser key; an existing Arcana manual save can seed the first entry.
+  - Runtime tools are pinned under ignored `.runtime/godot`; `scripts/download-godot-tools.py` downloads only the required Web template ZIP entry. Rebuild using `scripts/build-godot-arcana.ps1`.
+  - Godot export compilation and production server build passed. Browser smoke in one existing in-app session at 384 x 824 confirmed home entry, actual pointer/path movement, shop entry, purchase (money -100 / mana potion +1), academy entry, enrollment (quest active / classroom unlocked), room navigation, a persisted manual save, southern-gate travel that continues the selected path, and slime combat (fireball reduced enemy HP 30 to 25; dodge input and menu pause). No Playwright dependency or broad gameplay tests were added.
+- 2026-10-27 pixel world animation and density pass:
+  - User clarified that animation means the existing pixel world, and supplied World of Anterra as a visual reference. Removed the temporary illustrated-client direction; no additional entry or save namespace remains.
+  - Expanded native actor atlases to eight walk poses per facing, driven by actual travel distance; retained planted idle feet and added subtle shoulder breathing. Added pixel-snapped camera follow and small footfall dust.
+  - Enriched the shared grass/dirt textures with periodic tonal clusters, grass blades, sparse flowers and gravel while keeping the 64-color/binary-alpha tile contracts.
+  - Moved fountain droplets/ripples into the fountain's Y-sorted child layer. Environmental shaders use a pausable visual clock. Fireball trail/burst/damage now render above objects, damage is positioned at the opponent, and the visible HP loss waits for impact. Reduced-motion preferences suppress camera lag and decorative motion.
+  - Native art bake contracts and Godot Web export passed. No browser/gameplay tests were run, following the user's saved preference. Manual checks: four-direction movement, a blocked path, slow traveler gait, fountain water, menu pause and a fireball impact.
+
+- 2026-10-27 movement comfort:
+  - Identified exponential camera catch-up, fixed-60-Hz presentation, and one idle frame at each pointer-path waypoint as sources of drift and uneven movement.
+  - Replaced camera lag with a pixel-aligned central resting area and immediate displacement tracking outside it. Camera stops with the player, clamps to map bounds and resets on scene entry / initial save restoration.
+  - Moved manually collision-checked movement and its visuals to the render loop, kept the 84-world-pixel/second speed, capped long-resume movement gaps and spent remaining frame distance across path waypoints.
+  - Godot Web export compilation passed; browser/gameplay tests were not run per saved user preference. Manual follow-up: reload /godot/, take a few short steps, walk and release a direction, reverse direction, click a long route around the fountain and enter/leave a building. Confirm background stops immediately and path corners do not pause.
+
+- 2026-10-27 follow-up on rippling edges during movement:
+  - Found that world rendering used a logical-resolution SubViewportContainer under fractional root stretch; source-pixel camera rounding alone did not ensure screen-pixel alignment.
+  - Replaced the host with a TextureRect presenting a manually sized SubViewport 1:1 in screen pixels, compensating for root stretch and using even integer world zoom. UI keeps its existing scaling. Pointer destinations now invert the host transform.
+  - Snapped the complete camera canvas translation including odd viewport centers, and forced scroll updates before coordinate conversion.
+  - Godot Web export passed. No browser/gameplay tests were run per user preference. User symptom classification (edge shimmer vs horizontal tearing vs decorative wind) remains unconfirmed; this change addresses edge shimmer. Manual follow-up: reload, walk past building/terrain edges, resize, click destinations and enter/leave a building.
+
+- 2026-10-27 stationary foliage / flag ripple clarification:
+  - User confirmed trees and flags ripple while standing still. This identifies the decorative breeze shader, rather than camera drift / scaling, as the reported video-like interference: its per-row integer UV offsets create stepped, moving silhouette breaks.
+  - Removed breeze material attachment and its preload from world art placement. Trees, foliage and cloth now retain their source silhouettes; fountain and actor animations remain active.
+  - Godot Web export passed. Browser tests were not run per saved preference. Manual follow-up: reload /godot/ and stand beside a tree or flag; its outline should stay fixed.
+
+- 2026-10-27 measured FPS and native 3D animation cadence:
+  - User explicitly requested current FPS / stutter diagnosis. Measured the existing in-app /godot/ tab in one session; it is now running the native 3D renderer introduced outside the earlier 2D fixes.
+  - Found the articulated actor pose function intentionally returned between 12 Hz ticks in pixelated mode. Removed the pose-rate cap while keeping pixel resolution / camera snapping, so pose transforms update with every render frame.
+  - Added two-second wall-clock frame telemetry (FPS, p95/max ms, >25 ms count, CPU process time, draw calls, actor pose updates) to bridge state and a small on-screen FPS indicator. Actual timestamps avoid Godot delta smoothing concealing uneven delivery.
+  - Godot Web exports passed. Before the fix, measured 60 FPS during movement despite the source's 12 Hz pose gate. After the fix, movement measured 60.0 FPS / 60.0 pose updates per second, p95 18.1 ms, max 19.2 ms, no >25 ms frames, process time 8.5 ms and 858 draw calls in the sampled two-second window. These measurements describe this local session, not all devices or locations.
+  - Browser console had no warnings or errors. Screenshot: .tmp-audit/movement-fps.png. No broad gameplay tests or new dependencies were added. A CDP loading-state wait timed out during WebAssembly startup; the subsequent AX observation showed loading had completed, so the same wait was not repeated.
+- 2026-10-27 native 3D pixel rendering:
+  - User explicitly requested the 3D sprite-world technique in the supplied YouTube short. Reviewed Hypersect's primary GDC source; implemented a native Godot 3D presentation using reusable mesh scenery and an articulated character rig, low-resolution orthographic rendering, integer presentation, root snapping, quantized poses, toon lighting and real shadows.
+  - The existing world remains the movement/collision/action authority. Kept the concurrently improved TextureRect presentation, frame-based movement and camera behavior; adapted source sizing and ray picking for the new 3D viewport. Save IDs and APIs are unchanged.
+  - Added a same-scene native-resolution comparison in the existing menu. Fixed-camera paper depth sorting compresses geometry only in the camera pass; the complete reference AABB ordering/cycle solver is outside this implementation.
+  - Created and visually inspected actual offline GPU outputs of the plaza, native-resolution plaza and a furnished interior at 384x824. No server calls, browser actions or gameplay tests were used for these art outputs. Fixed overexposed lighting and roof/floor detail based on the rendered art. GPU preview requires workspace APPDATA/LOCALAPPDATA and --log-file to avoid restricted user-profile paths; render-godot-pixel3d-art.ps1 encapsulates this.
+  - Rebuild the Web export after source edits. Remaining manual checks: ground picking/movement, facility entry/exit, school navigation, combat impact, saving/reloading and physical-device frame rate. Art/model refinement continues within the plaza before region expansion.
+
+- 2026-10-27 native 3D pixel-art treatment:
+  - User said the current output still looks like a 3D game and requested a stronger pixel-art appearance. Kept editable 3D geometry and full-rate actor poses, changed the actual art rendering rather than reducing animation cadence.
+  - Added a world-only post pass mapping rendered colors to the shared Arcana 64-color palette via a precomputed 32-cube RGB lookup. New scripts/build-arcana-palette.py regenerates the texture from arcana-64.gpl. The HUD is outside the pass; original-3D comparison bypasses it.
+  - Added static world-anchored leaf highlight/shadow clusters and wood grain, three discrete shadow attenuation bands, and screen-pixel outline extrusion. Integer presentation scaling now accounts for root display stretch so larger windows keep readable pixel blocks.
+  - Godot Web exports passed. One existing browser session confirmed visible palette/outline/material changes, no console errors or warnings, and successful left/right movement. Sampled 60 FPS / 60 pose updates, p95 16.8 ms and max 18.5 ms on right movement; a subsequent return/capture window displayed 56.3 FPS / p95 26.5 ms, so 60 FPS is not claimed as a universal lock.
+  - Screenshot: .tmp-audit/arcana-pixel-style.jpg. Art guide now documents LUT regeneration, comparison mode and the rule to retain full-rate motion. No new tools or dependencies were installed.
+- Follow-up: painted pixel appearance for the native 3D world:
+  - User rejected the exposed primitive/3D look. Kept native meshes and gameplay while replacing perfect pine cones and symmetric tree masses with staggered boughs and irregular leaf clusters.
+  - Added object-space pixel clusters for leaves, wood, stone, tiles, cloth and hair; changed shadow attenuation to discrete bands. Preserved existing frame timing and movement.
+  - Added a viewport-local CanvasLayer palette pass restricted to the shared 64 colors, bypassed in native-resolution comparison. Palette shader is reproducible with bake-arcana-art.py --palette-only. No extra dependency or gameplay API changes.
+  - Compared actual offline 384x824 plaza, garden-with-hero and interior art. Plaza output uses 62 colors, all in the shared palette. Web export passed. No browser/gameplay tests or user-tab interaction were performed. User art approval and mobile performance remain pending.
+
+- 2026-10-28 left-thumb virtual joystick:
+  - Replaced Godot's lower-left four direction buttons with a 128-unit analog stick using the existing teal/gold HUD colors. Added a center dead zone, clamped travel, full-angle movement, projection-corrected direction and proportional speed; direct input cancels click/map paths.
+  - Track the stick finger and action-button fingers independently, suppress compatibility mouse duplicates, retain stick ownership outside its bounds, and reset on release/cancellation, panel opening, focus loss or layout resize. Right-hand buttons can be used while holding the stick; server actions still pause movement under the existing busy rule, with held movement restored afterward.
+  - Web export exposed an existing PackedScene template with an empty root name in pixel3d_models.gd; assigned the model kind before packing so the editor placement previews and export can instantiate it.
+  - Verification is limited to Godot import/Web export. No browser or gameplay tests were run per user preference. Manual follow-up: reload /godot/ on mobile; check slow/full tilt and diagonals, release outside the stick, right-thumb actions, menu close and leaving/returning to the app without stuck movement.
+
+- 2026-10-28 protagonist art-direction exploration:
+  - User requested ten styles of the current character before deciding the game's visual direction. Read the character / Arcana guides and inspected the approved cel-style reference plus current hero atlas.
+  - Generated ten individual full-body concepts retaining chestnut hair, teal coat/cape, ivory shirt, slate trousers, boots and satchel. Final choices: 01 classic pixels, 02 detailed high-bit pixels, 03 watercolor storybook, 04 dark-fantasy pen/ink, 05 anime cel, 06 angular comic, 07 matte 3D toon, 08 voxel, 09 layered paper, 10 minimal pixels. Replaced the initial similar 03/04 drafts with visibly distinct media.
+  - Saved final candidates, two five-style comparison boards and the full prompt set under godot-arcana/art/style-studies/hero-2026-10-28/. Built-in image generation was used; the comparison tool accepts at most five local references, so the ten-style board is split into two sheets.
+  - These are concept candidates, not validated sprite sheets or game assets. Pending user selection; no approved character asset, gameplay rendering or art-style default was changed, and no build or gameplay tests were needed.
+
+- 2026-10-28 floating joystick correction:
+  - User clarified that the stick should be invisible at rest and appear where the left thumb touches an appropriate region. Replaced the fixed stick origin with the initial touch position in the left 48% of the screen below 45% height, excluding the bottom 60 units and all action/navigation buttons.
+  - The joystick now draws only while held, starts neutral at each new touch, tracks the captured finger outside the activation region and disappears on release/cancellation, menu open, focus loss or resize. Kept the right-hand action layout and existing analog movement.
+  - Godot Web import/export is the only verification for this change; no browser or device interactions were performed. Manual check: idle has no stick; touch two different points in the left lower area to see different origins; drag to move and release outside to stop/hide; right-hand actions and bottom navigation remain available.
+
+- 2026-10-28 chosen protagonist proportions and pipeline discussion:
+  - User selected comparison B (approximately 4.5 heads) and requested that visual quality, then asked whether 3D modeling is required or alternatives exist.
+  - Recorded B as the proportion / quality target in ARCANA_ART_GUIDE.md and the proportion-study JSON. The character rendering / animation method remains unselected; current live rendering was not replaced.
+  - Reviewed the current procedural articulated 3D actor and Godot 4.5 AnimatedSprite3D / SpriteBase3D support. Recommended a 3D-world + directional 2D-character pipeline for retaining the chosen drawn pixel style under the current fixed camera, while explaining additional directional/action frames and art consistency work. Full 3D remains an alternative for free camera rotation / equipment variation.
+  - Only guidance / study metadata changed. No build or browser test was needed. Next production checkpoint is one 4.5-head master at actual in-game display size before producing a complete movement/action set; this is not a claim that the final character is already implemented.
+
+- 2026-10-28 right-thumb interaction and configurable quickslots:
+  - Replaced the lower action row with an 84-unit circular interaction button at the lower right, a separate small E badge, and four 52-unit slots arranged around its upper/left arc. Retained the floating left joystick and bottom navigation, excluding all action buttons from joystick activation.
+  - Added code-drawn fireball, dodge and potion icons plus empty-slot registration, small 1–4 key badges, potion counts and shrinking cooldown bars. Keyboard and touch both dispatch through the current slot binding and respect the same availability checks.
+  - Added a four-slot picker through an empty slot or Menu > Quickslot settings. Supports fireball, dodge, mana potion and clearing a slot; validates loaded bindings and stores the layout separately as a device preference. Updated in-game help and README.
+  - Godot import and Web export passed. No browser/device/gameplay tests were run per user preference. Manual checks: lower-right E button and 1–4 badges, joystick plus right-thumb actions, assign an empty slot and reload to confirm persistence, potion quantity and cooldown display.
+
+- 2026-10-28 B / 4.5-head protagonist integration:
+  - User authorized applying the selected character to the game. Generated a dedicated transparent south/north/east/west idle/walk source sheet with built-in ImageGen; retained raw source and prompt outside res://.
+  - scripts/bake-arcana-hero.py builds hero-b45.png, 96x128 cells, 8 columns / 4 rows, feet at y=121, head-aligned framing, 46 colors from the existing character palette and binary alpha. No previous approved sprite atlas was overwritten.
+  - Added sprite_actor.gd, hero_sprite.gdshader and hero_contact_shadow.gdshader. Only the hero uses the new 2D-in-3D actor; resident / interior NPC models stay intact. Opaque alpha cuts and the existing foot-based flattened depth order handle occlusion; one-render-pixel ink and a separate foot shadow retain scene readability. Walking follows travel distance with six poses per cycle, not a fixed cap on movement / camera FPS.
+  - Connected the same hero preview in arcana_placement.gd and retained authored placement scales / facing. Did not modify plaza.tscn or server/save/interaction contracts. Added character implementation and frame telemetry to bridge state.
+  - Half-resolution world presentation erased facial detail, so logical display resolution is now retained with integer physical presentation scaling. Preserved concurrent city palette/camera/editor changes and the single palette path. Excluded art/style-studies/* from Web exports so concept art is not shipped.
+  - Godot import/Web exports and offline GPU plaza, interior, garden and 32-pose renders passed. The first extended offline render hit a runtime variable-name collision introduced while the preview script was changing; after the output path variable was distinct, one retry passed. No repeated browser/Playwright attempts, no new dependencies and no gameplay actions were executed.
+  - Browser gameplay and device FPS remain for the user: reload /godot/, move in four directions, stop, walk behind trees/buildings, enter/leave a building and verify the existing progress. Visual reference: godot-arcana/art/reference/pixel3d-plaza.png. Game is connected; final art approval remains with the user.
+
+- 2026-10-28 editor/game building material mismatch:
+  - Confirmed both paths use the same Models.model factory and saved plaza placements, but editor previews discarded the game's shaders in favor of flat StandardMaterial3D. Replaced that conversion with per-preview ShaderMaterial copies using editor_preview=true; paint, stepped lighting and emission now use the same source while editor orbit keeps true 3D depth.
+  - Matched the editor plaza's daytime direct/ambient light and shadow parameters to pixel3d_world.gd. No model geometry, saved layout or game rendering parameters were changed.
+  - Updated EDITOR_GUIDE.md and art/PRODUCTION.md to distinguish material parity from final camera/depth/outline/palette output. Only Godot import/Web export is used for verification; the user can reopen plaza.tscn and compare with F6. No UI capture retries or gameplay tests were performed.
+
+- 2026-10-28 deployment preparation:
+  - Prepared the current Arcana world, shared editor layout, character/scenery artwork, floating joystick and configurable right-hand quickslots for the existing Render deployment branch codex/region-content-structure.
+  - Godot import/Web export and the server TypeScript + optimized asset/runtime build passed. The initial asset build hit a local EPERM on an existing optimized image; the remaining build completed with filesystem permission. No gameplay test suite was run.
+  - Explicitly staged project sources, art originals and Web exports. Installed tools under .runtime/, dependencies, environment files, local logs, remote attachments, audit captures and temporary WebAssembly copies are excluded.

@@ -1,0 +1,31 @@
+{
+  "source": "source/materials.png",
+  "concept": "approved-concept.png",
+  "generator": "built-in image_gen",
+  "density": 64,
+  "tile": [
+    64,
+    45
+  ],
+  "projection": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "terrainMasks": 47,
+  "grassSource": "source/grass-short.png",
+  "grassPixelGrid": [
+    64,
+    45
+  ],
+  "grassResample": "256x180 material crop to 128x90; original color clusters retained",
+  "grassContrast": 0.9,
+  "grassVariants": 4,
+  "pavingVariants": 4,
+  "alpha": [
+    0,
+    255
+  ],
+  "seams": "shared 64x45 phase; invariant variant borders; transparent ground transitions",
+  "palette": "existing world LUT",
+  "status": "approved direction; integrated assets pending user review"
+}

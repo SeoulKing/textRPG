@@ -2,6 +2,22 @@ encoding_test.txt
 node_modules/
 .runtime/
 .server-dist/
+assets/optimized/
+.pnpm-store/
+.tmp-validate/
+.tmp-unity-webgl/
 .env
 .env.local
 .dev-server.*.log
+
+.runtime-studio-check/
+godot-arcana/.godot/
+.runtime-godot-*/
+.codex-local-server.*.log
+.codex-remote-attachments/
+.tmp-audit/
+godot-web/*.TMP
+*.blend[0-9]*
+
+# Blender rolling save backups; the editable .blend remains a source asset.
+art-studies/**/*.blend[1-9]

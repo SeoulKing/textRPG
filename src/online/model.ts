@@ -1,0 +1,15 @@
+import type { GameSession } from "../game/schemas";
+import type { ArcanaSpatial } from "../game/schemas/arcana-spatial";
+import type { Character } from "./accounts";
+import type { SpatialEnemy, CombatPoint } from "../game/schemas/arcana-spatial";
+export type Point = CombatPoint;
+export type Place = {location:string;interior:string;floor:number};
+export type Actor = {character:Character; game:GameSession; place:Place; position:Point; previous:Point; direction:Point; walking:boolean; bench:string; gait:number; lastMoveAt:number; disconnectedAt:number|null; sessionId:string; controller:string; accepted:number; version:number; lastSeen:number;sessionExpires:number;moveCredit?:number;pending?:boolean;placeRevision?:number};
+export type SharedEnemy = SpatialEnemy & {lifeId:string;respawnAt:number;contribution:Record<string,number>;targetId:string|null};
+export type WorldEvent = ArcanaSpatial["events"][number] & {actorId?:string;targetPlayerId?:string;movement?:"dodge"|"teleport";sourcePosition?:Point};
+export type Shot = ArcanaSpatial["projectiles"][number] & {ownerId:string};
+export type Meteor = ArcanaSpatial["meteors"][number] & {ownerId:string};
+export type Barrage = {ownerId:string;remaining:number;nextIn:number;damage:number};
+export type SharedWorld = {id:string;revision:number;elapsedMs:number;updatedAt:number;enemy:SharedEnemy;projectiles:Shot[];meteors:Meteor[];barrages:Barrage[];events:WorldEvent[]};
+export const inField = (actor:Actor) => actor.place.interior==="" && actor.game.state.flags.in_magic_world && ["arcana_plaza","arcana_city_gate","arcana_hunting_ground","arcana_return_portal"].includes(actor.place.location);
+export const samePlace = (a:Place,b:Place) => a.interior===b.interior && a.floor===b.floor && (a.interior!=="" ? a.location===b.location : true);

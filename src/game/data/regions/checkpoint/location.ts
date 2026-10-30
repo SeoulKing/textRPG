@@ -29,18 +29,92 @@ export const checkpointChoices: ActionDefinition[] = [
     tags: ["hint", "signal"],
     riskHint: "medium",
   }),
-];
+  interactionFor("checkpoint", {
+    id: "patrol_checkpoint_perimeter",
+    skillUse: { skillId: "exploration" },
+    label: "초소 주변을 정찰한다",
+    type: "search",
+    outcomeHint: "기력 -1 / 보상: {{item:scrapMetal}}·{{item:cordage}}·{{item:rationTicket}} 중 하나 / 위험: 체력 -1 / +90분",
+    showOutcomeHint: true,
+    conditions: [{ type: "stat_gte", stat: "energy", value: 1 }],
+    effects: [
+      { type: "change_stat", stat: "energy", value: -1 },
+      { type: "advance_time", minutes: 90 },
+      {
+        type: "random_outcome",
+        outcomes: [
+          {
+            weight: 35,
+            result: "success",
+            effects: [
+              { type: "add_item", itemId: "scrapMetal", amount: 2 },
+              { type: "log", message: "검문소 차단봉 아래에서 쓸 만한 {{item:scrapMetal}} 두 개를 뜯어냈다." },
+              { type: "set_scene", sceneId: "checkpoint_perimeter_scrap" },
+            ],
+          },
+          {
+            weight: 25,
+            result: "success",
+            effects: [
+              { type: "add_item", itemId: "cordage", amount: 1 },
+              { type: "log", message: "초소 주변의 끊어진 케이블과 포장 끈을 묶어 {{item:cordage}} 하나를 챙겼다." },
+              { type: "set_scene", sceneId: "checkpoint_perimeter_cordage" },
+            ],
+          },
+          {
+            weight: 20,
+            result: "success",
+            effects: [
+              { type: "add_item", itemId: "rationTicket", amount: 1 },
+              { type: "log", message: "비어 있는 초소 서랍에서 구겨진 {{item:rationTicket}} 한 장을 찾아냈다." },
+              { type: "set_scene", sceneId: "checkpoint_perimeter_ticket" },
+            ],
+          },
+          {
+            weight: 20,
+            result: "failure",
+            effects: [
+              { type: "change_stat", stat: "hp", value: -1 },
+              { type: "log", message: "무너진 차단봉을 넘다 다리를 긁혔다. 검문소의 잔해는 아직 날카롭다." },
+              { type: "set_scene", sceneId: "checkpoint_perimeter_injury" },
+            ],
+          },
+        ],
+      },
+    ],
+    tags: ["patrol", "salvage", "risk", "repeatable"],
+    riskHint: "high",
+  }),
+  interactionFor("checkpoint", {
+    id: "verify_day8_rescue_route",
+    label: "8일차 구조 경로를 확인한다",
+    type: "search",
+    outcomeHint: "구조대의 접근 경로와 신호 시점을 확인한다. {{item:rationTicket}} 1장 / +90분",
+    showOutcomeHint: true,
+    conditions: [
+      { type: "flag", flag: "day8_checkpoint_hint" },
+      { type: "flag_not", flag: "rescue_route_checked" },
+    ],
+    effects: [
+      { type: "advance_time", minutes: 90 },
+      { type: "add_item", itemId: "rationTicket", amount: 1 },
+      { type: "set_flag", flag: "rescue_route_checked" },
+      { type: "log", message: "통신 기록에서 구조대가 10일차 아침 검문소 근처를 지날 가능성을 확인했다. 남은 배급표도 챙겼다." },
+    ],
+    tags: ["hint", "signal", "food"],
+    riskHint: "low",
+  }),];
 
 export const checkpointLocation = defineLocation({
   id: "checkpoint",
   name: "검문소",
   risk: "high",
-  mapPosition: { q: 3, r: 0 },
+  mapPosition: { q: 2, r: -2 },
   imagePath: "assets/scenes/checkpoint.svg",
   summary: "뒤집힌 차단봉과 버려진 통신 차량이 남은 검문소다. 구조대의 무전 흔적과 송신기 부품을 찾을 수 있다.",
   tags: ["signal", "rescue", "tension"],
-  traits: ["transmitter", "rescue rumor", "danger"],
-  obtainableItemIds: ["radioTransmitter", "painRelief", "rationTicket"],
+  traits: ["transmitter", "rescue rumor", "danger", "perimeter patrol"],
+  obtainableItemIds: ["radioTransmitter", "painRelief", "rationTicket", "scrapMetal", "cordage"],
   neighbors: ["subway"],
   interactionChoices: checkpointChoices,
   links: {

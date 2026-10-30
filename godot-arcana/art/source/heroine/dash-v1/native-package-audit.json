@@ -1,0 +1,42 @@
+{
+  "s": {
+    "frames": 6,
+    "palette_matches_original": true,
+    "last_frame_matches_idle": true
+  },
+  "se": {
+    "frames": 6,
+    "palette_matches_original": true,
+    "last_frame_matches_idle": true
+  },
+  "e": {
+    "frames": 6,
+    "palette_matches_original": true,
+    "last_frame_matches_idle": true
+  },
+  "ne": {
+    "frames": 6,
+    "palette_matches_original": true,
+    "last_frame_matches_idle": true
+  },
+  "n": {
+    "frames": 6,
+    "palette_matches_original": true,
+    "last_frame_matches_idle": true
+  },
+  "nw": {
+    "frames": 6,
+    "palette_matches_original": true,
+    "last_frame_matches_idle": true
+  },
+  "w": {
+    "frames": 6,
+    "palette_matches_original": true,
+    "last_frame_matches_idle": true
+  },
+  "sw": {
+    "frames": 6,
+    "palette_matches_original": true,
+    "last_frame_matches_idle": true
+  }
+}

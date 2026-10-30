@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/monsters/slime.tscn" id="1"]
+[sub_resource type="PlaneMesh" id="Tile"]
+size = Vector2(1,1)
+[sub_resource type="StandardMaterial3D" id="Ground"]
+shading_mode = 0
+albedo_color = Color(0.48,0.62,0.48,1)
+[sub_resource type="Environment" id="Environment"]
+background_mode = 1
+background_color = Color(0.13,0.19,0.19,1)
+tonemap_mode = 0
+
+[node name="SlimePreview" type="Node3D"]
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="OneTile" type="MeshInstance3D" parent="."]
+mesh = SubResource("Tile")
+material_override = SubResource("Ground")
+
+[node name="Slime" parent="." instance=ExtResource("1")]
+standalone_preview = true
+preview_animation = "hop"
+
+[node name="Camera" type="Camera3D" parent="."]
+position = Vector3(0,2.4,2.6)
+rotation_degrees = Vector3(-36,0,0)
+projection = 1
+size = 2.4
+current = true
+far = 250.0

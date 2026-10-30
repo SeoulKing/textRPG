@@ -1,0 +1,586 @@
+{
+  "api": "ProjectPacker.load_project + PixelPenProject.get_image",
+  "errors": [],
+  "fps": 12.0,
+  "loop": true,
+  "native": "mei-idle.pxpen",
+  "nativeSHA256": "97043e3033aaa4f610c86f05064a1aa3f0db98af01f04797052f03091b06ef1f",
+  "poses": [
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡0 · 눈0",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 0
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡1 · 눈0",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 1
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡2 · 눈0",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 2
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡2 · 눈1",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 3
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡2 · 눈2",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 4
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡2 · 눈3",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 5
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡3 · 눈0",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 6
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡3 · 눈1",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 7
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡3 · 눈3",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 8
+    },
+    {
+      "bounds": "[P: (24, 17), S: (48, 99)]",
+      "layers": [
+        {
+          "label": "호흡3 · 눈2",
+          "size": "(96, 136)",
+          "visible": true
+        },
+        {
+          "label": "REFERENCE · 승인 메이 · 표시 전용",
+          "size": "(96, 136)",
+          "visible": false
+        }
+      ],
+      "matchesPreviousExport": true,
+      "opaquePixels": 3092,
+      "partialAlphaPixels": 0,
+      "pose": 9
+    }
+  ],
+  "timeline": [
+    {
+      "pose": 0,
+      "tick": 0
+    },
+    {
+      "pose": 0,
+      "tick": 1
+    },
+    {
+      "pose": 0,
+      "tick": 2
+    },
+    {
+      "pose": 0,
+      "tick": 3
+    },
+    {
+      "pose": 0,
+      "tick": 4
+    },
+    {
+      "pose": 0,
+      "tick": 5
+    },
+    {
+      "pose": 0,
+      "tick": 6
+    },
+    {
+      "pose": 0,
+      "tick": 7
+    },
+    {
+      "pose": 0,
+      "tick": 8
+    },
+    {
+      "pose": 0,
+      "tick": 9
+    },
+    {
+      "pose": 1,
+      "tick": 10
+    },
+    {
+      "pose": 1,
+      "tick": 11
+    },
+    {
+      "pose": 1,
+      "tick": 12
+    },
+    {
+      "pose": 1,
+      "tick": 13
+    },
+    {
+      "pose": 1,
+      "tick": 14
+    },
+    {
+      "pose": 1,
+      "tick": 15
+    },
+    {
+      "pose": 1,
+      "tick": 16
+    },
+    {
+      "pose": 2,
+      "tick": 17
+    },
+    {
+      "pose": 2,
+      "tick": 18
+    },
+    {
+      "pose": 2,
+      "tick": 19
+    },
+    {
+      "pose": 2,
+      "tick": 20
+    },
+    {
+      "pose": 2,
+      "tick": 21
+    },
+    {
+      "pose": 3,
+      "tick": 22
+    },
+    {
+      "pose": 4,
+      "tick": 23
+    },
+    {
+      "pose": 5,
+      "tick": 24
+    },
+    {
+      "pose": 5,
+      "tick": 25
+    },
+    {
+      "pose": 2,
+      "tick": 26
+    },
+    {
+      "pose": 6,
+      "tick": 27
+    },
+    {
+      "pose": 6,
+      "tick": 28
+    },
+    {
+      "pose": 6,
+      "tick": 29
+    },
+    {
+      "pose": 6,
+      "tick": 30
+    },
+    {
+      "pose": 6,
+      "tick": 31
+    },
+    {
+      "pose": 6,
+      "tick": 32
+    },
+    {
+      "pose": 1,
+      "tick": 33
+    },
+    {
+      "pose": 1,
+      "tick": 34
+    },
+    {
+      "pose": 1,
+      "tick": 35
+    },
+    {
+      "pose": 1,
+      "tick": 36
+    },
+    {
+      "pose": 1,
+      "tick": 37
+    },
+    {
+      "pose": 1,
+      "tick": 38
+    },
+    {
+      "pose": 0,
+      "tick": 39
+    },
+    {
+      "pose": 0,
+      "tick": 40
+    },
+    {
+      "pose": 0,
+      "tick": 41
+    },
+    {
+      "pose": 0,
+      "tick": 42
+    },
+    {
+      "pose": 0,
+      "tick": 43
+    },
+    {
+      "pose": 0,
+      "tick": 44
+    },
+    {
+      "pose": 0,
+      "tick": 45
+    },
+    {
+      "pose": 0,
+      "tick": 46
+    },
+    {
+      "pose": 0,
+      "tick": 47
+    },
+    {
+      "pose": 0,
+      "tick": 48
+    },
+    {
+      "pose": 0,
+      "tick": 49
+    },
+    {
+      "pose": 0,
+      "tick": 50
+    },
+    {
+      "pose": 0,
+      "tick": 51
+    },
+    {
+      "pose": 0,
+      "tick": 52
+    },
+    {
+      "pose": 0,
+      "tick": 53
+    },
+    {
+      "pose": 0,
+      "tick": 54
+    },
+    {
+      "pose": 0,
+      "tick": 55
+    },
+    {
+      "pose": 0,
+      "tick": 56
+    },
+    {
+      "pose": 0,
+      "tick": 57
+    },
+    {
+      "pose": 1,
+      "tick": 58
+    },
+    {
+      "pose": 1,
+      "tick": 59
+    },
+    {
+      "pose": 1,
+      "tick": 60
+    },
+    {
+      "pose": 1,
+      "tick": 61
+    },
+    {
+      "pose": 1,
+      "tick": 62
+    },
+    {
+      "pose": 1,
+      "tick": 63
+    },
+    {
+      "pose": 1,
+      "tick": 64
+    },
+    {
+      "pose": 2,
+      "tick": 65
+    },
+    {
+      "pose": 2,
+      "tick": 66
+    },
+    {
+      "pose": 2,
+      "tick": 67
+    },
+    {
+      "pose": 2,
+      "tick": 68
+    },
+    {
+      "pose": 2,
+      "tick": 69
+    },
+    {
+      "pose": 2,
+      "tick": 70
+    },
+    {
+      "pose": 2,
+      "tick": 71
+    },
+    {
+      "pose": 2,
+      "tick": 72
+    },
+    {
+      "pose": 2,
+      "tick": 73
+    },
+    {
+      "pose": 2,
+      "tick": 74
+    },
+    {
+      "pose": 7,
+      "tick": 75
+    },
+    {
+      "pose": 8,
+      "tick": 76
+    },
+    {
+      "pose": 9,
+      "tick": 77
+    },
+    {
+      "pose": 6,
+      "tick": 78
+    },
+    {
+      "pose": 6,
+      "tick": 79
+    },
+    {
+      "pose": 6,
+      "tick": 80
+    },
+    {
+      "pose": 1,
+      "tick": 81
+    },
+    {
+      "pose": 1,
+      "tick": 82
+    },
+    {
+      "pose": 1,
+      "tick": 83
+    },
+    {
+      "pose": 1,
+      "tick": 84
+    },
+    {
+      "pose": 1,
+      "tick": 85
+    },
+    {
+      "pose": 1,
+      "tick": 86
+    },
+    {
+      "pose": 0,
+      "tick": 87
+    },
+    {
+      "pose": 0,
+      "tick": 88
+    },
+    {
+      "pose": 0,
+      "tick": 89
+    },
+    {
+      "pose": 0,
+      "tick": 90
+    },
+    {
+      "pose": 0,
+      "tick": 91
+    },
+    {
+      "pose": 0,
+      "tick": 92
+    },
+    {
+      "pose": 0,
+      "tick": 93
+    },
+    {
+      "pose": 0,
+      "tick": 94
+    },
+    {
+      "pose": 0,
+      "tick": 95
+    }
+  ]
+}

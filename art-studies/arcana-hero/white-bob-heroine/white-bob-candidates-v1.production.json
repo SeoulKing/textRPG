@@ -1,0 +1,23 @@
+{
+  "prompt": "Use case: stylized-concept.\nAsset type: original female protagonist illustration exploration sheet for a Japanese-anime-style fantasy RPG, intended to choose a visual reference before Blender modeling.\nPrimary request: beautiful, gentle, pure-looking young adult anime heroines with WHITE SHORT BOB HAIR. Feminine, graceful and endearing Japanese character illustration aesthetics, very polished 2D art.\n\nCreate ONE cohesive landscape character-design comparison sheet with THREE clearly separated, equally sized columns labeled only \"1\", \"2\", \"3\". Each column contains a beautifully finished face-and-shoulders close-up at the top and an unobstructed head-to-toe full-body illustration below. Show the same design consistently between that column's portrait and full-body view. Comfortable margins, all hair and boots fully visible, no overlap, enough space to read each face. Neutral warm ivory / very pale gray backdrop that lets white hair stay distinct. No narrative scenery.\n\nAll three candidates: an adult woman around 20, luminous ivory-white / pearl-white chin-length bob (not blonde, not gray long hair), delicate expressive face, kind eyes, a soft modest smile, light natural blush, calm sincere and serene personality. Natural elegant adult anime illustration proportions, not a child and not a chibi. Fine clear variable-weight linework, beautiful graphic hair strands, immaculate flat colors and controlled cel shadows with restrained soft accents. A premium Japanese fantasy RPG heroine concept illustration, not a 3D render and not pixel art. No copying a specific existing anime character.\n\nCandidate 1: classic neatly rounded white bob ending just below the jaw, airy straight wispy bangs; clear pale blue eyes; the sweetest, gentle and approachable face. An ivory high-collared blouse, a short muted teal shoulder cape with fine gold edging, a blue-gray pleated knee-length skirt, opaque dark stockings, short chestnut leather boots and a small practical satchel. Feminine fantasy traveler interpretation of a teal-and-ivory RPG outfit. Simple graceful relaxed stance with both hands visible.\nCandidate 2: softly feathered pearl-white bob with a side-swept fringe; soft pale violet eyes; a quiet dreamy, innocent expression. A modest ivory fantasy dress with fitted waist, a lightweight pale blue short jacket, understated silver details, opaque stockings and refined practical ankle boots. Keep costume readable and feasible to model.\nCandidate 3: airy slightly layered white bob, one side tucked behind an ear and a small loose strand; pale gray-green eyes; gentle composed elegance. A soft white blouse, a restrained sage-and-ivory short traveling coat, a charcoal-blue skirt, opaque stockings, leather ankle boots and a small belt pouch. Keep her pure and charming.\n\nSubtle believable clothing construction, readable collars, seams and silhouettes, no excessive tiny ornament. Closed modest necklines, no cleavage emphasis, no suggestive pose, no oversized chest. No armor bikini, no lingerie, no school uniform, no weapons, no animal ears, no crowns, no giant staff, no extra accessories. Do not reproduce the previous male character's face or body. No watermark, logos or text besides the small candidate numbers. Prioritize an appealing face and beautiful short white hair over busy decoration.",
+  "mode": "built-in image_gen",
+  "status": "candidate 2 selected by user for 3D production",
+  "purpose": "illustration references for future Blender model",
+  "gameChanged": false,
+  "image": "art-studies/arcana-hero/white-bob-heroine/white-bob-candidates-v1.png",
+  "review": {
+    "white_short_bob": true,
+    "gentle_japanese_anime_direction": true,
+    "face_and_full_body_readable": true,
+    "three_numbered_candidates": true,
+    "not_automatically_applied_to_game": true
+  },
+  "candidates": {
+    "1": "classic white bob, pale blue eyes, teal fantasy traveler",
+    "2": "side-swept white bob, pale violet eyes, ivory and pale blue dress",
+    "3": "layered white bob, gray-green eyes, sage traveling coat"
+  },
+  "selected_candidate": 2,
+  "model_source": "art-studies/arcana-hero/white-bob-heroine/blender/heroine.blend",
+  "model_export": "godot-arcana/art/models/heroine/heroine.glb"
+}

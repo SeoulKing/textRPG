@@ -1,0 +1,33 @@
+{
+  "size": [
+    38,
+    168
+  ],
+  "foot": [
+    19,
+    164
+  ],
+  "source": "source/lamp-post.png",
+  "crop": [
+    299,
+    92,
+    294,
+    1591
+  ],
+  "pixelsPerUnit": 64,
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "paletteColors": 35,
+  "alpha": [
+    0,
+    255
+  ],
+  "runtime": "godot-arcana/art/export/reference/lamp-post-2d.png",
+  "lighting": "Existing lamp-post source at local Y=2.4; emission remains painted amber glass",
+  "placement": "Existing saved lamp-post nodes; unchanged collision",
+  "generator": "built-in image_gen",
+  "prompt": "prompt.txt",
+  "status": "integrated-awaiting-user-art-review"
+}

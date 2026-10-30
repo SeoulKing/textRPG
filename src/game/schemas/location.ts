@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { RiskSchema } from "./base";
+import { MonsterDefinitionSchema } from "./monster";
 
 export const LocationCardSchema = z.object({
   id: z.string(),
@@ -21,6 +22,7 @@ export const LocationCardSchema = z.object({
   generatedAt: z.string(),
   availableActionIds: z.array(z.string()).optional(),
   eventIds: z.array(z.string()).optional(),
+  monsters: z.array(MonsterDefinitionSchema).default([]),
 });
 
 export type LocationCard = z.infer<typeof LocationCardSchema>;

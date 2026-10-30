@@ -1,0 +1,281 @@
+{
+  "assets": [
+    {
+      "export": "res://art/export/outdoor-unified-v1/planter.png",
+      "id": "planter",
+      "nativeEdits": 47,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        84.0,
+        72.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/planter.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/flowerpot.png",
+      "id": "flowerpot",
+      "nativeEdits": 15,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        58.0,
+        72.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/flowerpot.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/shrub.png",
+      "id": "shrub",
+      "nativeEdits": 74,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        86.0,
+        80.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/shrub.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/flowers.png",
+      "id": "flowers",
+      "nativeEdits": 25,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        88.0,
+        56.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/flowers.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/grass-clump.png",
+      "id": "grass-clump",
+      "nativeEdits": 14,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        72.0,
+        32.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/grass-clump.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/crate.png",
+      "id": "crate",
+      "nativeEdits": 35,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        64.0,
+        70.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/crate.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/oak.png",
+      "id": "oak",
+      "nativeEdits": 513,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        210.0,
+        260.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/oak.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/birch.png",
+      "id": "birch",
+      "nativeEdits": 293,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        180.0,
+        260.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/birch.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/spruce.png",
+      "id": "spruce",
+      "nativeEdits": 291,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        166.0,
+        260.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/spruce.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/bench.png",
+      "id": "bench",
+      "nativeEdits": 69,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        128.0,
+        71.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/bench.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/barrels.png",
+      "id": "barrels",
+      "nativeEdits": 110,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        96.0,
+        88.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/barrels.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/basket.png",
+      "id": "basket",
+      "nativeEdits": 35,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        72.0,
+        48.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/basket.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/shop.png",
+      "id": "shop",
+      "nativeEdits": 2826,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        732.0,
+        510.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/shop.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/inn.png",
+      "id": "inn",
+      "nativeEdits": 2883,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        732.0,
+        609.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/inn.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/restaurant.png",
+      "id": "restaurant",
+      "nativeEdits": 2675,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        732.0,
+        464.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/restaurant.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/city-townhouse.png",
+      "id": "city-townhouse",
+      "nativeEdits": 1089,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        392.0,
+        503.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/city-townhouse.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/city-workshops.png",
+      "id": "city-workshops",
+      "nativeEdits": 1964,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        520.0,
+        445.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/city-workshops.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/city-bookshop.png",
+      "id": "city-bookshop",
+      "nativeEdits": 1106,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        328.0,
+        482.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/city-bookshop.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/city-market.png",
+      "id": "city-market",
+      "nativeEdits": 282,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        264.0,
+        162.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/city-market.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/city-cafe.png",
+      "id": "city-cafe",
+      "nativeEdits": 175,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        200.0,
+        197.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/city-cafe.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/city-hedge.png",
+      "id": "city-hedge",
+      "nativeEdits": 122,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        200.0,
+        75.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/city-hedge.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/academy.png",
+      "id": "academy",
+      "nativeEdits": 1149,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        1920.0,
+        1728.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/academy.pxpen"
+    },
+    {
+      "export": "res://art/export/outdoor-unified-v1/lamp-post.png",
+      "id": "lamp-post",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        63.0,
+        277.0
+      ],
+      "source": "res://art/source/outdoor-unified-v1/lamp-post.pxpen"
+    }
+  ],
+  "nativePixelPen": true
+}

@@ -1,0 +1,33 @@
+{
+  "source": "../heroine-v7-head.blend",
+  "source_sha256": "5963231c2900f19c863bf5f47735c16ac2e378486cf953c4885f1fee11dd0f19",
+  "hair_geometry_sha256": "333e7a7004c9472b847433096ebbbbc5ca8c2176da70a9ae8fc82b6519f4467f",
+  "hair_geometry_preserved": true,
+  "face_shape_key_control": "V7 MASTER[face_refinement_weight]",
+  "changes": {
+    "Face V5 topology 1": {
+      "vertices": 142,
+      "max_displacement": 0.005124539641590603
+    },
+    "Face V5 topology 2": {
+      "vertices": 274,
+      "max_displacement": 0.005604952596614746
+    },
+    "Face V5 topology 3": {
+      "vertices": 168,
+      "max_displacement": 0.0028654360139341224
+    },
+    "Face V5 topology 4": {
+      "vertices": 110,
+      "max_displacement": 0.007469152790987908
+    },
+    "Face V5 topology 5": {
+      "vertices": 122,
+      "max_displacement": 0.006788754652387653
+    },
+    "Face V5 topology 7": {
+      "vertices": 633,
+      "max_displacement": 0.012200613666398559
+    }
+  }
+}

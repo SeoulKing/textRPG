@@ -1,0 +1,20 @@
+{
+  "source": "https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/beta/Sendagaya_Shibu.vrm",
+  "sha256": "b7bcad5e5890abc4d7c65f9afc31da2445db03197d44f1ec10447f9db5abeaff",
+  "meta": {
+    "version": "",
+    "author": "",
+    "contactInformation": "",
+    "reference": "",
+    "title": "Sendagaya Shibu",
+    "texture": 29,
+    "allowedUserName": "Everyone",
+    "violentUssageName": "Allow",
+    "sexualUssageName": "Allow",
+    "commercialUssageName": "Allow",
+    "otherPermissionUrl": "",
+    "licenseName": "CC0",
+    "otherLicenseUrl": ""
+  },
+  "official_license": "https://vroid.pixiv.help/hc/en-us/articles/360012381793"
+}

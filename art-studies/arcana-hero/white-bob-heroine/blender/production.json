@@ -1,0 +1,24 @@
+{
+  "blender": "4.5.15 LTS",
+  "vertices": 70408,
+  "triangles": 139624,
+  "game_triangles": 28000,
+  "bones": 23,
+  "materials": 22,
+  "actions": [
+    "Idle",
+    "Walk"
+  ],
+  "source": "heroine.blend",
+  "game_asset": "godot-arcana/art/models/heroine/heroine.glb",
+  "reference": "white-bob-candidates-v1.png / candidate 2",
+  "features": [
+    "pearl-white side-swept bob",
+    "lavender eyes",
+    "periwinkle shawl",
+    "ivory floral dress",
+    "navy waist bow",
+    "charcoal stockings",
+    "taupe ankle boots"
+  ]
+}

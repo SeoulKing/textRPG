@@ -1,0 +1,8 @@
+import bpy,sys,json,math,numpy as np
+from pathlib import Path
+from mathutils import Vector
+from bpy_extras.object_utils import world_to_camera_view
+R=Path(sys.argv[sys.argv.index('--')+1]);P=R/'art-studies/arcana-hero/white-bob-heroine/blender-v6';bpy.ops.wm.open_mainfile(filepath=str(P/'heroine-v6-head.blend'));s=bpy.context.scene;cam=s.camera;head=bpy.data.objects['V6 HEAD POSE - art comparison only'];pose=json.loads((P/'reference-registration.json').read_text());head.rotation_euler.y=pose['head_roll'];yaw,pitch=pose['yaw'],pose['pitch'];cam.location=(6*math.sin(yaw)*math.cos(pitch),-6*math.cos(yaw)*math.cos(pitch),6*math.sin(pitch));cam.rotation_euler=(-cam.location).to_track_quat('-Z','Y').to_euler();right=cam.rotation_euler.to_matrix()@Vector((1,0,0));up=cam.rotation_euler.to_matrix()@Vector((0,1,0));cam.location+=right*((945-pose['tx'])/pose['scale'])+up*((pose['ty']-262.5)/pose['scale']);cam.data.ortho_scale=610/pose['scale'];s.render.resolution_x=1220;s.render.resolution_y=1050;bpy.context.view_layer.update()
+e=bpy.data.objects['Face V5 topology 5'];print('POSE',pose);print('HEAD_MATRIX',[list(row) for row in head.matrix_world]);print('EYE_MATRIX',[list(row) for row in e.matrix_world]);print('CAMERA',list(cam.location),list(cam.rotation_euler),'sensorfit',cam.data.sensor_fit)
+for sign in [-1,1]:
+ vs=[v.co for v in e.data.vertices if v.co.x*sign>0];p=(Vector(tuple(min(v[k] for v in vs) for k in range(3)))+Vector(tuple(max(v[k] for v in vs) for k in range(3))))*.5;world=e.matrix_world@p;v=world_to_camera_view(s,cam,world);print('IRIS',sign,list(p),'world',list(world),'pixel',v.x*1220,(1-v.y)*1050)

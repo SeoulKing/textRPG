@@ -1,17 +1,25 @@
 import "../load-env";
+import { z } from "zod";
 import { appendDevLlmTraceForGame, toTraceRequest } from "./dev-llm-trace";
+import { currentObservation, recordActionTiming } from "./action-observation";
+import { readGeminiStream } from "./gemini-stream";
 
-type GeminiJsonOptions = {
+type GeminiJsonOptions<T> = {
   model?: string;
   temperature?: number;
+  timeoutMs?: number;
+  responseSchema?: z.ZodType<T>;
+  responseJsonSchema?: Record<string, unknown>;
+  onJsonProgress?: (text: string) => void;
   trace?: {
     gameId: string;
-    scope: "planner" | "card";
+    scope: "planner" | "card" | "subway" | "dialogue";
     target: string;
   };
 };
 
 type GeminiGenerateResponse = {
+  usageMetadata?: Record<string, number>;
   candidates?: Array<{
     content?: {
       parts?: Array<{
@@ -25,8 +33,25 @@ type GeminiGenerateResponse = {
   };
 };
 
+type GeminiModelResponse = {
+  name?: string;
+  version?: string;
+  displayName?: string;
+  supportedGenerationMethods?: string[];
+};
+
+export type GeminiConnectionTestResult = {
+  model: string;
+  displayName: string | null;
+  version: string | null;
+  supportsGenerateContent: boolean;
+  latencyMs: number;
+  modelLookupLatencyMs: number;
+  generationLatencyMs: number;
+};
+
 const DEFAULT_GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 
 function stripCodeFence(raw: string) {
   return raw
@@ -58,10 +83,105 @@ export function geminiModel() {
   return process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
 }
 
+export async function testGeminiConnection(timeoutMs = 10_000): Promise<GeminiConnectionTestResult> {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY 환경변수가 필요합니다.");
+  }
+
+  const apiUrl = (process.env.GEMINI_API_URL || DEFAULT_GEMINI_API_URL).replace(/\/$/, "");
+  const model = geminiModel().replace(/^models\//, "");
+  const startedAt = Date.now();
+  const lookupStartedAt = Date.now();
+  const response = await fetch(`${apiUrl}/models/${encodeURIComponent(model)}`, {
+    method: "GET",
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: {
+      "x-goog-api-key": apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    let detail = "";
+    if (body) {
+      try {
+        const payload = JSON.parse(body) as { error?: { message?: string } };
+        detail = payload.error?.message?.trim() || "";
+      } catch {
+        detail = body.trim().slice(0, 240);
+      }
+    }
+    throw new Error(
+      `Gemini API 연결 실패 (${response.status})${detail ? `: ${detail}` : ""}`,
+    );
+  }
+
+  const payload = await response.json() as GeminiModelResponse;
+  const supportsGenerateContent =
+    payload.supportedGenerationMethods?.includes("generateContent") ?? false;
+  if (!supportsGenerateContent) {
+    throw new Error(`Gemini 모델 ${model}은 generateContent를 지원하지 않습니다.`);
+  }
+  const modelLookupLatencyMs = Date.now() - lookupStartedAt;
+  const generationStartedAt = Date.now();
+  const generationResponse = await fetch(
+    `${apiUrl}/models/${encodeURIComponent(model)}:generateContent`,
+    {
+      method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        contents: [{
+          role: "user",
+          parts: [{ text: 'Return only this JSON object: {"ok":true}' }],
+        }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 32,
+        },
+      }),
+    },
+  );
+  if (!generationResponse.ok) {
+    const body = await generationResponse.text().catch(() => "");
+    let detail = body.trim().slice(0, 500);
+    try {
+      const errorPayload = JSON.parse(body) as { error?: { message?: string } };
+      detail = errorPayload.error?.message?.trim() || detail;
+    } catch {
+      // Keep the raw response excerpt for deployment diagnostics.
+    }
+    throw new Error(
+      `Gemini 최소 생성 실패 (${generationResponse.status})${detail ? `: ${detail}` : ""}`,
+    );
+  }
+  const generationPayload = await generationResponse.json() as GeminiGenerateResponse;
+  const generated = JSON.parse(stripCodeFence(extractCandidateText(generationPayload))) as {
+    ok?: unknown;
+  };
+  if (generated.ok !== true) {
+    throw new Error("Gemini 최소 생성 응답이 예상 형식과 다릅니다.");
+  }
+  const generationLatencyMs = Date.now() - generationStartedAt;
+  return {
+    model: payload.name?.replace(/^models\//, "") || model,
+    displayName: payload.displayName?.trim() || null,
+    version: payload.version?.trim() || null,
+    supportsGenerateContent,
+    latencyMs: Date.now() - startedAt,
+    modelLookupLatencyMs,
+    generationLatencyMs,
+  };
+}
+
 export async function generateGeminiJson<T>(
   systemPrompt: string,
   userPayload: Record<string, unknown>,
-  options: GeminiJsonOptions = {},
+  options: GeminiJsonOptions<T> = {},
 ): Promise<T> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
@@ -70,12 +190,21 @@ export async function generateGeminiJson<T>(
 
   const apiUrl = (process.env.GEMINI_API_URL || DEFAULT_GEMINI_API_URL).replace(/\/$/, "");
   const model = options.model || geminiModel();
+  const supportsSamplingParameters = !/^gemini-(?:3\.5-flash-lite|3\.6-flash)(?:$|-)/.test(
+    model.replace(/^models\//, ""),
+  );
   const traceRequest = options.trace ? toTraceRequest(userPayload, systemPrompt) : "";
   let traceLogged = false;
+  const startedAt = performance.now();
+  const observation = currentObservation();
+  if (observation) observation.timing.providerCalls++;
+  recordActionTiming({ model, inputCharacters: systemPrompt.length + JSON.stringify(userPayload).length });
 
   try {
-    const response = await fetch(`${apiUrl}/models/${model}:generateContent`, {
+    const method = options.onJsonProgress ? "streamGenerateContent?alt=sse" : "generateContent";
+    const response = await fetch(`${apiUrl}/models/${model}:${method}`, {
       method: "POST",
+      signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": apiKey,
@@ -91,8 +220,13 @@ export async function generateGeminiJson<T>(
           },
         ],
         generationConfig: {
-          temperature: options.temperature ?? 0.8,
+          ...(supportsSamplingParameters
+            ? { temperature: options.temperature ?? 0.8 }
+            : {}),
           responseMimeType: "application/json",
+          ...(options.responseJsonSchema
+            ? { responseJsonSchema: options.responseJsonSchema }
+            : {}),
         },
       }),
     });
@@ -117,10 +251,25 @@ export async function generateGeminiJson<T>(
       throw new Error(message);
     }
 
-    const payload = await response.json() as GeminiGenerateResponse;
-    const rawText = extractCandidateText(payload);
+    let rawText: string, usage: Record<string, number> | undefined;
+    if (options.onJsonProgress) {
+      const streamed = await readGeminiStream(response, text => {
+        if (observation) observation.timing.firstChunkMs ??= Math.round(performance.now() - startedAt);
+        options.onJsonProgress!(text);
+      });
+      rawText = streamed.rawText;
+      usage = streamed.usageMetadata;
+    } else {
+      const payload = await response.json() as GeminiGenerateResponse;
+      rawText = extractCandidateText(payload);
+      usage = payload.usageMetadata;
+    }
+    recordActionTiming({ inputTokens: usage?.promptTokenCount, outputTokens: usage?.candidatesTokenCount, thoughtTokens: usage?.thoughtsTokenCount });
     try {
-      const parsed = JSON.parse(stripCodeFence(rawText)) as T;
+      const parsed = JSON.parse(stripCodeFence(rawText)) as unknown;
+      const validated = options.responseSchema
+        ? options.responseSchema.parse(parsed)
+        : parsed as T;
       if (options.trace) {
         appendDevLlmTraceForGame(options.trace.gameId, {
           scope: options.trace.scope,
@@ -133,7 +282,7 @@ export async function generateGeminiJson<T>(
           message: "Gemini response parsed successfully.",
         });
       }
-      return parsed;
+      return validated;
     } catch (error) {
       if (options.trace) {
         appendDevLlmTraceForGame(options.trace.gameId, {
@@ -165,5 +314,5 @@ export async function generateGeminiJson<T>(
         });
     }
     throw error;
-  }
+  } finally { recordActionTiming({ generationMs: Math.round(performance.now() - startedAt) }); }
 }

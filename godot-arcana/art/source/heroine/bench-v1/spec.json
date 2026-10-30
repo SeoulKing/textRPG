@@ -1,0 +1,86 @@
+{
+  "frame": [
+    96,
+    136
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "direction": "s",
+  "pixels_per_unit": 64,
+  "common_scale": 0.21108742004264391,
+  "palette": [
+    "302442",
+    "493c57",
+    "635469",
+    "82738a",
+    "a59aab",
+    "c4bcc7",
+    "ded9de",
+    "f6f0df",
+    "fff9e8",
+    "dfd3bc",
+    "baad9d",
+    "978c89",
+    "ffe6cf",
+    "edc3b1",
+    "cc968e",
+    "a16b78",
+    "9ebbd8",
+    "7f9fc3",
+    "6585ae",
+    "4b668e",
+    "394c70",
+    "293a59",
+    "192943",
+    "b7a3d8",
+    "8971bb",
+    "61469a",
+    "d4b77b",
+    "a58958",
+    "74646b",
+    "554a5b",
+    "3a3447",
+    "232333"
+  ],
+  "alpha": [
+    0,
+    255
+  ],
+  "poses": [
+    "stand",
+    "bend",
+    "lower",
+    "seated",
+    "breathe",
+    "blink",
+    "rise",
+    "straighten"
+  ],
+  "sit": {
+    "frames": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "duration": 0.52
+  },
+  "stand": {
+    "frames": [
+      3,
+      6,
+      7,
+      0
+    ],
+    "duration": 0.42
+  },
+  "generator": "built-in image_gen",
+  "design": "approved-concept.png",
+  "source": "bench-sheet-source.png"
+}

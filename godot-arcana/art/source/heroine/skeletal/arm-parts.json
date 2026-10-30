@@ -1,0 +1,16 @@
+{
+  "revision": 3,
+  "parts": [
+    "upper",
+    "fore",
+    "cuff",
+    "hand"
+  ],
+  "joints": [
+    "Shoulder",
+    "Elbow",
+    "Wrist"
+  ],
+  "seam_overlap_pixels": 2,
+  "source": "complete arm master; no added joint outlines"
+}

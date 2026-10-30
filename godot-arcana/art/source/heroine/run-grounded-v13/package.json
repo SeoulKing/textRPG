@@ -1,0 +1,19 @@
+{
+  "edited_clip": "run_e",
+  "frames": 8,
+  "fps": 12.0,
+  "authoring": "PixelPen native indexed layer API; saved and reopened",
+  "reference": "godot-arcana\\art\\source\\heroine\\run-stride-v11\\pixelpen\\idle_e.pxpen",
+  "reference_sha256": "1dffa62211b48da0b4f55aa839e31f4ef2b4dd735c17801b3964662fd742fdbc",
+  "before_sha256": "f68f0fbb58b612c71c6682d8e89ba202d329278cafe36f4e957a2b9fd9966125",
+  "saved_candidate_sha256": "4f6cd730132d7b44fefb137768ef6b303a8b7eaaf55596045f82c51845f61dc0",
+  "upper_84_rows_unchanged": true,
+  "palette_unchanged": true,
+  "stocking_width_px": 11,
+  "shin_width_px": 10,
+  "boot": "idle_e native patch; cuff pivot at (46,105), shared with shin endpoint",
+  "kinematics": "12px thigh and shin; forward knee bend; capped knee/cuff joints",
+  "runtime_connected": false,
+  "gameplay_test": "not run",
+  "art_approval": "pending user review"
+}

@@ -1,13 +1,30 @@
+import { resolveAcademyMove } from "./academy-navigation";
+import { resolveItemText } from "./item-text";
+import { playerItemAmount, playerItemIds } from "./item-ledgers";
+import { worldDeparturePlan } from "./text-world/departure";
+import { resolveWorldActions } from "./text-world/engine";
+import { workActivityParagraphs } from "./activity-narrative";
+import { plannedRestMinutes, restDanger, restInterruption, restParagraphs } from "./rest";
+import { advanceSurvivalPressure, millisecondsToSurvivalPressure, relieveExhaustion } from "./survival-pressure";
+import { physicalToolWear } from "./tool-instances";
+import { consumeWorkInputs } from "./work-environment";
+import { planActivity } from "./activity";
+import { reconcileWorldInventory } from "./text-world/interactions";
+import { consumeResourceUse, resourceAvailability } from "./resources";
+import { advancePersistentWorlds, type WorldTimeCause } from "./world-time";
+import { currentContentVersionId } from "./content-versions";
+import { advanceConditions, minutesToConditionEvent, normalizeHealthConditions, checkHealthFailure, applyTreatment, canApplyTreatment, CONDITION_LABELS, SLEEP_CONDITION_RATE } from "./health-conditions";
 import {
-  AUTO_ENERGY_TICK_MS,
   GAME_MINUTE_MS,
   PHASE_DURATION_MS,
   PHASES,
   REAL_DAY_MS,
   SAVE_VERSION,
+  SLEEP_ENERGY_BASELINE,
   EXHAUSTION_TICK_MS,
   TARGET_RESCUE_DAY,
   TRAVEL_DURATION_MS,
+  MAGIC_TRAVEL_DURATION_MS,
 } from "./base-data";
 import { actionConditionsMet, choiceConditionsMet, resolveNextSceneDefinition, resolveSceneDefinition } from "./content-engine";
 import { buildRuntimeRegistry, getQuestDefinitions, getRuntimeLocationDefinition } from "./runtime-registry";
@@ -15,13 +32,39 @@ import {
   appendLogEntry,
   applyEffect,
   changeSurvivalStat,
+  consumeDailyUse,
   evaluateCondition,
+  getRemainingDailyUses,
   evaluateObjective,
   getStockMoneyKey,
   getStockStateKey,
+  isStockNodeGone,
   isTimeEffect,
+  type ApplyEffectOptions,
 } from "./state-utils";
-import type { ActionDefinition, ChoiceDefinition, DayEvolutionUpdate, GameAction, GameState } from "./schemas";
+import type {
+  ActionDefinition,
+  ChoiceDefinition,
+  DayEvolutionUpdate,
+  Effect,
+  GameAction,
+  GameState,
+  SkillId,
+  SkillUse,
+  SystemNoteEntry,
+} from "./schemas";
+import {
+  PROGRESSION_SKILLS,
+  addSkillXp,
+  createEmptySkillProgress,
+  getProgressionSkillLevel,
+  getSkillXpForMinutes,
+  resolveSkillAdjustedMinutes,
+} from "./skill-progression";
+import { clearSystemNote, setSystemNote } from "./system-note";
+
+import { ensureArcanaEncounter, pauseArcanaCombat, recoverArcanaMana, tickArcanaCombat, useArcanaPotion, usesArcanaStats } from "./arcana-combat";
+import { ArcanaCombatSchema, ActiveClockSchema } from "./schemas/arcana-combat";
 
 const STAT_LABELS = {
   hp: "체력",
@@ -38,8 +81,8 @@ function hasItemAmount(state: GameState, itemId: string, amount = 1) {
 }
 
 function setClockFromElapsed(state: GameState) {
-  const totalElapsed = Math.max(0, state.worldElapsedMs || 0);
-  state.worldElapsedMs = totalElapsed;
+  const totalElapsed = Math.max(0, (state.worldElapsedMs || 0) + (state.clockRemainderMs ?? 0));
+  state.worldElapsedMs = Math.max(0, state.worldElapsedMs || 0);
   state.day = Math.floor(totalElapsed / REAL_DAY_MS) + 1;
   state.phaseIndex = Math.min(
     PHASES.length - 1,
@@ -102,14 +145,27 @@ function markLocationKnown(state: GameState, locationId: string) {
 
 const DISCOVERY_UNLOCK_FLAGS: Record<string, string[]> = {
   hospital: ["hospital_lead_checked", "visited_convenience", "visited_hospital"],
-  subway: ["subway_lead_checked", "visited_kitchen", "visited_subway"],
+  river: ["visited_convenience", "visited_forest", "visited_hospital", "visited_river"],
   checkpoint: ["checkpoint_lead_checked", "visited_subway", "visited_checkpoint"],
+  arcana_plaza: ["magic_world_entered_once", "visited_arcana_plaza"],
+  arcana_hunting_ground: ["visited_arcana_plaza", "visited_arcana_hunting_ground"],
+  arcana_city_gate: ["visited_arcana_plaza", "visited_arcana_hunting_ground", "visited_arcana_city_gate"],
+  arcana_shop: ["visited_arcana_plaza", "visited_arcana_shop"],
+  arcana_inn: ["visited_arcana_plaza", "visited_arcana_inn"],
+  arcana_restaurant: ["visited_arcana_plaza", "visited_arcana_restaurant"],
+  arcana_academy: ["visited_arcana_plaza", "visited_arcana_academy"],
+  arcana_return_portal: ["visited_arcana_plaza", "visited_arcana_return_portal"],
 };
 
 function normalizeExplorationKnowledge(state: GameState) {
+  for (const location of Object.values(buildRuntimeRegistry(state).locations)) {
+    if (location.discoveryConditions?.every(condition => evaluateCondition(condition, state))) state.flags[`known_${location.id}`] = true;
+  }
   state.flags.known_convenience = true;
   state.flags.known_kitchen = true;
   state.flags.known_forest = true;
+  state.flags.known_subway = true;
+  state.flags.known_magic_city_entrance = true;
 
   Object.entries(DISCOVERY_UNLOCK_FLAGS).forEach(([locationId, unlockFlags]) => {
     if (unlockFlags.some((flag) => state.flags[flag])) {
@@ -126,31 +182,19 @@ export function refreshLocationKnowledge(state: GameState) {
   normalizeExplorationKnowledge(state);
 }
 
-function relieveExhaustion(state: GameState, amount = 1) {
-  state.exhaustionLevel = Math.max(0, state.exhaustionLevel - amount);
-}
-
 function triggerGameOver(state: GameState, reason: string) {
-  if (state.isGameOver || state.stageClear) {
+  if (state.isGameOver) {
     return;
   }
   state.isGameOver = true;
   state.gameOverReason = reason;
-  state.systemNote = reason;
+  setSystemNote(state, [{ type: "text", text: reason, tone: "negative" }]);
   addLog(state, `생존 실패: ${reason}`);
 }
 
-function triggerStageClear(state: GameState) {
-  if (state.isGameOver || state.stageClear) {
-    return;
-  }
-  state.stageClear = true;
-  state.systemNote = "구조 신호가 닿았다. 멀리서 헬기 소리가 서울의 먼지 낀 하늘을 갈라 온다.";
-  addLog(state, "10일차 아침, 조립한 무전기가 구조대에 좌표를 보냈다. 당신은 구조 신호가 닿았다는 응답을 듣는다.");
-}
-
 function evaluateSurvivalOutcome(state: GameState) {
-  if (state.isGameOver || state.stageClear) {
+  checkHealthFailure(state);
+  if (state.isGameOver) {
     return;
   }
 
@@ -159,36 +203,22 @@ function evaluateSurvivalOutcome(state: GameState) {
     return;
   }
 
-  if (state.day >= TARGET_RESCUE_DAY) {
-    if (state.flags.rescue_signal_ready) {
-      triggerStageClear(state);
-      return;
-    }
-    triggerGameOver(state, "10일차 구조 신호를 보낼 장비가 완성되지 않아 구조 기회를 놓쳤다.");
+  if (state.day >= TARGET_RESCUE_DAY && state.chapterOneResult === "pending") {
+    state.chapterOneResult = state.flags.rescue_signal_ready && state.stats.mind > 0
+      ? "signal"
+      : "missed";
+    const successful = state.chapterOneResult === "signal";
+    const message = successful
+      ? "구조 신호가 닿았다. 응답 주파수가 열린 뒤에도 이곳의 생존은 계속된다."
+      : "구조 신호를 보낼 기회를 놓쳤다. 그래도 오늘을 살아냈고, 다음 길을 찾아야 한다.";
+    setSystemNote(state, [{ type: "text", text: message, tone: successful ? "positive" : "negative" }]);
+    addLog(state, `첫 장의 결과: ${message}`);
   }
 }
 
-function formatSignedDelta(value: number, label: string) {
-  const sign = value > 0 ? "+" : "-";
-  return `${sign} ${Math.abs(value)} ${label}`;
-}
-
-function formatElapsedTimeDelta(elapsedMs: number) {
+function elapsedTimeMinutes(elapsedMs: number) {
   const totalMinutes = Math.round((Math.max(0, elapsedMs) / REAL_DAY_MS) * 24 * 60);
-  if (totalMinutes <= 0) {
-    return "";
-  }
-
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const parts: string[] = [];
-  if (hours > 0) {
-    parts.push(`${hours}\uC2DC\uAC04`);
-  }
-  if (minutes > 0) {
-    parts.push(`${minutes}\uBD84`);
-  }
-  return `+ ${parts.join(" ")}`;
+  return Math.max(0, totalMinutes);
 }
 
 function questTitle(state: GameState, questId: string) {
@@ -207,39 +237,88 @@ function locationName(state: GameState, locationId: string) {
   return String(registry.locations[locationId]?.name ?? locationId);
 }
 
-function summarizeSystemNote(previousState: GameState, nextState: GameState, fallback = "") {
+function summarizeSystemNoteEntries(
+  previousState: GameState,
+  nextState: GameState,
+): SystemNoteEntry[] {
   const nextRegistry = buildRuntimeRegistry(nextState);
-  const parts: string[] = [];
+  const entries: SystemNoteEntry[] = [];
 
   if (!previousState.isGameOver && nextState.isGameOver && nextState.gameOverReason) {
-    return nextState.gameOverReason;
+    return [{
+      type: "text",
+      text: nextState.gameOverReason,
+      tone: "negative",
+    }] satisfies SystemNoteEntry[];
   }
 
   if (previousState.location !== nextState.location) {
-    parts.push(`이동: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`);
+    entries.push({
+      type: "text",
+      text: `이동: ${String(nextRegistry.locations[nextState.location]?.name ?? nextState.location)}`,
+      tone: "neutral",
+    });
   }
 
-  const elapsedTimeNote = formatElapsedTimeDelta(nextState.worldElapsedMs - previousState.worldElapsedMs);
+  for (const kind of ["injury", "infection"] as const) {
+    const before = previousState.conditions[kind].level;
+    const after = nextState.conditions[kind].level;
+    if (before !== after) entries.push({ type: "text", text: `${CONDITION_LABELS[kind]} Lv${before} → Lv${after}`, tone: after > before ? "negative" : "positive" });
+  }
+
+  if (previousState.exhaustionLevel !== nextState.exhaustionLevel) {
+    entries.push({ type: "text", text: `탈진 Lv${previousState.exhaustionLevel} → Lv${nextState.exhaustionLevel}`, tone: nextState.exhaustionLevel > previousState.exhaustionLevel ? "negative" : "positive" });
+  }
+
+  const elapsedMinutes = elapsedTimeMinutes(
+    nextState.worldElapsedMs - previousState.worldElapsedMs,
+  );
 
   Object.keys(nextRegistry.locations).forEach((locationId) => {
     const wasKnown = Boolean(previousState.flags[`known_${locationId}`] || previousState.flags[`visited_${locationId}`]);
     const isKnown = Boolean(nextState.flags[`known_${locationId}`] || nextState.flags[`visited_${locationId}`]);
     if (!wasKnown && isKnown) {
-      parts.push(`신규 지역: ${locationName(nextState, locationId)}`);
+      entries.push({
+        type: "text",
+        text: `신규 지역: ${locationName(nextState, locationId)}`,
+        tone: "positive",
+      });
     }
   });
 
   (Object.keys(STAT_LABELS) as Array<keyof typeof STAT_LABELS>).forEach((statKey) => {
     const delta = nextState.stats[statKey] - previousState.stats[statKey];
     if (delta !== 0) {
-      parts.push(formatSignedDelta(delta, STAT_LABELS[statKey]));
+      const label = statKey === "mind" && nextState.flags.in_magic_world
+        ? "MP"
+        : STAT_LABELS[statKey];
+      entries.push({
+        type: "delta",
+        subject: "stat",
+        label,
+        amount: delta,
+      });
     }
   });
 
+  if (usesArcanaStats(previousState) && usesArcanaStats(nextState)) {
+    for (const key of ["hp", "mp"] as const) {
+      const delta = Math.round((nextState.arcanaCombat[key] - previousState.arcanaCombat[key]) * 10) / 10;
+      if (delta) entries.push({ type: "delta", subject: "stat", label: key === "hp" ? "HP" : "MP", amount: delta });
+    }
+    for (const [id, entry] of Object.entries(nextState.arcanaCombat.skillTraining)) {
+      const before = previousState.arcanaCombat.skillTraining[id]?.xp ?? 0;
+      if (entry.xp > before) entries.push({ type: "text", text: `${id === "dodge" ? "회피" : id === "fireball" ? "파이어볼" : id === "flame_wave" ? "화염파" : "불꽃 장막"} 숙련 경험치 +${Math.round((entry.xp - before) * 100) / 100}`, tone: "positive" });
+    }
+  }
   const moneyDelta = nextState.money - previousState.money;
   if (moneyDelta !== 0) {
-    const sign = moneyDelta > 0 ? "+" : "-";
-    parts.push(`${sign} ${Math.abs(moneyDelta)}원`);
+    entries.push({
+      type: "delta",
+      subject: "money",
+      label: "원",
+      amount: moneyDelta,
+    });
   }
 
   const toolIds = new Set<string>([
@@ -252,23 +331,41 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
     if (typeof previousDurability !== "number") {
       return;
     }
-    if ((nextState.inventory[itemId] ?? 0) <= 0) {
-      parts.push(`${itemName(nextState, itemId)} 파손`);
+    const physicalWear = physicalToolWear(previousState, nextState, itemId);
+    if (physicalWear?.broken || !physicalWear && playerItemAmount(nextState,itemId) <= 0) {
+      entries.push({
+        type: "text",
+        text: `${itemName(nextState, itemId)} 파손`,
+        tone: "negative",
+      });
       return;
     }
-    if (typeof nextDurability === "number" && nextDurability < previousDurability) {
-      parts.push(`${itemName(nextState, itemId)} 내구도 -${previousDurability - nextDurability}`);
+    const wear = physicalWear?.spent ?? (typeof nextDurability === "number" ? Math.max(0, previousDurability - nextDurability) : 0);
+    if (wear > 0) {
+      entries.push({
+        type: "delta",
+        subject: "durability",
+        label: itemName(nextState, itemId),
+        itemId,
+        amount: -wear,
+      });
     }
   });
 
   const itemIds = new Set<string>([
-    ...Object.keys(previousState.inventory || {}),
-    ...Object.keys(nextState.inventory || {}),
+    ...playerItemIds(previousState),
+    ...playerItemIds(nextState),
   ]);
   itemIds.forEach((itemId) => {
-    const delta = (nextState.inventory[itemId] ?? 0) - (previousState.inventory[itemId] ?? 0);
+    const delta = playerItemAmount(nextState,itemId) - playerItemAmount(previousState,itemId);
     if (delta !== 0) {
-      parts.push(formatSignedDelta(delta, itemName(nextState, itemId)));
+      entries.push({
+        type: "delta",
+        subject: "item",
+        label: itemName(nextState, itemId),
+        itemId,
+        amount: delta,
+      });
     }
   });
 
@@ -280,38 +377,83 @@ function summarizeSystemNote(previousState: GameState, nextState: GameState, fal
     const previousStatus = previousState.quests[questId];
     const nextStatus = nextState.quests[questId];
     if (previousStatus !== "completed" && nextStatus === "completed") {
-      parts.push(`퀘스트 완료: ${questTitle(nextState, questId)}`);
+      entries.push({
+        type: "text",
+        text: `퀘스트 완료: ${questTitle(nextState, questId)}`,
+        tone: "positive",
+      });
     } else if ((previousStatus === "inactive" || !previousStatus) && nextStatus === "active") {
-      parts.push(`퀘스트 시작: ${questTitle(nextState, questId)}`);
+      entries.push({
+        type: "text",
+        text: `퀘스트 시작: ${questTitle(nextState, questId)}`,
+        tone: "neutral",
+      });
     }
   });
 
-  if (elapsedTimeNote) {
-    parts.push(elapsedTimeNote);
+  getSkillLevelUps(previousState, nextState).forEach(({ skillId, nextLevel }) => {
+    entries.push({
+      type: "text",
+      text: `${PROGRESSION_SKILLS[skillId].name} 숙련도 Lv.${nextLevel} 달성`,
+      tone: "positive",
+    });
+  });
+
+  if (elapsedMinutes > 0) {
+    entries.push({ type: "time", minutes: elapsedMinutes });
   }
 
-  const stockFocusChanged = previousState.activeStockNodeId !== nextState.activeStockNodeId;
-  const previousDiscovered = new Set(previousState.discoveredStockNodeIds || []);
-  const stockDiscoveryChanged = (nextState.discoveredStockNodeIds || []).some((nodeId) => !previousDiscovered.has(nodeId));
-  if (parts.length === 0 && (stockFocusChanged || stockDiscoveryChanged)) {
-    return "";
-  }
-
-  return parts.length > 0 ? parts.join(" / ") : fallback;
+  return entries;
 }
 
-export function applySystemNote(previousState: GameState, nextState: GameState, fallback = "") {
+function getSkillLevelUps(previousState: GameState, nextState: GameState) {
+  return (Object.keys(PROGRESSION_SKILLS) as SkillId[])
+    .map((skillId) => ({
+      skillId,
+      previousLevel: getProgressionSkillLevel(previousState.skillProgress, skillId),
+      nextLevel: getProgressionSkillLevel(nextState.skillProgress, skillId),
+    }))
+    .filter(({ previousLevel, nextLevel }) => nextLevel > previousLevel);
+}
+
+export function applySystemNote(previousState: GameState, nextState: GameState) {
+  const skillLevelUps = getSkillLevelUps(previousState, nextState);
+  skillLevelUps.forEach(({ skillId, nextLevel }) => {
+    appendLogEntry(
+      nextState,
+      `${PROGRESSION_SKILLS[skillId].name} 숙련도가 Lv.${nextLevel}로 올랐습니다.`,
+    );
+  });
+
   if ((nextState.isGameOver || nextState.stageClear) && nextState.systemNote) {
+    const levelUpEntries: SystemNoteEntry[] = skillLevelUps.map(
+      ({ skillId, nextLevel }) =>
+        ({
+          type: "text",
+          text: `${PROGRESSION_SKILLS[skillId].name} 숙련도 Lv.${nextLevel} 달성`,
+          tone: "positive",
+        }),
+    );
+    if (levelUpEntries.length > 0) {
+      const existingEntries = nextState.systemNoteEntries.length > 0
+        ? nextState.systemNoteEntries
+        : [{
+            type: "text" as const,
+            text: nextState.systemNote,
+            tone: "neutral" as const,
+          }];
+      setSystemNote(nextState, [...existingEntries, ...levelUpEntries]);
+    }
     return;
   }
 
-  const nextNote = summarizeSystemNote(previousState, nextState, fallback);
-  if (nextNote) {
-    nextState.systemNote = nextNote;
+  const nextEntries = summarizeSystemNoteEntries(previousState, nextState);
+  if (nextEntries.length > 0) {
+    setSystemNote(nextState, nextEntries);
     return;
   }
 
-  nextState.systemNote = "";
+  clearSystemNote(nextState);
 }
 
 export function syncScene(state: GameState, preferredSceneId?: string) {
@@ -321,7 +463,13 @@ export function syncScene(state: GameState, preferredSceneId?: string) {
       ? resolveNextSceneDefinition(state, registry, state.location, preferredSceneId)
       : resolveSceneDefinition(state, registry, state.location);
   state.sceneId = scene.id;
+  if (scene.completionFlag) state.flags[scene.completionFlag] = true;
   state.activeEventId = scene.eventId ?? null;
+}
+
+function closeShelterSubmenus(state: GameState) {
+  delete state.flags.shelter_crafting_open;
+  delete state.flags.shelter_cooking_open;
 }
 
 function applyEvolutionUpdate(state: GameState, update: DayEvolutionUpdate) {
@@ -460,8 +608,6 @@ function applyDayTransition(state: GameState, previousDay: number) {
     return;
   }
 
-  state.autoEnergyElapsedMs = 0;
-  state.exhaustionElapsedMs = 0;
   delete state.flags.rain_bucket_drawn_today;
   state.flags[`day${state.day}_mealSecured`] = false;
   state.flags[`day${state.day}_waterSecured`] = false;
@@ -471,71 +617,131 @@ function applyDayTransition(state: GameState, previousDay: number) {
   addLog(state, `${state.day}일차가 시작되었다.`);
 }
 
-function applySurvivalPressureForElapsed(state: GameState, elapsed: number) {
-  state.autoEnergyElapsedMs += elapsed;
-  while (state.autoEnergyElapsedMs >= AUTO_ENERGY_TICK_MS) {
-    state.autoEnergyElapsedMs -= AUTO_ENERGY_TICK_MS;
-    adjustStat(state, "energy", -1);
-  }
-
-  if (state.stats.energy === 0) {
-    state.exhaustionElapsedMs += elapsed;
-    while (state.exhaustionElapsedMs >= EXHAUSTION_TICK_MS) {
-      state.exhaustionElapsedMs -= EXHAUSTION_TICK_MS;
-      state.exhaustionLevel += 1;
-    }
-  } else {
-    state.exhaustionElapsedMs = 0;
-  }
-}
-
-function advanceGameTime(state: GameState, elapsed: number) {
+function advanceGameTime(
+  state: GameState,
+  elapsed: number,
+  options: WorldTimeCause & { energyDrainMultiplier?: number; conditionRate?: number; onConditionDamage?: (amount: number) => void; shouldStop?: () => boolean } = {},
+) {
   if (state.isGameOver || state.stageClear) {
-    return;
+    return 0;
   }
 
   const safeElapsed = Math.max(0, elapsed);
   if (safeElapsed === 0) {
-    return;
+    return 0;
   }
 
-  const previousDay = state.day;
-  state.worldElapsedMs += safeElapsed;
-  applySurvivalPressureForElapsed(state, safeElapsed);
-
-  setClockFromElapsed(state);
-  applyDayTransition(state, previousDay);
+  if (state.flags.in_magic_world) {
+    const previousDay = state.day;
+    state.worldElapsedMs += safeElapsed;
+    recoverArcanaMana(state, safeElapsed);
+    setClockFromElapsed(state);
+    applyDayTransition(state, previousDay);
+    refreshLocationKnowledge(state);
+    return safeElapsed;
+  }
+  checkHealthFailure(state);
+  state.worldElapsedMs += state.clockRemainderMs ?? 0;
+  state.clockRemainderMs = 0;
+  const conditionRate = options.conditionRate ?? 1;
+  const energyRate = options.energyDrainMultiplier ?? 1;
+  let remaining = safeElapsed, advanced = 0;
+  while (remaining > 1e-7 && !state.isGameOver && !state.stageClear) {
+    const previousDay = state.day;
+    const untilDaybreak = REAL_DAY_MS - state.worldElapsedMs % REAL_DAY_MS;
+    const untilPressure = millisecondsToSurvivalPressure(state, energyRate);
+    const untilCondition = minutesToConditionEvent(state) * GAME_MINUTE_MS / conditionRate;
+    const step = Math.min(remaining, untilDaybreak, untilPressure, untilCondition);
+    state.worldElapsedMs += step;
+    advanced += step;
+    advancePersistentWorlds(state, step / GAME_MINUTE_MS * 60, options);
+    setClockFromElapsed(state);
+    advanceSurvivalPressure(state, step, () => adjustStat(state, "energy", -1), energyRate);
+    checkHealthFailure(state);
+    const damage = state.isGameOver ? 0 : advanceConditions(state, step / GAME_MINUTE_MS * conditionRate);
+    if (damage > 0) options.onConditionDamage?.(damage);
+    if (!state.isGameOver) applyDayTransition(state, previousDay);
+    evaluateSurvivalOutcome(state);
+    remaining -= step;
+    if (options.shouldStop?.()) break;
+  }
+  // The world clock is stored in milliseconds; fractional event boundaries can
+  // arise when a partially progressed condition changes level.
+  const roundedClock = Math.round(state.worldElapsedMs);
+  state.clockRemainderMs = Math.round((state.worldElapsedMs - roundedClock) * 1e9) / 1e9;
+  state.worldElapsedMs = roundedClock;
+  state.autoEnergyElapsedMs = Math.round(state.autoEnergyElapsedMs);
+  state.exhaustionElapsedMs = Math.round(state.exhaustionElapsedMs);
   refreshLocationKnowledge(state);
-  evaluateSurvivalOutcome(state);
+  return advanced;
 }
 
-function advanceByMinutes(state: GameState, minutes: number) {
-  if (state.phaseIndex >= PHASES.length - 1) {
+export function advanceGameMinutes(state: GameState, minutes: number, options: { onConditionDamage?: (amount: number) => void } = {}) {
+  checkHealthFailure(state);
+  if (state.isGameOver || state.stageClear) return;
+  if (!state.flags.in_magic_world && state.phaseIndex >= PHASES.length - 1) {
     adjustStat(state, "hp", -1);
     if (state.stats.mind > 0) {
       adjustStat(state, "mind", -1);
     }
     addLog(state, "밤이 깊은 뒤에도 움직인 탓에 몸과 마음이 동시에 깎여 나간다.");
   }
-  advanceGameTime(state, GAME_MINUTE_MS * Math.max(1, minutes));
+  advanceGameTime(state, GAME_MINUTE_MS * Math.max(1, minutes), options);
+}
+
+/** Short exploration actions share the survival clock without a one-minute minimum. */
+export function advanceGameSeconds(state: GameState, seconds: number, cause: WorldTimeCause = {}) {
+  const elapsed = advanceGameTime(state, GAME_MINUTE_MS * Math.max(0, seconds) / 60, cause);
+  return Math.round(elapsed / GAME_MINUTE_MS * 60 * 1e6) / 1e6;
 }
 
 function advanceTravelTime(state: GameState) {
-  advanceGameTime(state, TRAVEL_DURATION_MS);
+  advanceGameTime(state, state.flags.in_magic_world ? MAGIC_TRAVEL_DURATION_MS : TRAVEL_DURATION_MS);
 }
 
 export function syncClock(state: GameState, now = Date.now()) {
+  if (state.flags.arcana_online) { state.lastRealTimestamp = now; return; }
+  const elapsed = Math.max(0, now - state.lastRealTimestamp);
+  const clock = state.activeClock;
   state.lastRealTimestamp = now;
+  if (!clock.paused && clock.ownerId) {
+    if (elapsed > 5000 || now - clock.heartbeatAt > 5000) {
+      clock.paused = true;
+      pauseArcanaCombat(state);
+    } else if (!state.isGameOver) {
+      advanceGameTime(state, elapsed);
+      tickArcanaCombat(state, elapsed / 1000);
+    }
+  }
   setClockFromElapsed(state);
   refreshLocationKnowledge(state);
   evaluateSurvivalOutcome(state);
 }
 
-export function createInitialGameState(): GameState {
+export function performWorldClockAction(state: GameState, action: Extract<GameAction, { type: "world_clock" }>, now = Date.now()) {
+  const clock = state.activeClock;
+  const ownedElsewhere = clock.ownerId && clock.ownerId !== action.clientId && !clock.paused && now - clock.heartbeatAt <= 5000;
+  if (ownedElsewhere || (clock.ownerId === action.clientId && action.sequence < clock.sequence)) return;
+  if (action.command === "pause" && clock.ownerId !== action.clientId) return;
+  clock.sequence = action.sequence;
+  if (action.command === "pause") {
+    clock.paused = true;
+    pauseArcanaCombat(state);
+  } else {
+    clock.ownerId = action.clientId; clock.paused = false; clock.heartbeatAt = now;
+  }
+  state.lastRealTimestamp = now;
+}
+
+export function createInitialGameState(startAt: "shelter" | "arcana" = "shelter"): GameState {
   const now = Date.now();
   const registry = buildRuntimeRegistry();
   const state: GameState = {
+    textWorld: null,
+    locationTextWorlds: {},
     saveVersion: SAVE_VERSION,
+    conditions: normalizeHealthConditions(undefined),
+    contentVersionId: currentContentVersionId(),
     sceneId: "prologue_opening",
     activeEventId: null,
     location: "shelter",
@@ -548,6 +754,8 @@ export function createInitialGameState(): GameState {
     isGameOver: false,
     gameOverReason: "",
     stageClear: false,
+    chapterOneResult: "pending",
+    preparedMeal: null,
     stats: {
       hp: 8,
       mind: 6,
@@ -555,12 +763,18 @@ export function createInitialGameState(): GameState {
     },
     money: 6500,
     skills: [],
+    skillProgress: createEmptySkillProgress(),
+    arcanaCombat: { ...ArcanaCombatSchema.parse(undefined), learnedSpells: ["fireball"] },
+    activeClock: ActiveClockSchema.parse(undefined),
     inventory: {
       emergencySnack: 1,
       waterBottle: 1,
     },
     toolDurability: {},
     stockState: {},
+    resourceState: {},
+    activityRevision: 0,
+    lastActivity: null,
     discoveredStockNodeIds: [],
     activeStockNodeId: null,
     dynamicContent: {
@@ -588,18 +802,83 @@ export function createInitialGameState(): GameState {
       pregenerated: {},
       anchors: {},
     },
+    subwayExpedition: {
+      spatialMode: false, exploredFloors: {},
+      active: false,
+      runNumber: 0,
+      depth: 0,
+      deepestDepth: 0,
+      entryElapsedMs: 0,
+      carriedLoot: {},
+      currentFloor: null,
+      currentFloorProgress: {
+        phase: "event",
+        encounter: null,
+        currentResult: null,
+        eventResolved: false,
+        eventChoiceLabel: "",
+        eventOutcome: "",
+        searchedLootSpotIds: [],
+        floorLoot: {},
+        generationFailure: "",
+      },
+      runBuild: {
+        victories: 0,
+        skillRanks: {
+          power_strike: 0,
+          improvised_mastery: 0,
+          iron_guard: 0,
+          second_wind: 0,
+          silver_tongue: 0,
+          escape_route: 0,
+        },
+        pendingUpgradeChoices: [],
+      },
+      runPlan: null,
+      storyMemory: {
+        facts: [],
+        knownActors: [],
+        unresolvedThreads: [],
+        resolvedThreads: [],
+        recentSummaries: [],
+        lastBridge: "",
+      },
+      preparedNextFloor: null,
+      nextFloorStatus: "idle",
+      nextFloorError: "",
+      history: [],
+      lastOutcome: "",
+    },
+    npcDialogue: {
+      active: null,
+      conversations: {},
+    },
     flags: {
       visited_shelter: true,
       known_convenience: true,
       known_kitchen: true,
       known_forest: true,
+      known_subway: true,
+      known_magic_city_entrance: true,
     },
     quests: Object.fromEntries(getQuestDefinitions(registry).map((quest) => [quest.id, "inactive" as const])),
     lastSleepEnergy: 8,
     exhaustionLevel: 0,
     log: [{ timestampLabel: "1일차 06:00", message: "눈을 뜬 당신은 오늘 하루를 어떻게든 버텨야 한다는 사실부터 떠올린다." }],
     systemNote: "",
+    systemNoteEntries: [],
   };
+  if (startAt === "arcana") {
+    state.location = "arcana_plaza";
+    state.sceneId = "arcana_plaza_first_intro";
+    state.flags.in_magic_world = true;
+    state.flags.magic_world_entered_once = true;
+    state.flags.visited_arcana_plaza = true;
+    state.log = [{
+      timestampLabel: "1일차 06:00",
+      message: "푸른 포탈을 지나 아르카나 광장에서 새로운 모험을 시작했다.",
+    }];
+  }
   refreshLocationKnowledge(state);
   syncScene(state, state.sceneId);
   syncQuestState(state, {});
@@ -671,6 +950,7 @@ export function resolveTravelPath(state: GameState, targetId: string, registry =
 function resolveTravelRequirement(state: GameState, targetId: string) {
   const registry = buildRuntimeRegistry(state);
   const path = resolveTravelPath(state, targetId, registry);
+  if (worldDeparturePlan(state) === null) return { allowed: false, reason: "지상 출구까지의 통로가 막혀 있습니다. 먼저 문과 통로를 확인해 주세요.", path: null };
   if (path && path.length > 1) {
     return { allowed: true, reason: "", path };
   }
@@ -701,10 +981,12 @@ function useItem(state: GameState, itemId: string) {
   const item = registry.items[itemId] as {
     name: string;
     kind: string;
-    effects: { hp: number; mind: number; energy: number; exhaustionRelief: number };
+    effects: { hp: number; mind: number; energy: number; exhaustionRelief: number; injuryRelief?: number; infectionRelief?: number };
     useMinutes?: number;
   } | undefined;
-  const count = state.inventory[itemId] || 0;
+  if (itemId === "manaPotion" && usesArcanaStats(state)) { useArcanaPotion(state); return; }
+  const ledger=state.subwayExpedition.active && state.subwayExpedition.carriedLoot[itemId]>0 ? state.subwayExpedition.carriedLoot : state.inventory;
+  const count = ledger[itemId] || 0;
   if (!item || count <= 0) {
     throw new Error("지금은 그 아이템을 사용할 수 없다.");
   }
@@ -712,12 +994,12 @@ function useItem(state: GameState, itemId: string) {
     throw new Error("그 물건은 바로 사용할 수 없다.");
   }
 
+  if (!canApplyTreatment(state, item.effects)) throw new Error("치료할 부상 또는 감염이 없습니다.");
   consumeCurrentSceneIntro(state);
-  state.inventory[itemId] = count - 1;
-  if (state.inventory[itemId] <= 0) {
-    delete state.inventory[itemId];
-  }
+  ledger[itemId] = count - 1;
+  if (ledger[itemId] <= 0) delete ledger[itemId];
 
+  applyTreatment(state, item.effects);
   adjustStat(state, "hp", item.effects.hp);
   adjustStat(state, "mind", item.effects.mind);
   adjustStat(state, "energy", item.effects.energy);
@@ -726,7 +1008,7 @@ function useItem(state: GameState, itemId: string) {
   }
 
   if (item.useMinutes && item.useMinutes > 0) {
-    advanceByMinutes(state, item.useMinutes);
+    advanceGameMinutes(state, item.useMinutes);
   }
 
   if (itemId === "emergencySnack" || itemId === "cannedFood" || itemId === "hotMeal") {
@@ -738,10 +1020,14 @@ function useItem(state: GameState, itemId: string) {
     state.flags.waterSecured = true;
   }
 
+  if (itemId === "hotMeal" || itemId === "ricePorridge" || itemId === "greensSoup" || itemId === "forestStew") {
+    state.preparedMeal = itemId;
+  }
+
   addLog(state, `${item.name}을(를) 사용했다.`);
 }
 
-function consumeCurrentSceneIntro(state: GameState) {
+export function consumeCurrentSceneIntro(state: GameState) {
   const registry = buildRuntimeRegistry(state);
   const scene = resolveSceneDefinition(state, registry, state.location);
   const introFlag = scene.introFlag;
@@ -752,31 +1038,172 @@ function consumeCurrentSceneIntro(state: GameState) {
   state.flags[introFlag] = true;
 }
 
-function jumpToNextDaybreak(state: GameState) {
+function jumpToNextDaybreak(state: GameState, options: { onConditionDamage?: (amount: number) => void } = {}) {
   const nextDaybreakMs = Math.floor(state.worldElapsedMs / REAL_DAY_MS) * REAL_DAY_MS + REAL_DAY_MS;
-  advanceGameTime(state, Math.max(0, nextDaybreakMs - state.worldElapsedMs));
+  advanceGameTime(
+    state,
+    Math.max(0, nextDaybreakMs - state.worldElapsedMs),
+    { ...options, energyDrainMultiplier: 0, conditionRate: SLEEP_CONDITION_RATE },
+  );
+  state.stats.energy = Math.max(state.stats.energy, SLEEP_ENERGY_BASELINE);
+  state.exhaustionLevel = Math.max(0, state.exhaustionLevel - 1);
 }
 
 type ExecutionResult = {
-  fallbackNote: string;
   preferredSceneId?: string;
 };
 
-function applyDefinitionEffects(state: GameState, effects: ActionDefinition["effects"] | ChoiceDefinition["effects"]) {
+export type PerformActionOptions = {
+  rng?: () => number;
+  onConditionDamage?: (amount: number) => void;
+  onNarrative?: ApplyEffectOptions["onNarrative"];
+  explorationSuccessBonus?: number;
+  collectionTimeMultiplier?: number;
+};
+
+function applyDefinitionEffects(
+  state: GameState,
+  effects: ActionDefinition["effects"] | ChoiceDefinition["effects"],
+  skillUse: SkillUse | undefined,
+  options: PerformActionOptions & { explorationSuccessBonus?: number; collectionTimeMultiplier?: number },
+) {
   effects.forEach((effect) => {
+    if (state.isGameOver || state.stageClear) return;
     if (isTimeEffect(effect)) {
       if (effect.type === "advance_to_daybreak") {
-        jumpToNextDaybreak(state);
+        jumpToNextDaybreak(state, options);
       } else {
-        advanceByMinutes(state, effect.minutes);
+        advanceGameMinutes(
+          state,
+          Math.max(1, Math.floor(
+            resolveSkillAdjustedMinutes(effect.minutes, skillUse, state.skillProgress) *
+            (skillUse?.skillId === "collection" ? options.collectionTimeMultiplier ?? 1 : 1),
+          )),
+          options,
+        );
       }
       return;
     }
-    applyEffect(effect, state);
+    applyEffect(effect, state, {
+      skillUse,
+      rng: options.rng,
+      onNarrative: options.onNarrative,
+      explorationSuccessBonus: options.explorationSuccessBonus,
+    });
   });
 }
 
+/** A long rest uses real clock boundaries and grants recovery only for finished intervals. */
+function applyRestActivity(state: GameState, definition: ActionDefinition | ChoiceDefinition, options: PerformActionOptions) {
+  const rest = definition.activity;
+  if (rest?.kind !== "rest") return;
+  const plannedMinutes = plannedRestMinutes(state, rest);
+  if (plannedMinutes <= 0 || restDanger(state)) throw new Error(restDanger(state) || "지금은 이 시간까지 쉴 수 없습니다.");
+  const before = structuredClone(state), startedAtMinutes = (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS;
+  const revision = state.activityRevision++;
+  let remaining = plannedMinutes, reason: string | null = null;
+  while (remaining > 1e-7 && !reason) {
+    const interval = Math.min(remaining, rest.recovery.intervalMinutes);
+    const advanced = advanceGameTime(state, interval * GAME_MINUTE_MS, { ...options, shouldStop: () => Boolean(restInterruption(before, state)) }) / GAME_MINUTE_MS;
+    remaining = Math.max(0, remaining - advanced);
+    reason = restInterruption(before, state);
+    if (reason) break;
+    if (advanced >= rest.recovery.intervalMinutes - 1e-7) {
+      adjustStat(state, "hp", rest.recovery.hp);
+      adjustStat(state, "mind", rest.recovery.mind);
+    }
+  }
+  const elapsedMinutes = Math.max(0, (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS - startedAtMinutes);
+  const paragraphs = restParagraphs(rest, elapsedMinutes, reason ?? undefined);
+  state.lastActivity = { revision, definitionId: definition.id, kind: "rest", status: reason ? "interrupted" : "completed",
+    startedAtMinutes, plannedMinutes, elapsedMinutes, consumedItems: {}, producedItems: {}, moneySpent: 0,
+    ...(reason ? { reason } : {}), paragraphs, generatedAt: new Date().toISOString() };
+  if (!reason) applyDefinitionEffects(state, definition.effects, undefined, options);
+  addLog(state, paragraphs.join(" "));
+}
+
+/** Long work pays its inputs once, advances the shared world clock, and only then completes. */
+function applyWorkDefinition(state: GameState, definition: ActionDefinition | ChoiceDefinition, options: PerformActionOptions) {
+  if (definition.activity?.kind === "rest") { applyRestActivity(state, definition, options); return; }
+  const plan = planActivity(definition);
+  if (!plan) { applyDefinitionEffects(state, definition.effects, definition.skillUse, options); return; }
+  const startedAt = (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS;
+  const supplies = consumeWorkInputs(state, definition, plan.inputs, plan.itemCosts);
+  const minutes = resolveSkillAdjustedMinutes(plan.minutes * (supplies.station?.durationMultiplier ?? 1) * (definition.skillUse?.skillId === "collection" ? options.collectionTimeMultiplier ?? 1 : 1), definition.skillUse, state.skillProgress);
+  const revision = state.activityRevision++;
+  applyDefinitionEffects(state, supplies.inputs, undefined, options);
+  reconcileWorldInventory(state);
+  advanceGameMinutes(state, minutes, options);
+  const completed = !state.isGameOver && !state.stageClear;
+  const beforeCompletion = { ...state.inventory };
+  const completionParagraphs: string[] = [];
+  if (completed) applyDefinitionEffects(state, plan.completion, definition.skillUse, { ...options, onNarrative: result => {
+    if (result.type === "text") completionParagraphs.push(result.text);
+    else completionParagraphs.push(...(buildRuntimeRegistry(state).scenes[result.sceneId]?.paragraphs ?? []));
+    options.onNarrative?.(result);
+  } });
+  const producedItems = Object.fromEntries(Object.entries(state.inventory).flatMap(([id, amount]) => {
+    const delta = amount - (beforeCompletion[id] ?? 0);
+    return delta > 0 ? [[id, delta]] : [];
+  }));
+  const elapsedMinutes = Math.max(0, (state.worldElapsedMs + (state.clockRemainderMs ?? 0)) / GAME_MINUTE_MS - startedAt);
+  state.lastActivity = { revision, definitionId: definition.id, kind: definition.activity!.kind,
+    status: completed ? "completed" : "interrupted", startedAtMinutes: startedAt, plannedMinutes: minutes, elapsedMinutes,
+    consumedItems: { ...plan.itemCosts }, storedConsumedItems: supplies.storedItems, ...(supplies.station ? { workstation: supplies.station } : {}), producedItems, moneySpent: plan.moneyCost,
+    ...(!completed ? { reason: state.gameOverReason || "작업을 끝내기 전에 상황이 종료되었다." } : {}) };
+  state.lastActivity.paragraphs = workActivityParagraphs(definition, state.lastActivity, completionParagraphs, buildRuntimeRegistry(state));
+  state.lastActivity.generatedAt = new Date().toISOString();
+  if (!completed) addLog(state, resolveItemText(definition.label, buildRuntimeRegistry(state)) + " 작업을 끝내지 못했다. 완성품이나 설비는 만들어지지 않았다.");
+}
+
+function authoredAdvanceTimeMinutes(effects: Effect[]) {
+  return effects.find(
+    (effect): effect is Extract<Effect, { type: "advance_time" }> =>
+      effect.type === "advance_time",
+  )?.minutes;
+}
+
+function inventoryOrMoneyIncreased(previousState: GameState, nextState: GameState) {
+  if (nextState.money > previousState.money) {
+    return true;
+  }
+  const itemIds = new Set([
+    ...Object.keys(previousState.inventory),
+    ...Object.keys(nextState.inventory),
+  ]);
+  return Array.from(itemIds).some(
+    (itemId) => (nextState.inventory[itemId] ?? 0) > (previousState.inventory[itemId] ?? 0),
+  );
+}
+
+function awardDefinitionSkillXp(
+  previousState: GameState,
+  nextState: GameState,
+  skillUse: SkillUse | undefined,
+  effects: Effect[],
+) {
+  if (!skillUse || nextState.isGameOver || nextState.stageClear) {
+    return;
+  }
+  const baseMinutes = authoredAdvanceTimeMinutes(effects);
+  if (baseMinutes === undefined) {
+    return;
+  }
+  if (
+    skillUse.skillId === "collection" &&
+    !inventoryOrMoneyIncreased(previousState, nextState)
+  ) {
+    return;
+  }
+  addSkillXp(
+    nextState.skillProgress,
+    skillUse.skillId,
+    getSkillXpForMinutes(baseMinutes),
+  );
+}
+
 function applyShelterSleepBonus(state: GameState) {
+  if (state.isGameOver || state.stageClear) return;
   if (!state.flags.shelter_wall_patch) {
     return;
   }
@@ -786,118 +1213,170 @@ function applyShelterSleepBonus(state: GameState) {
   addLog(state, "보강해 둔 천막이 바람을 조금 막아 주어, 한숨 자고 난 뒤 몸과 마음이 한결 가벼워졌다.");
 }
 
-function executeShelterCookingAction(state: GameState, action: ActionDefinition): ExecutionResult {
-  const hasIngredients =
-    hasItemAmount(state, "rawRice", 1) &&
-    hasItemAmount(state, "vegetables", 1) &&
-    hasItemAmount(state, "woodPlank", 1);
+function executeShelterCookingAction(
+  state: GameState,
+  action: ActionDefinition,
+  options: PerformActionOptions,
+): ExecutionResult {
+  const hasIngredients = action.effects.every(effect =>
+    effect.type !== "remove_item" || hasItemAmount(state, effect.itemId, effect.amount),
+  );
 
   if (!hasIngredients) {
-    applyDefinitionEffects(state, action.failureEffects);
+    applyDefinitionEffects(state, action.failureEffects, undefined, options);
     return {
       preferredSceneId: action.nextSceneId,
-      fallbackNote: action.failureNote ?? action.label,
     };
   }
 
-  applyDefinitionEffects(state, action.effects);
+  applyDefinitionEffects(state, action.effects, undefined, options);
   return {
     preferredSceneId: action.nextSceneId,
-    fallbackNote: action.label,
   };
 }
 
-function dynamicDeliverFailureNote(state: GameState, action: ActionDefinition) {
-  if (!(action.id.startsWith("dyn_action_") && action.id.endsWith("_deliver"))) {
-    return action.failureNote ?? action.label;
+function executeActionDefinition(
+  state: GameState,
+  action: ActionDefinition,
+  options: PerformActionOptions,
+): ExecutionResult {
+  const focusEffect = action.effects.find((effect) => effect.type === "focus_stock_node");
+  if (focusEffect?.type === "focus_stock_node" && isStockNodeGone(state, focusEffect.nodeId)) {
+    throw new Error("이미 모두 수집해 사라진 더미다.");
   }
-
-  const questAccepted = action.conditions.find((condition) => condition.type === "flag");
-  if (questAccepted?.type === "flag" && !state.flags[questAccepted.flag]) {
-    return "먼저 이 부탁을 수락해야 한다.";
+  if (action.dailyLimit && getRemainingDailyUses(state, action.dailyLimit) <= 0) {
+    throw new Error("오늘 가능한 횟수를 모두 사용했다.");
   }
-
-  const questDelivered = action.conditions.find((condition) => condition.type === "flag_not");
-  if (questDelivered?.type === "flag_not" && state.flags[questDelivered.flag]) {
-    return "이미 물건을 건넸다.";
-  }
-
-  const itemCondition = action.conditions.find((condition) => condition.type === "has_item");
-  if (itemCondition?.type === "has_item") {
-    const registry = buildRuntimeRegistry(state);
-    const itemName = (registry.items[itemCondition.itemId] as { name?: string } | undefined)?.name;
-    if (itemName) {
-      return `${itemName}이 아직 손에 없다.`;
-    }
-  }
-
-  return action.failureNote ?? action.label;
-}
-
-function executeActionDefinition(state: GameState, action: ActionDefinition): ExecutionResult {
   if (!actionConditionsMet(action, state)) {
     if (action.presentationMode !== "always") {
       throw new Error("지금은 그 행동을 할 수 없다.");
     }
 
-    applyDefinitionEffects(state, action.failureEffects);
+    applyDefinitionEffects(state, action.failureEffects, undefined, options);
     return {
       preferredSceneId: action.nextSceneId,
-      fallbackNote: dynamicDeliverFailureNote(state, action),
     };
   }
 
+  const resources = resourceAvailability(state, action, buildRuntimeRegistry(state));
+  if (resources && resources.remainingUses === 0) throw new Error(resources.exhaustedHint);
   consumeCurrentSceneIntro(state);
-  if (action.id === "cook_at_shelter") {
-    return executeShelterCookingAction(state, action);
+  if (action.id === "cook_at_shelter" && !action.activity) {
+    return executeShelterCookingAction(state, action, options);
   }
-  applyDefinitionEffects(state, action.effects);
+  const previousState = structuredClone(state);
+  if (resources) consumeResourceUse(state, action, resources);
+  const activeMeal = state.preparedMeal;
+  const isFieldWork = Boolean(action.skillUse || action.tags.includes("work"));
+  if (action.dailyLimit) {
+    consumeDailyUse(state, action.dailyLimit);
+  }
+  applyWorkDefinition(state, action, {
+    ...options,
+    explorationSuccessBonus: activeMeal === "greensSoup" && action.skillUse?.skillId === "exploration" ? 0.1 : 0,
+    collectionTimeMultiplier: activeMeal === "forestStew" ? 0.8 : 1,
+  });
+  awardDefinitionSkillXp(previousState, state, action.skillUse, action.effects);
   if (action.id === "sleep_at_shelter") {
     applyShelterSleepBonus(state);
+    if (activeMeal === "ricePorridge") {
+      adjustStat(state, "energy", 2);
+      state.preparedMeal = null;
+    }
+  } else if (activeMeal === "hotMeal" && isFieldWork) {
+    adjustStat(state, "energy", 1);
+    state.preparedMeal = null;
+  } else if (activeMeal === "greensSoup" && action.skillUse?.skillId === "exploration") {
+    state.preparedMeal = null;
+  } else if (activeMeal === "forestStew" && action.skillUse?.skillId === "collection") {
+    state.preparedMeal = null;
   }
   return {
     preferredSceneId: action.nextSceneId,
-    fallbackNote: action.label,
   };
 }
 
-function executeSceneChoiceDefinition(state: GameState, choice: ChoiceDefinition): ExecutionResult {
+function executeSceneChoiceDefinition(
+  state: GameState,
+  choice: ChoiceDefinition,
+  options: PerformActionOptions,
+): ExecutionResult {
   if (!choiceConditionsMet(choice, state)) {
     if (choice.presentationMode !== "always") {
       throw new Error("지금은 그 선택지를 고를 수 없다.");
     }
 
-    applyDefinitionEffects(state, choice.failureEffects);
+    applyDefinitionEffects(state, choice.failureEffects, undefined, options);
     return {
       preferredSceneId: choice.nextSceneId,
-      fallbackNote: choice.failureNote ?? choice.label,
     };
   }
 
+  if (choice.tags?.includes("studio-authored") && !resolveSceneDefinition(state, buildRuntimeRegistry(state)).choiceIds.includes(choice.id)) throw new Error("현재 장면에서 선택할 수 없습니다.");
   consumeCurrentSceneIntro(state);
-  applyDefinitionEffects(state, choice.effects);
+  const previousState = structuredClone(state);
+  const activeMeal = state.preparedMeal;
+  applyWorkDefinition(state, choice, {
+    ...options,
+    explorationSuccessBonus: activeMeal === "greensSoup" && choice.skillUse?.skillId === "exploration" ? 0.1 : 0,
+    collectionTimeMultiplier: activeMeal === "forestStew" ? 0.8 : 1,
+  });
+  awardDefinitionSkillXp(previousState, state, choice.skillUse, choice.effects);
+  if (activeMeal === "hotMeal" && choice.skillUse) {
+    adjustStat(state, "energy", 1);
+    state.preparedMeal = null;
+  } else if (activeMeal === "greensSoup" && choice.skillUse?.skillId === "exploration") {
+    state.preparedMeal = null;
+  } else if (activeMeal === "forestStew" && choice.skillUse?.skillId === "collection") {
+    state.preparedMeal = null;
+  }
   return {
     preferredSceneId: choice.nextSceneId,
-    fallbackNote: choice.label,
   };
 }
 
-export function performAction(state: GameState, action: GameAction) {
+export function performAction(
+  state: GameState,
+  action: GameAction,
+  options: PerformActionOptions = {},
+) {
+  if (state.isGameOver || state.stageClear) throw new Error(state.gameOverReason || "이미 종료된 상황입니다.");
   const previousState = structuredClone(state);
   syncClock(state);
   if (state.isGameOver) {
     throw new Error(state.gameOverReason || "이미 게임오버 상태입니다.");
   }
+  ensureArcanaEncounter(state);
+  if (state.arcanaCombat.battle) throw new Error("사냥터 전투를 먼저 마쳐 주세요.");
   const registry = buildRuntimeRegistry(state);
-  let fallbackNote = "";
   let preferredSceneId: string | undefined;
 
   switch (action.type) {
+    case "world_clock":
+    case "arcana_combat":
+      throw new Error("이 행동은 전용 서비스를 통해 처리해야 합니다.");
+    case "academy_move": {
+      const move = resolveAcademyMove(state, action.roomId, registry);
+      if (move.minutes > 0) advanceGameMinutes(state, move.minutes, options);
+      preferredSceneId = move.sceneId;
+      break;
+    }
     case "travel": {
       const { allowed, reason, path } = resolveTravelRequirement(state, action.targetId);
       if (!allowed || !path || path.length < 2) {
         throw new Error(reason);
       }
+      const departure = worldDeparturePlan(state)!;
+      const departureWorld = state.location === "subway" ? state.textWorld : state.locationTextWorlds[state.location];
+      if (departureWorld?.active && departure.length) {
+        departureWorld.events = [];
+        departureWorld.lastIntent = { id: "depart", label: "지상 출구로 향한다", importance: "minor" };
+        const result = resolveWorldActions(departureWorld, state, departure);
+        departureWorld.revision++;
+        if (result.interrupted || result.discovery) break;
+      }
+      if (departureWorld) departureWorld.active = false;
+      closeShelterSubmenus(state);
       const routeTargets = path.slice(1);
       const destinationId = routeTargets[routeTargets.length - 1];
       const destinationName = String(registry.locations[destinationId]?.name ?? destinationId);
@@ -912,9 +1391,6 @@ export function performAction(state: GameState, action: GameAction) {
           break;
         }
       }
-      fallbackNote = routeTargets.length > 1
-        ? `이동: ${destinationName} (${routeTargets.length}구간)`
-        : `이동: ${destinationName}`;
       addLog(state, routeTargets.length > 1
         ? `${destinationName}(으)로 ${routeTargets.length}구간 이동했다.`
         : `${destinationName}(으)로 이동했다.`);
@@ -922,7 +1398,6 @@ export function performAction(state: GameState, action: GameAction) {
     }
     case "use_item": {
       useItem(state, action.itemId);
-      fallbackNote = itemName(state, action.itemId);
       break;
     }
     case "content_action": {
@@ -930,7 +1405,7 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 행동 '${action.actionId}'이다.`);
       }
-      ({ preferredSceneId, fallbackNote } = executeActionDefinition(state, definition));
+      ({ preferredSceneId } = executeActionDefinition(state, definition, options));
       break;
     }
     case "content_choice": {
@@ -938,19 +1413,48 @@ export function performAction(state: GameState, action: GameAction) {
       if (!definition) {
         throw new Error(`알 수 없는 선택지 '${action.choiceId}'이다.`);
       }
-      ({ preferredSceneId, fallbackNote } = executeSceneChoiceDefinition(state, definition));
+      ({ preferredSceneId } = executeSceneChoiceDefinition(state, definition, options));
       break;
     }
+    case "subway_expedition":
+      throw new Error("지하철 심층 탐험 행동은 게임 서비스에서 처리해야 합니다.");
+    case "text_world":
+    case "item_light":
+      throw new Error("텍스트 월드 행동은 게임 서비스에서 처리해야 합니다.");
+    case "npc_dialogue":
+      throw new Error("NPC 대화 행동은 게임 서비스에서 처리해야 합니다.");
     default: {
       const exhaustiveCheck: never = action;
       return exhaustiveCheck;
     }
   }
 
-  syncQuestState(state, previousState.quests);
+  if (!state.isGameOver && !state.stageClear) syncQuestState(state, previousState.quests);
   evaluateSurvivalOutcome(state);
   syncScene(state, preferredSceneId);
-  applySystemNote(previousState, state, fallbackNote);
+  if (preferredSceneId && state.sceneId === preferredSceneId && !state.isGameOver && !state.stageClear)
+    options.onNarrative?.({ type: "scene", sceneId: preferredSceneId });
+  if (state.lastActivity && state.lastActivity.revision === previousState.lastActivity?.revision
+    && (state.location !== previousState.location || state.sceneId !== previousState.sceneId)) delete state.lastActivity.paragraphs;
+  applySystemNote(previousState, state);
+}
+
+/** Uses the actual sleep action on a clone; never consumes the live RNG or state. */
+export function forecastShelterSleep(state: GameState) {
+  if (state.isGameOver || state.stageClear) return null;
+  const definition = buildRuntimeRegistry(state).actions.sleep_at_shelter;
+  if (!definition || state.location !== "shelter" || !actionConditionsMet(definition, state)
+    || (definition.dailyLimit && getRemainingDailyUses(state, definition.dailyLimit) <= 0)) return null;
+  const next = structuredClone(state);
+  let conditionLoss = 0;
+  performAction(next, { type: "content_action", actionId: definition.id }, { rng: () => 1, onConditionDamage: amount => { conditionLoss += amount; } });
+  return {
+    hpBefore: state.stats.hp, hpAfter: next.stats.hp, conditionDamage: conditionLoss,
+    energyBefore: state.stats.energy, energyAfter: next.stats.energy,
+    infectionBefore: state.conditions.infection.level, infectionAfter: next.conditions.infection.level,
+    exhaustionBefore: state.exhaustionLevel, exhaustionAfter: next.exhaustionLevel,
+    isFatal: next.isGameOver, reason: next.gameOverReason,
+  };
 }
 
 export function summarizeState(state: GameState) {
@@ -964,6 +1468,7 @@ export function summarizeState(state: GameState) {
     energy: state.stats.energy,
     money: state.money,
     skills: [...state.skills],
+    skillProgress: structuredClone(state.skillProgress),
     inventory: { ...state.inventory },
     flags: { ...state.flags },
   };

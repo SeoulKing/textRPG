@@ -1,14 +1,16 @@
-﻿/**
+/**
  * Base game data exports.
  */
 
 export const PHASES = ["morning", "late morning", "afternoon", "evening", "night"] as const;
-export const SAVE_VERSION = 13;
-export const REAL_DAY_MS = 15 * 60 * 1000;
+export const SAVE_VERSION = 22;
+export const REAL_DAY_MS = 30 * 60 * 1000;
 export const PHASE_DURATION_MS = REAL_DAY_MS / PHASES.length;
 export const GAME_MINUTE_MS = REAL_DAY_MS / (24 * 60);
 export const GAME_HOUR_MS = GAME_MINUTE_MS * 60;
-export const TRAVEL_DURATION_MS = GAME_MINUTE_MS * 15;
+export const TRAVEL_DURATION_MS = GAME_MINUTE_MS * 30;
+export const MAGIC_TRAVEL_DURATION_MS = GAME_MINUTE_MS * 15;
+export const SLEEP_ENERGY_BASELINE = 7;
 export const AUTO_ENERGY_TICK_MS = GAME_HOUR_MS;
 export const EXHAUSTION_TICK_MS = REAL_DAY_MS / 2;
 export const TARGET_RESCUE_DAY = 10;

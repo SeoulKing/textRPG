@@ -1,0 +1,60 @@
+{
+  "id": "arcana-bed-stardew-v2",
+  "approvedConcept": "art-studies/props/bed-stardew-v1/concept.png",
+  "nativeSource": "res://art/source/props/bed-stardew-v2/bed.pxpen",
+  "texture": "res://art/export/bed-stardew-v2/bed.png",
+  "scene3d": "res://scenes/props/bed_narrow.tscn",
+  "scene2d": "res://scenes/props/bed_narrow_2d.tscn",
+  "tileSet": "res://art/export/bed-stardew-v2/bed_tileset.tres",
+  "canvas": [
+    112,
+    272
+  ],
+  "footPixel": [
+    56,
+    250
+  ],
+  "pixelsPerWorldUnit": 64,
+  "footprintTiles": [
+    1,
+    3
+  ],
+  "footprintWorldRect": [
+    -0.5,
+    -3,
+    1,
+    3
+  ],
+  "floorCornersPixel": [
+    [
+      24,
+      114.2355
+    ],
+    [
+      88,
+      114.2355
+    ],
+    [
+      88,
+      250
+    ],
+    [
+      24,
+      250
+    ]
+  ],
+  "camera": {
+    "yaw": 0,
+    "pitch": 45,
+    "roll": 0,
+    "projection": "orthographic"
+  },
+  "alpha": "binary",
+  "filter": "nearest",
+  "mipmaps": false,
+  "palette": "Inherited original PixelPen indexed palette; no new quantization",
+  "authoring": "PixelPen native indexed reflow with original post thickness; repainted embroidery; saved, reopened, exported",
+  "deployment": "Reusable asset only, no live room placement or web deployment",
+  "tileMapNotes": "One scene tile places the whole 1x3 world-tile bed (2x6 half-unit editor cells). Floor projection is unchanged; source v1 is preserved.",
+  "collisionNotes": "Standalone physics shapes included. Arcana room navigation uses separate layout rectangles: register the same footprint in the room when placing."
+}

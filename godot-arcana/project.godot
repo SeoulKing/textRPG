@@ -1,0 +1,43 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="아르카나 · 별빛의 도시"
+config/description="기존 아르카나 서버와 연결되는 도트 오픈월드 RPG"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.5", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=384
+window/size/viewport_height=824
+window/size/window_width_override=480
+window/size/window_height_override=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/arcana_layout/plugin.cfg", "res://addons/pixel_workshop/plugin.cfg", "res://addons/net.yarvis.pixel_pen/plugin.cfg", "res://addons/heroine_workshop/plugin.cfg")
+
+[filesystem]
+
+import/blender/enabled=false
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
+lights_and_shadows/directional_shadow/16_bits=false
+environment/defaults/default_clear_color=Color(0.055, 0.09, 0.1, 1)

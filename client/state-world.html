@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>작은 창고 · 폐허 서울</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/client/state-world.css">
+  <script src="/client/state-world.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><a href="/">폐허 서울</a><span id="clock">시간이 멈춰 있습니다</span></header>
+    <div class="title-row"><div><p class="eyebrow">작은 창고</p><h1 id="room">문 앞에서</h1></div><button id="new-game" type="button">새로 시작</button></div>
+    <p id="position" class="muted">두 방에 남은 물건을 살펴보세요.</p>
+    <article id="story" aria-live="polite" aria-atomic="true"><p>선택한 행동만큼 시간이 흐릅니다.</p></article>
+    <nav id="choices" aria-label="할 수 있는 행동"></nav>
+    <p id="status" role="status"></p>
+    <section class="inventory"><h2>소지품</h2><ul id="inventory"><li>아직 없습니다.</li></ul></section>
+    <details><summary>확인한 기록</summary><p class="muted">마지막으로 직접 확인한 정보입니다. 지금 상태와 다를 수 있습니다.</p><ul id="memory"></ul></details>
+    <footer>행동 후 자동 저장 · 읽는 동안 시간 정지</footer>
+  </main>
+</body>
+</html>

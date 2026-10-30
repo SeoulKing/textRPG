@@ -1,0 +1,37 @@
+{
+  "head_source": "continuity-v3 idle neutral, same direction",
+  "head_neck_y": 54,
+  "mirrored_full_pose_bodies": {
+    "nw": "ne",
+    "w": "e",
+    "sw": "se"
+  },
+  "status": "shared heads; approved pose bodies with mirrored directional corrections",
+  "clips": {
+    "idle_s": 4,
+    "idle_se": 4,
+    "idle_e": 4,
+    "idle_ne": 4,
+    "idle_n": 4,
+    "idle_nw": 4,
+    "idle_w": 4,
+    "idle_sw": 4,
+    "cast_s": 6,
+    "cast_se": 6,
+    "cast_e": 6,
+    "cast_ne": 6,
+    "cast_n": 6,
+    "cast_nw": 6,
+    "cast_w": 6,
+    "cast_sw": 6,
+    "run_s": 8,
+    "run_se": 8,
+    "run_e": 8,
+    "run_ne": 8,
+    "run_n": 8,
+    "run_nw": 8,
+    "run_w": 8,
+    "run_sw": 8,
+    "bench_s": 8
+  }
+}

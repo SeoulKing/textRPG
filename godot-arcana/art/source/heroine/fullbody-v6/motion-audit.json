@@ -1,0 +1,14 @@
+{
+  "upper_body_translation_checked_pixels": 51072,
+  "neck_shoulder_translation_errors": 0,
+  "run_head_y_offsets": [
+    -2,
+    0,
+    1
+  ],
+  "run_head_x_offsets": [
+    -1,
+    0,
+    1
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "url": "https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/beta/Sendagaya_Shino.vrm",
+  "sha256": "1e177c1a7b14f783a9c48395831db8616260d3bddd4154cb2784b779adca49b5",
+  "vrm_meta": {
+    "version": "",
+    "author": "",
+    "contactInformation": "",
+    "reference": "",
+    "title": "Sendagaya Shino",
+    "texture": 29,
+    "allowedUserName": "Everyone",
+    "violentUssageName": "Allow",
+    "sexualUssageName": "Allow",
+    "commercialUssageName": "Allow",
+    "otherPermissionUrl": "",
+    "licenseName": "CC0",
+    "otherLicenseUrl": ""
+  },
+  "official_license": "https://vroid.pixiv.help/hc/en-us/articles/360013482714-Sendagaya-Shino"
+}

@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/bed-stardew-v1/bed.png" id="1_bed"]
+
+[node name="ArcanaBed2D" type="Node2D"]
+texture_filter = 1
+metadata/footprint_tiles = Vector2i(2, 3)
+metadata/foot_pixel = Vector2i(88, 250)
+metadata/projected_footprint = Rect2(-64, -135.7645, 128, 135.7645)
+
+[node name="Artwork" type="Sprite2D" parent="."]
+position = Vector2(0, -114)
+texture = ExtResource("1_bed")
+
+[node name="Footprint" type="StaticBody2D" parent="."]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Footprint"]
+polygon = PackedVector2Array(-64, -135.7645, 64, -135.7645, 64, 0, -64, 0)

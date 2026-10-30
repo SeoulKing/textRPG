@@ -1,0 +1,4 @@
+Tool: built-in image_gen (style-transfer), transparent background.
+Edit targets: original oak.png, birch.png, spruce.png. Style references: approved lamp-post source and fountain source.
+Preserve species, overall silhouette/proportions and centered root footprint. Orthographic frontal 3/4 yaw0 downward45. Match lamp/fountain crisp intentional pixel clusters, material ramps and detail density. Natural green foliage, warm wood, pale birch bark; no blue/gold replacement, stochastic grain, scenery, shadow, lettering or extra objects. Upper-left daylight. Full isolated tree with compact transparent margin.
+Final edits/export: native PixelPen. Generated images are under generated/ and remain reference material.

@@ -1,0 +1,45 @@
+{
+  "concept": "wall-and-tower-concept-v2.png",
+  "sources": [
+    "art-studies/city-walls/source/wall-master-v2.png",
+    "art-studies/city-walls/source/wall-ns-master-v2.png"
+  ],
+  "sourceCrop": {
+    "left": 108,
+    "top": 98,
+    "width": 1832,
+    "height": 576
+  },
+  "atlas": [
+    3072,
+    2048
+  ],
+  "tile": [
+    192,
+    512
+  ],
+  "foot": [
+    96,
+    480
+  ],
+  "phases": 4,
+  "editorCell": [
+    192,
+    136
+  ],
+  "worldCellSize": 3,
+  "connectionMasks": 16,
+  "masterSize": [
+    768,
+    241
+  ],
+  "pixelsPerUnit": 64,
+  "alpha": [
+    0,
+    255
+  ],
+  "paletteColors": 36,
+  "wallVisualHeight": 241,
+  "heroReferenceHeight": 110,
+  "notes": "4 complete illustrated masonry bays; canonical edge cuts; joined walkway pieces use the separate N/S art master. No runtime model geometry."
+}

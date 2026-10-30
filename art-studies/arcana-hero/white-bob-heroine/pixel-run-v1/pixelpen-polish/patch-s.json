@@ -1,0 +1,35 @@
+{
+  "source": "D:\\BANG\\project\\textRPG\\godot-arcana\\art\\source\\heroine\\run-v1\\pixelpen\\run-s.pxpen",
+  "output": "D:\\BANG\\project\\textRPG\\art-studies\\arcana-hero\\white-bob-heroine\\pixel-run-v1\\pixelpen-polish\\run-s.pxpen",
+  "export_dir": "D:\\BANG\\project\\textRPG\\art-studies\\arcana-hero\\white-bob-heroine\\pixel-run-v1\\pixelpen-polish\\native-after-s",
+  "edits": [
+    {
+      "frame": 2,
+      "x": 37,
+      "y": 45,
+      "index": 25,
+      "expected": 0
+    },
+    {
+      "frame": 3,
+      "x": 62,
+      "y": 71,
+      "index": 2,
+      "expected": 0
+    },
+    {
+      "frame": 3,
+      "x": 63,
+      "y": 72,
+      "index": 1,
+      "expected": 0
+    },
+    {
+      "frame": 3,
+      "x": 64,
+      "y": 72,
+      "index": 3,
+      "expected": 0
+    }
+  ]
+}

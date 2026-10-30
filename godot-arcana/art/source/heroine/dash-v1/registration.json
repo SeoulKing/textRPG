@@ -1,0 +1,68 @@
+{
+  "reference": "reference-bright-v10/pixelpen",
+  "canvas": [
+    96,
+    136
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "directions": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "frames": 6,
+  "durations_ms": [
+    40,
+    40,
+    40,
+    60,
+    40,
+    60
+  ],
+  "movement_seconds": 0.18,
+  "distance": 28,
+  "windup_seconds": 0,
+  "palette": [
+    "#fbf7f0",
+    "#faf3e4",
+    "#f5ebe5",
+    "#f8e4d1",
+    "#ede4e1",
+    "#e8ddda",
+    "#e2d5d8",
+    "#eed4c5",
+    "#e6c7bd",
+    "#d1c4c8",
+    "#babbc9",
+    "#b9a5ad",
+    "#a98991",
+    "#7987b2",
+    "#6f6886",
+    "#665366",
+    "#4b5079",
+    "#4a3b58",
+    "#2c2d57",
+    "#171036",
+    "#fcdcc1",
+    "#fbd6bb",
+    "#fbd1b7",
+    "#fac9b0",
+    "#e8a68f",
+    "#755ad5",
+    "#7348c8",
+    "#301f96",
+    "#7c9acc",
+    "#3e5089",
+    "#f4d9a4",
+    "#d9b07e"
+  ],
+  "runtime": "res://art/export/heroine-dash-v1/heroine-dash.png"
+}

@@ -1,0 +1,10 @@
+{
+  "tool": "built-in image_gen",
+  "approvedConcept": "approved-concept.png",
+  "approvedOn": "2026-10-28",
+  "source": "idle-sheet-source.png",
+  "request": "Existing heroine identity; five right/front/back headings with neutral, inhale, exhale and blink; standing with grounded boots; 4 columns x 5 rows, alpha transparency.",
+  "reference": "user-approved four-pose idle concept",
+  "directionCompletion": "NW/W/SW mirror NE/E/SE around registered foot x=48",
+  "rejectedDraft": "First generation had seven rows and inconsistent profile heading; not registered or used."
+}

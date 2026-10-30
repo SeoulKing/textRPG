@@ -1,0 +1,7 @@
+{
+  "native_frames": 152,
+  "run_whole_reference_silhouette_errors": 0,
+  "other_pose_silhouette_errors": 0,
+  "palette_colours": 32,
+  "run_source_is_whole_frame": true
+}

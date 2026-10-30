@@ -1,0 +1,22 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-10-28",
+  "purpose": "Selected B proportions implemented as a directional 2D protagonist in the existing 3D world.",
+  "reference": "godot-arcana/art/style-studies/hero-2026-10-28/02-detailed-highbit.png",
+  "variants": {
+    "A": "approximately 6 heads, baseline",
+    "B": "approximately 4.5 heads",
+    "C": "approximately 3.5 heads",
+    "D": "approximately 3 heads"
+  },
+  "prompt": "Create ONE polished wide comparison board showing the SAME fantasy RPG protagonist at FOUR different body proportions. This is a PROPORTION STUDY, not four new styles. Use the reference as SAME CHARACTER, SAME COSTUME AND SAME PIXEL ART STYLE. Preserve the adult youthful face, tousled short chestnut hair, deep teal open travel coat with short shoulder cape, ivory shirt, slate trousers, brown boots, brass buckle and brown cross-body satchel. No added props or changes of age, gender or identity.\n\nFour equal columns, left to right:\nA = original slender approximately 6-head-tall proportions.\nB = compact approximately 4.5-head-tall proportions, shorter torso and legs.\nC = charming approximately 3.5-head-tall GAME SPRITE proportions, clearly shorter limbs, compact body, readable coat and satchel; youthful adult rather than a child.\nD = compact approximately 3-head-tall super-deformed game proportions; broad simple silhouette, short boots and arms, the SAME adult face and haircut, NOT a baby.\n\nCRITICAL GEOMETRIC COMPARISON: keep the HEADS at roughly the SAME absolute pixel size across all four columns, align all four boots to ONE shared horizontal ground baseline. The full figures must therefore get visibly shorter from left to right: relative figure heights A:B:C:D about 1.00:0.75:0.58:0.50. Do not scale every body to equal full height. Make the difference in head-to-body ratio obvious. Shorten and redesign the torso and limbs, do not just shrink the whole original image or vertically squash its face. Maintain natural limb joints and the coat's waist. Keep the adult face expressive but avoid enormous baby eyes.\n\nIdentical calm standing pose, three-quarter front view turned slightly toward viewer's right; identical pixel-cluster craftsmanship, contour weights and controlled teal/earth palette. Crisp hand-crafted-looking pixel art with visible square pixels, clean two-to-three-value material shading, no blurry gradients, no realistic 3D or painterly medium changes. Warm plain off-white background, no scenery, restrained contact shadows only. All four whole figures including heads and boots fit within their cells with generous margins. Labels centered below the common baseline, exact text ONLY: 'A · 6', 'B · 4.5', 'C · 3.5', 'D · 3'. No other text, no title, watermark or logos. Wide landscape, roughly 2200 by 1200.",
+  "selection": {
+    "variant": "B",
+    "heads": 4.5,
+    "selected_by_user": "2026-10-28",
+    "approved_scope": "B approximately 4.5 heads, quality target and user-authorized 3D-background + 2D-character game integration",
+    "reference_image": "art-studies/arcana-hero/hero-proportions-v1.png",
+    "implemented_asset": "godot-arcana/art/export/hero-b45.png",
+    "runtime": "godot-arcana/scripts/sprite_actor.gd"
+  }
+}

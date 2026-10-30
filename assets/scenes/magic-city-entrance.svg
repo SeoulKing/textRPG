@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-label="편의점 옥상 위에 열린 푸른 마법 포탈">
+  <defs>
+    <radialGradient id="portalGlow" cx="50%" cy="48%" r="48%">
+      <stop offset="0" stop-color="#f2edff" stop-opacity=".95"/>
+      <stop offset=".45" stop-color="#7b6cff" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#16243f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#131b2b"/>
+      <stop offset="1" stop-color="#48505d"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" fill="url(#sky)"/>
+  <rect y="285" width="960" height="75" fill="#2f3339"/>
+  <path d="M0 286 L120 246 L235 272 L360 231 L470 270 L610 238 L760 270 L960 224 L960 360 L0 360 Z" fill="#20252b"/>
+  <rect x="72" y="229" width="190" height="57" fill="#484b4d"/>
+  <rect x="100" y="208" width="66" height="21" fill="#606366"/>
+  <path d="M733 284 L767 173 L803 284 Z" fill="#373c43"/>
+  <ellipse cx="512" cy="174" rx="185" ry="170" fill="url(#portalGlow)"/>
+  <ellipse cx="512" cy="174" rx="103" ry="142" fill="none" stroke="#9a86ff" stroke-width="22"/>
+  <ellipse cx="512" cy="174" rx="82" ry="121" fill="#24345f" stroke="#d3c9ff" stroke-width="4"/>
+  <path d="M449 226 C478 190 482 121 512 80 C541 119 550 190 576 226 C536 207 490 207 449 226 Z" fill="#927cff" opacity=".42"/>
+  <circle cx="435" cy="79" r="4" fill="#e8dcff"/>
+  <circle cx="595" cy="112" r="5" fill="#b8a9ff"/>
+  <circle cx="397" cy="188" r="3" fill="#cfc1ff"/>
+  <circle cx="628" cy="218" r="4" fill="#f0eaff"/>
+  <path d="M392 282 C437 258 586 258 633 282" fill="none" stroke="#7f6af2" stroke-width="5" opacity=".75"/>
+</svg>

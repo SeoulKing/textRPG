@@ -1,3 +1,4 @@
+import { AcademyMapSchema } from "./academy-map";
 import { z } from "zod";
 import { GameStateSchema } from "./game-state";
 import { LocationCardSchema } from "./location";
@@ -8,11 +9,12 @@ import { SceneCardSchema } from "./scene";
 import { ProtagonistCardSchema } from "./person";
 import { QuestStateSchema } from "./quest";
 import { ActionChoiceSchema } from "./choice";
+import { CombatSkillDetailsSchema, SkillIdSchema } from "./skill-progression";
 
 export const DevLlmTraceEntrySchema = z.object({
   id: z.string(),
   at: z.string(),
-  scope: z.enum(["planner", "card"]),
+  scope: z.enum(["planner", "card", "subway", "dialogue"]),
   target: z.string(),
   stage: z.enum(["request", "raw_draft", "draft_validation", "compiler_summary", "compiled_result", "fallback", "error"]).optional(),
   model: z.string(),
@@ -85,12 +87,36 @@ export const SurvivalGoalSchema = z.object({
 });
 
 export const StateSnapshotSchema = z.object({
+  arcanaSpells: z.array(z.object({
+    id: z.enum(["fireball", "flame_wave", "flame_guard", "meteor", "giant_fireball", "flame_barrage"]),
+    parentSkill:z.string().optional(), name: z.string(), school: z.string(), schoolName: z.string(),
+    unlockLevel: z.number(), cost: z.number(), cooldown: z.number(), ratio: z.number(),
+    targeting: z.enum(["projectile", "cone", "self"]), thumbnail: z.string(),
+    rangeTiles: z.number(), angle: z.number(), duration: z.number(),
+    tree: z.object({selectedUltimates:z.array(z.string()).optional(),maxLevel:z.number().optional(),master:z.boolean().optional(),selectedUltimate:z.string().nullable().optional(),level:z.number(),xp:z.number(),xpRequired:z.number(),points:z.number(),spent:z.number(),editable:z.boolean(),nodes:z.array(z.object({id:z.string(),name:z.string(),maxRank:z.number(),row:z.number(),column:z.number(),parents:z.array(z.string()),level:z.number(),effect:z.string(),amount:z.number(),pointCost:z.number().optional(),automatic:z.boolean().optional(),specialization:z.string().optional(),rank:z.number(),available:z.boolean(),reason:z.string(),current:z.string(),next:z.string()}))}).optional(),
+    equipped: z.boolean(), mastery: z.number(), masteryXp: z.number(),
+    unlocked: z.boolean(), learnable: z.boolean(), schoolUnlocked: z.boolean(), magnitude: z.number(),
+  })).default([]),
+  academyMap: AcademyMapSchema.nullable().default(null),
+  conditionCards: z.array(z.object({
+    kind: z.enum(["injury", "infection", "exhaustion"]), label: z.string(), level: z.number().int().min(1).max(4),
+    nextDamageMinutes: z.number().nonnegative().nullable(), nextWorseningMinutes: z.number().nonnegative().nullable(),
+  })).default([]),
   gameId: z.string(),
   state: GameStateSchema,
   currentScene: SceneCardSchema,
   visibleLocations: z.array(LocationCardSchema),
   visiblePeople: z.array(PersonCardSchema),
   inventoryCards: z.array(ItemCardSchema),
+  inventoryLights: z.array(z.object({
+    itemId: z.string(), name: z.string(), worldId: z.string(), entityId: z.string(),
+    revision: z.number().int().nonnegative(), on: z.boolean(), canTurnOn: z.boolean(), reason: z.string().optional(),
+  })).default([]),
+  exploration: z.object({
+    revision: z.number().int().nonnegative(), roomName: z.string(),
+    targets: z.array(z.object({ id: z.string(), name: z.string(), placement: z.string(), observed: z.boolean(), actions: z.array(ActionChoiceSchema) })),
+    generalActions: z.array(ActionChoiceSchema),
+  }).nullable().default(null),
   itemCatalog: z.array(ItemCardSchema).default([]),
   protagonist: ProtagonistCardSchema,
   storyMaterials: StoryMaterialsSchema,
@@ -100,6 +126,15 @@ export const StateSnapshotSchema = z.object({
       name: z.string(),
       summary: z.string(),
       status: QuestStateSchema,
+      nextStep: z.string().optional(),
+      readyToReport: z.boolean().optional(),
+      reportTo: z.string().optional(),
+      rewardText: z.string().optional(),
+      objectives: z.array(z.object({
+        name: z.string(),
+        amount: z.number().int().positive(),
+        ownedAmount: z.number().int().nonnegative(),
+      })).optional(),
       requirements: z.array(
         z.object({
           itemId: z.string(),
@@ -107,6 +142,7 @@ export const StateSnapshotSchema = z.object({
           amount: z.number().int().positive(),
           ownedAmount: z.number().int().nonnegative(),
           met: z.boolean(),
+          sourceHints: z.array(z.string()).default([]),
         })
       ).default([]),
     })
@@ -116,6 +152,22 @@ export const StateSnapshotSchema = z.object({
       id: z.string(),
       name: z.string(),
       description: z.string(),
+    })
+  ),
+  skillProgress: z.array(
+    z.object({
+      id: SkillIdSchema,
+      name: z.string(),
+      description: z.string(),
+      level: z.number().int().min(1).max(5),
+      maxLevel: z.literal(5),
+      totalXp: z.number().int().min(0).max(320),
+      xpIntoLevel: z.number().int().nonnegative(),
+      xpForNextLevel: z.number().int().positive().nullable(),
+      progressPercent: z.number().min(0).max(100),
+      effectPercent: z.number().min(0).max(100),
+      isMaxLevel: z.boolean(),
+      combat: CombatSkillDetailsSchema.optional(),
     })
   ),
   availableActions: z.array(ActionChoiceSchema),
