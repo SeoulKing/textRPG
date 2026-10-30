@@ -4,6 +4,7 @@ const Hero=preload("res://scripts/native_2d_hero.gd")
 const MeiFrames=preload("res://art/export/plaza-guide/mei-idle.tres")
 const Slime=preload("res://scripts/native_2d_slime.gd")
 const Blink=preload("res://scripts/native_2d_blink.gd")
+const InnLighting=preload("res://scripts/native_2d_inn_lighting.gd")
 const CAMERA_ZOOM=4.0
 const MIN_ZOOM_RATIO=.44642857
 const MAX_HERO_SCREEN_HEIGHT=.9
@@ -20,6 +21,7 @@ var inside: Node2D
 var blink: Node2D
 var layout: Node2D
 var ambience: CanvasModulate
+var inn_lobby: Node2D
 var render_pixel_scale=1.0
 var camera_zoom=4.0
 var base_camera_zoom=4.0
@@ -77,7 +79,10 @@ func _register(source: Node) -> void:
             sprites.append({"sprite":node,"anchor":anchor,"kind":str(parent.get("model_kind")) if parent.get("model_kind")!=null else "","id":str(parent.get("gameplay_id")) if parent.get("gameplay_id")!=null else str(node.get_meta("interaction_id","")),"root":outside if outside.is_ancestor_of(node) else inside})
         _register(node)
 func _interior() -> void:
-    for child in inside.get_children():child.queue_free()
+    inn_lobby=null
+    for child in inside.get_children():
+        if child is CanvasItem:child.hide()
+        child.queue_free()
     sprites=sprites.filter(func(entry):return is_instance_valid(entry.sprite) and entry.root==outside)
     outside.visible=world.indoor.is_empty()
     if is_instance_valid(shop2d):shop2d.hide();shop2d.follow_camera.enabled=false
@@ -94,6 +99,7 @@ func _interior() -> void:
     if not name.is_empty():
         var room=load("res://scenes/native_2d/"+name+".tscn").instantiate()
         inside.add_child(room);_register(room)
+        if world.indoor=="arcana_inn":inn_lobby=room
         room_bounds=Rect2()
         for sprite in room.find_children("*","Sprite2D",true,false):
             if sprite.texture==null:continue
@@ -104,7 +110,12 @@ func _process(delta: float) -> void:
     if world.indoor!=last_interior or world.academy_floor!=last_floor:
         last_interior=world.indoor;last_floor=world.academy_floor;_interior()
     world.input_projection=Transform2D.IDENTITY
-    ambience.color=Color("c8c2df") if world.dusk and world.indoor.is_empty() and world.effects_enabled else Color.WHITE
+    ambience.color=Color.WHITE
+    if world.effects_enabled:
+        if world.indoor=="arcana_inn":ambience.color=InnLighting.AMBIENT
+        elif world.dusk and world.indoor.is_empty():ambience.color=Color("c8c2df")
+    if is_instance_valid(inn_lobby):
+        inn_lobby.sync_lighting(world.time,world.effects_enabled,world.reduced_motion)
     var motion=world.player_position-previous_player;previous_player=world.player_position
     hero.show();hero.position=map_point(world.bench_visual_position())
     hero.set_bench_pose(world.bench_state,world.bench_age,world.reduced_motion)

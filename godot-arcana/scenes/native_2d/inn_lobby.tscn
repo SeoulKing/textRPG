@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Texture2D" path="res://art/export/native-2d/1b9b0e0a9b459fa8aa60e166c2386e6305e9cb65f646e526e7c0e036a4cad220.res" id="1_afs7g"]
 [ext_resource type="Texture2D" path="res://art/export/native-2d/ddb425f4bccfe20f5b261e16b1291c8ecf9f4f37719273495a3567e64d375cf1.res" id="2_6l442"]
@@ -22,7 +22,22 @@
 [ext_resource type="Texture2D" path="res://art/export/native-2d/adb6db9ed109e0baf359bb599efb94b5df0b46d426dd7b75f5548b9c19998312.res" id="20_idr25"]
 [ext_resource type="Texture2D" path="res://art/export/native-2d/e5f8ba4d8ff073ceb6228a5c75316fdf524e0fee7fba4a8c2d787715fbbb6ba0.res" id="21_jdjmy"]
 
+[ext_resource type="Script" path="res://scripts/native_2d_inn_lighting.gd" id="22_lighting"]
+
+[sub_resource type="Gradient" id="Gradient_inn_light"]
+offsets = PackedFloat32Array(0, 0.25, 0.5, 0.75, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.56, 0.56, 0.56, 1, 0.25, 0.25, 0.25, 1, 0.06, 0.06, 0.06, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="InnLightFalloff"]
+gradient = SubResource("Gradient_inn_light")
+width = 640
+height = 640
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
 [node name="InnLobby2D" type="Node2D"]
+script = ExtResource("22_lighting")
 texture_filter = 1
 
 [node name="OakFloor0" type="Sprite2D" parent="."]
@@ -284,3 +299,113 @@ centered = false
 offset = Vector2(854, 945)
 metadata/foot = Vector2(876.8, 1056)
 metadata/interaction_id = ""
+
+[node name="WarmLight" type="PointLight2D" parent="Inn_fireplace9"]
+position = Vector2(365.000, 265.320)
+color = Color(1.000000, 0.682353, 0.345098, 1)
+energy = 0.7260
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 1.000
+metadata/fireplace = true
+
+[node name="WarmLight" type="PointLight2D" parent="Inn_counter12"]
+position = Vector2(965.320, 380.800)
+color = Color(1.000000, 0.827451, 0.568627, 1)
+energy = 0.5500
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.860
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="Inn_lantern16"]
+position = Vector2(1293.000, 430.040)
+color = Color(1.000000, 0.815686, 0.545098, 1)
+energy = 0.3740
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.700
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="Inn_lamp_table21"]
+position = Vector2(271.520, 706.040)
+color = Color(1.000000, 0.835294, 0.584314, 1)
+energy = 0.5720
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 1.000
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="_Node3D_3922"]
+position = Vector2(668.520, 488.040)
+color = Color(1.000000, 0.835294, 0.584314, 1)
+energy = 0.5720
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 1.000
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="_Node3D_4725"]
+position = Vector2(1218.520, 725.040)
+color = Color(1.000000, 0.835294, 0.584314, 1)
+energy = 0.5720
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 1.000
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="_Node3D_6130"]
+position = Vector2(256.000, 113.040)
+color = Color(1.000000, 0.815686, 0.545098, 1)
+energy = 0.3740
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.700
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="_Node3D_6431"]
+position = Vector2(736.000, 113.040)
+color = Color(1.000000, 0.815686, 0.545098, 1)
+energy = 0.3740
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.700
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="_Node3D_6732"]
+position = Vector2(1242.000, 113.040)
+color = Color(1.000000, 0.815686, 0.545098, 1)
+energy = 0.3740
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.700
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="_Node3D_7536"]
+position = Vector2(659.000, 980.040)
+color = Color(1.000000, 0.815686, 0.545098, 1)
+energy = 0.3740
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.700
+metadata/fireplace = false
+
+[node name="WarmLight" type="PointLight2D" parent="_Node3D_7837"]
+position = Vector2(877.000, 980.040)
+color = Color(1.000000, 0.815686, 0.545098, 1)
+energy = 0.3740
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.700
+metadata/fireplace = false
