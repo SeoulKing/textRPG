@@ -13,6 +13,7 @@ var bounds = Rect2(320,0,896,600)
 var queued = false
 var connected_world: Node
 var zoom_ratio = 1.0
+var render_pixel_scale = -1.0
 var pick_items: Array[Dictionary] = []
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -108,9 +109,10 @@ func sync_actor(sprite: Sprite2D, source: Node, point: Vector2) -> void:
 		sprite.region_rect = Rect2(frame*size,size)
 	sprite.position = Data.canvas(point)
 	sprite.visible = source.visible
-func sync(world: Node, source: Node, ratio: float, delta: float) -> void:
+func sync(world: Node, source: Node, ratio: float, delta: float, pixel_scale: float = -1.0) -> void:
 	connected_world = world
 	zoom_ratio = ratio
+	render_pixel_scale = pixel_scale
 	if not is_instance_valid(avatar): avatar = _actor()
 	sync_actor(avatar,source,world.player_position)
 	_frame_camera()
@@ -140,10 +142,13 @@ func _frame_camera() -> void:
 	if follow_camera == null: return
 	var size = Vector2(get_viewport_rect().size)
 	var fit = minf(size.x/(bounds.size.x+48),size.y/(bounds.size.y+48))
-	var zoom = fit*zoom_ratio
+	var zoom = render_pixel_scale if render_pixel_scale > 0 else fit*zoom_ratio
 	follow_camera.zoom = Vector2.ONE*zoom
-	var fits = bounds.size.x*zoom <= size.x and bounds.size.y*zoom <= size.y
-	follow_camera.position = bounds.get_center() if fits or not is_instance_valid(avatar) else avatar.position-Vector2(0,50)
+	var target = avatar.position-Vector2(0,50) if is_instance_valid(avatar) else bounds.get_center()
+	var half = size/(2.0*zoom)
+	target.x = bounds.get_center().x if bounds.size.x <= half.x*2 else clampf(target.x,bounds.position.x+half.x,bounds.end.x-half.x)
+	target.y = bounds.get_center().y if bounds.size.y <= half.y*2 else clampf(target.y,bounds.position.y+half.y,bounds.end.y-half.y)
+	follow_camera.position = target
 	follow_camera.force_update_scroll()
 	# An integer world position is still fractional on screen at a non-integer zoom.
 	# Keep the background sampling phase fixed by snapping its screen translation.

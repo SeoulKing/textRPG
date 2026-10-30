@@ -2,7 +2,7 @@ extends Node
 
 const World = preload("res://scripts/world.gd")
 const HeroSpec = preload("res://art/resources/heroine_reference_spec.gd")
-const PixelWorld3D = preload("res://scripts/native_2d_world.gd")
+const NativeWorld = preload("res://scripts/native_2d_world.gd")
 const UI = preload("res://scripts/game_ui.gd")
 const SpatialCombat = preload("res://scripts/native_2d_spatial.gd")
 var spatial_combat
@@ -83,11 +83,6 @@ func _ready() -> void:
 	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	add_child(viewport)
 	viewport_host.texture = viewport.get_texture()
-	# Sample the completed world texture directly; never read/write the same viewport.
-	var world_palette = ShaderMaterial.new()
-	world_palette.shader = preload("res://art/resources/pixel3d_palette.gdshader")
-	world_palette.set_shader_parameter("palette_lut",preload("res://art/export/arcana-palette-lut.png"))
-	viewport_host.material = world_palette
 	world = World.new()
 	world.layout = authored_layout
 	if OS.has_feature("web"):
@@ -95,7 +90,7 @@ func _ready() -> void:
 	viewport.add_child(world)
 	world.hide()
 	world.camera.enabled = false
-	world_renderer = PixelWorld3D.new()
+	world_renderer = NativeWorld.new()
 	world_renderer.world = world
 	viewport.add_child(world_renderer)
 	world_renderer.camera_updated.connect(_update_mei_nameplate)
@@ -103,11 +98,11 @@ func _ready() -> void:
 	world.building_entry_intended.connect(_auto_enter_building)
 	ui = UI.new()
 	add_child(ui)
-	ui.restore_controls(JSON.parse_string(_stored(CONTROLS_KEY)))
+	ui.restore_controls(_stored_json(CONTROLS_KEY))
 	ui.menu_requested.connect(_menu)
 	ui.interact_pressed.connect(_activate)
 	ui.quickslot_pressed.connect(_use_quickslot)
-	var slots = JSON.parse_string(_stored(QUICKSLOT_KEY))
+	var slots = _stored_json(QUICKSLOT_KEY)
 	developer_tools = OS.has_feature("editor") or OS.is_debug_build()
 	if OS.has_feature("web"):
 		developer_tools = bool(JavaScriptBridge.eval("['localhost','127.0.0.1','::1','[::1]'].includes(location.hostname)"))
@@ -168,16 +163,14 @@ func _resize() -> void:
 	var stretch_scale = get_viewport().get_stretch_transform().get_scale()
 	var physical = (size*stretch_scale).round()
 	world_renderer.set_display_size(size)
-	# Keep source texels when zooming out by using more of the physical screen.
-	# At the native-resolution limit, further zoom changes only camera coverage.
+	# Render the original room art at physical screen resolution, even when zoomed in.
+	# A shrinking render target used to discard details before nearest enlargement.
 	var source_pixel_scale = minf(stretch_scale.x, stretch_scale.y) * 2.0 * world_renderer.camera_zoom / world_renderer.CAMERA_ZOOM
-	var divisor = maxi(1, int(floorf(source_pixel_scale))) if world_renderer.pixelated else 1
-	# Integer nearest-neighbor presentation; odd sizes overscan by one pixel.
-	viewport.size = Vector2i((physical/divisor).ceil()).max(Vector2i(2,2))
+	viewport.size = Vector2i(physical).max(Vector2i(2,2))
+	world_renderer.set_render_pixel_scale(source_pixel_scale)
 	viewport_host.position = Vector2.ZERO
 	viewport_host.scale = Vector2.ONE/stretch_scale
-	viewport_host.size = Vector2(viewport.size)*divisor
-	viewport_host.material.set_shader_parameter("palette_enabled",world_renderer.pixelated)
+	viewport_host.size = Vector2(viewport.size)
 	world._update_camera()
 func _api(route: String, method: int = HTTPClient.METHOD_GET, data: Dictionary = {}) -> Dictionary:
 	# Only reads may be replayed: a lost POST response can already be committed.
@@ -237,6 +230,12 @@ func _stored(key: String) -> String:
 	if FileAccess.file_exists("user://" + key + ".txt"):
 		return FileAccess.get_file_as_string("user://" + key + ".txt")
 	return ""
+
+func _stored_json(key: String) -> Variant:
+	var raw = _stored(key)
+	if raw.is_empty(): return null
+	var parser = JSON.new()
+	return parser.data if parser.parse(raw) == OK else null
 
 func _store(key: String, value: String) -> void:
 	if OS.has_feature("web"):
@@ -1359,7 +1358,7 @@ func _bridge_command(args: Array) -> void:
 		"close": ui.close_panel()
 
 func _bridge_state(_args: Array) -> void:
-	var state = {"engine":"Godot 4.5.1", "renderer":"native_2d", "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
+	var state = {"engine":"Godot 4.5.1", "renderer":"native_2d", "zoomRatio":world_renderer.get_zoom_ratio(), "cameraZoom":world_renderer.camera.zoom.x, "walking":world.walking, "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))
 
@@ -1384,7 +1383,7 @@ func _adjust_controls(key: String, value: float) -> void:
 
 func _update_mei_nameplate() -> void:
 	if not is_instance_valid(ui) or not is_instance_valid(world_renderer):return
-	var shown=not snapshot.is_empty() and world.indoor.is_empty()
+	var shown=not snapshot.is_empty() and world.indoor.is_empty() and not ui.overlay.visible
 	var point=Vector2.ZERO
 	if shown:
 		for entry in world_renderer.sprites:

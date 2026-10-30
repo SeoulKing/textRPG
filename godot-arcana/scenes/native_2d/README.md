@@ -23,4 +23,8 @@
 
 `tools/export_native_2d_city.gd`, `export_native_2d_rooms.gd`, `export_native_2d_walls.gd`, `finish_native_2d_layout.gd`, `export_native_2d_restaurant.gd`는 최초 이관용입니다. 기존 2D 편집 장면을 자동 재생성하거나 덮어쓰지 않습니다. 정상 빌드는 이 도구들을 실행하지 않습니다.
 
-구문 검사, 웹 내보내기, 서버 빌드 및 서버 기동을 확인했습니다. 브라우저 플레이와 시각 검증은 실행하지 않았습니다. 직접 확인할 경로는 도시 이동 → 각 실내 진입·퇴장 → 학교 층 이동 → 착석 → 슬라임 선택·공격·회피 → 다른 플레이어와 퀘스트 표시입니다.
+웹 빌드는 `scripts/sync-godot-export-resources.py`로 실행 스크립트의 참조를 포함하고, `tools/verify_web_pack.gd`로 원본 프로젝트를 참조하지 않는 별도 환경에서 PCK의 스크립트·장면을 확인합니다. 소스 가져오기 성공만으로 웹 패키지의 완전성을 판단하지 않습니다.
+
+브라우저에서 도시 이동과 상점·여관 진입 및 도시 복귀를 확인했습니다. `tools/review_native_2d_scenes.gd`의 실제 GPU 출력으로 도시·상점·여관·학교 두 층·식당을 검토했고, 각 표시 장면의 Node3D 수가 0임을 확인했습니다. 학교 계단 이동·전투·다른 플레이어 동시 접속은 이번 화면 복구 검증 범위에 포함하지 않았습니다.
+
+식당 표면 변환 오류만 고칠 때는 `export_native_2d_restaurant.gd -- --repair-texture`를 사용합니다. 편집된 장면은 보존하고 표면 리소스만 갱신하며, 면의 실제 깊이와 Godot의 시계 방향 앞면을 사용합니다. 셰이더 전용 외곽선 복제 메시를 표면 이미지에 중복으로 굽지 않습니다.

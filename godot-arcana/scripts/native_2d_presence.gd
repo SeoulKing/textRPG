@@ -125,6 +125,7 @@ func accept(value: Dictionary) -> void:
 func _process(delta: float) -> void:
 	if main.snapshot.is_empty(): return
 	if is_instance_valid(self_name):
+		self_name.visible = not main.ui.overlay.visible
 		self_name.position = main.spatial_combat._screen(main.world.player_position,2.1)-Vector2(self_name.size.x*.5,0)
 	for remote in actors.values():
 		var data: Dictionary = remote.data
@@ -157,7 +158,7 @@ func _process(delta: float) -> void:
 			main.world_renderer.shop2d.sync_remote(str(data.id),hero,remote.position)
 			hero.hide()
 		remote.label.position = main.spatial_combat._screen(remote.position,2.1)-Vector2(remote.label.size.x*.5,0)
-		remote.label.visible = main.get_viewport().get_visible_rect().has_point(remote.label.position)
+		remote.label.visible = not main.ui.overlay.visible and main.get_viewport().get_visible_rect().has_point(remote.label.position)
 
 func _exit_tree() -> void:
 	for remote in actors.values():

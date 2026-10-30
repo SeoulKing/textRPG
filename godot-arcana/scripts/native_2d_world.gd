@@ -5,6 +5,8 @@ const MeiFrames=preload("res://art/export/plaza-guide/mei-idle.tres")
 const Slime=preload("res://scripts/native_2d_slime.gd")
 const Blink=preload("res://scripts/native_2d_blink.gd")
 const CAMERA_ZOOM=4.0
+const MIN_ZOOM_RATIO=.44642857
+const MAX_HERO_SCREEN_HEIGHT=.9
 const ENEMY_BAR_WIDTH=.9
 var world: Node2D
 var hero: Node2D
@@ -18,6 +20,7 @@ var inside: Node2D
 var blink: Node2D
 var layout: Node2D
 var ambience: CanvasModulate
+var render_pixel_scale=1.0
 var camera_zoom=4.0
 var base_camera_zoom=4.0
 var pixelated=true
@@ -30,10 +33,20 @@ var enemy_trail_hp=30.0
 var enemy_last_hp=30.0
 var sprites: Array[Dictionary]=[]
 var remote_ids: Dictionary={}
-func set_zoom_ratio(value: float) -> void:camera_zoom=base_camera_zoom*clampf(value,.44642857,2)
+var room_bounds=Rect2(0,0,1536,1312)
+var display_size=Vector2(384,824)
+func set_zoom_ratio(value: float) -> void:
+    # Limit only when the hero nearly fills this window; never at a fixed 200%.
+    var hero_height=Hero.SPEC.SOURCE_HEIGHT*2.0*base_camera_zoom/CAMERA_ZOOM
+    var maximum=maxf(MIN_ZOOM_RATIO,display_size.y*MAX_HERO_SCREEN_HEIGHT/hero_height)
+    camera_zoom=base_camera_zoom*clampf(value,MIN_ZOOM_RATIO,maximum)
 func get_zoom_ratio() -> float:return camera_zoom/base_camera_zoom
 func set_display_size(size: Vector2) -> void:
-    var ratio=get_zoom_ratio();base_camera_zoom=2.0 if size.x<size.y else 4.0;set_zoom_ratio(ratio)
+    var ratio=get_zoom_ratio()
+    display_size=size
+    base_camera_zoom=2.0 if size.x<size.y else 4.0
+    set_zoom_ratio(ratio)
+func set_render_pixel_scale(value: float) -> void:render_pixel_scale=maxf(.01,value)
 func set_quarter_view(_value: bool) -> void:quarter_view=false
 func view_yaw() -> float:return 0.0
 func map_point(point: Vector2,height: float=0.0) -> Vector2:return point*4.0-Vector2(0,height*64)
@@ -81,6 +94,11 @@ func _interior() -> void:
     if not name.is_empty():
         var room=load("res://scenes/native_2d/"+name+".tscn").instantiate()
         inside.add_child(room);_register(room)
+        room_bounds=Rect2()
+        for sprite in room.find_children("*","Sprite2D",true,false):
+            if sprite.texture==null:continue
+            var area=Rect2(sprite.position+sprite.offset,Vector2(sprite.texture.get_size()))
+            room_bounds=room_bounds.merge(area) if room_bounds.has_area() else area
 func _process(delta: float) -> void:
     if world==null:return
     if world.indoor!=last_interior or world.academy_floor!=last_floor:
@@ -96,7 +114,7 @@ func _process(delta: float) -> void:
     blink.update_pose(world.teleport_age,Hero.direction_for_yaw(atan2(world.teleport_direction.x,world.teleport_direction.y),0),map_point(world.teleport_origin),map_point(world.teleport_target),world.effects_enabled,world.reduced_motion)
     hero.visible=not Blink.hides_character(world.teleport_age,world.effects_enabled,world.reduced_motion)
     if world.indoor=="arcana_shop":
-        blink.hide();shop2d.sync(world,hero,get_zoom_ratio(),delta);hero.hide();plaza_slime.hide();hunting_slime.hide();camera_updated.emit();return
+        blink.hide();shop2d.sync(world,hero,get_zoom_ratio(),delta,render_pixel_scale);hero.hide();plaza_slime.hide();hunting_slime.hide();camera_updated.emit();return
     blink.show()
     var spatial=world.battle.has("spatial")
     slime=plaza_slime if spatial or world.spatial_selected else hunting_slime
@@ -139,13 +157,14 @@ func _process(delta: float) -> void:
     camera_updated.emit()
 func _camera() -> void:
     var viewport=get_viewport();var size=Vector2(viewport.size)
-    var zoom=camera_zoom/CAMERA_ZOOM
+    var zoom=render_pixel_scale
     var target=hero.position-Vector2(0,50)
+    # Camera scale comes from final presentation pixels, for every room and outdoors.
+    # Fit a room only when it already fits at the player's chosen zoom.
     if not world.indoor.is_empty():
-        var room_size=Vector2(1536,1312)
-        var fit=minf(size.x/(room_size.x+48),size.y/(room_size.y+48))
-        zoom=fit*get_zoom_ratio()
-        if room_size.x*zoom<=size.x and room_size.y*zoom<=size.y:target=room_size*.5-Vector2(0,100)
+        var half=size/(2.0*zoom)
+        target.x=room_bounds.get_center().x if room_bounds.size.x<=half.x*2 else clampf(target.x,room_bounds.position.x+half.x,room_bounds.end.x-half.x)
+        target.y=room_bounds.get_center().y if room_bounds.size.y<=half.y*2 else clampf(target.y,room_bounds.position.y+half.y,room_bounds.end.y-half.y)
     camera.zoom=Vector2.ONE*zoom;camera.position=target;camera.force_update_scroll()
     var canvas=viewport.canvas_transform;var stretch=viewport.get_stretch_transform()
     var origin=stretch*canvas.origin
@@ -153,6 +172,7 @@ func _camera() -> void:
     camera.force_update_scroll()
     var final=stretch*viewport.canvas_transform
     hero.position=final.affine_inverse()*(final*hero.position).round()
+    get_tree().call_group("native_slime_pixels","snap_to_pixels")
 func pick(point: Vector2) -> Vector2:
     if world.indoor=="arcana_shop":return shop2d.pick(point)
     return (get_viewport().canvas_transform.affine_inverse()*point)/4.0

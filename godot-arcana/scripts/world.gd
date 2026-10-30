@@ -613,6 +613,8 @@ func _update_door_intent(motion: Vector2, delta: float) -> void:
 		if entity.kind!="building" or not entity.get("auto_enter",false): continue
 		var offset = player_position-entity.pos
 		if entity.id==entered_door_id and offset.length()<TILE*1.4: still_near_latched = true
+		# A routed walk must not enter a different doorway along its path.
+		if not click_door_id.is_empty() and entity.id!=click_door_id: continue
 		var inward: Vector2 = entity.inward
 		var side = Vector2(inward.y,-inward.x)
 		# Feet at the door, rather than the broad interaction radius.
