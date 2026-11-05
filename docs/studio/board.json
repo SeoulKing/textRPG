@@ -1,0 +1,887 @@
+{
+  "version": 1,
+  "project": "arcana",
+  "settings": {
+    "maxConcurrentAgents": 4,
+    "defaultMinutes": 90,
+    "maxReviewPasses": 2,
+    "modelPolicy": {
+      "profiles": {
+        "light": {
+          "model": "gpt-6-luna",
+          "reasoningEffort": "high"
+        },
+        "writing": {
+          "model": "gpt-6.1-terra",
+          "reasoningEffort": "low"
+        },
+        "standard": {
+          "model": "gpt-6.1-terra",
+          "reasoningEffort": "medium"
+        },
+        "coding": {
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "low"
+        },
+        "complex": {
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "medium"
+        },
+        "critical": {
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "planning": {
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "xhigh"
+        }
+      },
+      "organizations": {
+        "director": "planning",
+        "design": "planning",
+        "narrative": "writing",
+        "world": "standard",
+        "character": "standard",
+        "development": "coding",
+        "quality": "complex"
+      }
+    }
+  },
+  "goals": [
+    {
+      "id": "M0",
+      "title": "제작 조직 구축과 전체 출시·시범판 계약 초안",
+      "status": "done",
+      "dependsOnGoals": [],
+      "approval": {
+        "status": "approved",
+        "approvedBy": "사용자: 제안한 계획 구현 요청",
+        "approvedAt": "2026-11-05T07:12:14.496Z",
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": false,
+        "artBriefs": [],
+        "digest": "e9824ba3307bf7f3aac3a7760b16d716ab8551c2e4db2afccc77bdba9308a97e"
+      },
+      "scope": {
+        "write": [
+          "docs/studio",
+          "scripts/studio",
+          "tests/studio-organization.test.mjs",
+          "AGENTS.md",
+          "docs/WORKFLOW.md"
+        ]
+      },
+      "acceptance": [
+        "운영 헌장·작업 원장·CLI 실행기가 연결되어 있습니다.",
+        "전체 출시 로드맵과 시범판 범위·P0 의존성·승인 대기 항목이 정리되어 있습니다.",
+        "구문·참조를 확인하고 독립 정적 리뷰와 미실행 항목을 기록했습니다."
+      ],
+      "acceptanceRecord": {
+        "acceptedBy": "제작 총괄: 독립 정적 인수 기록 반영",
+        "acceptedAt": "2026-11-05T07:12:14.497Z",
+        "note": "사용자님의 구현 요청 범위인 조직 구축과 출시계약 초안 전달을 완료했습니다. 제품 방향·수치·검증·새 미술·공개는 후속 목표 승인 대기입니다."
+      }
+    },
+    {
+      "id": "M0-COOK",
+      "title": "요리와 음식 시스템 제작",
+      "status": "active",
+      "dependsOnGoals": [
+        "M0"
+      ],
+      "approval": {
+        "status": "approved",
+        "approvedBy": "사용자: 음식3종과 시안 승인 후 제작 진행",
+        "approvedAt": "2026-11-05T07:52:26.740Z",
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content",
+          "ui",
+          "art"
+        ],
+        "allowedChecks": [],
+        "newArt": true,
+        "publish": false,
+        "artBriefs": [
+          {
+            "path": "art-studies/cooking-food-v1/brief.md",
+            "concept": "art-studies/cooking-food-v1/concept-v1.png",
+            "approvedBy": "사용자: ㅇㅇ 고우",
+            "scope": "선택한 음식3종과 대응 재료의64px 아이템자산·조리·섭취 연결"
+          }
+        ],
+        "digest": "da2507756af4d51696b5bab7059bae26524491a77984a7951d18be3da24756a6"
+      },
+      "scope": {
+        "write": [
+          "docs/studio/production",
+          "src/online/life.ts",
+          "src/online/world.ts",
+          "src/online/routes.ts",
+          "src/online/item-catalog.ts",
+          "src/game/data/items.ts",
+          "src/game/runtime-registry.ts",
+          "src/game/arcana-shop.ts",
+          "godot-arcana/scripts/life.gd",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/tools/author_cooking_food_icons.gd",
+          "scripts/author-cooking-food-icons.ps1",
+          "godot-arcana/art/source/items/cooking-food-v1",
+          "godot-arcana/art/export/items",
+          "src/game/data/arcana-item-assets.json",
+          "godot-arcana/scripts/inventory_view.gd",
+          "src/game/arcana-cooking.ts",
+          "godot-arcana/scripts/combat_socket.gd",
+          "godot-arcana/art/source/items/cooking-food-v2",
+          "godot-arcana/art/source/items/cooking-food-v3",
+          "godot-arcana/tools/author_reference_food_icons.gd",
+          "scripts/author-reference-food-icons.ps1",
+          "godot-arcana/art/source/items/cooking-food-reference-v1"
+        ]
+      },
+      "acceptance": [
+        "기존 모닥불·생선구이·품질·허기·요리 숙련도의 활성 서버/클라이언트 경로를 확인하고 재사용 범위와 확장 범위를 구분합니다.",
+        "재료·레시피·조리 조건·소요 시간·음식 효과·품질·숙련도·섭취 제한을 하나의 제작 계약으로 정리합니다. 새로운 음식 종류와 수치는 사용자 판단으로 확정합니다.",
+        "확정한 레시피 선택→재료 수량 확인→조리 진행/취소→음식 획득→소지품에서 섭취→효과 반영의 흐름을 실제 게임에 연결합니다.",
+        "재료 소모·음식 생성·섭취 효과는 서버가 판정하며 반복 요청의 중복 지급/소모, 재료 부족, 취소·이동·전투·연결 종료를 처리합니다.",
+        "기존 아이템 ID·인벤토리·허기·숙련도·저장을 보존하고 재접속 복원과 구 저장 호환 범위를 정리합니다.",
+        "새 아이템은 썸네일까지 게임에 연결하며, 새 미술이 필요하면 기존 제작·시안 승인 범위에 맞춰 별도 확정합니다.",
+        "제작 결과는 독립 정적 검토를 거치며 실행·플레이·시각 확인의 미검증 항목과 사용자 직접 확인 행동을 구분해 인계합니다."
+      ]
+    },
+    {
+      "id": "M1",
+      "title": "대표 공간과 확정 주인공의 품질 확보",
+      "status": "planned",
+      "dependsOnGoals": [
+        "M0-COOK"
+      ],
+      "approval": {
+        "status": "pending",
+        "approvedBy": null,
+        "approvedAt": null,
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": false,
+        "artBriefs": []
+      },
+      "scope": {
+        "write": [
+          "docs/studio/production",
+          "godot-arcana/scenes/native_2d",
+          "godot-arcana/scenes/characters/hybrid-v1",
+          "godot-arcana/art/characters/hybrid-v1",
+          "godot-arcana/scripts/characters/hybrid_v1",
+          "godot-arcana/scripts/native_2d_hero.gd",
+          "godot-arcana/scripts/native_2d_world.gd"
+        ]
+      },
+      "acceptance": [
+        "확정 하이브리드 v1 외형과 사용자 배치를 보존합니다.",
+        "광장과 강변의 대표 동선·가림·상호작용 및 이동·정지·방향 전환을 연결합니다.",
+        "수정 결과와 정적 확인·사용자 시각 확인 대기를 구분하여 인계합니다."
+      ]
+    },
+    {
+      "id": "M2",
+      "title": "대표 의뢰와 온라인 전투·성장·생활·저장 연결",
+      "status": "planned",
+      "dependsOnGoals": [
+        "M1"
+      ],
+      "approval": {
+        "status": "pending",
+        "approvedBy": null,
+        "approvedAt": null,
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": false,
+        "artBriefs": []
+      },
+      "scope": {
+        "write": [
+          "docs/studio/production",
+          "src/online",
+          "src/game",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/scripts/native_2d_spatial.gd",
+          "godot-arcana/scripts/native_2d_ui.gd",
+          "godot-arcana/scripts/services",
+          "godot-arcana/scenes/native_2d"
+        ]
+      },
+      "acceptance": [
+        "온라인 경로에서 의뢰 수락→처치/수집→보고→보상→재접속 저장이 같은 규칙으로 이어집니다.",
+        "기본 주문 성장과 낚시의 기존 규칙을 보존하고 불일치는 승인한 기준으로만 수정합니다.",
+        "개인 경로와 온라인 경로의 판정·보상 중복과 누락을 해결합니다."
+      ]
+    },
+    {
+      "id": "M3",
+      "title": "공개 시범판 인수와 전달 패키지",
+      "status": "planned",
+      "dependsOnGoals": [
+        "M2"
+      ],
+      "approval": {
+        "status": "pending",
+        "approvedBy": null,
+        "approvedAt": null,
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": false,
+        "artBriefs": []
+      },
+      "scope": {
+        "write": [
+          "docs/studio/production",
+          "godot-web",
+          "scripts/build-godot-arcana.ps1",
+          "scripts/build-godot-delivery.mjs"
+        ]
+      },
+      "acceptance": [
+        "대표 플레이의 기술 인수와 사용자 체험 평가를 구분하여 기록합니다.",
+        "승인된 Godot 내보내기와 서버 제공 경로로 전달 가능한 시범판을 준비합니다.",
+        "공개 차단 결함과 미확인 항목을 기록하고 사용자 공개 지시를 기다립니다."
+      ]
+    },
+    {
+      "id": "M4",
+      "title": "시범판 피드백을 반영한 본편 출시 계약",
+      "status": "planned",
+      "dependsOnGoals": [
+        "M3"
+      ],
+      "approval": {
+        "status": "pending",
+        "approvedBy": null,
+        "approvedAt": null,
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": false,
+        "artBriefs": []
+      },
+      "scope": {
+        "write": [
+          "docs/studio/production"
+        ]
+      },
+      "acceptance": [
+        "시범판 피드백과 남은 핵심 재미를 근거로 본편 범위·우선순위·완료 기준을 제안합니다.",
+        "확인되지 않은 콘텐츠 수량·일정·출시 승인을 임의 확정하지 않습니다."
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "ORG-001",
+      "goalId": "M0",
+      "title": "조직 헌장·협업 규약·사용 진입점 구성",
+      "organization": "director",
+      "status": "done",
+      "priority": 10,
+      "playerChange": "조직 헌장·협업 규약·사용 진입점 구성",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "AGENTS.md",
+          "docs/WORKFLOW.md"
+        ],
+        "write": [
+          "docs/studio/README.md",
+          "AGENTS.md",
+          "docs/WORKFLOW.md"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "조직 책임·권한·상태·시작·재개·인수 흐름이 연결됩니다."
+      ],
+      "runtime": {
+        "reviewResultPath": "docs/studio/IMPLEMENTATION_REVIEW.md",
+        "evidence": [
+          "docs/studio/README.md — 조직·권한·실행·재개·인수 계약",
+          "AGENTS.md — 조직 진입점 연결",
+          "docs/WORKFLOW.md — 제작 흐름 연결"
+        ],
+        "reviewedBy": "독립 품질 담당 studio_contracts",
+        "verification": "구문·문서·원장·소스 참조의 정적 확인만 수행했습니다. 동작 테스트·라이브 Codex·게임·브라우저·빌드는 실행하지 않았습니다.",
+        "updatedAt": "2026-11-05T07:12:14.495Z"
+      },
+      "updatedAt": "2026-11-05T07:12:14.495Z",
+      "reviewModelProfile": "standard",
+      "reviewModelReason": "운영 문서·출시 계약 초안과 정적 인수 기록의 검토 범위에 맞춰 Terra/medium을 사용합니다."
+    },
+    {
+      "id": "ORG-002",
+      "goalId": "M0",
+      "title": "원장·실행 잠금·백업·제작과 독립 검토 실행기 구성",
+      "organization": "development",
+      "status": "done",
+      "priority": 10,
+      "playerChange": "원장·실행 잠금·백업·제작과 독립 검토 실행기 구성",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "AGENTS.md"
+        ],
+        "write": [
+          "scripts/studio"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "미승인 목표를 실행하지 않습니다.",
+        "작업 결과를 별도 reviewer가 검토하고 중단/실패를 기록합니다."
+      ],
+      "runtime": {
+        "reviewResultPath": "docs/studio/IMPLEMENTATION_REVIEW.md",
+        "evidence": [
+          "scripts/studio/studio.mjs — 실행·검토·실패·중단 처리",
+          "scripts/studio/engine.mjs — 원장·DAG·잠금·기준 백업",
+          "scripts/studio/protocol.mjs — 승인·결과 계약",
+          "scripts/studio/app.mjs — 앱 인계·인수"
+        ],
+        "reviewedBy": "독립 품질 담당 studio_contracts",
+        "verification": "구문·문서·원장·소스 참조의 정적 확인만 수행했습니다. 동작 테스트·라이브 Codex·게임·브라우저·빌드는 실행하지 않았습니다.",
+        "updatedAt": "2026-11-05T07:12:14.496Z"
+      },
+      "updatedAt": "2026-11-05T07:12:14.496Z",
+      "modelProfile": "complex",
+      "modelReason": "승인·실행 잠금·백업·독립 검토 실행기가 여러 모듈에 걸쳐 연결되어 Sol/medium을 사용합니다."
+    },
+    {
+      "id": "ORG-003",
+      "goalId": "M0",
+      "title": "전체 출시 로드맵과 공개 시범판 제작 계약 초안",
+      "organization": "design",
+      "status": "done",
+      "priority": 10,
+      "playerChange": "전체 출시 로드맵과 공개 시범판 제작 계약 초안",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/roles",
+          "src/online",
+          "src/game",
+          "godot-arcana/scripts/main.gd"
+        ],
+        "write": [
+          "docs/studio/RELEASE_PLAN.md"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "기존 구현과 연결 필요·미검증을 구분합니다.",
+        "신규 미술·수치·실행 검증·공개 권한을 승인 대기로 남깁니다."
+      ],
+      "runtime": {
+        "reviewResultPath": "docs/studio/IMPLEMENTATION_REVIEW.md",
+        "evidence": [
+          "docs/studio/RELEASE_PLAN.md — M0~M4 출시 로드맵·소스 근거·승인 대기"
+        ],
+        "reviewedBy": "독립 품질 담당 studio_contracts",
+        "verification": "구문·문서·원장·소스 참조의 정적 확인만 수행했습니다. 동작 테스트·라이브 Codex·게임·브라우저·빌드는 실행하지 않았습니다.",
+        "updatedAt": "2026-11-05T07:12:14.496Z"
+      },
+      "updatedAt": "2026-11-05T07:12:14.496Z",
+      "reviewModelProfile": "standard",
+      "reviewModelReason": "운영 문서·출시 계약 초안과 정적 인수 기록의 검토 범위에 맞춰 Terra/medium을 사용합니다."
+    },
+    {
+      "id": "ORG-004",
+      "goalId": "M0",
+      "title": "운영 모듈 확인 시나리오와 독립 정적 인수 기록",
+      "organization": "quality",
+      "status": "done",
+      "priority": 10,
+      "playerChange": "운영 모듈 확인 시나리오와 독립 정적 인수 기록",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "scripts/studio"
+        ],
+        "write": [
+          "tests/studio-organization.test.mjs",
+          "docs/studio/IMPLEMENTATION_REVIEW.md"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "격리 fixture 기반 테스트를 제공하되 실행하지 않습니다.",
+        "정적 리뷰와 미실행 항목을 명확히 기록합니다."
+      ],
+      "runtime": {
+        "reviewResultPath": "docs/studio/IMPLEMENTATION_REVIEW.md",
+        "evidence": [
+          "tests/studio-organization.test.mjs — 미실행 확인 시나리오",
+          "docs/studio/IMPLEMENTATION_REVIEW.md — 별도 담당자의 독립 정적 리뷰"
+        ],
+        "reviewedBy": "독립 품질 담당 studio_contracts",
+        "verification": "구문·문서·원장·소스 참조의 정적 확인만 수행했습니다. 동작 테스트·라이브 Codex·게임·브라우저·빌드는 실행하지 않았습니다.",
+        "updatedAt": "2026-11-05T07:12:14.496Z"
+      },
+      "updatedAt": "2026-11-05T07:12:14.496Z",
+      "reviewModelProfile": "standard",
+      "reviewModelReason": "운영 문서·출시 계약 초안과 정적 인수 기록의 검토 범위에 맞춰 Terra/medium을 사용합니다."
+    },
+    {
+      "id": "DEMO-010",
+      "goalId": "M1",
+      "title": "대표 공간·주인공의 실제 연결과 보존 범위 조사",
+      "organization": "design",
+      "status": "backlog",
+      "priority": 10,
+      "playerChange": "대표 공간·주인공의 실제 연결과 보존 범위 조사",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/roles/DEVELOPMENT.md",
+          "docs/roles/CHARACTER_ART.md",
+          "docs/roles/WORLD_BUILDING.md",
+          "godot-arcana/scripts/native_2d_hero.gd",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "godot-arcana/scenes/native_2d",
+          "godot-arcana/art/characters/hybrid-v1/assembly"
+        ],
+        "write": [
+          "docs/studio/production/M1-INTEGRATION.md"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "활성 참조에서 사용자 원본·배치·기준 동작을 구분합니다.",
+        "수정이 필요한 기능별 작업을 requests로 제안하고 각 수정 범위를 좁힙니다.",
+        "새 미술과 시각 확인은 필요시 app 작업이나 사용자 판단으로 분리합니다."
+      ],
+      "runtime": {}
+    },
+    {
+      "id": "DEMO-110",
+      "goalId": "M2",
+      "title": "온라인 의뢰·보상·성장 정합성 조사와 연결 작업 발주",
+      "organization": "design",
+      "status": "backlog",
+      "priority": 10,
+      "playerChange": "온라인 의뢰·보상·성장 정합성 조사와 연결 작업 발주",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/studio/RELEASE_PLAN.md",
+          "docs/roles/DEVELOPMENT.md",
+          "src/online",
+          "src/game"
+        ],
+        "write": [
+          "docs/studio/production/M2-INTEGRATION.md"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "활성 온라인 경로와 개인 경로의 차이·수정 원본을 확인합니다.",
+        "승인된 수치 기준 안에서 개발·서사 작업을 requests로 나눕니다."
+      ],
+      "runtime": {}
+    },
+    {
+      "id": "DEMO-210",
+      "goalId": "M3",
+      "title": "시범판 인수 증거와 전달 절차 정리",
+      "organization": "quality",
+      "status": "backlog",
+      "priority": 10,
+      "playerChange": "시범판 인수 증거와 전달 절차 정리",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/studio/production",
+          "docs/roles/DEVELOPMENT.md",
+          "scripts/build-godot-arcana.ps1",
+          "scripts/build-godot-delivery.mjs"
+        ],
+        "write": [
+          "docs/studio/production/M3-HANDOFF.md"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "소스·게임 연결·웹 내보내기·서버 제공·실제 플레이 증거를 구분합니다.",
+        "승인된 검증/내보내기가 없으면 실행하지 않고 구체적인 승인안을 남깁니다."
+      ],
+      "runtime": {}
+    },
+    {
+      "id": "RELEASE-010",
+      "goalId": "M4",
+      "title": "본편 범위·완료 기준·후속 로드맵 제안",
+      "organization": "design",
+      "status": "backlog",
+      "priority": 10,
+      "playerChange": "본편 범위·완료 기준·후속 로드맵 제안",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/studio/RELEASE_PLAN.md",
+          "docs/studio/production"
+        ],
+        "write": [
+          "docs/studio/production/FULL-RELEASE.md"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "확인한 시범판 피드백만 사실로 사용합니다.",
+        "후속 출시 범위와 제외 범위·주요 판단을 함께 제안합니다."
+      ],
+      "runtime": {}
+    },
+    {
+      "id": "COOK-010",
+      "goalId": "M0-COOK",
+      "title": "기존 요리·음식 경로 조사와 제작 계약 구체화",
+      "organization": "design",
+      "status": "done",
+      "priority": 5,
+      "playerChange": "낚시로 얻은 재료를 요리하고 음식을 먹는 흐름과 음식의 쓰임을 일관되게 이해하실 수 있습니다.",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/studio/RELEASE_PLAN.md",
+          "docs/roles/DEVELOPMENT.md",
+          "skills/godot-arcana-development/SKILL.md",
+          "src/online/life.ts",
+          "src/online/world.ts",
+          "src/online/routes.ts",
+          "src/online/item-catalog.ts",
+          "src/game/schemas/arcana-item.ts",
+          "src/game/schemas/game-state.ts",
+          "src/game/runtime-registry.ts",
+          "src/game/data/items.ts",
+          "godot-arcana/scripts/life.gd",
+          "godot-arcana/scripts/inventory_view.gd",
+          "godot-arcana/scripts/main.gd"
+        ],
+        "write": [
+          "docs/studio/production/COOKING-FOOD.md"
+        ]
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "surface": "cli",
+      "acceptance": [
+        "기존에 있는 기능·확장할 기능·실행 미검증을 근거 경로와 함께 구분합니다.",
+        "레시피·조리·섭취·효과의 첫 범위와 허기·품질·숙련도·저장 호환 기준을 제안하며 미확정 수치를 임의 확정하지 않습니다.",
+        "개발·UI·필요한 미술·서사 작업을 실제 파일 소유 범위와 완료 조건으로 나누어 requests로 제출합니다.",
+        "시범판 체험 동선·시간에 미치는 영향을 정리하고 기존 M1~M4의 범위를 조용히 확대하지 않습니다."
+      ],
+      "runtime": {
+        "updatedAt": "2026-11-05T07:42:34.289Z",
+        "executionSurface": "app",
+        "runId": "2026-11-05T07-34-05-596Z-43070fef",
+        "baselinePath": ".runtime/studio/runs/2026-11-05T07-34-05-596Z-43070fef/baselines/COOK-010-0ee9f5291f/manifest.json",
+        "attempt": 1,
+        "handoffBy": "운영 총괄",
+        "handedOffAt": "2026-11-05T07:34:05.731Z",
+        "blockKind": null,
+        "blockReason": null,
+        "producerResultPath": ".runtime/studio/runs/2026-11-05T07-34-05-596Z-43070fef/producer.json",
+        "reviewResultPath": ".runtime/studio/runs/2026-11-05T07-34-05-596Z-43070fef/reviewer.json",
+        "importedBy": "운영 총괄",
+        "importedAt": "2026-11-05T07:42:34.289Z",
+        "producerSummary": "활성 모닥불·생선구이 경로를 근거로 강변 캠프 식사, 출정 전 식단, 불 앞의 손맛의 세 후보와 A 추천안을 전달드립니다. 현재 단계는 사용자님께서 선택하실 수 있는 후보 전달까지이며 구현은 시작하지 않았습니다.",
+        "producerImportedBy": "운영 총괄",
+        "producerImportedAt": "2026-11-05T07:42:34.289Z",
+        "reviewPasses": 1,
+        "reviewImportedBy": "운영 총괄",
+        "reviewImportedAt": "2026-11-05T07:42:34.289Z",
+        "evidence": [
+          "docs/studio/production/COOKING-FOOD.md — 후보별 경험·비용·첫 범위·결정 항목과 실행 미검증이 명시되어 있습니다.",
+          "src/online/life.ts — 재료 비용·시간·허기 회복·소모 시점·경험치가 문서와 일치합니다.",
+          "godot-arcana/scripts/life.gd — 조리 메뉴·취소·결과·섭취 연결과 후속 제안의 구분을 확인했습니다."
+        ],
+        "reviewSummary": "정적 검토 결과 기존 조리·섭취 기능과 후속 제안이 구분되어 있습니다. 후보 차이와 추천 이유가 구체적이며 미승인 수치·미술·구현을 확정하지 않았습니다."
+      },
+      "updatedAt": "2026-11-05T07:42:34.289Z"
+    },
+    {
+      "id": "COOK-020",
+      "goalId": "M0-COOK",
+      "title": "음식3종 레시피·조리·섭취 연결",
+      "organization": "development",
+      "status": "done",
+      "priority": 5,
+      "playerChange": "음식3종 레시피·조리·섭취 연결",
+      "dependsOn": [
+        "COOK-010"
+      ],
+      "scope": {
+        "read": [
+          "docs/roles/DEVELOPMENT.md",
+          "art-studies/cooking-food-v1"
+        ],
+        "write": [
+          "src/online/life.ts",
+          "src/online/world.ts",
+          "src/online/routes.ts",
+          "src/online/item-catalog.ts",
+          "src/game/data/items.ts",
+          "src/game/runtime-registry.ts",
+          "src/game/arcana-shop.ts",
+          "godot-arcana/scripts/life.gd",
+          "godot-arcana/scripts/main.gd",
+          "src/game/arcana-cooking.ts",
+          "godot-arcana/scripts/combat_socket.gd"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "code",
+        "content",
+        "ui"
+      ],
+      "checks": [],
+      "surface": "app",
+      "acceptance": [
+        "음식3종 레시피·조리·섭취 연결을 기존 사용자 변경과 저장을 보존하여 완수합니다.",
+        "정적 근거와 산출물·미실행 플레이 검증을 구분합니다."
+      ],
+      "runtime": {
+        "executionSurface": "app",
+        "assignedBy": "운영 총괄",
+        "updatedAt": "2026-11-05T07:58:50.918Z",
+        "producerSummary": "음식3종 레시피·조리·상점·섭취 소스 연결 완료. 독립 검토에서 recipeId 전송 보완 중.",
+        "reviewResultPath": ".runtime/studio/runs/2026-11-05T07-34-05-596Z-43070fef/food-implementation-review.json",
+        "evidence": [
+          "src/game/arcana-cooking.ts",
+          "godot-arcana/scripts/life.gd",
+          "godot-arcana/scripts/combat_socket.gd"
+        ],
+        "reviewSummary": "독립 정적 검토 완료. recipeId 전송 누락 수정, 플레이 검증·웹 내보내기는 미실행입니다."
+      },
+      "updatedAt": "2026-11-05T07:58:50.918Z"
+    },
+    {
+      "id": "COOK-030",
+      "goalId": "M0-COOK",
+      "title": "승인 음식과 재료의 PixelPen 아이템 자산 제작",
+      "organization": "development",
+      "status": "done",
+      "priority": 5,
+      "playerChange": "승인 음식과 재료의 PixelPen 아이템 자산 제작",
+      "dependsOn": [
+        "COOK-010"
+      ],
+      "scope": {
+        "read": [
+          "docs/roles/DEVELOPMENT.md",
+          "art-studies/cooking-food-v1"
+        ],
+        "write": [
+          "godot-arcana/tools/author_cooking_food_icons.gd",
+          "scripts/author-cooking-food-icons.ps1",
+          "godot-arcana/art/source/items/cooking-food-v1",
+          "godot-arcana/art/export/items"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "art"
+      ],
+      "checks": [],
+      "surface": "app",
+      "acceptance": [
+        "승인 음식과 재료의 PixelPen 아이템 자산 제작을 기존 사용자 변경과 저장을 보존하여 완수합니다.",
+        "정적 근거와 산출물·미실행 플레이 검증을 구분합니다."
+      ],
+      "runtime": {
+        "executionSurface": "app",
+        "assignedBy": "운영 총괄",
+        "updatedAt": "2026-11-05T07:58:50.918Z",
+        "producerSummary": "PixelPen 원본7종 저장·재열기·PNG 출력, 64/40px preview 확인 완료.",
+        "reviewResultPath": ".runtime/studio/runs/2026-11-05T07-34-05-596Z-43070fef/food-implementation-review.json",
+        "evidence": [
+          "godot-arcana/art/source/items/cooking-food-v1/preview.png",
+          "src/game/data/arcana-item-assets.json"
+        ],
+        "reviewSummary": "독립 정적 검토 완료. recipeId 전송 누락 수정, 플레이 검증·웹 내보내기는 미실행입니다."
+      },
+      "updatedAt": "2026-11-05T07:58:50.918Z"
+    },
+    {
+      "id": "COOK-031",
+      "goalId": "M0-COOK",
+      "title": "음식·재료 아이콘 검정1px 외곽선과 내부 디테일 보정",
+      "organization": "development",
+      "status": "done",
+      "priority": 5,
+      "playerChange": "음식과 재료의 윤곽을 가늘게 정리하고 작은 소지품 아이콘에서도 소재를 구별합니다.",
+      "dependsOn": [
+        "COOK-030"
+      ],
+      "scope": {
+        "read": [
+          "art-studies/cooking-food-v1",
+          "godot-arcana/art/source/items/cooking-food-v1"
+        ],
+        "write": [
+          "godot-arcana/art/source/items/cooking-food-v2",
+          "godot-arcana/tools/author_cooking_food_icons.gd",
+          "scripts/author-cooking-food-icons.ps1",
+          "godot-arcana/art/export/items",
+          "godot-arcana/art/source/items/cooking-food-v3",
+          "godot-arcana/tools/author_reference_food_icons.gd",
+          "scripts/author-reference-food-icons.ps1",
+          "godot-arcana/art/source/items/cooking-food-reference-v1"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "art"
+      ],
+      "checks": [],
+      "surface": "app",
+      "acceptance": [
+        "외곽은 검정1소스픽셀 한줄이고 내부에 두번째 어두운띠를 만들지 않습니다.",
+        "버섯주름·감자껍질/속·고기결 등 소재디테일을 보강합니다.",
+        "기존v1원본은보존하고v2 PixelPen을 저장재열기후64pxPNG로출력합니다."
+      ],
+      "runtime": {
+        "executionSurface": "app",
+        "refinement": "사용자 요청에 따라 단순 도형을 폐기하고 승인 레퍼런스 색·실루엣 기반 PixelPen 원본 보정으로 전환. UI창 캡처timeout으로 native API제작, 화면클릭작업 아님.",
+        "producerSummary": "레퍼런스32색과 소재별픽셀보정으로 음식3종재제작, PixelPen저장재열기출력완료.",
+        "updatedAt": "2026-11-05T08:23:50.891Z",
+        "reviewResultPath": ".runtime/studio/runs/2026-11-05T07-34-05-596Z-43070fef/reference-food-review.json",
+        "evidence": [
+          "godot-arcana/art/source/items/cooking-food-reference-v1/detail-8x.png",
+          "godot-arcana/art/source/items/cooking-food-reference-v1/preview.png",
+          "src/game/data/arcana-item-assets.json"
+        ],
+        "reviewSummary": "총괄의 확대본 독립 시각 확인과 원본경로연결 완료. 게임실행미확인."
+      },
+      "updatedAt": "2026-11-05T08:23:50.891Z"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-M1-SCOPE",
+      "goalId": "M1",
+      "status": "pending",
+      "blocking": true,
+      "title": "시범판 동선·대표 공간·보존 범위 승인",
+      "recommendation": "RELEASE_PLAN.md의 10~15분 동선과 기존 미술 재사용을 기본으로 M1 제작 범위를 확정해 주세요."
+    },
+    {
+      "id": "DEC-M2-REWARDS",
+      "goalId": "M2",
+      "status": "pending",
+      "blocking": true,
+      "title": "온라인 의뢰·전투 보상과 성장 기준 확정",
+      "recommendation": "온라인/개인 경로의 정합성 수정은 필요합니다. 현재 수치를 조용히 통일하지 않고 실제 게임 방향에 맞는 기준을 먼저 선택해 주세요."
+    },
+    {
+      "id": "DEC-M3-CHECKS",
+      "goalId": "M3",
+      "status": "pending",
+      "blocking": true,
+      "title": "시범판 실행 검증·내보내기·공개 범위 승인",
+      "recommendation": "체크 명령·테스트 데이터·내보내기 경로를 묶어 승인하며 실제 공개는 별도로 지시해 주세요."
+    },
+    {
+      "id": "DEC-COOK-SCOPE",
+      "goalId": "M0-COOK",
+      "status": "resolved",
+      "blocking": false,
+      "title": "요리·음식의 첫 제작 범위와 효과 기준 확정",
+      "recommendation": "후보 기획은 사용자 지시로 착수합니다. 구현 범위·음식 종류·효과 수치는 후보 선택 후 확정하며 현재 권한은 정적 기획 문서 작성뿐입니다.",
+      "context": "사용자님은 M1에 앞서 요리와 음식 시스템 목표를 추가하도록 지시하셨습니다. 이번 지시는 목표 등록이며 상세 계약·새 미술·실행 검증·게시의 승인을 대신하지 않습니다.",
+      "decidedBy": "사용자",
+      "decidedAt": "2026-11-05T07:48:52.059Z",
+      "resolution": "첫 신규 음식은 버섯구이·구운 감자·고기꼬치 3종입니다. 고기꼬치 재료는 고기와 나뭇가지입니다. 생선구이 등 기존 음식은 보존합니다. 이번 선택은 음식 종류·고기꼬치 재료의 확정이며 회복 수치·재료 수량은 아직 미확정입니다."
+    },
+    {
+      "id": "DEC-COOK-ART",
+      "goalId": "M0-COOK",
+      "status": "resolved",
+      "blocking": false,
+      "title": "선택된 음식 3종의 미술 시안 승인",
+      "recommendation": "arcana-2d-art 순서에 따라 한 장의 음식 시안을 제시합니다. 승인 전 런타임 코드·게임 미술 자산은 변경하지 않으며, 승인 후 제작 계약과 수정 범위를 연결합니다.",
+      "decidedBy": "사용자",
+      "decidedAt": "2026-11-05T07:52:26.740Z",
+      "resolution": "ㅇㅇ 고우: 승인 시안으로 제작·연결 진행"
+    },
+    {
+      "id": "DEC-COOK-ACCEPT",
+      "goalId": "M0-COOK",
+      "status": "resolved",
+      "blocking": false,
+      "title": "음식3종 직접 플레이 인수",
+      "recommendation": "상점에서 재료 구매→모닥불 설치→요리3종 선택·취소·완성→소지품 섭취와 허기/수량을 직접 확인합니다. 소스·자산은 연결됐으나 웹 내보내기와 실행 검증은 미실행입니다.",
+      "resolution": "웹푸시해",
+      "decidedBy": "웹 사용자 BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+      "decidedAt": "2026-11-05T08:32:09.651Z"
+    }
+  ],
+  "requests": []
+}

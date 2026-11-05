@@ -1,0 +1,50 @@
+{
+  "assets": [
+    {
+      "id": "base",
+      "native": "res://art/source/river-navy-v2/base.pxpen",
+      "pixelEdits": 0,
+      "reused": true,
+      "savedReopenedExported": true,
+      "size": [
+        512,
+        512
+      ]
+    },
+    {
+      "canvas": [
+        64,
+        512
+      ],
+      "fps": 6,
+      "frames": 12,
+      "id": "ripples",
+      "indexedFrameDrawing": true,
+      "native": "res://art/source/river-navy-v2/ripples.pxpen",
+      "reused": true,
+      "savedReopenedExported": true
+    },
+    {
+      "canvas": [
+        64,
+        128
+      ],
+      "fps": 6,
+      "frames": 12,
+      "id": "reflections",
+      "indexedFrameDrawing": true,
+      "native": "res://art/source/river-navy-v2/reflections.pxpen",
+      "reused": true,
+      "savedReopenedExported": true
+    }
+  ],
+  "fps": 6,
+  "frameCount": 12,
+  "tileSize": [
+    64,
+    64
+  ],
+  "uvWarp": false,
+  "waterCells": 320,
+  "wholeTextureScroll": false
+}

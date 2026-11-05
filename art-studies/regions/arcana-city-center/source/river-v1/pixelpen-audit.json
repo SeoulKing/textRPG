@@ -1,0 +1,41 @@
+{
+  "assets": [
+    {
+      "id": "bridge",
+      "native": "res://art/source/city-river-v1/bridge.pxpen",
+      "nativePixelCorrections": 0,
+      "output": "res://art/export/city-river-v1/bridge.png",
+      "reusedMaster": true,
+      "savedReopenedExported": true,
+      "size": [
+        320,
+        511
+      ]
+    },
+    {
+      "id": "bank",
+      "native": "res://art/source/city-river-v1/bank.pxpen",
+      "nativePixelCorrections": 0,
+      "output": "res://art/export/city-river-v1/bank.png",
+      "reusedMaster": true,
+      "savedReopenedExported": true,
+      "size": [
+        512,
+        56
+      ]
+    },
+    {
+      "id": "water-calm",
+      "native": "res://art/source/city-river-v1/water-calm.pxpen",
+      "nativePixelCorrections": 1187,
+      "output": "res://art/export/city-river-v1/water-calm.png",
+      "reusedMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        512,
+        512
+      ]
+    }
+  ],
+  "pixelsPerWorldUnit": 64
+}

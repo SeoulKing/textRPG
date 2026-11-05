@@ -5,6 +5,7 @@ const MeiFrames=preload("res://art/export/plaza-guide/mei-idle.tres")
 const Slime=preload("res://scripts/native_2d_slime.gd")
 const Blink=preload("res://scripts/native_2d_blink.gd")
 const InnLighting=preload("res://scripts/native_2d_inn_lighting.gd")
+const Sunlight=preload("res://scripts/native_2d_sunlight.gd")
 const CAMERA_ZOOM=4.0
 const MIN_ZOOM_RATIO=.44642857
 const MAX_HERO_SCREEN_HEIGHT=.9
@@ -22,6 +23,10 @@ var blink: Node2D
 var layout: Node2D
 var ambience: CanvasModulate
 var inn_lobby: Node2D
+var sunlight: Node2D
+var city_life: Node2D
+var river: Node2D
+var fishing_view: bool = false
 var render_pixel_scale=1.0
 var camera_zoom=4.0
 var base_camera_zoom=4.0
@@ -34,6 +39,7 @@ var enemy_meter_visible=false
 var enemy_trail_hp=30.0
 var enemy_last_hp=30.0
 var sprites: Array[Dictionary]=[]
+var occlusion_masks: Dictionary={}
 var remote_ids: Dictionary={}
 var room_bounds=Rect2(0,0,1536,1312)
 var display_size=Vector2(384,824)
@@ -51,7 +57,7 @@ func set_display_size(size: Vector2) -> void:
 func set_render_pixel_scale(value: float) -> void:render_pixel_scale=maxf(.01,value)
 func set_quarter_view(_value: bool) -> void:quarter_view=false
 func view_yaw() -> float:return 0.0
-func map_point(point: Vector2,height: float=0.0) -> Vector2:return point*4.0-Vector2(0,height*64)
+func map_point(point: Vector2,height: float=0.0) -> Vector2:return preload("res://scripts/native_2d_coordinates.gd").canvas(point,height)
 func _ready() -> void:
     texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
     layout=world.layout;outside=layout;add_child(outside)
@@ -62,16 +68,27 @@ func _ready() -> void:
     blink=Blink.new();add_child(blink)
     plaza_slime=Slime.new();add_child(plaza_slime)
     plaza_slime.position=outside.get_node("PlazaSlimeSpawn").position
-    hunting_slime=Slime.new();add_child(hunting_slime);hunting_slime.position=map_point(Vector2(600,1054))
+    hunting_slime=Slime.new();add_child(hunting_slime);hunting_slime.position=map_point(world.CityMap.HUNTING_HOME)
     slime=hunting_slime
     previous_player=world.player_position
     _register(outside)
+    sunlight=Sunlight.new();sunlight.name="OutdoorSunlight";add_child(sunlight)
+    sunlight.configure(outside,outside.get_node_or_null("Sunlight"))
+    city_life=outside.get_node_or_null("Placements/WalkingQuarter")
+    if city_life!=null:city_life.configure(outside)
+    river=outside.get_node_or_null("Placements/RiverQuarter")
 func _register(source: Node) -> void:
     for node in source.get_children():
+        if node is TileMapLayer and node.has_method("prepare_runtime_visuals"):
+            node.prepare_runtime_visuals()
         if node is Sprite2D and node.texture!=null:
-            var anchor=node.get_meta("foot",Vector2.ZERO)
+            var anchor=Vector2.ZERO
+            if node.has_meta("foot"):
+                anchor=to_local(node.to_global(node.get_meta("foot",Vector2.ZERO)))
             var parent=node.get_parent()
             if parent.get("logical_anchor")!=null:anchor=map_point(parent.map_position())
+            if node.get_meta("native_wall",false):
+                anchor=to_local(node.to_global(Vector2(0,float(node.get_meta("native_wall_sort_origin",0)))))
             if str(node.get_meta("interaction_id",""))=="innkeeper":
                 var marker=preload("res://scripts/native_2d_quest_marker.gd").new()
                 marker.quest_id="arcana_inn_slimes";marker.progress_flag="arcana_inn_slime_kills"
@@ -86,41 +103,41 @@ func _interior() -> void:
     sprites=sprites.filter(func(entry):return is_instance_valid(entry.sprite) and entry.root==outside)
     outside.visible=world.indoor.is_empty()
     if is_instance_valid(shop2d):shop2d.hide();shop2d.follow_camera.enabled=false
-    var name=""
-    match world.indoor:
-        "arcana_shop":
-            if not is_instance_valid(shop2d):shop2d=load("res://scenes/shop_2d.tscn").instantiate();add_child(shop2d)
-            camera.enabled=false;shop2d.show();shop2d.follow_camera.enabled=true
-            return
-        "arcana_inn":name="inn_lobby"
-        "arcana_restaurant":name="restaurant"
-        "arcana_academy":name="academy_first_floor" if world.academy_floor==1 else "academy_second_floor"
+    var registry = preload("res://scripts/region_registry.gd")
+    if world.indoor=="arcana_shop":
+        if not is_instance_valid(shop2d):shop2d=registry.scene(world.indoor).instantiate();add_child(shop2d)
+        camera.enabled=false;shop2d.show();shop2d.follow_camera.enabled=true
+        return
     camera.enabled=true;camera.make_current()
-    if not name.is_empty():
-        var room=load("res://scenes/native_2d/"+name+".tscn").instantiate()
+    if not world.indoor.is_empty():
+        var packed: PackedScene = registry.scene(world.indoor, world.academy_floor)
+        if packed == null:
+            push_error("Missing region scene: " + world.indoor)
+            return
+        var room = packed.instantiate()
         inside.add_child(room);_register(room)
         if world.indoor=="arcana_inn":inn_lobby=room
-        room_bounds=Rect2()
-        for sprite in room.find_children("*","Sprite2D",true,false):
-            if sprite.texture==null:continue
-            var area=Rect2(sprite.position+sprite.offset,Vector2(sprite.texture.get_size()))
-            room_bounds=room_bounds.merge(area) if room_bounds.has_area() else area
+        room_bounds=registry.camera_bounds(world.indoor, world.academy_floor)
+
 func _process(delta: float) -> void:
     if world==null:return
     if world.indoor!=last_interior or world.academy_floor!=last_floor:
         last_interior=world.indoor;last_floor=world.academy_floor;_interior()
+    if is_instance_valid(city_life):city_life.sync_city_life(world,delta)
+    if is_instance_valid(river):river.sync_river(world)
+    sunlight.visible=world.indoor.is_empty() and world.effects_enabled
     world.input_projection=Transform2D.IDENTITY
     ambience.color=Color.WHITE
     if world.effects_enabled:
         if world.indoor=="arcana_inn":ambience.color=InnLighting.AMBIENT
-        elif world.dusk and world.indoor.is_empty():ambience.color=Color("c8c2df")
+        elif world.indoor.is_empty():ambience.color=Color("929bb0") if world.dusk else Color("f5f1e9")
     if is_instance_valid(inn_lobby):
         inn_lobby.sync_lighting(world.time,world.effects_enabled,world.reduced_motion)
     var motion=world.player_position-previous_player;previous_player=world.player_position
     hero.show();hero.position=map_point(world.bench_visual_position())
     hero.set_bench_pose(world.bench_state,world.bench_age,world.reduced_motion)
     hero.dash_age=world.dash_age;hero.dash_yaw=atan2(world.dash_direction.x,world.dash_direction.y)
-    hero.pose(world.time,world.player_gait,world.walking,motion,true,world.effects_enabled and not world.reduced_motion)
+    hero.pose(world.time,world.player_gait,world.walking,motion,true,world.effects_enabled and not world.reduced_motion,true,world.last_move_direction)
     hero.apply_bench_pose()
     blink.update_pose(world.teleport_age,Hero.direction_for_yaw(atan2(world.teleport_direction.x,world.teleport_direction.y),0),map_point(world.teleport_origin),map_point(world.teleport_target),world.effects_enabled,world.reduced_motion)
     hero.visible=not Blink.hides_character(world.teleport_age,world.effects_enabled,world.reduced_motion)
@@ -138,9 +155,16 @@ func _process(delta: float) -> void:
     else:enemy_trail_hp=move_toward(enemy_trail_hp,world.enemy_visual_hp,delta*15)
     enemy_last_hp=world.enemy_visual_hp
     var draws: Array[Dictionary]=[]
+    var occupied_seats: Dictionary={}
+    if world.bench_pose_active():occupied_seats[str(world.bench_entity.id)]=map_point(world.player_position).y-1.0
+    for child in get_children():
+        var seat_id: String=str(child.get_meta("seat_id",""))
+        if not seat_id.is_empty():occupied_seats[seat_id]=minf(float(occupied_seats.get(seat_id,INF)),float(child.get_meta("seat_sort_y",0))-1.0)
     for entry in sprites:
         if not is_instance_valid(entry.sprite) or not entry.sprite.is_visible_in_tree():continue
         var sprite: Sprite2D=entry.sprite
+        if entry.kind=="city-resident":
+            entry.anchor=map_point(sprite.get_parent().map_position())
         var grid: Vector2i=sprite.get_meta("frame_grid",Vector2i.ONE)
         var frame_size: Vector2i=sprite.get_meta("frame_size",Vector2i.ZERO)
         if grid!=Vector2i.ONE and frame_size!=Vector2i.ZERO:
@@ -154,22 +178,56 @@ func _process(delta: float) -> void:
                 sprite.region_rect=Rect2(original.region.position*factor,original.region.size*factor)
         if sprite.z_index>-20:
             var anchor: Vector2=entry.anchor
-            draws.append({"node":sprite,"y":anchor.y})
-            var rect=Rect2(to_local(sprite.to_global(sprite.offset)),Vector2(sprite.region_rect.size if sprite.region_enabled else sprite.texture.get_size()))
+            # L-shaped sofas extend past the central seat; keep the sitter in front.
+            draws.append({"node":sprite,"y":minf(anchor.y,float(occupied_seats.get(entry.id,anchor.y)))})
             var body=Rect2(hero.position+Vector2(-24,-96),Vector2(48,84))
-            var covered=anchor.y>=hero.position.y and rect.intersects(body)
+            var own_seat: bool=world.bench_pose_active() and entry.id==str(world.bench_entity.get("id",""))
+            var covered=not own_seat and anchor.y>=hero.position.y and _sprite_covers_body(sprite,body)
             sprite.modulate.a=move_toward(sprite.modulate.a,.45 if covered else 1.0,delta*5)
-    for node in [hero,plaza_slime,hunting_slime]:draws.append({"node":node,"y":node.position.y})
+    # Sort by the walkable floor anchor, not the boots lifted onto a cushion.
+    draws.append({"node":hero,"y":map_point(world.player_position).y if world.bench_pose_active() else hero.position.y})
+    for node in [plaza_slime,hunting_slime]:draws.append({"node":node,"y":node.position.y})
     for child in get_children():
-        if child is Node2D and child.get_script()==Hero and child!=hero:draws.append({"node":child,"y":child.position.y})
+        if child is Node2D and child.get_script()==Hero and child!=hero:draws.append({"node":child,"y":float(child.get_meta("seat_sort_y",child.position.y))})
+    for child in get_children():
+        if child is Node2D and child.get_meta("campfire",false) and child.visible:draws.append({"node":child,"y":child.position.y})
     draws.sort_custom(func(a,b):return a.y<b.y)
     for i in draws.size():draws[i].node.z_index=i+1
     _camera()
+    var sun_actors: Array[Node2D]=[hero,plaza_slime,hunting_slime]
+    for child in get_children():
+        if child is Node2D and child.get_script()==Hero and child!=hero:sun_actors.append(child)
+    sunlight.sync(sprites,sun_actors,world.indoor.is_empty() and world.effects_enabled,world.dusk)
     camera_updated.emit()
+func _sprite_covers_body(sprite: Sprite2D,body: Rect2) -> bool:
+    # Transparent canvas margins must not trigger scenery fading.
+    var local_body=Rect2(sprite.to_local(to_global(body.position)),Vector2.ZERO)
+    for corner in [Vector2(body.end.x,body.position.y),body.end,Vector2(body.position.x,body.end.y)]:
+        local_body=local_body.expand(sprite.to_local(to_global(corner)))
+    var rect=sprite.get_rect()
+    var overlap=rect.intersection(local_body)
+    if not overlap.has_area():return false
+    var texture: Texture2D=sprite.texture
+    if not occlusion_masks.has(texture):
+        var image=texture.get_image()
+        if image==null:return false
+        var new_mask=BitMap.new()
+        new_mask.create_from_image_alpha(image,.5)
+        occlusion_masks[texture]=new_mask
+    var mask: BitMap=occlusion_masks[texture]
+    var source_origin=sprite.region_rect.position if sprite.region_enabled else Vector2.ZERO
+    source_origin+=Vector2(sprite.frame_coords)*rect.size
+    var size=mask.get_size()
+    for y in range(floori(overlap.position.y-rect.position.y),ceili(overlap.end.y-rect.position.y)):
+        for x in range(floori(overlap.position.x-rect.position.x),ceili(overlap.end.x-rect.position.x)):
+            var pixel=Vector2i(source_origin)+Vector2i(int(rect.size.x)-1-x if sprite.flip_h else x,int(rect.size.y)-1-y if sprite.flip_v else y)
+            if pixel.x>=0 and pixel.y>=0 and pixel.x<size.x and pixel.y<size.y and mask.get_bitv(pixel):return true
+    return false
 func _camera() -> void:
     var viewport=get_viewport();var size=Vector2(viewport.size)
     var zoom=render_pixel_scale
     var target=hero.position-Vector2(0,50)
+    if fishing_view:target.x+=size.x*.22/maxf(.01,zoom)
     # Camera scale comes from final presentation pixels, for every room and outdoors.
     # Fit a room only when it already fits at the player's chosen zoom.
     if not world.indoor.is_empty():
@@ -197,11 +255,18 @@ func pick_interaction(point: Vector2) -> Dictionary:
     var best=-INF
     for entry in sprites:
         var sprite: Sprite2D=entry.sprite
+        if entry.kind=="city-resident":
+            entry.anchor=map_point(sprite.get_parent().map_position())
         if entry.id.is_empty() or not sprite.is_visible_in_tree():continue
         var area=Rect2(to_local(sprite.to_global(sprite.offset)),Vector2(sprite.region_rect.size if sprite.region_enabled else sprite.texture.get_size()))
         if area.has_point(local) and entry.anchor.y>best:
             for entity in world.entities:
                 if entity.id==entry.id:found=entity;best=entry.anchor.y
+    if found.is_empty() and world.indoor.is_empty():
+        var map_position: Vector2 = pick(point)
+        for entity in world.entities:
+            if entity.kind in ["fishing","campfire"] and map_position.distance_to(entity.pos)<24:
+                return entity
     return found
 func _ring(radius: float,color: String) -> Line2D:
     var node=Line2D.new();node.width=2;node.default_color=Color(color);node.closed=true;node.z_index=3990

@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://dnj4vm67q64tx"]
+
+[ext_resource type="Script" path="res://scripts/characters/hybrid_v1/reference_character_workbench.gd" id="1"]
+
+[node name="ReferenceCharacterWorkbench" type="Control" unique_id=307185535]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")

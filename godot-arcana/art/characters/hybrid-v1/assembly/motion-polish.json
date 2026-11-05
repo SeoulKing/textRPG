@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "scope": "assembled character motion only; source art and shared-run.json preserved",
+  "parameters": {
+    "thigh_gain": 0.72,
+    "knee_flex_soft_start_deg": 100.0,
+    "knee_flex_max_deg": 115.0,
+    "knee_extension_min_deg": -3.0,
+    "upper_arm_gain": 0.72,
+    "forearm_gain": 0.60,
+    "body_bob_gain": 0.70,
+    "body_lean_gain": 1.0,
+    "head_pitch_gain": 0.85,
+    "boot_relative_roll_limit_deg": 18.0,
+    "boot_roll_follow": 0.85,
+    "flight_start_half_cycle": 0.38,
+    "flight_height_px": 1.0,
+    "support_fade_weight": 0.25
+  }
+}

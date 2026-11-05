@@ -5,6 +5,7 @@ const SOURCE = "res://art/source/monsters/slime.pixel.json"
 const ATLAS = "res://art/export/monsters/slime.png"
 const FRAMES = "res://art/export/monsters/slime.tres"
 const COLUMNS = 16
+const ANIMATIONS = ["idle","hop","prepare","attack","hit","death"]
 
 static func read_source() -> Dictionary:
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(SOURCE))
@@ -39,6 +40,9 @@ static func frame_image(data: Dictionary, animation: String, frame: int, patches
 	var dissolve = lerpf(float(a.dissolve),float(b.dissolve),u)
 	var face = str(a.face if u < .5 else b.face)
 	if animation == "idle" and frame in [20,21]: face = "blink"
+	# Saved PixelPen frames override resampling; shared layers remain available for legacy edits.
+	var native_rows: Array = data.get("pixel_frames",{}).get(animation,[])
+	var native: Array = native_rows[frame] if frame < native_rows.size() else []
 	var size = Vector2i(int(data.size[0]),int(data.size[1]))
 	var foot = Vector2(float(data.foot[0]),float(data.foot[1]))
 	var image = Image.create(size.x,size.y,false,Image.FORMAT_RGBA8)
@@ -48,13 +52,16 @@ static func frame_image(data: Dictionary, animation: String, frame: int, patches
 		for x in range(size.x):
 			var source_y = int(round((float(y)-foot.y+lift)/sy+foot.y))
 			var source_x = int(round((float(x)-foot.x-lean*(foot.y-float(y))/50.0)/sx+foot.x))
-			if source_x < 0 or source_y < 0 or source_x >= size.x or source_y >= size.y: continue
+			if native.is_empty() and (source_x < 0 or source_y < 0 or source_x >= size.x or source_y >= size.y): continue
+			source_x = clampi(source_x,0,size.x-1)
+			source_y = clampi(source_y,0,size.y-1)
 			var color = "."
 			for layer in layers:
 				var symbol: String = data.layers[layer][source_y][source_x]
 				if symbol != ".": color = symbol
 			# Stable ordered dissolve; no random redraw or translucent edge pixels.
 			if dissolve > 0 and float((x*3+y*5)%17)/17.0 < dissolve: color = "."
+			if not native.is_empty(): color = native[y][x]
 			if lighting == 2:
 				# Data: +X right, +Y up, +Z toward camera.
 				var nx = (float(source_x)-31.5)/27.0
@@ -94,7 +101,7 @@ static func bake(data: Dictionary) -> Error:
 	text += "[ext_resource type=\"Texture2D\" path=\"%s\" id=\"1\"]\n\n" % ATLAS
 	var blocks: Array[String] = []
 	var index = 0
-	for animation in data.animations:
+	for animation in ANIMATIONS:
 		var spec: Dictionary = data.animations[animation]
 		var frames: Array[String] = []
 		for f in range(int(spec.count)):
@@ -122,7 +129,7 @@ static func bake_lighting(data: Dictionary) -> Error:
 	for mode in [1,2]:
 		var atlas = Image.create(width*COLUMNS,height*ceili(float(total)/COLUMNS),false,Image.FORMAT_RGBA8)
 		var index = 0
-		for animation in data.animations:
+		for animation in ANIMATIONS:
 			for frame in range(int(data.animations[animation].count)):
 				var point = Vector2i(index%COLUMNS*width,int(index/COLUMNS)*height)
 				atlas.blit_rect(frame_image(data,animation,frame,true,mode),Rect2i(0,0,width,height),point)

@@ -1,0 +1,26 @@
+{
+  "jobs": [
+    {
+      "number": 1,
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/river-ingame-options-v4/prepared/01.png"
+    },
+    {
+      "number": 2,
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/river-ingame-options-v4/prepared/02.png"
+    },
+    {
+      "number": 3,
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/river-ingame-options-v4/prepared/03.png"
+    },
+    {
+      "number": 4,
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/river-ingame-options-v4/prepared/04.png"
+    },
+    {
+      "number": 5,
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/river-ingame-options-v4/prepared/05.png"
+    }
+  ],
+  "tilePixels": 64,
+  "materialPixels": 448
+}

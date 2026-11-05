@@ -22,7 +22,7 @@ $log=$stdout.Result+$stderr.Result
 $log | Set-Content -Encoding utf8 (Join-Path $paths.output 'shop-art-output.log')
 $errors=$log -split "\n" | Where-Object {$_ -match 'SCRIPT ERROR|Parse Error|ERROR:' -and $_ -notmatch 'root certificate store'}
 if($job.ExitCode -ne 0 -or $errors){$errors | Select-Object -First 10;throw 'Shop art render failed'}
-foreach($file in @('shop-overview.png','merchant-counter.png')){
+foreach($file in @('shop-overview.png','merchant-counter.png','shop-portrait.png','shop-zoom-follow.png')){
  Copy-Item -LiteralPath (Join-Path $paths.stage ('art/reference/shop-interior/'+$file)) -Destination (Join-Path $root ('art-studies/regions/arcana-shop-interior/'+$file))
 }
 'Shop art renders saved.'

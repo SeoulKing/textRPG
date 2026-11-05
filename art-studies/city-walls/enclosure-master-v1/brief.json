@@ -1,0 +1,38 @@
+{
+  "stage": "approved; cut pieces authored and connected to active plaza",
+  "method": "finish full enclosure first, then extract pieces",
+  "dimensions": {
+    "width": 10,
+    "depth": 8,
+    "wallThickness": 0.25,
+    "bodyHeight": 3,
+    "merlonHeight": 0.25,
+    "gateWidth": 2
+  },
+  "pixelsPerWorldUnit": 64,
+  "projection": {
+    "yaw": 0,
+    "elevation": 45
+  },
+  "seams": {
+    "horizontalPitch": 64,
+    "depthPitch": 45.254833995939045,
+    "keepCornerUnique": true,
+    "merlonPitch": 32
+  },
+  "approval": {
+    "date": "2026-10-30",
+    "userMessage": "좋아 이거로 가보자"
+  },
+  "production": {
+    "source": "godot-arcana/art/source/walls/assembled-v1",
+    "uniformScale": 0.75,
+    "tileGrid": [
+      16,
+      16
+    ],
+    "parts": 24,
+    "wholePatterns": 2,
+    "method": "finish whole source then extract actual parts; retain original17 and normalize onlyrepeat variants"
+  }
+}

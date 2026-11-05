@@ -1,0 +1,23 @@
+{
+  "approvedChoice": 2,
+  "period": [
+    320,
+    320
+  ],
+  "sourceDensity": 64,
+  "native": "godot-arcana/art/source/square-floor-v2/paving.pxpen",
+  "texture": "godot-arcana/art/export/square-floor-v2/paving.res",
+  "pckSha256": "8d7ba1ffa245e28130fd3bb79184dcd85e14e8f994c4de8502f439c5fa2b7bd6",
+  "pckBytes": 80402904,
+  "httpStatus": 200,
+  "encoding": "gzip",
+  "servedMatchesDisk": true,
+  "isolatedPackLoad": true,
+  "offlinePackRenders": [
+    "fountain-day",
+    "market-lane",
+    "school-garden",
+    "inn-evening"
+  ],
+  "browserPlayRepeated": false
+}

@@ -8,12 +8,16 @@ uniform float sprite_lift = 0.0;
 uniform float opacity = 1.0;
 uniform vec2 hurt_offset = vec2(0.0);
 uniform float hurt_angle = 0.0;
+varying vec4 actor_modulate;
 void vertex() {
+ actor_modulate = COLOR;
  float c=cos(hurt_angle); float s=sin(hurt_angle);
  VERTEX.y-=sprite_lift*64.0;
  VERTEX=mat2(vec2(c,s),vec2(-s,c))*VERTEX+hurt_offset*64.0;
 }
 void fragment() {
  vec4 c = texture(avatar_texture, (frame_cell + UV) / sheet_grid);
- COLOR *= vec4(mix(c.rgb,vec3(1.0),max(hurt_flash,hit_flash) * .6),c.a * opacity);
+ // Fragment COLOR already includes Sprite2D's default TEXTURE sample. Use
+ // the vertex tint so the selected frame's color and alpha are applied once.
+ COLOR = actor_modulate * vec4(mix(c.rgb,vec3(1.0),max(hurt_flash,hit_flash) * .6),c.a * opacity);
 }

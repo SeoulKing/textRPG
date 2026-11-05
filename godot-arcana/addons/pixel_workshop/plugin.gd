@@ -100,7 +100,8 @@ func _reload() -> void:
 	for name in data.animations: animations.add_item(name)
 	modes.clear()
 	modes.add_item("현재 프레임 수정")
-	for name in data.layers: modes.add_item("공통: "+str(name))
+	if not data.has("pixel_frames"):
+		for name in data.layers: modes.add_item("공통: "+str(name))
 	_select_animation(0)
 
 func _select_animation(index: int) -> void:

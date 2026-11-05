@@ -1,0 +1,366 @@
+{
+  "passed": true,
+  "assets": 30,
+  "rows": [
+    {
+      "id": "wall-back-0",
+      "canvas": [
+        32,
+        192
+      ],
+      "colors": 9,
+      "binaryAlpha": true,
+      "opaquePixels": 5408,
+      "sha256": "d51d7c7fb79f27a0076d9b664fd74077f1a43d42c399f3e6abadda60c41d49f5",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-back-0.pxpen"
+    },
+    {
+      "id": "wall-back-1",
+      "canvas": [
+        32,
+        192
+      ],
+      "colors": 8,
+      "binaryAlpha": true,
+      "opaquePixels": 5408,
+      "sha256": "4a39887445366fa2fba94bf377c1a2f18f2c6cde14e985b51f569872f8d6f4d5",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-back-1.pxpen"
+    },
+    {
+      "id": "wall-back-2",
+      "canvas": [
+        32,
+        192
+      ],
+      "colors": 9,
+      "binaryAlpha": true,
+      "opaquePixels": 5408,
+      "sha256": "dd19d7a4db7b36bfc484141c1f68b8ef6b9cc57bada0caf4dad6d74736b6f824",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-back-2.pxpen"
+    },
+    {
+      "id": "wall-back-3",
+      "canvas": [
+        32,
+        192
+      ],
+      "colors": 9,
+      "binaryAlpha": true,
+      "opaquePixels": 5408,
+      "sha256": "2001b51962bcddb069987549345f3a92eb64ffc2441d4788ea81a14eddbf9e3f",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-back-3.pxpen"
+    },
+    {
+      "id": "wall-left",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 368,
+      "sha256": "f3fa8cfbe535ea0712a27ee6668337949622b14e14c6ace500135d210ae6ef6c",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-left.pxpen"
+    },
+    {
+      "id": "wall-left-return",
+      "canvas": [
+        32,
+        192
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 2704,
+      "sha256": "9b7feff2d6f5481092a8059757e100a73c27afbec2b5dd55af7d55bdb3e9dcf7",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-left-return.pxpen"
+    },
+    {
+      "id": "wall-right",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 368,
+      "sha256": "c84ff7639dc23a841159cebc9d0caf72664ab54bcfac6faffd0397f42a079509",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-right.pxpen"
+    },
+    {
+      "id": "wall-right-return",
+      "canvas": [
+        32,
+        192
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 2704,
+      "sha256": "75b72847172c586047f2478e8e46c13b4175b3734782ce85e4affdb4c233b1bf",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-right-return.pxpen"
+    },
+    {
+      "id": "wall-front-0",
+      "canvas": [
+        32,
+        64
+      ],
+      "colors": 5,
+      "binaryAlpha": true,
+      "opaquePixels": 1088,
+      "sha256": "0cd545f19d27f9baab354019e69b383f8ed1739eaeabab512e6a4a9b6b5fd334",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-front-0.pxpen"
+    },
+    {
+      "id": "wall-front-1",
+      "canvas": [
+        32,
+        64
+      ],
+      "colors": 5,
+      "binaryAlpha": true,
+      "opaquePixels": 1088,
+      "sha256": "c2d397a69521db35b2d980d2fca1cfb1f10dea045ab5ff260ebcb8b663c5b179",
+      "editable": "godot-arcana/art/source/shop-2d-v3/wall-front-1.pxpen"
+    },
+    {
+      "id": "doorway",
+      "canvas": [
+        128,
+        32
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 1408,
+      "sha256": "7f77d4987a36f0f35d007e2b9c8bb6911da2c9ed7766ead739d1c2c5a4739b68",
+      "editable": "godot-arcana/art/source/shop-2d-v3/doorway.pxpen"
+    },
+    {
+      "id": "floor-0-0",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 1024,
+      "sha256": "4f9b356f36d66ee3d94a0eca21dd1f99cb188e8062cd1b38b9b4a84b0b6ec3a9",
+      "editable": "godot-arcana/art/source/shop-2d-v3/floor-0-0.pxpen"
+    },
+    {
+      "id": "floor-1-0",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 1024,
+      "sha256": "ea7d2a3ee564dd4de6303eedc0c552202327ae72a90586d0a9e58b06320e5036",
+      "editable": "godot-arcana/art/source/shop-2d-v3/floor-1-0.pxpen"
+    },
+    {
+      "id": "floor-2-0",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 1024,
+      "sha256": "c17fb08dbf570e871b982e86f1da7edb3827390fcb7de92c2ca9cae435c820b0",
+      "editable": "godot-arcana/art/source/shop-2d-v3/floor-2-0.pxpen"
+    },
+    {
+      "id": "floor-3-0",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 3,
+      "binaryAlpha": true,
+      "opaquePixels": 1024,
+      "sha256": "d577c321d7639b6e596b8bbf5b85ea256602273764cf7765d480ba55bfc57467",
+      "editable": "godot-arcana/art/source/shop-2d-v3/floor-3-0.pxpen"
+    },
+    {
+      "id": "floor-0-1",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 2,
+      "binaryAlpha": true,
+      "opaquePixels": 1024,
+      "sha256": "39dbb5fc683f58a41b8d223d86e9f98a50ae61d76e87f232106327df3e785d00",
+      "editable": "godot-arcana/art/source/shop-2d-v3/floor-0-1.pxpen"
+    },
+    {
+      "id": "floor-1-1",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 2,
+      "binaryAlpha": true,
+      "opaquePixels": 1024,
+      "sha256": "ef2aae529da4b0ee5f7f09436c132cc2ee9fef0d69f9b2e9e7f9ab096f600900",
+      "editable": "godot-arcana/art/source/shop-2d-v3/floor-1-1.pxpen"
+    },
+    {
+      "id": "floor-2-1",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 2,
+      "binaryAlpha": true,
+      "opaquePixels": 1024,
+      "sha256": "8e97cc9c3983c524d2c62b0705341fcf64c861d36d407a9e945eab34fa507f52",
+      "editable": "godot-arcana/art/source/shop-2d-v3/floor-2-1.pxpen"
+    },
+    {
+      "id": "floor-3-1",
+      "canvas": [
+        32,
+        32
+      ],
+      "colors": 2,
+      "binaryAlpha": true,
+      "opaquePixels": 1024,
+      "sha256": "774c808a1d7aae7c293d37089ccc3ee3c4bc366e16ae2ee27448e38fc1282e0b",
+      "editable": "godot-arcana/art/source/shop-2d-v3/floor-3-1.pxpen"
+    },
+    {
+      "id": "herb-cabinet",
+      "canvas": [
+        128,
+        224
+      ],
+      "colors": 64,
+      "binaryAlpha": true,
+      "opaquePixels": 20480,
+      "sha256": "0c6ff62183bf00a75df22df31096cdb53fbd1b34e2ca570a0c4f545b225f125b",
+      "editable": "godot-arcana/art/source/shop-2d-v3/herb-cabinet.pxpen"
+    },
+    {
+      "id": "potion-cabinet",
+      "canvas": [
+        128,
+        224
+      ],
+      "colors": 64,
+      "binaryAlpha": true,
+      "opaquePixels": 20480,
+      "sha256": "eda54da9b8e37a20f535b42db3d70b8024c0ad0eb2a7feaa0251ea0ba07d1a66",
+      "editable": "godot-arcana/art/source/shop-2d-v3/potion-cabinet.pxpen"
+    },
+    {
+      "id": "travel-cabinet",
+      "canvas": [
+        128,
+        224
+      ],
+      "colors": 45,
+      "binaryAlpha": true,
+      "opaquePixels": 20480,
+      "sha256": "5d8235f5062503b32fc475fa0bc35a9e4d2147cce8681d60f281917ae9caad4f",
+      "editable": "godot-arcana/art/source/shop-2d-v3/travel-cabinet.pxpen"
+    },
+    {
+      "id": "counter",
+      "canvas": [
+        256,
+        160
+      ],
+      "colors": 39,
+      "binaryAlpha": true,
+      "opaquePixels": 23296,
+      "sha256": "72336ab6df9154b135adda617faa1f13b7837ea35e9cdb59fe82addfeff0936c",
+      "editable": "godot-arcana/art/source/shop-2d-v3/counter.pxpen"
+    },
+    {
+      "id": "apothecary-bench",
+      "canvas": [
+        192,
+        160
+      ],
+      "colors": 54,
+      "binaryAlpha": true,
+      "opaquePixels": 17472,
+      "sha256": "092503c9d267b96a241ead40313ea4a1971d5efa820d369349f919c39d798a8d",
+      "editable": "godot-arcana/art/source/shop-2d-v3/apothecary-bench.pxpen"
+    },
+    {
+      "id": "potion-island",
+      "canvas": [
+        96,
+        128
+      ],
+      "colors": 64,
+      "binaryAlpha": true,
+      "opaquePixels": 7266,
+      "sha256": "8ef40242a6623d5da9f62140b647bf931cbacb1b055bf8a5f41776c86ee4152e",
+      "editable": "godot-arcana/art/source/shop-2d-v3/potion-island.pxpen"
+    },
+    {
+      "id": "travel-island",
+      "canvas": [
+        96,
+        128
+      ],
+      "colors": 39,
+      "binaryAlpha": true,
+      "opaquePixels": 7350,
+      "sha256": "ce81e3f047c601e4b6927a85d87660e446c55681336f29ba368fcb921af72812",
+      "editable": "godot-arcana/art/source/shop-2d-v3/travel-island.pxpen"
+    },
+    {
+      "id": "travel-stock",
+      "canvas": [
+        128,
+        128
+      ],
+      "colors": 37,
+      "binaryAlpha": true,
+      "opaquePixels": 7424,
+      "sha256": "2a63f8d246d3ada4d7e83d75844490a1f59a2ae2dc836923cf28c8696c26e41b",
+      "editable": "godot-arcana/art/source/shop-2d-v3/travel-stock.pxpen"
+    },
+    {
+      "id": "luggage",
+      "canvas": [
+        96,
+        128
+      ],
+      "colors": 34,
+      "binaryAlpha": true,
+      "opaquePixels": 5568,
+      "sha256": "6037fcee5d6371bfbd5953fe39d69114cb18b58981e0aa83916a93839e38c9db",
+      "editable": "godot-arcana/art/source/shop-2d-v3/luggage.pxpen"
+    },
+    {
+      "id": "plant",
+      "canvas": [
+        88,
+        93
+      ],
+      "colors": 30,
+      "binaryAlpha": true,
+      "opaquePixels": 4016,
+      "sha256": "2702df2811f00c66cebd8bfe59f9d450b940dd29622f49a3f2798790a0bc4ec3",
+      "editable": "godot-arcana/art/source/shop-2d-v3/plant.pxpen"
+    },
+    {
+      "id": "merchant",
+      "canvas": [
+        96,
+        136
+      ],
+      "colors": 27,
+      "binaryAlpha": true,
+      "opaquePixels": 3134,
+      "sha256": "afa85eda6ab90bcb697f586a53a80dc6169b7c91a14044c9b2b2e6ba0c70831c",
+      "editable": "godot-arcana/art/source/shop-2d-v3/merchant.pxpen"
+    }
+  ]
+}

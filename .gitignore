@@ -21,3 +21,9 @@ godot-web/*.TMP
 
 # Blender rolling save backups; the editable .blend remains a source asset.
 art-studies/**/*.blend[1-9]
+
+# Retired standalone editor shell; current character sources live in godot-arcana.
+godot-character-animation/
+
+# Private studio Site uses its own source repository.
+sites/arcana-studio/

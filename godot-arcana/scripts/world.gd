@@ -2,6 +2,9 @@ extends Node2D
 
 signal interacted(entity: Dictionary)
 signal building_entry_intended(entity: Dictionary)
+signal building_exit_intended(entity: Dictionary)
+var exit_intent_time = 0.0
+var exit_pending = false
 var click_door_id = ""
 var door_intent_id = ""
 var door_intent_time = 0.0
@@ -16,7 +19,10 @@ const Fountain = preload("res://scripts/fountain_spec.gd")
 const Shop2D = preload("res://scripts/shop_layout_2d.gd")
 var shop_layout: Dictionary = {}
 const TILE = 16
-const CELLS = Vector2i(72, 90)
+
+const CityMap = preload("res://scripts/city_map.gd")
+const CELLS = CityMap.CITY_CELLS
+const OUTDOOR_CELLS = CityMap.OUTDOOR_CELLS
 const SPAWN = Vector2(576, 500)
 # Full input moves three navigation tiles per second.
 const WALK_SPEED = TILE * 3.0
@@ -126,6 +132,7 @@ var clicked_interaction_id: String = ""
 var entities: Array[Dictionary] = []
 var obstacles: Array[Rect2] = []
 var outside_obstacles: Array[Rect2] = []
+var life_campfires: Array[Vector2] = []
 var round_obstacles: Array[Dictionary] = []
 var outside_round_obstacles: Array[Dictionary] = []
 var path: PackedVector2Array = []
@@ -211,8 +218,8 @@ func _material_at(p: Vector2) -> int:
 func _make_tiles() -> void:
 	ground.tile_set = Art.TERRAIN
 	ground.scale = Vector2.ONE * Art.SCALE
-	for y in range(CELLS.y):
-		for x in range(CELLS.x):
+	for y in range(OUTDOOR_CELLS.y):
+		for x in range(OUTDOOR_CELLS.x):
 			var materials: Array[int] = []
 			for corner in [Vector2(0,0), Vector2(16,0), Vector2(0,16), Vector2(16,16)]:
 				materials.append(_material_at(Vector2(x * TILE, y * TILE) + corner))
@@ -336,9 +343,10 @@ func apply_layout(value: Node, initial: bool = false) -> void:
 				entity.auto_enter = entry.entrance_id.is_empty() or entry.entrance_enabled
 			next_entities.append(entity)
 	# Regions outside the editable plaza retain their original transition rules.
-	next_entities.append({"id":"arcana_city_gate","name":"남문 · 별빛 평원","kind":"gate","pos":Vector2(576,768)})
-	next_entities.append({"id":"slime","name":"슬라임의 흔적","kind":"slime","pos":Vector2(600,1054)})
-	next_entities.append({"id":"city","name":"도시로 돌아가기","kind":"city","pos":Vector2(576,815)})
+
+	next_entities.append({"id":"arcana_city_gate","name":"남문 · 별빛 평원","kind":"gate","pos":CityMap.GATE})
+	next_entities.append({"id":"slime","name":"슬라임의 흔적","kind":"slime","pos":CityMap.HUNTING_HOME})
+	next_entities.append({"id":"city","name":"도시로 돌아가기","kind":"city","pos":CityMap.CITY_RETURN})
 	traveler_index = -1
 	if has_resident:
 		if initial or not next_home.is_equal_approx(traveler_home): traveler_position = next_home
@@ -380,8 +388,8 @@ func nearest_walkable(point: Vector2) -> Vector2:
 	# Same-place correction; search nearest by actual distance, not loop order.
 	var best = spawn_position if indoor == "" else Vector2(192,200)
 	var distance = INF
-	for y in range(CELLS.y if indoor == "" else 21):
-		for x in range(CELLS.x if indoor == "" else 24):
+	for y in range(OUTDOOR_CELLS.y if indoor == "" else 21):
+		for x in range(OUTDOOR_CELLS.x if indoor == "" else 24):
 			var at = Vector2(x*TILE+8,y*TILE+8)
 			if _can_stand(at) and at.distance_squared_to(point) < distance:
 				distance = at.distance_squared_to(point)
@@ -389,13 +397,13 @@ func nearest_walkable(point: Vector2) -> Vector2:
 	return best
 
 func _rebuild_grid() -> void:
-	grid.region = Rect2i(Vector2i.ZERO, CELLS)
+	grid.region = Rect2i(Vector2i.ZERO, OUTDOOR_CELLS)
 	grid.cell_size = Vector2(TILE, TILE)
 	grid.offset = Vector2(8, 8)
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.update()
-	for y in range(CELLS.y):
-		for x in range(CELLS.x):
+	for y in range(OUTDOOR_CELLS.y):
+		for x in range(OUTDOOR_CELLS.x):
 			var p = Vector2(x * TILE + 8, y * TILE + 8)
 			if not _can_stand(p): grid.set_point_solid(Vector2i(x, y))
 
@@ -411,10 +419,12 @@ func _update_entrance_contact() -> void:
 	if changed and not contact.is_empty(): entrance_contacted.emit(contact.duplicate(true))
 
 func _can_stand(pos: Vector2) -> bool:
+	if indoor.is_empty():
+		for fire in life_campfires:
+			if fire.distance_to(pos)<10: return false
 	if indoor == "arcana_shop": return Shop2D.can_stand(shop_layout,pos)
 	if indoor == "":
-		if pos.x < 32 or pos.y < 48 or pos.x > 1110 or pos.y > 1400: return false
-		if pos.x > 930 and pos.y > 840 and pos.y < 1200: return false
+		if not CityMap.WALK_BOUNDS.has_point(pos): return false
 	else:
 		if pos.x < 30 or pos.x > 350 or pos.y < 30 or pos.y > 326: return false
 	for rect in obstacles:
@@ -442,6 +452,12 @@ func walk_to(pos: Vector2) -> void:
 			var side = Vector2(inward.y,-inward.x)
 			if absf(delta.dot(side))<=float(entity.door_width) and delta.dot(inward)>=-6 and delta.dot(inward)<=48:
 				click_door_id = entity.id
+				pos = entity.pos
+				break
+	else:
+		for entity in entities:
+			if entity.kind == "exit" and absf(pos.x-entity.pos.x) <= 12 and absf(pos.y-entity.pos.y) <= 16:
+				click_door_id = "exit"
 				pos = entity.pos
 				break
 	var from = Vector2i(player_position / TILE)
@@ -552,6 +568,7 @@ func _process(delta: float) -> void:
 	else: anim = 0
 	walking = player_position.distance_squared_to(before_motion) > .0001
 	_update_door_intent(Vector2.ZERO if bench_pose_active() else motion,delta)
+	_update_exit_intent(Vector2.ZERO if bench_pose_active() or casting else motion, delta)
 	_update_entrance_contact()
 	player.position = (player_position * 2).round() / 2
 	var facing = ["south","north","west","east"][direction]
@@ -583,7 +600,9 @@ func _process(delta: float) -> void:
 		if dist < closest and dist < float(entity.get("interaction_radius",34.0)):
 			closest = dist
 			nearest = entity
-	if enabled and not clicked_interaction_id.is_empty():
+	if nearest.is_empty() and bench_state.is_empty() and not river_cast_target().is_empty():
+		nearest = {"id":"river_fishing","name":"강 낚시","kind":"fishing","pos":player_position,"interaction_radius":26.0}
+	if enabled and bench_state.is_empty() and not clicked_interaction_id.is_empty():
 		for entity in entities:
 			if entity.id != clicked_interaction_id: continue
 			if player_position.distance_to(entity.pos) < float(entity.get("interaction_radius",34.0)):
@@ -644,6 +663,26 @@ func _update_door_intent(motion: Vector2, delta: float) -> void:
 		path.clear()
 		building_entry_intended.emit(candidate.duplicate())
 
+func _update_exit_intent(motion: Vector2, delta: float) -> void:
+	if not enabled or indoor.is_empty() or exit_pending or casting or bench_pose_active():
+		exit_intent_time = 0.0
+		return
+	for entity in entities:
+		if entity.kind != "exit": continue
+		var offset: Vector2 = player_position - entity.pos
+		var at_door = absf(offset.x) <= 12.0 and offset.y >= -14.0 and offset.y <= 8.0
+		var walking_out = motion.length() > .01 and motion.normalized().dot(Vector2.DOWN) > .65
+		if at_door and (walking_out or click_door_id == "exit"):
+			exit_intent_time += minf(delta, .05)
+			if exit_intent_time >= .12:
+				exit_pending = true
+				exit_intent_time = 0.0
+				click_door_id = ""
+				path.clear()
+				building_exit_intended.emit(entity.duplicate())
+			return
+	exit_intent_time = 0.0
+
 func _move_player(offset: Vector2) -> void:
 	# Keep boosted movement from skipping narrow collision boundaries.
 	var steps = maxi(1,int(ceil(offset.length()/3.0)))
@@ -669,7 +708,7 @@ func _update_camera(reset: bool = false) -> void:
 		camera_follow.y = clampf(camera_follow.y, player_position.y - margin.y, player_position.y + margin.y)
 	camera_player_position = player_position
 	var half = visible_size / 2
-	var bounds = Vector2(CELLS * TILE) if indoor == "" else Vector2(384, 344)
+	var bounds = Vector2(OUTDOOR_CELLS * TILE) if indoor == "" else Vector2(384, 344)
 	camera_follow.x = clampf(camera_follow.x, minf(half.x, bounds.x / 2), maxf(bounds.x / 2, bounds.x - half.x))
 	camera_follow.y = clampf(camera_follow.y, minf(half.y, bounds.y / 2), maxf(bounds.y / 2, bounds.y - half.y))
 	# Snap the final canvas translation, including the viewport center. Odd
@@ -694,6 +733,7 @@ func bench_pose_active() -> bool:
 
 func clear_bench() -> void:
 	if bench_state=="approach": path.clear()
+	clicked_interaction_id = ""
 	bench_state = ""
 	bench_entity = {}
 	bench_age = 0.0
@@ -702,9 +742,10 @@ func clear_bench() -> void:
 	bench_has_destination = false
 
 func sit_on_bench(entity: Dictionary) -> bool:
-	if not enabled or casting or not battle.is_empty(): return false
+	if not enabled or casting or dash_age>=0 or teleport_age>=0: return false
+	if not battle.is_empty() and (not battle.get("online",false) or battle.get("selfCombat",false)): return false
 	if indoor!=str(entity.get("seat_room","")): return false
-	if entity.get("kind","") not in ["bench","inn_sofa"] or not _can_stand(entity.pos): return false
+	if entity.get("kind","") not in ["bench","inn_sofa","inn_chair"] or not entity.get("seat_visual") is Vector2 or not _can_stand(entity.pos): return false
 	clear_bench()
 	click_door_id = ""
 	path = _seat_route(entity.pos)
@@ -760,19 +801,46 @@ func advance_bench(delta: float) -> void:
 	elif bench_state=="stand" and bench_age>=BENCH_STAND_DURATION:
 		var resume = bench_has_destination
 		var destination_after_stand = bench_destination
+		var interaction_after_stand = clicked_interaction_id
 		clear_bench()
-		if resume: walk_to(destination_after_stand)
+		if resume:
+			walk_to(destination_after_stand)
+			clicked_interaction_id = interaction_after_stand
 
 func bench_visual_position() -> Vector2:
-	if not bench_pose_active(): return player_position
-	var blend = 1.0
-	if bench_state=="sit": blend = clampf(bench_age/BENCH_SIT_DURATION,0,1)
-	elif bench_state=="stand": blend = 1.0-clampf(bench_age/BENCH_STAND_DURATION,0,1)
-	if reduced_motion: blend = 0.0 if bench_state=="stand" else 1.0
-	return player_position.lerp(bench_entity.seat_visual,smoothstep(0,1,blend))
+	return furniture_visual_position(player_position,bench_state,bench_age,bench_entity)
+
+func furniture_at(point: Vector2) -> Dictionary:
+	for entity in entities:
+		if entity.has("seat_visual") and point.distance_to(entity.pos)<1.5: return entity
+	return {}
+
+func furniture_visual_position(point: Vector2, state: String, age: float, seat: Dictionary = {}) -> Vector2:
+	if state not in ["sit","seated","stand"]: return point
+	# Remote players publish their walkable foot anchor; resolve its authored seat.
+	if seat.is_empty(): seat = furniture_at(point)
+	if seat.is_empty(): return point
+	var blend: float = 1.0
+	if state=="sit": blend = clampf(age/BENCH_SIT_DURATION,0,1)
+	elif state=="stand": blend = 1.0-clampf(age/BENCH_STAND_DURATION,0,1)
+	if reduced_motion: blend = 0.0 if state=="stand" else 1.0
+	return point.lerp(seat.seat_visual,smoothstep(0,1,blend))
 
 func interact_with(entity: Dictionary) -> void:
-	if not enabled or not bench_state.is_empty(): return
+	if not enabled: return
+	if not bench_state.is_empty():
+		if entity.id==bench_entity.get("id",""):
+			bench_has_destination = false
+			clicked_interaction_id = ""
+			stand_from_bench()
+			return
+		if bench_pose_active():
+			bench_destination = entity.pos
+			bench_has_destination = true
+			clicked_interaction_id = str(entity.id)
+			stand_from_bench()
+			return
+		clear_bench()
 	if entity.kind == "building" and entity.get("auto_enter",false):
 		walk_to(entity.pos)
 		return
@@ -785,6 +853,11 @@ func interact_with(entity: Dictionary) -> void:
 		walk_to(entity.pos)
 		if not path.is_empty(): clicked_interaction_id = str(entity.id)
 
+func river_cast_target() -> Dictionary:
+	if not indoor.is_empty() or layout == null: return {}
+	var river = layout.get_node_or_null("Placements/RiverQuarter")
+	return river.cast_target(player_position,last_move_direction) if river != null else {}
+
 func interact() -> void:
 	if not enabled: return
 	if not bench_state.is_empty():
@@ -792,6 +865,9 @@ func interact() -> void:
 	elif not nearest.is_empty(): interacted.emit(nearest)
 
 func change_interior(id: String) -> void:
+	exit_pending = false
+	exit_intent_time = 0.0
+	click_door_id = ""
 	clicked_interaction_id = ""
 	clear_bench()
 	if indoor == "": outside_position = player_position
@@ -821,34 +897,24 @@ func change_interior(id: String) -> void:
 	else:
 		player_position = Vector2(192, 200)
 		entities.append({"id":"exit", "name":"밖으로 나가기", "kind":"exit", "pos":Vector2(192, 308)})
-		if id == "arcana_academy":
-			entities.clear()
-			entities.append_array(Academy.rooms(academy_floor))
-			entities.append({"id":"academy_stairs","name":"2층으로 올라가기" if academy_floor == 1 else "1층으로 내려가기","kind":"academy_stairs","pos":Academy.stair_point(academy_floor)})
-			if academy_floor == 1:
-				entities.append({"id":"exit","name":"밖으로 나가기","kind":"exit","pos":Vector2(192,304)})
-			obstacles.append_array(Academy.collision_rects(academy_floor))
-			player_position = Vector2(192,260) if academy_floor == 1 else Academy.arrival_point(2)
-		elif id == "arcana_shop":
+		if id == "arcana_shop":
 			shop_layout = Shop2D.load_layout()
 			if not shop_layout.get("valid",false):
-				push_error("Shop TileMap requires one counter, one doorway and floor cells.")
+				push_error("Shop layout is invalid: " + str(shop_layout.get("errors", [])))
 				return
 			entities[0].pos = shop_layout.markers.exit
 			entities.append({"id":"merchant","name":"상인과 거래하기","kind":"merchant","pos":shop_layout.markers.merchant})
 			obstacles.append_array(shop_layout.rectangles)
 			player_position = shop_layout.markers.arrival
-		elif id == "arcana_inn":
-			var lobby = preload("res://scripts/inn_lobby.gd")
-			entities[0].pos = lobby.EXIT_POINT
-			entities.append({"id":"inn_quest_board", "name":"퀘스트판 살펴보기", "kind":"quest_board", "pos":lobby.QUEST_BOARD_POINT, "interaction_radius":26.0})
-			entities.append({"id":"innkeeper", "name":"여관주인과 대화하기", "kind":"innkeeper", "pos":lobby.COUNTER_POINT})
-			entities.append({"id":"inn_sofa", "name":"소파에서 쉬기", "kind":"inn_sofa", "pos":lobby.SOFA_POINT, "seat_visual":lobby.SOFA_SEAT_VISUAL, "seat_room":"arcana_inn"})
-			obstacles.append_array(lobby.collision_rects())
 		else:
-			entities.append({"id":"counter", "name":"시설 이용하기", "kind":"scene", "pos":Vector2(192, 148)})
-			obstacles.append(Rect2(110, 90, 166, 35))
-			_sprite(Pixels.person("9b8571", "b2a383", 0, 0), Vector2(192, 100), true)
+			var authored: Dictionary = preload("res://scripts/region_layout.gd").load_region(id, academy_floor)
+			if not authored.get("valid", false):
+				push_error("Invalid authored region: " + str(authored.get("errors", [])))
+				return
+			entities.assign(authored.entities)
+			obstacles.assign(authored.rectangles)
+			player_position = authored.markers.get("Arrival", Vector2(192,200))
+
 	player_position = nearest_walkable(player_position)
 	_update_camera(true)
 	set_art_state(dusk, effects_enabled)
@@ -858,7 +924,8 @@ func change_academy_floor(level: int) -> void:
 	if indoor != "arcana_academy": return
 	academy_floor = clampi(level,1,2)
 	change_interior("arcana_academy")
-	player_position = nearest_walkable(Academy.arrival_point(academy_floor))
+	var authored: Dictionary = preload("res://scripts/region_layout.gd").load_region(indoor, academy_floor)
+	player_position = nearest_walkable(authored.get("markers", {}).get("StairArrival", player_position))
 	player.position = player_position
 	_update_camera(true)
 
@@ -875,7 +942,7 @@ func _draw() -> void:
 	if indoor == "": _draw_outdoors()
 	else: _draw_indoors()
 	# Soft ground shadow and a tiny wayfinding ring.
-	draw_ellipse(player_position + Vector2(0, 1), Vector2(8, 3), Color(0.10, .20, .19, .35))
+	_draw_pixel_ellipse(player_position + Vector2(0, 1), Vector2(8, 3), Color(0.10, .20, .19, .35))
 	if not path.is_empty():
 		draw_arc(path[path.size() - 1], 5, 0, TAU, 12, Color("d3d5a2"), 1)
 	if not nearest.is_empty():
@@ -884,8 +951,8 @@ func _draw() -> void:
 		draw_circle(p + Vector2(0, -32 + sin(time * 4) * 2), 2, Color("ead5a0"))
 	for p in footsteps:
 		var age = 1.0-p.life/.38
-		draw_ellipse(p.pos,Vector2(1+age*3,.5+age),Color(.78,.76,.58,(1-age)*.24))
-func draw_ellipse(pos: Vector2, radius: Vector2, color: Color) -> void:
+		_draw_pixel_ellipse(p.pos,Vector2(1+age*3,.5+age),Color(.78,.76,.58,(1-age)*.24))
+func _draw_pixel_ellipse(pos: Vector2, radius: Vector2, color: Color) -> void:
 	draw_set_transform(pos, 0, radius)
 	draw_circle(Vector2.ZERO, 1, color)
 	draw_set_transform(Vector2.ZERO)
@@ -908,9 +975,9 @@ func _draw_outdoors() -> void:
 		var p = Vector2(944 + (i * 31) % 204, 848 + (i * 37) % 348)
 		draw_rect(Rect2(p + Vector2(int(time * 3 + i) % 6, 0), Vector2(5 + i % 5, 1)), Color("6ca1a4"))
 	# The encounter marker is the actual enemy, not a second combat illustration.
-	var slime_pos = Vector2(600, 1054)
+	var slime_pos = CityMap.HUNTING_HOME
 	if battle.get("phase", "") not in ["victory", "defeat"] or impact_remaining > 0:
-		draw_ellipse(slime_pos + Vector2(0, 1), Vector2(12, 3), Color(0.12, .28, .22, .4))
+		_draw_pixel_ellipse(slime_pos + Vector2(0, 1), Vector2(12, 3), Color(0.12, .28, .22, .4))
 		draw_texture(slime_frames[int(time * 2) % 2], slime_pos - Vector2(12, 20))
 		if not battle.is_empty():
 			var attack_in = float(battle.get("attackIn", 6))

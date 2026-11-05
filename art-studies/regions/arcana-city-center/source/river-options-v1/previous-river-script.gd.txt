@@ -1,0 +1,9 @@
+@tool
+extends Node2D
+## Scene owns the art/collision; this script only follows the world's visual clock.
+func sync_river(world: Node2D) -> void:
+    var surface := get_node("Water") as Polygon2D
+    var material := surface.material as ShaderMaterial
+    var animate: bool = world.effects_enabled and not world.reduced_motion
+    material.set_shader_parameter("river_time", world.time if animate else 0.0)
+    material.set_shader_parameter("reflection_strength", (0.85 if world.dusk else 0.22) if world.effects_enabled else 0.0)

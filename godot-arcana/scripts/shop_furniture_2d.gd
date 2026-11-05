@@ -1,16 +1,11 @@
 @tool
 extends Sprite2D
-## Authored sprites share the room origin; offset records the visible placement.
+## Position is the contact point; offset registers the artwork around the feet.
 const Data = preload("res://scripts/shop_layout_2d.gd")
 @export var asset_id: String = ""
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		set_notify_transform(true)
-	else:
-		# Restore the contact point at runtime for Godot Y sorting.
-		var contact = contact_point()
-		offset -= contact - position
-		position = contact
 func contact_point() -> Vector2:
 	var spec: Dictionary = Data.definitions().get(asset_id,{})
 	var foot: Array = spec.get("foot", [0,0])

@@ -18,12 +18,12 @@ export function event(world:SharedWorld,kind:WorldEvent["kind"],position:Point,e
   world.events.push({id:++world.revision,kind,position:copy(position),amount:0,...extra});
   world.events=world.events.slice(-96);
 }
-function projectile(world:SharedWorld,actor:Actor,id:"fireball"|"giant_fireball"|"flame_barrage",aim:Point,damage:number,targetId?:string) {
+function projectile(world:SharedWorld,actor:Actor,id:"fireball"|"giant_fireball"|"flame_barrage",aim:Point,damage:number,targetId?:string,clientActionId?:string) {
   const t=spatialLayout().tuning, length=Math.hypot(aim.x,aim.y);
   if (length<.001) throw new OnlineError("invalid_aim","발사 방향을 선택해 주세요.",400);
-  const shot:Shot={id:crypto.randomUUID(),ownerId:actor.character.id,position:copy(actor.position),origin:copy(actor.position),direction:{x:aim.x/length,y:aim.y/length},remaining:effectiveSpell(actor.game.state,id).rangeTiles*t.tile,damage,spellId:id,radius:t.projectileRadius*(id==="giant_fireball"?2:1),hitIds:[],masteryAwarded:false,pierce:id==="fireball" && fireballSpecialization(actor.game.state,"reach")?3:1,explode:id==="fireball" && fireballSpecialization(actor.game.state,"burst"),targetId};
+  const shot:Shot={clientActionId,id:crypto.randomUUID(),ownerId:actor.character.id,position:copy(actor.position),origin:copy(actor.position),direction:{x:aim.x/length,y:aim.y/length},remaining:effectiveSpell(actor.game.state,id).rangeTiles*t.tile,damage,spellId:id,radius:t.projectileRadius*(id==="giant_fireball"?2:1),hitIds:[],masteryAwarded:false,pierce:id==="fireball" && fireballSpecialization(actor.game.state,"reach")?3:1,explode:id==="fireball" && fireballSpecialization(actor.game.state,"burst"),targetId};
   world.projectiles.push(shot);
-  event(world,"cast",actor.position,{actorId:actor.character.id,projectileId:shot.id,direction:shot.direction});
+  event(world,"cast",actor.position,{actorId:actor.character.id,projectileId:shot.id,direction:shot.direction,clientActionId});
 }
 export type Death = {lifeId:string;winnerId:string;money:number;xp:number};
 /** Strategy boundary for future boss encounters: distribute actual HP damage, never overkill. */
@@ -44,14 +44,14 @@ function damage(world:SharedWorld,actor:Actor,amount:number,deaths:Death[],extra
   event(world,"hit",e.position,{amount:dealt,actorId:actor.character.id,enemyId:e.id,targetPosition:copy(e.position),...extra});
   if(e.behavior==="neutral") {e.behavior="chase";e.attackIn=spatialLayout().tuning.attackInterval;}
   if(e.hp===0 && !e.rewarded) {
-    e.rewarded=true;e.respawnAt=Date.now()+30000;
+    e.rewarded=true;e.respawnAt=Date.now();
     deaths.push({lifeId:e.lifeId,winnerId:actor.character.id,money:30,xp:0});
     actor.game.state.money+=30;
     event(world,"enemy_down",e.position,{actorId:actor.character.id,enemyId:e.id,rewards:{money:30,xp:0}});
   }
   return dealt;
 }
-export function cast(world:SharedWorld,actor:Actor,command:string,aim:Point|undefined,target:Point|undefined,deaths:Death[],resolveMove:(from:Point,to:Point)=>Point=(from,to)=>spatialMove(from,to,3)) {
+export function cast(world:SharedWorld,actor:Actor,command:string,aim:Point|undefined,target:Point|undefined,deaths:Death[],resolveMove:(from:Point,to:Point)=>Point=(from,to)=>spatialMove(from,to,3),clientActionId?:string) {
   const state=actor.game.state,c=state.arcanaCombat,t=spatialLayout().tuning;
   if (command==="spatial_sync") return;
   if (command==="dodge" || command==="teleport") {
@@ -71,25 +71,25 @@ export function cast(world:SharedWorld,actor:Actor,command:string,aim:Point|unde
   }
   if(!isArcanaSpell(command)) throw new OnlineError("invalid_command","공용 전투에서 지원하지 않는 입력입니다.",400);
   if(!inField(actor) || actor.bench || state.npcDialogue.active) throw new OnlineError("combat_unavailable","현재 위치에서는 공격할 수 없습니다.");
-  if(command==="flame_guard") {castFlameGuard(state);event(world,"guard",actor.position,{actorId:actor.character.id});return;}
+  if(command==="flame_guard") {castFlameGuard(state);event(world,"guard",actor.position,{actorId:actor.character.id,clientActionId});return;}
   const spell=effectiveSpell(state,command),range=spell.rangeTiles*t.tile;
   if(world.enemy.behavior==="return") throw new OnlineError("enemy_returning","슬라임이 원래 자리로 돌아가고 있습니다.");
   if(command==="meteor") {
     if(!target || distance(actor.position,target)>range || spatialWall(actor.position,target,0)!==null) throw new OnlineError("invalid_target","사거리 안의 지점을 선택해 주세요.",400);
     spendSpell(state,command);
-    const meteor={id:crypto.randomUUID(),ownerId:actor.character.id,position:copy(target),remaining:1,damage:spellMagnitude(state,command)};
-    world.meteors.push(meteor);event(world,"meteor_warning",target,{actorId:actor.character.id,projectileId:meteor.id});
+    const meteor={clientActionId,id:crypto.randomUUID(),ownerId:actor.character.id,position:copy(target),remaining:1,damage:spellMagnitude(state,command)};
+    world.meteors.push(meteor);event(world,"meteor_warning",target,{actorId:actor.character.id,projectileId:meteor.id,clientActionId});
   } else if(command==="flame_barrage") {
     if(world.enemy.hp<=0 || distance(actor.position,world.enemy.position)>range || spatialWall(actor.position,world.enemy.position,0)!==null) throw new OnlineError("no_target","사거리 안에 적이 없습니다.");
-    spendSpell(state,command);world.barrages.push({ownerId:actor.character.id,remaining:12,nextIn:0,damage:spellMagnitude(state,command)});
+    spendSpell(state,command);world.barrages.push({clientActionId,ownerId:actor.character.id,remaining:12,nextIn:0,damage:spellMagnitude(state,command)});
   } else {
     if(!aim || Math.hypot(aim.x,aim.y)<.001) throw new OnlineError("invalid_aim","발사 방향을 선택해 주세요.",400);
     spendSpell(state,command);
     if(command==="flame_wave") {
-      event(world,"wave",actor.position,{actorId:actor.character.id,direction:aim});
+      event(world,"wave",actor.position,{actorId:actor.character.id,direction:aim,clientActionId});
       const e=world.enemy;
       if(circleIntersectsCone(actor.position,aim,e.position,t.enemyRadius,range,ARCANA_SPELLS.flame_wave.angle) && spatialWall(actor.position,e.position,0)===null) trainArcanaSkill(state,command,damage(world,actor,spellMagnitude(state,command),deaths));
-    } else projectile(world,actor,command,aim,spellMagnitude(state,command));
+    } else projectile(world,actor,command,aim,spellMagnitude(state,command),undefined,clientActionId);
   }
 }
 export function tickCombat(world:SharedWorld,actors:Map<string,Actor>,seconds:number,deaths:Death[]) {
@@ -158,7 +158,7 @@ export function tickCombat(world:SharedWorld,actors:Map<string,Actor>,seconds:nu
   for(const barrage of [...world.barrages]) {
     const owner=actors.get(barrage.ownerId);barrage.nextIn-=seconds;
     if(!owner || !inField(owner) || e.hp<=0 || distance(owner.position,e.position)>8*t.tile) barrage.remaining=0;
-    if(barrage.remaining>0 && barrage.nextIn<=0) {projectile(world,owner!,"flame_barrage",{x:e.position.x-owner!.position.x,y:e.position.y-owner!.position.y},barrage.damage,e.id);barrage.remaining--;barrage.nextIn+=.2;}
+    if(barrage.remaining>0 && barrage.nextIn<=0) {projectile(world,owner!,"flame_barrage",{x:e.position.x-owner!.position.x,y:e.position.y-owner!.position.y},barrage.damage,e.id,barrage.clientActionId?barrage.clientActionId+"-"+(13-barrage.remaining):undefined);barrage.remaining--;barrage.nextIn+=.2;}
     if(barrage.remaining===0)world.barrages=world.barrages.filter(b=>b!==barrage);
   }
   for(const shot of [...world.projectiles]) {

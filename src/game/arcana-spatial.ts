@@ -314,11 +314,12 @@ export function tickSpatialCombat(state: GameState, seconds: number) {
       for(const hit of hits) {
         if(hit.e.hp<=0) continue;
         const impact=mix(p.position,next,hit.fraction);
-        let contribution=damageEnemy(state,b,hit.e,p.damage,p.id,p.direction,impact);
+        const hitDamage=p.spellId==="fireball" ? spellMagnitude(state,"fireball") : p.damage;
+        let contribution=damageEnemy(state,b,hit.e,hitDamage,p.id,p.direction,impact);
         p.hitIds.push(hit.e.id);
         if(p.explode) {
           spatialEvent(b,"explosion",hit.e.position,0,p.id);
-          for(const e of s.enemies) if(e.id!==hit.e.id && distance(e.position,hit.e.position)<=t.tile+t.enemyRadius && wallFraction(hit.e.position,e.position,0)===null) contribution+=damageEnemy(state,b,e,Math.floor(p.damage*.5));
+          for(const e of s.enemies) if(e.id!==hit.e.id && distance(e.position,hit.e.position)<=t.tile+t.enemyRadius && wallFraction(hit.e.position,e.position,0)===null) contribution+=damageEnemy(state,b,e,Math.floor(hitDamage*.5));
         }
         if(p.spellId==="fireball" && contribution>0 && !p.masteryAwarded) {trainArcanaSkill(state,"fireball",10);p.masteryAwarded=true;}
         if(p.hitIds.length>=p.pierce) {spent=true;break;}

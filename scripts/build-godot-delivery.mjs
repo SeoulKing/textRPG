@@ -15,6 +15,8 @@ for (const entry of entries) {
   await cp(path.join(source, entry.name), target);
   if (/\.(js|wasm|pck)$/.test(entry.name)) {
     await pipeline(createReadStream(target), createGzip({ level: 6 }), createWriteStream(target + ".gz"));
+    // Development serves godot-web with preCompressed enabled as well.
+    await cp(target + ".gz", path.join(source, entry.name + ".gz"));
   }
 }
 console.log("Godot deployment snapshot and gzip variants built.");

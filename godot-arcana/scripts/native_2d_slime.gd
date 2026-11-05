@@ -7,7 +7,7 @@ const SURFACE_ATLAS = preload("res://art/export/monsters/slime-surface.res")
 const SHADER = preload("res://art/resources/slime_sprite.gdshader")
 const COMBAT_LAYOUT = preload("res://art/export/combat-layout.json")
 const LANDING_SECONDS: float = 0.24
-const SHADOW = preload("res://art/resources/heroine_shadow.gdshader")
+const SHADOW = preload("res://art/resources/contact_shadow.gdshader")
 @export_enum("idle","hop","prepare","attack","hit","death") var preview_animation = "idle"
 @export var preview_playing = true
 @export var standalone_preview = false
@@ -31,6 +31,7 @@ var landing_at: float = -100.0
 
 var sprite: Sprite2D
 func _ready() -> void:
+    add_to_group("native_slime_pixels")
     sprite=Sprite2D.new()
     var canvas=Image.create(64,80,false,Image.FORMAT_RGBA8);canvas.fill(Color.WHITE)
     sprite.texture=ImageTexture.create_from_image(canvas)
@@ -65,7 +66,7 @@ func show_spatial_pose(behavior: String, attack_in: float, effects: bool) -> boo
         var progress = clampf(jump_clock/float(COMBAT_LAYOUT.data.tuning.jumpDuration),0,1)
         # Frames 3..16 cover lift-off to the last airborne pose; 17 is ground contact.
         show_frame("attack",mini(16,3+int(progress*14)) if effects else 0)
-        var lift = sin(progress*PI)*.22 if effects else 0.0
+        var lift = roundf(sin(progress*PI)*14.0)/64.0 if effects else 0.0
         material.set_shader_parameter("sprite_lift",lift)
         shadow.scale = Vector2.ONE*(1.0-lift*.9)
         return true
@@ -83,6 +84,12 @@ func show_spatial_pose(behavior: String, attack_in: float, effects: bool) -> boo
             show_frame("attack",int(clampf((.14-attack_in)/.14,0,1)*2) if effects else 0)
         return true
     return false
+
+# Camera calls this after its own pixel alignment, including secondary enemies.
+func snap_to_pixels() -> void:
+    if sprite == null or not is_inside_tree(): return
+    var screen = get_viewport().get_stretch_transform()*get_global_transform_with_canvas()
+    sprite.position = screen.affine_inverse()*(screen*Vector2.ZERO).round()
 
 func play_hit() -> void:
     queued_hit = true

@@ -3,8 +3,8 @@
   "approvedConcept": "art-studies/props/bed-single-v3/concept.png",
   "nativeSource": "res://art/source/props/bed-single-v3/bed.pxpen",
   "texture": "res://art/export/bed-single-v3/bed.png",
-  "scene3d": "res://scenes/props/bed_single.tscn",
-  "scene2d": "res://scenes/props/bed_single_2d.tscn",
+  "scene3d": "res://scenes/props/shared/beds/bed_single.tscn",
+  "scene2d": "res://scenes/props/shared/beds/bed_single_2d.tscn",
   "tileSet": "res://art/export/bed-single-v3/bed_tileset.tres",
   "canvas": [
     112,

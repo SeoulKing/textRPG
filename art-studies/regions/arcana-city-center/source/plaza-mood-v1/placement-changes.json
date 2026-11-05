@@ -1,0 +1,226 @@
+{
+  "approval": "User: ㅇㅇ (2026-10-31), approved concept-v1.png and game asset production/application.",
+  "scene": "godot-arcana/scenes/native_2d/plaza.tscn",
+  "existingTransformsChanged": 0,
+  "existingLampVisuals": [
+    "lamp_post_02",
+    "lamp_post_03",
+    "lamp_post_04",
+    "lamp_post_05",
+    "lamp_post_06",
+    "lamp_post_07"
+  ],
+  "additions": [
+    {
+      "name": "plaza_tree_01",
+      "id": "plaza-tree",
+      "kind": "oak",
+      "at": [
+        1728,
+        1408
+      ],
+      "collision": [
+        1696,
+        1379.2,
+        64,
+        40
+      ]
+    },
+    {
+      "name": "plaza_tree_02",
+      "id": "plaza-tree",
+      "kind": "oak",
+      "at": [
+        2800,
+        1376
+      ],
+      "collision": [
+        2768,
+        1347.2,
+        64,
+        40
+      ]
+    },
+    {
+      "name": "plaza_tree_03",
+      "id": "plaza-tree",
+      "kind": "oak",
+      "at": [
+        1792,
+        2232
+      ],
+      "collision": [
+        1760,
+        2203.2,
+        64,
+        40
+      ]
+    },
+    {
+      "name": "plaza_tree_04",
+      "id": "plaza-tree",
+      "kind": "oak",
+      "at": [
+        2896,
+        2392
+      ],
+      "collision": [
+        2864,
+        2363.2,
+        64,
+        40
+      ]
+    },
+    {
+      "name": "plaza_tree_05",
+      "id": "plaza-tree",
+      "kind": "oak",
+      "at": [
+        2016,
+        2512
+      ],
+      "collision": [
+        1984,
+        2483.2,
+        64,
+        40
+      ]
+    },
+    {
+      "name": "plaza_tree_06",
+      "id": "plaza-tree",
+      "kind": "oak",
+      "at": [
+        2656,
+        2576
+      ],
+      "collision": [
+        2624,
+        2547.2,
+        64,
+        40
+      ]
+    },
+    {
+      "name": "plaza_flowers_01",
+      "id": "flower-planter",
+      "kind": "flowerbed",
+      "at": [
+        1952,
+        1600
+      ],
+      "collision": [
+        1872,
+        1568,
+        160,
+        32
+      ]
+    },
+    {
+      "name": "plaza_flowers_02",
+      "id": "flower-planter",
+      "kind": "flowerbed",
+      "at": [
+        2656,
+        1600
+      ],
+      "collision": [
+        2576,
+        1568,
+        160,
+        32
+      ]
+    },
+    {
+      "name": "plaza_flowers_03",
+      "id": "flower-planter",
+      "kind": "flowerbed",
+      "at": [
+        1936,
+        2016
+      ],
+      "collision": [
+        1856,
+        1984,
+        160,
+        32
+      ]
+    },
+    {
+      "name": "plaza_flowers_04",
+      "id": "flower-planter",
+      "kind": "flowerbed",
+      "at": [
+        2672,
+        2048
+      ],
+      "collision": [
+        2592,
+        2016,
+        160,
+        32
+      ]
+    },
+    {
+      "name": "plaza_flowers_05",
+      "id": "flower-planter",
+      "kind": "flowerbed",
+      "at": [
+        1912,
+        2310
+      ],
+      "collision": [
+        1832,
+        2278,
+        160,
+        32
+      ]
+    },
+    {
+      "name": "plaza_flowers_06",
+      "id": "flower-planter",
+      "kind": "flowerbed",
+      "at": [
+        2696,
+        2340
+      ],
+      "collision": [
+        2616,
+        2308,
+        160,
+        32
+      ]
+    },
+    {
+      "name": "plaza_flowers_07",
+      "id": "flower-planter",
+      "kind": "flowerbed",
+      "at": [
+        2112,
+        1440
+      ],
+      "collision": [
+        2032,
+        1408,
+        160,
+        32
+      ]
+    },
+    {
+      "name": "plaza_flowers_08",
+      "id": "flower-planter",
+      "kind": "flowerbed",
+      "at": [
+        2592,
+        1440
+      ],
+      "collision": [
+        2512,
+        1408,
+        160,
+        32
+      ]
+    }
+  ],
+  "staticClearance": "New footprints checked against authored collision rectangles, five bench access areas, and fountain clearance. This is not a play test."
+}

@@ -5,6 +5,8 @@ var enemy_health_hud: Control
 const FlameVfx = preload("res://scripts/native_2d_flame.gd")
 const EffectPool = preload("res://scripts/native_2d_effect_pool.gd")
 var effect_pool: Node
+const Anticipation = preload("res://scripts/skill_anticipation.gd")
+var anticipation = Anticipation.new()
 var pending_cast: Dictionary = {}
 # One follow-up input bridges the windup without building an endless cast backlog.
 var buffered_cast: Dictionary = {}
@@ -66,6 +68,7 @@ var additional_visuals: Node
 const UltimateVisuals = preload("res://scripts/native_2d_ultimate.gd")
 
 func _ready() -> void:
+	anticipation.combat = self
 	additional_visuals = UltimateVisuals.new()
 	additional_visuals.combat = self
 	add_child(additional_visuals)
@@ -93,6 +96,18 @@ func _ready() -> void:
 	jump_line = _line(Color("ad63d9"))
 	jump_line.hide()
 
+func network_interrupted() -> void:
+	connection_lost = true
+	anticipation.clear()
+	main.world.cancel_dash()
+	main.world.cancel_teleport()
+	cancel_aim()
+	_clear_queued_commands()
+	local_shots.clear()
+	predicted.clear()
+	visual_outcomes.clear()
+	_update_predicted_health()
+
 func _point(value: Dictionary) -> Vector2:
 	return Vector2(float(value.get("x",0)),float(value.get("y",0)))
 
@@ -106,6 +121,7 @@ func _spatial() -> Dictionary:
 	return _battle().get("spatial",{})
 
 func available() -> bool:
+	if is_instance_valid(main.life) and main.life.blocking(): return false
 	return not main.snapshot.is_empty() and main.world.indoor.is_empty() and main._state().get("flags",{}).get("in_magic_world",false) and (not _spatial().is_empty() or (main._state().get("location","") == "arcana_plaza" and _battle().is_empty()))
 
 func _visible_targets(command: String = "fireball") -> Array:
@@ -155,7 +171,7 @@ func _reserved_cost() -> float:
 		cost += float(main._spell(str(pending.command)).get("cost",0))
 	for command in pending_commands.values():
 		cost += float(main._spell(str(command)).get("cost",0))
-	return cost
+	return cost+anticipation.reserved_cost()
 
 func _command_pending(command: String) -> bool:
 	var spell: Dictionary = main._spell(command)
@@ -171,6 +187,7 @@ func _command_pending(command: String) -> bool:
 	return false
 
 func can_cast(command: String = "fireball") -> bool:
+	if main.fishing.visible or (is_instance_valid(main.life) and main.life.blocking()): return false
 	if effect_pool == null or not effect_pool.prepared or connection_lost or settling or queue.size() >= 8 or _command_pending(command): return false
 	var spell: Dictionary = main._spell(command)
 	return (command=="fireball" or (main.world.teleport_age<0 and main.world.dash_age<0)) and main.world.bench_state.is_empty() and not spell.is_empty() and spell.get("unlocked",false) and spell.get("equipped",false) and available() and _battle().get("phase","") not in ["victory","defeat"] and _spatial().get("behavior","") != "return" and float(main._combat().get("mp",0))-_reserved_cost()>=float(spell.cost) and float(main._combat().get("cooldowns",{}).get(command,0))<=.01
@@ -246,6 +263,7 @@ func _auto_direction(command: String) -> Vector2:
 	return Vector2(sin(yaw),cos(yaw))
 
 func can_dash(command: String = "dodge") -> bool:
+	if main.fishing.visible or (is_instance_valid(main.life) and main.life.blocking()): return false
 	# Blink input depends on the local scene, never on an acknowledgement,
 	# cooldown snapshot, or the preceding blink's visual age.
 	if command == "teleport":
@@ -289,7 +307,18 @@ func _standard_dash(command: String) -> void:
 		if command == "dodge": main.world.cancel_dash()
 		main.ui.toast(data.get("message","대시를 사용할 수 없습니다."))
 
+func instant_guard() -> Dictionary:
+	if not can_cast("flame_guard") or anticipation.guard_pending(): return {"error":"skill_unavailable","quiet":true}
+	var id: String = anticipation.begin("flame_guard",main.world.last_move_direction,Vector2.INF)
+	var result: Dictionary = await main.combat_socket.request({"type":"arcana_combat","command":"flame_guard","actionId":id})
+	if int(result.get("transportGeneration",main.combat_socket.connection_generation))==main.combat_socket.connection_generation: anticipation.confirm(id,result)
+	else: anticipation.cancel(id)
+	return result
+
 func queue_command(command: String, direction: Vector2 = Vector2.ZERO, target: Vector2 = Vector2.INF) -> void:
+	if main.online_world and command in ["potion","flame_guard"]:
+		main._online_instant(command)
+		return
 	if command in ["dodge","teleport"]:
 		start_dash(command)
 		return
@@ -304,9 +333,11 @@ func queue_command(command: String, direction: Vector2 = Vector2.ZERO, target: V
 		else:
 			_start_fireball(direction)
 		return
-	queue.append({"queuedAt":Time.get_ticks_msec(),"command":command,"direction":direction,"target":target})
+	var preview_id: String = anticipation.begin(command,direction,target) if main.online_world else ""
+	queue.append({"queuedAt":Time.get_ticks_msec(),"command":command,"direction":direction,"target":target,"shotId":preview_id})
 
 func _start_fireball(direction: Vector2) -> void:
+	anticipation.last_cast_id = ""
 	pending_cast = {"direction":direction,"elapsed":0.0}
 	main.world_renderer.hero.begin_cast(direction)
 	main.world.casting = true
@@ -346,7 +377,7 @@ func _input(event: InputEvent) -> void:
 		cancel_aim()
 		get_viewport().set_input_as_handled()
 		return
-	if main.ui.overlay.visible or main.busy or not main.page_active:
+	if main.ui.overlay.visible or main.fishing.visible or main.busy or not main.page_active:
 		cancel_aim()
 		return
 	var handled = false
@@ -390,6 +421,7 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if not is_instance_valid(main.ui): return
 	visual_age += delta
+	anticipation.tick(delta)
 	var active = available()
 	if _spatial().is_empty() and local_shots.is_empty() and predicted.is_empty() and not request_busy:
 		visual_outcomes.clear()
@@ -428,7 +460,7 @@ func _process(delta: float) -> void:
 		if can_cast("fireball"):
 			main.world_renderer.hero.cast_age = .32
 			local_shot_sequence += 1
-			var shot_id = "local_"+str(local_shot_sequence)
+			var shot_id: String = main._new_action_id()
 			var origin: Vector2 = main.world.player_position
 			local_shots[shot_id] = {"position":origin,"direction":direction,"elapsed":0.0}
 			queue.append({"queuedAt":Time.get_ticks_msec(),"command":"fireball","direction":direction,"origin":origin,"shotId":shot_id})
@@ -444,6 +476,7 @@ func _process(delta: float) -> void:
 			var command = queue.pop_front()
 			if Time.get_ticks_msec()-int(command.get("queuedAt",0)) > INPUT_MAX_AGE_MS:
 				var expired_shot: String = str(command.get("shotId",""))
+				anticipation.cancel(expired_shot)
 				local_shots.erase(expired_shot)
 				visual_outcomes.erase(expired_shot)
 				_update_predicted_health()
@@ -466,6 +499,7 @@ func _clear_queued_commands(keep_teleports: bool = false) -> void:
 			retained.append(pending)
 			continue
 		var shot_id = str(pending.get("shotId",""))
+		if not shot_id.is_empty(): anticipation.cancel(shot_id)
 		local_shots.erase(shot_id)
 		visual_outcomes.erase(shot_id)
 		if pending.command in ["dodge","teleport"]:
@@ -503,11 +537,13 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 	if command == "fireball" and shot_id.is_empty():
 		predicted = {"position":sent_position,"direction":direction,"elapsed":0.0}
 	var action = {"type":"arcana_combat","command":command,"spatial":input}
+	if not shot_id.is_empty(): action.actionId = shot_id
 	if not _battle().is_empty(): action.battleId = _battle().id
 	var data: Dictionary = await main.combat_socket.request(action)
+	if main.online_world and int(data.get("transportGeneration",main.combat_socket.connection_generation))==main.combat_socket.connection_generation: anticipation.confirm(shot_id,data)
 	if command == "fireball": predicted = {}
 	pending_commands.erase(sent_sequence)
-	if settling or (main.online_world and data.has("spatialCombat") and int(data.get("worldRevision",0)) < main.online_presence.revision) or (data.has("spatialCombat") and int(data.get("sequence",-1)) < applied_sequence):
+	if (main.online_world and int(data.get("transportGeneration",main.combat_socket.connection_generation))!=main.combat_socket.connection_generation) or settling or (main.online_world and data.has("spatialCombat") and int(data.get("worldRevision",0)) < main.online_presence.revision) or (data.has("spatialCombat") and int(data.get("sequence",-1)) < applied_sequence):
 		local_shots.erase(shot_id)
 		if command in ["dodge","teleport"] and move_sequence == movement_sequence: dash_pending = false
 		in_flight -= 1
@@ -526,6 +562,7 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 		main._notify_spell_unlocks(previous_spells)
 		main.snapshot.availableActions = data.get("availableActions",main.snapshot.get("availableActions",[]))
 		if data.get("currentScene") is Dictionary: main.snapshot.currentScene = data.currentScene
+		if main.online_world: main.online_presence.reconcile_self(data)
 		main.world.battle = _battle().duplicate(true)
 		if main.online_world and float(main.world.battle.get("enemyHp",30))<=0: main.world.battle.phase = "victory"
 		main.world.enemy_visual_hp = float(_battle().get("enemyHp",30))
@@ -537,7 +574,7 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 		paused_sent = paused
 		main.last_clock_paused = paused
 		main.heartbeat = 0
-		if command == "fireball":
+		if not main.online_world and command == "fireball":
 			var cast_id = ""
 			for event in _spatial().get("events",[]):
 				if event.kind == "cast": cast_id = str(event.get("projectileId",""))
@@ -564,7 +601,7 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 			var server_position = _point(_spatial().player)
 			if command in ["dodge","teleport"]:
 				if move_sequence == movement_sequence: main.world.reconcile_dash(server_position,dash_endpoint)
-			elif not dash_pending and main.world.teleport_age<0 and main.world.dash_age<0 and server_position.distance_to(sent_position)>2:
+			elif not main.online_world and not dash_pending and main.world.teleport_age<0 and main.world.dash_age<0 and server_position.distance_to(sent_position)>2:
 				main.world.player_position = main.world.nearest_walkable(server_position+(main.world.player_position-sent_position))
 			for event in _spatial().get("events",[]):
 				if int(event.id)<=last_event: continue
@@ -577,9 +614,9 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 			_clear_queued_commands()
 			cancel_aim()
 			if _battle().get("phase","")=="victory":
-				# A fast finish response must not erase zero HP and the death pose before rendering.
+				# The plaza slime respawns as soon as the server confirms the victory.
 				var death_started_at: int = Time.get_ticks_msec()
-				var death_duration: float = .9 if main.world.effects_enabled and not main.world.reduced_motion else .1
+				var death_duration: float = 0.0 if _spatial().get("encounterId","")=="plaza_slime" else (.9 if main.world.effects_enabled and not main.world.reduced_motion else .1)
 				# Rewards were granted on defeat of the enemy; finish only acknowledges.
 				var result: Dictionary = await main._api("/api/games/"+main.game_id+"/actions",HTTPClient.METHOD_POST,{"type":"arcana_combat","command":"finish","battleId":_battle().id})
 				var remaining: float = death_duration-float(Time.get_ticks_msec()-death_started_at)/1000.0
@@ -642,6 +679,7 @@ func _present_contact(id: String, kind: String, point: Vector2) -> void:
 	_event({"kind":kind,"position":_json(point),"amount":damage,"projectileId":id,"_predicted":true})
 
 func _event(event: Dictionary) -> void:
+	if not event.get("_anticipated",false) and anticipation.suppress_event(event): return
 	var point = _point(event.get("targetPosition",event.position))
 	if event.kind in ["hit","miss","explosion","meteor"] and main.world.effects_enabled:
 		var burst: Node2D = effect_pool.take_flame(true,event.kind == "miss")
@@ -654,7 +692,7 @@ func _event(event: Dictionary) -> void:
 		if int(amounts.get("money",0))>0: reward_effects.show_reward(str(_battle().get("id",""))+":"+str(event.id),point,int(amounts.get("xp",0)),int(amounts.money))
 	if event.kind == "wave" and main.world.effects_enabled:
 		var wave = _line(Color(1.0,.45,.12,.65))
-		wave_effects.append({"node":wave,"at":point,"direction":_point(event.get("direction",{"x":0,"y":-1})),"age":0.0})
+		wave_effects.append({"node":wave,"at":point,"direction":_point(event.get("direction",{"x":0,"y":-1})),"age":0.0,"actionId":event.get("clientActionId","")})
 	if event.kind == "absorb": guard_flash = .15
 	if event.kind == "hurt" and float(event.get("amount",0))>0:
 		var incoming = main.world.player_position-enemy_position()
@@ -667,6 +705,7 @@ func _event(event: Dictionary) -> void:
 		if event.kind=="hit": additional_visuals.hit_enemy(str(event.get("enemyId","")))
 	if event.kind=="defeat":
 		main.world.player_position = main.world.spawn_position
+		if main.online_world: main.online_presence.reset_prediction()
 		main.world.path.clear()
 		main.world.touch_direction = Vector2.ZERO
 	if event.kind=="reset": selected = false
@@ -726,7 +765,7 @@ func _swept_contact(from: Vector2, to: Vector2, enemy_from: Vector2, enemy_to: V
 
 func _update_enemy_health_hud() -> void:
 	var renderer=main.world_renderer
-	var point=displayed_enemy if main.world.battle.has("spatial") else Vector2(600,1054)
+	var point=displayed_enemy if main.world.battle.has("spatial") else main.world.CityMap.HUNTING_HOME
 	var center=_screen(point,1.25)
 	var edge=_screen(point+Vector2(14.4,0),1.25)
 	var shown=renderer.enemy_meter_visible and main.world.indoor.is_empty() and not main.ui.overlay.visible and main.get_viewport().get_visible_rect().has_point(center)
@@ -738,10 +777,10 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 	aim_line.visible = active and manual and aim_owner != -1 and aim_spell in ["fireball","giant_fireball"]
 	aim_cone.visible = active and manual and aim_owner != -1 and aim_spell == "flame_wave"
 	aim_end_ring.visible = aim_line.visible
-	guard_ring.visible = not main.snapshot.is_empty() and float(main._combat().get("guard",{}).get("amount",0))>0 and main.world.indoor.is_empty()
+	guard_ring.visible = not main.snapshot.is_empty() and (float(main._combat().get("guard",{}).get("amount",0))>0 or anticipation.guard_pending()) and main.world.indoor.is_empty()
 	if guard_ring.visible:
 		guard_ring.position = main.world_renderer.map_point(main.world.player_position,.2)
-		var size_factor = .8+.2*float(main._combat().guard.seconds)/4.0
+		var size_factor: float = 1.0 if anticipation.guard_pending() else .8+.2*float(main._combat().guard.seconds)/4.0
 		if guard_flash > 0 and not main.world.reduced_motion: size_factor *= 1.08
 		guard_ring.scale = Vector2.ONE*size_factor
 	if not paused: guard_flash = maxf(0,guard_flash-delta)
@@ -749,7 +788,10 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 	jump_line.visible = false
 	var previous_enemy_position = displayed_enemy
 	if active:
-		if not paused: displayed_enemy = displayed_enemy.lerp(enemy_position(),1.0-exp(-delta*24)) if not main.world.reduced_motion else enemy_position()
+		if main.online_world:
+			displayed_enemy = main.online_presence.enemy_position(enemy_position())
+		elif not paused:
+			displayed_enemy = displayed_enemy.lerp(enemy_position(),1.0-exp(-delta*24)) if not main.world.reduced_motion else enemy_position()
 		var monster: Node2D = main.world_renderer.plaza_slime
 		monster.position = main.world_renderer.map_point(displayed_enemy)
 		selected_ring.position = main.world_renderer.map_point(displayed_enemy,.04)
@@ -769,8 +811,10 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 	for id in local_shots:
 		var shot: Dictionary = local_shots[id]
 		if not paused: shot.elapsed += delta
-		var point: Vector2 = shot.position+shot.direction*minf(_spell_range("fireball"),float(shot.elapsed)*float(layout.tuning.projectileSpeed))
-		living[id] = {"position":_json(point),"direction":_json(shot.direction),"spellId":"fireball"}
+		var spell_id: String = str(shot.get("spellId","fireball"))
+		if spell_id=="flame_barrage": shot.direction = (enemy_position()-Vector2(shot.position)).normalized()
+		var point: Vector2 = shot.position+shot.direction*minf(_spell_range(spell_id),float(shot.elapsed)*float(layout.tuning.projectileSpeed))
+		living[id] = {"position":_json(point),"origin":_json(shot.position),"direction":_json(shot.direction),"spellId":spell_id}
 	for id in projectile_nodes.keys():
 		if not living.has(id):
 			projectile_nodes[id].scale = Vector2.ONE
@@ -783,7 +827,13 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 		var heading = _point(shot.direction)
 		node.visible = active
 		node.scale = Vector2.ONE*(2.0 if shot.get("spellId","")=="giant_fireball" else 1.0)
-		node.position = main.world_renderer.map_point(_point(shot.position),.75)
+		var point = _point(shot.position)
+		if str(shot.get("spellId","fireball")) in ["fireball","giant_fireball"] and shot.has("origin"):
+			var origin = _point(shot.origin)
+			# Continue between snapshots and preserve progress when a local shot is acknowledged.
+			var distance = node.advance_flight(origin.distance_to(point),float(layout.tuning.projectileSpeed),_spell_range(str(shot.get("spellId","fireball"))),delta,paused)
+			point = origin+heading*distance
+		node.position = main.world_renderer.map_point(point,.75)
 		node.direction = heading
 		node.light_enabled = main.world.effects_enabled
 		node.update_pose(main.world_renderer.camera,delta,paused,main.world.reduced_motion)

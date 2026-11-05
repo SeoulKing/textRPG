@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4d352656e8eaef0cb80ff6393f6ad3466ebe34bd441a6b73799bd31e64fac53b.res" id="11_igkpq"]
+[node name="Academy_book_trolley146" type="Sprite2D"]
+texture = ExtResource("11_igkpq")
+centered = false
+offset = Vector2(-53.6, -116.2)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-41.6, -35.2, 72, 56)]
+texture_filter = 1
+

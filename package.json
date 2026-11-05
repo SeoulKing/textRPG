@@ -1,21 +1,19 @@
 {
-  "name": "textrpg",
+  "name": "arcana",
   "version": "1.0.0",
-  "description": "Choice-driven survival text RPG MVP.",
+  "description": "Arcana Godot client and authoritative multiplayer server.",
   "main": "src/server.ts",
   "scripts": {
-    "build": "tsc --outDir .server-dist --rootDir src && node scripts/optimize-scene-images.mjs && node scripts/build-runtime-performance.mjs && node scripts/build-godot-delivery.mjs",
+    "build": "npm run build:server && npm run build:web",
     "dev": "tsx watch src/server.ts",
     "start": "npm run build && node .server-dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test:state-world": "npm run build && node --test tests/state-world.test.cjs",
-    "test:skills": "tsx --test tests/skill-progression.test.ts",
     "db:init": "tsx src/db/init.ts",
     "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\"",
     "test:arcana": "tsx --test tests/arcana-combat.test.ts",
-    "assets:validate": "node scripts/validate-cooking-sprites.mjs",
     "art:animation:validate": "node scripts/validate-heroine-animation.cjs",
-    "test:studio": "npm run build && node --test tests/content-studio.test.cjs tests/content-story-library.test.cjs tests/studio-outcomes.test.cjs tests/studio-hex-map.test.cjs tests/content-writer-workspace.test.cjs tests/studio-scene-pool.test.cjs tests/studio-stock-rewards.test.cjs"
+    "build:server": "tsc --outDir .server-dist --rootDir src",
+    "build:web": "node scripts/build-godot-delivery.mjs"
   },
   "repository": {
     "type": "git",

@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=122 format=3 uid="uid://cp05jksuq8et6"]
+[gd_resource type="SpriteFrames" format=3 uid="uid://cp05jksuq8et6"]
 
 [ext_resource type="Texture2D" uid="uid://cxdtm0l45xpvd" path="res://art/export/monsters/slime.png" id="1"]
 
@@ -557,7 +557,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Frame_91")
 }],
-"loop": false,
+"loop": 0,
 "name": &"attack",
 "speed": 24.0
 }, {
@@ -616,7 +616,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Frame_119")
 }],
-"loop": false,
+"loop": 0,
 "name": &"death",
 "speed": 20.0
 }, {
@@ -651,7 +651,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Frame_101")
 }],
-"loop": false,
+"loop": 0,
 "name": &"hit",
 "speed": 24.0
 }, {
@@ -740,7 +740,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Frame_51")
 }],
-"loop": true,
+"loop": 1,
 "name": &"hop",
 "speed": 24.0
 }, {
@@ -817,7 +817,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Frame_23")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 16.0
 }, {
@@ -870,7 +870,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Frame_67")
 }],
-"loop": true,
+"loop": 1,
 "name": &"prepare",
 "speed": 20.0
 }]

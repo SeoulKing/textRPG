@@ -1,10 +1,8 @@
 import "./load-env";
-import { registerStateWorldRoutes } from "./state-world-routes";
-import crypto from "node:crypto";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
+import Fastify from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { registerArcanaCombatSocket } from "./arcana-combat-socket";
@@ -19,30 +17,20 @@ import {
   worldRegistry,
 } from "./game/data/registry";
 import {
-  BUILT_IN_RECIPE_MENUS,
   loadStoredContentStudioDocument,
-  migrateRenamedItemTextReferences,
 } from "./game/content-studio";
-import { MAX_SKILL_LEVEL, FISHING_EFFECT_PER_LEVEL_PERCENT, SKILL_EFFECT_PER_LEVEL_PERCENT } from "./game/skill-progression";
-import { inspectStudio } from "./game/studio-validation";
-import { StudioPreviewService } from "./game/studio-preview";
-import { ContentVersionStore, registerContentVersion } from "./game/content-versions";
-import { StudioConflict, createContentStudioStore } from "./game/content-studio-store";
-import { baseItems } from "./game/data/items";
+import { ContentVersionStore } from "./game/content-versions";
+import { createContentStudioStore } from "./game/content-studio-store";
 import { GameActionSchema } from "./game/schemas";
 import { FileGameRepository, type GameRepository } from "./game/repository";
 import { PostgresGameRepository } from "./game/postgres-repository";
 import { GameService } from "./game/service";
-import { sendActionStream } from "./action-stream-response";
 import { AuthController } from "./auth";
 import { OnlineStore } from "./online/store";
+import { ArcanaItemCatalog } from "./online/item-catalog";
 import { OnlineAccounts, OnlineError } from "./online/accounts";
 import { ArcanaWorld } from "./online/world";
 import { registerOnlineRoutes } from "./online/routes";
-import {
-  hasGeminiConfig,
-  testGeminiConnection,
-} from "./game/gemini-client";
 
 const app = Fastify({
   logger: true,
@@ -50,10 +38,6 @@ const app = Fastify({
 });
 
 const webRoot = path.resolve(__dirname, "..");
-function runtimeFile(name: string) {
-  const built = path.join(webRoot, ".server-dist", "public", name);
-  return existsSync(built) ? built : path.join(webRoot, name);
-}
 const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 const repository: GameRepository = databaseUrl
   ? new PostgresGameRepository(databaseUrl, webRoot)
@@ -61,12 +45,11 @@ const repository: GameRepository = databaseUrl
 const contentStudioStore = createContentStudioStore(databaseUrl, webRoot);
 const gameService = new GameService(repository);
 const contentVersions = new ContentVersionStore(databaseUrl, webRoot);
-const studioPreview = new StudioPreviewService();
-app.addHook("onClose", async () => studioPreview.dispose());
 const onlineStore = new OnlineStore(databaseUrl, webRoot, repository);
+const arcanaItemCatalog = new ArcanaItemCatalog(onlineStore,webRoot);
 const onlineAccounts = new OnlineAccounts(onlineStore, repository, gameService);
 const authController = new AuthController(onlineAccounts, gameService, repository);
-const arcanaWorld = new ArcanaWorld(onlineStore, onlineAccounts, repository, gameService);
+const arcanaWorld = new ArcanaWorld(onlineStore, onlineAccounts, repository, gameService, arcanaItemCatalog);
 onlineAccounts.onRevoke = id => arcanaWorld.revoke(id);
 onlineAccounts.onCharactersChanged = ids => arcanaWorld.refreshCharacters(ids);
 app.setErrorHandler((error, request, reply) => {
@@ -76,69 +59,13 @@ app.setErrorHandler((error, request, reply) => {
   return reply.code((error as {statusCode?:number}).statusCode || 500).send({error:"request_failed",message:"요청을 처리하지 못했습니다."});
 });
 app.addHook("onClose", async () => { await arcanaWorld.stop(); await onlineStore.close(); });
-const contentStudioEnabled =
-  process.env.NODE_ENV !== "production" ||
-  process.env.ENABLE_CONTENT_STUDIO === "true";
-const graphicsPreviewEnabled = process.env.NODE_ENV !== "production";
-const contentStudioAdminToken = process.env.CONTENT_STUDIO_ADMIN_TOKEN?.trim() || "";
-const ActionRequestSchema = z.union([
-  GameActionSchema,
-  z.object({
-    action: GameActionSchema,
-  }).transform((value) => value.action),
-]);
-
-function tokensMatch(left: string, right: string) {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
-}
-
-function requireContentStudioAdmin(request: FastifyRequest, reply: FastifyReply) {
-  if (!databaseUrl && process.env.NODE_ENV === "production") {
-    reply.code(503).send({
-      error: "content_studio_database_required",
-      message: "온라인 콘텐츠를 영구 저장하려면 데이터베이스 연결이 필요합니다.",
-    });
-    return false;
-  }
-  if (!contentStudioAdminToken && process.env.NODE_ENV !== "production") {
-    return true;
-  }
-  if (!contentStudioAdminToken) {
-    reply.code(503).send({
-      error: "content_studio_not_configured",
-      message: "온라인 콘텐츠 스튜디오 관리자 비밀번호가 설정되지 않았습니다.",
-    });
-    return false;
-  }
-
-  const authorization = request.headers.authorization || "";
-  const suppliedToken = authorization.startsWith("Bearer ")
-    ? authorization.slice("Bearer ".length).trim()
-    : "";
-  if (!suppliedToken || !tokensMatch(suppliedToken, contentStudioAdminToken)) {
-    reply.code(401).send({
-      error: "content_studio_unauthorized",
-      message: "관리자 비밀번호를 확인해 주세요.",
-    });
-    return false;
-  }
-  return true;
-}
-
-async function loadCurrentContentStudioDocument() {
-  const [draft, published] = await Promise.all([
-    contentStudioStore.load("draft"),
-    contentStudioStore.load("published"),
-  ]);
-  return draft?.document ?? published?.document ?? loadStoredContentStudioDocument();
-}
+const ActionRequestSchema = z.union([GameActionSchema, z.object({ action: GameActionSchema }).transform(value => value.action)]);
 
 async function bootstrap() {
   if (process.env.NODE_ENV === "production" && (!databaseUrl || !process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32 || !process.env.PUBLIC_BASE_URL?.startsWith("https://"))) throw new Error("Production requires PostgreSQL, AUTH_SECRET (32+ characters), and HTTPS PUBLIC_BASE_URL");
   await repository.init();
   await onlineStore.init();
+  await arcanaItemCatalog.init();
   await contentStudioStore.init();
 
   const [storedPublished, storedDraft] = await Promise.all([
@@ -203,6 +130,7 @@ async function bootstrap() {
   });
 
   await app.register(websocket, { options: { maxPayload: 16 * 1024, perMessageDeflate: false } });
+  app.get("/api/arcana/items",async () => arcanaItemCatalog.summary());
   registerOnlineRoutes(app, onlineAccounts, authController, arcanaWorld);
   registerArcanaCombatSocket(app, gameService);
   await app.register(cors, {
@@ -217,12 +145,6 @@ async function bootstrap() {
     root: path.join(webRoot, "assets"),
     prefix: "/assets/",
   });
-  await app.register(staticPlugin, {
-    root: path.join(webRoot, "client"),
-    prefix: "/client/",
-    decorateReply: false,
-  });
-
   // Godot Compatibility / single-thread export needs no cross-origin isolation.
   await app.register(staticPlugin, {
     root: process.env.NODE_ENV === "production" && existsSync(path.join(webRoot, ".server-dist", "godot"))
@@ -231,260 +153,25 @@ async function bootstrap() {
     preCompressed: true,
     decorateReply: false,
   });
-  app.get("/", async (_request, reply) => {
-    reply.type("text/html; charset=utf-8");
-    return readFile(runtimeFile("index.html"), "utf8");
-  });
+  app.get("/", async (_request, reply) => reply.redirect("/godot/"));
   app.get("/account.html", async (_request, reply) => reply.type("text/html; charset=utf-8").send(await readFile(path.join(webRoot,"account.html"),"utf8")));
   app.get("/account.js", async (_request, reply) => reply.type("application/javascript").send(await readFile(path.join(webRoot,"account.js"),"utf8")));
-  app.get("/index.html", async (_request, reply) => {
-    reply.type("text/html; charset=utf-8");
-    return readFile(runtimeFile("index.html"), "utf8");
-  });
+  app.get("/index.html", async (_request, reply) => reply.redirect("/godot/"));
   for (const route of ["/unity-web", "/unity-preview"]) {
     app.get(route, async (_request, reply) => {
       reply.type("text/html; charset=utf-8");
       return readFile(path.join(webRoot, "unity-preview.html"), "utf8");
     });
   }
-  app.get("/service-worker.js", async (_request, reply) => {
-    reply.type("application/javascript; charset=utf-8");
-    return readFile(path.join(webRoot, "service-worker.js"), "utf8");
-  });
-  app.get("/asset-manifest.mjs", async (_request, reply) => {
-    reply.type("application/javascript; charset=utf-8");
-    const built = path.join(webRoot, ".server-dist", "public", "asset-manifest.mjs");
-    return existsSync(built) ? readFile(built, "utf8") : "export default {};";
-  });
-  app.get("/app-api.js", async (_request, reply) => {
-    reply.type("application/javascript; charset=utf-8");
-    return readFile(path.join(webRoot, "app-api.js"), "utf8");
-  });
-  app.get("/vendor/honeycomb-grid.mjs", async (_request, reply) => {
-    reply.type("application/javascript; charset=utf-8");
-    return readFile(path.join(webRoot, "node_modules", "honeycomb-grid", "dist", "honeycomb-grid.mjs"), "utf8");
-  });
-  app.get("/vendor/phaser.mjs", async (_request, reply) => {
-    reply.type("application/javascript; charset=utf-8");
-    return readFile(path.join(webRoot, "node_modules", "phaser", "dist", "phaser.esm.min.js"), "utf8");
-  });
-  app.get("/styles.css", async (_request, reply) => {
-    reply.type("text/css; charset=utf-8");
-    return readFile(runtimeFile("styles.css"), "utf8");
-  });
-
-  if (graphicsPreviewEnabled) {
-    app.get("/graphics-preview", async (_request, reply) => {
-      reply.type("text/html; charset=utf-8");
-      return readFile(path.join(webRoot, "graphics-preview.html"), "utf8");
+  app.get("/api/health", async (_request, reply) => {
+    const world=arcanaWorld.health();
+    return reply.code(world.ok?200:503).send({
+      ok: world.ok,
+      service: "arcana",
+      arcanaProtocol: 3,
+      arcanaLocationRevision: 1,
+      world,
     });
-  }
-
-  if (contentStudioEnabled) {
-    app.get("/content-editor", async (_request, reply) => {
-      reply.type("text/html; charset=utf-8");
-      return readFile(path.join(webRoot, "content-editor.html"), "utf8");
-    });
-    app.get("/content-editor.js", async (_request, reply) => {
-      reply.type("application/javascript; charset=utf-8");
-      return readFile(path.join(webRoot, "content-editor.js"), "utf8");
-    });
-    app.get("/content-editor.css", async (_request, reply) => {
-      reply.type("text/css; charset=utf-8");
-      return readFile(path.join(webRoot, "content-editor.css"), "utf8");
-    });
-
-    app.get("/content-story-library.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-story-library.js"), "utf8"); });
-    app.get("/content-scene-pool.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-scene-pool.js"), "utf8"); });
-    app.get("/content-outcome-editor.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-outcome-editor.js"), "utf8"); });
-    app.get("/content-writer.js", async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, "content-writer.js"), "utf8"); });
-    for (const file of ["content-room-editor.js", "content-item-text.js", "content-writer-tools.js", "content-writer-workspace.js", "content-writer-preview.js"]) {
-      app.get(`/${file}`, async (_request, reply) => { reply.type("application/javascript; charset=utf-8"); return readFile(path.join(webRoot, file), "utf8"); });
-    }
-    app.get("/api/content-studio/published", async (request, reply) => {
-      if (!requireContentStudioAdmin(request, reply)) return;
-      const published = await contentStudioStore.load("published");
-      return { document: getEffectiveContentStudioDocument(published?.document ?? loadStoredContentStudioDocument()), publishedAt: published?.publishedAt ?? null };
-    });
-    app.post<{ Body: unknown }>("/api/content-studio/validate", async (request, reply) => {
-      if (!requireContentStudioAdmin(request, reply)) return;
-      return { issues: inspectStudio(request.body).issues };
-    });
-    app.post<{ Body: { document: unknown; setup?: unknown } }>("/api/content-studio/preview", async (request, reply) => {
-      if (!requireContentStudioAdmin(request, reply)) return;
-      try { return studioPreview.start(request.body.document, request.body.setup); }
-      catch (error) { return reply.code(400).send({ message: error instanceof Error ? error.message : "시험 플레이 오류" }); }
-    });
-    app.post<{ Params: { id: string }; Body: unknown }>("/api/content-studio/preview/:id", async (request, reply) => {
-      if (!requireContentStudioAdmin(request, reply)) return;
-      try { return studioPreview.step(request.params.id, request.body); }
-      catch (error) { return reply.code(400).send({ message: error instanceof Error ? error.message : "시험 플레이 오류" }); }
-    });
-    app.delete<{ Params: { id: string } }>("/api/content-studio/preview/:id", async (request, reply) => {
-      if (!requireContentStudioAdmin(request, reply)) return;
-      studioPreview.close(request.params.id);
-      return { ok:true };
-    });
-    app.get("/api/content-studio", async (request, reply) => {
-      if (!requireContentStudioAdmin(request, reply)) {
-        return;
-      }
-      const [draft, published] = await Promise.all([
-        contentStudioStore.load("draft"),
-        contentStudioStore.load("published"),
-      ]);
-      const sourceDocument =
-        draft?.document ??
-        published?.document ??
-        loadStoredContentStudioDocument();
-      return {
-        document: getEffectiveContentStudioDocument(sourceDocument),
-        status: {
-          draftUpdatedAt: draft?.updatedAt ?? null,
-          publishedAt: published?.publishedAt ?? null,
-          hasUnpublishedChanges: Boolean(
-            draft &&
-            (!published || JSON.stringify(draft.document) !== JSON.stringify(published.document)),
-          ),
-        },
-        catalogs: {
-          probabilityRules: { maxLevel: MAX_SKILL_LEVEL, fishing: FISHING_EFFECT_PER_LEVEL_PERCENT, exploration: SKILL_EFFECT_PER_LEVEL_PERCENT },
-          locations: Object.values(worldRegistry.locations).map((location) => ({
-            id: location.id,
-            name: location.name,
-          })),
-          quests: Object.values(worldRegistry.quests).map((quest) => {
-            const entry = quest as { id: string; title?: string };
-            return {
-              id: entry.id,
-              name: String(entry.title ?? entry.id),
-            };
-          }),
-          builtInItemIds: Object.keys(baseItems),
-          builtInRecipeIds: Object.keys(BUILT_IN_RECIPE_MENUS),
-        },
-      };
-    });
-
-    app.put<{ Body: unknown }>("/api/content-studio", async (request, reply) => {
-      if (!requireContentStudioAdmin(request, reply)) {
-        return;
-      }
-      try {
-        const migrated = migrateRenamedItemTextReferences(
-          request.body,
-          await loadCurrentContentStudioDocument(),
-        );
-        const prepared = { document: migrated };
-        const expected = request.headers["if-match"] === "none" ? null : request.headers["if-match"] as string | undefined;
-        if (expected === undefined) return reply.code(428).send({ message: "최신 초안을 불러온 뒤 저장해 주세요." });
-        const stored = await contentStudioStore.saveDraft(prepared.document, expected);
-        return {
-          ok: true,
-          document: getEffectiveContentStudioDocument(prepared.document),
-          status: {
-            draftUpdatedAt: stored.updatedAt,
-            publishedAt: (await contentStudioStore.load("published"))?.publishedAt ?? null,
-            hasUnpublishedChanges: true,
-          },
-        };
-      } catch (error) {
-        reply.code(error instanceof StudioConflict ? 409 : 400);
-        if (error instanceof z.ZodError) {
-          return {
-            error: "invalid_content",
-            message: "입력한 콘텐츠 형식을 확인해 주세요.",
-            details: z.treeifyError(error),
-          };
-        }
-        return {
-          error: "invalid_content",
-          message: error instanceof Error ? error.message : "콘텐츠를 저장하지 못했습니다.",
-        };
-      }
-    });
-
-    app.post<{ Body: unknown }>("/api/content-studio/publish", async (request, reply) => {
-      if (!requireContentStudioAdmin(request, reply)) {
-        return;
-      }
-      try {
-        const migrated = migrateRenamedItemTextReferences(
-          request.body,
-          await loadCurrentContentStudioDocument(),
-        );
-        const inspection = inspectStudio(migrated);
-        if (inspection.issues.some(issue => issue.severity === "error")) return reply.code(400).send({ message: "공개 전에 오류를 수정해 주세요.", issues: inspection.issues });
-        const prepared = prepareContentStudioDocument(migrated);
-        const expected = request.headers["if-match"] === "none" ? null : request.headers["if-match"] as string | undefined;
-        if (expected === undefined) return reply.code(428).send({ message: "최신 초안을 불러온 뒤 공개해 주세요." });
-        await contentVersions.archive(prepared.registry);
-        const stored = await contentStudioStore.publish(prepared.document, expected);
-        registerContentVersion(prepared.registry, true);
-        applyPreparedContentStudioRegistry(prepared.registry);
-        return {
-          ok: true,
-          document: getEffectiveContentStudioDocument(prepared.document),
-          status: {
-            draftUpdatedAt: stored.updatedAt,
-            publishedAt: stored.publishedAt,
-            hasUnpublishedChanges: false,
-          },
-        };
-      } catch (error) {
-        reply.code(error instanceof StudioConflict ? 409 : 400);
-        if (error instanceof z.ZodError) {
-          return {
-            error: "invalid_content",
-            message: "입력한 콘텐츠 형식을 확인해 주세요.",
-            details: z.treeifyError(error),
-          };
-        }
-        return {
-          error: "invalid_content",
-          message: error instanceof Error ? error.message : "콘텐츠를 공개하지 못했습니다.",
-        };
-      }
-    });
-  }
-
-  app.get("/api/health", async () => ({
-    ok: true,
-    service: "textrpg",
-    arcanaProtocol: 3,
-    arcanaLocationRevision: 1,
-  }));
-
-  app.post("/api/gemini/test", async (_request, reply) => {
-    if (!hasGeminiConfig()) {
-      reply.code(503);
-      return {
-        error: "gemini_not_configured",
-        message: "GEMINI_API_KEY 환경변수가 필요합니다.",
-      };
-    }
-
-    try {
-      const result = await testGeminiConnection();
-      const modelLabel = result.displayName || result.model;
-      return {
-        ok: true,
-        ...result,
-        message:
-          `${modelLabel} 실제 생성 성공 · 생성 ${result.generationLatencyMs}ms` +
-          ` · 전체 ${result.latencyMs}ms`,
-      };
-    } catch (error) {
-      const message = error instanceof Error
-        ? error.message
-        : "Gemini API 연결을 확인하지 못했습니다.";
-      app.log.warn({ message }, "Gemini connection test failed.");
-      reply.code(502);
-      return {
-        error: "gemini_connection_failed",
-        message,
-      };
-    }
   });
 
   app.get("/api/auth/me", async (request, reply) => {
@@ -503,31 +190,9 @@ async function bootstrap() {
     return authController.logout(request, reply);
   });
 
-  app.post("/api/auth/save/restore", async (request, reply) => {
-    const user = await authController.requireUser(request, reply);
-    if (!user) {
-      return {
-        error: "auth_required",
-        message: "로그인이 필요합니다.",
-      };
-    }
-
-    try {
-      if (await onlineAccounts.character(await onlineAccounts.require(request))) throw new OnlineError("online_restore_disabled", "아르카나 화면에서 공용 세계에 입장해 주세요.");
-      return await gameService.restoreManualGameForUser(user.id);
-    } catch (error) {
-      reply.code(404);
-      return {
-        error: "restore_failed",
-        message: error instanceof Error ? error.message : "이어하기를 시작하지 못했습니다.",
-      };
-    }
-  });
-
-  registerStateWorldRoutes(app, repository, onlineAccounts);
   app.post<{ Body: unknown }>("/api/games", async (request, reply) => {
     const parsed = z.object({
-      startAt: z.enum(["shelter", "arcana"]).default("shelter"),
+      startAt: z.literal("arcana").default("arcana"),
     }).safeParse(request.body ?? {});
     if (!parsed.success) {
       reply.code(400);
@@ -535,9 +200,8 @@ async function bootstrap() {
     }
     const started = performance.now();
     const issued = await onlineAccounts.guest(request, reply);
-    const character = parsed.data.startAt === "arcana" ? await onlineAccounts.ensureCharacter(issued.principal) : null;
-    const snapshot = character ? await gameService.getState(character.gameId) : await gameService.createGame(parsed.data.startAt);
-    if (!character) await onlineAccounts.bindGame(snapshot.gameId, issued.principal);
+    const character = await onlineAccounts.ensureCharacter(issued.principal);
+    const snapshot = await gameService.getState(character.gameId);
     reply.header("Server-Timing", `game;dur=${(performance.now() - started).toFixed(1)}`);
     return snapshot;
   });
@@ -562,9 +226,7 @@ async function bootstrap() {
   app.post<{ Params: { gameId: string } }>("/api/games/:gameId/save", async (request, reply) => {
     try {
       const principal = await onlineAccounts.require(request);
-      const owner = await onlineAccounts.authorize(request.params.gameId, principal);
-      if (owner.characterId) return arcanaWorld.save(principal, request.params.gameId);
-      return await gameService.saveManualGame(request.params.gameId, principal.accountId);
+      return await arcanaWorld.save(principal, request.params.gameId);
     } catch (error) {
       reply.code(400);
       return {
@@ -574,18 +236,8 @@ async function bootstrap() {
     }
   });
 
-  app.post<{ Params: { gameId: string } }>("/api/games/:gameId/restore", async (request, reply) => {
-    try {
-      const owner = await onlineAccounts.authorize(request.params.gameId, await onlineAccounts.require(request));
-      if (owner.characterId) throw new OnlineError("online_restore_disabled", "공용 세계의 진행은 과거 저장으로 되돌릴 수 없습니다.");
-      return await gameService.restoreManualGame(request.params.gameId);
-    } catch (error) {
-      reply.code(404);
-      return {
-        error: "restore_failed",
-        message: error instanceof Error ? error.message : "이어하기를 시작하지 못했습니다.",
-      };
-    }
+  app.post<{ Params: { gameId: string } }>("/api/games/:gameId/restore", async () => {
+    throw new OnlineError("online_restore_disabled", "공용 세계의 진행은 과거 저장으로 되돌릴 수 없습니다.", 403);
   });
 
   app.post<{
@@ -602,41 +254,12 @@ async function bootstrap() {
     }
 
     const principal = await onlineAccounts.require(request);
-    const owner = await onlineAccounts.authorize(request.params.gameId, principal);
-    if (owner.characterId) return arcanaWorld.personal(principal, request.params.gameId, parsed.data);
-    const requestId = request.headers["x-action-id"];
-    if (parsed.data.type === "text_world" && request.headers.accept?.includes("application/x-ndjson")) {
-      if (typeof requestId !== "string" || !/^[a-zA-Z0-9-]{16,100}$/.test(requestId)) return reply.code(400).send({ message: "올바른 행동 요청 식별자가 필요합니다." });
-      return sendActionStream(reply, gameService, request.params.gameId, parsed.data, requestId);
-    }
-    try {
-      return await gameService.performAction(request.params.gameId, parsed.data, {
-        onTiming: timing => {
-          request.log.info({ actionType: parsed.data.type, command: "command" in parsed.data ? parsed.data.command : undefined, timing }, "game action latency");
-          reply.header("Server-Timing", [
-            `game;dur=${timing.totalMs}`,
-            ...(["queueMs", "loadMs", "cloneMs", "rulesMs", "saveMs", "snapshotMs"] as const)
-              .filter(key => timing[key] !== undefined)
-              .map(key => `${key.replace("Ms", "")};dur=${timing[key]}`),
-          ].join(", "));
-        },
-      });
-    } catch (error) {
-      reply.code(400);
-      return {
-        error: "action_failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      };
-    }
-  });
-  app.get("/action-stream-client.mjs", async (_request, reply) => {
-    reply.type("application/javascript; charset=utf-8");
-    return readFile(path.join(webRoot, "action-stream-client.mjs"), "utf8");
+    return arcanaWorld.personal(principal, request.params.gameId, parsed.data, typeof request.headers["x-action-id"] === "string" ? request.headers["x-action-id"] : undefined);
   });
 
   app.get<{ Params: { gameId: string; requestId: string } }>("/api/games/:gameId/actions/:requestId", async (request, reply) => {
-    const snapshot = await gameService.recoverAction(request.params.gameId, request.params.requestId);
-    return snapshot ?? reply.code(404).send({ message: "완료된 행동 기록이 없습니다." });
+    const principal = await onlineAccounts.require(request);
+    return arcanaWorld.recoverOperation(principal,request.params.gameId,request.params.requestId);
   });
 
   const port = Number(process.env.PORT || 3000);

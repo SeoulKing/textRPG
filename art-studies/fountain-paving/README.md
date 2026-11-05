@@ -16,3 +16,11 @@
 확인: scripts/render-fountain-paving.ps1은 main.tscn의 정지 미술 출력만 만들며 플레이어 저장이나 API를 조작하지 않습니다. 웹 패키지 렌더와 소스 렌더는 제작 기록에서 구분합니다.
 
 웹 빌드: scripts/build-fountain-paving.ps1은 작업 전용 .runtime/godot/fountain-paving-web에 출력하므로 확인 후 index.html/index.js/index.wasm/index.pck를 godot-web에 반영합니다. 공용 경로에 직접 내보내면 다른 작업의 결과가 덮일 수 있습니다. 이번 제작은 실제 전용 PCK의 셰이더/텍스처와 main.tscn GPU 출력까지 확인한 뒤 공용 경로에 반영하고 서버 제공 해시를 맞췄습니다.
+
+## 네이티브 2D 투영 보정 · 2026-10-30
+
+현재 활성 원본은 godot-arcana/scenes/native_2d/plaza.tscn의 Ground/PaintedFloor입니다. 바닥은 Polygon2D 원화 합성이며 모자이크도 별도 충돌 없는 바닥 합성층입니다. 타일맵을 사용해야 하는 장식이 아닙니다.
+
+기존 3D용 X/Z 범위 8.5×7.191603을 2D 화면에 직접 사용해 타원이 세로로 길어졌습니다. 네이티브 2D에서는 기존 승인된 탑뷰 모자이크를 분수 접지 실루엣의 측정 비율 0.598262471859로 다시 투영합니다. 표시 범위는 544×325.454785px(8.5×5.085231단위)이며, 중심은 기존 분수 접지점에 유지합니다. native_2d_city_ground.gd가 텍스처 폭과 fountain_ground.generated.gd의 BASIN_RATIO로 값을 계산하여 오래된 3D 보정값이 다시 적용되지 않도록 합니다. 분수 원화·애니메이션·배치·충돌과 승인된 모자이크 문양은 유지합니다.
+
+웹 빌드는 작업 사본을 만들지 않고 원본 프로젝트에서 scripts/build-godot-arcana.ps1로 수행합니다. 위의 전용 프로젝트 사본 제작 절차는 과거 기록입니다.

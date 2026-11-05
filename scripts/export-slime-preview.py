@@ -5,6 +5,8 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[1]
 ART = ROOT / 'godot-arcana/art'
 data = json.loads((ART / 'source/monsters/slime.pixel.json').read_text(encoding='utf-8'))
+# Atlas order is a resource contract, independent of JSON object-key sorting.
+data['animations'] = {name: data['animations'][name] for name in ['idle','hop','prepare','attack','hit','death']}
 atlas = Image.open(ART / 'export/monsters/slime.png').convert('RGBA')
 w, h = data['size']
 out = ART / 'reference/slime'

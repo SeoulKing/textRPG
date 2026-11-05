@@ -12,8 +12,24 @@ func refresh_plan() -> void:
         if entry.model_kind=="fountain":
             plaza_center=entry.map_position(self)/16.0;mosaic_center=plaza_center
 func placements() -> Array:
-    return get_node("Placements").get_children()
-func wall_collision_rects() -> Array[Rect2]: return wall_rectangles
+    var entries: Array = []
+    _collect_placements(get_node("Placements"), entries)
+    return entries
+func _collect_placements(container: Node, entries: Array) -> void:
+    for node in container.get_children():
+        if node.has_method("map_position"):
+            entries.append(node)
+        else:
+            _collect_placements(node, entries)
+func wall_collision_rects() -> Array[Rect2]:
+    var rectangles: Array[Rect2] = []
+    var found: bool = false
+    for layer in find_children("*", "TileMapLayer", true, false):
+        if layer.get_script() == preload("res://scripts/native_2d_wall_layer.gd"):
+            found = true
+            rectangles.append_array(layer.map_collision_rects(self))
+    # An empty painted wall layer means an open path, never stale collision.
+    return rectangles if found else wall_rectangles.duplicate()
 func material_at(point: Vector2) -> int:
     var p=point/16.0
     for rect in paved_areas:

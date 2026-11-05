@@ -59,16 +59,20 @@ func render(delta: float, active: bool, paused: bool) -> void:
 		var distance: float = combat._spell_range("meteor")*clampf(combat.aim_pointer.distance_to(combat.aim_origin)/80.0,0,1)
 		aim_ring.position = renderer.map_point(main.world.player_position+combat.aim_direction*distance,.05)
 	var falling: Dictionary = {}
-	for meteor in spatial.get("meteors",[]):
+	var meteor_values: Array = spatial.get("meteors",[]).duplicate()
+	meteor_values.append_array(combat.anticipation.meteors())
+	for meteor in meteor_values:
 		var id = str(meteor.id)
 		falling[id] = true
 		if not meteors.has(id):
 			var ring: Node2D = renderer._ring(2.0,"ff9b36")
 			renderer.add_child(ring)
-			meteors[id] = {"ring":ring,"flame":combat.effect_pool.take_flame()}
+			meteors[id] = {"ring":ring,"flame":combat.effect_pool.take_flame(),"remaining":float(meteor.remaining)}
 		var effect: Dictionary = meteors[id]
 		var point: Vector2 = combat._point(meteor.position)
-		var remaining: float = maxf(0,float(meteor.remaining)-(0.0 if paused else minf(combat.visual_age,.25)))
+		var server_remaining: float = maxf(0,float(meteor.remaining)-(0.0 if paused else minf(combat.visual_age,.25)))
+		effect.remaining = maxf(0,minf(server_remaining,float(effect.get("remaining",server_remaining))-(0.0 if paused else delta)))
+		var remaining: float = float(effect.remaining)
 		effect.ring.position = renderer.map_point(point,.05)
 		effect.ring.visible = active
 		var flame: Node2D = effect.flame

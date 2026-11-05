@@ -1,7 +1,7 @@
 @tool
 extends Node3D
 ## Camera-facing, foot-registered 2D art on the unchanged 3D layout.
-const SHADER = preload("res://art/resources/heroine_sprite.gdshader")
+const SHADER = preload("res://art/resources/sprite_billboard.gdshader")
 const TREE_FADE = preload("res://art/resources/tree_fade.gdshader")
 const OUTDOOR_ART = preload("res://art/resources/outdoor_art.gd")
 var use_outdoor_art = false
@@ -16,7 +16,7 @@ var occlusion_mask: Image
 var opaque_visual: MeshInstance3D
 var faded_visual: MeshInstance3D
 var fade_material: ShaderMaterial
-const SHADOW = preload("res://art/resources/heroine_shadow.gdshader")
+const SHADOW = preload("res://art/resources/contact_shadow.gdshader")
 var interaction_id: String = ""
 var interaction_region = Rect2()
 var interaction_arch_ratio = .25

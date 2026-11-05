@@ -14,7 +14,7 @@ func capture(name: String, size: Vector2i, player: Vector2, zoom: float, elevati
     output.size = size
     small.size = Vector2i(size/2)
     present.size = Vector2(size)
-    scene.display_height = size.y
+    scene.set_display_size(Vector2(size))
     logic.player_position = player*16.0
     scene.previous_player = logic.player_position
     scene.camera_center = scene.map_point(logic.player_position)
@@ -64,6 +64,8 @@ func capture_all() -> void:
     scene.set_quarter_view(false)
     scene.hero.last_yaw = 0.0
     logic.change_interior("arcana_shop")
-    await capture("shop-overview",Vector2i(1280,960),Vector2(12,10.2),1.5,1.3)
-    await capture("merchant-counter",Vector2i(1024,824),Vector2(12,10.2),2.8,1.0)
+    await capture("shop-overview",Vector2i(1280,960),Vector2(12,8.8),4.0,0.0)
+    await capture("merchant-counter",Vector2i(1024,824),Vector2(12,8.7),6.0,0.0)
+    await capture("shop-portrait",Vector2i(384,824),Vector2(12,11.8),2.0,0.0)
+    await capture("shop-zoom-follow",Vector2i(384,824),Vector2(15,9),3.5,0.0)
     quit()

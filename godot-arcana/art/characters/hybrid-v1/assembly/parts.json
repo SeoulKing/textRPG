@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "character_id": "hybrid-v1",
+  "status": "approved_character",
+  "target_canvas": [
+    96,
+    136
+  ],
+  "target_proportion_heads": 3,
+  "build": "slender",
+  "appearance_reference_state": "User finalized this character on 2026-11-05",
+  "handoff": "res://art/characters/hybrid-v1/assembly/CURRENT_STATUS.md",
+  "directions": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "part_canvas": [
+    48,
+    48
+  ],
+  "part_canvas_semantics": "Logical part registration; whole-leg source textures retain their original larger resolution.",
+  "identity": "white-lilac bob, violet eyes, cream shirt, brown leather, warm metal",
+  "parts": {
+    "head": {
+      "manifest": "res://art/characters/hybrid-v1/heads/manifest.json",
+      "png_template": "res://art/characters/hybrid-v1/heads/{direction}/head.png",
+      "neck_anchor": [
+        24,
+        44
+      ]
+    },
+    "upper_body": {
+      "manifest": "res://art/characters/hybrid-v1/upper-body/manifest.json",
+      "png_template": "res://art/characters/hybrid-v1/upper-body/{direction}/upper_body.png",
+      "scene_template": "res://art/characters/hybrid-v1/rigs/upper-body/{direction}.tscn",
+      "render_method": "one continuous Polygon2D texture with Skeleton2D skin weights",
+      "neck_anchor": [
+        24,
+        9
+      ]
+    },
+    "pelvis": {
+      "manifest": "res://art/characters/hybrid-v1/pelvis/manifest.json",
+      "png_template": "res://art/characters/hybrid-v1/pelvis/{direction}/pelvis.png",
+      "waist_anchor": [
+        24,
+        9
+      ],
+      "waist_belt_owner": true
+    },
+    "legs": {
+      "manifest": "res://art/characters/hybrid-v1/legs/manifest.json",
+      "png_template": "res://art/characters/hybrid-v1/legs/{direction}/leg.png",
+      "scene_template": "res://art/characters/hybrid-v1/rigs/legs/{direction}.tscn",
+      "render_method": "One whole-leg Polygon2D texture with thigh and shin Bone2D weights",
+      "source_policy": "Exact uploaded RGBA subrect; no redraw, palette conversion or thigh/shin split",
+      "one_leg_per_image": true
+    },
+    "boots": {
+      "manifest": "res://art/characters/hybrid-v1/boots/manifest.json",
+      "png_template": "res://art/characters/hybrid-v1/boots/{direction}/boot.png",
+      "one_foot_per_image": true,
+      "anchor_authority": "Each direction's boot manifest records cuff, ankle and sole contact."
+    },
+    "hands": {
+      "manifest": "res://art/characters/hybrid-v1/hands/manifest.json"
+    }
+  },
+  "assembly_profile": "res://art/characters/hybrid-v1/assembly/assembly.json",
+  "motion_tuning": "res://art/characters/hybrid-v1/assembly/motion-polish.json",
+  "assembly_status": "Arcana native world and independent authoring use the same approved bundle",
+  "rules": [
+    "Select assets by direction name; input sheet orders differ.",
+    "Keep the slender three-head proportion when registering final parts.",
+    "Use per-part physical scale and anchors, never normalize every PNG to its 48x48 transparent canvas.",
+    "Arms and torso remain one upper-body image.",
+    "Thigh and shin remain one whole-leg image; only bones and weights distinguish them.",
+    "Final waist assembly shows the pelvis belt once.",
+    "Instantiate one independent boot at each ankle; do not use a two-foot image on one bone.",
+    "Source PNGs already contain their one-pixel outline; do not add another outline when displaying them.",
+    "Indexed art keeps editable PixelPen originals; whole legs retain the uploaded full-color PNG and native Polygon2D UV/weights."
+  ],
+  "runtime_connected": true,
+  "runtime_verified": false,
+  "user_art_approval": "approved",
+  "display_name": "하이브리드 버전 1",
+  "shared_motion": "res://art/characters/hybrid-v1/shared-run.json",
+  "appearance_approved_on": "2026-11-05",
+  "run_keyframes": "res://art/characters/hybrid-v1/run-keyframes.tres"
+}

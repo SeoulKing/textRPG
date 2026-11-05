@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=12 format=3 uid="uid://cq1h3jqiqlqxu"]
+[gd_resource type="SpriteFrames" format=3 uid="uid://cq1h3jqiqlqxu"]
 
 [ext_resource type="Texture2D" uid="uid://b6irkum04kn2e" path="res://art/export/plaza-guide/mei-idle.png" id="atlas"]
 
@@ -333,7 +333,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("pose_0")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 12.0
 }]

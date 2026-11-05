@@ -1,181 +1,45 @@
-# textRPG
+# 아르카나 · 별빛의 도시
 
-작업 요청별 진입점과 원본·빌드·검증 흐름은 [작업 흐름과 프로젝트 구조](docs/WORKFLOW.md)를 확인해 주세요.
+Godot 2D 월드와 서버 판정 기반의 아르카나 프로젝트입니다. 현재 주인공은 **하이브리드 버전 1**로 확정했으며, 캐릭터 제작실과 본편을 같은 Godot 프로젝트에서 관리합니다.
 
-Server-driven survival text RPG set in a collapsing Seoul.
+## 작업 진입점
 
-The current playable direction is a compact 10-day survival game: gather supplies, reinforce the shelter, collect three radio parts, assemble a rescue signal, and survive until the rescue check on day 10.
+- 게임 원본: `godot-arcana/project.godot` → `main.tscn` → `scripts/main.gd`
+- 캐릭터 원본·작업실: [캐릭터 아트 담당](docs/roles/CHARACTER_ART.md), `godot-arcana/scenes/characters/hybrid-v1/`
+- 지역별 가구·사물: [월드 제작 담당](docs/roles/WORLD_BUILDING.md), `godot-arcana/scenes/props/<region>/<category>/`
+- 서버: `src/server.ts`, 공용 세계·계정·전투는 `src/online/`
+- 게임 규칙·저장·콘텐츠: `src/game/`
+- 웹 내보내기 산출물: `godot-web/`
+- 상세 제작·빌드 경로: [작업 흐름](docs/WORKFLOW.md)
 
-The seed world is hand-authored around seven fixed regions:
+## 역할별 제작 기준
 
-- shelter
-- convenience store
-- soup kitchen
-- forest
-- hospital
-- subway station
-- checkpoint
+[개발](docs/roles/DEVELOPMENT.md) · [캐릭터 아트](docs/roles/CHARACTER_ART.md) · [월드 제작·배치](docs/roles/WORLD_BUILDING.md) · [서사](docs/roles/NARRATIVE.md)
 
-The subway station also contains a repeatable deep-expedition mode. The concourse remains authored content, while Gemini can direct a run-local mystery and package each underground floor as one major event, all prewritten choice outcomes, and three loot spots. Every new run always starts with the bandit encounter on underground floor 1; the generated major event never replaces or skips it. The server owns hit rolls, damage, time, enemy HP, and the fixed reward; Gemini receives the selected action and the authoritative result, then writes the next scene and selects from server-allowed actions. Invalid or failed encounter responses are retried twice, and the game action is not saved if all attempts fail. Defeating the bandit adds one canned food and one pain relief item to temporary expedition loot.
+규칙은 역할 문서에서 관리하고, 원본·승인·파츠 등록은 대상 자산의 README/JSON에서 관리합니다. 이전 가이드 경로는 연결문이며 [보존 기록](docs/archive/ART_HISTORY.md)을 현행 규칙으로 사용하지 않습니다.
 
-The engine rolls normal floor loot from fixed depth tables and gives the model an exact mechanics envelope; output outside those rules is regenerated up to two times and then replaced by a visibly labeled template floor. A template for the next floor is persisted immediately and upgraded in the background with the same loot and mechanics. Loot only enters the main inventory after a successful return, and run-local story memory is cleared on return.
-
-LLM-led world expansion is deferred. It remains in the codebase as an optional development feature, but normal play uses authored/template content.
-
-## Deterministic state world
-
-The home screen now includes **작은 창고 · 상태 기반 월드**, a two-room object/placement engine that runs without LLM calls. It reuses the server, game clock and file/PostgreSQL repository while preserving the existing survival game. See [implementation, API, tests and scope](docs/state-world-engine.md).
-
-## Run
+## 로컬 실행
 
 ```powershell
-cd D:\BANG\project\textRPG
-npm install
-copy .env.example .env
+npm ci
+Copy-Item .env.example .env
+npm run dev
 ```
 
-Open `.env` only if you want optional remote generation:
-
-```text
-GEMINI_API_KEY=your_key_here
-```
-
-Then start the server:
+기존 `.env`·`.env.local`은 유지합니다. 기본 포트는 3000입니다. [아르카나](http://localhost:3000/godot/) · [계정](http://localhost:3000/account.html). `/`와 `/index.html`은 `/godot/`으로 이동합니다.
 
 ```powershell
-npm run start
+npm run build:server  # 서버 컴파일
+npm run build        # 서버 컴파일 + 기존 Godot 웹 출력의 배포 패키징
+npm start
 ```
 
-Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
+`npm run build`는 Godot 원본을 내보내지 않습니다. Godot 변경은 기존 `scripts/build-godot-arcana.ps1` 또는 해당 작업의 내보내기 경로를 따릅니다. Render 서비스·데이터베이스 식별자는 기존 설정을 유지합니다.
 
-홈 화면의 **유니티 웹**을 누르면 Unity 프로젝트의 WebGL 빌드가 `/unity-web`에서 열립니다. 다른 프로젝트를 빌드하려면 WebGL 모듈이 있는 Unity 에디터로 다음 명령을 실행합니다. 스크립트는 원본 프로젝트를 복사해 빌드하며, 결과를 `assets/unity-preview`에 놓습니다.
+## 폐허 서울 분리
 
-```powershell
-.\scripts\build-unity-preview.ps1 -ProjectPath 'D:\path\to\UnityProject'
-```
+과거 텍스트 RPG·콘텐츠 스튜디오·상태 기반 월드는 별도 프로젝트 [seoul-survival](../seoul-survival/README.md)로 분리했습니다. 그 프로젝트의 기본 포트는 3001입니다.
 
-미리보기는 본편 저장 데이터와 별개입니다. 모바일에서 공개 URL로 변경 사항을 확인하려면 생성된 `assets/unity-preview`를 저장소에 반영하고, Render가 배포하는 브랜치에 푸시해야 합니다. 로컬 빌드만으로는 공개 사이트가 갱신되지 않습니다. 현재 숲 프로토타입의 사용법은 [`unity-mvp/README.md`](unity-mvp/README.md)에 있습니다.
+화면·이미지·편집기·전용 테스트와 서버 경로는 현재 프로젝트에서 제거했습니다. 아르카나가 사용하는 게임 엔진·스키마·아이템 정의·저장·콘텐츠 레지스트리는 현재 프로젝트에도 보존했습니다. 각 프로젝트는 자기 코드를 소유하며 서로의 폴더나 `node_modules`에 의존하지 않습니다. 공용 엔진 내부에는 기존 텍스트 게임과의 호환 코드가 남아 있습니다.
 
-## Content Studio
-
-The home screen links to the writer workspace at [/content-editor](http://127.0.0.1:3000/content-editor).
-Create regions and characters, write dialogue and choices, assign item rewards, connect story graphs, and test drafts without affecting player saves.
-Published content applies to new games; existing saves retain their content version.
-
-See [the writer guide and storage migration notes](CONTENT_STUDIO.md).
-Production access retains the existing ENABLE_CONTENT_STUDIO, CONTENT_STUDIO_ADMIN_TOKEN and PostgreSQL requirements.
-
-## Deploy
-
-This project needs a long-running Node server because the browser talks to `/api/games`.
-GitHub Pages can host the static files, but it cannot run the game API.
-
-The root `render.yaml` defines a Render Blueprint for:
-
-- a Node web service that runs `node .server-dist/server.js`
-- a PostgreSQL database connected through `NEON_DATABASE_URL` or `DATABASE_URL`
-- `/api/health` as the deployment health check
-
-Render setup:
-
-1. Push this repository branch to GitHub.
-2. In Render, create a new Blueprint from this repository.
-3. Select the branch that contains `render.yaml`.
-4. Deploy. The public game URL will be the generated `*.onrender.com` web service URL.
-
-The Blueprint uses free Render instances for the first MVP deployment. Upgrade the database plan before inviting many players or relying on long-term saves.
-
-## Optional Gemini Setup
-
-Gemini is not required for the authored surface survival loop. The experimental underground-floor-1 bandit encounter requires Gemini and refuses to apply an encounter action when generation remains unavailable after two retries.
-
-Optional settings:
-
-- `ENABLE_LLM_WORLD_PLANNER=true`
-- `ENABLE_LLM_BACKGROUND_GENERATION=true` opts into speculative story/floor generation (default: off). With it off, local floor templates remain ready and Gemini still narrates player-selected exploration and encounters.
-- `ENABLE_LLM_SUBWAY_EXPEDITION=false` to use built-in fallback floors after the mandatory bandit encounter
-- `GEMINI_MODEL`
-- `GEMINI_API_URL`
-
-Default model: `gemini-3.5-flash-lite`
-
-The live subway encounter uses separate LLM roles:
-
-```text
-opening_scene → choices
-player choice → server resolution → result_scene → choices
-```
-
-The scene roles only write prose. The choices role receives server-owned
-`allowedIntents`, while the server remains authoritative for probability,
-damage, time, inventory, rewards, and encounter completion.
-
-The pipeline runs directly in the TypeScript backend. Each role has its own
-prompt and Zod output contract. Gemini also receives the corresponding JSON
-schema, and the server validates the returned value again before passing it to
-the next role. A failed role is repaired with the existing server-owned
-fallback without handing game-state authority to the model.
-
-By default, the world planner uses the safe template planner even when `GEMINI_API_KEY` exists.
-
-To opt into the experimental LLM world planner, set both:
-
-```text
-ENABLE_LLM_WORLD_PLANNER=true
-GEMINI_API_KEY=your_key_here
-```
-
-Narrative/card generation also falls back to templates on request failures so the project remains playable offline or during API errors.
-
-## Optional Kakao Login Setup
-
-Kakao login is optional. Without Kakao settings, the game still supports local browser-based manual saves.
-
-To enable account login and account-based manual saves:
-
-1. Create an app in Kakao Developers.
-2. Enable Kakao Login for the app.
-3. Add this redirect URI:
-
-```text
-https://textrpg-8ic8.onrender.com/api/auth/kakao/callback
-```
-
-For local testing, add this redirect URI as well:
-
-```text
-http://127.0.0.1:3000/api/auth/kakao/callback
-```
-
-Environment variables:
-
-```text
-PUBLIC_BASE_URL=https://textrpg-8ic8.onrender.com
-AUTH_SECRET=long_random_secret
-KAKAO_REST_API_KEY=your_kakao_rest_api_key
-KAKAO_CLIENT_SECRET=optional_kakao_client_secret
-```
-
-When a user is logged in, `저장하기` writes to that account's single manual save slot. `이어하기` restores that account slot instead of the browser-only save key.
-
-## Other Environment Variables
-
-- `PORT`
-- `RUNTIME_DIR`
-- `DATABASE_URL`
-- `NEON_DATABASE_URL` (takes precedence over `DATABASE_URL`)
-- `PUBLIC_BASE_URL`
-- `AUTH_SECRET`
-- `KAKAO_REST_API_KEY`
-- `KAKAO_CLIENT_SECRET`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-If both `NEON_DATABASE_URL` and `DATABASE_URL` are empty, the game uses the local file repository under `.runtime` or `RUNTIME_DIR` when set.
-
-## Docs
-
-- Project structure: `OBJECT_MODEL.md`
-- World design: `WORLD_DESIGN.md`
-- Subway expedition design and loot tables: `SUBWAY_EXPEDITION.md`
-- Content ledger: `CONTENT_LEDGER.md`
+기존 `.env`·`.env.local`·로컬 저장·공개 데이터베이스는 이동하지 않았습니다. 테스트와 브라우저 확인은 사용자 요청 시 수행합니다.

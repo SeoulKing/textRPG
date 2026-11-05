@@ -8,12 +8,20 @@
 
 config_version=5
 
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
 [application]
 
 config/name="아르카나 · 별빛의 도시"
 config/description="기존 아르카나 서버와 연결되는 도트 오픈월드 RPG"
 run/main_scene="res://main.tscn"
-config/features=PackedStringArray("4.5", "GL Compatibility")
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[autoload]
+
+_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [display]
 
@@ -27,7 +35,7 @@ window/handheld/orientation=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/arcana_layout/plugin.cfg", "res://addons/pixel_workshop/plugin.cfg", "res://addons/net.yarvis.pixel_pen/plugin.cfg", "res://addons/heroine_workshop/plugin.cfg")
+enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg", "res://addons/hybrid_run_keyframes/plugin.cfg", "res://addons/net.yarvis.pixel_pen/plugin.cfg")
 
 [filesystem]
 

@@ -5,7 +5,7 @@ const Illustrated = preload("res://scripts/illustrated_art.gd")
 const Models = preload("res://scripts/pixel3d_models.gd")
 const Fountain = preload("res://scripts/fountain_spec.gd")
 const Actor = preload("res://scripts/pixel3d_actor.gd")
-const Hero = preload("res://scripts/heroine_sprite.gd")
+const Hero = preload("res://scripts/characters/hybrid_v1/billboard_actor.gd")
 
 @export_enum("plaza-guide", "city-townhouse", "city-workshops", "city-bookshop", "city-market", "city-cafe", "city-hedge", "shop", "inn", "restaurant", "academy", "academy-2d", "fountain", "oak", "birch", "spruce", "bench", "flowerbed", "flowers", "shrub", "flowerpot", "crate", "barrels", "basket", "sign", "lantern", "lamp-post", "handcart", "workbench", "canopy", "pennant", "portal", "hero", "traveler") var model_kind: String = "crate":
 	set(value):

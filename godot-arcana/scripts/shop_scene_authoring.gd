@@ -6,7 +6,7 @@ static func rebuild() -> void:
 	var tiles = root.get_node("Floor").tile_set as TileSet
 	var specs = Data.definitions()
 	var ids: Dictionary = {}
-	DirAccess.make_dir_recursive_absolute("res://scenes/shop/walls")
+	DirAccess.make_dir_recursive_absolute("res://scenes/props/shop/architecture")
 	var collection = TileSetScenesCollectionSource.new()
 	for id in specs:
 		var spec: Dictionary = specs[id]
@@ -30,7 +30,7 @@ static func rebuild() -> void:
 		var packed = PackedScene.new()
 		packed.pack(tile)
 		packed.set_meta("shop_asset",id)
-		var path = "res://scenes/shop/walls/"+str(id)+".tscn"
+		var path = "res://scenes/props/shop/architecture/"+str(id)+".tscn"
 		ResourceSaver.save(packed,path)
 		ids[id] = collection.create_scene_tile(load(path))
 		collection.set_scene_tile_display_placeholder(ids[id],false)

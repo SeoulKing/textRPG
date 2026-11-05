@@ -1,0 +1,37 @@
+{
+  "assets": [
+    {
+      "id": "stone-pattern",
+      "native": "res://art/source/stone-floor-v1/stone-pattern.pxpen",
+      "nativePixelCorrections": 19,
+      "output": "res://art/export/stone-floor-v1/stone-pattern.png",
+      "reusedMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        512,
+        512
+      ]
+    },
+    {
+      "id": "ornament-connectors",
+      "native": "res://art/source/stone-floor-v1/ornament-connectors.pxpen",
+      "nativePixelCorrections": 0,
+      "output": "res://art/export/stone-floor-v1/ornament-connectors.png",
+      "reusedMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        512,
+        512
+      ]
+    }
+  ],
+  "stoneRepeat": [
+    512,
+    512
+  ],
+  "tileSize": [
+    128,
+    128
+  ],
+  "tiles": 32
+}

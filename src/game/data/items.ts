@@ -5,6 +5,24 @@
 import { defineItem } from "./item-helpers";
 
 export const baseItems = {
+  mushroom: defineItem({id:"mushroom",name:"버섯",description:"버섯구이의 재료.",kind:"material",rarity:"common",price:2,tags:["요리","재료"]}),
+  potato: defineItem({id:"potato",name:"감자",description:"구운감자의 재료.",kind:"material",rarity:"common",price:2,tags:["요리","재료"]}),
+  rawMeat: defineItem({id:"rawMeat",name:"고기",description:"고기꼬치의 재료.",kind:"material",rarity:"common",price:2,tags:["요리","재료"]}),
+  treeBranch: defineItem({id:"treeBranch",name:"나뭇가지",description:"고기꼬치에 쓰는 가지.",kind:"material",rarity:"common",price:2,tags:["요리","재료"]}),
+  grilledMushroom: defineItem({id:"grilledMushroom",name:"버섯구이 · 보통",description:"모닥불에 익힌 버섯구이. 허기 40 회복.",kind:"food",rarity:"common",price:0,tags:["요리","보통"],useMinutes:0}),
+  grilledMushroomFine: defineItem({id:"grilledMushroomFine",name:"버섯구이 · 양호",description:"모닥불에 익힌 버섯구이. 허기 50 회복.",kind:"food",rarity:"uncommon",price:0,tags:["요리","양호"],useMinutes:0}),
+  grilledMushroomExcellent: defineItem({id:"grilledMushroomExcellent",name:"버섯구이 · 우수",description:"모닥불에 익힌 버섯구이. 허기 60 회복.",kind:"food",rarity:"rare",price:0,tags:["요리","우수"],useMinutes:0}),
+  roastedPotato: defineItem({id:"roastedPotato",name:"구운감자 · 보통",description:"모닥불에 익힌 구운감자. 허기 40 회복.",kind:"food",rarity:"common",price:0,tags:["요리","보통"],useMinutes:0}),
+  roastedPotatoFine: defineItem({id:"roastedPotatoFine",name:"구운감자 · 양호",description:"모닥불에 익힌 구운감자. 허기 50 회복.",kind:"food",rarity:"uncommon",price:0,tags:["요리","양호"],useMinutes:0}),
+  roastedPotatoExcellent: defineItem({id:"roastedPotatoExcellent",name:"구운감자 · 우수",description:"모닥불에 익힌 구운감자. 허기 60 회복.",kind:"food",rarity:"rare",price:0,tags:["요리","우수"],useMinutes:0}),
+  meatSkewer: defineItem({id:"meatSkewer",name:"고기꼬치 · 보통",description:"모닥불에 익힌 고기꼬치. 허기 40 회복.",kind:"food",rarity:"common",price:0,tags:["요리","보통"],useMinutes:0}),
+  meatSkewerFine: defineItem({id:"meatSkewerFine",name:"고기꼬치 · 양호",description:"모닥불에 익힌 고기꼬치. 허기 50 회복.",kind:"food",rarity:"uncommon",price:0,tags:["요리","양호"],useMinutes:0}),
+  meatSkewerExcellent: defineItem({id:"meatSkewerExcellent",name:"고기꼬치 · 우수",description:"모닥불에 익힌 고기꼬치. 허기 60 회복.",kind:"food",rarity:"rare",price:0,tags:["요리","우수"],useMinutes:0}),
+  campfire: defineItem({id:"campfire",name:"모닥불 · 보통",description:"야외에 설치해 30분 동안 사용한다. 요리 6초.",kind:"tool",rarity:"common",price:0,tags:["제작","모닥불","보통"]}),
+  campfireFine: defineItem({id:"campfireFine",name:"모닥불 · 양호",description:"야외에 설치해 45분 동안 사용한다. 요리 4초.",kind:"tool",rarity:"uncommon",price:0,tags:["제작","모닥불","양호"]}),
+  campfireExcellent: defineItem({id:"campfireExcellent",name:"모닥불 · 우수",description:"야외에 설치해 60분 동안 사용한다. 요리 3초.",kind:"tool",rarity:"rare",price:0,tags:["제작","모닥불","우수"]}),
+  grilledFishFine: defineItem({id:"grilledFishFine",name:"생선구이 · 양호",description:"잘 익힌 생선구이. 허기 50 회복.",kind:"food",rarity:"uncommon",price:0,tags:["요리","양호"],useMinutes:0}),
+  grilledFishExcellent: defineItem({id:"grilledFishExcellent",name:"생선구이 · 우수",description:"겉과 속을 알맞게 익힌 생선구이. 허기 60 회복.",kind:"food",rarity:"rare",price:0,tags:["요리","우수"],useMinutes:0}),
   flashlight: defineItem({
     id: "flashlight", name: "손전등", description: "어두운 곳을 비추는 휴대용 손전등. 아이템에서 켜거나 끌 수 있다.",
     kind: "tool", rarity: "common", price: 0, tags: ["조명", "탐색"],
@@ -251,6 +269,10 @@ export const baseItems = {
     rarity: "common",
     price: 1500,
     tags: ["재료", "요리"],
+  }),
+  fishingRod: defineItem({
+    id:"fishingRod", name:"나무 낚싯대", description:"짙은 목재에 남색 손잡이, 청금색 보석과 파랑·상아색 찌를 단 낚싯대. 생활 도구에 장착하고 강물을 향해 사용한다.",
+    kind:"tool", rarity:"common", price:0, tags:["생활 도구","낚시","장착"],
   }),
   riverFish: defineItem({
     id: "riverFish",

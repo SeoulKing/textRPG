@@ -4,6 +4,7 @@ import { GameStateSchema } from "./game-state";
 import { LocationCardSchema } from "./location";
 import { PersonCardSchema } from "./person";
 import { ItemCardSchema } from "./item";
+import { ArcanaItemMasterSchema } from "./arcana-item";
 import { EventCardSchema } from "./event";
 import { SceneCardSchema } from "./scene";
 import { ProtagonistCardSchema } from "./person";
@@ -118,6 +119,7 @@ export const StateSnapshotSchema = z.object({
     generalActions: z.array(ActionChoiceSchema),
   }).nullable().default(null),
   itemCatalog: z.array(ItemCardSchema).default([]),
+  arcanaItemCatalog: z.array(ArcanaItemMasterSchema).optional(),
   protagonist: ProtagonistCardSchema,
   storyMaterials: StoryMaterialsSchema,
   quests: z.array(

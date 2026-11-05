@@ -1,10 +1,12 @@
 import type { FastifyInstance } from "fastify";
+import { performance } from "node:perf_hooks";
+import { WorldSocketSender } from "./socket-sender";
 import { z } from "zod";
 import { AuthController } from "../auth";
 import { OnlineAccounts, OnlineError, nativeDevelopment } from "./accounts";
 import { ArcanaWorld } from "./world";
 const PointSchema=z.object({x:z.number().finite().min(-10000).max(10000),y:z.number().finite().min(-10000).max(10000)});
-const InputSchema=z.object({placeRevision:z.number().int().nonnegative().optional(),developerSpeed:z.boolean().optional(),sequence:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),position:PointSchema.optional(),direction:PointSchema.optional(),bench:z.enum(["","approach","sit","seated","stand"]).optional(),gait:z.number().finite().min(0).max(1e9).optional(),floor:z.number().int().min(0).max(2).optional(),command:z.enum(["spatial_sync","fireball","flame_wave","flame_guard","meteor","giant_fireball","flame_barrage","dodge","teleport","potion"]).optional(),aim:PointSchema.optional(),target:PointSchema.optional()});
+const InputSchema=z.object({actionId:z.string().regex(/^[a-zA-Z0-9-]{16,100}$/).optional(),placeRevision:z.number().int().nonnegative().optional(),developerSpeed:z.boolean().optional(),sequence:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),position:PointSchema.optional(),direction:PointSchema.optional(),bench:z.enum(["","approach","sit","seated","stand"]).optional(),gait:z.number().finite().min(0).max(1e9).optional(),floor:z.number().int().min(0).max(2).optional(),command:z.enum(["life_craft","life_place","life_cook","life_eat","life_cancel","fishing_equip","fishing_unequip","fishing_cast","fishing_press","fishing_release","fishing_cancel","spatial_sync","fireball","flame_wave","flame_guard","meteor","giant_fireball","flame_barrage","dodge","teleport","potion"]).optional(),aim:PointSchema.optional(),target:PointSchema.optional(),itemId:z.string().min(1).max(60).optional(),recipeId:z.string().min(1).max(60).optional(),campfireId:z.string().uuid().optional()});
 export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts,auth:AuthController,world:ArcanaWorld) {
   const limits=new Map<string,{start:number;count:number}>();
   const configuredOrigins=(process.env.ALLOWED_ORIGINS || process.env.PUBLIC_BASE_URL || "").split(",").map(v=>v.trim()).filter(Boolean);
@@ -26,6 +28,7 @@ export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts
     const match=request.url.split("?")[0].match(/^\/api\/(?:state-world\/)?games\/([^/]+)/);
     if(match) {
       const owner=await accounts.authorize(decodeURIComponent(match[1]),await accounts.require(request));
+      if(!owner.characterId)throw new OnlineError("arcana_character_required","폐허 서울은 분리된 프로젝트에서 실행해 주세요.",403);
       if(owner.characterId && (pathnameFor(request.url).endsWith("/combat-ws") || pathnameFor(request.url).startsWith("/api/state-world/")))throw new OnlineError("world_transport_required","아르카나 세계 연결을 사용해 주세요.",403);
     }
   });
@@ -69,8 +72,9 @@ export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts
     const query=z.object({controller:z.string().min(8).max(100),protocol:z.literal("3")}).safeParse(request.query);
     if(!query.success){socket.close(1008,"Invalid controller");return;}
     let id="",outstanding=0,window=Date.now(),messages=0,closed=false;
-    const send=(value:unknown)=>{if(socket.readyState!==1)return;if(socket.bufferedAmount>1024*1024){socket.close(1013,"Slow connection");return;}socket.send(JSON.stringify(value));};
-    const connection={sessionId:"",controller:query.data.controller,send,close:(code:number,reason:string)=>socket.close(code,reason)};
+    const sender=new WorldSocketSender(socket,()=>world.diagnostics(),(event,network)=>request.log.warn({network},event));
+    const send=(value:unknown)=>sender.send(value);
+    const connection={sessionId:"",controller:query.data.controller,send,sendState:(build:()=>unknown)=>sender.sendState(build),close:(code:number,reason:string)=>socket.close(code,reason)};
     const ready=accounts.require(request).then(async principal=>{
       connection.sessionId=principal.sessionId;
       id=await world.attach(principal,query.data.controller,connection);
@@ -84,10 +88,12 @@ export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts
       const parsed=z.object({id:z.number().int().positive(),input:InputSchema}).safeParse(packet);
       if(!parsed.success){socket.close(1008,"Invalid input");return;}
       outstanding++;
-      void ready.then(()=>world.command(id,connection,parsed.data.input)).then(result=>send({id:parsed.data.id,result}),error=>send({id:parsed.data.id,result:{error:error instanceof OnlineError?error.code:"command_failed",message:error instanceof Error?error.message:"입력을 처리하지 못했습니다."}})).finally(()=>outstanding--);
+      const receivedAt=performance.now();
+      const timing=()=>({processingMs:Math.round((performance.now()-receivedAt)*100)/100});
+      void ready.then(()=>world.command(id,connection,parsed.data.input)).then(result=>send({id:parsed.data.id,result,serverTiming:timing()}),error=>send({id:parsed.data.id,serverTiming:timing(),result:{error:error instanceof OnlineError?error.code:"command_failed",message:error instanceof Error?error.message:"입력을 처리하지 못했습니다."}})).finally(()=>outstanding--);
     });
     const heartbeat=setInterval(()=>{if(socket.readyState===1)socket.ping();},15000);heartbeat.unref();
-    socket.on("close",()=>{closed=true;clearInterval(heartbeat);if(id)world.disconnect(id,connection);});
+    socket.on("close",()=>{closed=true;sender.dispose();clearInterval(heartbeat);if(id)world.disconnect(id,connection);});
     socket.on("error",error=>request.log.warn({err:error},"world websocket"));
   });
 }

@@ -7,8 +7,13 @@ BASE = 'https://github.com/godotengine/godot-builds/releases/download/4.5.1-stab
 editor = ROOT / 'editor.zip'
 if not editor.exists():
     urllib.request.urlretrieve(BASE + 'Godot_v4.5.1-stable_win64.exe.zip', editor)
-if not list(ROOT.glob('*console.exe')):
-    with zipfile.ZipFile(editor) as archive: archive.extractall(ROOT)
+editor_names = {'Godot_v4.5.1-stable_win64.exe', 'Godot_v4.5.1-stable_win64_console.exe'}
+if not all((ROOT / name).is_file() for name in editor_names):
+    with zipfile.ZipFile(editor) as archive:
+        if set(archive.namelist()) != editor_names:
+            raise RuntimeError('Cached editor archive does not match the pinned Godot 4.5.1 engine')
+        for name in editor_names:
+            (ROOT / name).write_bytes(archive.read(name))
 web = ROOT / 'web_nothreads_release.zip'
 if not web.exists():
     req = urllib.request.Request(BASE + 'Godot_v4.5.1-stable_export_templates.tpz', method='HEAD', headers={'User-Agent':'Arcana-build'})

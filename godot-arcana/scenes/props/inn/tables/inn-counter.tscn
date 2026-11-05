@@ -1,0 +1,48 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/48a382f51d9e683700ab0d52eb231632c5089ada96652674c1a5bd807a8598ee.res" id="8_6m4ck"]
+[sub_resource type="Gradient" id="Gradient_inn_light"]
+offsets = PackedFloat32Array(0, 0.25, 0.5, 0.75, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.56, 0.56, 0.56, 1, 0.25, 0.25, 0.25, 1, 0.06, 0.06, 0.06, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="InnLightFalloff"]
+gradient = SubResource("Gradient_inn_light")
+width = 640
+height = 640
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_counter12_1"]
+resource_local_to_scene = true
+size = Vector2(220, 124)
+
+[node name="Inn_counter12" type="Sprite2D"]
+texture = ExtResource("8_6m4ck")
+centered = false
+offset = Vector2(-143.8, -185.8)
+metadata/foot = Vector2(0, 0)
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+texture_filter = 1
+
+[node name="Collision" type="StaticBody2D" parent="."]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" type="CollisionShape2D" parent="Collision"]
+position = Vector2(1.2, -58.8)
+shape = SubResource("Collision_Inn_counter12_1")
+metadata/layout_collision = true
+
+[node name="WarmLight" type="PointLight2D" parent="."]
+position = Vector2(-103.48, -144)
+color = Color(1, 0.827451, 0.568627, 1)
+energy = 0.55
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.86
+metadata/fireplace = false
+

@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=42 format=3 uid="uid://b2fly3d62cm03"]
+[gd_resource type="SpriteFrames" format=3 uid="uid://b2fly3d62cm03"]
 
 [ext_resource type="Texture2D" uid="uid://c2c2o2epldbw2" path="res://art/export/traveler.png" id="1"]
 
@@ -171,7 +171,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("i31")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle_east",
 "speed": 0.6
 }, {
@@ -182,7 +182,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("i11")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle_north",
 "speed": 0.6
 }, {
@@ -193,7 +193,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("i01")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle_south",
 "speed": 0.6
 }, {
@@ -204,7 +204,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("i21")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle_west",
 "speed": 0.6
 }, {
@@ -233,7 +233,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("w37")
 }],
-"loop": true,
+"loop": 1,
 "name": &"walk_east",
 "speed": 12.0
 }, {
@@ -262,7 +262,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("w17")
 }],
-"loop": true,
+"loop": 1,
 "name": &"walk_north",
 "speed": 12.0
 }, {
@@ -291,7 +291,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("w07")
 }],
-"loop": true,
+"loop": 1,
 "name": &"walk_south",
 "speed": 12.0
 }, {
@@ -320,7 +320,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("w27")
 }],
-"loop": true,
+"loop": 1,
 "name": &"walk_west",
 "speed": 12.0
 }]

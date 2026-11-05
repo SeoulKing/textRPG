@@ -3,8 +3,8 @@
   "approvedConcept": "art-studies/props/bed-stardew-v1/concept.png",
   "nativeSource": "res://art/source/props/bed-stardew-v2/bed.pxpen",
   "texture": "res://art/export/bed-stardew-v2/bed.png",
-  "scene3d": "res://scenes/props/bed_narrow.tscn",
-  "scene2d": "res://scenes/props/bed_narrow_2d.tscn",
+  "scene3d": "res://scenes/props/shared/beds/bed_narrow.tscn",
+  "scene2d": "res://scenes/props/shared/beds/bed_narrow_2d.tscn",
   "tileSet": "res://art/export/bed-stardew-v2/bed_tileset.tres",
   "canvas": [
     112,

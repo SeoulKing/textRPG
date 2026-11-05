@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/8989324e4efe7aae67827d3836defc5802c3b6a134478a32b630a8edae448e51.res" id="15_niofa"]
+[node name="Academy_partition_pier117" type="Sprite2D"]
+texture = ExtResource("15_niofa")
+centered = false
+offset = Vector2(-18, -82)
+metadata/foot = Vector2(0, 0)
+texture_filter = 1
+

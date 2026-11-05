@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/6ba16c4b5e06247eded55263dea0a0bafe528576f7321ce13c39adb3f7882183.res" id="7_svfl4"]
+[node name="Academy_orrery49" type="Sprite2D"]
+texture = ExtResource("7_svfl4")
+centered = false
+offset = Vector2(-100, -219)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-80, -72, 160, 88)]
+texture_filter = 1
+

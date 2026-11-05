@@ -1,0 +1,18 @@
+{
+  "reviewed_at": "2026-11-04",
+  "source": "latest user-uploaded PNG, not the shared-link download",
+  "source_copy_sha256_matches_attachment": true,
+  "whole_leg_crop_rgba_matches_source": true,
+  "inspected": ["focus-neutral-run025.png"],
+  "observations": [
+    "The complete leg texture remains continuous through the knee while two native Bone2Ds deform one Polygon2D.",
+    "Fixed neutral and running quarter-phase captures show the source leg and the bent result without editor bone gizmos."
+  ],
+  "neutral_render_spot_check": {
+    "direction": "s",
+    "matching_interior_rgb_samples": 4,
+    "note": "Source partial alpha is retained in leg.png; GPU framebuffer alpha can differ. This is not an exact full-RGBA render claim."
+  },
+  "runtime_verified": false,
+  "user_art_approval": "pending"
+}

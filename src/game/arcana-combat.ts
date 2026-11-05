@@ -26,6 +26,7 @@ export function normalizeArcanaCombat(raw: unknown) {
     value.skillSystemVersion = 1;
   }
   normalizeFireballTraining(value);
+  value.cooldowns.fireball = 0;
   const seen = new Set<string>();
   value.activeSkills = (value.activeSkills ?? [...value.learnedSpells, null, null, null, null, null, null].slice(0, 6)).map(id => {
     if (!id || !value.learnedSpells!.some(skill => skill === id) || seen.has(id)) return null;

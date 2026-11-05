@@ -1,0 +1,59 @@
+{
+  "asset": "res://art/export/inn-quest-board/inn-quest-board.png",
+  "source": "res://art/source/props/inn-quest-board-wall-v3/inn-quest-board.png",
+  "pixelsPerUnit": 64,
+  "canvas": [
+    128,
+    160
+  ],
+  "foot": [
+    64,
+    128
+  ],
+  "footprintTiles": [
+    0,
+    0
+  ],
+  "navigationTilePixels": 16,
+  "worldPosition": [
+    14,
+    1.1,
+    4.05
+  ],
+  "collisionRect": null,
+  "interactionPoint": [
+    224,
+    108
+  ],
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "filter": "nearest",
+  "alpha": [
+    0,
+    255
+  ],
+  "mipmaps": false,
+  "mount": "wall",
+  "designSizeTiles": [
+    2,
+    1
+  ],
+  "materialReference": "res://art/export/inn-lobby/counter.png",
+  "master": "art-studies/inn-quest-board/material-v3/master.png",
+  "crop": [
+    158,
+    117,
+    1005,
+    930
+  ],
+  "registeredArtBounds": [
+    6,
+    15,
+    116,
+    107
+  ],
+  "alphaCleanup": [],
+  "previousSource": "res://art/source/props/inn-quest-board-wall-v2/inn-quest-board.pxpen"
+}

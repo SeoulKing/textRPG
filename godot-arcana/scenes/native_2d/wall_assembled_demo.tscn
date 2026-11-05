@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=4]
+
+[ext_resource type="TileSet" path="res://art/resources/assembled_wall_tileset.tres" id="1_41no0"]
+[ext_resource type="Script" path="res://scripts/native_2d_wall_layer.gd" id="2_1k0si"]
+
+[node name="WallAssembledDemo" type="Node2D"]
+metadata/source_art = "Approved enclosure master, extracted modular pieces"
+metadata/arrangement = "original"
+metadata/edit_instruction = "Walls → TileMap → Tiles: 조각 선택 후 칠하기, 오른쪽 버튼으로 지우기"
+
+[node name="Walls" type="TileMapLayer" parent="."]
+y_sort_enabled = true
+texture_filter = 1
+tile_map_data = PackedByteArray("AAACAAIAAAAAAAAAAAAIAAQAAAAGAAAAAAAXAAIAAAAVAAAAAAAbAAQAAAAZAAAAAAAmAAIAAAAkAAAAAAAqAAQAAAAoAAAAAAA6AAIAAAA4AAAAAAACAA8AAAAAAA0AAAACABUAAAAGAA0AAAA6AA8AAAAMAA0AAAA6ABUAAAASAA0AAAACAB8AAAAYAA0AAAAIACEAAAAeAA0AAAAYAB8AAAAuAA0AAAAkAB8AAAA0AA0AAAAqACEAAAAAABwAAAA6AB8AAAAQABwAAAA=")
+tile_set = ExtResource("1_41no0")
+script = ExtResource("2_1k0si")
+
+[node name="Ground" type="Polygon2D" parent="."]
+z_index = -100
+color = Color(0.3254902, 0.38431373, 0.28627452, 1)
+polygon = PackedVector2Array(-16, -16, 1072, -16, 1072, 784, -16, 784)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(528, 384)
+zoom = Vector2(0.35282257, 0.35282257)

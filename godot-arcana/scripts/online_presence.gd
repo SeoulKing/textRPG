@@ -1,6 +1,6 @@
 extends Node
 ## Render projections only. Account identity, positions, combat and rewards are server-owned.
-const Hero = preload("res://scripts/heroine_run.gd")
+const Hero = preload("res://scripts/characters/hybrid_v1/billboard_actor.gd")
 const Blink = preload("res://scripts/teleport_effect.gd")
 var main: Node
 var actors: Dictionary = {}

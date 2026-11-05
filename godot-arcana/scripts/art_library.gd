@@ -1,7 +1,6 @@
 extends RefCounted
 
 static var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/source/kit.json"))
-const HERO = preload("res://art/resources/hero.tres")
 const TRAVELER = preload("res://art/resources/traveler.tres")
 const TERRAIN = preload("res://art/resources/terrain.tres")
 const SCALE = 0.5
@@ -29,9 +28,22 @@ static func place(id: String, at: Vector2, parent: Node2D) -> Sprite2D:
 
 static func actor(traveler: bool = false) -> AnimatedSprite2D:
 	var sprite = AnimatedSprite2D.new()
-	sprite.sprite_frames = TRAVELER if traveler else HERO
+	sprite.sprite_frames = TRAVELER if traveler else _hybrid_frames()
 	sprite.centered = false
 	sprite.offset = Vector2(-16, -46)
 	sprite.scale = Vector2.ONE * SCALE
 	sprite.play("idle_south")
 	return sprite
+
+static func _hybrid_frames() -> SpriteFrames:
+	# The hidden logical-world actor uses the same approved neutral artwork.
+	var frames := SpriteFrames.new()
+	frames.remove_animation("default")
+	var directions := {"south":"s", "southeast":"se", "east":"e", "northeast":"ne", "north":"n", "northwest":"nw", "west":"w", "southwest":"sw"}
+	for facing: String in directions:
+		var texture := load("res://art/characters/hybrid-v1/assembly/review/neutral/" + str(directions[facing]) + ".png") as Texture2D
+		for clip: String in ["idle_", "walk_"]:
+			var name := clip + facing
+			frames.add_animation(name)
+			frames.add_frame(name, texture)
+	return frames

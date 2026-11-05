@@ -14,6 +14,7 @@ const ActionButton = preload("res://scripts/mobile_action_button.gd")
 const SkillTreeView = preload("res://scripts/skill_tree_view.gd")
 var skill_tree_view: Control
 var shop_view: Control
+var inventory_view: Control
 var quest_view: Control
 const SkillCooldown = preload("res://scripts/skill_cooldown.gd")
 const SLOT_NAMES = {"meteor":"메테오","giant_fireball":"거대화염구","flame_barrage":"화염난사","fireball":"불꽃탄", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"대시", "teleport":"텔레포트", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
@@ -22,7 +23,7 @@ const MUTED = Color("586779")
 const GOLD = Color("856129")
 const PAPER = Color("fffaf0")
 const EDGE = Color("c7cbd2")
-var mei_nameplate: PanelContainer
+var mei_nameplate: Label
 var mei_nameplate_anchor: Node2D
 var mei_nameplate_pixel_scale = Vector2.ZERO
 var mei_nameplate_layout_size = Vector2.ZERO
@@ -37,6 +38,8 @@ var hp_label: Label
 var mp_label: Label
 var hp_bar: ProgressBar
 var mp_bar: ProgressBar
+var hunger_bar: ProgressBar
+var hunger_label: Label
 var hint_label: Label
 var toast_label: Label
 var overlay: Control
@@ -95,18 +98,12 @@ func _ready() -> void:
 	# reports fractions. Move a Node2D carrier so physical-pixel placement survives.
 	mei_nameplate_anchor = Node2D.new()
 	root.add_child(mei_nameplate_anchor)
-	mei_nameplate = PanelContainer.new()
+	mei_nameplate = label("메이", 13, Color("f4ecd9"))
 	mei_nameplate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var plate_style = style(Color("26364de6"), Color("c7cbd2"))
-	plate_style.content_margin_left = 9
-	plate_style.content_margin_right = 9
-	plate_style.content_margin_top = 2
-	plate_style.content_margin_bottom = 3
-	mei_nameplate.add_theme_stylebox_override("panel", plate_style)
-	var mei_label = label("메이", 13, PAPER)
-	mei_label.add_theme_font_override("font", FONT)
-	mei_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mei_nameplate.add_child(mei_label)
+	mei_nameplate.add_theme_font_override("font", FONT)
+	mei_nameplate.add_theme_color_override("font_shadow_color", Color("171c26"))
+	mei_nameplate.add_theme_constant_override("shadow_offset_x", 1)
+	mei_nameplate.add_theme_constant_override("shadow_offset_y", 1)
 	mei_nameplate_anchor.add_child(mei_nameplate)
 	mei_nameplate_anchor.hide()
 	var theme = Theme.new()
@@ -128,7 +125,7 @@ func _ready() -> void:
 	header = top
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	top.offset_top = 12
-	top.offset_bottom = 132
+	top.offset_bottom = 164
 	top.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var header_style = style(Color(PAPER,.97), Color(1,1,1,.95))
 	header_style.set_corner_radius_all(16)
@@ -159,8 +156,8 @@ func _ready() -> void:
 	var stats = VBoxContainer.new()
 	stats.add_theme_constant_override("separation", 4)
 	stack.add_child(stats)
-	for id in ["HP", "MP"]:
-		var bar = make_bar(Color("df596c") if id == "HP" else Color("398bda"), 28)
+	for id in ["HP", "MP", "허기"]:
+		var bar = make_bar(Color("df596c") if id == "HP" else Color("398bda") if id == "MP" else Color("b38a42"), 28)
 		stats.add_child(bar)
 		var stat = label(id, 16, Color.WHITE, true)
 		stat.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -172,7 +169,8 @@ func _ready() -> void:
 		stat.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bar.add_child(stat)
 		if id == "HP": hp_label = stat; hp_bar = bar
-		else: mp_label = stat; mp_bar = bar
+		elif id == "MP": mp_label = stat; mp_bar = bar
+		else: hunger_label = stat; hunger_bar = bar
 	stack.add_child(heading)
 	var bottom = PanelContainer.new()
 	navigation = bottom
@@ -413,6 +411,7 @@ func open_skill_tree(spell: Dictionary, selected: String, invest: Callable, rese
 	overlay.add_child(skill_tree_view)
 
 func open_panel(title: String, can_close: bool = true) -> void:
+	_clear_inventory()
 	_clear_shop()
 	_clear_quests()
 	if is_instance_valid(skill_tree_view):
@@ -430,6 +429,7 @@ func open_panel(title: String, can_close: bool = true) -> void:
 	overlay.show()
 
 func close_panel() -> void:
+	_clear_inventory()
 	_clear_shop()
 	_clear_quests()
 	if is_instance_valid(skill_tree_view):
@@ -660,7 +660,7 @@ func update_mei_nameplate(screen_position: Vector2, shown: bool) -> void:
 			mei_nameplate_pixel_scale = pixel_scale
 			mei_nameplate_layout_size = mei_nameplate.size
 			# Keep the centering/gap fixed on that grid; glyphs are never rebuilt.
-			mei_nameplate_pixel_offset = (Vector2(-mei_nameplate.size.x * .5, 8) * pixel_scale).round()
+			mei_nameplate_pixel_offset = (Vector2(-mei_nameplate.size.x * .5, -mei_nameplate.size.y - 4.0) * pixel_scale).round()
 		var pixel_anchor = (screen_position * pixel_scale).round()
 		var target_position = (pixel_anchor + mei_nameplate_pixel_offset) / pixel_scale
 		if mei_nameplate_anchor.position != target_position:
@@ -697,3 +697,22 @@ func open_quests(entries: Array, show_map: Callable) -> void:
 	quest_view.close_requested.connect(close_panel)
 	quest_view.map_requested.connect(show_map)
 	overlay.add_child(quest_view)
+
+func _clear_inventory() -> void:
+	if is_instance_valid(inventory_view):
+		inventory_view.hide()
+		inventory_view.queue_free()
+		inventory_view = null
+
+func open_inventory(entries: Array, money: int, selected_id: String, action: Callable, equipment: Callable, craft: Callable) -> void:
+	open_panel("소지품")
+	panel.hide()
+	inventory_view = preload("res://scripts/inventory_view.gd").new()
+	inventory_view.entries = entries
+	inventory_view.money = money
+	inventory_view.selected_id = selected_id
+	inventory_view.action = action
+	inventory_view.equipment_requested.connect(equipment)
+	inventory_view.craft_requested.connect(craft)
+	inventory_view.close_requested.connect(close_panel)
+	overlay.add_child(inventory_view)

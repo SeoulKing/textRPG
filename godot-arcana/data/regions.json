@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "regions": {
+    "outside": {
+      "scene": "res://scenes/native_2d/plaza.tscn",
+      "location": "arcana_plaza",
+      "adapter": "plaza",
+      "bounds": [
+        128,
+        192,
+        3840,
+        5408
+      ]
+    },
+    "arcana_shop": {
+      "scene": "res://scenes/shop_2d.tscn",
+      "location": "arcana_shop",
+      "adapter": "shop",
+      "bounds": [
+        320,
+        256,
+        896,
+        600
+      ]
+    },
+    "arcana_inn": {
+      "scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "location": "arcana_inn",
+      "adapter": "authored",
+      "bounds": [
+        192,
+        256,
+        1152,
+        800
+      ]
+    },
+    "arcana_academy:1": {
+      "scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "location": "arcana_academy",
+      "floor": 1,
+      "adapter": "authored",
+      "bounds": [
+        192,
+        256,
+        1152,
+        984
+      ]
+    },
+    "arcana_academy:2": {
+      "scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "location": "arcana_academy",
+      "floor": 2,
+      "adapter": "authored",
+      "bounds": [
+        192,
+        256,
+        1152,
+        984
+      ]
+    },
+    "arcana_restaurant": {
+      "scene": "res://scenes/native_2d/restaurant.tscn",
+      "location": "arcana_restaurant",
+      "adapter": "authored",
+      "bounds": [
+        120,
+        120,
+        1280,
+        1184
+      ]
+    }
+  }
+}

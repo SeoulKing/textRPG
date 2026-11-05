@@ -1,0 +1,113 @@
+{
+	"belt_owner": "pelvis",
+	"directions": {
+		"e": {
+			"png": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/e.png",
+			"removed_pixels": 39,
+			"sha256": "baceabeb1f88340be68c9e809d4747a63e4592016d6b335914bcff520dd2418b",
+			"source_png": "res://art/characters/hybrid-v1/upper-body/e/upper_body.png",
+			"source_sha256": "d77203234a418158c447deea93986b0936fce3ca69d187e4c844d67ab75def9a",
+			"waist_clip_rect": [
+				29,
+				27,
+				9,
+				6
+			]
+		},
+		"n": {
+			"png": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/n.png",
+			"removed_pixels": 107,
+			"sha256": "588b3e3c0859b7913fde1c75d05de961acb9c2d4650183191fe208088cf09c9c",
+			"source_png": "res://art/characters/hybrid-v1/upper-body/n/upper_body.png",
+			"source_sha256": "50e8bd7121be552ddbf9b699d8eac5c6c397ae188ab4457eb296e7e5f61714c2",
+			"waist_clip_rect": [
+				14,
+				27,
+				20,
+				6
+			]
+		},
+		"ne": {
+			"png": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/ne.png",
+			"removed_pixels": 72,
+			"sha256": "529c6e27cd24cfec17e2eaa5d7c64a5469fc5933ce5f25f644d64135fcd13460",
+			"source_png": "res://art/characters/hybrid-v1/upper-body/ne/upper_body.png",
+			"source_sha256": "d3b2a2536d0ac2f8a078b5bbf2ed47fbc5c0f91aa0e703148202f9aaed13e360",
+			"waist_clip_rect": [
+				15,
+				27,
+				15,
+				6
+			]
+		},
+		"nw": {
+			"png": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/nw.png",
+			"removed_pixels": 60,
+			"sha256": "62cb3e45f5c29ecae7393421cc4f4c8495e57e761ac52c049df8202de4b06e93",
+			"source_png": "res://art/characters/hybrid-v1/upper-body/nw/upper_body.png",
+			"source_sha256": "7108cd30698eab7b4014d69bafc71746b4db7bf0091089e814578f078cf0223c",
+			"waist_clip_rect": [
+				20,
+				27,
+				14,
+				6
+			]
+		},
+		"s": {
+			"png": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/s.png",
+			"removed_pixels": 113,
+			"sha256": "580d618e7a22aa02ee2b656d6cd0235a2f7d9e8f8111d9a27c39b82b45f1b447",
+			"source_png": "res://art/characters/hybrid-v1/upper-body/s/upper_body.png",
+			"source_sha256": "f224ca3cae25ac763ca2de394d7e9be43d19fc0cc98d4ba6f5aca441c87d97ab",
+			"waist_clip_rect": [
+				14,
+				27,
+				20,
+				7
+			]
+		},
+		"se": {
+			"png": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/se.png",
+			"removed_pixels": 100,
+			"sha256": "6979ac86bde4a7abea3fef63154e21cb346c1542b6c8d1cae6040f86410f1812",
+			"source_png": "res://art/characters/hybrid-v1/upper-body/se/upper_body.png",
+			"source_sha256": "5c899a4460a6a8f72fee0da49ed1d33b6d3ea831cb664ff1f10aee26f2b86522",
+			"waist_clip_rect": [
+				17,
+				27,
+				19,
+				6
+			]
+		},
+		"sw": {
+			"png": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/sw.png",
+			"removed_pixels": 86,
+			"sha256": "f12e283d935ab0d785ace9720a69d56a35d6fb97ee582f4e4e80c08fa4b907d9",
+			"source_png": "res://art/characters/hybrid-v1/upper-body/sw/upper_body.png",
+			"source_sha256": "a8c1ae95402ebe9c8bb8aef81f33145dbeb376be91e419237b3ef8e819f17a23",
+			"waist_clip_rect": [
+				13,
+				27,
+				17,
+				6
+			]
+		},
+		"w": {
+			"png": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/w.png",
+			"removed_pixels": 44,
+			"sha256": "26a276e2b66532a16058f2646fa61a6b80501d1b433ee1a6e2243c64d447398d",
+			"source_png": "res://art/characters/hybrid-v1/upper-body/w/upper_body.png",
+			"source_sha256": "3821bb369b3c7ad0c31b5fdf16ddfa469108668d5acb6ed8ba875db533518143",
+			"waist_clip_rect": [
+				9,
+				27,
+				11,
+				6
+			]
+		}
+	},
+	"one_texture_for_arms_and_torso": true,
+	"original_sources_modified": false,
+	"schema_version": 1,
+	"source_directory": "res://art/source/heroine/reference-upper-body-v1"
+}

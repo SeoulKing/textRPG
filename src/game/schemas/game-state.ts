@@ -76,6 +76,11 @@ export const GameStateSchema = z.object({
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
   subwayExpedition: SubwayExpeditionStateSchema,
+  arcanaLife: z.object({
+    hunger:z.number().int().min(0).max(100),
+    elapsedMs:z.number().finite().min(0).max(30000),
+    woodGranted:z.boolean(),
+  }).optional(),
   arcanaCombat: ArcanaCombatSchema,
   activeClock: ActiveClockSchema,
   stateWorld: SnapshotSchema.optional(),

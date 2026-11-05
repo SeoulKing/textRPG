@@ -1,0 +1,56 @@
+{
+  "assets": [
+    {
+      "id": "limestone",
+      "native": "res://art/source/plaza-mood-v1/limestone.pxpen",
+      "nativeEdits": 5950,
+      "output": "res://art/export/regions/arcana-city-center/plaza-mood-v1/limestone.png",
+      "resource": "res://art/export/regions/arcana-city-center/plaza-mood-v1/limestone.res",
+      "reusedMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        512.0,
+        512.0
+      ]
+    },
+    {
+      "id": "banner-lamp",
+      "native": "res://art/source/plaza-mood-v1/banner-lamp.pxpen",
+      "nativeEdits": 132,
+      "output": "res://art/export/regions/arcana-city-center/plaza-mood-v1/banner-lamp.png",
+      "resource": "res://art/export/regions/arcana-city-center/plaza-mood-v1/banner-lamp.res",
+      "reusedMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        192.0,
+        320.0
+      ]
+    },
+    {
+      "id": "flower-planter",
+      "native": "res://art/source/plaza-mood-v1/flower-planter.pxpen",
+      "nativeEdits": 60,
+      "output": "res://art/export/regions/arcana-city-center/plaza-mood-v1/flower-planter.png",
+      "resource": "res://art/export/regions/arcana-city-center/plaza-mood-v1/flower-planter.res",
+      "reusedMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        176.0,
+        116.0
+      ]
+    },
+    {
+      "id": "plaza-tree",
+      "native": "res://art/source/plaza-mood-v1/plaza-tree.pxpen",
+      "nativeEdits": 1065,
+      "output": "res://art/export/regions/arcana-city-center/plaza-mood-v1/plaza-tree.png",
+      "resource": "res://art/export/regions/arcana-city-center/plaza-mood-v1/plaza-tree.res",
+      "reusedMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        320.0,
+        384.0
+      ]
+    }
+  ]
+}

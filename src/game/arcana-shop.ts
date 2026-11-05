@@ -2,6 +2,11 @@ import type { ActionChoice, GameState } from "./schemas";
 import { appendLogEntry } from "./state-utils";
 
 export const ARCANA_SHOP_GOODS = [
+  { itemId: "mushroom", name: "버섯", buy: 2, sell: 1, detail: "요리 재료" },
+  { itemId: "potato", name: "감자", buy: 2, sell: 1, detail: "요리 재료" },
+  { itemId: "rawMeat", name: "고기", buy: 2, sell: 1, detail: "요리 재료" },
+  { itemId: "treeBranch", name: "나뭇가지", buy: 2, sell: 1, detail: "요리 재료" },
+
   { itemId: "manaPotion", name: "마나 포션", buy: 10, sell: 4, detail: "MP 20 회복" },
   { itemId: "moonHerb", name: "달빛 약초", buy: 30, sell: 10, detail: "연금 재료" },
   { itemId: "arcaneDust", name: "비전 가루", buy: 60, sell: 20, detail: "마도구 제작 재료" },

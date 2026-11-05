@@ -2,6 +2,8 @@
 extends Node2D
 ## Architecture uses painted tiles; furniture uses editable scene instances.
 const Data = preload("res://scripts/shop_layout_2d.gd")
+const Sunlight = preload("res://scripts/shop_sunlight_2d.gd")
+const Hero = preload("res://scripts/native_2d_hero.gd")
 var layout: Dictionary = {}
 var backdrop: Polygon2D
 var sorted: Node2D
@@ -15,6 +17,8 @@ var connected_world: Node
 var zoom_ratio = 1.0
 var render_pixel_scale = -1.0
 var pick_items: Array[Dictionary] = []
+var sunlight: Sunlight
+var _preview_actor: Node2D
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if not Engine.is_editor_hint():
@@ -28,6 +32,11 @@ func _ready() -> void:
 	if furniture_root != null and not furniture_root is TileMapLayer:
 		furniture_root.child_order_changed.connect(_request_rebuild)
 	_rebuild()
+	sunlight = Sunlight.new()
+	sunlight.name = "ShopSunlight"
+	sunlight.y_sort_enabled = false
+	add_child(sunlight)
+	sunlight.setup(get_node("Floor"))
 	if not Engine.is_editor_hint():
 		follow_camera = Camera2D.new()
 		follow_camera.position_smoothing_enabled = false
@@ -35,10 +44,12 @@ func _ready() -> void:
 		follow_camera.enabled = not get_parent() is Node3D
 		if not is_instance_valid(avatar): avatar = _actor()
 		avatar.position = Data.canvas(layout.markers.get("arrival",Vector2(192,189)))
-		var frames = load("res://art/export/heroine-run-reference-v15/heroine-run.tres") as SpriteFrames
-		if frames != null:
-			avatar.texture = frames.get_frame_texture("idle_s",0)
+		_preview_actor=Hero.new();_preview_actor.name="HybridV1Preview";add_child(_preview_actor)
+		_preview_actor.hide()
+		sync_actor(avatar,_preview_actor,layout.markers.get("arrival",Vector2(192,189)))
+		avatar.show()
 		_frame_camera()
+		sunlight.sync([avatar, sorted.get_node("Merchant") as Sprite2D], true)
 func _request_rebuild() -> void:
 	if queued: return
 	queued = true
@@ -62,12 +73,8 @@ func _rebuild() -> void:
 	var merchant = sorted.get_node("Merchant") as Sprite2D
 	merchant.visible = layout.markers.has("actor")
 	if merchant.visible:
-		if Engine.is_editor_hint():
-			merchant.position = Vector2.ZERO
-			merchant.offset = Data.canvas(layout.markers.actor).round() + Vector2(-48,-116)
-		else:
-			merchant.position = Data.canvas(layout.markers.actor).round()
-			merchant.offset = Vector2(-48,-116)
+		merchant.position = Data.canvas(layout.markers.actor).round()
+		merchant.offset = Vector2(-48,-116)
 		pick_items.append({"sprite":merchant,"id":"merchant"})
 	bounds = Rect2(Data.canvas(Data.ORIGIN*Data.UNIT)-Vector2(0,160),Vector2(896,736))
 	if Engine.is_editor_hint(): update_configuration_warnings()
@@ -102,6 +109,10 @@ func sync_actor(sprite: Sprite2D, source: Node, point: Vector2) -> void:
 	var columns = Vector2(grid) if grid is Vector2 else Vector2.ONE
 	var frame = Vector2(cell) if cell is Vector2 else Vector2.ZERO
 	sprite.texture = texture
+	var source_art: Sprite2D = source.get("art") as Sprite2D
+	sprite.offset = source_art.offset if source_art != null else Vector2(-48,-116)
+	sprite.set_meta("dynamic_character",bool(source_art.get_meta("dynamic_character",false)) if source_art != null else false)
+	sprite.set_meta("character_ground_y",0.0)
 	sprite.region_enabled = columns != Vector2.ONE
 	sprite.region_filter_clip_enabled = true
 	if sprite.region_enabled:
@@ -110,6 +121,7 @@ func sync_actor(sprite: Sprite2D, source: Node, point: Vector2) -> void:
 	sprite.position = Data.canvas(point)
 	sprite.visible = source.visible
 func sync(world: Node, source: Node, ratio: float, delta: float, pixel_scale: float = -1.0) -> void:
+	if is_instance_valid(_preview_actor):_preview_actor.queue_free();_preview_actor=null
 	connected_world = world
 	zoom_ratio = ratio
 	render_pixel_scale = pixel_scale
@@ -119,6 +131,10 @@ func sync(world: Node, source: Node, ratio: float, delta: float, pixel_scale: fl
 	_snap_actor(avatar)
 	for remote in remote_sprites.values():
 		if is_instance_valid(remote): _snap_actor(remote)
+	var lit_actors: Array[Sprite2D] = [avatar, sorted.get_node("Merchant") as Sprite2D]
+	for remote in remote_sprites.values():
+		if is_instance_valid(remote): lit_actors.append(remote)
+	sunlight.sync(lit_actors, world.effects_enabled)
 	# Uniform alpha, never holes, on foreground art that actually covers the player.
 	var body = Rect2(avatar.position+Vector2(-24,-96),Vector2(48,84))
 	for sprite in occluders:

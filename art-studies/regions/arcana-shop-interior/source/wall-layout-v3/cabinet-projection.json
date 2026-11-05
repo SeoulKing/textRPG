@@ -1,0 +1,28 @@
+{
+  "purpose": "projection reference, not finished game art",
+  "worldDimensions": {
+    "width": 2,
+    "depth": 1,
+    "height": 3.25
+  },
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "pixelsPerUnit": 64,
+  "canvas": [
+    192,
+    257
+  ],
+  "frontCenter": [
+    96,
+    224
+  ],
+  "footprint": [
+    -1,
+    -1,
+    2,
+    1
+  ],
+  "equation": "u=P*X; v=P*(Z*sin(pitch)-Y*cos(pitch))"
+}

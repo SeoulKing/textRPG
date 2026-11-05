@@ -1,0 +1,17 @@
+{
+  "review_type": "full_character_static_gpu_review",
+  "inspected": ["neutral-8dir.png", "focus-neutral-run025.png", "neutral/s.png", "neutral/e.png", "neutral/n.png"],
+  "source_motion_preserved": true,
+  "motion_sha256": "dfdd644dd77f34e94e6d92fb67d52ece773b6a8a5ce0391adc751299d5745453",
+  "observations": [
+    "All supplied parts form one three-head, slender character driven by a real shared-motion Skeleton3D.",
+    "Head anchors at the neck, upper waist and pelvis connect, and both legs and one-foot boots remain attached.",
+    "The pelvis supplies one visible waist belt; assembly derivatives preserve sleeves and original source art.",
+    "Direction-specific neutral upper-body registration resolves the protruding NE/NW cuffs while retaining shared 3D movement.",
+    "All forty fixed-pose captures fit the comparison crop."
+  ],
+  "render_pose_count": 40,
+  "runtime_verified": false,
+  "user_art_approval": "pending",
+  "remaining_art_refinement": ["Strongly bent sleeves can still crowd or sharpen pixels; final movement feel remains for user inspection."]
+}

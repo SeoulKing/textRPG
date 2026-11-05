@@ -1,0 +1,55 @@
+{
+  "approaches": {
+    "arcana_academy": true,
+    "arcana_inn": true,
+    "arcana_restaurant": true,
+    "arcana_shop": true,
+    "city_cafe_terrace": true,
+    "city_garden_corner": true,
+    "city_market_stall": true,
+    "park_bench_01": true,
+    "park_bench_02": true,
+    "park_bench_03": true,
+    "park_bench_04": true,
+    "park_bench_05": true
+  },
+  "benchStates": {
+    "park_bench_01": "seated",
+    "park_bench_02": "seated",
+    "park_bench_03": "seated",
+    "park_bench_04": "seated",
+    "park_bench_05": "seated"
+  },
+  "cornerRoutes": {
+    "city_cafe_terrace": 20,
+    "city_garden_corner": 26,
+    "city_market_stall": 0,
+    "city_walker_fountain": 12,
+    "city_walker_inn": 12,
+    "city_walker_market": 14,
+    "city_walker_school": 15
+  },
+  "failures": [],
+  "invalidFeet": {
+    "city_walker_fountain": 0,
+    "city_walker_inn": 0,
+    "city_walker_market": 0,
+    "city_walker_school": 0
+  },
+  "residentDistance": {
+    "city_walker_fountain": 1313.39268855751,
+    "city_walker_inn": 885.276293337345,
+    "city_walker_market": 1073.65539574623,
+    "city_walker_school": 1030.72236910462
+  },
+  "simulatedSeconds": 180,
+  "walkingArrivalDistance": {
+    "city_cafe_terrace": 17.1372509002686,
+    "city_garden_corner": 16.5716915130615,
+    "city_market_stall": 2.0,
+    "city_walker_fountain": 17.650634765625,
+    "city_walker_inn": 16.2673854827881,
+    "city_walker_market": 17.5997009277344,
+    "city_walker_school": 17.7097778320313
+  }
+}

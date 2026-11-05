@@ -28,12 +28,17 @@ document.getElementById('retry').addEventListener('click',()=>location.reload())
 window.arcanaCommand=payload=>{if(typeof window.arcanaGodotCommand==='function')window.arcanaGodotCommand(JSON.stringify(payload));};
 window.render_game_to_text=()=>{if(typeof window.arcanaGodotState==='function')window.arcanaGodotState();return JSON.stringify(window.arcanaLatestState||{ready:false,engine:'Godot',status:status.textContent});};
 setInterval(()=>{if(typeof window.arcanaGodotState==='function'){window.arcanaGodotState();if(window.arcanaLatestState){document.getElementById('game-state').textContent=JSON.stringify(window.arcanaLatestState);const t=window.arcanaLatestState.timing;if(t?.fps)document.getElementById('frame-rate').textContent=t.fps.toFixed(1)+' FPS · '+t.p95Ms.toFixed(1)+' ms';}}},500);
+window.arcanaNetworkReport=()=>{window.arcanaCommand({command:'network_report'});return window.arcanaNetworkDiagnostics||null;};
+window.arcanaSaveNetworkReport=report=>{const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='arcana-network-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 window.arcanaToggleFullscreen=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){console.warn('Fullscreen unavailable',e.message);}};
 document.getElementById('canvas').addEventListener('pointerdown',()=>window.arcanaCommand({command:'focus',active:!document.hidden}));
 document.getElementById('canvas').addEventListener('keydown',()=>window.arcanaCommand({command:'focus',active:!document.hidden}));
 document.addEventListener('visibilitychange',()=>window.arcanaCommand({command:'focus',active:!document.hidden}));
 window.addEventListener('blur',()=>window.arcanaCommand({command:'focus',active:false}));
 window.addEventListener('focus',()=>window.arcanaCommand({command:'focus',active:!document.hidden}));
+window.addEventListener('online',()=>window.arcanaCommand({command:'network',online:true}));
+window.addEventListener('offline',()=>window.arcanaCommand({command:'network',online:false}));
+window.addEventListener('pageshow',()=>window.arcanaCommand({command:'resume'}));
 window.addEventListener('pagehide',()=>{const s=window.arcanaLatestState;if(s?.gameId&&s?.clockClientId)fetch('/api/games/'+encodeURIComponent(s.gameId)+'/actions',{method:'POST',headers:{'Content-Type':'application/json'},keepalive:true,body:JSON.stringify({type:'world_clock',command:'pause',clientId:s.clockClientId,sequence:s.clockSequence+1})}).catch(()=>{});});
 if(Engine.getMissingFeatures({threads:false}).length){showError(new Error('WebGL 2와 WebAssembly를 지원하는 최신 브라우저로 열어 주세요.'));}else{
 engine.startGame({canvas:document.getElementById('canvas'),onProgress:(current,total)=>{if(total>0){document.getElementById('progress-fill').style.width=(current/total*100)+'%';status.textContent='아르카나를 불러오는 중 · '+Math.round(current/total*100)+'%';}},onPrintError:(...args)=>console.error('[Godot]',...args)}).then(()=>{loader.hidden=true;document.getElementById('canvas').focus();}).catch(showError);
