@@ -1,0 +1,207 @@
+{
+  "version": 3,
+  "status": "environment-source-registration-preserved",
+  "pixelsPerUnit": 64,
+  "props": {
+    "planter": {
+      "size": [
+        84,
+        72
+      ],
+      "foot": [
+        42,
+        70
+      ],
+      "source": "art-studies/arcana-reference-v1/source/planter-front-v2.png",
+      "pixelsPerUnit": 64,
+      "camera": {
+        "yaw": 0,
+        "pitch": 45
+      }
+    },
+    "flowerpot": {
+      "size": [
+        58,
+        72
+      ],
+      "foot": [
+        29,
+        70
+      ],
+      "source": {
+        "left": 425,
+        "top": 100,
+        "width": 300,
+        "height": 350
+      }
+    },
+    "shrub": {
+      "size": [
+        86,
+        80
+      ],
+      "foot": [
+        43,
+        78
+      ],
+      "source": {
+        "left": 745,
+        "top": 120,
+        "width": 341,
+        "height": 330
+      }
+    },
+    "flowers": {
+      "size": [
+        88,
+        56
+      ],
+      "foot": [
+        44,
+        54
+      ],
+      "source": {
+        "left": 0,
+        "top": 490,
+        "width": 390,
+        "height": 260
+      }
+    },
+    "grass-clump": {
+      "size": [
+        72,
+        32
+      ],
+      "foot": [
+        36,
+        30
+      ],
+      "source": {
+        "left": 390,
+        "top": 500,
+        "width": 370,
+        "height": 250
+      }
+    },
+    "crate": {
+      "size": [
+        64,
+        70
+      ],
+      "foot": [
+        32,
+        68
+      ],
+      "source": "art-studies/arcana-reference-v1/source/bench-crate-front-v2.png",
+      "pixelsPerUnit": 64,
+      "camera": {
+        "yaw": 0,
+        "pitch": 45
+      }
+    },
+    "oak": {
+      "size": [
+        210,
+        260
+      ],
+      "foot": [
+        105,
+        258
+      ],
+      "source": {
+        "left": 0,
+        "top": 780,
+        "width": 438,
+        "height": 628
+      }
+    },
+    "birch": {
+      "size": [
+        180,
+        260
+      ],
+      "foot": [
+        90,
+        258
+      ],
+      "source": {
+        "left": 420,
+        "top": 770,
+        "width": 360,
+        "height": 640
+      }
+    },
+    "spruce": {
+      "size": [
+        166,
+        260
+      ],
+      "foot": [
+        83,
+        258
+      ],
+      "source": {
+        "left": 770,
+        "top": 780,
+        "width": 316,
+        "height": 628
+      }
+    },
+    "bench": {
+      "size": [
+        128,
+        71
+      ],
+      "foot": [
+        64,
+        69
+      ],
+      "source": "art-studies/arcana-reference-v1/source/bench-crate-front-v2.png",
+      "pixelsPerUnit": 64,
+      "camera": {
+        "yaw": 0,
+        "pitch": 45
+      }
+    },
+    "barrels": {
+      "size": [
+        96,
+        88
+      ],
+      "foot": [
+        48,
+        86
+      ],
+      "source": "source/furniture.png",
+      "region": {
+        "left": 885,
+        "top": 0,
+        "width": 665,
+        "height": 724
+      }
+    },
+    "basket": {
+      "size": [
+        72,
+        48
+      ],
+      "foot": [
+        36,
+        46
+      ],
+      "source": "source/furniture.png",
+      "region": {
+        "left": 1560,
+        "top": 0,
+        "width": 612,
+        "height": 724
+      }
+    }
+  },
+  "registration": [],
+  "sourcePrompts": [
+    "source/terrain-prompt.txt",
+    "source/props-prompt.txt",
+    "source/furniture-prompt.txt"
+  ]
+}

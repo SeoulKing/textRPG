@@ -1,0 +1,433 @@
+{
+  "actual_used_opaque_colors": 20,
+  "canvas_size": [
+    48,
+    48
+  ],
+  "character_proportion_heads": 3,
+  "character_target_canvas": [
+    96,
+    136
+  ],
+  "direction_order": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "directions": {
+    "e": {
+      "actual_opaque_colors": 19,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "3c3f5e65a805cdf1784e69df8581485161659035fed1fe254841aab2a21d4e82",
+      "layers": {
+        "face_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/e/face_visible.png",
+          "sha256": "37d33eb66a20472a24d422e84da26a87dc85fbe4f738d0a8a231d359763ad7e4"
+        },
+        "hair_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/e/hair_visible.png",
+          "sha256": "410253c6caa4d74878e6ee7b584a0aa8bf3bb4cdaf5cdc2558084797f0c42f4b"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/heads/e/silhouette.png",
+          "sha256": "13ce7958e5ba50195d808a099c4015518e9589792f909f5a81d155e36cf48484"
+        }
+      },
+      "native_fingerprint": "3c3f5e65a805cdf1784e69df8581485161659035fed1fe254841aab2a21d4e82",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/heads/e/head.pxpen",
+      "opaque_bounds": [
+        3,
+        3,
+        41,
+        42
+      ],
+      "output_sha256": "3459273ddf1afafbdcf6265485cded0fc093667b7e30b6cd08e8a8503e3ddb3e",
+      "pivot": [
+        24,
+        44
+      ],
+      "png": "res://art/characters/hybrid-v1/heads/e/head.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        1371.0,
+        496.0,
+        258.0,
+        262.0
+      ],
+      "source_sha256": "fa35bc121ecddafc539cee34fc8503197213f6af45095f57fac43f3e7243da0a"
+    },
+    "n": {
+      "actual_opaque_colors": 11,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "5f65c694d2dfde4f00de5e46d8c09af1b4ed5d081e190806d06613d4d6bba077",
+      "layers": {
+        "face_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/n/face_visible.png",
+          "sha256": "1a39f2d246fa012f7c310b72f479b785f8f96e2a70528591b4bbe25c5636e471"
+        },
+        "hair_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/n/hair_visible.png",
+          "sha256": "0a39049c643e2153a860ac1ecb8ed5a06eba173aeb9a8a8592a717fc0207466f"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/heads/n/silhouette.png",
+          "sha256": "445e946134779eeca7192631f929263b0125669d7ca2c11b33b5fb8acb803f21"
+        }
+      },
+      "native_fingerprint": "5f65c694d2dfde4f00de5e46d8c09af1b4ed5d081e190806d06613d4d6bba077",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/heads/n/head.pxpen",
+      "opaque_bounds": [
+        3,
+        3,
+        42,
+        41
+      ],
+      "output_sha256": "9acbb54ba4713fc3c00eeb9f12a7eab34882296739928e43e9ae1de9a9f4a108",
+      "pivot": [
+        24,
+        44
+      ],
+      "png": "res://art/characters/hybrid-v1/heads/n/head.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        552.0,
+        110.0,
+        262.0,
+        259.0
+      ],
+      "source_sha256": "db1bcce501c8757900778bc32bf6b33a75d628dd47e261532cae30a581cf7d7a"
+    },
+    "ne": {
+      "actual_opaque_colors": 17,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "c2464ab8244fa0301de295eace7a228f1a3a98cf3dfb1d37850d8caa1321ece5",
+      "layers": {
+        "face_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/ne/face_visible.png",
+          "sha256": "21deb115c49856c45d281d5b1ea8a22d211d81ab05dc6e294428fb4d8e8a6a7d"
+        },
+        "hair_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/ne/hair_visible.png",
+          "sha256": "43b462aa226f89529928ebddd5ea78f51e7bc460d9485f1a4bf6562998edcf14"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/heads/ne/silhouette.png",
+          "sha256": "e590c064484d5bf9c742ecda136f9c9e54b4fe9380614699df2bf1ff6293e0e7"
+        }
+      },
+      "native_fingerprint": "c2464ab8244fa0301de295eace7a228f1a3a98cf3dfb1d37850d8caa1321ece5",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/heads/ne/head.pxpen",
+      "opaque_bounds": [
+        3,
+        3,
+        41,
+        41
+      ],
+      "output_sha256": "2bb0f094727656dbdf846e99f01e349f2d6bd9242fea9cfa7aa2232bdb8c9139",
+      "pivot": [
+        24,
+        44
+      ],
+      "png": "res://art/characters/hybrid-v1/heads/ne/head.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        959.0,
+        110.0,
+        257.0,
+        256.0
+      ],
+      "source_sha256": "a4095c8b0ba06b1c7f1213e2addcf7ba92c47f9939d81474a5d06667f06d43ec"
+    },
+    "nw": {
+      "actual_opaque_colors": 19,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "19d16c7f59f2630312ae493367119ed1be3d6bbc2a9626549896cb76d6cc2a14",
+      "layers": {
+        "face_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/nw/face_visible.png",
+          "sha256": "52eaf723cc4ec12ff6b63e24fac32aa486dab6c2e554d135c01bf2f52c9c9a51"
+        },
+        "hair_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/nw/hair_visible.png",
+          "sha256": "a57cadc30fc26080fd6ea9aecce83c88282ea47fef23d6ccc6cc6cbf8bb2d86c"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/heads/nw/silhouette.png",
+          "sha256": "c4d026ecfd6c29719c4fc6236816e4f6b98a75823aab26b9e3336a771e5b300d"
+        }
+      },
+      "native_fingerprint": "19d16c7f59f2630312ae493367119ed1be3d6bbc2a9626549896cb76d6cc2a14",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/heads/nw/head.pxpen",
+      "opaque_bounds": [
+        4,
+        3,
+        40,
+        41
+      ],
+      "output_sha256": "0f7a2ee0c59d0c52f3d9faaef6a59b7f5b61b778885410136e690f08c867a638",
+      "pivot": [
+        24,
+        44
+      ],
+      "png": "res://art/characters/hybrid-v1/heads/nw/head.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        142.0,
+        110.0,
+        253.0,
+        256.0
+      ],
+      "source_sha256": "33bc2e6d43c0783c2e493b9c3ff02e88c124c7987c503f1b3680233454275255"
+    },
+    "s": {
+      "actual_opaque_colors": 20,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "8b95bd2109ca6244f810a1a56404868d469747c13976e1a0e4d146737e23e796",
+      "layers": {
+        "face_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/s/face_visible.png",
+          "sha256": "af48171b036303e3f7109c406ea90c8c2b18679e3e563bf0e037830e92ea03a5"
+        },
+        "hair_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/s/hair_visible.png",
+          "sha256": "f9bbc66762abb5de234a348c2340239e14d457f0f9c405a3f29dfee789ad8650"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/heads/s/silhouette.png",
+          "sha256": "947fd291a69b38022d4d15629a9716073532c3ea8be574184efd53ebbcba4a45"
+        }
+      },
+      "native_fingerprint": "8b95bd2109ca6244f810a1a56404868d469747c13976e1a0e4d146737e23e796",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/heads/s/head.pxpen",
+      "opaque_bounds": [
+        2,
+        3,
+        44,
+        41
+      ],
+      "output_sha256": "c03b624006d8ddeff2404d11a80ce9fad2ca37c8879a3465f71ee5f6532610f1",
+      "pivot": [
+        24,
+        44
+      ],
+      "png": "res://art/characters/hybrid-v1/heads/s/head.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        544.0,
+        496.0,
+        274.0,
+        258.0
+      ],
+      "source_sha256": "6d59f43d924b3f91f1c33c3407cdd464c7c81b6ea58c768b123c6f7df38d1f30"
+    },
+    "se": {
+      "actual_opaque_colors": 19,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "bab110ba6c99cf1d9efcbc878e90a56fcf832542adf0996ae55921b4c419321e",
+      "layers": {
+        "face_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/se/face_visible.png",
+          "sha256": "03238b9effdcfe8a5a09b38d7cd11559c0857e32905822a59eb2ce3a6bbfc58c"
+        },
+        "hair_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/se/hair_visible.png",
+          "sha256": "2c03c8bf951fb42be6bc926f4d37f5f3759b5e4d962685f65d32c83e11a95519"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/heads/se/silhouette.png",
+          "sha256": "4d3b47d8ba594cb786cf37b9cd22740e978a2fa044f0e7456efa2fd8e87c6712"
+        }
+      },
+      "native_fingerprint": "bab110ba6c99cf1d9efcbc878e90a56fcf832542adf0996ae55921b4c419321e",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/heads/se/head.pxpen",
+      "opaque_bounds": [
+        4,
+        3,
+        40,
+        41
+      ],
+      "output_sha256": "2a12169a761c74dab087dd797ee5cc39c0ae09db7de2c8dd2e8e903792f9b30c",
+      "pivot": [
+        24,
+        44
+      ],
+      "png": "res://art/characters/hybrid-v1/heads/se/head.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        957.0,
+        500.0,
+        252.0,
+        260.0
+      ],
+      "source_sha256": "06d133540800e13c75514a8ca0c3a68e99b622f25abda0105bfc38b08c1d0e4a"
+    },
+    "sw": {
+      "actual_opaque_colors": 19,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "01a4730b0500789c2e87838d051c9ad4f499f485b7dffda22c95c78170e12e03",
+      "layers": {
+        "face_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/sw/face_visible.png",
+          "sha256": "6a664e37787a69129bcd239f6ddf333a96a93b7dcafde25027acabbf69cd28dd"
+        },
+        "hair_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/sw/hair_visible.png",
+          "sha256": "f7759ea5c9cebf52c490e371c21faa869b7afcdb26ccda5881a5ad1f25347a3c"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/heads/sw/silhouette.png",
+          "sha256": "db7420f4882e9fa0bde6b548a1a4635f5a2a972505e204f973923358efcb2d08"
+        }
+      },
+      "native_fingerprint": "01a4730b0500789c2e87838d051c9ad4f499f485b7dffda22c95c78170e12e03",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/heads/sw/head.pxpen",
+      "opaque_bounds": [
+        3,
+        3,
+        42,
+        42
+      ],
+      "output_sha256": "b6475ee3004a9260590b435e1c2a5207129b7fc5aa2ae371147e5ab1fed9c6f8",
+      "pivot": [
+        24,
+        44
+      ],
+      "png": "res://art/characters/hybrid-v1/heads/sw/head.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        142.0,
+        496.0,
+        260.0,
+        264.0
+      ],
+      "source_sha256": "e70b37d3c428a80e91e551dda4901fc9e635b8896f5177cd0e77ebd986cbf4dd"
+    },
+    "w": {
+      "actual_opaque_colors": 20,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "23cdb89fc2e8af078079f6bae9b5f29724a3213c331f512049793550d84c731c",
+      "layers": {
+        "face_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/w/face_visible.png",
+          "sha256": "5162c8a9df8db74edd9163d0b19ccb6c9ee2e56e8e8a9daeb603180e5a421dfe"
+        },
+        "hair_visible": {
+          "path": "res://art/characters/hybrid-v1/heads/w/hair_visible.png",
+          "sha256": "763ad0564ae23094d6775d3d332c7c5ca8680097f6b3bc47b3b9535d49d5790c"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/heads/w/silhouette.png",
+          "sha256": "0678ce3d12ecebac30d0a46c29be615525895bfac1931a16b837e3b33b1e6e88"
+        }
+      },
+      "native_fingerprint": "23cdb89fc2e8af078079f6bae9b5f29724a3213c331f512049793550d84c731c",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/heads/w/head.pxpen",
+      "opaque_bounds": [
+        3,
+        3,
+        42,
+        41
+      ],
+      "output_sha256": "c20b176744277663b5849f9fd41f4fdc0270a62f50a357df340838143a65a4d5",
+      "pivot": [
+        24,
+        44
+      ],
+      "png": "res://art/characters/hybrid-v1/heads/w/head.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        1376.0,
+        110.0,
+        259.0,
+        257.0
+      ],
+      "source_sha256": "681d84b602ec0750ca3534c3d80e9a29e1b90bcbbb3391eaf6da251bde870af0"
+    }
+  },
+  "layers_semantics": "Visible regions only. Hidden scalp/face are not invented. Keep the three layers together for the complete head.",
+  "outline_owner": "head silhouette layer, baked once; disable additional outline when displaying head.png",
+  "palette_rgba": [
+    "00000000",
+    "352d40",
+    "65536f",
+    "8e7999",
+    "af98bb",
+    "c9b4d1",
+    "dfcce2",
+    "eedfed",
+    "fff9f4",
+    "c58481",
+    "e9ad9b",
+    "ffd8bd",
+    "ffe8d4",
+    "fff4e3",
+    "47354e",
+    "3f365f",
+    "655b9d",
+    "8c80bf",
+    "b7b2e1",
+    "fff8f5",
+    "eab0b0",
+    "c37e8b"
+  ],
+  "part": "head",
+  "pivot_semantics": "shared neck connection; crown aligned at y3, pivot at [24,44]",
+  "reference": "reference.png",
+  "reference_sha256": "abb32611a57f5e577ffef7ee86172d8d17bd736049acb3c951ad55ece4f5cc21",
+  "registered_opaque_colors": 21,
+  "runtime_connected": false,
+  "schema_version": 1,
+  "sheet_order": [
+    "nw",
+    "n",
+    "ne",
+    "w",
+    "sw",
+    "s",
+    "se",
+    "e"
+  ],
+  "transparent_slots": 1,
+  "visual_approval": "pending",
+  "character_id": "hybrid-v1",
+  "user_art_approval": "approved",
+  "appearance_approved_on": "2026-11-05",
+  "runtime_verified": false
+}

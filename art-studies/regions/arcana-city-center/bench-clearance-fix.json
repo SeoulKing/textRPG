@@ -1,0 +1,179 @@
+{
+  "changes": [
+    {
+      "node": "cafe_03",
+      "from": [
+        29.3,
+        21.5
+      ],
+      "to": [
+        32.5,
+        18.2
+      ],
+      "reason": "restaurant terrace, behind north bench"
+    },
+    {
+      "node": "hedge_01",
+      "from": [
+        43.5,
+        34
+      ],
+      "to": [
+        43.5,
+        30
+      ],
+      "reason": "rear edge of academy garden"
+    },
+    {
+      "node": "hedge_08",
+      "from": [
+        27.2,
+        34.8
+      ],
+      "to": [
+        27.2,
+        36
+      ],
+      "reason": "far edge of west garden, outside bench approach"
+    },
+    {
+      "node": "flowerbed_05",
+      "from": [
+        27.2,
+        32.6
+      ],
+      "to": [
+        25.8,
+        31.1
+      ],
+      "reason": "left and slightly behind west plaza bench"
+    },
+    {
+      "node": "flowerbed_06",
+      "from": [
+        44,
+        34.8
+      ],
+      "to": [
+        45.5,
+        32.7
+      ],
+      "reason": "right and behind east plaza bench, inside garden"
+    },
+    {
+      "node": "flowerbed_08",
+      "from": [
+        25,
+        40.3
+      ],
+      "to": [
+        27.5,
+        38.8
+      ],
+      "reason": "beside and behind inn-lane bench"
+    },
+    {
+      "node": "flowerbed_09",
+      "from": [
+        62,
+        36.6
+      ],
+      "to": [
+        64,
+        35.4
+      ],
+      "reason": "beside school-lane bench"
+    },
+    {
+      "node": "oak_02",
+      "from": [
+        44.3,
+        35.5
+      ],
+      "to": [
+        47,
+        31.8
+      ],
+      "reason": "inside academy garden, away from east bench front"
+    }
+  ],
+  "staticBenchClearance": [
+    {
+      "bench": "park_bench_01",
+      "seat": [
+        28.0,
+        32.0
+      ],
+      "frontClearance": [
+        26.85,
+        31.75,
+        2.3,
+        2.25
+      ],
+      "seatBlockedBy": [],
+      "corridorBlockedBy": []
+    },
+    {
+      "bench": "park_bench_02",
+      "seat": [
+        43.0,
+        33.5
+      ],
+      "frontClearance": [
+        41.85,
+        33.25,
+        2.3,
+        2.25
+      ],
+      "seatBlockedBy": [],
+      "corridorBlockedBy": []
+    },
+    {
+      "bench": "park_bench_03",
+      "seat": [
+        62.0,
+        36.0
+      ],
+      "frontClearance": [
+        60.85,
+        35.75,
+        2.3,
+        2.25
+      ],
+      "seatBlockedBy": [],
+      "corridorBlockedBy": []
+    },
+    {
+      "bench": "park_bench_04",
+      "seat": [
+        30.0,
+        20.5
+      ],
+      "frontClearance": [
+        28.85,
+        20.25,
+        2.3,
+        2.25
+      ],
+      "seatBlockedBy": [],
+      "corridorBlockedBy": []
+    },
+    {
+      "bench": "park_bench_05",
+      "seat": [
+        25.0,
+        39.5
+      ],
+      "frontClearance": [
+        23.85,
+        39.25,
+        2.3,
+        2.25
+      ],
+      "seatBlockedBy": [],
+      "corridorBlockedBy": []
+    }
+  ],
+  "gameplayExecuted": false,
+  "source": "saved plaza.tscn; unrotated X/Z footprints; world.gd 3 logical-unit collision margin"
+}

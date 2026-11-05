@@ -1,0 +1,130 @@
+{
+  "directions": {
+    "e": {
+      "native_bones": 5,
+      "protected_trunk_detail_masks": [
+        "leather",
+        "metal",
+        "collar_trim"
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/upper-body/e.tscn",
+      "scene_sha256": "6c67b90bb1d50ffb743d08528e99cfff550152f85fd26cbdbd5ce248f467eb6c",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/upper-body/e/upper_body.png",
+      "texture_count": 1,
+      "triangles": 1152,
+      "vertices": 625
+    },
+    "n": {
+      "native_bones": 5,
+      "protected_trunk_detail_masks": [
+        "leather",
+        "metal",
+        "collar_trim"
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/upper-body/n.tscn",
+      "scene_sha256": "f31139f0b83dc70ae767b54e277890b0d7d07433b387faa495f4efba5c37aa6b",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/upper-body/n/upper_body.png",
+      "texture_count": 1,
+      "triangles": 1152,
+      "vertices": 625
+    },
+    "ne": {
+      "native_bones": 5,
+      "protected_trunk_detail_masks": [
+        "leather",
+        "metal",
+        "collar_trim"
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/upper-body/ne.tscn",
+      "scene_sha256": "fc3de7e92d2053a1b1391b3b4212b8b7432460e4ede84e7f5aa2b8525098c0a4",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/upper-body/ne/upper_body.png",
+      "texture_count": 1,
+      "triangles": 1152,
+      "vertices": 625
+    },
+    "nw": {
+      "native_bones": 5,
+      "protected_trunk_detail_masks": [
+        "leather",
+        "metal",
+        "collar_trim"
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/upper-body/nw.tscn",
+      "scene_sha256": "3405315e76b7c0358856bbc1826cf1a14bda7d5aa3e9c73a101e20c644c1ee79",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/upper-body/nw/upper_body.png",
+      "texture_count": 1,
+      "triangles": 1152,
+      "vertices": 625
+    },
+    "s": {
+      "native_bones": 5,
+      "protected_trunk_detail_masks": [
+        "leather",
+        "metal",
+        "collar_trim"
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/upper-body/s.tscn",
+      "scene_sha256": "3b7fa13b71fc2ba2a6b60be47190908a98bf34ead7e941960584c60c0fa5f25c",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/upper-body/s/upper_body.png",
+      "texture_count": 1,
+      "triangles": 1152,
+      "vertices": 625
+    },
+    "se": {
+      "native_bones": 5,
+      "protected_trunk_detail_masks": [
+        "leather",
+        "metal",
+        "collar_trim"
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/upper-body/se.tscn",
+      "scene_sha256": "7577800eff1fcc969f2d63c12259de00c39488f28d11c846651fa56ad9fc7770",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/upper-body/se/upper_body.png",
+      "texture_count": 1,
+      "triangles": 1152,
+      "vertices": 625
+    },
+    "sw": {
+      "native_bones": 5,
+      "protected_trunk_detail_masks": [
+        "leather",
+        "metal",
+        "collar_trim"
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/upper-body/sw.tscn",
+      "scene_sha256": "91a35b694ec726354ceb1d61cd0733a4972df1a69467327a5cff1c5b7d8d0823",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/upper-body/sw/upper_body.png",
+      "texture_count": 1,
+      "triangles": 1152,
+      "vertices": 625
+    },
+    "w": {
+      "native_bones": 5,
+      "protected_trunk_detail_masks": [
+        "leather",
+        "metal",
+        "collar_trim"
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/upper-body/w.tscn",
+      "scene_sha256": "d5d48f49343742736421c2f53e6206b9d05ce5028dd5b61b3a1388701ccc61b6",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/upper-body/w/upper_body.png",
+      "texture_count": 1,
+      "triangles": 1152,
+      "vertices": 625
+    }
+  },
+  "existing_scenes_preserved": true,
+  "scene_directory": "res://scenes/upper-body-polygon",
+  "schema_version": 1,
+  "source_manifest": "res://art/characters/hybrid-v1/upper-body/manifest.json",
+  "source_manifest_sha256": "84f9fb563ce63c69f1c130f6f75126db43b992b832cb5ba40fc1915b9f22ca03",
+  "registration_rebased_on": "2026-11-05; artwork, UV coordinates and bone weights retained"
+}

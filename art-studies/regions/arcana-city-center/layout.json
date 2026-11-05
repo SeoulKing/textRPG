@@ -1,0 +1,1634 @@
+{
+  "approvedConcept": "approved-concept.png",
+  "fountain": [
+    36,
+    28.925
+  ],
+  "plazaRadii": [
+    11,
+    10
+  ],
+  "roads": [
+    [
+      3,
+      11,
+      66,
+      35
+    ],
+    [
+      12,
+      9,
+      20,
+      5
+    ],
+    [
+      25,
+      17,
+      20,
+      23
+    ],
+    [
+      32,
+      13,
+      7,
+      13
+    ],
+    [
+      3,
+      21,
+      25,
+      6
+    ],
+    [
+      3,
+      37,
+      28,
+      5
+    ],
+    [
+      40,
+      26,
+      29,
+      10
+    ],
+    [
+      3,
+      43,
+      66,
+      3
+    ],
+    [
+      33,
+      33,
+      6,
+      22
+    ],
+    [
+      9.25,
+      8,
+      2.5,
+      36
+    ],
+    [
+      3,
+      11,
+      29,
+      3
+    ]
+  ],
+  "gardens": [
+    [
+      42,
+      29,
+      8,
+      4
+    ],
+    [
+      59,
+      29,
+      8,
+      4
+    ],
+    [
+      26,
+      22,
+      3,
+      2
+    ],
+    [
+      25.5,
+      33.5,
+      4,
+      2.5
+    ],
+    [
+      42,
+      34.5,
+      3,
+      2
+    ]
+  ],
+  "southStoneRoad": [
+    33,
+    46,
+    6,
+    9
+  ],
+  "southSoilRoad": [
+    33,
+    55,
+    6,
+    24
+  ],
+  "landmarks": {
+    "arcana_shop": [
+      18,
+      23
+    ],
+    "arcana_inn": [
+      18,
+      37
+    ],
+    "arcana_restaurant": [
+      35.5,
+      14.5
+    ],
+    "arcana_academy": [
+      54,
+      27.5
+    ],
+    "arcana_return_portal": [
+      26,
+      16
+    ],
+    "park_bench_01": [
+      28,
+      31.5
+    ],
+    "park_bench_02": [
+      43,
+      33
+    ],
+    "park_bench_03": [
+      62,
+      35.5
+    ],
+    "park_bench_04": [
+      30,
+      20
+    ],
+    "park_bench_05": [
+      25,
+      39
+    ]
+  },
+  "placements": [
+    {
+      "node": "CityDistrict/Housing/townhouse_01",
+      "kind": "city-townhouse",
+      "position": [
+        5.5,
+        0,
+        14
+      ],
+      "scale": 1,
+      "collision": [
+        -2.65,
+        -2.5,
+        5.3,
+        2.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Housing/workshops_01",
+      "kind": "city-workshops",
+      "position": [
+        18,
+        0,
+        10
+      ],
+      "scale": 1,
+      "collision": [
+        -3.7,
+        -2.6,
+        7.4,
+        2.6
+      ]
+    },
+    {
+      "node": "CityDistrict/Housing/townhouse_02",
+      "kind": "city-townhouse",
+      "position": [
+        27,
+        0,
+        9
+      ],
+      "scale": 0.85,
+      "collision": [
+        -2.65,
+        -2.5,
+        5.3,
+        2.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Housing/townhouse_03",
+      "kind": "city-townhouse",
+      "position": [
+        5.5,
+        0,
+        29
+      ],
+      "scale": 1,
+      "collision": [
+        -2.65,
+        -2.5,
+        5.3,
+        2.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Housing/bookshop_01",
+      "kind": "city-bookshop",
+      "position": [
+        5.5,
+        0,
+        43
+      ],
+      "scale": 1,
+      "collision": [
+        -2.2,
+        -2.6,
+        4.4,
+        2.6
+      ]
+    },
+    {
+      "node": "CityDistrict/Housing/townhouse_04",
+      "kind": "city-townhouse",
+      "position": [
+        46,
+        0,
+        42.3
+      ],
+      "scale": 1,
+      "collision": [
+        -2.65,
+        -2.5,
+        5.3,
+        2.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Housing/workshops_02",
+      "kind": "city-workshops",
+      "position": [
+        56,
+        0,
+        42.3
+      ],
+      "scale": 1,
+      "collision": [
+        -3.7,
+        -2.6,
+        7.4,
+        2.6
+      ]
+    },
+    {
+      "node": "CityDistrict/Housing/bookshop_02",
+      "kind": "city-bookshop",
+      "position": [
+        66,
+        0,
+        42.3
+      ],
+      "scale": 1,
+      "collision": [
+        -2.2,
+        -2.6,
+        4.4,
+        2.6
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/market_01",
+      "kind": "city-market",
+      "position": [
+        18,
+        0,
+        27.4
+      ],
+      "scale": 1,
+      "collision": [
+        -1.7,
+        -1.4,
+        3.4,
+        1.4
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/market_02",
+      "kind": "city-market",
+      "position": [
+        23,
+        0,
+        27.4
+      ],
+      "scale": 1,
+      "collision": [
+        -1.7,
+        -1.4,
+        3.4,
+        1.4
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/crate_01",
+      "kind": "crate",
+      "position": [
+        24.5,
+        0,
+        24.2
+      ],
+      "scale": 1,
+      "collision": [
+        -0.45,
+        -0.6,
+        0.9,
+        0.6
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/crate_02",
+      "kind": "crate",
+      "position": [
+        25.4,
+        0,
+        25
+      ],
+      "scale": 1,
+      "collision": [
+        -0.45,
+        -0.6,
+        0.9,
+        0.6
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/barrels_01",
+      "kind": "barrels",
+      "position": [
+        12,
+        0,
+        25.7
+      ],
+      "scale": 1,
+      "collision": [
+        -0.55,
+        -0.7,
+        1.1,
+        0.7
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/basket_01",
+      "kind": "basket",
+      "position": [
+        15,
+        0,
+        28.3
+      ],
+      "scale": 1,
+      "collision": [
+        -0.3,
+        -0.4,
+        0.6,
+        0.4
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/basket_02",
+      "kind": "basket",
+      "position": [
+        21.3,
+        0,
+        28.4
+      ],
+      "scale": 1,
+      "collision": [
+        -0.3,
+        -0.4,
+        0.6,
+        0.4
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/barrels_02",
+      "kind": "barrels",
+      "position": [
+        23,
+        0,
+        38
+      ],
+      "scale": 1,
+      "collision": [
+        -0.55,
+        -0.7,
+        1.1,
+        0.7
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/crate_03",
+      "kind": "crate",
+      "position": [
+        24.2,
+        0,
+        38.4
+      ],
+      "scale": 1,
+      "collision": [
+        -0.45,
+        -0.6,
+        0.9,
+        0.6
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/cafe_01",
+      "kind": "city-cafe",
+      "position": [
+        29.3,
+        0,
+        17.8
+      ],
+      "scale": 1,
+      "collision": [
+        -1.35,
+        -1.3,
+        2.7,
+        1.3
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/cafe_02",
+      "kind": "city-cafe",
+      "position": [
+        41.5,
+        0,
+        17.8
+      ],
+      "scale": 1,
+      "collision": [
+        -1.35,
+        -1.3,
+        2.7,
+        1.3
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/cafe_03",
+      "kind": "city-cafe",
+      "position": [
+        32.5,
+        0,
+        18.2
+      ],
+      "scale": 1,
+      "collision": [
+        -1.35,
+        -1.3,
+        2.7,
+        1.3
+      ]
+    },
+    {
+      "node": "CityDistrict/Market/cafe_04",
+      "kind": "city-cafe",
+      "position": [
+        41.5,
+        0,
+        21
+      ],
+      "scale": 1,
+      "collision": [
+        -1.35,
+        -1.3,
+        2.7,
+        1.3
+      ]
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_01",
+      "kind": "lamp-post",
+      "position": [
+        26,
+        0,
+        24
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_02",
+      "kind": "lamp-post",
+      "position": [
+        31,
+        0,
+        20.7
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_03",
+      "kind": "lamp-post",
+      "position": [
+        43.5,
+        0,
+        22.5
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_04",
+      "kind": "lamp-post",
+      "position": [
+        28,
+        0,
+        28.5
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_05",
+      "kind": "lamp-post",
+      "position": [
+        44,
+        0,
+        29.5
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_06",
+      "kind": "lamp-post",
+      "position": [
+        31,
+        0,
+        38.3
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_07",
+      "kind": "lamp-post",
+      "position": [
+        41,
+        0,
+        38.3
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_08",
+      "kind": "lamp-post",
+      "position": [
+        31,
+        0,
+        44.3
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_09",
+      "kind": "lamp-post",
+      "position": [
+        41,
+        0,
+        44.3
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_10",
+      "kind": "lamp-post",
+      "position": [
+        10.8,
+        0,
+        16
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_11",
+      "kind": "lamp-post",
+      "position": [
+        10.8,
+        0,
+        33
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_12",
+      "kind": "lamp-post",
+      "position": [
+        50.5,
+        0,
+        36.5
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_13",
+      "kind": "lamp-post",
+      "position": [
+        57.5,
+        0,
+        36.5
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_14",
+      "kind": "lamp-post",
+      "position": [
+        67.5,
+        0,
+        37
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_15",
+      "kind": "lamp-post",
+      "position": [
+        31,
+        0,
+        53
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/StreetFurniture/lamp_post_16",
+      "kind": "lamp-post",
+      "position": [
+        41,
+        0,
+        53
+      ],
+      "scale": 1.65,
+      "collision": null
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_01",
+      "kind": "flowerpot",
+      "position": [
+        12.5,
+        0,
+        23.2
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_02",
+      "kind": "flowerpot",
+      "position": [
+        23.5,
+        0,
+        23.2
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_03",
+      "kind": "flowerpot",
+      "position": [
+        12.4,
+        0,
+        37.2
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_04",
+      "kind": "flowerpot",
+      "position": [
+        23.6,
+        0,
+        37.2
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_05",
+      "kind": "flowerpot",
+      "position": [
+        30.5,
+        0,
+        14.6
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_06",
+      "kind": "flowerpot",
+      "position": [
+        40.5,
+        0,
+        14.6
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_07",
+      "kind": "flowerpot",
+      "position": [
+        50.5,
+        0,
+        28.3
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_08",
+      "kind": "flowerpot",
+      "position": [
+        57.5,
+        0,
+        28.3
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_09",
+      "kind": "flowerpot",
+      "position": [
+        43,
+        0,
+        42.5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_10",
+      "kind": "flowerpot",
+      "position": [
+        49,
+        0,
+        42.5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_11",
+      "kind": "flowerpot",
+      "position": [
+        52,
+        0,
+        42.5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_12",
+      "kind": "flowerpot",
+      "position": [
+        60,
+        0,
+        42.5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_13",
+      "kind": "flowerpot",
+      "position": [
+        63.5,
+        0,
+        42.5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerpot_14",
+      "kind": "flowerpot",
+      "position": [
+        68.5,
+        0,
+        42.5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.24,
+        -0.35,
+        0.48,
+        0.35
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/hedge_01",
+      "kind": "city-hedge",
+      "position": [
+        43.5,
+        0,
+        30
+      ],
+      "scale": 0.9,
+      "collision": [
+        -1.45,
+        -0.55,
+        2.9,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/hedge_02",
+      "kind": "city-hedge",
+      "position": [
+        46.5,
+        0,
+        34
+      ],
+      "scale": 0.9,
+      "collision": [
+        -1.45,
+        -0.55,
+        2.9,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/hedge_03",
+      "kind": "city-hedge",
+      "position": [
+        49.5,
+        0,
+        34
+      ],
+      "scale": 0.9,
+      "collision": [
+        -1.45,
+        -0.55,
+        2.9,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/hedge_04",
+      "kind": "city-hedge",
+      "position": [
+        58.5,
+        0,
+        34
+      ],
+      "scale": 0.9,
+      "collision": [
+        -1.45,
+        -0.55,
+        2.9,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/hedge_05",
+      "kind": "city-hedge",
+      "position": [
+        61.5,
+        0,
+        34
+      ],
+      "scale": 0.9,
+      "collision": [
+        -1.45,
+        -0.55,
+        2.9,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/hedge_06",
+      "kind": "city-hedge",
+      "position": [
+        64.5,
+        0,
+        34
+      ],
+      "scale": 0.9,
+      "collision": [
+        -1.45,
+        -0.55,
+        2.9,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/hedge_07",
+      "kind": "city-hedge",
+      "position": [
+        27.2,
+        0,
+        24.3
+      ],
+      "scale": 0.9,
+      "collision": [
+        -1.45,
+        -0.55,
+        2.9,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/hedge_08",
+      "kind": "city-hedge",
+      "position": [
+        27.2,
+        0,
+        36
+      ],
+      "scale": 0.9,
+      "collision": [
+        -1.45,
+        -0.55,
+        2.9,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_01",
+      "kind": "flowerbed",
+      "position": [
+        31,
+        0,
+        36.5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_02",
+      "kind": "flowerbed",
+      "position": [
+        41,
+        0,
+        36.5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_03",
+      "kind": "flowerbed",
+      "position": [
+        31,
+        0,
+        41
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_04",
+      "kind": "flowerbed",
+      "position": [
+        41,
+        0,
+        41
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_05",
+      "kind": "flowerbed",
+      "position": [
+        25.8,
+        0,
+        31.1
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_06",
+      "kind": "flowerbed",
+      "position": [
+        45.5,
+        0,
+        32.7
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_07",
+      "kind": "flowerbed",
+      "position": [
+        30,
+        0,
+        18.9
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_08",
+      "kind": "flowerbed",
+      "position": [
+        27.5,
+        0,
+        38.8
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_09",
+      "kind": "flowerbed",
+      "position": [
+        64,
+        0,
+        35.4
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_10",
+      "kind": "flowerbed",
+      "position": [
+        31,
+        0,
+        42
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowerbed_11",
+      "kind": "flowerbed",
+      "position": [
+        41,
+        0,
+        42
+      ],
+      "scale": 1,
+      "collision": [
+        -0.875,
+        -0.5,
+        1.75,
+        0.5
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_01",
+      "kind": "oak",
+      "position": [
+        27.4,
+        0,
+        23.3
+      ],
+      "scale": 0.75,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/birch_01",
+      "kind": "birch",
+      "position": [
+        27,
+        0,
+        35
+      ],
+      "scale": 0.85,
+      "collision": [
+        -0.3,
+        -0.55,
+        0.6,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_02",
+      "kind": "oak",
+      "position": [
+        47,
+        0,
+        31.8
+      ],
+      "scale": 0.7,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/birch_02",
+      "kind": "birch",
+      "position": [
+        62.5,
+        0,
+        32.7
+      ],
+      "scale": 0.9,
+      "collision": [
+        -0.3,
+        -0.55,
+        0.6,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_03",
+      "kind": "oak",
+      "position": [
+        44.2,
+        0,
+        31.2
+      ],
+      "scale": 0.75,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/birch_03",
+      "kind": "birch",
+      "position": [
+        48.4,
+        0,
+        31.2
+      ],
+      "scale": 0.8,
+      "collision": [
+        -0.3,
+        -0.55,
+        0.6,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_04",
+      "kind": "oak",
+      "position": [
+        64.5,
+        0,
+        31.5
+      ],
+      "scale": 0.7,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_05",
+      "kind": "oak",
+      "position": [
+        3,
+        0,
+        8
+      ],
+      "scale": 0.9,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/birch_04",
+      "kind": "birch",
+      "position": [
+        9,
+        0,
+        8
+      ],
+      "scale": 0.85,
+      "collision": [
+        -0.3,
+        -0.55,
+        0.6,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_06",
+      "kind": "oak",
+      "position": [
+        23,
+        0,
+        5
+      ],
+      "scale": 1,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/birch_05",
+      "kind": "birch",
+      "position": [
+        30,
+        0,
+        5
+      ],
+      "scale": 0.9,
+      "collision": [
+        -0.3,
+        -0.55,
+        0.6,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_07",
+      "kind": "oak",
+      "position": [
+        3,
+        0,
+        35
+      ],
+      "scale": 0.8,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/birch_06",
+      "kind": "birch",
+      "position": [
+        10,
+        0,
+        39.7
+      ],
+      "scale": 0.8,
+      "collision": [
+        -0.3,
+        -0.55,
+        0.6,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_08",
+      "kind": "oak",
+      "position": [
+        68.8,
+        0,
+        18
+      ],
+      "scale": 0.85,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/birch_07",
+      "kind": "birch",
+      "position": [
+        70,
+        0,
+        37
+      ],
+      "scale": 0.8,
+      "collision": [
+        -0.3,
+        -0.55,
+        0.6,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_09",
+      "kind": "oak",
+      "position": [
+        28.5,
+        0,
+        44.5
+      ],
+      "scale": 0.8,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/birch_08",
+      "kind": "birch",
+      "position": [
+        43.3,
+        0,
+        45
+      ],
+      "scale": 0.8,
+      "collision": [
+        -0.3,
+        -0.55,
+        0.6,
+        0.55
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_10",
+      "kind": "oak",
+      "position": [
+        2,
+        0,
+        45
+      ],
+      "scale": 0.8,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/oak_11",
+      "kind": "oak",
+      "position": [
+        69,
+        0,
+        45
+      ],
+      "scale": 0.7,
+      "collision": [
+        -0.4375,
+        -0.75,
+        0.875,
+        0.75
+      ]
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_01",
+      "kind": "flowers",
+      "position": [
+        26.5,
+        0,
+        22.5
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_02",
+      "kind": "flowers",
+      "position": [
+        28,
+        0,
+        23
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_03",
+      "kind": "flowers",
+      "position": [
+        26.5,
+        0,
+        34.5
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_04",
+      "kind": "flowers",
+      "position": [
+        28,
+        0,
+        35
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_05",
+      "kind": "flowers",
+      "position": [
+        42.5,
+        0,
+        30
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_06",
+      "kind": "flowers",
+      "position": [
+        46,
+        0,
+        32.5
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_07",
+      "kind": "flowers",
+      "position": [
+        60,
+        0,
+        32.8
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_08",
+      "kind": "flowers",
+      "position": [
+        66,
+        0,
+        31.2
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_09",
+      "kind": "flowers",
+      "position": [
+        8.8,
+        0,
+        37
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_10",
+      "kind": "flowers",
+      "position": [
+        28.4,
+        0,
+        44.7
+      ],
+      "scale": 0.9,
+      "collision": []
+    },
+    {
+      "node": "CityDistrict/Gardens/flowers_11",
+      "kind": "flowers",
+      "position": [
+        42.4,
+        0,
+        45
+      ],
+      "scale": 0.9,
+      "collision": []
+    }
+  ],
+  "preservedExteriorTrees": 52,
+  "retiredCityDecorations": 63
+}

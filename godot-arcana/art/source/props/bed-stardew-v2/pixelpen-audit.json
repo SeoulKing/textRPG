@@ -1,0 +1,22 @@
+{
+  "canvas": [
+    112,
+    272
+  ],
+  "finishEdits": 133,
+  "footPixel": [
+    56,
+    250
+  ],
+  "footprintTiles": [
+    1,
+    3
+  ],
+  "guiBrushSession": false,
+  "indexedPixels": 13900,
+  "layers": 3,
+  "method": "Retain 40px outer bands; reflow 96px center to 32px; repaint embroidery",
+  "preservedOriginal": "bed-stardew-v1/bed.pxpen",
+  "savedReopenedExported": true,
+  "tool": "Godot / PixelPen native indexed API"
+}

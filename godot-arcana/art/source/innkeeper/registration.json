@@ -1,0 +1,33 @@
+{
+  "frame": [
+    96,
+    136
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "pixelsPerUnit": 64,
+  "sourceBounds": [
+    236,
+    129,
+    844,
+    1368
+  ],
+  "silhouetteHeight": 106,
+  "alpha": [
+    0,
+    255
+  ],
+  "palette": "arcana-palette-lut.png",
+  "pose": "front idle",
+  "worldPosition": [
+    16.7,
+    0,
+    5.9
+  ],
+  "interactionPoint": [
+    267,
+    148
+  ]
+}

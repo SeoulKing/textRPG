@@ -1,0 +1,49 @@
+{
+  "status": "implemented; user play review pending",
+  "sourceScene": "godot-arcana/scenes/native_2d/city_walk_quarter.tscn",
+  "reusedProps": 23,
+  "residents": 4,
+  "combatRectangles": 204,
+  "onlineRectangles": 204,
+  "pckBytes": 80282500,
+  "pckSha256": "a959a0e636923c1d5475b7ed410d7a6dc365f909521d6a181b35e8d50c265e95",
+  "build": true,
+  "isolatedPackLoad": true,
+  "offlineArtViews": [
+    "fountain-day",
+    "market-lane",
+    "school-garden",
+    "inn-evening"
+  ],
+  "http": {
+    "health": 200,
+    "page": 200,
+    "pack": 200,
+    "encoding": "gzip",
+    "decompressedMatchesDisk": true
+  },
+  "automatedTests": {
+    "tool": "godot-arcana/tools/review_city_walk.gd",
+    "result": "pass",
+    "report": "play-review.json"
+  },
+  "browserPlay": {
+    "passed": [
+      "entry",
+      "arrow movement",
+      "Escape menu",
+      "dusk toggle"
+    ],
+    "unresolved": [
+      "full dialogue/door UI flow",
+      "1 FPS observed; processMs 30.6-31.8; cause not isolated"
+    ],
+    "consoleErrors": 0
+  },
+  "publicDeployment": false,
+  "selfReview": [
+    "large exposed floor areas",
+    "more distinctive small scenes needed",
+    "traveler sprite density differs from heroine"
+  ]
+}

@@ -1,0 +1,334 @@
+{
+  "moves": [
+    {
+      "name": "cafe_01",
+      "to": [
+        2128,
+        1440
+      ]
+    },
+    {
+      "name": "cafe_02",
+      "to": [
+        2480,
+        1440
+      ]
+    },
+    {
+      "name": "cafe_03",
+      "to": [
+        1280,
+        1808
+      ]
+    },
+    {
+      "name": "cafe_04",
+      "to": [
+        1536,
+        1808
+      ]
+    },
+    {
+      "name": "벤치_01",
+      "to": [
+        2304,
+        1520
+      ]
+    },
+    {
+      "name": "북쪽길_벤치",
+      "to": [
+        1968,
+        1344
+      ]
+    },
+    {
+      "name": "townhouse_02",
+      "to": [
+        1654,
+        884
+      ]
+    },
+    {
+      "name": "townhouse_03",
+      "to": [
+        428,
+        1851
+      ]
+    },
+    {
+      "name": "plaza_canopy_nw_02",
+      "to": [
+        2056,
+        1624
+      ]
+    },
+    {
+      "name": "plaza_canopy_se_02",
+      "to": [
+        2544,
+        2800
+      ]
+    },
+    {
+      "name": "plaza_market_east",
+      "to": [
+        2624,
+        2512
+      ]
+    },
+    {
+      "name": "crate_01",
+      "before": [
+        1917,
+        1583
+      ],
+      "to": [
+        1933,
+        1583
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "crate_02",
+      "before": [
+        1916,
+        1525
+      ],
+      "to": [
+        1996,
+        1557
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "crate_03",
+      "before": [
+        1920,
+        2392
+      ],
+      "to": [
+        1920,
+        2424
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "hedge_07",
+      "before": [
+        1968,
+        1688
+      ],
+      "to": [
+        2080,
+        1672
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "hedge_08",
+      "before": [
+        1976,
+        2336
+      ],
+      "to": [
+        2056,
+        2368
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "barrels_01",
+      "before": [
+        1840,
+        1744
+      ],
+      "to": [
+        1856,
+        1840
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "barrels_02",
+      "before": [
+        1872,
+        2456
+      ],
+      "to": [
+        1920,
+        2488
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerbed_02",
+      "before": [
+        2632,
+        2448
+      ],
+      "to": [
+        2552,
+        2416
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerbed_03",
+      "before": [
+        1984,
+        2624
+      ],
+      "to": [
+        2032,
+        2624
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerbed_04",
+      "before": [
+        2624,
+        2624
+      ],
+      "to": [
+        2608,
+        2624
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerbed_05",
+      "before": [
+        2048,
+        1680
+      ],
+      "to": [
+        2064,
+        1712
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerbed_06",
+      "before": [
+        3104,
+        2176
+      ],
+      "to": [
+        3104,
+        2144
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerbed_07",
+      "before": [
+        1936,
+        1416
+      ],
+      "to": [
+        1936,
+        1320
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerbed_08",
+      "before": [
+        1888,
+        2344
+      ],
+      "to": [
+        1936,
+        2312
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerbed_10",
+      "before": [
+        1984,
+        2688
+      ],
+      "to": [
+        1936,
+        2688
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerpot_02",
+      "before": [
+        1856,
+        1616
+      ],
+      "to": [
+        1888,
+        1632
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    },
+    {
+      "name": "flowerpot_04",
+      "before": [
+        1888,
+        2480
+      ],
+      "to": [
+        1856,
+        2512
+      ],
+      "reason": "Keep wall edges, trunks and bench approaches clear."
+    }
+  ],
+  "benchAccess": [
+    {
+      "name": "벤치_01",
+      "rect": [
+        2230.4,
+        1536,
+        147.2,
+        144
+      ]
+    },
+    {
+      "name": "벤치_02",
+      "rect": [
+        2630.4,
+        2240,
+        147.2,
+        144
+      ]
+    },
+    {
+      "name": "동쪽길_벤치",
+      "rect": [
+        3894.4,
+        2288,
+        147.2,
+        144
+      ]
+    },
+    {
+      "name": "북쪽길_벤치",
+      "rect": [
+        1894.4,
+        1360,
+        147.2,
+        144
+      ]
+    },
+    {
+      "name": "여관길_벤치",
+      "rect": [
+        1974.4,
+        2432,
+        147.2,
+        144
+      ]
+    }
+  ],
+  "unresolved": [],
+  "method": "Static authored footprint placement; no play test."
+}

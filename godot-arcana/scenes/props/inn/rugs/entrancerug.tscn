@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/58774dc1daadebf135094b8e4923b26ab2df5432d90f9534c8a2828d4793c892.res" id="3_mh0l1"]
+[node name="EntranceRug2" type="Sprite2D"]
+z_index = -30
+texture = ExtResource("3_mh0l1")
+centered = false
+offset = Vector2(-100, -64)
+texture_filter = 1
+

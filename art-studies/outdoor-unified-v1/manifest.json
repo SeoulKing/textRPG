@@ -1,0 +1,1330 @@
+{
+  "profile": "arcana-outdoors-v1",
+  "camera": {
+    "yaw": 0,
+    "pitch": 45,
+    "projection": "orthographic"
+  },
+  "pixelsPerUnit": 64,
+  "detailReferences": [
+    "art-studies/street-lamp/source/lamp-post.png",
+    "art-studies/fountain/source/fountain.png"
+  ],
+  "placementSource": "godot-arcana/scenes/plaza.tscn",
+  "preserved": [
+    "source rasters",
+    "scene transforms",
+    "collision",
+    "gameplay IDs",
+    "fountain animation",
+    "indoor art",
+    "heroine"
+  ],
+  "assets": [
+    {
+      "id": "planter",
+      "kind": "flowerbed",
+      "original": "godot-arcana/art/export/reference/planter.png",
+      "foot": [
+        42,
+        70
+      ],
+      "source": "art-studies/arcana-reference-v1/source/planter-front-v2.png",
+      "size": [
+        84,
+        72
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/planter.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/planter.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "2e507ee44efe624c570ef5611c80e723618d4de568dcd0c9d5f6f194059df590"
+    },
+    {
+      "id": "flowerpot",
+      "kind": "flowerpot",
+      "original": "godot-arcana/art/export/reference/flowerpot.png",
+      "foot": [
+        29,
+        70
+      ],
+      "source": "art-studies/arcana-reference-v1/source/props.png",
+      "region": {
+        "left": 425,
+        "top": 100,
+        "width": 300,
+        "height": 350
+      },
+      "size": [
+        58,
+        72
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/flowerpot.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/flowerpot.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "f9ad4e54df363cc0d12be9d386d0be9d89842e3d82a2869dfcabdfe09f860bcf"
+    },
+    {
+      "id": "shrub",
+      "kind": "shrub",
+      "original": "godot-arcana/art/export/reference/shrub.png",
+      "foot": [
+        43,
+        78
+      ],
+      "source": "art-studies/arcana-reference-v1/source/props.png",
+      "region": {
+        "left": 745,
+        "top": 120,
+        "width": 341,
+        "height": 330
+      },
+      "size": [
+        86,
+        80
+      ],
+      "placements": [],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/shrub.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/shrub.png",
+      "effectiveDensityBefore": [],
+      "exportSha256": "beab29656b1a0e2d8dc36eb5e351cbf7a644e62c4ce449534b6b69997cf21f39"
+    },
+    {
+      "id": "flowers",
+      "kind": "flowers",
+      "original": "godot-arcana/art/export/reference/flowers.png",
+      "foot": [
+        44,
+        54
+      ],
+      "source": "art-studies/arcana-reference-v1/source/props.png",
+      "region": {
+        "left": 0,
+        "top": 490,
+        "width": 390,
+        "height": 260
+      },
+      "size": [
+        88,
+        56
+      ],
+      "placements": [
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/flowers.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/flowers.png",
+      "effectiveDensityBefore": [
+        "71.11"
+      ],
+      "exportSha256": "d696f9d91ce254cba72044c185a8f6f8dffa57aaf06b63f67da072aa97410e52"
+    },
+    {
+      "id": "grass-clump",
+      "kind": "grass-clump",
+      "original": "godot-arcana/art/export/reference/grass-clump.png",
+      "foot": [
+        36,
+        30
+      ],
+      "source": "art-studies/arcana-reference-v1/source/props.png",
+      "region": {
+        "left": 390,
+        "top": 500,
+        "width": 370,
+        "height": 250
+      },
+      "size": [
+        72,
+        32
+      ],
+      "placements": [],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/grass-clump.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/grass-clump.png",
+      "effectiveDensityBefore": [],
+      "exportSha256": "b9ea85b03e0e6d7a5d3e2059bb7b95714a31156a53257c175bd4ea2146456935"
+    },
+    {
+      "id": "crate",
+      "kind": "crate",
+      "original": "godot-arcana/art/export/reference/crate.png",
+      "foot": [
+        32,
+        68
+      ],
+      "source": "art-studies/arcana-reference-v1/source/bench-crate-front-v2.png",
+      "region": {
+        "left": 1153,
+        "top": 0,
+        "width": 621,
+        "height": 887
+      },
+      "size": [
+        64,
+        70
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/crate.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/crate.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "81a214093a77e9b1f458b920274c99a310f3fdae6f5254f84eb34b650b2260e2"
+    },
+    {
+      "id": "oak",
+      "kind": "oak",
+      "original": "godot-arcana/art/export/reference/oak.png",
+      "foot": [
+        105,
+        258
+      ],
+      "source": "art-studies/outdoor-unified-v1/generated/oak.png",
+      "region": null,
+      "size": [
+        210,
+        260
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0.75,
+          0.75
+        ],
+        [
+          0.7,
+          0.7
+        ],
+        [
+          0.75,
+          0.75
+        ],
+        [
+          0.7,
+          0.7
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0.8,
+          0.8
+        ],
+        [
+          0.85,
+          0.85
+        ],
+        [
+          0.8,
+          0.8
+        ],
+        [
+          0.8,
+          0.8
+        ],
+        [
+          0.7,
+          0.7
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/oak.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/oak.png",
+      "generated": true,
+      "effectiveDensityBefore": [
+        "64.00",
+        "85.33",
+        "91.43",
+        "71.11",
+        "80.00",
+        "75.29"
+      ],
+      "exportSha256": "26faa763b3674e48eb324efb74bd3f866f057c34536494498af636be03396565"
+    },
+    {
+      "id": "birch",
+      "kind": "birch",
+      "original": "godot-arcana/art/export/reference/birch.png",
+      "foot": [
+        90,
+        258
+      ],
+      "source": "art-studies/outdoor-unified-v1/generated/birch.png",
+      "region": null,
+      "size": [
+        180,
+        260
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0.85,
+          0.85
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.8,
+          0.8
+        ],
+        [
+          0.85,
+          0.85
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.8,
+          0.8
+        ],
+        [
+          0.8,
+          0.8
+        ],
+        [
+          0.8,
+          0.8
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/birch.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/birch.png",
+      "generated": true,
+      "effectiveDensityBefore": [
+        "64.00",
+        "75.29",
+        "71.11",
+        "80.00"
+      ],
+      "exportSha256": "e66805111e2d759a438b2a28d437547a689170b748c219fa0212028b4d4bc8ca"
+    },
+    {
+      "id": "spruce",
+      "kind": "spruce",
+      "original": "godot-arcana/art/export/reference/spruce.png",
+      "foot": [
+        83,
+        258
+      ],
+      "source": "art-studies/outdoor-unified-v1/generated/spruce.png",
+      "region": null,
+      "size": [
+        166,
+        260
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/spruce.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/spruce.png",
+      "generated": true,
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "acc0d4a377a4a9abc2cf2e9f2c13cf0a7e10f3875c80739d6db9c866e18c572b"
+    },
+    {
+      "id": "bench",
+      "kind": "bench",
+      "original": "godot-arcana/art/export/reference/bench.png",
+      "foot": [
+        64,
+        69
+      ],
+      "source": "art-studies/arcana-reference-v1/source/bench-crate-front-v2.png",
+      "region": {
+        "left": 0,
+        "top": 0,
+        "width": 1153,
+        "height": 887
+      },
+      "size": [
+        128,
+        71
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/bench.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/bench.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "8ea0eb8b343c3467c8b4c2c0ef912ecea056c7fd91925834b1c0d29857f22c7f"
+    },
+    {
+      "id": "barrels",
+      "kind": "barrels",
+      "original": "godot-arcana/art/export/reference/barrels.png",
+      "foot": [
+        48,
+        86
+      ],
+      "source": "art-studies/arcana-reference-v1/source/furniture.png",
+      "region": {
+        "left": 885,
+        "top": 0,
+        "width": 665,
+        "height": 724
+      },
+      "size": [
+        96,
+        88
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/barrels.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/barrels.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "673c8bc544a07bbbbb6eb133499b62b527a4e1c7684f8a9b589eb9818e4f4a9b"
+    },
+    {
+      "id": "basket",
+      "kind": "basket",
+      "original": "godot-arcana/art/export/reference/basket.png",
+      "foot": [
+        36,
+        46
+      ],
+      "source": "art-studies/arcana-reference-v1/source/furniture.png",
+      "region": {
+        "left": 1560,
+        "top": 0,
+        "width": 612,
+        "height": 724
+      },
+      "size": [
+        72,
+        48
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/basket.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/basket.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "7ad39c1e7215694c4855cbc7ac524252d2fad8ef13f2d517b7a762c4192349e4"
+    },
+    {
+      "id": "shop",
+      "kind": "shop",
+      "original": "godot-arcana/art/export/reference/shop-2d.png",
+      "foot": [
+        244,
+        336
+      ],
+      "source": "art-studies/town-buildings/source/shop.png",
+      "size": [
+        488,
+        340
+      ],
+      "placements": [
+        [
+          1.5,
+          1.5
+        ]
+      ],
+      "maxScale": 1.5,
+      "sourceScale": 1.5,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/shop.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/shop.png",
+      "effectiveDensityBefore": [
+        "42.67"
+      ],
+      "exportSha256": "cd17d09af768e90b4060f5a94fa6838bafa01f4bf12194e42ec7b3353bce20f3"
+    },
+    {
+      "id": "inn",
+      "kind": "inn",
+      "original": "godot-arcana/art/export/reference/inn-2d.png",
+      "foot": [
+        244,
+        402
+      ],
+      "source": "art-studies/town-buildings/source/inn.png",
+      "size": [
+        488,
+        406
+      ],
+      "placements": [
+        [
+          1.5,
+          1.5
+        ]
+      ],
+      "maxScale": 1.5,
+      "sourceScale": 1.5,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/inn.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/inn.png",
+      "effectiveDensityBefore": [
+        "42.67"
+      ],
+      "exportSha256": "8e54c882f4e28e29960a3e77e24bca353e0b063c4aa3c954c937d0c4397856d6"
+    },
+    {
+      "id": "restaurant",
+      "kind": "restaurant",
+      "original": "godot-arcana/art/export/reference/restaurant-2d.png",
+      "foot": [
+        244,
+        305
+      ],
+      "source": "art-studies/town-buildings/source/restaurant.png",
+      "size": [
+        488,
+        309
+      ],
+      "placements": [
+        [
+          1.5,
+          1.5
+        ]
+      ],
+      "maxScale": 1.5,
+      "sourceScale": 1.5,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/restaurant.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/restaurant.png",
+      "effectiveDensityBefore": [
+        "42.67"
+      ],
+      "exportSha256": "b43c8004e2edeaa1a87e0cda02f3a51737e8414fee45702a845bdc0d241ea91d"
+    },
+    {
+      "id": "city-townhouse",
+      "kind": "city-townhouse",
+      "original": "godot-arcana/art/export/regions/arcana-city-center/city-townhouse.png",
+      "foot": [
+        196,
+        499
+      ],
+      "source": "art-studies/regions/arcana-city-center/source/city-kit.png",
+      "region": {
+        "left": 72,
+        "top": 114,
+        "width": 343,
+        "height": 442
+      },
+      "size": [
+        392,
+        503
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          0.85,
+          0.85
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/city-townhouse.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/city-townhouse.png",
+      "effectiveDensityBefore": [
+        "64.00",
+        "75.29"
+      ],
+      "exportSha256": "578a3da8284b5f64048e833b4cc242b5a5ae3dabea342ffb6c7b9fb976e456a4"
+    },
+    {
+      "id": "city-workshops",
+      "kind": "city-workshops",
+      "original": "godot-arcana/art/export/regions/arcana-city-center/city-workshops.png",
+      "foot": [
+        260,
+        441
+      ],
+      "source": "art-studies/regions/arcana-city-center/source/city-kit.png",
+      "region": {
+        "left": 522,
+        "top": 120,
+        "width": 520,
+        "height": 444
+      },
+      "size": [
+        520,
+        445
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/city-workshops.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/city-workshops.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "0eb9bd104649dae185d44277c129724523e028e817003f5b76401625609f612e"
+    },
+    {
+      "id": "city-bookshop",
+      "kind": "city-bookshop",
+      "original": "godot-arcana/art/export/regions/arcana-city-center/city-bookshop.png",
+      "foot": [
+        164,
+        478
+      ],
+      "source": "art-studies/regions/arcana-city-center/source/city-kit.png",
+      "region": {
+        "left": 1160,
+        "top": 74,
+        "width": 333,
+        "height": 493
+      },
+      "size": [
+        328,
+        482
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/city-bookshop.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/city-bookshop.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "08aea660f7fe7d29419ebaf4ab55228300a3b87948e12bf4761e5605bd4e60bf"
+    },
+    {
+      "id": "city-market",
+      "kind": "city-market",
+      "original": "godot-arcana/art/export/regions/arcana-city-center/city-market.png",
+      "foot": [
+        132,
+        158
+      ],
+      "source": "art-studies/regions/arcana-city-center/source/city-kit.png",
+      "region": {
+        "left": 52,
+        "top": 688,
+        "width": 446,
+        "height": 269
+      },
+      "size": [
+        264,
+        162
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/city-market.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/city-market.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "e15f4f0c4905c351e10857778e9c7c166bc31242e40b3de3ea8c3140f394ad66"
+    },
+    {
+      "id": "city-cafe",
+      "kind": "city-cafe",
+      "original": "godot-arcana/art/export/regions/arcana-city-center/city-cafe.png",
+      "foot": [
+        100,
+        193
+      ],
+      "source": "art-studies/regions/arcana-city-center/source/city-kit.png",
+      "region": {
+        "left": 627,
+        "top": 658,
+        "width": 303,
+        "height": 299
+      },
+      "size": [
+        200,
+        197
+      ],
+      "placements": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/city-cafe.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/city-cafe.png",
+      "effectiveDensityBefore": [
+        "64.00"
+      ],
+      "exportSha256": "73b4e4f347fa2202470e207599af42ad01c6c1f390fba2ab9237f3cd5b49d505"
+    },
+    {
+      "id": "city-hedge",
+      "kind": "city-hedge",
+      "original": "godot-arcana/art/export/regions/arcana-city-center/city-hedge.png",
+      "foot": [
+        100,
+        71
+      ],
+      "source": "art-studies/regions/arcana-city-center/source/city-kit.png",
+      "region": {
+        "left": 1055,
+        "top": 787,
+        "width": 439,
+        "height": 154
+      },
+      "size": [
+        200,
+        75
+      ],
+      "placements": [
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          0.9,
+          0.9
+        ]
+      ],
+      "maxScale": 1,
+      "sourceScale": 1,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/city-hedge.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/city-hedge.png",
+      "effectiveDensityBefore": [
+        "71.11"
+      ],
+      "exportSha256": "0e399ebd8197a11a4101c210e0d642baa138960d47737e7bf17131ddb99ca73b"
+    },
+    {
+      "id": "academy",
+      "kind": "academy-2d",
+      "original": "godot-arcana/art/export/reference/academy-2d.png",
+      "foot": [
+        640,
+        1088
+      ],
+      "source": "godot-arcana/art/export/reference/academy-2d.png",
+      "registeredCanvas": true,
+      "size": [
+        1280,
+        1152
+      ],
+      "placements": [
+        [
+          1.5,
+          1.5
+        ]
+      ],
+      "maxScale": 1.5,
+      "sourceScale": 1.5,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/academy.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/academy.png",
+      "effectiveDensityBefore": [
+        "42.67"
+      ],
+      "exportSha256": "b1b31dc604c5a372b60b9431abbfc40669216204c150dd279c7b5f5050f6ad54"
+    },
+    {
+      "id": "lamp-post",
+      "kind": "lamp-post",
+      "original": "godot-arcana/art/export/reference/lamp-post-2d.png",
+      "foot": [
+        19,
+        164
+      ],
+      "source": "art-studies/street-lamp/source/lamp-post.png",
+      "referenceLocked": true,
+      "size": [
+        38,
+        168
+      ],
+      "placements": [
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ],
+        [
+          1.65,
+          1.65
+        ]
+      ],
+      "maxScale": 1.65,
+      "sourceScale": 1.65,
+      "editable": "godot-arcana/art/source/outdoor-unified-v1/lamp-post.pxpen",
+      "export": "godot-arcana/art/export/outdoor-unified-v1/lamp-post.png",
+      "effectiveDensityBefore": [
+        "38.79"
+      ],
+      "exportSha256": "eafd5a02a34efa8d0f56ecd3872b2514b454ac985701010530f3886fdaeccd48"
+    }
+  ],
+  "status": "integrated-web-exported-awaiting-user-art-review",
+  "verification": {
+    "nativePixelPen": "saved, reopened, exported 23 masters; 15792 indexed-pixel edits on first authoring",
+    "offlineRenders": 4,
+    "closeupPixelsPerWorldUnit": 64,
+    "cameraYaw": 0,
+    "cameraPitch": 45,
+    "packageResources": 23,
+    "runtimeJsonPresent": true,
+    "pixelpenMastersExcludedFromPackage": true,
+    "webPckSha256": "B33913D48BFA3314AE181F618F174049F5699A18A4D510E979DA1304498DA218",
+    "delivery": "godot-web and .server-dist/godot; raw/gzip match",
+    "browserPlay": "not run; user verification"
+  }
+}

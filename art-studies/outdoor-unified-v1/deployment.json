@@ -1,0 +1,9 @@
+{
+  "baseCommit": "fc0d2f25a15f31de2a64b5225e3a58bded517499",
+  "branch": "codex/region-content-structure",
+  "scope": "existing public client plus outdoor art only; other worktree changes preserved",
+  "pckSha256": "7f6639f5f42455731669ad59df2e8d6932248bacd4cba2e3cf66cbdc47301379",
+  "pckBytes": 32944232,
+  "offlineCapture": "renders/release-garden.png",
+  "state": "prepared-for-push"
+}

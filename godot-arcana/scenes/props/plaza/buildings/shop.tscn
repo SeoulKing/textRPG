@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/ec786c88ffaf81eedcdab81ba251bedecccedaad5b8570e08c16ba9943e6861a.res" id="2_kgbdd"]
+[node name="상점_01" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "shop"
+display_name = "아르카나 상점"
+interaction_kind = "building"
+interaction_point = Vector2(0, 13.5)
+collision_parts = Array[Rect2]([Rect2(-87.6, -52.8, 175.20001, 52.799988)])
+registered_transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
+source_path = "상점_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+position = Vector2(-46, -50)
+texture = ExtResource("2_kgbdd")
+centered = false
+offset = Vector2(-366, -504)
+region_rect = Rect2(0, 0, 732, 510)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(732, 510)
+

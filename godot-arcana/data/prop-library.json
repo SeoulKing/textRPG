@@ -1,0 +1,2401 @@
+{
+  "schema_version": 1,
+  "placement_root": "res://scenes/props/",
+  "assets": [
+    {
+      "id": "plaza/lamp-post",
+      "region": "plaza",
+      "category": "lighting",
+      "asset_name": "lamp-post",
+      "label": "lamp-post",
+      "scene": "res://scenes/props/plaza/lighting/lamp-post.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/842b6993d9015f8cd0f5a2637fc55456a86ab262ccff61328ada3599bb38b4b1.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/가로등/lamp_post_01",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/lamp-post-2",
+      "region": "plaza",
+      "category": "lighting",
+      "asset_name": "lamp-post-2",
+      "label": "lamp-post",
+      "scene": "res://scenes/props/plaza/lighting/lamp-post-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/842b6993d9015f8cd0f5a2637fc55456a86ab262ccff61328ada3599bb38b4b1.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/가로등/lamp_post_04",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-workshops",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-workshops",
+      "label": "city-workshops",
+      "scene": "res://scenes/props/plaza/buildings/city-workshops.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/9650c37bd7124659233b0bc32c5acc2dfaf87adfcc8cd5904365ad2b765911b0.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/공방/workshops_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-workshops-2",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-workshops-2",
+      "label": "city-workshops",
+      "scene": "res://scenes/props/plaza/buildings/city-workshops-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/9650c37bd7124659233b0bc32c5acc2dfaf87adfcc8cd5904365ad2b765911b0.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/공방/workshops_02",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/flowers",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "flowers",
+      "label": "flowers",
+      "scene": "res://scenes/props/plaza/plants/flowers.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/52e96b5165cfdfda3cc3e0a022798cd5def8794e77442b3f1eae86a8b04861a7.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/꽃/flowers_01",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/flowers-2",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "flowers-2",
+      "label": "flowers",
+      "scene": "res://scenes/props/plaza/plants/flowers-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/52e96b5165cfdfda3cc3e0a022798cd5def8794e77442b3f1eae86a8b04861a7.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/꽃/flowers_02",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/flowers-3",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "flowers-3",
+      "label": "flowers",
+      "scene": "res://scenes/props/plaza/plants/flowers-3.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/52e96b5165cfdfda3cc3e0a022798cd5def8794e77442b3f1eae86a8b04861a7.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/꽃/flowers_03",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/basket",
+      "region": "plaza",
+      "category": "storage",
+      "asset_name": "basket",
+      "label": "basket",
+      "scene": "res://scenes/props/plaza/storage/basket.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/d1a4500aa96a7b1328f8404f687f85d640b9c3e60f1757094697d6b2b624e5cd.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/바구니/basket_02",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/crate",
+      "region": "plaza",
+      "category": "storage",
+      "asset_name": "crate",
+      "label": "crate",
+      "scene": "res://scenes/props/plaza/storage/crate.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/8601162cfd07033aaef7062132f0ec47d88a336af0258352f9a375050d55fb0a.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/상자/상자_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/crate-2",
+      "region": "plaza",
+      "category": "storage",
+      "asset_name": "crate-2",
+      "label": "crate",
+      "scene": "res://scenes/props/plaza/storage/crate-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/8601162cfd07033aaef7062132f0ec47d88a336af0258352f9a375050d55fb0a.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/상자/crate_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-bookshop",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-bookshop",
+      "label": "city-bookshop",
+      "scene": "res://scenes/props/plaza/buildings/city-bookshop.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/f2dfabeb2d197f5085b427e78fd62e2afea642b6acc50128c90852ac5f72108e.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/서점/bookshop_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-market",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-market",
+      "label": "city-market",
+      "scene": "res://scenes/props/plaza/buildings/city-market.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/727adcd62fe21155441762caa9246eaa62f032e397bd85cbf38883d53cc6d124.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/시장/market_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-market-2",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-market-2",
+      "label": "city-market",
+      "scene": "res://scenes/props/plaza/buildings/city-market-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/727adcd62fe21155441762caa9246eaa62f032e397bd85cbf38883d53cc6d124.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/시장/market_02",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-hedge",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "city-hedge",
+      "label": "city-hedge",
+      "scene": "res://scenes/props/plaza/plants/city-hedge.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4c62405b4f02bb01718ade2c63b045993edc522be65c861f6c2217b2d5fe7e61.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/울타리/hedge_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-hedge-2",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "city-hedge-2",
+      "label": "city-hedge",
+      "scene": "res://scenes/props/plaza/plants/city-hedge-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4c62405b4f02bb01718ade2c63b045993edc522be65c861f6c2217b2d5fe7e61.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/울타리/hedge_04",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/shop",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "shop",
+      "label": "shop",
+      "scene": "res://scenes/props/plaza/buildings/shop.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/ec786c88ffaf81eedcdab81ba251bedecccedaad5b8570e08c16ba9943e6861a.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/주요 건물/상점_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/inn",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "inn",
+      "label": "inn",
+      "scene": "res://scenes/props/plaza/buildings/inn.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/cddb9c4c5ebf53c45a9a97490f97213077184ea548a23ec8a0f5c4127755c81e.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/주요 건물/여관_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/restaurant",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "restaurant",
+      "label": "restaurant",
+      "scene": "res://scenes/props/plaza/buildings/restaurant.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/c61e5c14a10845c667bd23357ca9535d2f47921e37212569dc9c7fddcb90d754.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/주요 건물/식당_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/academy-2d",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "academy-2d",
+      "label": "academy-2d",
+      "scene": "res://scenes/props/plaza/buildings/academy-2d.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/9327c9ecc54ed6dd0ad97d1d7b78e1953961628a9ed69b5f5173e6e03d793b40.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/주요 건물/마법학교_2D",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/fountain",
+      "region": "plaza",
+      "category": "decoration",
+      "asset_name": "fountain",
+      "label": "fountain",
+      "scene": "res://scenes/props/plaza/decoration/fountain.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/022fcbd7970bdc98a1d9dc02f26902cca3ff417919db46b9a12f5556be0a98eb.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/주요 시설/분수_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/portal",
+      "region": "plaza",
+      "category": "decoration",
+      "asset_name": "portal",
+      "label": "portal",
+      "scene": "res://scenes/props/plaza/decoration/portal.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/e602e0535c86ab4cd81526ecd738128e9a170b134834ccf6753e441259899f96.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/주요 시설/포탈_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-cafe",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-cafe",
+      "label": "city-cafe",
+      "scene": "res://scenes/props/plaza/buildings/city-cafe.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4c2aba6536f75736ac17f03f3d5f8853c1ad7d116e26f690f63e8dbdc14fc964.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/카페/cafe_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-cafe-2",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-cafe-2",
+      "label": "city-cafe",
+      "scene": "res://scenes/props/plaza/buildings/city-cafe-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4c2aba6536f75736ac17f03f3d5f8853c1ad7d116e26f690f63e8dbdc14fc964.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/카페/cafe_03",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/barrels",
+      "region": "plaza",
+      "category": "storage",
+      "asset_name": "barrels",
+      "label": "barrels",
+      "scene": "res://scenes/props/plaza/storage/barrels.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/2acefd39a0062e5db94496f42482ca7fc047c6ea0cb10e0e7d614b6481e8d345.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/통/barrels_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/flowerbed",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "flowerbed",
+      "label": "flowerbed",
+      "scene": "res://scenes/props/plaza/plants/flowerbed.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4106556ad911827f4e8282adeba7386376a8cc14ae70e31aba5720c271034ddc.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/화단/flowerbed_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/flowerbed-2",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "flowerbed-2",
+      "label": "flowerbed",
+      "scene": "res://scenes/props/plaza/plants/flowerbed-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4106556ad911827f4e8282adeba7386376a8cc14ae70e31aba5720c271034ddc.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/화단/flowerbed_05",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/flowerpot",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "flowerpot",
+      "label": "flowerpot",
+      "scene": "res://scenes/props/plaza/plants/flowerpot.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/51f169a8fa74d05d1226db173c76c3310f83249e4aecfb775327d00bb0e8d719.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/화분/flowerpot_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/flowerpot-2",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "flowerpot-2",
+      "label": "flowerpot",
+      "scene": "res://scenes/props/plaza/plants/flowerpot-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/51f169a8fa74d05d1226db173c76c3310f83249e4aecfb775327d00bb0e8d719.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/화분/flowerpot_02",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/bench",
+      "region": "plaza",
+      "category": "seating",
+      "asset_name": "bench",
+      "label": "bench",
+      "scene": "res://scenes/props/plaza/seating/bench.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/da5b4febbbb0a12cf3f82abdb605adfb2f9ee997b676ec507b464664e0452af7.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/벤치들/벤치_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/bench-2",
+      "region": "plaza",
+      "category": "seating",
+      "asset_name": "bench-2",
+      "label": "bench",
+      "scene": "res://scenes/props/plaza/seating/bench-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/da5b4febbbb0a12cf3f82abdb605adfb2f9ee997b676ec507b464664e0452af7.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/벤치들/벤치_02",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/birch",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "birch",
+      "label": "birch",
+      "scene": "res://scenes/props/plaza/plants/birch.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/75b4a716dcbb5d708220f4ca3884763edfe7f8485dcd58478e2deaddfec17609.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/자작나무_03",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/spruce",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "spruce",
+      "label": "spruce",
+      "scene": "res://scenes/props/plaza/plants/spruce.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4855f96b201e29d994b17d6635b6facaed6752c042d0014497ec3b4e47659290.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/전나무_03",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/oak",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "oak",
+      "label": "oak",
+      "scene": "res://scenes/props/plaza/plants/oak.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/d10373bdab2fb36c1b3ddfaf87228be5b1e640f4cea03d86846714e9a0799f4c.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/참나무_04",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/birch-2",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "birch-2",
+      "label": "birch",
+      "scene": "res://scenes/props/plaza/plants/birch-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4e79daf20365605f117ec8eda6dbd7c1d040a3fa0020d7556bbb5865aaaeba25.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/birch_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/oak-2",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "oak-2",
+      "label": "oak",
+      "scene": "res://scenes/props/plaza/plants/oak-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/b6f50a72475ef820c121da5aed28b0e2227e82878b298691dab7586f0afe601f.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/oak_02",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/birch-3",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "birch-3",
+      "label": "birch",
+      "scene": "res://scenes/props/plaza/plants/birch-3.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/36340c3380b9fb3ae87f31f47dd360593ade51f561894e3475c9ec6dd6ddcae4.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/birch_02",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/oak-3",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "oak-3",
+      "label": "oak",
+      "scene": "res://scenes/props/plaza/plants/oak-3.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/430a285d61e294efe94994c459016a40a9a72d17bb519b868aa082a51c21f7b1.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/oak_03",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/birch-4",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "birch-4",
+      "label": "birch",
+      "scene": "res://scenes/props/plaza/plants/birch-4.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/5ddee8e194e697bbad66d3fc7ed5afc140b6901292947109b7b727197f8437d3.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/birch_03",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/oak-4",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "oak-4",
+      "label": "oak",
+      "scene": "res://scenes/props/plaza/plants/oak-4.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/b6f50a72475ef820c121da5aed28b0e2227e82878b298691dab7586f0afe601f.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/oak_04",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/oak-5",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "oak-5",
+      "label": "oak",
+      "scene": "res://scenes/props/plaza/plants/oak-5.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/c6b4960d7618949573d66d6ca4184805536cc7a64017b6c2436d9f0fa1434a1e.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/oak_05",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/oak-6",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "oak-6",
+      "label": "oak",
+      "scene": "res://scenes/props/plaza/plants/oak-6.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/d6e9e46053ade5b4695dbb42a5ca8ed7754c4033bbf0d77ad94b44239dfbae77.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/oak_07",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/birch-5",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "birch-5",
+      "label": "birch",
+      "scene": "res://scenes/props/plaza/plants/birch-5.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/5ddee8e194e697bbad66d3fc7ed5afc140b6901292947109b7b727197f8437d3.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/birch_06",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/oak-7",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "oak-7",
+      "label": "oak",
+      "scene": "res://scenes/props/plaza/plants/oak-7.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4966ff94ce5074b3c15cdd6ccb636855f0d7fbc03f4996c238f11d559014dd73.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/나무들/oak_08",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-townhouse",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-townhouse",
+      "label": "city-townhouse",
+      "scene": "res://scenes/props/plaza/buildings/city-townhouse.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/e2990a9f183f4ca172ad3a5ed9e07fdcfcf9c05640f6613435855130ab7d76aa.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/타운하우스들/townhouse_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-townhouse-2",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-townhouse-2",
+      "label": "city-townhouse",
+      "scene": "res://scenes/props/plaza/buildings/city-townhouse-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/fa26de996cd1628c3bd8927fc557994e5a860695e0377772551fcae606a33082.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/타운하우스들/townhouse_02",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/city-townhouse-3",
+      "region": "plaza",
+      "category": "buildings",
+      "asset_name": "city-townhouse-3",
+      "label": "city-townhouse",
+      "scene": "res://scenes/props/plaza/buildings/city-townhouse-3.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/e2990a9f183f4ca172ad3a5ed9e07fdcfcf9c05640f6613435855130ab7d76aa.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/타운하우스들/townhouse_03",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "plaza/oak-8",
+      "region": "plaza",
+      "category": "plants",
+      "asset_name": "oak-8",
+      "label": "oak",
+      "scene": "res://scenes/props/plaza/plants/oak-8.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/d10373bdab2fb36c1b3ddfaf87228be5b1e640f4cea03d86846714e9a0799f4c.res"
+      ],
+      "source_scene": "res://scenes/native_2d/plaza.tscn",
+      "source_node": "Placements/광장_기존자산_구성/plaza_canopy_ne_01",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/city-market",
+      "region": "city-walk",
+      "category": "buildings",
+      "asset_name": "city-market",
+      "label": "city-market",
+      "scene": "res://scenes/props/city-walk/buildings/city-market.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/727adcd62fe21155441762caa9246eaa62f032e397bd85cbf38883d53cc6d124.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/MarketCorner",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/city-market-2",
+      "region": "city-walk",
+      "category": "buildings",
+      "asset_name": "city-market-2",
+      "label": "city-market",
+      "scene": "res://scenes/props/city-walk/buildings/city-market-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/727adcd62fe21155441762caa9246eaa62f032e397bd85cbf38883d53cc6d124.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/MarketNorth",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/city-cafe",
+      "region": "city-walk",
+      "category": "buildings",
+      "asset_name": "city-cafe",
+      "label": "city-cafe",
+      "scene": "res://scenes/props/city-walk/buildings/city-cafe.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4c2aba6536f75736ac17f03f3d5f8853c1ad7d116e26f690f63e8dbdc14fc964.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/InnTerrace",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/city-cafe-2",
+      "region": "city-walk",
+      "category": "buildings",
+      "asset_name": "city-cafe-2",
+      "label": "city-cafe",
+      "scene": "res://scenes/props/city-walk/buildings/city-cafe-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4c2aba6536f75736ac17f03f3d5f8853c1ad7d116e26f690f63e8dbdc14fc964.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/SchoolTerrace",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/barrels",
+      "region": "city-walk",
+      "category": "storage",
+      "asset_name": "barrels",
+      "label": "barrels",
+      "scene": "res://scenes/props/city-walk/storage/barrels.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/2acefd39a0062e5db94496f42482ca7fc047c6ea0cb10e0e7d614b6481e8d345.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/MarketBarrels",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/crate",
+      "region": "city-walk",
+      "category": "storage",
+      "asset_name": "crate",
+      "label": "crate",
+      "scene": "res://scenes/props/city-walk/storage/crate.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/8601162cfd07033aaef7062132f0ec47d88a336af0258352f9a375050d55fb0a.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/MarketCrates",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/basket",
+      "region": "city-walk",
+      "category": "storage",
+      "asset_name": "basket",
+      "label": "basket",
+      "scene": "res://scenes/props/city-walk/storage/basket.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/d1a4500aa96a7b1328f8404f687f85d640b9c3e60f1757094697d6b2b624e5cd.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/MarketBasket",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/flowerpot",
+      "region": "city-walk",
+      "category": "plants",
+      "asset_name": "flowerpot",
+      "label": "flowerpot",
+      "scene": "res://scenes/props/city-walk/plants/flowerpot.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/51f169a8fa74d05d1226db173c76c3310f83249e4aecfb775327d00bb0e8d719.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/MarketDoorFlowers",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/flowerbed",
+      "region": "city-walk",
+      "category": "plants",
+      "asset_name": "flowerbed",
+      "label": "flowerbed",
+      "scene": "res://scenes/props/city-walk/plants/flowerbed.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4106556ad911827f4e8282adeba7386376a8cc14ae70e31aba5720c271034ddc.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/InnTerraceFlowers",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/flowers",
+      "region": "city-walk",
+      "category": "plants",
+      "asset_name": "flowers",
+      "label": "flowers",
+      "scene": "res://scenes/props/city-walk/plants/flowers.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/52e96b5165cfdfda3cc3e0a022798cd5def8794e77442b3f1eae86a8b04861a7.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/InnGardenFlowers",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/flowerpot-2",
+      "region": "city-walk",
+      "category": "plants",
+      "asset_name": "flowerpot-2",
+      "label": "flowerpot",
+      "scene": "res://scenes/props/city-walk/plants/flowerpot-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/51f169a8fa74d05d1226db173c76c3310f83249e4aecfb775327d00bb0e8d719.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/SchoolFlowersWest",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/lamp-post",
+      "region": "city-walk",
+      "category": "lighting",
+      "asset_name": "lamp-post",
+      "label": "lamp-post",
+      "scene": "res://scenes/props/city-walk/lighting/lamp-post.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/842b6993d9015f8cd0f5a2637fc55456a86ab262ccff61328ada3599bb38b4b1.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/MarketLamp",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "city-walk/oak",
+      "region": "city-walk",
+      "category": "plants",
+      "asset_name": "oak",
+      "label": "oak",
+      "scene": "res://scenes/props/city-walk/plants/oak.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/native-2d/430a285d61e294efe94994c459016a40a9a72d17bb519b868aa082a51c21f7b1.res"
+      ],
+      "source_scene": "res://scenes/native_2d/city_walk_quarter.tscn",
+      "source_node": "StreetDetails/MarketShadeTree",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/loungerug",
+      "region": "inn",
+      "category": "rugs",
+      "asset_name": "loungerug",
+      "label": "loungerug",
+      "scene": "res://scenes/props/inn/rugs/loungerug.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/ddb425f4bccfe20f5b261e16b1291c8ecf9f4f37719273495a3567e64d375cf1.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "LoungeRug1",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/entrancerug",
+      "region": "inn",
+      "category": "rugs",
+      "asset_name": "entrancerug",
+      "label": "entrancerug",
+      "scene": "res://scenes/props/inn/rugs/entrancerug.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/58774dc1daadebf135094b8e4923b26ab2df5432d90f9534c8a2828d4793c892.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "EntranceRug2",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-wall-solid",
+      "region": "inn",
+      "category": "architecture",
+      "asset_name": "inn-wall-solid",
+      "label": "inn-wall-solid",
+      "scene": "res://scenes/props/inn/architecture/inn-wall-solid.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/285e30dd63288d2639e82ce5a542f680ce9b24376bdcf5df291f337bed8a176c.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_wall_solid5",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-fireplace",
+      "region": "inn",
+      "category": "lighting",
+      "asset_name": "inn-fireplace",
+      "label": "inn-fireplace",
+      "scene": "res://scenes/props/inn/lighting/inn-fireplace.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/effects/pixelfx-inn-fire.png",
+        "res://art/export/native-2d/8442097edbca5b7ac48ea03c70a409163f0bdbb5987f6cc96f8c7a7daa69925b.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_fireplace9",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-bookcase",
+      "region": "inn",
+      "category": "storage",
+      "asset_name": "inn-bookcase",
+      "label": "inn-bookcase",
+      "scene": "res://scenes/props/inn/storage/inn-bookcase.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/acb1204276e35f51ae5266641737b85c0cdc06c08bd3d1f9eabff4e0d849d4cf.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_bookcase10",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-storage-bench",
+      "region": "inn",
+      "category": "seating",
+      "asset_name": "inn-storage-bench",
+      "label": "inn-storage-bench",
+      "scene": "res://scenes/props/inn/seating/inn-storage-bench.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/bf04b6a78b10def7490c94d562676fafceea7fca8ca485ef36249b0c6200d42f.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_storage_bench11",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-counter",
+      "region": "inn",
+      "category": "tables",
+      "asset_name": "inn-counter",
+      "label": "inn-counter",
+      "scene": "res://scenes/props/inn/tables/inn-counter.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/48a382f51d9e683700ab0d52eb231632c5089ada96652674c1a5bd807a8598ee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_counter12",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/innquestboard",
+      "region": "inn",
+      "category": "decoration",
+      "asset_name": "innquestboard",
+      "label": "innquestboard",
+      "scene": "res://scenes/props/inn/decoration/innquestboard.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/31b112d04be213e207cc42679e8c4c3f8263246e6198554dcd69a62b86e1e06c.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "InnQuestBoard14",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-lantern",
+      "region": "inn",
+      "category": "lighting",
+      "asset_name": "inn-lantern",
+      "label": "inn-lantern",
+      "scene": "res://scenes/props/inn/lighting/inn-lantern.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/66b8bdc1bfabf38faf6511e52020a4a74f77e9f3e0638ab8ab14a318bc11bcc1.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_lantern16",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-keys",
+      "region": "inn",
+      "category": "decoration",
+      "asset_name": "inn-keys",
+      "label": "inn-keys",
+      "scene": "res://scenes/props/inn/decoration/inn-keys.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/71e771f8bda93a06a9bbeae9aee6fe12af7d48a9a583789a10f8fd796ad0ac8b.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_keys17",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-corner-sofa",
+      "region": "inn",
+      "category": "seating",
+      "asset_name": "inn-corner-sofa",
+      "label": "inn-corner-sofa",
+      "scene": "res://scenes/props/inn/seating/inn-corner-sofa.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/68b74121fe8987975dc15c7a7102877caeecf2e373f7c1de14090042fa93871c.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_corner_sofa18",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-tea-table",
+      "region": "inn",
+      "category": "tables",
+      "asset_name": "inn-tea-table",
+      "label": "inn-tea-table",
+      "scene": "res://scenes/props/inn/tables/inn-tea-table.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/6e4e0367e93e72752caeb8f769da03153bb519025ff370eacb6ae6e334139025.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_tea_table19",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-armchair",
+      "region": "inn",
+      "category": "seating",
+      "asset_name": "inn-armchair",
+      "label": "inn-armchair",
+      "scene": "res://scenes/props/inn/seating/inn-armchair.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/32423f3d42aa741e92df02ea3441252fb6334c5c23b124e87c0d46a8010b517a.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_armchair20",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-lamp-table",
+      "region": "inn",
+      "category": "lighting",
+      "asset_name": "inn-lamp-table",
+      "label": "inn-lamp-table",
+      "scene": "res://scenes/props/inn/lighting/inn-lamp-table.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/20985cbea3af02ee02c34b4ae7f7ee57f60048aa83903ee8d69cbe1d4463f7ac.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_lamp_table21",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-luggage",
+      "region": "inn",
+      "category": "storage",
+      "asset_name": "inn-luggage",
+      "label": "inn-luggage",
+      "scene": "res://scenes/props/inn/storage/inn-luggage.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/63ddaee82999ffba984146460311f5d8f985596ffe04846bd34b4c92ac68988d.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_luggage24",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-plant",
+      "region": "inn",
+      "category": "plants",
+      "asset_name": "inn-plant",
+      "label": "inn-plant",
+      "scene": "res://scenes/props/inn/plants/inn-plant.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/9e7d30e5d5494d7df5b612fe019ec7160865d0e56efc4b7740331e7bde45ce63.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_plant26",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-plant-2",
+      "region": "inn",
+      "category": "plants",
+      "asset_name": "inn-plant-2",
+      "label": "inn-plant",
+      "scene": "res://scenes/props/inn/plants/inn-plant-2.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/9e7d30e5d5494d7df5b612fe019ec7160865d0e56efc4b7740331e7bde45ce63.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "_Node3D_5528",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/inn-front-wall",
+      "region": "inn",
+      "category": "architecture",
+      "asset_name": "inn-front-wall",
+      "label": "inn-front-wall",
+      "scene": "res://scenes/props/inn/architecture/inn-front-wall.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/adb6db9ed109e0baf359bb599efb94b5df0b46d426dd7b75f5548b9c19998312.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "Inn_front_wall33",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "inn/entrancethreshold",
+      "region": "inn",
+      "category": "architecture",
+      "asset_name": "entrancethreshold",
+      "label": "entrancethreshold",
+      "scene": "res://scenes/props/inn/architecture/entrancethreshold.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/e5f8ba4d8ff073ceb6228a5c75316fdf524e0fee7fba4a8c2d787715fbbb6ba0.res"
+      ],
+      "source_scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "source_node": "EntranceThreshold35",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-wall",
+      "region": "academy-first-floor",
+      "category": "architecture",
+      "asset_name": "academy-wall",
+      "label": "academy-wall",
+      "scene": "res://scenes/props/academy-first-floor/architecture/academy-wall.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/249c87ca96fddb3b68816fd2af9a7b4489edb4319fb073aeb03f9f1e5e8955ea.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_wall39",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-stairs-up",
+      "region": "academy-first-floor",
+      "category": "architecture",
+      "asset_name": "academy-stairs-up",
+      "label": "academy-stairs-up",
+      "scene": "res://scenes/props/academy-first-floor/architecture/academy-stairs-up.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/e85f2e40c16baa014bce12dfef22dbd0f56c5baf254099a058b81e44fd8d219f.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_stairs_up43",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-bookcase",
+      "region": "academy-first-floor",
+      "category": "storage",
+      "asset_name": "academy-bookcase",
+      "label": "academy-bookcase",
+      "scene": "res://scenes/props/academy-first-floor/storage/academy-bookcase.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/9675174401c22d1d25432955dffa8152ee727777eaa2f533e9d6c4b586ad5333.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_bookcase44",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-desk",
+      "region": "academy-first-floor",
+      "category": "tables",
+      "asset_name": "academy-desk",
+      "label": "academy-desk",
+      "scene": "res://scenes/props/academy-first-floor/tables/academy-desk.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/b46b0c891a40b5a68c54559c93930a1245df9144f9c61c66e5c2cb69a8595bba.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_desk45",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-blackboard",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "academy-blackboard",
+      "label": "academy-blackboard",
+      "scene": "res://scenes/props/academy-first-floor/decoration/academy-blackboard.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/b9a6bee8ad9814fec825d4f5f34140dcb845ff56079602bf2f50508c39d60c0a.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_blackboard46",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-orrery",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "academy-orrery",
+      "label": "academy-orrery",
+      "scene": "res://scenes/props/academy-first-floor/decoration/academy-orrery.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/6ba16c4b5e06247eded55263dea0a0bafe528576f7321ce13c39adb3f7882183.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_orrery49",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-reading-table",
+      "region": "academy-first-floor",
+      "category": "tables",
+      "asset_name": "academy-reading-table",
+      "label": "academy-reading-table",
+      "scene": "res://scenes/props/academy-first-floor/tables/academy-reading-table.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/c4cb53be7bfb983603b1efb1ae6d7d20f0089d776ac9690254cf94311bffd638.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_reading_table50",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-book-trolley",
+      "region": "academy-first-floor",
+      "category": "storage",
+      "asset_name": "academy-book-trolley",
+      "label": "academy-book-trolley",
+      "scene": "res://scenes/props/academy-first-floor/storage/academy-book-trolley.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4d352656e8eaef0cb80ff6393f6ad3466ebe34bd441a6b73799bd31e64fac53b.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_book_trolley51",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-floor-lamp",
+      "region": "academy-first-floor",
+      "category": "lighting",
+      "asset_name": "academy-floor-lamp",
+      "label": "academy-floor-lamp",
+      "scene": "res://scenes/props/academy-first-floor/lighting/academy-floor-lamp.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/f95f195b0f17cf7c8f0118f4dbec202c8f4f5b0f7ecf4b2fd8f7744f95135d79.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_floor_lamp53",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-bench",
+      "region": "academy-first-floor",
+      "category": "seating",
+      "asset_name": "academy-bench",
+      "label": "academy-bench",
+      "scene": "res://scenes/props/academy-first-floor/seating/academy-bench.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/bf04ec141161257927ecedf89fba7af566ee6091f06ecc79fdbd2e95e4397f9c.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_bench55",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-plant",
+      "region": "academy-first-floor",
+      "category": "plants",
+      "asset_name": "academy-plant",
+      "label": "academy-plant",
+      "scene": "res://scenes/props/academy-first-floor/plants/academy-plant.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/3074b5576dc84673e592304e4d596d7033251cf1b7721f0c28fde4136aea99be.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_plant57",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-plant-2",
+      "region": "academy-first-floor",
+      "category": "plants",
+      "asset_name": "academy-plant-2",
+      "label": "academy-plant",
+      "scene": "res://scenes/props/academy-first-floor/plants/academy-plant-2.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/3074b5576dc84673e592304e4d596d7033251cf1b7721f0c28fde4136aea99be.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_12758",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/roomwall",
+      "region": "academy-first-floor",
+      "category": "architecture",
+      "asset_name": "roomwall",
+      "label": "roomwall",
+      "scene": "res://scenes/props/academy-first-floor/architecture/roomwall.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/0092b1551fa46aef6d92752b7d0be63b6e39877b6bf4f2c203d0cc4385d84055.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "RoomWall59",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-19581",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-19581",
+      "label": "node3d-19581",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-19581.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_19581",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-19882",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-19882",
+      "label": "node3d-19882",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-19882.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_19882",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-20183",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-20183",
+      "label": "node3d-20183",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-20183.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_20183",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-20484",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-20484",
+      "label": "node3d-20484",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-20484.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_20484",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-267105",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-267105",
+      "label": "node3d-267105",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-267105.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_267105",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-270106",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-270106",
+      "label": "node3d-270106",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-270106.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_270106",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-273107",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-273107",
+      "label": "node3d-273107",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-273107.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_273107",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-276108",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-276108",
+      "label": "node3d-276108",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-276108.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_276108",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-279109",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-279109",
+      "label": "node3d-279109",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-279109.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_279109",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-282110",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-282110",
+      "label": "node3d-282110",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-282110.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_282110",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-285111",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-285111",
+      "label": "node3d-285111",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-285111.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_285111",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-288112",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-288112",
+      "label": "node3d-288112",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-288112.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_288112",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-291113",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-291113",
+      "label": "node3d-291113",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-291113.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_291113",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-294114",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-294114",
+      "label": "node3d-294114",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-294114.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_294114",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-297115",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-297115",
+      "label": "node3d-297115",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-297115.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_297115",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/node3d-300116",
+      "region": "academy-first-floor",
+      "category": "decoration",
+      "asset_name": "node3d-300116",
+      "label": "node3d-300116",
+      "scene": "res://scenes/props/academy-first-floor/decoration/node3d-300116.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "_Node3D_300116",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-partition-pier",
+      "region": "academy-first-floor",
+      "category": "architecture",
+      "asset_name": "academy-partition-pier",
+      "label": "academy-partition-pier",
+      "scene": "res://scenes/props/academy-first-floor/architecture/academy-partition-pier.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/8989324e4efe7aae67827d3836defc5802c3b6a134478a32b630a8edae448e51.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_partition_pier117",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-room-arch",
+      "region": "academy-first-floor",
+      "category": "architecture",
+      "asset_name": "academy-room-arch",
+      "label": "academy-room-arch",
+      "scene": "res://scenes/props/academy-first-floor/architecture/academy-room-arch.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/a3c6cfadd9ae1e5bfd267b9e0bfc47f2620b4969096635ea46d32df46228cd73.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_room_arch127",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-first-floor/academy-front-wall",
+      "region": "academy-first-floor",
+      "category": "architecture",
+      "asset_name": "academy-front-wall",
+      "label": "academy-front-wall",
+      "scene": "res://scenes/props/academy-first-floor/architecture/academy-front-wall.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/08334b10f7513bbcbd698ee1ac48b52455b350d6a666ba5fd53f29720b803ec8.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_front_wall128",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-wall",
+      "region": "academy-second-floor",
+      "category": "architecture",
+      "asset_name": "academy-wall",
+      "label": "academy-wall",
+      "scene": "res://scenes/props/academy-second-floor/architecture/academy-wall.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/249c87ca96fddb3b68816fd2af9a7b4489edb4319fb073aeb03f9f1e5e8955ea.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_wall133",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-office-door",
+      "region": "academy-second-floor",
+      "category": "architecture",
+      "asset_name": "academy-office-door",
+      "label": "academy-office-door",
+      "scene": "res://scenes/props/academy-second-floor/architecture/academy-office-door.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/6f8d1d49d7df3755abbf2ed6fac7b191c43adfecf0803b8942d63c0ead2cb9a0.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_office_door137",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-desk",
+      "region": "academy-second-floor",
+      "category": "tables",
+      "asset_name": "academy-desk",
+      "label": "academy-desk",
+      "scene": "res://scenes/props/academy-second-floor/tables/academy-desk.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/b46b0c891a40b5a68c54559c93930a1245df9144f9c61c66e5c2cb69a8595bba.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_desk138",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-telescope",
+      "region": "academy-second-floor",
+      "category": "decoration",
+      "asset_name": "academy-telescope",
+      "label": "academy-telescope",
+      "scene": "res://scenes/props/academy-second-floor/decoration/academy-telescope.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/ba024c0c820a2bd9c80edef067eae76e26f61b0b8abd6a6659b80fc2c2e2ed32.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_telescope139",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-bookcase",
+      "region": "academy-second-floor",
+      "category": "storage",
+      "asset_name": "academy-bookcase",
+      "label": "academy-bookcase",
+      "scene": "res://scenes/props/academy-second-floor/storage/academy-bookcase.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/9675174401c22d1d25432955dffa8152ee727777eaa2f533e9d6c4b586ad5333.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_bookcase140",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-bench",
+      "region": "academy-second-floor",
+      "category": "seating",
+      "asset_name": "academy-bench",
+      "label": "academy-bench",
+      "scene": "res://scenes/props/academy-second-floor/seating/academy-bench.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/bf04ec141161257927ecedf89fba7af566ee6091f06ecc79fdbd2e95e4397f9c.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_bench141",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-plant",
+      "region": "academy-second-floor",
+      "category": "plants",
+      "asset_name": "academy-plant",
+      "label": "academy-plant",
+      "scene": "res://scenes/props/academy-second-floor/plants/academy-plant.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/3074b5576dc84673e592304e4d596d7033251cf1b7721f0c28fde4136aea99be.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_plant142",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-stairs-down",
+      "region": "academy-second-floor",
+      "category": "architecture",
+      "asset_name": "academy-stairs-down",
+      "label": "academy-stairs-down",
+      "scene": "res://scenes/props/academy-second-floor/architecture/academy-stairs-down.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/a4f62592eb8d1869f3343063daad6fe011fc55468096a677defc72bdc2d7563f.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_stairs_down144",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-reading-table",
+      "region": "academy-second-floor",
+      "category": "tables",
+      "asset_name": "academy-reading-table",
+      "label": "academy-reading-table",
+      "scene": "res://scenes/props/academy-second-floor/tables/academy-reading-table.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/c4cb53be7bfb983603b1efb1ae6d7d20f0089d776ac9690254cf94311bffd638.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_reading_table145",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-book-trolley",
+      "region": "academy-second-floor",
+      "category": "storage",
+      "asset_name": "academy-book-trolley",
+      "label": "academy-book-trolley",
+      "scene": "res://scenes/props/academy-second-floor/storage/academy-book-trolley.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/4d352656e8eaef0cb80ff6393f6ad3466ebe34bd441a6b73799bd31e64fac53b.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_book_trolley146",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-floor-lamp",
+      "region": "academy-second-floor",
+      "category": "lighting",
+      "asset_name": "academy-floor-lamp",
+      "label": "academy-floor-lamp",
+      "scene": "res://scenes/props/academy-second-floor/lighting/academy-floor-lamp.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/f95f195b0f17cf7c8f0118f4dbec202c8f4f5b0f7ecf4b2fd8f7744f95135d79.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_floor_lamp147",
+      "has_collision": true,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-plant-2",
+      "region": "academy-second-floor",
+      "category": "plants",
+      "asset_name": "academy-plant-2",
+      "label": "academy-plant",
+      "scene": "res://scenes/props/academy-second-floor/plants/academy-plant-2.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/3074b5576dc84673e592304e4d596d7033251cf1b7721f0c28fde4136aea99be.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "_Node3D_382149",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "academy-second-floor/academy-front-wall",
+      "region": "academy-second-floor",
+      "category": "architecture",
+      "asset_name": "academy-front-wall",
+      "label": "academy-front-wall",
+      "scene": "res://scenes/props/academy-second-floor/architecture/academy-front-wall.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/native-2d/08334b10f7513bbcbd698ee1ac48b52455b350d6a666ba5fd53f29720b803ec8.res"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "source_node": "Academy_front_wall151",
+      "has_collision": false,
+      "interaction_policy": "Assign a unique gameplay_id or metadata/layout_entity.id after placement; no copied interaction is active by default."
+    },
+    {
+      "id": "shop/apothecary-bench",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "apothecary-bench",
+      "label": "apothecary-bench",
+      "scene": "res://scenes/props/shop/furniture/apothecary-bench.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/apothecary-bench.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/counter",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "counter",
+      "label": "counter",
+      "scene": "res://scenes/props/shop/furniture/counter.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/counter.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/herb-cabinet",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "herb-cabinet",
+      "label": "herb-cabinet",
+      "scene": "res://scenes/props/shop/furniture/herb-cabinet.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/herb-cabinet.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/luggage",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "luggage",
+      "label": "luggage",
+      "scene": "res://scenes/props/shop/furniture/luggage.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/luggage.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/plant",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "plant",
+      "label": "plant",
+      "scene": "res://scenes/props/shop/furniture/plant.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/plant.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/potion-cabinet",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "potion-cabinet",
+      "label": "potion-cabinet",
+      "scene": "res://scenes/props/shop/furniture/potion-cabinet.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/potion-cabinet.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/potion-island",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "potion-island",
+      "label": "potion-island",
+      "scene": "res://scenes/props/shop/furniture/potion-island.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/potion-island.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/travel-cabinet",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "travel-cabinet",
+      "label": "travel-cabinet",
+      "scene": "res://scenes/props/shop/furniture/travel-cabinet.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/travel-cabinet.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/travel-island",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "travel-island",
+      "label": "travel-island",
+      "scene": "res://scenes/props/shop/furniture/travel-island.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/travel-island.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/travel-stock",
+      "region": "shop",
+      "category": "furniture",
+      "asset_name": "travel-stock",
+      "label": "travel-stock",
+      "scene": "res://scenes/props/shop/furniture/travel-stock.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/travel-stock.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/doorway",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "doorway",
+      "label": "doorway",
+      "scene": "res://scenes/props/shop/architecture/doorway.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/doorway.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-back-0",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-back-0",
+      "label": "wall-back-0",
+      "scene": "res://scenes/props/shop/architecture/wall-back-0.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-back-0.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-back-1",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-back-1",
+      "label": "wall-back-1",
+      "scene": "res://scenes/props/shop/architecture/wall-back-1.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-back-1.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-back-2",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-back-2",
+      "label": "wall-back-2",
+      "scene": "res://scenes/props/shop/architecture/wall-back-2.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-back-2.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-back-3",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-back-3",
+      "label": "wall-back-3",
+      "scene": "res://scenes/props/shop/architecture/wall-back-3.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-back-3.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-front-0",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-front-0",
+      "label": "wall-front-0",
+      "scene": "res://scenes/props/shop/architecture/wall-front-0.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-front-0.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-front-1",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-front-1",
+      "label": "wall-front-1",
+      "scene": "res://scenes/props/shop/architecture/wall-front-1.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-front-1.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-left-return",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-left-return",
+      "label": "wall-left-return",
+      "scene": "res://scenes/props/shop/architecture/wall-left-return.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-left-return.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-left",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-left",
+      "label": "wall-left",
+      "scene": "res://scenes/props/shop/architecture/wall-left.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-left.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-right-return",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-right-return",
+      "label": "wall-right-return",
+      "scene": "res://scenes/props/shop/architecture/wall-right-return.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-right-return.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shop/wall-right",
+      "region": "shop",
+      "category": "architecture",
+      "asset_name": "wall-right",
+      "label": "wall-right",
+      "scene": "res://scenes/props/shop/architecture/wall-right.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/wall-right.png"
+      ],
+      "source_scene": "res://scenes/shop_2d.tscn",
+      "has_collision": true,
+      "interaction_policy": "Shop furniture keeps asset_id; counter and door have unique functional ownership in shop_layout_2d.gd."
+    },
+    {
+      "id": "shared/bed",
+      "region": "shared",
+      "category": "beds",
+      "asset_name": "bed",
+      "label": "bed",
+      "scene": "res://scenes/props/shared/beds/bed.tscn",
+      "root_type": "Node3D",
+      "texture_resources": [],
+      "has_collision": true,
+      "interaction_policy": "Choose Node2D variants ending _2d for the native 2D world; Node3D variants are retained model authoring resources."
+    },
+    {
+      "id": "shared/bed_2d",
+      "region": "shared",
+      "category": "beds",
+      "asset_name": "bed_2d",
+      "label": "bed_2d",
+      "scene": "res://scenes/props/shared/beds/bed_2d.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/bed-stardew-v1/bed.png"
+      ],
+      "has_collision": true,
+      "interaction_policy": "Choose Node2D variants ending _2d for the native 2D world; Node3D variants are retained model authoring resources."
+    },
+    {
+      "id": "shared/bed_narrow",
+      "region": "shared",
+      "category": "beds",
+      "asset_name": "bed_narrow",
+      "label": "bed_narrow",
+      "scene": "res://scenes/props/shared/beds/bed_narrow.tscn",
+      "root_type": "Node3D",
+      "texture_resources": [],
+      "has_collision": true,
+      "interaction_policy": "Choose Node2D variants ending _2d for the native 2D world; Node3D variants are retained model authoring resources."
+    },
+    {
+      "id": "shared/bed_narrow_2d",
+      "region": "shared",
+      "category": "beds",
+      "asset_name": "bed_narrow_2d",
+      "label": "bed_narrow_2d",
+      "scene": "res://scenes/props/shared/beds/bed_narrow_2d.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/bed-stardew-v2/bed.png"
+      ],
+      "has_collision": true,
+      "interaction_policy": "Choose Node2D variants ending _2d for the native 2D world; Node3D variants are retained model authoring resources."
+    },
+    {
+      "id": "shared/bed_single",
+      "region": "shared",
+      "category": "beds",
+      "asset_name": "bed_single",
+      "label": "bed_single",
+      "scene": "res://scenes/props/shared/beds/bed_single.tscn",
+      "root_type": "Node3D",
+      "texture_resources": [],
+      "has_collision": true,
+      "interaction_policy": "Choose Node2D variants ending _2d for the native 2D world; Node3D variants are retained model authoring resources."
+    },
+    {
+      "id": "shared/bed_single_2d",
+      "region": "shared",
+      "category": "beds",
+      "asset_name": "bed_single_2d",
+      "label": "bed_single_2d",
+      "scene": "res://scenes/props/shared/beds/bed_single_2d.tscn",
+      "root_type": "Node2D",
+      "texture_resources": [
+        "res://art/export/bed-single-v3/bed.png"
+      ],
+      "has_collision": true,
+      "interaction_policy": "Choose Node2D variants ending _2d for the native 2D world; Node3D variants are retained model authoring resources."
+    }
+  ],
+  "notes": [
+    "Drag a scene from its region/category folder into the authored region.",
+    "Position is the original contact/foot anchor; retain sprite offset and child collision geometry.",
+    "Textures reuse the existing resources and are not duplicated.",
+    "Unique interaction IDs are assigned in the region, not in the reusable asset.",
+    "Ground, NPCs, river simulation, and combined restaurant surfaces are region assets rather than reusable props."
+  ],
+  "asset_count": 151,
+  "region_counts": {
+    "academy-first-floor": 32,
+    "academy-second-floor": 13,
+    "city-walk": 13,
+    "inn": 19,
+    "plaza": 47,
+    "shared": 6,
+    "shop": 21
+  }
+}

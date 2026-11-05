@@ -1,0 +1,94 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/native_2d_river.gd" id="river"]
+
+[ext_resource type="Script" path="res://scripts/native_2d_placement.gd" id="placement"]
+
+[ext_resource type="Shader" path="res://art/resources/native_2d_river.gdshader" id="water_shader"]
+
+[ext_resource type="Texture2D" path="res://art/export/city-river-v1/water-calm.res" id="water"]
+
+[ext_resource type="Texture2D" path="res://art/export/city-river-v1/bridge.res" id="bridge"]
+
+[ext_resource type="Texture2D" path="res://art/export/city-river-v1/bank.res" id="bank"]
+
+[sub_resource type="ShaderMaterial" id="RiverWater"]
+shader = ExtResource("water_shader")
+
+[node name="RiverQuarter" type="Node2D"]
+texture_filter = 1
+script = ExtResource("river")
+metadata/approved_concept = "art-studies/regions/arcana-city-center/source/river-v1/concept-v1.png"
+
+[node name="Water" type="Polygon2D" parent="."]
+z_index = -30
+position = Vector2(0, 2400)
+material = SubResource("RiverWater")
+texture = ExtResource("water")
+polygon = PackedVector2Array(0, 0, 4096, 0, 4096, 320, 0, 320)
+metadata/casts_sun_shadow = false
+
+[node name="WaterBoundary" type="Node2D" parent="."]
+script = ExtResource("placement")
+model_kind = "river-boundary"
+collision_parts = Array[Rect2]([Rect2(32, 592, 521, 102), Rect2(599, 592, 393, 102)])
+casts_sun_shadow = false
+editor_description = "Water and embankments block passage. The clear bridge corridor is logical X553..599; all geometry comes from this saved scene."
+
+[node name="Bridge" type="Node2D" parent="."]
+position = Vector2(2144, 2288)
+metadata/casts_sun_shadow = false
+
+[node name="Deck" type="Sprite2D" parent="Bridge"]
+z_index = -25
+texture = ExtResource("bridge")
+centered = false
+metadata/casts_sun_shadow = false
+
+[node name="NorthBank" type="Node2D" parent="."]
+position = Vector2(0, 2400)
+metadata/casts_sun_shadow = false
+
+[node name="West" type="Sprite2D" parent="NorthBank"]
+z_index = -24
+texture_repeat = 2
+position = Vector2(0, -56)
+texture = ExtResource("bank")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 2144, 56)
+metadata/casts_sun_shadow = false
+
+[node name="East" type="Sprite2D" parent="NorthBank"]
+z_index = -24
+texture_repeat = 2
+position = Vector2(2464, -56)
+texture = ExtResource("bank")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 1632, 56)
+metadata/casts_sun_shadow = false
+
+[node name="SouthBank" type="Node2D" parent="."]
+position = Vector2(0, 2776)
+metadata/casts_sun_shadow = false
+
+[node name="West" type="Sprite2D" parent="SouthBank"]
+z_index = -24
+texture_repeat = 2
+position = Vector2(0, -56)
+texture = ExtResource("bank")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 2144, 56)
+metadata/casts_sun_shadow = false
+
+[node name="East" type="Sprite2D" parent="SouthBank"]
+z_index = -24
+texture_repeat = 2
+position = Vector2(2464, -56)
+texture = ExtResource("bank")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 1632, 56)
+metadata/casts_sun_shadow = false

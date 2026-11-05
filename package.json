@@ -1,15 +1,19 @@
 {
-  "name": "textrpg",
+  "name": "arcana",
   "version": "1.0.0",
-  "description": "Choice-driven survival text RPG MVP.",
+  "description": "Arcana Godot client and authoritative multiplayer server.",
   "main": "src/server.ts",
   "scripts": {
-    "build": "tsc --outDir .server-dist --rootDir src",
+    "build": "npm run build:server && npm run build:web",
     "dev": "tsx watch src/server.ts",
     "start": "npm run build && node .server-dist/server.js",
     "typecheck": "tsc --noEmit",
     "db:init": "tsx src/db/init.ts",
-    "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\""
+    "content:validate": "tsx -e \"import { validateContent } from './src/game/data/registry'; validateContent(); console.log('content ok');\"",
+    "test:arcana": "tsx --test tests/arcana-combat.test.ts",
+    "art:animation:validate": "node scripts/validate-heroine-animation.cjs",
+    "build:server": "tsc --outDir .server-dist --rootDir src",
+    "build:web": "node scripts/build-godot-delivery.mjs"
   },
   "repository": {
     "type": "git",
@@ -26,15 +30,20 @@
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/static": "^9.0.0",
+    "@fastify/websocket": "^11.3.4",
     "fastify": "^5.8.2",
     "honeycomb-grid": "^4.1.5",
     "pg": "^8.20.0",
+    "phaser": "^4.2.1",
+    "sharp": "^0.34.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
     "@types/pg": "^8.18.0",
+    "@types/ws": "^8.18.2",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "wawoff2": "^2.0.1"
   }
 }

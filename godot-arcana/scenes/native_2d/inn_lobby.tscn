@@ -1,0 +1,895 @@
+[gd_scene load_steps=67 format=3 uid="uid://cgch7aqlgvm1v"]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/1b9b0e0a9b459fa8aa60e166c2386e6305e9cb65f646e526e7c0e036a4cad220.res" id="1_afs7g"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/ddb425f4bccfe20f5b261e16b1291c8ecf9f4f37719273495a3567e64d375cf1.res" id="2_6l442"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/58774dc1daadebf135094b8e4923b26ab2df5432d90f9534c8a2828d4793c892.res" id="3_mh0l1"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/285e30dd63288d2639e82ce5a542f680ce9b24376bdcf5df291f337bed8a176c.res" id="4_6joaa"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/8442097edbca5b7ac48ea03c70a409163f0bdbb5987f6cc96f8c7a7daa69925b.res" id="5_7ubsl"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/acb1204276e35f51ae5266641737b85c0cdc06c08bd3d1f9eabff4e0d849d4cf.res" id="6_qstl6"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/bf04b6a78b10def7490c94d562676fafceea7fca8ca485ef36249b0c6200d42f.res" id="7_x7i0a"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/48a382f51d9e683700ab0d52eb231632c5089ada96652674c1a5bd807a8598ee.res" id="8_6m4ck"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/20bfc2def3e153458763309f512201526e01086ad681a3a5068b1b4d2e36cc8d.res" id="9_o56hb"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/31b112d04be213e207cc42679e8c4c3f8263246e6198554dcd69a62b86e1e06c.res" id="10_g6p6c"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/66b8bdc1bfabf38faf6511e52020a4a74f77e9f3e0638ab8ab14a318bc11bcc1.res" id="12_xvk6p"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/71e771f8bda93a06a9bbeae9aee6fe12af7d48a9a583789a10f8fd796ad0ac8b.res" id="13_7e32j"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/68b74121fe8987975dc15c7a7102877caeecf2e373f7c1de14090042fa93871c.res" id="14_efpke"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/6e4e0367e93e72752caeb8f769da03153bb519025ff370eacb6ae6e334139025.res" id="15_6e60e"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/32423f3d42aa741e92df02ea3441252fb6334c5c23b124e87c0d46a8010b517a.res" id="16_fw1cy"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/20985cbea3af02ee02c34b4ae7f7ee57f60048aa83903ee8d69cbe1d4463f7ac.res" id="17_68yfl"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/63ddaee82999ffba984146460311f5d8f985596ffe04846bd34b4c92ac68988d.res" id="18_aq8pl"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/9e7d30e5d5494d7df5b612fe019ec7160865d0e56efc4b7740331e7bde45ce63.res" id="19_xb2va"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/adb6db9ed109e0baf359bb599efb94b5df0b46d426dd7b75f5548b9c19998312.res" id="20_idr25"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/e5f8ba4d8ff073ceb6228a5c75316fdf524e0fee7fba4a8c2d787715fbbb6ba0.res" id="21_jdjmy"]
+[ext_resource type="Script" uid="uid://cqt36a54hli6v" path="res://scripts/native_2d_inn_lighting.gd" id="22_lighting"]
+[ext_resource type="Shader" uid="uid://3jew44rvip6e" path="res://art/resources/native_2d_inn_fire.gdshader" id="23_fire"]
+[ext_resource type="Texture2D" path="res://art/export/effects/pixelfx-inn-fire.png" id="24_campfire"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/rugs/loungerug.tscn" id="prop_library_1"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/rugs/entrancerug.tscn" id="prop_library_2"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/architecture/inn-wall-solid.tscn" id="prop_library_3"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/lighting/inn-fireplace.tscn" id="prop_library_4"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/storage/inn-bookcase.tscn" id="prop_library_5"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/seating/inn-storage-bench.tscn" id="prop_library_6"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/tables/inn-counter.tscn" id="prop_library_7"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/decoration/innquestboard.tscn" id="prop_library_8"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/lighting/inn-lantern.tscn" id="prop_library_9"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/decoration/inn-keys.tscn" id="prop_library_10"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/seating/inn-corner-sofa.tscn" id="prop_library_11"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/tables/inn-tea-table.tscn" id="prop_library_12"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/seating/inn-armchair.tscn" id="prop_library_13"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/lighting/inn-lamp-table.tscn" id="prop_library_14"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/storage/inn-luggage.tscn" id="prop_library_15"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/plants/inn-plant.tscn" id="prop_library_16"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/plants/inn-plant-2.tscn" id="prop_library_17"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/architecture/inn-front-wall.tscn" id="prop_library_18"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/architecture/entrancethreshold.tscn" id="prop_library_19"]
+
+[sub_resource type="ShaderMaterial" id="InnFireMaterial"]
+resource_local_to_scene = true
+shader = ExtResource("23_fire")
+shader_parameter/inn_fire_enabled = true
+shader_parameter/inn_fire_frame = 0
+
+[sub_resource type="Gradient" id="Gradient_inn_light"]
+offsets = PackedFloat32Array(0, 0.25, 0.5, 0.75, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.56, 0.56, 0.56, 1, 0.25, 0.25, 0.25, 1, 0.06, 0.06, 0.06, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="InnLightFalloff"]
+gradient = SubResource("Gradient_inn_light")
+width = 640
+height = 640
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_fireplace9_1"]
+resource_local_to_scene = true
+size = Vector2(216, 112)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_bookcase10_1"]
+resource_local_to_scene = true
+size = Vector2(92, 100)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_storage_bench11_1"]
+resource_local_to_scene = true
+size = Vector2(216, 72)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_counter12_1"]
+resource_local_to_scene = true
+size = Vector2(220, 124)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_corner_sofa18_1"]
+resource_local_to_scene = true
+size = Vector2(336, 56)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_corner_sofa18_2"]
+resource_local_to_scene = true
+size = Vector2(88, 52)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_tea_table19_1"]
+resource_local_to_scene = true
+size = Vector2(168, 84)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_armchair20_1"]
+resource_local_to_scene = true
+size = Vector2(96, 88)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_lamp_table21_1"]
+resource_local_to_scene = true
+size = Vector2(72, 72)
+
+[sub_resource type="RectangleShape2D" id="Collision__Node3D_3922_1"]
+resource_local_to_scene = true
+size = Vector2(72, 72)
+
+[sub_resource type="RectangleShape2D" id="Collision__Node3D_4223_1"]
+resource_local_to_scene = true
+size = Vector2(232, 68)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_luggage24_1"]
+resource_local_to_scene = true
+size = Vector2(104, 76)
+
+[sub_resource type="RectangleShape2D" id="Collision__Node3D_4725_1"]
+resource_local_to_scene = true
+size = Vector2(72, 72)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_plant26_1"]
+resource_local_to_scene = true
+size = Vector2(60, 56)
+
+[sub_resource type="RectangleShape2D" id="Collision__Node3D_5227_1"]
+resource_local_to_scene = true
+size = Vector2(60, 56)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_front_wall33_1"]
+resource_local_to_scene = true
+size = Vector2(480, 48)
+
+[sub_resource type="RectangleShape2D" id="Collision__Node3D_7234_1"]
+resource_local_to_scene = true
+size = Vector2(480, 48)
+
+[sub_resource type="RectangleShape2D" id="Collision_OakFloor0_1"]
+resource_local_to_scene = true
+size = Vector2(1152, 256)
+
+[sub_resource type="RectangleShape2D" id="Collision_OakFloor0_2"]
+resource_local_to_scene = true
+size = Vector2(192, 1312)
+
+[sub_resource type="RectangleShape2D" id="Collision_OakFloor0_3"]
+resource_local_to_scene = true
+size = Vector2(192, 1312)
+
+[sub_resource type="RectangleShape2D" id="Collision_OakFloor0_4"]
+resource_local_to_scene = true
+size = Vector2(1536, 256)
+
+[node name="InnLobby2D" type="Node2D"]
+texture_filter = 1
+script = ExtResource("22_lighting")
+metadata/layout_schema = 1
+
+[node name="OakFloor0" type="Sprite2D" parent="."]
+z_index = -30
+texture = ExtResource("1_afs7g")
+centered = false
+offset = Vector2(192, 256)
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="RoomBounds" type="StaticBody2D" parent="OakFloor0"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="North" type="CollisionShape2D" parent="OakFloor0/RoomBounds"]
+position = Vector2(768, 128)
+shape = SubResource("Collision_OakFloor0_1")
+metadata/layout_collision = true
+
+[node name="West" type="CollisionShape2D" parent="OakFloor0/RoomBounds"]
+position = Vector2(96, 656)
+shape = SubResource("Collision_OakFloor0_2")
+metadata/layout_collision = true
+
+[node name="East" type="CollisionShape2D" parent="OakFloor0/RoomBounds"]
+position = Vector2(1440, 656)
+shape = SubResource("Collision_OakFloor0_3")
+metadata/layout_collision = true
+
+[node name="South" type="CollisionShape2D" parent="OakFloor0/RoomBounds"]
+position = Vector2(768, 1184)
+shape = SubResource("Collision_OakFloor0_4")
+metadata/layout_collision = true
+
+[node name="Rugs" type="Node2D" parent="."]
+
+[node name="LoungeRug1" parent="Rugs" instance=ExtResource("prop_library_1")]
+z_index = -30
+position = Vector2(480, 742.5)
+texture = ExtResource("2_6l442")
+centered = false
+offset = Vector2(-228, -143.5)
+
+[node name="EntranceRug2" parent="Rugs" instance=ExtResource("prop_library_2")]
+z_index = -30
+position = Vector2(768, 992)
+texture = ExtResource("3_mh0l1")
+centered = false
+offset = Vector2(-100, -64)
+
+[node name="ReceptionRug3" parent="Rugs" instance=ExtResource("prop_library_2")]
+z_index = -30
+position = Vector2(1069, 608)
+texture = ExtResource("3_mh0l1")
+centered = false
+offset = Vector2(-100, -64)
+
+[node name="WindowRug4" parent="Rugs" instance=ExtResource("prop_library_2")]
+z_index = -30
+position = Vector2(768, 448)
+texture = ExtResource("3_mh0l1")
+centered = false
+offset = Vector2(-100, -64)
+
+[node name="Walls" type="Node2D" parent="."]
+
+[node name="Inn_wall_solid5" parent="Walls" instance=ExtResource("prop_library_3")]
+position = Vector2(326.4, 256)
+texture = ExtResource("4_6joaa")
+centered = false
+offset = Vector2(-138.4, -212)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_46" parent="Walls" instance=ExtResource("prop_library_3")]
+position = Vector2(595.2, 256)
+texture = ExtResource("4_6joaa")
+centered = false
+offset = Vector2(-138.2, -212)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_77" parent="Walls" instance=ExtResource("prop_library_3")]
+position = Vector2(864, 256)
+texture = ExtResource("4_6joaa")
+centered = false
+offset = Vector2(-138, -212)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_108" parent="Walls" instance=ExtResource("prop_library_3")]
+position = Vector2(1132.8, 256)
+texture = ExtResource("4_6joaa")
+centered = false
+offset = Vector2(-137.8, -212)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="Fireplaces" type="Node2D" parent="."]
+
+[node name="Inn_fireplace9" parent="Fireplaces" instance=ExtResource("prop_library_4")]
+material = SubResource("InnFireMaterial")
+position = Vector2(364.8, 332.8)
+texture = ExtResource("5_7ubsl")
+centered = false
+offset = Vector2(-135.8, -251.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Fireplaces/Inn_fireplace9"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Fireplaces/Inn_fireplace9/Collision"]
+position = Vector2(-0.8, -56.8)
+shape = SubResource("Collision_Inn_fireplace9_1")
+metadata/layout_collision = true
+
+[node name="PixelfxFlame" parent="Fireplaces/Inn_fireplace9"]
+z_index = 1
+position = Vector2(-45.8, -96.8)
+texture = ExtResource("24_campfire")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 92, 54)
+
+[node name="WarmLight" parent="Fireplaces/Inn_fireplace9"]
+position = Vector2(0.2, -67.48)
+color = Color(1, 0.682353, 0.345098, 1)
+energy = 0.726
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+metadata/fireplace = true
+
+[node name="Bookcases" type="Node2D" parent="."]
+
+[node name="Inn_bookcase10" parent="Bookcases" instance=ExtResource("prop_library_5")]
+position = Vector2(601.6, 332.8)
+texture = ExtResource("6_qstl6")
+centered = false
+offset = Vector2(-87.6, -241.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Bookcases/Inn_bookcase10"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Bookcases/Inn_bookcase10/Collision"]
+position = Vector2(0.4, -50.8)
+shape = SubResource("Collision_Inn_bookcase10_1")
+metadata/layout_collision = true
+
+[node name="Benches" type="Node2D" parent="."]
+
+[node name="Inn_storage_bench11" parent="Benches" instance=ExtResource("prop_library_6")]
+position = Vector2(768, 371.2)
+texture = ExtResource("7_x7i0a")
+centered = false
+offset = Vector2(-120, -92.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = "inn_window_bench"
+metadata/layout_entity = {
+"id": "inn_window_bench",
+"kind": "inn_chair",
+"name": "창가 벤치에 앉기",
+"seat_name": "창가 벤치",
+"pos": Vector2(0, 20),
+"seat_room": "arcana_inn",
+"seat_visual": Vector2(0, -12)
+}
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Benches/Inn_storage_bench11"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Benches/Inn_storage_bench11/Collision"]
+position = Vector2(0, -35.2)
+shape = SubResource("Collision_Inn_storage_bench11_1")
+metadata/layout_collision = true
+
+[node name="Counters" type="Node2D" parent="."]
+
+[node name="Inn_counter12" parent="Counters" instance=ExtResource("prop_library_7")]
+position = Vector2(1068.8, 524.8)
+texture = ExtResource("8_6m4ck")
+centered = false
+offset = Vector2(-143.8, -185.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_entity = {
+"id": "innkeeper",
+"kind": "innkeeper",
+"name": "여관주인과 대화하기",
+"pos": Vector2(-0.8, 67.2)
+}
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Counters/Inn_counter12"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Counters/Inn_counter12/Collision"]
+position = Vector2(1.2, -58.8)
+shape = SubResource("Collision_Inn_counter12_1")
+metadata/layout_collision = true
+
+[node name="WarmLight" parent="Counters/Inn_counter12"]
+position = Vector2(-103.48, -144)
+color = Color(1, 0.827451, 0.568627, 1)
+energy = 0.55
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.86
+metadata/fireplace = false
+
+[node name="Characters" type="Node2D" parent="."]
+
+[node name="Innkeeper13" type="Sprite2D" parent="Characters"]
+position = Vector2(1070, 391)
+texture = ExtResource("9_o56hb")
+centered = false
+offset = Vector2(-47.8, -115.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = "innkeeper"
+
+[node name="QuestBoards" type="Node2D" parent="."]
+
+[node name="InnQuestBoard14" parent="QuestBoards" instance=ExtResource("prop_library_8")]
+position = Vector2(896, 259.2)
+texture = ExtResource("10_g6p6c")
+centered = false
+offset = Vector2(-64, -198.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = "inn_quest_board"
+metadata/layout_entity = {
+"id": "inn_quest_board",
+"interaction_radius": 26.0,
+"kind": "quest_board",
+"name": "퀘스트판 살펴보기",
+"pos": Vector2(0, 73.6)
+}
+
+[node name="Lanterns" type="Node2D" parent="."]
+
+[node name="Inn_lantern16" parent="Lanterns" instance=ExtResource("prop_library_9")]
+position = Vector2(1292, 500)
+texture = ExtResource("12_xvk6p")
+centered = false
+offset = Vector2(-22.8, -97.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+
+[node name="WarmLight" parent="Lanterns/Inn_lantern16"]
+position = Vector2(0.2, -62.76)
+color = Color(1, 0.815686, 0.545098, 1)
+energy = 0.374
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.7
+metadata/fireplace = false
+
+[node name="Keys" type="Node2D" parent="."]
+
+[node name="Inn_keys17" parent="Keys" instance=ExtResource("prop_library_10")]
+position = Vector2(1068.8, 259.2)
+texture = ExtResource("13_7e32j")
+centered = false
+offset = Vector2(-53.8, -204.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="Sofas" type="Node2D" parent="."]
+
+[node name="Inn_corner_sofa18" parent="Sofas" instance=ExtResource("prop_library_11")]
+position = Vector2(454.4, 691.2)
+texture = ExtResource("14_efpke")
+centered = false
+offset = Vector2(-180.4, -161.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = "inn_sofa"
+metadata/layout_entity = {
+"id": "inn_sofa",
+"kind": "inn_sofa",
+"name": "소파에서 쉬기",
+"pos": Vector2(-6.4, -35.2),
+"seat_room": "arcana_inn",
+"seat_visual": Vector2(-6.4, -59.2)
+}
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Sofas/Inn_corner_sofa18"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Sofas/Inn_corner_sofa18/Collision"]
+position = Vector2(-2.4, -81.2)
+shape = SubResource("Collision_Inn_corner_sofa18_1")
+metadata/layout_collision = true
+
+[node name="Footprint2" parent="Sofas/Inn_corner_sofa18/Collision"]
+position = Vector2(-126.4, -31.2)
+shape = SubResource("Collision_Inn_corner_sofa18_2")
+metadata/layout_collision = true
+
+[node name="TeaTables" type="Node2D" parent="."]
+
+[node name="Inn_tea_table19" parent="TeaTables" instance=ExtResource("prop_library_12")]
+position = Vector2(486.4, 864)
+texture = ExtResource("15_6e60e")
+centered = false
+offset = Vector2(-90.4, -104)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="TeaTables/Inn_tea_table19"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="TeaTables/Inn_tea_table19/Collision"]
+position = Vector2(1.6, -42)
+shape = SubResource("Collision_Inn_tea_table19_1")
+metadata/layout_collision = true
+
+[node name="Armchairs" type="Node2D" parent="."]
+
+[node name="Inn_armchair20" parent="Armchairs" instance=ExtResource("prop_library_13")]
+position = Vector2(691.2, 812.8)
+texture = ExtResource("16_fw1cy")
+centered = false
+offset = Vector2(-58.2, -110.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = "inn_armchair"
+metadata/layout_entity = {
+"id": "inn_armchair",
+"kind": "inn_chair",
+"name": "안락의자에 앉기",
+"seat_name": "안락의자",
+"pos": Vector2(0, 16),
+"seat_room": "arcana_inn",
+"seat_visual": Vector2(0, -12)
+}
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Armchairs/Inn_armchair20"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Armchairs/Inn_armchair20/Collision"]
+position = Vector2(0.8, -44.8)
+shape = SubResource("Collision_Inn_armchair20_1")
+metadata/layout_collision = true
+
+[node name="LampTables" type="Node2D" parent="."]
+
+[node name="Inn_lamp_table21" parent="LampTables" instance=ExtResource("prop_library_14")]
+position = Vector2(268.8, 800)
+texture = ExtResource("17_68yfl")
+centered = false
+offset = Vector2(-41.8, -120)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="LampTables/Inn_lamp_table21"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="LampTables/Inn_lamp_table21/Collision"]
+position = Vector2(-0.8, -28)
+shape = SubResource("Collision_Inn_lamp_table21_1")
+metadata/layout_collision = true
+
+[node name="WarmLight" parent="LampTables/Inn_lamp_table21"]
+position = Vector2(2.72, -93.96)
+color = Color(1, 0.835294, 0.584314, 1)
+energy = 0.572
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+metadata/fireplace = false
+
+[node name="_Node3D_3922" parent="LampTables" instance=ExtResource("prop_library_14")]
+position = Vector2(665.6, 582.4)
+texture = ExtResource("17_68yfl")
+centered = false
+offset = Vector2(-41.6, -120.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="LampTables/_Node3D_3922"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="LampTables/_Node3D_3922/Collision"]
+position = Vector2(-1.6, -38.4)
+shape = SubResource("Collision__Node3D_3922_1")
+metadata/layout_collision = true
+
+[node name="WarmLight" parent="LampTables/_Node3D_3922"]
+position = Vector2(2.92, -94.36)
+color = Color(1, 0.835294, 0.584314, 1)
+energy = 0.572
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+metadata/fireplace = false
+
+[node name="_Node3D_4223" parent="Benches" instance=ExtResource("prop_library_6")]
+position = Vector2(1120, 940.8)
+texture = ExtResource("7_x7i0a")
+centered = false
+offset = Vector2(-120, -91.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = "inn_entrance_bench"
+metadata/layout_entity = {
+"id": "inn_entrance_bench",
+"kind": "inn_chair",
+"name": "입구 벤치에 앉기",
+"seat_name": "입구 벤치",
+"pos": Vector2(0, 20),
+"seat_room": "arcana_inn",
+"seat_visual": Vector2(0, -12)
+}
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Benches/_Node3D_4223"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Benches/_Node3D_4223/Collision"]
+position = Vector2(0, -30.8)
+shape = SubResource("Collision__Node3D_4223_1")
+metadata/layout_collision = true
+
+[node name="Luggage" type="Node2D" parent="."]
+
+[node name="Inn_luggage24" parent="Luggage" instance=ExtResource("prop_library_15")]
+position = Vector2(1280, 691.2)
+texture = ExtResource("18_aq8pl")
+centered = false
+offset = Vector2(-56, -86.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Luggage/Inn_luggage24"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Luggage/Inn_luggage24/Collision"]
+position = Vector2(0, -45.2)
+shape = SubResource("Collision_Inn_luggage24_1")
+metadata/layout_collision = true
+
+[node name="_Node3D_4725" parent="LampTables" instance=ExtResource("prop_library_14")]
+position = Vector2(1216, 819.2)
+texture = ExtResource("17_68yfl")
+centered = false
+offset = Vector2(-42, -120.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="LampTables/_Node3D_4725"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="LampTables/_Node3D_4725/Collision"]
+position = Vector2(4, -31.2)
+shape = SubResource("Collision__Node3D_4725_1")
+metadata/layout_collision = true
+
+[node name="WarmLight" parent="LampTables/_Node3D_4725"]
+position = Vector2(2.52, -94.16)
+color = Color(1, 0.835294, 0.584314, 1)
+energy = 0.572
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+metadata/fireplace = false
+
+[node name="Plants" type="Node2D" parent="."]
+
+[node name="Inn_plant26" parent="Plants" instance=ExtResource("prop_library_16")]
+position = Vector2(224, 896)
+texture = ExtResource("19_xb2va")
+centered = false
+offset = Vector2(-44, -89)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Plants/Inn_plant26"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Plants/Inn_plant26/Collision"]
+position = Vector2(-10, -36)
+shape = SubResource("Collision_Inn_plant26_1")
+metadata/layout_collision = true
+
+[node name="_Node3D_5227" parent="Plants" instance=ExtResource("prop_library_16")]
+position = Vector2(1280, 1004.8)
+texture = ExtResource("19_xb2va")
+centered = false
+offset = Vector2(-44, -88.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Plants/_Node3D_5227"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Plants/_Node3D_5227/Collision"]
+position = Vector2(-10, -28.8)
+shape = SubResource("Collision__Node3D_5227_1")
+metadata/layout_collision = true
+
+[node name="_Node3D_5528" parent="Plants" instance=ExtResource("prop_library_17")]
+position = Vector2(883.2, 364.8)
+texture = ExtResource("19_xb2va")
+centered = false
+offset = Vector2(-44.2, -88.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_5829" parent="Plants" instance=ExtResource("prop_library_17")]
+position = Vector2(224, 396.8)
+texture = ExtResource("19_xb2va")
+centered = false
+offset = Vector2(-44, -88.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_6130" parent="Lanterns" instance=ExtResource("prop_library_9")]
+position = Vector2(256, 262.4)
+texture = ExtResource("12_xvk6p")
+centered = false
+offset = Vector2(-23, -184.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+
+[node name="WarmLight" parent="Lanterns/_Node3D_6130"]
+position = Vector2(0, -149.36)
+color = Color(1, 0.815686, 0.545098, 1)
+energy = 0.374
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.7
+metadata/fireplace = false
+
+[node name="_Node3D_6431" parent="Lanterns" instance=ExtResource("prop_library_9")]
+position = Vector2(736, 262.4)
+texture = ExtResource("12_xvk6p")
+centered = false
+offset = Vector2(-23, -184.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+
+[node name="WarmLight" parent="Lanterns/_Node3D_6431"]
+position = Vector2(0, -149.36)
+color = Color(1, 0.815686, 0.545098, 1)
+energy = 0.374
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.7
+metadata/fireplace = false
+
+[node name="_Node3D_6732" parent="Lanterns" instance=ExtResource("prop_library_9")]
+position = Vector2(1241.6, 262.4)
+texture = ExtResource("12_xvk6p")
+centered = false
+offset = Vector2(-22.6, -184.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+
+[node name="WarmLight" parent="Lanterns/_Node3D_6732"]
+position = Vector2(0.4, -149.36)
+color = Color(1, 0.815686, 0.545098, 1)
+energy = 0.374
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.7
+metadata/fireplace = false
+
+[node name="Inn_front_wall33" parent="Walls" instance=ExtResource("prop_library_18")]
+position = Vector2(432, 1056)
+texture = ExtResource("20_idr25")
+centered = false
+offset = Vector2(-240, -48)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Walls/Inn_front_wall33"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Walls/Inn_front_wall33/Collision"]
+position = Vector2(0, -8)
+shape = SubResource("Collision_Inn_front_wall33_1")
+metadata/layout_collision = true
+
+[node name="_Node3D_7234" parent="Walls" instance=ExtResource("prop_library_18")]
+position = Vector2(1104, 1056)
+texture = ExtResource("20_idr25")
+centered = false
+offset = Vector2(-240, -48)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+
+[node name="Collision" parent="Walls/_Node3D_7234"]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" parent="Walls/_Node3D_7234/Collision"]
+position = Vector2(0, -8)
+shape = SubResource("Collision__Node3D_7234_1")
+metadata/layout_collision = true
+
+[node name="Thresholds" type="Node2D" parent="."]
+
+[node name="EntranceThreshold35" parent="Thresholds" instance=ExtResource("prop_library_19")]
+z_index = -30
+texture = ExtResource("21_jdjmy")
+centered = false
+offset = Vector2(672, 1024)
+metadata/layout_entity = {
+"id": "exit",
+"kind": "exit",
+"name": "밖으로 나가기",
+"pos": Vector2(768, 992)
+}
+
+[node name="_Node3D_7536" parent="Lanterns" instance=ExtResource("prop_library_9")]
+position = Vector2(659.2, 1056)
+texture = ExtResource("12_xvk6p")
+centered = false
+offset = Vector2(-23.2, -111)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+
+[node name="WarmLight" parent="Lanterns/_Node3D_7536"]
+position = Vector2(-0.2, -75.96)
+color = Color(1, 0.815686, 0.545098, 1)
+energy = 0.374
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.7
+metadata/fireplace = false
+
+[node name="_Node3D_7837" parent="Lanterns" instance=ExtResource("prop_library_9")]
+position = Vector2(876.8, 1056)
+texture = ExtResource("12_xvk6p")
+centered = false
+offset = Vector2(-22.8, -111)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/_edit_group_ = true
+
+[node name="WarmLight" parent="Lanterns/_Node3D_7837"]
+position = Vector2(0.2, -75.96)
+color = Color(1, 0.815686, 0.545098, 1)
+energy = 0.374
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+texture_scale = 0.7
+metadata/fireplace = false
+
+[node name="Arrival" type="Marker2D" parent="."]
+position = Vector2(768, 992)
+metadata/layout_marker = "Arrival"

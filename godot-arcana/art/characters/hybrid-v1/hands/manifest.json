@@ -1,0 +1,305 @@
+{
+  "directions": {
+    "e": {
+      "parts": {
+        "hand_l": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/e/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "e8137ceac8f48de882afc0b75e49eb18aa65791c258af765daccce78ec0771ff",
+          "output_sha256": "20e094b3460f86759176a793768f5c3e44e47c20e7d7a87c84ccf6032f4c6953",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_l__skin"
+          ],
+          "targetPivot": [
+            55.0,
+            85.0
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/e/hand_l.png"
+        },
+        "hand_r": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/e/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "e8137ceac8f48de882afc0b75e49eb18aa65791c258af765daccce78ec0771ff",
+          "output_sha256": "3e3d83522813be0f29329230be5f326111b1c12d50df42a2fa12a289f6d4a991",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_r__skin"
+          ],
+          "targetPivot": [
+            46.0,
+            86.0
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/e/hand_r.png"
+        }
+      }
+    },
+    "n": {
+      "parts": {
+        "hand_l": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/n/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "71268c25d698e49d4a30ef2f42d6129fb500568e2401af2f5a9c88b0be4bc049",
+          "output_sha256": "771c909914641dcb20653db8b95f7ea7d3e297d7eb2ca594991c26cc5d616da7",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_l__skin"
+          ],
+          "targetPivot": [
+            37.388187,
+            81.852915
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/n/hand_l.png"
+        },
+        "hand_r": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/n/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "71268c25d698e49d4a30ef2f42d6129fb500568e2401af2f5a9c88b0be4bc049",
+          "output_sha256": "dc3b0c14eb48dfce7bbbefcb334d098b25c1d72eee839bfa6231677a61c2c942",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_r__skin"
+          ],
+          "targetPivot": [
+            58.611813,
+            81.852915
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/n/hand_r.png"
+        }
+      }
+    },
+    "ne": {
+      "parts": {
+        "hand_l": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/ne/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "3d4ca9a960977e4404c446419b4eda24f3d2aa8e0383791592cecb5bd53f91cc",
+          "output_sha256": "2d5f36c220be34da97c313c84e3ce33a3b36a2bb1af51053ffa05585621021c7",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_l__skin"
+          ],
+          "targetPivot": [
+            39.50612,
+            81.905586
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/ne/hand_l.png"
+        },
+        "hand_r": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/ne/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "3d4ca9a960977e4404c446419b4eda24f3d2aa8e0383791592cecb5bd53f91cc",
+          "output_sha256": "d4db4c5790a25bcee8d637307c689aad2a5ed7a81e9004f13815bd67ac353cdf",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_r__skin"
+          ],
+          "targetPivot": [
+            58.611813,
+            81.852915
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/ne/hand_r.png"
+        }
+      }
+    },
+    "nw": {
+      "parts": {
+        "hand_l": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/nw/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "04073e6055c86fb2959196d241919cbe73d58080ebe142c82c15e453c77baba1",
+          "output_sha256": "9ba50759aa7380116504b43395ab1ff9cdd3eafe68fdce3b2aa05c062e15951f",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_l__skin"
+          ],
+          "targetPivot": [
+            37.388187,
+            81.852915
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/nw/hand_l.png"
+        },
+        "hand_r": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/nw/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "04073e6055c86fb2959196d241919cbe73d58080ebe142c82c15e453c77baba1",
+          "output_sha256": "9dba8824768438a9110421f0796dd73561749e9c470aa4691bd5c737446f1b6b",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_r__skin"
+          ],
+          "targetPivot": [
+            56.49388,
+            81.905586
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/nw/hand_r.png"
+        }
+      }
+    },
+    "s": {
+      "parts": {
+        "hand_l": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/s/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "59e012829bcf0dee5f767eaf6e4e6e9d93906247b017ffb6e738deff6572636e",
+          "output_sha256": "73dede529ad0dddf2392e1ae5a85ed6d04947b36d09fd5895ff542b613080cb6",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_l__skin"
+          ],
+          "targetPivot": [
+            37.388187,
+            81.852915
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/s/hand_l.png"
+        },
+        "hand_r": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/s/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "59e012829bcf0dee5f767eaf6e4e6e9d93906247b017ffb6e738deff6572636e",
+          "output_sha256": "2ec683233df020eeb6a617f16ba2894f1dc498b581ff18a783e446ee73e95390",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_r__skin"
+          ],
+          "targetPivot": [
+            58.611813,
+            81.852915
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/s/hand_r.png"
+        }
+      }
+    },
+    "se": {
+      "parts": {
+        "hand_l": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/se/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "3405df41483c2edce2cdcea589fd0bc8a2f91e0ee8363eb523d1ef5a3bf6bb32",
+          "output_sha256": "a1ed2e9e28f08fdd3acab593ddff66dbd928e2ba11065f108c078fcefad067a0",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_l__skin"
+          ],
+          "targetPivot": [
+            39.50612,
+            81.905586
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/se/hand_l.png"
+        },
+        "hand_r": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/se/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "3405df41483c2edce2cdcea589fd0bc8a2f91e0ee8363eb523d1ef5a3bf6bb32",
+          "output_sha256": "059854dc0d1caa0dcd922c3aa76c13843a720260431b5f9e9e8669e24ab04c73",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_r__skin"
+          ],
+          "targetPivot": [
+            58.611813,
+            81.852915
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/se/hand_r.png"
+        }
+      }
+    },
+    "sw": {
+      "parts": {
+        "hand_l": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/sw/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "e77574d1db7c277268f1bdb797fc585b2aa7296f6bf7fbd9fdfb2f77fa369536",
+          "output_sha256": "badbcfcb1e282cce58494674e5334a623ca0afb0407656e3adaffca0da6d8f50",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_l__skin"
+          ],
+          "targetPivot": [
+            37.388187,
+            81.852915
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/sw/hand_l.png"
+        },
+        "hand_r": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/sw/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "e77574d1db7c277268f1bdb797fc585b2aa7296f6bf7fbd9fdfb2f77fa369536",
+          "output_sha256": "6de7ee1333277e66cdd80c3a522067a9ddc6c3318a9becb54ed7efe4364cdf91",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_r__skin"
+          ],
+          "targetPivot": [
+            56.49388,
+            81.905586
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/sw/hand_r.png"
+        }
+      }
+    },
+    "w": {
+      "parts": {
+        "hand_l": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/w/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "15f8deb60ecedac60045b3ffee6e5e821f8fd9a172098337c3240db56cc6ee6f",
+          "output_sha256": "ca74740d4d47a5fa4fe5c470163af6c20bbd863906fc5cd28707313805c2f028",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_l__skin"
+          ],
+          "targetPivot": [
+            50.12533,
+            81.99407
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/w/hand_l.png"
+        },
+        "hand_r": {
+          "nativeSource": "res://art/characters/hybrid-v1/hands/w/hands.pxpen",
+          "native_reopened_matches": true,
+          "native_source_sha256": "15f8deb60ecedac60045b3ffee6e5e821f8fd9a172098337c3240db56cc6ee6f",
+          "output_sha256": "05eb5eddc3d3e45c4e1f19527b69823ee5904b54693bfd0c5aee599718c1c91a",
+          "png_byte_identical": true,
+          "sourceFrame": 0.0,
+          "sourceLayers": [
+            "hand_r__skin"
+          ],
+          "targetPivot": [
+            44.812238,
+            81.986663
+          ],
+          "texture": "res://art/characters/hybrid-v1/hands/w/hand_r.png"
+        }
+      }
+    }
+  },
+  "schema_version": 1.0,
+  "source_extraction": {
+    "all_png_bytes_unchanged": true,
+    "directions": 8,
+    "native_sources_reopened": true,
+    "pngs": 16,
+    "tool": "res://tools/characters/hybrid_v1/extract_hand_sources.gd"
+  },
+  "source_policy": "Each hands.pxpen contains one frame and only hand_l__skin / hand_r__skin. No old body, face, hair, clothes, footwear or cached frames remain.",
+  "character_id": "hybrid-v1",
+  "user_art_approval": "approved",
+  "appearance_approved_on": "2026-11-05",
+  "runtime_verified": false
+}

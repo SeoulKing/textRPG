@@ -1,0 +1,1352 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "emergencySnack",
+      "name": "비상식량",
+      "description": "바로 먹어 허기를 눌러 주는 작은 식량이다.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 1500,
+      "tags": [
+        "식량",
+        "응급"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 5,
+        "exhaustionRelief": 1
+      }
+    },
+    {
+      "id": "cannedFood",
+      "name": "캔 음식",
+      "description": "차갑지만 든든한 한 끼를 대신할 수 있다.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 2500,
+      "tags": [
+        "식량",
+        "보존식"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 5,
+        "exhaustionRelief": 2
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "hotMeal",
+      "name": "따뜻한 식사",
+      "description": "속이 풀리면서 정신도 조금 안정되는 식사다.",
+      "kind": "food",
+      "rarity": "uncommon",
+      "price": 4500,
+      "tags": [
+        "식량",
+        "회복"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 1,
+        "energy": 6,
+        "exhaustionRelief": 3
+      }
+    },
+    {
+      "id": "waterBottle",
+      "name": "물병",
+      "description": "목을 축이고 정신을 조금 붙잡을 수 있다.",
+      "kind": "drink",
+      "rarity": "common",
+      "price": 1200,
+      "tags": [
+        "음료",
+        "회복"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 1,
+        "energy": 1,
+        "exhaustionRelief": 1
+      }
+    },
+    {
+      "id": "painRelief",
+      "name": "진통제",
+      "description": "통증을 가라앉히는 응급 약품이다.",
+      "kind": "medicine",
+      "rarity": "uncommon",
+      "price": 3800,
+      "tags": [
+        "약품"
+      ],
+      "effects": {
+        "hp": 2,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "scrapBundle",
+      "name": "교환용 잡화",
+      "description": "거래와 흥정에서 값을 만들어 주는 묶음이다.",
+      "kind": "trade",
+      "rarity": "common",
+      "price": 1800,
+      "tags": [
+        "거래"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "rationTicket",
+      "name": "배식권",
+      "description": "급식소에서 무료 한 끼로 바꿀 수 있는 종이다.",
+      "kind": "ticket",
+      "rarity": "common",
+      "price": 0,
+      "tags": [
+        "배식",
+        "교환"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "wood",
+      "name": "목재",
+      "description": "벌목으로 얻은 가공 전 목재다. 나무 판자나 땔감으로 가공할 수 있다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 500,
+      "tags": [
+        "재료",
+        "목재",
+        "가공"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "firewood",
+      "name": "땔감",
+      "description": "불을 피우기 좋게 잘게 쪼갠 목재다. 목재 1개로 4개를 만들며, 요리에 연료로 사용한다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 100,
+      "tags": [
+        "재료",
+        "목재",
+        "연료"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "woodPlank",
+      "name": "나무 판자",
+      "description": "목재를 평평하게 다듬은 판자다. 거처 보강과 시설, 도구 제작에 쓸 수 있다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 700,
+      "tags": [
+        "재료",
+        "목재",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "scrapMetal",
+      "name": "고철 조각",
+      "description": "휘어진 철판과 금속 부품을 모아 묶은 것이다. 간이 제작과 수리에 두루 쓰인다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 900,
+      "tags": [
+        "재료",
+        "금속",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "clothScrap",
+      "name": "천 조각",
+      "description": "찢긴 앞치마와 천막 자락에서 뜯어 낸 질긴 천이다. 틈을 막거나 묶는 데 유용하다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 500,
+      "tags": [
+        "재료",
+        "천",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "cordage",
+      "name": "끈 묶음",
+      "description": "전선 피복, 천 끈, 덩굴을 꼬아 만든 묶음이다. 도구 손잡이를 고정하거나 설비를 묶어 세울 때 꼭 필요하다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 600,
+      "tags": [
+        "재료",
+        "결속",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "crudeAxe",
+      "name": "손도끼",
+      "description": "고철 날과 짧은 목재 손잡이를 천으로 단단히 감아 만든 조잡한 도끼다. 오래 쓰긴 어렵지만 벌목에는 확실히 낫다.",
+      "kind": "tool",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "도구",
+        "벌목",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "maxDurability": 8
+    },
+    {
+      "id": "utilityKnife",
+      "name": "간이 칼",
+      "description": "얇은 금속 조각을 갈아 만든 작은 칼이다. 덤불과 천을 가르는 데는 충분하지만 날이 금방 무뎌진다.",
+      "kind": "tool",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "도구",
+        "수색",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "maxDurability": 10
+    },
+    {
+      "id": "dentedPot",
+      "name": "찌그러진 냄비",
+      "description": "고철을 두드려 모양만 겨우 잡은 냄비다. 물과 재료를 끓일 수 있지만 바닥이 얇아 오래 버티지는 못한다.",
+      "kind": "tool",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "도구",
+        "조리",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "maxDurability": 12
+    },
+    {
+      "id": "rawRice",
+      "name": "쌀",
+      "description": "요리 재료. 급식소나 캠프에서 끓이면 밥이 된다.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 800,
+      "tags": [
+        "재료",
+        "요리"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "vegetables",
+      "name": "채소",
+      "description": "급식소와 숲에서 구할 수 있는 채소다. 끓이거나 구워 요리하는 식재료다.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 600,
+      "tags": [
+        "재료",
+        "요리"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "meat",
+      "name": "고기",
+      "description": "손질해 둔 고기다. 불에 익혀 요리하는 식재료다.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 1500,
+      "tags": [
+        "재료",
+        "요리"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0,
+        "injuryRelief": 0,
+        "infectionRelief": 0
+      }
+    },
+    {
+      "id": "staleBread",
+      "name": "눅눅한 빵",
+      "description": "봉지가 찢겨 습기를 먹은 빵이다. 맛은 없지만 빈속을 잠깐 달래기엔 충분하다.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 900,
+      "tags": [
+        "식량",
+        "간식"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 2,
+        "exhaustionRelief": 1
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "ricePorridge",
+      "name": "묽은 죽",
+      "description": "쌀과 물을 오래 끓여 만든 묽은 죽이다. 양은 많지 않아도 빈속을 부드럽게 채워 준다.",
+      "kind": "food",
+      "rarity": "common",
+      "price": 0,
+      "tags": [
+        "식량",
+        "요리",
+        "회복"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 1,
+        "energy": 4,
+        "exhaustionRelief": 2
+      },
+      "useMinutes": 10
+    },
+    {
+      "id": "manaShard",
+      "name": "마력 결정 파편",
+      "description": "현실과 마법도시를 잇는 포탈에서 떨어져 나온 푸른 결정이다. 상위 마도구의 핵심 재료로 쓰인다.",
+      "kind": "material",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "마법세계",
+        "마력",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "moonHerb",
+      "name": "달빛 약초",
+      "description": "아르카나 광장의 별빛을 머금고 자라는 은빛 약초다. 마나 포션의 기초 재료다.",
+      "kind": "material",
+      "rarity": "common",
+      "price": 0,
+      "tags": [
+        "마법세계",
+        "연금",
+        "약초"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "arcaneDust",
+      "name": "비전 가루",
+      "description": "부유 룬을 해독해 응축한 푸른 가루다. 포션과 마도구의 마력 회로를 만드는 데 쓰인다.",
+      "kind": "material",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "마법세계",
+        "비전",
+        "제작"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "manaPotion",
+      "name": "마나 포션",
+      "description": "달빛 약초와 비전 가루를 녹여 만든 푸른 포션이다. 마법세계에서 소모한 MP를 회복한다.",
+      "kind": "drink",
+      "rarity": "uncommon",
+      "price": 0,
+      "tags": [
+        "마법세계",
+        "포션",
+        "MP 회복"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 4,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "useMinutes": 5
+    },
+    {
+      "id": "runeCompass",
+      "name": "룬 나침반",
+      "description": "마력 결정과 비전 가루로 만든 마도구다. 아직 열리지 않은 마법도시의 길과 마력 흐름을 가리킨다.",
+      "kind": "tool",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "마법세계",
+        "마도구",
+        "탐색"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      },
+      "maxDurability": 12
+    },
+    {
+      "id": "radioBattery",
+      "name": "무전기 배터리",
+      "description": "오래된 구조 무전기에 전원을 넣을 수 있는 묵직한 배터리다.",
+      "kind": "material",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "구조",
+        "무전기",
+        "부품"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "radioAntenna",
+      "name": "무전기 안테나",
+      "description": "짧은 신호라도 더 멀리 밀어 보낼 수 있는 접이식 안테나다.",
+      "kind": "material",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "구조",
+        "무전기",
+        "부품"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    },
+    {
+      "id": "radioTransmitter",
+      "name": "무전기 송신기",
+      "description": "구조대 주파수에 좌표와 생존 신호를 실어 보낼 핵심 송신 모듈이다.",
+      "kind": "material",
+      "rarity": "rare",
+      "price": 0,
+      "tags": [
+        "구조",
+        "무전기",
+        "부품"
+      ],
+      "effects": {
+        "hp": 0,
+        "mind": 0,
+        "energy": 0,
+        "exhaustionRelief": 0
+      }
+    }
+  ],
+  "recipes": [
+    {
+      "id": "craft_wood_plank",
+      "label": "{{item:woodPlank}}",
+      "outcomeHint": "{{item:wood}} 1개를 가공해 {{item:woodPlank}} 1개를 만든다. 가공 시간 10분.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "has_item",
+          "itemId": "wood",
+          "amount": 1
+        }
+      ],
+      "failureNote": "가공하려면 {{item:wood}} 1개가 필요하다.",
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "가공할 {{item:wood|이가}} 없다. 숲에서 목재를 구해 와야 한다."
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "wood",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "log",
+          "message": "당신은 {{item:wood}}의 거친 면을 다듬어 단단한 {{item:woodPlank}} 한 장을 만든다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 10
+        }
+      ],
+      "nextSceneId": "shelter_crafting_menu",
+      "riskHint": "low",
+      "hidden": false,
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_firewood",
+      "label": "{{item:firewood}}",
+      "outcomeHint": "{{item:wood}} 1개를 가공해 {{item:firewood}} 4개를 만든다. 가공 시간 10분.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "has_item",
+          "itemId": "wood",
+          "amount": 1
+        }
+      ],
+      "failureNote": "가공하려면 {{item:wood}} 1개가 필요하다.",
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "가공할 {{item:wood|이가}} 없다. 숲에서 목재를 구해 와야 한다."
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "wood",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "firewood",
+          "amount": 4
+        },
+        {
+          "type": "log",
+          "message": "당신은 {{item:wood|을를}} 잘게 쪼개 불을 피우기 좋은 {{item:firewood}} 네 개를 마련한다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 10
+        }
+      ],
+      "nextSceneId": "shelter_crafting_menu",
+      "riskHint": "low",
+      "hidden": false,
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_shelter_wall_patch",
+      "label": "거처 보강",
+      "outcomeHint": "효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: {{item:woodPlank}} 1 / {{item:clothScrap}} 2 / {{item:cordage}} 1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag_not",
+          "flag": "shelter_wall_patch"
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "set_flag",
+          "flag": "shelter_wall_patch"
+        },
+        {
+          "type": "log",
+          "message": "당신은 판자와 {{item:clothScrap|을를}} 끈으로 묶어 천막 틈을 덧막는다. 이제 밤바람이 스며드는 정도가 한결 덜할 것이다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "벽 틈을 막으려면 {{item:woodPlank}} 한 장과 {{item:clothScrap}} 두 장, 천막을 묶어 둘 끈이 필요하다. 이미 손본 자리라면 더 건드릴 곳도 없다."
+        }
+      ],
+      "failureNote": "이미 보강을 끝냈거나 재료가 부족하다. 효과: 잠자기 후 체력과 정신력 회복량 증가. 필요 재료: {{item:woodPlank}} 1 / {{item:clothScrap}} 2 / {{item:cordage}} 1.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_shelter_brazier",
+      "label": "간이 화로",
+      "outcomeHint": "효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: 고철 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag_not",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "set_flag",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "log",
+          "message": "당신은 모은 고철과 판자를 끈으로 고정해 작은 화로를 만든다. 이제 거처 안에서도 제대로 불을 피울 수 있다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "간이 화로를 만들려면 고철 두 조각, 받침으로 쓸 판자 한 장, 틀을 고정할 끈이 필요하다. 이미 화로를 만들었다면 더 손댈 이유는 없다."
+        }
+      ],
+      "failureNote": "이미 화로가 있거나 재료가 부족하다. 효과: 거처에서 {{item:hotMeal}} 조리 가능. 필요 재료: 고철 2 / {{item:woodPlank}} 1 / {{item:cordage}} 1.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_shelter_rain_bucket",
+      "label": "빗물통",
+      "outcomeHint": "효과: 하루에 한 번 물 한 병 확보 가능. 필요 재료: 고철 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag_not",
+          "flag": "shelter_rain_bucket"
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "set_flag",
+          "flag": "shelter_rain_bucket"
+        },
+        {
+          "type": "log",
+          "message": "당신은 천막 가장자리에 물이 모이도록 빗물통을 손본다. 비만 내리면 하루를 넘길 물을 조금은 모을 수 있을 것이다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "빗물통을 손보려면 고철 한 조각, 물을 거를 {{item:clothScrap}}, 천막 끝에 묶어 둘 끈이 필요하다. 이미 완성해 둔 설비라면 더 만들 필요도 없다."
+        }
+      ],
+      "failureNote": "이미 물받이를 만들어 두었거나 재료가 부족하다. 효과: 하루에 한 번 물 한 병 확보 가능. 필요 재료: 고철 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "cook_at_shelter",
+      "label": "{{item:hotMeal}}",
+      "outcomeHint": "효과: +1 정신력 / +6 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1. 냄비 내구도 -1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "has_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "rawRice",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "vegetables",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "firewood",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "rawRice",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "vegetables",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "firewood",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "hotMeal",
+          "amount": 1
+        },
+        {
+          "type": "damage_tool",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "log",
+          "message": "당신은 냄비에 물과 {{item:rawRice}}, {{item:vegetables|을를}} 넣고 천천히 끓인다. 초라한 재료지만, 한 끼를 버틸 만한 {{item:hotMeal|이가}} 완성된다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 25
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "{{item:hotMeal|을를}} 만들려면 화로와 냄비, {{item:rawRice|과와}} {{item:vegetables}}, 물, 불씨로 쓸 {{item:firewood}} 한 개가 필요하다."
+        }
+      ],
+      "failureNote": "간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:vegetables}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1이 필요하다. 효과: +1 정신력 / +6 기력.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_cooking_menu",
+      "menu": "cooking",
+      "enabled": true
+    },
+    {
+      "id": "cook_rice_porridge",
+      "label": "{{item:ricePorridge}}",
+      "outcomeHint": "효과: +1 정신력 / +4 기력. 전제: 간이 화로, {{item:dentedPot}}. 필요 재료: {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1. 냄비 내구도 -1. 조리 시간 20분.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "flag",
+          "flag": "shelter_brazier"
+        },
+        {
+          "type": "has_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "rawRice",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "firewood",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "rawRice",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "waterBottle",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "firewood",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "ricePorridge",
+          "amount": 1
+        },
+        {
+          "type": "damage_tool",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "log",
+          "message": "당신은 {{item:rawRice|을를}} 물에 오래 풀어 {{item:ricePorridge|을를}} 끓인다. 거친 속을 달래기엔 충분하다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 20
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "{{item:ricePorridge|을를}} 끓이려면 냄비, {{item:rawRice}}, 물, 불씨로 쓸 목재가 필요하다."
+        }
+      ],
+      "failureNote": "{{item:ricePorridge|은는}} 간이 화로와 {{item:dentedPot|이가}} 있어야 하고, {{item:rawRice}} 1 / {{item:waterBottle}} 1 / {{item:firewood}} 1이 필요하다.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_cooking_menu",
+      "menu": "cooking",
+      "enabled": true
+    },
+    {
+      "id": "craft_crude_axe",
+      "label": "{{item:crudeAxe}}",
+      "outcomeHint": "{{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1을 써서 {{item:crudeAxe|을를}} 만든다. 제작 시간 30분. 내구도 8.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "not_has_item",
+          "itemId": "crudeAxe",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "woodPlank",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "crudeAxe",
+          "amount": 1
+        },
+        {
+          "type": "set_tool_durability",
+          "itemId": "crudeAxe",
+          "value": 8
+        },
+        {
+          "type": "log",
+          "message": "당신은 휘어진 고철을 판자 끝에 묶고 천으로 감아 {{item:crudeAxe|을를}} 만들었다. 조잡하지만 숲에서 쓸 만하다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 30
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "{{item:crudeAxe|을를}} 만들려면 날이 될 고철 두 조각, 손잡이로 쓸 판자, 손을 보호할 {{item:clothScrap}}, 날을 묶을 끈이 필요하다."
+        }
+      ],
+      "failureNote": "{{item:crudeAxe|은는}} {{item:scrapMetal}} 2 / {{item:woodPlank}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_utility_knife",
+      "label": "{{item:utilityKnife}}",
+      "outcomeHint": "{{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1을 써서 {{item:utilityKnife|을를}} 만든다. 제작 시간 20분. 내구도 10.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "not_has_item",
+          "itemId": "utilityKnife",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "utilityKnife",
+          "amount": 1
+        },
+        {
+          "type": "set_tool_durability",
+          "itemId": "utilityKnife",
+          "value": 10
+        },
+        {
+          "type": "log",
+          "message": "당신은 고철 끝을 갈아 날을 세우고 천을 감아 {{item:utilityKnife|을를}} 만들었다. 덤불을 헤치기엔 충분하다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 20
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "{{item:utilityKnife|을를}} 만들려면 날을 세울 고철 한 조각, 손잡이를 감을 {{item:clothScrap}}, 그 위를 묶을 끈이 필요하다."
+        }
+      ],
+      "failureNote": "{{item:utilityKnife|은는}} {{item:scrapMetal}} 1 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "craft_dented_pot",
+      "label": "{{item:dentedPot}}",
+      "outcomeHint": "{{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1을 써서 {{item:dentedPot|을를}} 만든다. 제작 시간 20분. 내구도 12.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "not_has_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "add_item",
+          "itemId": "dentedPot",
+          "amount": 1
+        },
+        {
+          "type": "set_tool_durability",
+          "itemId": "dentedPot",
+          "value": 12
+        },
+        {
+          "type": "log",
+          "message": "당신은 고철을 두드려 겨우 냄비 모양을 잡았다. 모양은 볼품없지만 물을 끓일 수는 있다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 20
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "냄비 모양을 내려면 얇게 펼 수 있는 고철 두 조각과 손잡이에 감을 천, 고정할 끈이 필요하다."
+        }
+      ],
+      "failureNote": "{{item:dentedPot|은는}} {{item:scrapMetal}} 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 필요하다. 이미 가지고 있다면 새로 만들 필요는 없다.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    },
+    {
+      "id": "assemble_rescue_radio",
+      "label": "무전기",
+      "outcomeHint": "효과: 10일차 구조 신호 준비. 필요 부품: {{item:radioBattery}} / {{item:radioAntenna}} / {{item:radioTransmitter}} / 고철 2 / {{item:clothScrap}} 1.",
+      "showOutcomeHint": true,
+      "presentationMode": "always",
+      "conditions": [
+        {
+          "type": "quest_state",
+          "questId": "prepare_rescue_signal",
+          "status": "active"
+        },
+        {
+          "type": "flag_not",
+          "flag": "rescue_signal_ready"
+        },
+        {
+          "type": "has_item",
+          "itemId": "radioBattery",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "radioAntenna",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "radioTransmitter",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "has_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "has_item",
+          "itemId": "cordage",
+          "amount": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "remove_item",
+          "itemId": "scrapMetal",
+          "amount": 2
+        },
+        {
+          "type": "remove_item",
+          "itemId": "clothScrap",
+          "amount": 1
+        },
+        {
+          "type": "remove_item",
+          "itemId": "cordage",
+          "amount": 1
+        },
+        {
+          "type": "set_flag",
+          "flag": "rescue_signal_ready"
+        },
+        {
+          "type": "log",
+          "message": "당신은 배터리와 송신기, 안테나를 고철 프레임에 고정한다. 지직거리는 잡음 끝에 구조 주파수가 희미하게 열린다."
+        },
+        {
+          "type": "advance_time",
+          "minutes": 15
+        }
+      ],
+      "failureEffects": [
+        {
+          "type": "log",
+          "message": "무전기를 조립하려면 아직 핵심 부품과 고정 재료가 더 필요하다. 구조대가 올 때까지 신호를 보낼 준비를 마쳐야 한다."
+        }
+      ],
+      "failureNote": "{{item:radioBattery}}, 안테나, 송신기와 고철 2 / {{item:clothScrap}} 1 / {{item:cordage}} 1이 모두 필요하다. 이미 신호 장비를 완성했다면 더 손댈 필요는 없다.",
+      "riskHint": "low",
+      "hidden": false,
+      "nextSceneId": "shelter_crafting_menu",
+      "menu": "crafting",
+      "enabled": true
+    }
+  ],
+  "stories": []
+}

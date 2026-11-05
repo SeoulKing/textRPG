@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/f95f195b0f17cf7c8f0118f4dbec202c8f4f5b0f7ecf4b2fd8f7744f95135d79.res" id="10_hjte5"]
+[node name="Academy_floor_lamp53" type="Sprite2D"]
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+texture_filter = 1
+

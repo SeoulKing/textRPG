@@ -1,0 +1,14 @@
+{
+  "cell": 64,
+  "height": 192,
+  "bodyHeight": 176,
+  "core": 12,
+  "textureOrigin": [
+    0,
+    96
+  ],
+  "merlonHeight": 16,
+  "merlonDepth": 4,
+  "merlonPeriod": 32,
+  "merlonWidth": 14
+}

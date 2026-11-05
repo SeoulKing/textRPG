@@ -1,0 +1,171 @@
+{
+  "directions": {
+    "e": {
+      "native_bones": 2,
+      "native_texture_size": [
+        203,
+        500
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/legs/e.tscn",
+      "scene_sha256": "59b438295bd1fa2d63ed4c79b1ea911d40b72b34ee5d884ca57e3c7acf79f4fe",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/legs/e/leg.png",
+      "texture_count": 1,
+      "texture_rect": [
+        17.9300003051758,
+        4.0,
+        12.1799993515015,
+        40.0
+      ],
+      "triangles": 350,
+      "vertices": 208
+    },
+    "n": {
+      "native_bones": 2,
+      "native_texture_size": [
+        219,
+        500
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/legs/n.tscn",
+      "scene_sha256": "7190264cc0e64e60592e78e12f728033548b0e0eab71cd182435802ae170705b",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/legs/n/leg.png",
+      "texture_count": 1,
+      "texture_rect": [
+        17.3733329772949,
+        4.0,
+        13.1399993896484,
+        40.0
+      ],
+      "triangles": 350,
+      "vertices": 208
+    },
+    "ne": {
+      "native_bones": 2,
+      "native_texture_size": [
+        222,
+        500
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/legs/ne.tscn",
+      "scene_sha256": "559ca8e2d7ad8350e24c9c148074e8263f00934a3921550343ddf3b513d77444",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/legs/ne/leg.png",
+      "texture_count": 1,
+      "texture_rect": [
+        17.4699993133545,
+        4.0,
+        13.3199996948242,
+        40.0
+      ],
+      "triangles": 350,
+      "vertices": 208
+    },
+    "nw": {
+      "native_bones": 2,
+      "native_texture_size": [
+        221,
+        500
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/legs/nw.tscn",
+      "scene_sha256": "5f9503a8a26c4c4d94bec2aed95d0978a31b995c3a0912e650c6a0e63ad6c3ef",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/legs/nw/leg.png",
+      "texture_count": 1,
+      "texture_rect": [
+        17.2666664123535,
+        4.0,
+        13.2599992752075,
+        40.0
+      ],
+      "triangles": 350,
+      "vertices": 208
+    },
+    "s": {
+      "native_bones": 2,
+      "native_texture_size": [
+        218,
+        500
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/legs/s.tscn",
+      "scene_sha256": "1702d70e80fde0f52e97676665a7dcb16a89076117d6d3eb6da9bfd69a456cbc",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/legs/s/leg.png",
+      "texture_count": 1,
+      "texture_rect": [
+        17.3633327484131,
+        4.0,
+        13.0799999237061,
+        40.0
+      ],
+      "triangles": 350,
+      "vertices": 208
+    },
+    "se": {
+      "native_bones": 2,
+      "native_texture_size": [
+        221,
+        500
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/legs/se.tscn",
+      "scene_sha256": "327ea6b275b7f7404d1043e5016e0b2ba3b780c56c12fe0a06d97829e8ffe122",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/legs/se/leg.png",
+      "texture_count": 1,
+      "texture_rect": [
+        17.8333339691162,
+        4.0,
+        13.2599992752075,
+        40.0
+      ],
+      "triangles": 350,
+      "vertices": 208
+    },
+    "sw": {
+      "native_bones": 2,
+      "native_texture_size": [
+        224,
+        500
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/legs/sw.tscn",
+      "scene_sha256": "d4753bad73108ad1fde75f4615648040327c9dee51bcb0cb984d176fd31ba8cc",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/legs/sw/leg.png",
+      "texture_count": 1,
+      "texture_rect": [
+        16.0166664123535,
+        4.0,
+        13.4399995803833,
+        40.0
+      ],
+      "triangles": 350,
+      "vertices": 208
+    },
+    "w": {
+      "native_bones": 2,
+      "native_texture_size": [
+        202,
+        500
+      ],
+      "scene": "res://art/characters/hybrid-v1/rigs/legs/w.tscn",
+      "scene_sha256": "6bf5d8226f2bc965fa7c33739e78d359ff1ae7f0caee9761f3f9f5d310a73259",
+      "status": "created",
+      "texture": "res://art/characters/hybrid-v1/legs/w/leg.png",
+      "texture_count": 1,
+      "texture_rect": [
+        17.8600006103516,
+        4.0,
+        12.1199998855591,
+        40.0
+      ],
+      "triangles": 350,
+      "vertices": 208
+    }
+  },
+  "existing_scenes_preserved": true,
+  "scene_directory": "res://scenes/leg-polygon",
+  "schema_version": 1,
+  "source_manifest": "res://art/characters/hybrid-v1/legs/manifest.json",
+  "source_manifest_sha256": "4d9626855c3944643e355fe2b56500d4a7cab57eabcb6809f6577610ced58984",
+  "texture_policy": "Original full-resolution leg crop; no thigh/shin split or palette conversion",
+  "registration_rebased_on": "2026-11-05; artwork, UV coordinates and bone weights retained"
+}

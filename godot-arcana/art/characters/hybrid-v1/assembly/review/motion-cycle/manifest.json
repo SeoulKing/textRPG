@@ -1,0 +1,359 @@
+{
+  "comparison": "same sources, camera and phase; motion_polish false then true",
+  "crop": [
+    104,
+    8,
+    112,
+    164
+  ],
+  "direction": "e",
+  "files": [
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_00.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_00.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_01.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_01.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_02.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_02.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_03.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_03.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_04.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_04.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_05.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_05.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_06.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_06.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_07.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_07.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_08.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_08.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_09.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_09.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_10.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_10.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_11.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_11.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_12.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_12.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_13.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_13.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_14.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_14.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/before/e_15.png",
+    "res://art/characters/hybrid-v1/assembly/review/motion-cycle/after/e_15.png"
+  ],
+  "frames_per_cycle": 16,
+  "metrics_are_production_pose_captures": true,
+  "native_viewport": [
+    320,
+    180
+  ],
+  "preview_playback_speed": 0.5,
+  "samples": [
+    {
+      "after": {
+        "phase": 0.0,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 2.19602395216725,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.0,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.0
+    },
+    {
+      "after": {
+        "phase": 0.0625,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 2.299633432767,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.0625,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.0625
+    },
+    {
+      "after": {
+        "phase": 0.125,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 2.08923608585513,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.125,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.125
+    },
+    {
+      "after": {
+        "phase": 0.1875,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.57096419325615,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.1875,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.1875
+    },
+    {
+      "after": {
+        "phase": 0.25,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.00725232676496,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.25,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.25
+    },
+    {
+      "after": {
+        "phase": 0.3125,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 0.376365972771566,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.3125,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.3125
+    },
+    {
+      "after": {
+        "phase": 0.375,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": -0.197349254623759,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.375,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.375
+    },
+    {
+      "after": {
+        "phase": 0.4375,
+        "support_clearance_after_px": 0.995722430686905,
+        "support_clearance_before_px": 1.03479936266314,
+        "target_flight_px": 0.995722430686905,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.4375,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.4375
+    },
+    {
+      "after": {
+        "phase": 0.5,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.96537459591559,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.5,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.5
+    },
+    {
+      "after": {
+        "phase": 0.5625,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 2.03601246061419,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.5625,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.5625
+    },
+    {
+      "after": {
+        "phase": 0.625,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.81413072185927,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.625,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.625
+    },
+    {
+      "after": {
+        "phase": 0.6875,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.3283474514746,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.6875,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.6875
+    },
+    {
+      "after": {
+        "phase": 0.75,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 0.811983027221345,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.75,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.75
+    },
+    {
+      "after": {
+        "phase": 0.8125,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 0.245001217208085,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.8125,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.8125
+    },
+    {
+      "after": {
+        "phase": 0.875,
+        "support_clearance_after_px": -2.77555756156289E-17,
+        "support_clearance_before_px": -0.239746260364996,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.875,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.875
+    },
+    {
+      "after": {
+        "phase": 0.9375,
+        "support_clearance_after_px": 0.995722430686905,
+        "support_clearance_before_px": 1.03807452977077,
+        "target_flight_px": 0.995722430686905,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.9375,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.9375
+    }
+  ],
+  "source_cycle_seconds": 0.64,
+  "before_metrics_note": "Disabled tuning does not measure support clearance. Stale builder-state metrics were removed; capture phases are retained."
+}

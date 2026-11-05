@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/c4cb53be7bfb983603b1efb1ae6d7d20f0089d776ac9690254cf94311bffd638.res" id="10_sr1iy"]
+[node name="Academy_reading_table145" type="Sprite2D"]
+texture = ExtResource("10_sr1iy")
+centered = false
+offset = Vector2(-92.2, -116.6)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-95.2, -61.6, 192, 88)]
+texture_filter = 1
+

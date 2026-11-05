@@ -1,0 +1,390 @@
+{
+  "version": 1,
+  "status": "integrated-web-exported-offline-gpu-reviewed-awaiting-user-review",
+  "view": "front, yaw 0, orthographic",
+  "concept": "../arcana-magic-school-concept-v1.png",
+  "source": "academy-source.png",
+  "sourceSize": [
+    1366,
+    1152
+  ],
+  "sourceCrop": {
+    "left": 19,
+    "top": 4,
+    "width": 1335,
+    "height": 1107
+  },
+  "size": [
+    1280,
+    1152
+  ],
+  "bounds": {
+    "left": 35,
+    "top": 80,
+    "width": 1216,
+    "height": 1008
+  },
+  "foot": [
+    640,
+    1088
+  ],
+  "pixelsPerUnit": 64,
+  "characterSourceHeight": 110,
+  "sourceEntranceAxisX": 683,
+  "placement": [
+    12,
+    0,
+    9.5
+  ],
+  "collision": [
+    -8.5,
+    -4,
+    17,
+    4
+  ],
+  "alpha": [
+    0,
+    255
+  ],
+  "paletteColors": 63,
+  "palette": [
+    [
+      37,
+      60,
+      64
+    ],
+    [
+      40,
+      52,
+      82
+    ],
+    [
+      70,
+      80,
+      100
+    ],
+    [
+      107,
+      97,
+      124
+    ],
+    [
+      145,
+      139,
+      158
+    ],
+    [
+      184,
+      181,
+      191
+    ],
+    [
+      223,
+      223,
+      222
+    ],
+    [
+      248,
+      238,
+      220
+    ],
+    [
+      149,
+      138,
+      145
+    ],
+    [
+      182,
+      170,
+      166
+    ],
+    [
+      205,
+      190,
+      176
+    ],
+    [
+      224,
+      209,
+      185
+    ],
+    [
+      238,
+      224,
+      200
+    ],
+    [
+      246,
+      233,
+      206
+    ],
+    [
+      252,
+      244,
+      223
+    ],
+    [
+      87,
+      71,
+      53
+    ],
+    [
+      114,
+      84,
+      60
+    ],
+    [
+      139,
+      104,
+      70
+    ],
+    [
+      165,
+      126,
+      80
+    ],
+    [
+      188,
+      150,
+      95
+    ],
+    [
+      211,
+      177,
+      118
+    ],
+    [
+      227,
+      200,
+      141
+    ],
+    [
+      242,
+      207,
+      121
+    ],
+    [
+      32,
+      41,
+      80
+    ],
+    [
+      39,
+      61,
+      120
+    ],
+    [
+      48,
+      79,
+      156
+    ],
+    [
+      61,
+      98,
+      189
+    ],
+    [
+      80,
+      119,
+      209
+    ],
+    [
+      108,
+      146,
+      223
+    ],
+    [
+      146,
+      179,
+      235
+    ],
+    [
+      193,
+      214,
+      242
+    ],
+    [
+      37,
+      63,
+      54
+    ],
+    [
+      46,
+      87,
+      69
+    ],
+    [
+      62,
+      118,
+      80
+    ],
+    [
+      85,
+      146,
+      93
+    ],
+    [
+      120,
+      173,
+      114
+    ],
+    [
+      166,
+      200,
+      140
+    ],
+    [
+      33,
+      68,
+      77
+    ],
+    [
+      50,
+      110,
+      118
+    ],
+    [
+      37,
+      92,
+      109
+    ],
+    [
+      50,
+      125,
+      138
+    ],
+    [
+      70,
+      161,
+      171
+    ],
+    [
+      106,
+      189,
+      193
+    ],
+    [
+      156,
+      219,
+      211
+    ],
+    [
+      214,
+      238,
+      225
+    ],
+    [
+      87,
+      157,
+      160
+    ],
+    [
+      154,
+      202,
+      192
+    ],
+    [
+      91,
+      66,
+      64
+    ],
+    [
+      129,
+      81,
+      75
+    ],
+    [
+      164,
+      106,
+      87
+    ],
+    [
+      199,
+      138,
+      104
+    ],
+    [
+      227,
+      173,
+      130
+    ],
+    [
+      244,
+      205,
+      155
+    ],
+    [
+      213,
+      164,
+      79
+    ],
+    [
+      249,
+      231,
+      166
+    ],
+    [
+      62,
+      49,
+      94
+    ],
+    [
+      89,
+      66,
+      133
+    ],
+    [
+      118,
+      87,
+      166
+    ],
+    [
+      150,
+      117,
+      201
+    ],
+    [
+      185,
+      155,
+      223
+    ],
+    [
+      217,
+      193,
+      234
+    ],
+    [
+      67,
+      133,
+      139
+    ],
+    [
+      190,
+      221,
+      208
+    ]
+  ],
+  "runtime": "godot-arcana/art/export/reference/academy-2d.png",
+  "lighting": "upper left, baked daylight; warm windows",
+  "prompt": "academy-prompt.txt",
+  "runtimeEvidence": "../../../godot-arcana/art/reference/magic-school/inspection.json",
+  "existingNodesPreserved": 131,
+  "collisionAndPath": {
+    "approach_path_cells": 28,
+    "behind_walkable": true,
+    "body_solid": true,
+    "browser_tested": false,
+    "camera_default_changed": false,
+    "character_height": 110,
+    "front_walkable": true,
+    "new_academy_count": 1,
+    "original_academy_count": 1,
+    "placement": [
+      12,
+      0,
+      9.5
+    ],
+    "source": "main.tscn / Plaza"
+  },
+  "sha256": "7b0155f027336a800e1939f71ffcbf514908ad1bd62b909178654cb05517857a"
+}

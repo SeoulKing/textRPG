@@ -1,0 +1,23 @@
+{
+  "review_type": "static_editor_gpu_art_review",
+  "reviewed_at": "2026-11-04",
+  "inspected": ["focus-neutral-run025.png", "../preview-light.png"],
+  "observations": [
+    "The upper body remains one continuous Polygon2D texture while native Bone2D weights move the sleeves.",
+    "Leather, metal and collar protection keeps the belt and buttons attached to the torso.",
+    "Editor Bone2D gizmos were excluded from SubViewport artwork; neutral source-region comparison is identical for all eight directions."
+  ],
+  "neutral_comparison": {
+    "directions": 8,
+    "source_region_xywh": [0,16,48,30],
+    "gpu_origin_offset": [24,44],
+    "differing_pixels_per_direction": 0,
+    "compared_pixels_per_direction": 1440
+  },
+  "remaining_art_work": [
+    "Sharp sleeve bends can produce pointed or crowded silhouette pixels and require native weight/UV correction.",
+    "The pelvis is a separate authored asset; final waist occlusion and lower-body assembly remain separate from this upper-body workshop."
+  ],
+  "runtime_verified": false,
+  "user_art_approval": "pending"
+}

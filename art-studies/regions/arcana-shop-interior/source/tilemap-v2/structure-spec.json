@@ -1,0 +1,31 @@
+{
+  "status": "approval geometry guide, not runtime art",
+  "pixelsPerUnit": 64,
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "gridStep": 0.5,
+  "wall": {
+    "width": 2,
+    "height": 3.5,
+    "thickness": 0.25
+  },
+  "lowWall": {
+    "height": 0.5,
+    "thickness": 0.25
+  },
+  "floor": {
+    "width": 2,
+    "depth": 2
+  },
+  "assembly": {
+    "width": 10,
+    "depth": 5
+  },
+  "projection": "u=round(X*64), v=round((Z-Y)*64/sqrt(2))",
+  "notes": [
+    "Structure silhouette is code-authored; style reference must not replace geometric coordinates.",
+    "This compact assembly demonstrates joints; final shop retains its existing 14x9 floor."
+  ]
+}

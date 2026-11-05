@@ -1,0 +1,11 @@
+Create a PRODUCTION PIXEL ART ENVIRONMENT SPRITE ATLAS for the exact gentle illustrated fantasy RPG look of the lower-right gameplay inset in the attached reference. A transparent PNG, 3 columns x 3 rows, generous transparent gutters, 9 fully separate objects. No text, no labels, no grid, no character, no ground tile or large floor underneath. All objects at the same elevated 3/4 RPG camera, lit upper left. Silhouette outlines soft dark local colors, weaker than the heroine outlines. Beautiful hand-placed pixel clusters, cream warm sunlight, olive/sage greens with selective yellow-green highlights, muted lavender flowers and warm wood. No photorealism, blur, black comic lines or noisy dithering.
+Row1 left: rectangular rustic wooden planter crate brimming with broad green leaves, like the planter at upper right of the reference inset. Front and right faces visible, slatted wood, small gray-brown shaded underside, no cast shadow painted beyond object.
+Row1 center: round terracotta flowerpot full of lavender and ivory flowers and green leaves.
+Row1 right: dense rounded sage-green shrub, irregular leaf clusters and a few tiny pale blossoms.
+Row2 left: low border flower clump, lavender and cream flowers with leaves, no pot, isolated alpha silhouette.
+Row2 center: low grass-and-fern border clump, irregular natural edge, a few bright tips, no earth tile.
+Row2 right: rustic wooden storage crate with closed lid, warm wood slats and subtle grain, front and right side visible.
+Row3 left: lush mature oak tree with full irregular layered canopy and a readable warm brown trunk; crown broad, no fruit, silhouette natural rather than spheres.
+Row3 center: graceful birch tree, white and warm gray trunk, light sage green airy crown, delicate branching.
+Row3 right: full layered spruce tree, blue-green needles, natural stepped branching, warm small trunk.
+Trees can be larger than props, with distinct trunks and crowns. All nine objects separated by alpha gutters, no object clipped. Target atlas about 1536x2048. Small props designed at 64x80 logical pixels, trees at around 192x224 logical pixels, artwork can be integer enlarged. The sheet is asset extraction source, not a composed scene. Preserve genuinely transparent space between and around the objects.

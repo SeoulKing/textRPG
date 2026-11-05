@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/b46b0c891a40b5a68c54559c93930a1245df9144f9c61c66e5c2cb69a8595bba.res" id="4_q1ehs"]
+[node name="Academy_desk138" type="Sprite2D"]
+texture = ExtResource("4_q1ehs")
+centered = false
+offset = Vector2(-80, -156)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-88, -76, 176, 76)]
+texture_filter = 1
+

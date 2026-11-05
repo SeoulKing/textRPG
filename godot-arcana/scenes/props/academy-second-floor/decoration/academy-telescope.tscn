@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/ba024c0c820a2bd9c80edef067eae76e26f61b0b8abd6a6659b80fc2c2e2ed32.res" id="5_p6moh"]
+[node name="Academy_telescope139" type="Sprite2D"]
+texture = ExtResource("5_p6moh")
+centered = false
+offset = Vector2(-88, -221)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-88, -96, 184, 96)]
+texture_filter = 1
+

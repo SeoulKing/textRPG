@@ -1,0 +1,207 @@
+{
+  "cell": [
+    64,
+    64
+  ],
+  "tileImage": [
+    64,
+    256
+  ],
+  "wallHeight": 192,
+  "textureOrigin": [
+    0,
+    96
+  ],
+  "groundCore": [
+    16,
+    16,
+    32,
+    32
+  ],
+  "sideMask": {
+    "E": 1,
+    "S": 2,
+    "W": 4,
+    "N": 8
+  },
+  "atlas": [
+    {
+      "mask": 0,
+      "coords": [
+        0,
+        0
+      ],
+      "joins": []
+    },
+    {
+      "mask": 1,
+      "coords": [
+        1,
+        0
+      ],
+      "joins": [
+        "E"
+      ]
+    },
+    {
+      "mask": 2,
+      "coords": [
+        2,
+        0
+      ],
+      "joins": [
+        "S"
+      ]
+    },
+    {
+      "mask": 3,
+      "coords": [
+        3,
+        0
+      ],
+      "joins": [
+        "E",
+        "S"
+      ]
+    },
+    {
+      "mask": 4,
+      "coords": [
+        0,
+        1
+      ],
+      "joins": [
+        "W"
+      ]
+    },
+    {
+      "mask": 5,
+      "coords": [
+        1,
+        1
+      ],
+      "joins": [
+        "E",
+        "W"
+      ]
+    },
+    {
+      "mask": 6,
+      "coords": [
+        2,
+        1
+      ],
+      "joins": [
+        "S",
+        "W"
+      ]
+    },
+    {
+      "mask": 7,
+      "coords": [
+        3,
+        1
+      ],
+      "joins": [
+        "E",
+        "S",
+        "W"
+      ]
+    },
+    {
+      "mask": 8,
+      "coords": [
+        0,
+        2
+      ],
+      "joins": [
+        "N"
+      ]
+    },
+    {
+      "mask": 9,
+      "coords": [
+        1,
+        2
+      ],
+      "joins": [
+        "E",
+        "N"
+      ]
+    },
+    {
+      "mask": 10,
+      "coords": [
+        2,
+        2
+      ],
+      "joins": [
+        "S",
+        "N"
+      ]
+    },
+    {
+      "mask": 11,
+      "coords": [
+        3,
+        2
+      ],
+      "joins": [
+        "E",
+        "S",
+        "N"
+      ]
+    },
+    {
+      "mask": 12,
+      "coords": [
+        0,
+        3
+      ],
+      "joins": [
+        "W",
+        "N"
+      ]
+    },
+    {
+      "mask": 13,
+      "coords": [
+        1,
+        3
+      ],
+      "joins": [
+        "E",
+        "W",
+        "N"
+      ]
+    },
+    {
+      "mask": 14,
+      "coords": [
+        2,
+        3
+      ],
+      "joins": [
+        "S",
+        "W",
+        "N"
+      ]
+    },
+    {
+      "mask": 15,
+      "coords": [
+        3,
+        3
+      ],
+      "joins": [
+        "E",
+        "S",
+        "W",
+        "N"
+      ]
+    }
+  ],
+  "source": "scripts/build-native-wall-tiles.cjs",
+  "materialSource": "stone-relief-source-v2.png",
+  "purpose": "Native 2D functional wall kit: repeat, corner, end, T and cross"
+}

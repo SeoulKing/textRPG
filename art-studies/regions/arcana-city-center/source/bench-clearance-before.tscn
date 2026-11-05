@@ -1,0 +1,1070 @@
+[gd_scene load_steps=5 format=3 uid="uid://ci8ykev02d60i"]
+
+[ext_resource type="Script" uid="uid://cnckeoj32oil2" path="res://scripts/plaza_layout.gd" id="1"]
+[ext_resource type="Script" uid="uid://cyo2xmrq04et0" path="res://scripts/arcana_placement.gd" id="2"]
+
+[ext_resource type="PackedScene" path="res://scenes/monsters/slime.tscn" id="3_slime"]
+
+[ext_resource type="Script" path="res://scripts/wall_tilemap.gd" id="4_walls"]
+
+[node name="Plaza" type="Node3D"]
+script = ExtResource("1")
+plaza_radii = Vector2(11, 10)
+paved_areas = Array[Rect2]([Rect2(3, 11, 66, 35), Rect2(12, 9, 20, 5), Rect2(25, 17, 20, 23), Rect2(32, 13, 7, 13), Rect2(3, 21, 25, 6), Rect2(3, 37, 28, 5), Rect2(40, 26, 29, 10), Rect2(3, 43, 66, 3), Rect2(33, 33, 6, 22), Rect2(9.25, 8, 2.5, 36), Rect2(3, 11, 29, 3)])
+garden_areas = Array[Rect2]([Rect2(42, 29, 8, 4), Rect2(59, 29, 8, 4), Rect2(26, 22, 3, 2), Rect2(25.5, 33.5, 4, 2.5), Rect2(42, 34.5, 3, 2)])
+
+[node name="상점_01" type="Node3D" parent="."]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5,18, 0, 23)
+script = ExtResource("2")
+model_kind = "shop"
+gameplay_id = "arcana_shop"
+display_name = "아르카나 상점"
+interaction_kind = "building"
+collision_footprint = Rect2(-3.65, -2.2, 7.3, 2.2)
+
+[node name="Interaction" type="Marker3D" parent="상점_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
+gizmo_extents = 0.4
+
+[node name="여관_01" type="Node3D" parent="."]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5,18, 0, 37)
+script = ExtResource("2")
+model_kind = "inn"
+gameplay_id = "arcana_inn"
+display_name = "푸른 지붕 여관"
+interaction_kind = "building"
+collision_footprint = Rect2(-3.65, -2.2, 7.3, 2.2)
+
+[node name="Interaction" type="Marker3D" parent="여관_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
+gizmo_extents = 0.4
+
+[node name="식당_01" type="Node3D" parent="."]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5,35.5, 0, 14.5)
+script = ExtResource("2")
+model_kind = "restaurant"
+gameplay_id = "arcana_restaurant"
+display_name = "광장 식당"
+interaction_kind = "building"
+collision_footprint = Rect2(-3.65, -2.2, 7.3, 2.2)
+
+[node name="Interaction" type="Marker3D" parent="식당_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5625)
+gizmo_extents = 0.4
+
+[node name="분수_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, 28.925)
+script = ExtResource("2")
+model_kind = "fountain"
+metadata/fountain_origin_version = 2
+
+[node name="벤치_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1,28, 0, 31.5)
+script = ExtResource("2")
+model_kind = "bench"
+gameplay_id = "park_bench_01"
+display_name = "공원 벤치"
+interaction_kind = "bench"
+collision_footprint = Rect2(-0.8125, -0.3125, 1.625, 0.3125)
+
+[node name="벤치_02" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1,43, 0, 33)
+script = ExtResource("2")
+model_kind = "bench"
+gameplay_id = "park_bench_02"
+display_name = "공원 벤치"
+interaction_kind = "bench"
+collision_footprint = Rect2(-0.8125, -0.3125, 1.625, 0.3125)
+
+[node name="상자_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 29)
+script = ExtResource("2")
+collision_footprint = Rect2(-0.5, -0.5, 1, 0.5)
+
+[node name="자작나무_03" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51, 0, 55)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="자작나무_04" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0, 81)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_03" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, 61)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_05" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 0, 65)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_04" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 78)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_04" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, 60)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_06" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 61, 0, 79)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="자작나무_07" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 74)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_05" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43, 0, 48)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="참나무_06" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 58)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_08" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 82)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_07" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 61)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_06" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 53)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_08" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 86)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_09" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0, 46)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_11" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 69)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="참나무_12" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 0, 75)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_11" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, 0, 80)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_09" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 79)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_13" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47, 0, 69)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_11" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, 46)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_14" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 72)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_14" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 0, 81)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_16" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54, 0, 79)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="참나무_17" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47, 0, 82)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_16" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56, 0, 74)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="자작나무_17" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 73)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_19" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 0, 50)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_13" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68, 0, 51)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="전나무_14" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 70)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_22" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 0, 68)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_22" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, 46)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_18" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 71)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_24" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 65)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_23" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 56)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_19" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, 56)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_24" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 46)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_22" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 59)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_25" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53, 0, 74)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_23" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 70)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_26" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, 72)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_26" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 60)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="참나무_27" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 61)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="자작나무_27" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, 46)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_25" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54, 0, 50)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_29" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59, 0, 85)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_26" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 84)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="자작나무_29" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 83)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3125, -0.625, 0.625, 0.625)
+
+[node name="전나무_27" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 50)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="참나무_30" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 74)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="참나무_31" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, 53)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="전나무_29" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 59, 0, 64)
+script = ExtResource("2")
+model_kind = "spruce"
+collision_footprint = Rect2(-0.3125, -0.5625, 0.625, 0.5625)
+
+[node name="포탈_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1,26, 0, 16)
+script = ExtResource("2")
+model_kind = "portal"
+gameplay_id = "arcana_return_portal"
+display_name = "귀환 포탈"
+interaction_kind = "portal"
+collision_footprint = Rect2(-1.1875, -1.625, 2.375, 1.5)
+
+[node name="Interaction" type="Marker3D" parent="포탈_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.6875)
+gizmo_extents = 0.4
+
+[node name="주인공_시작위치_01" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, 34.5)
+script = ExtResource("2")
+model_kind = "hero"
+gameplay_id = "player_spawn"
+display_name = "주인공 시작 위치"
+interaction_kind = "spawn"
+
+[node name="작업_카메라" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.6614379, 0.74999994, 0, -0.74999994, 0.6614379, 36, 24, 51.166)
+projection = 1
+size = 24.0
+far = 250.0
+
+[node name="마법학교_2D" type="Node3D" parent="."]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5,54, 0, 27.5)
+script = ExtResource("2")
+model_kind = "academy-2d"
+gameplay_id = "arcana_academy"
+display_name = "아르카나 마법학교"
+interaction_kind = "building"
+collision_footprint = Rect2(-8.5, -4, 17, 4)
+walkable_cutout = Rect2(-1.35, -1.65, 2.7, 1.65)
+entrance_id = "magic_school_front_door"
+entrance_area = Rect2(-0.65, -1.45, 1.3, 0.55)
+entrance_enabled = false
+entrance_target = ""
+
+[node name="Interaction" type="Marker3D" parent="마법학교_2D"]
+position = Vector3(0, 0, -1.25)
+
+[node name="슬라임_미리보기_01" parent="." instance=ExtResource("3_slime")]
+position = Vector3(37.5, 0, 33.5)
+preview_animation = "hop"
+ambient_preview = true
+metadata/encounter_id = "plaza_slime"
+
+[node name="동쪽길_벤치" type="Node3D" parent="."]
+position = Vector3(62, 0, 35.5)
+script = ExtResource("2")
+model_kind = "bench"
+gameplay_id = "park_bench_03"
+display_name = "공원 벤치"
+interaction_kind = "bench"
+collision_footprint = Rect2(-0.9, -0.3, 1.8, 0.3)
+
+[node name="북쪽길_벤치" type="Node3D" parent="."]
+position = Vector3(30, 0, 20)
+script = ExtResource("2")
+model_kind = "bench"
+gameplay_id = "park_bench_04"
+display_name = "공원 벤치"
+interaction_kind = "bench"
+collision_footprint = Rect2(-0.9, -0.3, 1.8, 0.3)
+
+[node name="여관길_벤치" type="Node3D" parent="."]
+position = Vector3(25, 0, 39)
+script = ExtResource("2")
+model_kind = "bench"
+gameplay_id = "park_bench_05"
+display_name = "공원 벤치"
+interaction_kind = "bench"
+collision_footprint = Rect2(-0.9, -0.3, 1.8, 0.3)
+
+[node name="CityWalls" type="Node3D" parent="."]
+script = ExtResource("4_walls")
+
+[node name="CityDistrict" type="Node3D" parent="."]
+metadata/design = "approved arcana-city-center/concept-v1"
+
+[node name="Housing" type="Node3D" parent="CityDistrict"]
+
+[node name="Market" type="Node3D" parent="CityDistrict"]
+
+[node name="StreetFurniture" type="Node3D" parent="CityDistrict"]
+
+[node name="Gardens" type="Node3D" parent="CityDistrict"]
+
+[node name="townhouse_01" type="Node3D" parent="CityDistrict/Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 14)
+script = ExtResource("2")
+model_kind = "city-townhouse"
+collision_footprint = Rect2(-2.65, -2.5, 5.3, 2.5)
+
+[node name="workshops_01" type="Node3D" parent="CityDistrict/Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 10)
+script = ExtResource("2")
+model_kind = "city-workshops"
+collision_footprint = Rect2(-3.7, -2.6, 7.4, 2.6)
+
+[node name="townhouse_02" type="Node3D" parent="CityDistrict/Housing"]
+transform = Transform3D(0.85, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 27, 0, 9)
+script = ExtResource("2")
+model_kind = "city-townhouse"
+collision_footprint = Rect2(-2.65, -2.5, 5.3, 2.5)
+
+[node name="townhouse_03" type="Node3D" parent="CityDistrict/Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 29)
+script = ExtResource("2")
+model_kind = "city-townhouse"
+collision_footprint = Rect2(-2.65, -2.5, 5.3, 2.5)
+
+[node name="bookshop_01" type="Node3D" parent="CityDistrict/Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 43)
+script = ExtResource("2")
+model_kind = "city-bookshop"
+collision_footprint = Rect2(-2.2, -2.6, 4.4, 2.6)
+
+[node name="townhouse_04" type="Node3D" parent="CityDistrict/Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0, 42.3)
+script = ExtResource("2")
+model_kind = "city-townhouse"
+collision_footprint = Rect2(-2.65, -2.5, 5.3, 2.5)
+
+[node name="workshops_02" type="Node3D" parent="CityDistrict/Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56, 0, 42.3)
+script = ExtResource("2")
+model_kind = "city-workshops"
+collision_footprint = Rect2(-3.7, -2.6, 7.4, 2.6)
+
+[node name="bookshop_02" type="Node3D" parent="CityDistrict/Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 0, 42.3)
+script = ExtResource("2")
+model_kind = "city-bookshop"
+collision_footprint = Rect2(-2.2, -2.6, 4.4, 2.6)
+
+[node name="market_01" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 27.4)
+script = ExtResource("2")
+model_kind = "city-market"
+collision_footprint = Rect2(-1.7, -1.4, 3.4, 1.4)
+
+[node name="market_02" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 27.4)
+script = ExtResource("2")
+model_kind = "city-market"
+collision_footprint = Rect2(-1.7, -1.4, 3.4, 1.4)
+
+[node name="crate_01" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 0, 24.2)
+script = ExtResource("2")
+model_kind = "crate"
+collision_footprint = Rect2(-0.45, -0.6, 0.9, 0.6)
+
+[node name="crate_02" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.4, 0, 25)
+script = ExtResource("2")
+model_kind = "crate"
+collision_footprint = Rect2(-0.45, -0.6, 0.9, 0.6)
+
+[node name="barrels_01" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 25.7)
+script = ExtResource("2")
+model_kind = "barrels"
+collision_footprint = Rect2(-0.55, -0.7, 1.1, 0.7)
+
+[node name="basket_01" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 28.3)
+script = ExtResource("2")
+model_kind = "basket"
+collision_footprint = Rect2(-0.3, -0.4, 0.6, 0.4)
+
+[node name="basket_02" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.3, 0, 28.4)
+script = ExtResource("2")
+model_kind = "basket"
+collision_footprint = Rect2(-0.3, -0.4, 0.6, 0.4)
+
+[node name="barrels_02" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 38)
+script = ExtResource("2")
+model_kind = "barrels"
+collision_footprint = Rect2(-0.55, -0.7, 1.1, 0.7)
+
+[node name="crate_03" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.2, 0, 38.4)
+script = ExtResource("2")
+model_kind = "crate"
+collision_footprint = Rect2(-0.45, -0.6, 0.9, 0.6)
+
+[node name="cafe_01" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.3, 0, 17.8)
+script = ExtResource("2")
+model_kind = "city-cafe"
+collision_footprint = Rect2(-1.35, -1.3, 2.7, 1.3)
+
+[node name="cafe_02" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.5, 0, 17.8)
+script = ExtResource("2")
+model_kind = "city-cafe"
+collision_footprint = Rect2(-1.35, -1.3, 2.7, 1.3)
+
+[node name="cafe_03" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.3, 0, 21.5)
+script = ExtResource("2")
+model_kind = "city-cafe"
+collision_footprint = Rect2(-1.35, -1.3, 2.7, 1.3)
+
+[node name="cafe_04" type="Node3D" parent="CityDistrict/Market"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.5, 0, 21)
+script = ExtResource("2")
+model_kind = "city-cafe"
+collision_footprint = Rect2(-1.35, -1.3, 2.7, 1.3)
+
+[node name="lamp_post_01" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 26, 0, 24)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_02" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 31, 0, 20.7)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_03" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 43.5, 0, 22.5)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_04" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 28, 0, 28.5)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_05" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 44, 0, 29.5)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_06" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 31, 0, 38.3)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_07" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 41, 0, 38.3)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_08" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 31, 0, 44.3)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_09" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 41, 0, 44.3)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_10" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 10.8, 0, 16)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_11" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 10.8, 0, 33)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_12" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 50.5, 0, 36.5)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_13" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 57.5, 0, 36.5)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_14" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 67.5, 0, 37)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_15" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 31, 0, 53)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="lamp_post_16" type="Node3D" parent="CityDistrict/StreetFurniture"]
+transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 41, 0, 53)
+script = ExtResource("2")
+model_kind = "lamp-post"
+
+[node name="flowerpot_01" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 0, 23.2)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_02" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.5, 0, 23.2)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_03" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.4, 0, 37.2)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_04" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.6, 0, 37.2)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_05" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.5, 0, 14.6)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_06" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.5, 0, 14.6)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_07" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.5, 0, 28.3)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_08" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57.5, 0, 28.3)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_09" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43, 0, 42.5)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_10" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49, 0, 42.5)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_11" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 0, 42.5)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_12" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 42.5)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_13" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 63.5, 0, 42.5)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="flowerpot_14" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.5, 0, 42.5)
+script = ExtResource("2")
+model_kind = "flowerpot"
+collision_footprint = Rect2(-0.24, -0.35, 0.48, 0.35)
+
+[node name="hedge_01" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 43.5, 0, 34)
+script = ExtResource("2")
+model_kind = "city-hedge"
+collision_footprint = Rect2(-1.45, -0.55, 2.9, 0.55)
+
+[node name="hedge_02" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 46.5, 0, 34)
+script = ExtResource("2")
+model_kind = "city-hedge"
+collision_footprint = Rect2(-1.45, -0.55, 2.9, 0.55)
+
+[node name="hedge_03" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 49.5, 0, 34)
+script = ExtResource("2")
+model_kind = "city-hedge"
+collision_footprint = Rect2(-1.45, -0.55, 2.9, 0.55)
+
+[node name="hedge_04" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 58.5, 0, 34)
+script = ExtResource("2")
+model_kind = "city-hedge"
+collision_footprint = Rect2(-1.45, -0.55, 2.9, 0.55)
+
+[node name="hedge_05" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 61.5, 0, 34)
+script = ExtResource("2")
+model_kind = "city-hedge"
+collision_footprint = Rect2(-1.45, -0.55, 2.9, 0.55)
+
+[node name="hedge_06" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 64.5, 0, 34)
+script = ExtResource("2")
+model_kind = "city-hedge"
+collision_footprint = Rect2(-1.45, -0.55, 2.9, 0.55)
+
+[node name="hedge_07" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 27.2, 0, 24.3)
+script = ExtResource("2")
+model_kind = "city-hedge"
+collision_footprint = Rect2(-1.45, -0.55, 2.9, 0.55)
+
+[node name="hedge_08" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 27.2, 0, 34.8)
+script = ExtResource("2")
+model_kind = "city-hedge"
+collision_footprint = Rect2(-1.45, -0.55, 2.9, 0.55)
+
+[node name="flowerbed_01" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, 36.5)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_02" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 36.5)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_03" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, 41)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_04" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 41)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_05" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.2, 0, 32.6)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_06" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, 34.8)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_07" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 18.9)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_08" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, 40.3)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_09" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, 0, 36.6)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_10" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, 42)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="flowerbed_11" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, 42)
+script = ExtResource("2")
+model_kind = "flowerbed"
+collision_footprint = Rect2(-0.875, -0.5, 1.75, 0.5)
+
+[node name="oak_01" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 27.4, 0, 23.3)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="birch_01" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.85, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 27, 0, 35)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3, -0.55, 0.6, 0.55)
+
+[node name="oak_02" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 44.3, 0, 35.5)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="birch_02" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 62.5, 0, 32.7)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3, -0.55, 0.6, 0.55)
+
+[node name="oak_03" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 44.2, 0, 31.2)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="birch_03" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 48.4, 0, 31.2)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3, -0.55, 0.6, 0.55)
+
+[node name="oak_04" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 64.5, 0, 31.5)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="oak_05" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 3, 0, 8)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="birch_04" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.85, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 9, 0, 8)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3, -0.55, 0.6, 0.55)
+
+[node name="oak_06" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 5)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="birch_05" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 30, 0, 5)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3, -0.55, 0.6, 0.55)
+
+[node name="oak_07" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 3, 0, 35)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="birch_06" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 10, 0, 39.7)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3, -0.55, 0.6, 0.55)
+
+[node name="oak_08" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.85, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 68.8, 0, 18)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="birch_07" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 70, 0, 37)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3, -0.55, 0.6, 0.55)
+
+[node name="oak_09" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 28.5, 0, 44.5)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="birch_08" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 43.3, 0, 45)
+script = ExtResource("2")
+model_kind = "birch"
+collision_footprint = Rect2(-0.3, -0.55, 0.6, 0.55)
+
+[node name="oak_10" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 2, 0, 45)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="oak_11" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 69, 0, 45)
+script = ExtResource("2")
+model_kind = "oak"
+collision_footprint = Rect2(-0.4375, -0.75, 0.875, 0.75)
+
+[node name="flowers_01" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 26.5, 0, 22.5)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_02" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 28, 0, 23)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_03" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 26.5, 0, 34.5)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_04" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 28, 0, 35)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_05" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 42.5, 0, 30)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_06" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 46, 0, 32.5)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_07" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 60, 0, 32.8)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_08" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 66, 0, 31.2)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_09" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 8.8, 0, 37)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_10" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 28.4, 0, 44.7)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="flowers_11" type="Node3D" parent="CityDistrict/Gardens"]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 42.4, 0, 45)
+script = ExtResource("2")
+model_kind = "flowers"
+
+[node name="광장_안내원" type="Node3D" parent="."]
+position = Vector3(32, 0, 32.5)
+script = ExtResource("2")
+model_kind = "plaza-guide"
+gameplay_id = "plaza_guide"
+display_name = "메이"
+interaction_kind = "resident"
+collision_footprint = Rect2(-0.22, -0.15, 0.44, 0.3)
+
+[node name="Interaction" type="Marker3D" parent="광장_안내원"]
+position = Vector3(0, 0, 0.65)

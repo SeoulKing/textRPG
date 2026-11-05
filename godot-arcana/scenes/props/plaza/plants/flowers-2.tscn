@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/52e96b5165cfdfda3cc3e0a022798cd5def8794e77442b3f1eae86a8b04861a7.res" id="33_76bwo"]
+[node name="flowers_02" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "flowers"
+registered_transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 0, 0)
+source_path = "CityDistrict/Gardens/flowers_02"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+position = Vector2(-6, -10.02)
+scale = Vector2(1, 1.02)
+texture = ExtResource("33_76bwo")
+centered = false
+offset = Vector2(-40, -49)
+region_rect = Rect2(0, 0, 79, 50)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(79, 50)
+

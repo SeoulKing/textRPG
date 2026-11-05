@@ -1,0 +1,21 @@
+{
+  "generator": "built-in image_gen",
+  "master": "source/painted-ground-v1/paving-master.png",
+  "prompt": "source/painted-ground-v1/prompt.txt",
+  "refinementPrompt": "source/painted-ground-v1/refinement-prompt.txt",
+  "size": [
+    1536,
+    1024
+  ],
+  "worldBoundsXZ": [
+    0,
+    0,
+    72,
+    56
+  ],
+  "sampling": "one non-repeating image over full city bounds; nearest; no mipmaps",
+  "palette": "existing arcana world LUT",
+  "display": "illustrated_ground.gdshader painted mode",
+  "surfaceMask": "continuous plaza/roads minus rounded garden areas from saved plaza.tscn",
+  "preserved": "buildings, collisions, doors, fountain mosaic, terrain data for material logic"
+}

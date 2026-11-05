@@ -1,0 +1,707 @@
+{
+  "version": 1,
+  "artScale": 0.5,
+  "tilePixels": 32,
+  "movementCell": 16,
+  "palette": "arcana-64.gpl",
+  "characterFrame": [
+    32,
+    48
+  ],
+  "characterPivot": [
+    16,
+    46
+  ],
+  "directions": [
+    "south",
+    "north",
+    "west",
+    "east"
+  ],
+  "assets": [
+    {
+      "id": "shop",
+      "source": "environment-v1.png",
+      "crop": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "size": [
+        192,
+        192
+      ],
+      "fit": [
+        184,
+        184
+      ],
+      "pivot": [
+        130,
+        181
+      ],
+      "collision": [
+        -58,
+        -32,
+        86,
+        32
+      ],
+      "layer": "objects",
+      "animation": ""
+    },
+    {
+      "id": "inn",
+      "source": "environment-v1.png",
+      "crop": [
+        512,
+        0,
+        1024,
+        512
+      ],
+      "size": [
+        192,
+        192
+      ],
+      "fit": [
+        184,
+        184
+      ],
+      "pivot": [
+        94,
+        181
+      ],
+      "collision": [
+        -42,
+        -32,
+        86,
+        32
+      ],
+      "layer": "objects",
+      "animation": ""
+    },
+    {
+      "id": "restaurant",
+      "source": "environment-v1.png",
+      "crop": [
+        1024,
+        0,
+        1536,
+        512
+      ],
+      "size": [
+        192,
+        192
+      ],
+      "fit": [
+        184,
+        184
+      ],
+      "pivot": [
+        132,
+        181
+      ],
+      "collision": [
+        -58,
+        -32,
+        86,
+        32
+      ],
+      "layer": "objects",
+      "animation": ""
+    },
+    {
+      "id": "fountain",
+      "source": "environment-v1.png",
+      "crop": [
+        0,
+        512,
+        512,
+        1024
+      ],
+      "size": [
+        192,
+        192
+      ],
+      "fit": [
+        168,
+        168
+      ],
+      "pivot": [
+        96,
+        184
+      ],
+      "collision": [
+        -34,
+        -22,
+        68,
+        22
+      ],
+      "layer": "objects",
+      "animation": ""
+    },
+    {
+      "id": "oak",
+      "source": "environment-v1.png",
+      "crop": [
+        512,
+        512,
+        1024,
+        1024
+      ],
+      "size": [
+        192,
+        224
+      ],
+      "fit": [
+        184,
+        212
+      ],
+      "pivot": [
+        96,
+        220
+      ],
+      "collision": [
+        -7,
+        -12,
+        14,
+        12
+      ],
+      "layer": "objects",
+      "animation": ""
+    },
+    {
+      "id": "birch",
+      "source": "environment-v1.png",
+      "crop": [
+        1024,
+        512,
+        1536,
+        1024
+      ],
+      "size": [
+        160,
+        224
+      ],
+      "fit": [
+        148,
+        212
+      ],
+      "pivot": [
+        80,
+        220
+      ],
+      "collision": [
+        -5,
+        -10,
+        10,
+        10
+      ],
+      "layer": "objects",
+      "animation": ""
+    },
+    {
+      "id": "bench",
+      "source": "props-v1.png",
+      "crop": [
+        0,
+        0,
+        335,
+        290
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [
+        -13,
+        -5,
+        26,
+        5
+      ],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "crate",
+      "source": "props-v1.png",
+      "crop": [
+        340,
+        0,
+        580,
+        290
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [
+        -8,
+        -8,
+        16,
+        8
+      ],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "barrels",
+      "source": "props-v1.png",
+      "crop": [
+        584,
+        0,
+        858,
+        290
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [
+        -10,
+        -9,
+        20,
+        9
+      ],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "flowerpot",
+      "source": "props-v1.png",
+      "crop": [
+        875,
+        0,
+        1122,
+        290
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "sign",
+      "source": "props-v1.png",
+      "crop": [
+        0,
+        291,
+        275,
+        640
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "lamp-post",
+      "source": "props-v1.png",
+      "crop": [
+        340,
+        291,
+        574,
+        640
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [
+        -2,
+        -3,
+        4,
+        3
+      ],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "lantern",
+      "source": "props-v1.png",
+      "crop": [
+        580,
+        375,
+        850,
+        641
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "basket",
+      "source": "props-v1.png",
+      "crop": [
+        860,
+        400,
+        1122,
+        640
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "handcart",
+      "source": "props-v1.png",
+      "crop": [
+        0,
+        712,
+        320,
+        961
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [
+        -13,
+        -9,
+        26,
+        9
+      ],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "flowerbed",
+      "source": "props-v1.png",
+      "crop": [
+        320,
+        750,
+        564,
+        964
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [
+        -14,
+        -8,
+        28,
+        8
+      ],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "workbench",
+      "source": "props-v1.png",
+      "crop": [
+        566,
+        745,
+        854,
+        964
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [
+        -14,
+        -8,
+        28,
+        8
+      ],
+      "layer": "objects",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "canopy",
+      "source": "props-v1.png",
+      "crop": [
+        850,
+        641,
+        1122,
+        965
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [],
+      "layer": "objects",
+      "animation": "cloth",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "spruce",
+      "source": "props-v1.png",
+      "crop": [
+        0,
+        968,
+        310,
+        1402
+      ],
+      "size": [
+        128,
+        192
+      ],
+      "fit": [
+        120,
+        184
+      ],
+      "pivot": [
+        64,
+        188
+      ],
+      "collision": [
+        -5,
+        -9,
+        10,
+        9
+      ],
+      "layer": "objects",
+      "animation": "leaves",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "shrub",
+      "source": "props-v1.png",
+      "crop": [
+        316,
+        1100,
+        574,
+        1402
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [],
+      "layer": "objects",
+      "animation": "leaves",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "flowers",
+      "source": "props-v1.png",
+      "crop": [
+        578,
+        1160,
+        856,
+        1402
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [],
+      "layer": "decals",
+      "animation": "",
+      "source_size": [
+        1122,
+        1402
+      ]
+    },
+    {
+      "id": "pennant",
+      "source": "props-v1.png",
+      "crop": [
+        860,
+        1000,
+        1122,
+        1402
+      ],
+      "size": [
+        64,
+        80
+      ],
+      "fit": [
+        60,
+        72
+      ],
+      "pivot": [
+        32,
+        76
+      ],
+      "collision": [],
+      "layer": "objects",
+      "animation": "cloth",
+      "source_size": [
+        1122,
+        1402
+      ]
+    }
+  ]
+}

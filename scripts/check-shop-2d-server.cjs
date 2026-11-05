@@ -1,0 +1,17 @@
+const fs=require("node:fs");
+const assert=require("node:assert/strict");
+const {ArcanaWorld}=require("../.runtime/godot/shop-2d/server-check/online/world.js");
+const path="art-studies/regions/arcana-shop-interior/source/native-2d/";
+const probes=JSON.parse(fs.readFileSync(path+"server-probes.json","utf8"));
+const world=Object.create(ArcanaWorld.prototype);
+world.layouts=JSON.parse(fs.readFileSync("godot-arcana/art/export/online-layout.json","utf8"));
+const place={interior:"arcana_shop",floor:0,location:"arcana_shop"};
+for(const p of probes)assert.equal(world.validPoint(place,{x:p.x,y:p.y}),p.valid,"Godot/server mismatch at "+p.x+","+p.y);
+const blocked={place,position:{x:192,y:120},previous:{x:192,y:120},walking:true};
+world.restoreShopPosition(blocked);
+assert.ok(world.validPoint(place,blocked.position),"restored checkpoint must be walkable");
+assert.equal(blocked.walking,false);
+const kept={place,position:{...world.layouts.arcana_shop.spawn},previous:{...world.layouts.arcana_shop.spawn},walking:false};
+const before={...kept.position};world.restoreShopPosition(kept);assert.deepEqual(kept.position,before);
+fs.writeFileSync(path+"server-parity-check.json",JSON.stringify({passed:true,checkpointCorrection:true,validSavedPositionPreserved:true,probes:probes.length,source:"Production TypeScript compiler output: actual ArcanaWorld.validPoint against Godot Shop2D probes"},null,2));
+console.log("SHOP_2D_SERVER passed "+probes.length+" shared-layout probes");

@@ -1,0 +1,16 @@
+# Hybrid version 1. Shared world scale; the live viewport owns its foot anchor.
+extends RefCounted
+const FRAME_SIZE = Vector2i(96,136)
+const FOOT = Vector2i(48,116)
+const ATLAS_GRID = Vector2i(16,22)
+const PIXELS_PER_UNIT = 64.0
+const SOURCE_HEIGHT = 123
+const GAIT_CYCLE = 1.929031467438
+const IDLE_FRAMES = 4
+const WALK_FRAMES = 24
+const FRAMES_PER_DIRECTION = 36
+const STEP_SECONDS = 0.4166666666666667
+const WALK_DISTANCE_MAP_UNITS = 20
+const STOP_FRAMES = 4
+const SETTLE_SECONDS = 0.16
+const PASSING_PHASE = 0.3

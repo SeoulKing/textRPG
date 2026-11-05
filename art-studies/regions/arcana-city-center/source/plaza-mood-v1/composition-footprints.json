@@ -1,0 +1,78 @@
+[
+  {
+    "a": "상자_01",
+    "b": "townhouse_03"
+  },
+  {
+    "a": "crate_03",
+    "b": "plaza_canopy_sw_02"
+  },
+  {
+    "a": "market_01",
+    "b": "barrels_01"
+  },
+  {
+    "a": "hedge_02",
+    "b": "flowerbed_06"
+  },
+  {
+    "a": "hedge_07",
+    "b": "flowerbed_05"
+  },
+  {
+    "a": "hedge_08",
+    "b": "flowerbed_08"
+  },
+  {
+    "a": "hedge_08",
+    "b": "plaza_canopy_sw_01"
+  },
+  {
+    "a": "hedge_08",
+    "b": "plaza_canopy_sw_02"
+  },
+  {
+    "a": "상점_01",
+    "b": "flowerbed_07"
+  },
+  {
+    "a": "상점_01",
+    "b": "flowerpot_02"
+  },
+  {
+    "a": "여관_01",
+    "b": "barrels_02"
+  },
+  {
+    "a": "여관_01",
+    "b": "flowerbed_08"
+  },
+  {
+    "a": "포탈_01",
+    "b": "townhouse_02"
+  },
+  {
+    "a": "cafe_01",
+    "b": "flowerbed_07"
+  },
+  {
+    "a": "flowerbed_03",
+    "b": "plaza_canopy_south_01"
+  },
+  {
+    "a": "flowerbed_04",
+    "b": "plaza_canopy_se_01"
+  },
+  {
+    "a": "flowerbed_08",
+    "b": "plaza_canopy_sw_02"
+  },
+  {
+    "a": "flowerbed_10",
+    "b": "plaza_canopy_south_02"
+  },
+  {
+    "a": "flowerbed_11",
+    "b": "plaza_canopy_se_02"
+  }
+]

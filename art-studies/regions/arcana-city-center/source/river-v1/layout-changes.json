@@ -1,0 +1,541 @@
+{
+  "river": {
+    "waterPixels": [
+      0,
+      2400,
+      4096,
+      320
+    ],
+    "bridgePixels": [
+      2144,
+      2288,
+      320,
+      511
+    ],
+    "walkableBridgeLogical": [
+      553,
+      592,
+      46,
+      102
+    ]
+  },
+  "moves": [
+    {
+      "node": "InnTerrace",
+      "before": [
+        1632,
+        2688
+      ],
+      "after": [
+        1632,
+        3072
+      ]
+    },
+    {
+      "node": "InnTerraceFlowers",
+      "before": [
+        1424,
+        2672
+      ],
+      "after": [
+        1424,
+        3056
+      ]
+    },
+    {
+      "node": "InnGardenFlowers",
+      "before": [
+        1752,
+        2752
+      ],
+      "after": [
+        1752,
+        3136
+      ]
+    },
+    {
+      "node": "InnTerraceLamp",
+      "before": [
+        1776,
+        2752
+      ],
+      "after": [
+        1776,
+        3136
+      ]
+    },
+    {
+      "node": "InnTerraceTree",
+      "before": [
+        1352,
+        2752
+      ],
+      "after": [
+        1352,
+        3136
+      ]
+    },
+    {
+      "node": "SchoolLaneTree",
+      "before": [
+        3160,
+        2384
+      ],
+      "after": [
+        3160,
+        2280
+      ]
+    },
+    {
+      "node": "SchoolHouseFlowers",
+      "before": [
+        3632,
+        2408
+      ],
+      "after": [
+        3632,
+        2296
+      ]
+    },
+    {
+      "node": "InnWalker",
+      "before": [
+        2400,
+        2560
+      ],
+      "after": [
+        2304,
+        2848
+      ]
+    },
+    {
+      "node": "lamp_post_06",
+      "before": [
+        2096,
+        2352
+      ],
+      "after": [
+        2168,
+        2352
+      ]
+    },
+    {
+      "node": "lamp_post_07",
+      "before": [
+        2528,
+        2352
+      ],
+      "after": [
+        2440,
+        2352
+      ]
+    },
+    {
+      "node": "lamp_post_08",
+      "before": [
+        1812,
+        2777
+      ],
+      "after": [
+        1812,
+        3064
+      ]
+    },
+    {
+      "node": "lamp_post_09",
+      "before": [
+        1623,
+        2773
+      ],
+      "after": [
+        1623,
+        3064
+      ]
+    },
+    {
+      "node": "workshops_02",
+      "before": [
+        3200,
+        2707.2
+      ],
+      "after": [
+        3200,
+        3040
+      ]
+    },
+    {
+      "node": "flowers_04",
+      "before": [
+        2024,
+        2344
+      ],
+      "after": [
+        2000,
+        2296
+      ]
+    },
+    {
+      "node": "flowers_09",
+      "before": [
+        563.2,
+        2368
+      ],
+      "after": [
+        563.2,
+        2296
+      ]
+    },
+    {
+      "node": "crate_03",
+      "before": [
+        1920,
+        2424
+      ],
+      "after": [
+        1840,
+        2264
+      ]
+    },
+    {
+      "node": "bookshop_01",
+      "before": [
+        439,
+        2635
+      ],
+      "after": [
+        439,
+        3056
+      ]
+    },
+    {
+      "node": "bookshop_02",
+      "before": [
+        3552,
+        2707.2
+      ],
+      "after": [
+        3552,
+        3040
+      ]
+    },
+    {
+      "node": "hedge_08",
+      "before": [
+        2056,
+        2368
+      ],
+      "after": [
+        1920,
+        2296
+      ]
+    },
+    {
+      "node": "여관_01",
+      "before": [
+        1184,
+        2672
+      ],
+      "after": [
+        1184,
+        3056
+      ]
+    },
+    {
+      "node": "barrels_02",
+      "before": [
+        1920,
+        2488
+      ],
+      "after": [
+        1840,
+        2320
+      ]
+    },
+    {
+      "node": "flowerbed_02",
+      "before": [
+        2552,
+        2416
+      ],
+      "after": [
+        2560,
+        2320
+      ]
+    },
+    {
+      "node": "flowerbed_03",
+      "before": [
+        2032,
+        2624
+      ],
+      "after": [
+        2032,
+        2864
+      ]
+    },
+    {
+      "node": "flowerbed_04",
+      "before": [
+        2608,
+        2624
+      ],
+      "after": [
+        2608,
+        2864
+      ]
+    },
+    {
+      "node": "flowerbed_10",
+      "before": [
+        1936,
+        2688
+      ],
+      "after": [
+        1936,
+        2928
+      ]
+    },
+    {
+      "node": "flowerbed_11",
+      "before": [
+        2624,
+        2688
+      ],
+      "after": [
+        2624,
+        2928
+      ]
+    },
+    {
+      "node": "flowerpot_03",
+      "before": [
+        793.6,
+        2380.8
+      ],
+      "after": [
+        793.6,
+        2320
+      ]
+    },
+    {
+      "node": "flowerpot_04",
+      "before": [
+        1856,
+        2512
+      ],
+      "after": [
+        1808,
+        2848
+      ]
+    },
+    {
+      "node": "여관길_벤치",
+      "before": [
+        2048,
+        2416
+      ],
+      "after": [
+        1968,
+        2240
+      ]
+    },
+    {
+      "node": "birch_01",
+      "before": [
+        1968,
+        2272
+      ],
+      "after": [
+        1904,
+        2256
+      ]
+    },
+    {
+      "node": "birch_06",
+      "before": [
+        640,
+        2540.8
+      ],
+      "after": [
+        640,
+        2912
+      ]
+    },
+    {
+      "node": "birch_07",
+      "before": [
+        3808,
+        2368
+      ],
+      "after": [
+        3808,
+        2272
+      ]
+    },
+    {
+      "node": "townhouse_04",
+      "before": [
+        2936,
+        2512
+      ],
+      "after": [
+        3200,
+        3264
+      ]
+    },
+    {
+      "node": "plaza_canopy_sw_01",
+      "before": [
+        2064,
+        2320
+      ],
+      "after": [
+        1840,
+        2288
+      ]
+    },
+    {
+      "node": "plaza_canopy_sw_02",
+      "before": [
+        1936,
+        2368
+      ],
+      "after": [
+        1760,
+        2320
+      ]
+    },
+    {
+      "node": "plaza_canopy_south_01",
+      "before": [
+        1936,
+        2632
+      ],
+      "after": [
+        1840,
+        3048
+      ]
+    },
+    {
+      "node": "plaza_canopy_south_02",
+      "before": [
+        2032,
+        2688
+      ],
+      "after": [
+        1968,
+        3104
+      ]
+    },
+    {
+      "node": "plaza_canopy_se_01",
+      "before": [
+        2704,
+        2640
+      ],
+      "after": [
+        2800,
+        3056
+      ]
+    },
+    {
+      "node": "plaza_canopy_se_02",
+      "before": [
+        2544,
+        2800
+      ],
+      "after": [
+        2640,
+        3184
+      ]
+    },
+    {
+      "node": "plaza_market_east",
+      "before": [
+        2624,
+        2512
+      ],
+      "after": [
+        2704,
+        2944
+      ]
+    },
+    {
+      "node": "flowerpot_09",
+      "before": [
+        2752,
+        2720
+      ],
+      "after": [
+        2752,
+        2880
+      ]
+    },
+    {
+      "node": "flowerpot_10",
+      "before": [
+        3136,
+        2720
+      ],
+      "after": [
+        3136,
+        2880
+      ]
+    },
+    {
+      "node": "flowerpot_11",
+      "before": [
+        2944,
+        2720
+      ],
+      "after": [
+        2944,
+        2880
+      ]
+    },
+    {
+      "node": "flowerpot_12",
+      "before": [
+        3456,
+        2720
+      ],
+      "after": [
+        3456,
+        2880
+      ]
+    },
+    {
+      "node": "flowerpot_13",
+      "before": [
+        3680,
+        2720
+      ],
+      "after": [
+        3680,
+        2880
+      ]
+    },
+    {
+      "node": "flowerpot_14",
+      "before": [
+        3808,
+        2720
+      ],
+      "after": [
+        3808,
+        2880
+      ]
+    },
+    {
+      "node": "southern_birch",
+      "before": [
+        256,
+        2639
+      ],
+      "after": [
+        256,
+        2880
+      ]
+    }
+  ]
+}

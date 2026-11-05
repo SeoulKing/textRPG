@@ -1,0 +1,21 @@
+{
+	"approach_path_cells": 28,
+	"behind_walkable": true,
+	"body_solid": true,
+	"browser_tested": false,
+	"camera_default_changed": false,
+	"character_height": 110,
+	"door_enabled": false,
+	"entrances": 1,
+	"front_walkable": true,
+	"new_academy_count": 1,
+	"original_academy_count": 1,
+	"placement": [
+		12,
+		0,
+		9.5
+	],
+	"source": "main.tscn / Plaza",
+	"stairs_side_solid": true,
+	"stairs_walkable": true
+}

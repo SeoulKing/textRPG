@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "bundle": "res://art/characters/hybrid-v1/assembly/parts.json",
+  "motion_source": "res://art/characters/hybrid-v1/shared-run.json",
+  "method": "Shared 3D motion angles retargeted to a real Skeleton3D; projected joint positions drive the native continuous 2D meshes.",
+  "display_profile": {
+    "upper_vertical_scale": 1.2,
+    "waist_to_spine": 7.2,
+    "spine_to_neck": 16.8,
+    "hip_half_width": 6,
+    "waist_to_hip": 8,
+    "thigh_length": 26.5,
+    "shin_length": 16.3,
+    "ankle_to_sole": 6,
+    "head_neck_anchor": [
+      24,
+      44
+    ],
+    "upper_waist_anchor": [
+      24,
+      29
+    ],
+    "pelvis_waist_anchor": [
+      24,
+      9
+    ],
+    "boot_ankle_anchor": [
+      24,
+      21
+    ]
+  },
+  "source_images_changed": false,
+  "upper_assembly_texture": "res://art/characters/hybrid-v1/assembly/upper-body-assembly/{direction}.png",
+  "belt_owner": "pelvis",
+  "hands": "Hybrid-v1 directional hand-only PixelPen sources at 0.75 scale",
+  "motion_tuning": "res://art/characters/hybrid-v1/assembly/motion-polish.json",
+  "motion_polish_method": "Reduced recovery thigh swing, soft relative knee flex limit, projected source foot roll within the long boot shaft limit, and support height from the actual boot foot silhouette with short flight windows.",
+  "sleeve_motion_constraints": {
+    "projected_length_ratio": [
+      0.65,
+      1.1
+    ],
+    "soft_elbow_start_deg": 45,
+    "maximum_elbow_flexion_deg": 65,
+    "neutral_exact_no_op": true
+  },
+  "upper_art_registration": "Each directional native upper-body neutral binding is fitted to the projected spine/neck, then receives current-minus-neutral 3D limb motion after torso compensation. This preserves the approved painted sleeve silhouette.",
+  "joint_overlay_semantics": "points are actual Skeleton3D world joint centers. art_points are the calibrated screen-space bindings used by upper-body art and hands; side/rear-quarter neutral positions may differ by a few pixels.",
+  "caching": "Native rigs and images are loaded lazily on the first visit to each direction, never every frame.",
+  "runtime_verified": false,
+  "user_art_approval": "approved",
+  "motion_parameters": {
+    "thigh_gain": 0.72,
+    "knee_flex_soft_start_deg": 100.0,
+    "knee_flex_max_deg": 115.0,
+    "knee_extension_min_deg": -3.0,
+    "upper_arm_gain": 0.72,
+    "forearm_gain": 0.6,
+    "body_bob_gain": 0.7,
+    "body_lean_gain": 1.0,
+    "head_pitch_gain": 0.85,
+    "boot_relative_roll_limit_deg": 18.0,
+    "boot_roll_follow": 0.85,
+    "flight_start_half_cycle": 0.38,
+    "flight_height_px": 1.0,
+    "support_fade_weight": 0.25
+  },
+  "run_keyframes": "res://art/characters/hybrid-v1/run-keyframes.tres"
+}

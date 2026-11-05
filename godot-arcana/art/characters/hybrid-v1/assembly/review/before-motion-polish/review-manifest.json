@@ -1,0 +1,332 @@
+{
+	"alpha_bounds_native": {
+		"neutral/e": [
+			139,
+			30,
+			41,
+			124
+		],
+		"neutral/n": [
+			139,
+			30,
+			42,
+			121
+		],
+		"neutral/ne": [
+			139,
+			30,
+			41,
+			123
+		],
+		"neutral/nw": [
+			140,
+			30,
+			40,
+			123
+		],
+		"neutral/s": [
+			138,
+			30,
+			44,
+			122
+		],
+		"neutral/se": [
+			140,
+			30,
+			40,
+			124
+		],
+		"neutral/sw": [
+			139,
+			30,
+			42,
+			124
+		],
+		"neutral/w": [
+			139,
+			30,
+			42,
+			124
+		],
+		"run_000/e": [
+			138,
+			34,
+			49,
+			117
+		],
+		"run_000/n": [
+			139,
+			33,
+			42,
+			112
+		],
+		"run_000/ne": [
+			139,
+			33,
+			44,
+			112
+		],
+		"run_000/nw": [
+			132,
+			33,
+			51,
+			114
+		],
+		"run_000/s": [
+			138,
+			35,
+			44,
+			123
+		],
+		"run_000/se": [
+			136,
+			35,
+			49,
+			122
+		],
+		"run_000/sw": [
+			136,
+			35,
+			48,
+			119
+		],
+		"run_000/w": [
+			133,
+			34,
+			49,
+			112
+		],
+		"run_025/e": [
+			142,
+			35,
+			47,
+			121
+		],
+		"run_025/n": [
+			139,
+			34,
+			42,
+			116
+		],
+		"run_025/ne": [
+			141,
+			34,
+			42,
+			118
+		],
+		"run_025/nw": [
+			133,
+			34,
+			45,
+			115
+		],
+		"run_025/s": [
+			138,
+			37,
+			44,
+			115
+		],
+		"run_025/se": [
+			139,
+			36,
+			49,
+			120
+		],
+		"run_025/sw": [
+			136,
+			36,
+			44,
+			115
+		],
+		"run_025/w": [
+			131,
+			35,
+			47,
+			116
+		],
+		"run_050/e": [
+			138,
+			34,
+			48,
+			113
+		],
+		"run_050/n": [
+			139,
+			33,
+			42,
+			112
+		],
+		"run_050/ne": [
+			137,
+			33,
+			50,
+			112
+		],
+		"run_050/nw": [
+			137,
+			33,
+			43,
+			113
+		],
+		"run_050/s": [
+			138,
+			35,
+			44,
+			123
+		],
+		"run_050/se": [
+			136,
+			35,
+			48,
+			119
+		],
+		"run_050/sw": [
+			137,
+			35,
+			45,
+			122
+		],
+		"run_050/w": [
+			134,
+			34,
+			48,
+			118
+		],
+		"run_075/e": [
+			142,
+			35,
+			47,
+			117
+		],
+		"run_075/n": [
+			139,
+			34,
+			42,
+			116
+		],
+		"run_075/ne": [
+			141,
+			34,
+			46,
+			115
+		],
+		"run_075/nw": [
+			137,
+			34,
+			41,
+			119
+		],
+		"run_075/s": [
+			138,
+			37,
+			44,
+			115
+		],
+		"run_075/se": [
+			139,
+			36,
+			44,
+			116
+		],
+		"run_075/sw": [
+			132,
+			36,
+			48,
+			119
+		],
+		"run_075/w": [
+			131,
+			35,
+			47,
+			122
+		]
+	},
+	"assembly_profile": "res://art/characters/hybrid-v1/assembly/assembly.json",
+	"assembly_profile_sha256": "bc2a95e68633c1edf4dcf5436422bb679351d9ebca32ca81d00951d04ef61b01",
+	"bundle": "res://art/characters/hybrid-v1/assembly/parts.json",
+	"bundle_sha256": "81569d39a88c344bb1ebeffb6dc17fbf96f34f1b39d87f95f8c05ebeadea56ed",
+	"contact_sheet_crop": [
+		104,
+		8,
+		112,
+		164
+	],
+	"directions_left_to_right": [
+		"s",
+		"se",
+		"e",
+		"ne",
+		"n",
+		"nw",
+		"w",
+		"sw"
+	],
+	"extra_outline_included": false,
+	"files": [
+		"res://art/characters/hybrid-v1/assembly/review/neutral/s.png",
+		"res://art/characters/hybrid-v1/assembly/review/neutral/se.png",
+		"res://art/characters/hybrid-v1/assembly/review/neutral/e.png",
+		"res://art/characters/hybrid-v1/assembly/review/neutral/ne.png",
+		"res://art/characters/hybrid-v1/assembly/review/neutral/n.png",
+		"res://art/characters/hybrid-v1/assembly/review/neutral/nw.png",
+		"res://art/characters/hybrid-v1/assembly/review/neutral/w.png",
+		"res://art/characters/hybrid-v1/assembly/review/neutral/sw.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_000/s.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_000/se.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_000/e.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_000/ne.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_000/n.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_000/nw.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_000/w.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_000/sw.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_025/s.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_025/se.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_025/e.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_025/ne.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_025/n.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_025/nw.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_025/w.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_025/sw.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_050/s.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_050/se.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_050/e.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_050/ne.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_050/n.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_050/nw.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_050/w.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_050/sw.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_075/s.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_075/se.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_075/e.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_075/ne.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_075/n.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_075/nw.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_075/w.png",
+		"res://art/characters/hybrid-v1/assembly/review/run_075/sw.png",
+		"res://art/characters/hybrid-v1/assembly/review/contact-sheet.png",
+		"res://art/characters/hybrid-v1/assembly/review/comparison-light.png",
+		"res://art/characters/hybrid-v1/assembly/review/comparison-dark.png",
+		"res://art/characters/hybrid-v1/assembly/review/neutral-8dir.png",
+		"res://art/characters/hybrid-v1/assembly/review/focus-neutral-run025.png",
+		"res://art/characters/hybrid-v1/assembly/review/focus-wnwn-run025.png"
+	],
+	"joint_overlay_included": false,
+	"native_viewport": [
+		320,
+		180
+	],
+	"outside_contact_crop": [],
+	"poses_top_to_bottom": [
+		"neutral",
+		"run_000",
+		"run_025",
+		"run_050",
+		"run_075"
+	],
+	"renderer": "full new parts + shared real Skeleton3D + weighted Polygon2D upper body and legs",
+	"runtime_verified": false,
+	"shared_motion": "res://art/characters/hybrid-v1/shared-run.json",
+	"shared_motion_sha256": "dfdd644dd77f34e94e6d92fb67d52ece773b6a8a5ce0391adc751299d5745453",
+	"status": "exported",
+	"visual_approval": "pending"
+}

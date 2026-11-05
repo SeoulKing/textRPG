@@ -1,0 +1,112 @@
+{
+  "status": "integrated-awaiting-user-art-review",
+  "generator": "built-in image_gen",
+  "styleReference": "godot-arcana/art/export/reference/academy-2d.png",
+  "assets": {
+    "shop": {
+      "size": [
+        488,
+        340
+      ],
+      "foot": [
+        244,
+        336
+      ],
+      "source": "source/shop.png",
+      "crop": [
+        131,
+        145,
+        1195,
+        827
+      ],
+      "pixelsPerUnit": 64,
+      "camera": {
+        "yaw": 0,
+        "pitch": 45
+      },
+      "paletteColors": 64,
+      "alpha": [
+        0,
+        255
+      ],
+      "runtime": "godot-arcana/art/export/reference/shop-2d.png",
+      "collision": [
+        -3.65,
+        -2.2,
+        7.3,
+        2.2
+      ],
+      "door": "existing local (0,0,0)"
+    },
+    "inn": {
+      "size": [
+        488,
+        406
+      ],
+      "foot": [
+        244,
+        402
+      ],
+      "source": "source/inn.png",
+      "crop": [
+        156,
+        101,
+        1094,
+        906
+      ],
+      "pixelsPerUnit": 64,
+      "camera": {
+        "yaw": 0,
+        "pitch": 45
+      },
+      "paletteColors": 61,
+      "alpha": [
+        0,
+        255
+      ],
+      "runtime": "godot-arcana/art/export/reference/inn-2d.png",
+      "collision": [
+        -3.65,
+        -2.2,
+        7.3,
+        2.2
+      ],
+      "door": "existing local (0,0,0)"
+    },
+    "restaurant": {
+      "size": [
+        488,
+        309
+      ],
+      "foot": [
+        244,
+        305
+      ],
+      "source": "source/restaurant.png",
+      "crop": [
+        166,
+        158,
+        1201,
+        754
+      ],
+      "pixelsPerUnit": 64,
+      "camera": {
+        "yaw": 0,
+        "pitch": 45
+      },
+      "paletteColors": 60,
+      "alpha": [
+        0,
+        255
+      ],
+      "runtime": "godot-arcana/art/export/reference/restaurant-2d.png",
+      "collision": [
+        -3.65,
+        -2.2,
+        7.3,
+        2.2
+      ],
+      "door": "existing local (0,0,0)"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/e85f2e40c16baa014bce12dfef22dbd0f56c5baf254099a058b81e44fd8d219f.res" id="3_li5qq"]
+[node name="Academy_stairs_up43" type="Sprite2D"]
+texture = ExtResource("3_li5qq")
+centered = false
+offset = Vector2(-148, -340.4)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-144, -166.4, 288, 132)]
+texture_filter = 1
+

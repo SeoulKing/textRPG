@@ -1,0 +1,616 @@
+{
+  "pixelsPerUnit": 64,
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "palette": "arcana-palette-lut.png",
+  "alpha": [
+    0,
+    255
+  ],
+  "assets": {
+    "potion-arch": {
+      "file": "res://art/export/shop-interior/potion-arch.png",
+      "size": [
+        136,
+        213
+      ],
+      "foot": [
+        68,
+        209
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        120,
+        16,
+        325,
+        521
+      ],
+      "worldWidth": 2.125,
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        2,
+        1
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "herb-cabinet": {
+      "file": "res://art/export/shop-interior/herb-cabinet.png",
+      "size": [
+        136,
+        201
+      ],
+      "foot": [
+        68,
+        197
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        605,
+        33,
+        331,
+        498
+      ],
+      "worldWidth": 2.125,
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        2,
+        1
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "travel-cabinet": {
+      "file": "res://art/export/shop-interior/travel-cabinet.png",
+      "size": [
+        152,
+        212
+      ],
+      "foot": [
+        76,
+        208
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        1104,
+        33,
+        352,
+        498
+      ],
+      "worldWidth": 2.375,
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        2.5,
+        1
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "counter": {
+      "file": "res://art/export/shop-interior/counter.png",
+      "size": [
+        296,
+        98
+      ],
+      "foot": [
+        148,
+        94
+      ],
+      "source": "counter-master.png",
+      "crop": [
+        95,
+        111,
+        1769,
+        552
+      ],
+      "worldWidth": 4.625,
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        4.5,
+        1
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "potion-island": {
+      "file": "res://art/export/shop-interior/potion-island.png",
+      "size": [
+        104,
+        93
+      ],
+      "foot": [
+        52,
+        89
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        634,
+        572,
+        412,
+        365
+      ],
+      "worldWidth": 1.625,
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        1.5,
+        1
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "travel-island": {
+      "file": "res://art/export/shop-interior/travel-island.png",
+      "size": [
+        104,
+        90
+      ],
+      "foot": [
+        52,
+        86
+      ],
+      "source": "furniture-master.png",
+      "crop": [
+        1085,
+        593,
+        404,
+        345
+      ],
+      "worldWidth": 1.625,
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        1.5,
+        1
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "merchant": {
+      "file": "res://art/export/shop-interior/merchant.png",
+      "size": [
+        96,
+        136
+      ],
+      "foot": [
+        48,
+        116
+      ],
+      "source": "merchant-master.png",
+      "crop": [
+        295,
+        226,
+        497,
+        1113
+      ],
+      "worldWidth": 1.5,
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        0.75,
+        0.5
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "floor-room-v2": {
+      "file": "res://art/export/shop-interior/floor-room-v2.png",
+      "size": [
+        896,
+        576
+      ],
+      "foot": [
+        448,
+        576
+      ],
+      "source": "compact-v2/floor-master.png",
+      "crop": [
+        0,
+        0,
+        1564,
+        1006
+      ],
+      "sourcePixelsPerUnit": 64,
+      "role": "unique-room-ground",
+      "worldRect": [
+        5,
+        4,
+        14,
+        9
+      ],
+      "repeat": false,
+      "pixelsPerWorldAxisUnit": [
+        64,
+        64
+      ]
+    },
+    "back-wall-v2": {
+      "file": "res://art/export/shop-interior/back-wall-v2.png",
+      "size": [
+        904,
+        246
+      ],
+      "foot": [
+        452,
+        242
+      ],
+      "source": "compact-v2/back-wall-master.png",
+      "crop": [
+        40,
+        106,
+        1962,
+        521
+      ],
+      "sourcePixelsPerUnit": 64,
+      "role": "unique-back-wall",
+      "visibleWidth": 14
+    },
+    "front-wall-left-v2": {
+      "file": "res://art/export/shop-interior/front-wall-left-v2.png",
+      "size": [
+        352,
+        48
+      ],
+      "foot": [
+        176,
+        44
+      ],
+      "source": "compact-v2/back-wall-v2.png",
+      "crop": [
+        4,
+        194,
+        352,
+        48
+      ],
+      "sourcePixelsPerUnit": 64,
+      "role": "low-front-cutaway",
+      "visibleWidth": 5.5
+    },
+    "front-wall-right-v2": {
+      "file": "res://art/export/shop-interior/front-wall-right-v2.png",
+      "size": [
+        352,
+        48
+      ],
+      "foot": [
+        176,
+        44
+      ],
+      "source": "compact-v2/back-wall-v2.png",
+      "crop": [
+        548,
+        194,
+        352,
+        48
+      ],
+      "sourcePixelsPerUnit": 64,
+      "role": "low-front-cutaway",
+      "visibleWidth": 5.5
+    },
+    "apothecary-bench-v2": {
+      "file": "res://art/export/shop-interior/apothecary-bench-v2.png",
+      "size": [
+        200,
+        88
+      ],
+      "foot": [
+        100,
+        84
+      ],
+      "source": "compact-v2/props-master.png",
+      "crop": [
+        56,
+        55,
+        745,
+        311
+      ],
+      "sourcePixelsPerUnit": 64,
+      "role": "sprite",
+      "footprintCells": [
+        3,
+        1
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "travel-stock-v2": {
+      "file": "res://art/export/shop-interior/travel-stock-v2.png",
+      "size": [
+        136,
+        99
+      ],
+      "foot": [
+        68,
+        95
+      ],
+      "source": "compact-v2/props-master.png",
+      "crop": [
+        975,
+        82,
+        465,
+        332
+      ],
+      "sourcePixelsPerUnit": 64,
+      "role": "sprite",
+      "footprintCells": [
+        2,
+        1
+      ],
+      "footprintAnchor": "front-center"
+    },
+    "side-wall-left-v2": {
+      "file": "res://art/export/shop-interior/side-wall-left-v2.png",
+      "size": [
+        48,
+        456
+      ],
+      "foot": [
+        24,
+        452
+      ],
+      "source": "compact-v2/props-master.png",
+      "crop": [
+        361,
+        433,
+        47,
+        528
+      ],
+      "sourcePixelsPerUnit": 64,
+      "role": "low-side-cutaway"
+    },
+    "side-wall-right-v2": {
+      "file": "res://art/export/shop-interior/side-wall-right-v2.png",
+      "size": [
+        48,
+        456
+      ],
+      "foot": [
+        24,
+        452
+      ],
+      "source": "compact-v2/props-master.png",
+      "crop": [
+        1128,
+        433,
+        47,
+        528
+      ],
+      "sourcePixelsPerUnit": 64,
+      "role": "low-side-cutaway"
+    },
+    "room-boundary-v3": {
+      "file": "res://art/export/shop-interior/room-boundary-v3.png",
+      "size": [
+        928,
+        430
+      ],
+      "foot": [
+        464,
+        402
+      ],
+      "source": "wall-layout-v3/boundary-master.png",
+      "crop": [
+        58,
+        48,
+        1682,
+        780
+      ],
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        14,
+        9
+      ],
+      "role": "continuous-low-room-boundary",
+      "registration": {
+        "point": [
+          12,
+          12.5
+        ],
+        "entranceCells": 2,
+        "outerArtMayOverhang": true
+      }
+    },
+    "back-wall-v4": {
+      "file": "res://art/export/shop-interior/back-wall-v4.png",
+      "size": [
+        904,
+        262
+      ],
+      "foot": [
+        452,
+        258
+      ],
+      "source": "top-finish-v4/back-wall-master.png",
+      "crop": [
+        10,
+        28,
+        2150,
+        610
+      ],
+      "role": "finished-top-coping-back-wall",
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        14,
+        0.5
+      ],
+      "registration": {
+        "point": [
+          12,
+          4
+        ],
+        "fullTopCoping": true
+      }
+    },
+    "back-wall-solid": {
+      "file": "res://art/export/shop-interior/back-wall-solid.png",
+      "size": [
+        904,
+        262
+      ],
+      "foot": [
+        452,
+        258
+      ],
+      "source": "art-studies/interiors/solid-walls-v1/shop-master.png",
+      "crop": [
+        12,
+        59,
+        2147,
+        607
+      ],
+      "role": "finished-top-coping-back-wall",
+      "sourcePixelsPerUnit": 64,
+      "footprintCells": [
+        14,
+        0.5
+      ],
+      "registration": {
+        "point": [
+          12,
+          4
+        ],
+        "fullTopCoping": true
+      },
+      "windowless": true
+    }
+  },
+  "itemIcon": {
+    "file": "res://art/export/items/mana-potion.png",
+    "size": [
+      64,
+      64
+    ],
+    "margin": 8,
+    "purpose": "UI thumbnail, not a world-scale object",
+    "source": "mana-potion-master.png",
+    "crop": [
+      378,
+      253,
+      552,
+      710
+    ]
+  },
+  "room": {
+    "version": 3,
+    "bounds": [
+      5,
+      4,
+      14,
+      9
+    ],
+    "floorPixels": [
+      896,
+      576
+    ],
+    "pixelsPerUnit": 64,
+    "tileMap": false,
+    "groundRepeat": false,
+    "design": "continuous floor and wall paintings; independent furniture, merchant, and cutaway frame",
+    "grid": {
+      "worldUnits": 1,
+      "logicPixels": 16,
+      "sourcePixels": 64,
+      "groundDepthProjectedPixels": 45.25483399593904,
+      "defaultPlacementStep": 0.5,
+      "footprintAnchor": "front-center",
+      "gridVisible": false
+    },
+    "layout": [
+      {
+        "asset": "herb-cabinet",
+        "x": 7.5,
+        "z": 5,
+        "w": 2,
+        "d": 1
+      },
+      {
+        "asset": "herb-cabinet",
+        "x": 9.5,
+        "z": 5,
+        "w": 2,
+        "d": 1
+      },
+      {
+        "asset": "potion-arch",
+        "x": 11.5,
+        "z": 5,
+        "w": 2,
+        "d": 1
+      },
+      {
+        "asset": "travel-cabinet",
+        "x": 13.75,
+        "z": 5,
+        "w": 2.5,
+        "d": 1
+      },
+      {
+        "asset": "travel-cabinet",
+        "x": 16.25,
+        "z": 5,
+        "w": 2.5,
+        "d": 1
+      },
+      {
+        "asset": "merchant",
+        "x": 12,
+        "z": 6.65,
+        "w": 0.75,
+        "d": 0.5,
+        "fade": false
+      },
+      {
+        "asset": "counter",
+        "x": 12,
+        "z": 7.75,
+        "w": 4.5,
+        "d": 1
+      },
+      {
+        "asset": "apothecary-bench-v2",
+        "x": 7,
+        "z": 8.5,
+        "w": 3,
+        "d": 1
+      },
+      {
+        "asset": "potion-island",
+        "x": 6.5,
+        "z": 10,
+        "w": 1.5,
+        "d": 1
+      },
+      {
+        "asset": "travel-island",
+        "x": 17.5,
+        "z": 11,
+        "w": 1.5,
+        "d": 1
+      },
+      {
+        "asset": "travel-stock-v2",
+        "x": 17.5,
+        "z": 12,
+        "w": 2,
+        "d": 1
+      },
+      {
+        "asset": "luggage",
+        "x": 7,
+        "z": 11.5,
+        "w": 1.5,
+        "d": 1,
+        "shared": true
+      },
+      {
+        "asset": "plant",
+        "x": 6,
+        "z": 11.5,
+        "w": 0.75,
+        "d": 0.75,
+        "shared": true
+      },
+      {
+        "asset": "plant",
+        "x": 18,
+        "z": 9.5,
+        "w": 0.75,
+        "d": 0.75,
+        "shared": true
+      }
+    ],
+    "backWall": "back-wall-solid",
+    "voidColor": "#000000"
+  }
+}

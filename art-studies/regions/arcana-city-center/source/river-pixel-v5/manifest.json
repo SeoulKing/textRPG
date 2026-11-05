@@ -1,0 +1,52 @@
+{
+  "requestDate": "2026-11-02",
+  "approvedDirection": "인게임 후보1 맑은 청색",
+  "nativePixelRedraw": true,
+  "bitmapImportedIntoNewMasters": false,
+  "reference": "res://art/source/river-clear-v4/base.pxpen",
+  "sources": {
+    "base": "res://art/source/river-pixel-v5/base.pxpen",
+    "highlights": "res://art/source/river-pixel-v5/highlights.pxpen"
+  },
+  "layers": {
+    "base": 2,
+    "highlightsPerFrame": 2,
+    "highlightFrames": 16,
+    "highlightFps": 8
+  },
+  "paletteColors": 16,
+  "sourceCanvas": [
+    448,
+    448
+  ],
+  "tileSize": [
+    64,
+    64
+  ],
+  "worldPixelsPerUnit": 64,
+  "referenceContourFrequency": 2,
+  "highlightGuidePaths": 628,
+  "overlayNode": "HighlightFlow",
+  "wholeSurfaceScroll": false,
+  "uvWarp": false,
+  "preserved": [
+    "waterCells",
+    "positions",
+    "bridge",
+    "banks",
+    "collision",
+    "fishingGeometry"
+  ],
+  "verification": {
+    "nativeSavedReopenedExported": true,
+    "offlineGameRenderer": "render-package/",
+    "animation": "render-package/river-highlight-flow.gif",
+    "strictPackLoad": true,
+    "collisionDataUnchanged": true,
+    "httpGzipHashMatches": true,
+    "pckSha256": "205EB6B4B541125AFEB595907BB4ED741DCFB093A49CBE84B0EBF747186BFDA6",
+    "playTestsRun": false,
+    "browserUsed": false,
+    "userArtReviewPending": true
+  }
+}

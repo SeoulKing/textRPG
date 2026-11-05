@@ -1,0 +1,56 @@
+{
+  "approvedOption": 2,
+  "approvalDate": "2026-11-02",
+  "request": "깊은 남청색 수면, 바다 같은 무늬와 픽셀 선 효과 대신 도트 프레임 흐름",
+  "pixelsPerWorldUnit": 64,
+  "tileSize": [
+    64,
+    64
+  ],
+  "layers": {
+    "Water": {
+      "type": "TileMapLayer",
+      "cells": [
+        64,
+        5
+      ],
+      "animated": false
+    },
+    "RippleDots": {
+      "type": "TileMapLayer",
+      "variations": 8,
+      "frames": 12,
+      "fps": 6
+    },
+    "LanternReflections": {
+      "type": "Sprite2D",
+      "instances": 7,
+      "frames": 12,
+      "fps": 6
+    }
+  },
+  "motion": {
+    "wholeSurfaceScroll": false,
+    "uvDeformation": false,
+    "pixelSteps": 1,
+    "staggered": true,
+    "reducedMotionFrame": 0
+  },
+  "sources": [
+    "res://art/source/river-navy-v2/base.pxpen",
+    "res://art/source/river-navy-v2/ripples.pxpen",
+    "res://art/source/river-navy-v2/reflections.pxpen"
+  ],
+  "collisionUnchanged": true,
+  "verification": {
+    "nativeSaveReopenExport": true,
+    "packageResourceLoad": true,
+    "offlineRender": "render-package/",
+    "motionPreview": "render-package/river-flow.gif",
+    "webBuild": ".runtime/godot/online-build-20261102-133828/web",
+    "pckSha256": "76D204E625FEBB22AB94B5C9C4D03B64815EC4A706ECD4A3FF8EC9F62DFAA971",
+    "httpGzipHashMatches": true,
+    "playTestsRun": false,
+    "browserUsed": false
+  }
+}

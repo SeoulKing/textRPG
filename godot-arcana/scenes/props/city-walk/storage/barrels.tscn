@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/2acefd39a0062e5db94496f42482ca7fc047c6ea0cb10e0e7d614b6481e8d345.res" id="18_y6sxu"]
+[node name="MarketBarrels" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "barrels"
+collision_parts = Array[Rect2]([Rect2(-8.8, -11.2, 17.600006, 11.200012)])
+source_path = "CityWalk/barrels_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("18_y6sxu")
+centered = false
+offset = Vector2(-48, -85.8)
+region_rect = Rect2(0, 0, 96, 88)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(96, 88)
+

@@ -1,0 +1,1124 @@
+{
+  "version": 1,
+  "source": "art-studies/city-walls/enclosure-master-v1/enclosure-concept.png",
+  "uniformScale": 0.75,
+  "grid": [
+    16,
+    16
+  ],
+  "atlasCell": [
+    16,
+    16
+  ],
+  "atlasSize": [
+    1024,
+    896
+  ],
+  "masterSize": [
+    1056,
+    848
+  ],
+  "parts": [
+    {
+      "id": "nw",
+      "label": "뒤 왼쪽 모서리",
+      "sourceRect": [
+        32,
+        32,
+        96,
+        208
+      ],
+      "atlas": [
+        0,
+        0
+      ],
+      "atlasSize": [
+        6,
+        13
+      ],
+      "origin": [
+        -40,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          40,
+          180,
+          48,
+          12
+        ],
+        [
+          24,
+          192,
+          32,
+          136
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "north_left",
+      "label": "뒤 직선 A",
+      "sourceRect": [
+        128,
+        64,
+        240,
+        176
+      ],
+      "atlas": [
+        6,
+        0
+      ],
+      "atlasSize": [
+        15,
+        11
+      ],
+      "origin": [
+        -112,
+        -80
+      ],
+      "sortOrigin": 160,
+      "collision": [
+        [
+          -8,
+          148,
+          240,
+          12
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "north_post_a",
+      "label": "뒤 기둥 A",
+      "sourceRect": [
+        368,
+        32,
+        64,
+        208
+      ],
+      "atlas": [
+        21,
+        0
+      ],
+      "atlasSize": [
+        4,
+        13
+      ],
+      "origin": [
+        -24,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          64,
+          12
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "north_middle",
+      "label": "뒤 직선 B",
+      "sourceRect": [
+        432,
+        64,
+        176,
+        176
+      ],
+      "atlas": [
+        25,
+        0
+      ],
+      "atlasSize": [
+        11,
+        11
+      ],
+      "origin": [
+        -80,
+        -80
+      ],
+      "sortOrigin": 160,
+      "collision": [
+        [
+          -8,
+          148,
+          176,
+          12
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "north_post_b",
+      "label": "뒤 기둥 B",
+      "sourceRect": [
+        608,
+        32,
+        64,
+        208
+      ],
+      "atlas": [
+        36,
+        0
+      ],
+      "atlasSize": [
+        4,
+        13
+      ],
+      "origin": [
+        -24,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          64,
+          12
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "north_right",
+      "label": "뒤 직선 C",
+      "sourceRect": [
+        672,
+        64,
+        256,
+        176
+      ],
+      "atlas": [
+        40,
+        0
+      ],
+      "atlasSize": [
+        16,
+        11
+      ],
+      "origin": [
+        -120,
+        -80
+      ],
+      "sortOrigin": 160,
+      "collision": [
+        [
+          -8,
+          148,
+          256,
+          12
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "ne",
+      "label": "뒤 오른쪽 모서리",
+      "sourceRect": [
+        928,
+        32,
+        96,
+        208
+      ],
+      "atlas": [
+        56,
+        0
+      ],
+      "atlasSize": [
+        6,
+        13
+      ],
+      "origin": [
+        -40,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          48,
+          12
+        ],
+        [
+          24,
+          192,
+          32,
+          136
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "left_post",
+      "label": "왼쪽 세로 기둥",
+      "sourceRect": [
+        32,
+        240,
+        96,
+        96
+      ],
+      "atlas": [
+        0,
+        13
+      ],
+      "atlasSize": [
+        6,
+        6
+      ],
+      "origin": [
+        -40,
+        -40
+      ],
+      "sortOrigin": 216,
+      "collision": [
+        [
+          24,
+          120,
+          32,
+          96
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "left_straight",
+      "label": "왼쪽 세로 직선",
+      "sourceRect": [
+        32,
+        336,
+        96,
+        160
+      ],
+      "atlas": [
+        6,
+        13
+      ],
+      "atlasSize": [
+        6,
+        10
+      ],
+      "origin": [
+        -40,
+        -72
+      ],
+      "sortOrigin": 280,
+      "collision": [
+        [
+          24,
+          120,
+          32,
+          160
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "right_post",
+      "label": "오른쪽 세로 기둥",
+      "sourceRect": [
+        928,
+        240,
+        96,
+        96
+      ],
+      "atlas": [
+        12,
+        13
+      ],
+      "atlasSize": [
+        6,
+        6
+      ],
+      "origin": [
+        -40,
+        -40
+      ],
+      "sortOrigin": 216,
+      "collision": [
+        [
+          24,
+          120,
+          32,
+          96
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "right_straight",
+      "label": "오른쪽 세로 직선",
+      "sourceRect": [
+        928,
+        336,
+        96,
+        160
+      ],
+      "atlas": [
+        18,
+        13
+      ],
+      "atlasSize": [
+        6,
+        10
+      ],
+      "origin": [
+        -40,
+        -72
+      ],
+      "sortOrigin": 280,
+      "collision": [
+        [
+          24,
+          120,
+          32,
+          160
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "sw",
+      "label": "앞 왼쪽 모서리",
+      "sourceRect": [
+        32,
+        496,
+        96,
+        240
+      ],
+      "atlas": [
+        24,
+        13
+      ],
+      "atlasSize": [
+        6,
+        15
+      ],
+      "origin": [
+        -40,
+        -112
+      ],
+      "sortOrigin": 224,
+      "collision": [
+        [
+          40,
+          212,
+          48,
+          12
+        ],
+        [
+          24,
+          120,
+          32,
+          104
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "front_left",
+      "label": "앞 직선 A",
+      "sourceRect": [
+        128,
+        528,
+        256,
+        208
+      ],
+      "atlas": [
+        30,
+        13
+      ],
+      "atlasSize": [
+        16,
+        13
+      ],
+      "origin": [
+        -120,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          256,
+          12
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "gate_left",
+      "label": "입구 왼쪽 끝",
+      "sourceRect": [
+        384,
+        496,
+        96,
+        240
+      ],
+      "atlas": [
+        46,
+        13
+      ],
+      "atlasSize": [
+        6,
+        15
+      ],
+      "origin": [
+        -40,
+        -112
+      ],
+      "sortOrigin": 224,
+      "collision": [
+        [
+          0,
+          208,
+          80,
+          20
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "gate_right",
+      "label": "입구 오른쪽 끝",
+      "sourceRect": [
+        576,
+        496,
+        96,
+        240
+      ],
+      "atlas": [
+        52,
+        13
+      ],
+      "atlasSize": [
+        6,
+        15
+      ],
+      "origin": [
+        -40,
+        -112
+      ],
+      "sortOrigin": 224,
+      "collision": [
+        [
+          0,
+          208,
+          80,
+          20
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "front_right",
+      "label": "앞 직선 B",
+      "sourceRect": [
+        672,
+        528,
+        256,
+        208
+      ],
+      "atlas": [
+        0,
+        28
+      ],
+      "atlasSize": [
+        16,
+        13
+      ],
+      "origin": [
+        -120,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          256,
+          12
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "se",
+      "label": "앞 오른쪽 모서리",
+      "sourceRect": [
+        928,
+        496,
+        96,
+        240
+      ],
+      "atlas": [
+        16,
+        28
+      ],
+      "atlasSize": [
+        6,
+        15
+      ],
+      "origin": [
+        -40,
+        -112
+      ],
+      "sortOrigin": 224,
+      "collision": [
+        [
+          -8,
+          212,
+          48,
+          12
+        ],
+        [
+          24,
+          120,
+          32,
+          104
+        ]
+      ],
+      "repeat": false
+    },
+    {
+      "id": "north_repeat",
+      "label": "뒤 반복 벽 · 기둥 포함",
+      "sourceRect": [
+        368,
+        32,
+        304,
+        208
+      ],
+      "atlas": [
+        22,
+        28
+      ],
+      "atlasSize": [
+        19,
+        13
+      ],
+      "origin": [
+        -144,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          304,
+          12
+        ]
+      ],
+      "repeat": true
+    },
+    {
+      "id": "front_repeat_left",
+      "label": "앞 반복 벽 A · 128px",
+      "sourceRect": [
+        160,
+        528,
+        128,
+        208
+      ],
+      "atlas": [
+        41,
+        28
+      ],
+      "atlasSize": [
+        8,
+        13
+      ],
+      "origin": [
+        -56,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          128,
+          12
+        ]
+      ],
+      "repeat": true
+    },
+    {
+      "id": "front_repeat_right",
+      "label": "앞 반복 벽 B · 128px",
+      "sourceRect": [
+        160,
+        528,
+        128,
+        208
+      ],
+      "atlas": [
+        49,
+        28
+      ],
+      "atlasSize": [
+        8,
+        13
+      ],
+      "origin": [
+        -56,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          128,
+          12
+        ]
+      ],
+      "repeat": true
+    },
+    {
+      "id": "left_repeat",
+      "label": "왼쪽 반복 벽 · 160px",
+      "sourceRect": [
+        32,
+        336,
+        96,
+        160
+      ],
+      "atlas": [
+        57,
+        28
+      ],
+      "atlasSize": [
+        6,
+        10
+      ],
+      "origin": [
+        -40,
+        -72
+      ],
+      "sortOrigin": 280,
+      "collision": [
+        [
+          24,
+          120,
+          32,
+          160
+        ]
+      ],
+      "repeat": true
+    },
+    {
+      "id": "right_repeat",
+      "label": "오른쪽 반복 벽 · 160px",
+      "sourceRect": [
+        928,
+        336,
+        96,
+        160
+      ],
+      "atlas": [
+        0,
+        43
+      ],
+      "atlasSize": [
+        6,
+        10
+      ],
+      "origin": [
+        -40,
+        -72
+      ],
+      "sortOrigin": 280,
+      "collision": [
+        [
+          24,
+          120,
+          32,
+          160
+        ]
+      ],
+      "repeat": true
+    },
+    {
+      "id": "front_extend_left",
+      "label": "앞 연결 벽 A · 112px",
+      "sourceRect": [
+        160,
+        528,
+        112,
+        208
+      ],
+      "atlas": [
+        6,
+        43
+      ],
+      "atlasSize": [
+        7,
+        13
+      ],
+      "origin": [
+        -48,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          112,
+          12
+        ]
+      ],
+      "repeat": true
+    },
+    {
+      "id": "front_extend_right",
+      "label": "앞 연결 벽 B · 112px",
+      "sourceRect": [
+        160,
+        528,
+        112,
+        208
+      ],
+      "atlas": [
+        13,
+        43
+      ],
+      "atlasSize": [
+        7,
+        13
+      ],
+      "origin": [
+        -48,
+        -96
+      ],
+      "sortOrigin": 192,
+      "collision": [
+        [
+          -8,
+          180,
+          112,
+          12
+        ]
+      ],
+      "repeat": true
+    }
+  ],
+  "arrangements": {
+    "original": {
+      "placements": [
+        {
+          "part": "nw",
+          "cell": [
+            2,
+            2
+          ]
+        },
+        {
+          "part": "north_left",
+          "cell": [
+            8,
+            4
+          ]
+        },
+        {
+          "part": "north_post_a",
+          "cell": [
+            23,
+            2
+          ]
+        },
+        {
+          "part": "north_middle",
+          "cell": [
+            27,
+            4
+          ]
+        },
+        {
+          "part": "north_post_b",
+          "cell": [
+            38,
+            2
+          ]
+        },
+        {
+          "part": "north_right",
+          "cell": [
+            42,
+            4
+          ]
+        },
+        {
+          "part": "ne",
+          "cell": [
+            58,
+            2
+          ]
+        },
+        {
+          "part": "left_post",
+          "cell": [
+            2,
+            15
+          ]
+        },
+        {
+          "part": "left_straight",
+          "cell": [
+            2,
+            21
+          ]
+        },
+        {
+          "part": "right_post",
+          "cell": [
+            58,
+            15
+          ]
+        },
+        {
+          "part": "right_straight",
+          "cell": [
+            58,
+            21
+          ]
+        },
+        {
+          "part": "sw",
+          "cell": [
+            2,
+            31
+          ]
+        },
+        {
+          "part": "front_left",
+          "cell": [
+            8,
+            33
+          ]
+        },
+        {
+          "part": "gate_left",
+          "cell": [
+            24,
+            31
+          ]
+        },
+        {
+          "part": "gate_right",
+          "cell": [
+            36,
+            31
+          ]
+        },
+        {
+          "part": "front_right",
+          "cell": [
+            42,
+            33
+          ]
+        },
+        {
+          "part": "se",
+          "cell": [
+            58,
+            31
+          ]
+        }
+      ]
+    },
+    "expanded": {
+      "placements": [
+        {
+          "part": "nw",
+          "cell": [
+            2,
+            2
+          ]
+        },
+        {
+          "part": "north_left",
+          "cell": [
+            8,
+            4
+          ]
+        },
+        {
+          "part": "north_right",
+          "cell": [
+            72,
+            4
+          ]
+        },
+        {
+          "part": "ne",
+          "cell": [
+            88,
+            2
+          ]
+        },
+        {
+          "part": "left_post",
+          "cell": [
+            2,
+            15
+          ]
+        },
+        {
+          "part": "left_straight",
+          "cell": [
+            2,
+            21
+          ]
+        },
+        {
+          "part": "right_post",
+          "cell": [
+            88,
+            15
+          ]
+        },
+        {
+          "part": "right_straight",
+          "cell": [
+            88,
+            21
+          ]
+        },
+        {
+          "part": "sw",
+          "cell": [
+            2,
+            41
+          ]
+        },
+        {
+          "part": "gate_left",
+          "cell": [
+            39,
+            41
+          ]
+        },
+        {
+          "part": "gate_right",
+          "cell": [
+            51,
+            41
+          ]
+        },
+        {
+          "part": "se",
+          "cell": [
+            88,
+            41
+          ]
+        },
+        {
+          "part": "north_repeat",
+          "cell": [
+            23,
+            2
+          ]
+        },
+        {
+          "part": "north_repeat",
+          "cell": [
+            38,
+            2
+          ]
+        },
+        {
+          "part": "north_repeat",
+          "cell": [
+            53,
+            2
+          ]
+        },
+        {
+          "part": "left_repeat",
+          "cell": [
+            2,
+            31
+          ]
+        },
+        {
+          "part": "right_repeat",
+          "cell": [
+            88,
+            31
+          ]
+        },
+        {
+          "part": "front_repeat_left",
+          "cell": [
+            8,
+            43
+          ]
+        },
+        {
+          "part": "front_repeat_left",
+          "cell": [
+            16,
+            43
+          ]
+        },
+        {
+          "part": "front_repeat_right",
+          "cell": [
+            72,
+            43
+          ]
+        },
+        {
+          "part": "front_repeat_right",
+          "cell": [
+            80,
+            43
+          ]
+        },
+        {
+          "part": "front_extend_left",
+          "cell": [
+            24,
+            43
+          ]
+        },
+        {
+          "part": "front_repeat_left",
+          "cell": [
+            31,
+            43
+          ]
+        },
+        {
+          "part": "front_repeat_right",
+          "cell": [
+            57,
+            43
+          ]
+        },
+        {
+          "part": "front_extend_right",
+          "cell": [
+            65,
+            43
+          ]
+        }
+      ]
+    }
+  },
+  "authoring": {
+    "method": "Approved complete enclosure -> exact crop parts -> PixelPen seam repairs for repeat-only variants",
+    "originalOpaquePixelLoss": 0,
+    "removedLowAlphaPixels": 107804
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "canvas": [
+    176,
+    272
+  ],
+  "footPixel": [
+    88,
+    250
+  ],
+  "footprintTiles": [
+    2,
+    3
+  ],
+  "guiBrushSession": false,
+  "layers": 2,
+  "nativeFinishEdits": 538,
+  "paletteColors": 42,
+  "savedReopenedExported": true,
+  "tool": "Godot 4.5.1 / PixelPen 1.1.4 native indexed API",
+  "tracedIndexedPixels": 27763
+}

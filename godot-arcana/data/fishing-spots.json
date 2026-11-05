@@ -1,0 +1,6 @@
+[
+  {"id":"river_north_west","x":480,"y":580},
+  {"id":"river_north_east","x":680,"y":580},
+  {"id":"river_south_west","x":480,"y":706},
+  {"id":"river_south_east","x":680,"y":706}
+]

@@ -1,0 +1,585 @@
+{
+  "actual_used_opaque_colors": 16,
+  "canvas_size": [
+    48,
+    48
+  ],
+  "character_proportion_heads": 3,
+  "character_target_canvas": [
+    96,
+    136
+  ],
+  "direction_order": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "directions": {
+    "e": {
+      "actual_opaque_colors": 12,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "83b142e4b538abbb859571aa4f32ab30cf43c5d022d083a9f3c1c118bd77bbfc",
+      "landmarks": {
+        "waist": [
+          24,
+          9
+        ]
+      },
+      "layers": {
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/pelvis/e/leather.png",
+          "sha256": "f5ad60ef4f737e7814952b6969bf8e0144507249d6909e2da2df78bd020712c7"
+        },
+        "lining": {
+          "path": "res://art/characters/hybrid-v1/pelvis/e/lining.png",
+          "sha256": "6ef4a45ac0f31ea39cbb057672374213c2c191e2126da0d1d9b43f35129f76ad"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/pelvis/e/metal.png",
+          "sha256": "0fef30f756459e8801555e817c7f87868137f2956f67b3e204eb180760506943"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/pelvis/e/silhouette.png",
+          "sha256": "26eb86e44bd85b7e9fd11aa58525b7799cdf5b43ec7101f4904c598dfe10d56b"
+        },
+        "tabard": {
+          "path": "res://art/characters/hybrid-v1/pelvis/e/tabard.png",
+          "sha256": "6081ce8dc2308882a698927c9c99b7cba48e9adf079020cd779109af834c5b67"
+        }
+      },
+      "native_fingerprint": "83b142e4b538abbb859571aa4f32ab30cf43c5d022d083a9f3c1c118bd77bbfc",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/pelvis/e/pelvis.pxpen",
+      "opaque_bounds": [
+        12,
+        5,
+        23,
+        25
+      ],
+      "output_sha256": "f8f2d98643f92fb082f5237e23da68c5932f2a2efd1e5b7f16a191377ff33585",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/pelvis/e/pelvis.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        1377,
+        234,
+        198,
+        210
+      ],
+      "source_sha256": "02b2191c4dd62da04ad6081ac7441e83928f4121eda223aaf66736d177a1a24d",
+      "source_waist_axis_x_relative": 103.647058823529
+    },
+    "n": {
+      "actual_opaque_colors": 13,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "e2dda2f708444120df1a1bd9e868b5c6c8d0b30fc5a139a1f9a649a41c5458a8",
+      "landmarks": {
+        "waist": [
+          24,
+          9
+        ]
+      },
+      "layers": {
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/pelvis/n/leather.png",
+          "sha256": "dcb39588f6e43cd7e4bb63fe562209963d1b7e4e02b14e16cda53163e2f46e5b"
+        },
+        "lining": {
+          "path": "res://art/characters/hybrid-v1/pelvis/n/lining.png",
+          "sha256": "ae6a35756fe9e2b31815974b7ea0d5d75e3d78d084730a820c8a4e0133f8878e"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/pelvis/n/metal.png",
+          "sha256": "dfa4c08feaba730f32cadd830d9f2609cf141ead94ef23e5003a8f1ae3b03df0"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/pelvis/n/silhouette.png",
+          "sha256": "fb4b2e4c16c77f470259368d9a74a7a7d9fb717ab1d563a95c895d6fc8f1769e"
+        },
+        "tabard": {
+          "path": "res://art/characters/hybrid-v1/pelvis/n/tabard.png",
+          "sha256": "58a934e67cb86f7972d50331db524712318ecfce6cb6b6de806852a61817d033"
+        }
+      },
+      "native_fingerprint": "e2dda2f708444120df1a1bd9e868b5c6c8d0b30fc5a139a1f9a649a41c5458a8",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/pelvis/n/pelvis.pxpen",
+      "opaque_bounds": [
+        10,
+        5,
+        28,
+        21
+      ],
+      "output_sha256": "da415cc8d27ac2dd15353dc2a250e6c264fed242ce5fb9c6564c8e5d0c693fed",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/pelvis/n/pelvis.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        848,
+        238,
+        235,
+        178
+      ],
+      "source_sha256": "59996fa2ea99e4038dec35baca63c922174f787d8e0a2f3ec47a58d4d665c4be",
+      "source_waist_axis_x_relative": 117.714285714286
+    },
+    "ne": {
+      "actual_opaque_colors": 15,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "3da64cd0711e0358dc3cbdc67f210d2e91dfc768172d25774e2c0121e55ffada",
+      "landmarks": {
+        "waist": [
+          24,
+          9
+        ]
+      },
+      "layers": {
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/pelvis/ne/leather.png",
+          "sha256": "3da1c851bcf6e3d0fcd27b62e05ca82a267f468d47051a7bb94f317ce23a34e7"
+        },
+        "lining": {
+          "path": "res://art/characters/hybrid-v1/pelvis/ne/lining.png",
+          "sha256": "ac7329bd6489c64fc8aec282a0aea202f14fd0db4939d86671927ece0385deef"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/pelvis/ne/metal.png",
+          "sha256": "b2af4c6e813f02ee98615576630e875280f00167cdd0789261afd41e95ee220b"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/pelvis/ne/silhouette.png",
+          "sha256": "eb232f5858be7a58a816ab3227a74de6692673bc011697bb4359c8cf8885800a"
+        },
+        "tabard": {
+          "path": "res://art/characters/hybrid-v1/pelvis/ne/tabard.png",
+          "sha256": "a9c9904ff6e08edb105549ffdc4b849fbd4b8ac863f1c8e7e7a1f8df3d686dc6"
+        }
+      },
+      "native_fingerprint": "3da64cd0711e0358dc3cbdc67f210d2e91dfc768172d25774e2c0121e55ffada",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/pelvis/ne/pelvis.pxpen",
+      "opaque_bounds": [
+        11,
+        5,
+        26,
+        24
+      ],
+      "output_sha256": "59e26ead602aa640072f74f6e76cdd2c8341c5cd21f2d39c41822d6c04ed64c4",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/pelvis/ne/pelvis.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        1122,
+        234,
+        216,
+        199
+      ],
+      "source_sha256": "952862a3d0fed4a350bcb7381992db57d17dc3cbcd420a0d191e49c3722fefe7",
+      "source_waist_axis_x_relative": 108.65625
+    },
+    "nw": {
+      "actual_opaque_colors": 14,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "46bc0bf5d05e88c9f05cbca26f99e845b1e89cc34e1fcd9dff796d064a9ed1ec",
+      "landmarks": {
+        "waist": [
+          24,
+          9
+        ]
+      },
+      "layers": {
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/pelvis/nw/leather.png",
+          "sha256": "d4c6aadde64efd8e6f33cbd083768920e745aa4daef0276512fc2b54dd2f5c40"
+        },
+        "lining": {
+          "path": "res://art/characters/hybrid-v1/pelvis/nw/lining.png",
+          "sha256": "c0aa882efdc68eefde1fac0b4d75addeffaf002975eeff532911a4384fa2acb8"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/pelvis/nw/metal.png",
+          "sha256": "50c65ca3fc29f18c299d3af1c7706938496bcb49376e9376d011bbef9badaf2f"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/pelvis/nw/silhouette.png",
+          "sha256": "c5486241992df0733a3733866200e2657e509538b0e078901a2af9ef8f0500d9"
+        },
+        "tabard": {
+          "path": "res://art/characters/hybrid-v1/pelvis/nw/tabard.png",
+          "sha256": "804862306bd99fc092b57b6b470481f534dc16e27e4e4b7b71db1450aac2631e"
+        }
+      },
+      "native_fingerprint": "46bc0bf5d05e88c9f05cbca26f99e845b1e89cc34e1fcd9dff796d064a9ed1ec",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/pelvis/nw/pelvis.pxpen",
+      "opaque_bounds": [
+        12,
+        5,
+        25,
+        25
+      ],
+      "output_sha256": "2f3aac62a382fa995b5313b971dbb8bf4a8a89576b7dd6fcef8508a84a65560c",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/pelvis/nw/pelvis.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        604,
+        233,
+        208,
+        211
+      ],
+      "source_sha256": "56204a94468db4c774fcf1f09f64bef941f76b3a8fa5c2be1360ce9684285101",
+      "source_waist_axis_x_relative": 101.705882352941
+    },
+    "s": {
+      "actual_opaque_colors": 13,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "767bff1046f77c7b2e575398b7b3a80363dc3cb976fffacea7e46c4f8bff2acf",
+      "landmarks": {
+        "waist": [
+          24,
+          9
+        ]
+      },
+      "layers": {
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/pelvis/s/leather.png",
+          "sha256": "7c6e0abf666b96f60fea55a00270914c7382dde041ea995fbacc9d80223b394a"
+        },
+        "lining": {
+          "path": "res://art/characters/hybrid-v1/pelvis/s/lining.png",
+          "sha256": "b8f4beea32694b00ff8050028ac093a3619136cdf3513a959385c9390c64867d"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/pelvis/s/metal.png",
+          "sha256": "8f862ff873e8ce7016e3e6bb4556de5c9af7bdac2a5268600ec77867b186e1ed"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/pelvis/s/silhouette.png",
+          "sha256": "879d04c4f4ac82ae404d8768cde5f39db08d10d95109ff1545b6ef9654963a68"
+        },
+        "tabard": {
+          "path": "res://art/characters/hybrid-v1/pelvis/s/tabard.png",
+          "sha256": "7e0b03bfd281a783628bd725bd8c8d18ed49d893a93eff10350e97809fcd9034"
+        }
+      },
+      "native_fingerprint": "767bff1046f77c7b2e575398b7b3a80363dc3cb976fffacea7e46c4f8bff2acf",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/pelvis/s/pelvis.pxpen",
+      "opaque_bounds": [
+        10,
+        5,
+        28,
+        25
+      ],
+      "output_sha256": "efdfab7718e2115c2b5600c39612852f0b3a12441acfb8aa9b25a6fede42b507",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/pelvis/s/pelvis.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        1887,
+        233,
+        234,
+        212
+      ],
+      "source_sha256": "4120eaf237c9c3a2416ca56569f8a51b2d62a0008e88e173c9d07f7bd234b7e6",
+      "source_waist_axis_x_relative": 118.382352941176
+    },
+    "se": {
+      "actual_opaque_colors": 14,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "730b50f4ff2e8fd0a76c718569decde4d413b170b2dd8b1c9ba3e23560a93f50",
+      "landmarks": {
+        "waist": [
+          24,
+          9
+        ]
+      },
+      "layers": {
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/pelvis/se/leather.png",
+          "sha256": "cc8742e9bbc9b03efade0a9ec3000ee0377fdca569419484dd128b8d93a98050"
+        },
+        "lining": {
+          "path": "res://art/characters/hybrid-v1/pelvis/se/lining.png",
+          "sha256": "94aec2a7608796659c27fb23744d09659cf9744012e310373664f3f9c71b4151"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/pelvis/se/metal.png",
+          "sha256": "b48a438bca4fc2bdda34d77c6b73103882ed20033adf335f061c99072ec74ce3"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/pelvis/se/silhouette.png",
+          "sha256": "7329bcde49228f6c9db53f9c017ddc23cf27551ce0e3094bc41bbc306e3eaad6"
+        },
+        "tabard": {
+          "path": "res://art/characters/hybrid-v1/pelvis/se/tabard.png",
+          "sha256": "03ef4398f1a550910e9bef840010ba0ecf70cc93dbfab3168255f3e70fbf4ae8"
+        }
+      },
+      "native_fingerprint": "730b50f4ff2e8fd0a76c718569decde4d413b170b2dd8b1c9ba3e23560a93f50",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/pelvis/se/pelvis.pxpen",
+      "opaque_bounds": [
+        10,
+        5,
+        28,
+        24
+      ],
+      "output_sha256": "0a4b3df5919599f68fc64b6925f5896422f8c89075c8b88375656fc1e694c7ca",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/pelvis/se/pelvis.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        1616,
+        229,
+        232,
+        204
+      ],
+      "source_sha256": "5bf2b8635b7ba4760b4720531bbe4d12f9f695512c93fc2766c97c893f18e040",
+      "source_waist_axis_x_relative": 115.15625
+    },
+    "sw": {
+      "actual_opaque_colors": 14,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "0e01468164d297ad5444ec2e3fcbfe6306e8e2e48a043734a0314f96fe17cd72",
+      "landmarks": {
+        "waist": [
+          24,
+          9
+        ]
+      },
+      "layers": {
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/pelvis/sw/leather.png",
+          "sha256": "59bc48da4af3fba56c7bbfa9477e67d8c63ee13db3ad939f8ce43c2411814605"
+        },
+        "lining": {
+          "path": "res://art/characters/hybrid-v1/pelvis/sw/lining.png",
+          "sha256": "6d20a461f3494d42d63478ea598f8a7ee1b5537425528de3c58dc0a9e32a07a4"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/pelvis/sw/metal.png",
+          "sha256": "a53e453c438f2a099ccdbd118d1e4c93cace503107014346e247f06e07ca7538"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/pelvis/sw/silhouette.png",
+          "sha256": "ce68f9bdc64bbada07853e1052af0c469d490321efb14e113554a895570a2447"
+        },
+        "tabard": {
+          "path": "res://art/characters/hybrid-v1/pelvis/sw/tabard.png",
+          "sha256": "291e454f243f76da96b2ae9785c90a0382d8acc27022a6db6c8a8e3753824790"
+        }
+      },
+      "native_fingerprint": "0e01468164d297ad5444ec2e3fcbfe6306e8e2e48a043734a0314f96fe17cd72",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/pelvis/sw/pelvis.pxpen",
+      "opaque_bounds": [
+        9,
+        5,
+        28,
+        27
+      ],
+      "output_sha256": "b2da9d985463efd1e6d71cdbabf0ce8d6dbd520f20b2a801acc0bac1f2d9e167",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/pelvis/sw/pelvis.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        68,
+        229,
+        235,
+        225
+      ],
+      "source_sha256": "d6c78683125cb6e3753fe4d5effb3b9146110456f6540cd3c47ca51877d849e3",
+      "source_waist_axis_x_relative": 122.166666666667
+    },
+    "w": {
+      "actual_opaque_colors": 14,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "bc29bf498e5f2bf1618cbba21569b1d694e639a8abeada0a5def1c6ac8d5a411",
+      "landmarks": {
+        "waist": [
+          24,
+          9
+        ]
+      },
+      "layers": {
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/pelvis/w/leather.png",
+          "sha256": "b0c2b61b377be03506851bbfca50e78f5423529684be3c872cb2349158387be8"
+        },
+        "lining": {
+          "path": "res://art/characters/hybrid-v1/pelvis/w/lining.png",
+          "sha256": "7c526b560c03bfda45f0aa21bd0c59e0b112e74a789660016540e76fed7075d0"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/pelvis/w/metal.png",
+          "sha256": "f670df63d017938dc19ac293c352628b9121cab8d0e12cc775c67530e3a8819a"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/pelvis/w/silhouette.png",
+          "sha256": "ddf3435f2968e23884d18db3418c01b9a3e1bf2a410c3fa92b3f487a012820e1"
+        },
+        "tabard": {
+          "path": "res://art/characters/hybrid-v1/pelvis/w/tabard.png",
+          "sha256": "db8cab1c47ea7e5e907de3590449a0f09bd28adb11b9fb40e27e1d77aaa1e6df"
+        }
+      },
+      "native_fingerprint": "bc29bf498e5f2bf1618cbba21569b1d694e639a8abeada0a5def1c6ac8d5a411",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/pelvis/w/pelvis.pxpen",
+      "opaque_bounds": [
+        11,
+        5,
+        25,
+        26
+      ],
+      "output_sha256": "7a8c4b272960dae6de02f10ccd429b3a31e2b1cb1c9bdb3bf54a7fcd91932961",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/pelvis/w/pelvis.png",
+      "png_roundtrip_matches": true,
+      "source_rect": [
+        353,
+        233,
+        201,
+        219
+      ],
+      "source_sha256": "e455fd0d5f88b267c10269c8a8fc20d7626b11787f7dccf0e46056a60460a309",
+      "source_waist_axis_x_relative": 104.027777777778
+    }
+  },
+  "layers_semantics": "leather belt/skirt, cream lining, muted red tabard, gold buckle/stars, outer silhouette; rear gold stars preserved",
+  "outline_owner": "pelvis silhouette layer, baked once; disable additional outline when displaying pelvis.png",
+  "palette_rgba": [
+    "00000000",
+    "352d40",
+    "8e7999",
+    "b89a92",
+    "d8bdae",
+    "f4e2d2",
+    "fff4e3",
+    "fff9f4",
+    "4d3335",
+    "805854",
+    "9b7166",
+    "b38b77",
+    "8f582e",
+    "c18b4b",
+    "e4b876",
+    "ffe1a1",
+    "63383f",
+    "8f4d52",
+    "b06a6b"
+  ],
+  "palette_roles": {
+    "leather": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "lining": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "metal": [
+      12,
+      13,
+      14,
+      15
+    ],
+    "silhouette": [
+      1
+    ],
+    "tabard": [
+      16,
+      17,
+      18
+    ]
+  },
+  "part": "pelvis",
+  "physical_reference_scale": 0.12,
+  "pivot_semantics": "waist ring axis centered at [24,9]; top visible pixel at y5",
+  "reference": "reference.png",
+  "reference_art_roi_y": [
+    210,
+    475
+  ],
+  "reference_sha256": "1ec9e063a32aab611ed83e65277f62320c81772219d2cb4a4458e5bb65593746",
+  "registered_opaque_colors": 18,
+  "runtime_connected": false,
+  "schema_version": 1,
+  "sheet_order": [
+    "sw",
+    "w",
+    "nw",
+    "n",
+    "ne",
+    "e",
+    "se",
+    "s"
+  ],
+  "transparent_slots": 1,
+  "visual_approval": "pending",
+  "character_id": "hybrid-v1",
+  "user_art_approval": "approved",
+  "appearance_approved_on": "2026-11-05",
+  "runtime_verified": false
+}

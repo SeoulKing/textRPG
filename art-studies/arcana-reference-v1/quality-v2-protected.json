@@ -1,0 +1,22 @@
+{
+  "godot-arcana/art/export/reference/barrels.png": "11fd0d7741f659e933ff7aca6dabca3e46c0dbe2ca8cb4c5305441e93c726900",
+  "godot-arcana/art/export/reference/basket.png": "21e43578842d7162982e225284d49a5e234f247b409fc81fccdba97a3a8dc841",
+  "godot-arcana/art/export/reference/bench.png": "ce25c76b0e4a1bc3872fa33f64126ccb164508dd3ea9c08ec2f6971bc05bb8e6",
+  "godot-arcana/art/export/reference/birch.png": "36eec1b721824c37fa3643e1f117fbcdf5a0019a250d1c3653102e56aa7767a5",
+  "godot-arcana/art/export/reference/crate.png": "dd0d1b2f457652cbff4a2c9e0cb110f064568cb7431c1bbb28bab6eff071f333",
+  "godot-arcana/art/export/reference/flowerpot.png": "d2c6a9d21aaf250f6d20e9e1e6a85d8d5640ecb00032673c754f208fdf54e3b1",
+  "godot-arcana/art/export/reference/flowers.png": "918cc4538c2603950756aea2ab56d1b07c8670692edb5a2bbd5c80f585e8e649",
+  "godot-arcana/art/export/reference/grass-clump.png": "2c06f89aef7d7712566dac0934a60dc1ec8395e2fbaf0055d3fd1c67501cf8f4",
+  "godot-arcana/art/export/reference/grass.png": "ad08a5efa7cc17ef726021094d69f471f246a16c4f82d602b797cded67b045cb",
+  "godot-arcana/art/export/reference/oak.png": "7f54c24dcfb20f7710012fad66c1f19389dc283a8add02631f9099c1360b89cd",
+  "godot-arcana/art/export/reference/planter.png": "45499af532e9d042a0b6b0d9063a7a67cc42ee669c96fdfaedd06676db009e5c",
+  "godot-arcana/art/export/reference/shrub.png": "4f54a11f78144a0320ba86e250f4f9f864aefc59b1684179971cd528c022e632",
+  "godot-arcana/art/export/reference/soil.png": "8225f0fdf6b7b36f3b3bd3f99dc3c89659367a2200f49d2333328903e27df5ca",
+  "godot-arcana/art/export/reference/spruce.png": "52823a969fd01a7c93cf4ea2f91e3abf88ad5ceda51b5ed8651f449f59f5a1e4",
+  "godot-arcana/art/export/reference/stone-a.png": "7eefa20f47cb1dc7a83268146c2f29196e46e0113e57d02084afb81bb19f1fc9",
+  "godot-arcana/art/export/reference/stone-b.png": "b8cdb7a7223362340d244bd799471ff817857d7320b1125954d68b80bf231b27",
+  "godot-arcana/scripts/pixel3d_models.gd": "3927aac3c0661c731ee9787107aaff9b930b58cdce5383cf505576aae41a383b",
+  "godot-arcana/art/resources/pixel3d.gdshader": "03109dfed7e079403ea7b477c99a1c2a7f9a2b6d755b59d6e945ebafc5c50a19",
+  "godot-arcana/art/export/arcana-palette-lut.png": "76229bda3ec072dd35966d1746fd277ab509eb3cdee5d6f3ab32b3b964fc47b5",
+  "godot-arcana/scenes/plaza.tscn": "39df7a7797b8603d107ac9739fcfa05fb0b2cef30068b526d99e82d50e7f551e"
+}

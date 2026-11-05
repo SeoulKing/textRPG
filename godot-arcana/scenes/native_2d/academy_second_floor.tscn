@@ -1,0 +1,267 @@
+[gd_scene load_steps=27 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/56488b58ea564644d16d21ebed23caa10a6c3421da32408ea105200a6c4b5ed2.res" id="1_3n4d6"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/249c87ca96fddb3b68816fd2af9a7b4489edb4319fb073aeb03f9f1e5e8955ea.res" id="2_vkq88"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/6f8d1d49d7df3755abbf2ed6fac7b191c43adfecf0803b8942d63c0ead2cb9a0.res" id="3_20nkm"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/b46b0c891a40b5a68c54559c93930a1245df9144f9c61c66e5c2cb69a8595bba.res" id="4_q1ehs"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/ba024c0c820a2bd9c80edef067eae76e26f61b0b8abd6a6659b80fc2c2e2ed32.res" id="5_p6moh"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/9675174401c22d1d25432955dffa8152ee727777eaa2f533e9d6c4b586ad5333.res" id="6_88oo0"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/bf04ec141161257927ecedf89fba7af566ee6091f06ecc79fdbd2e95e4397f9c.res" id="7_qnj1y"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/3074b5576dc84673e592304e4d596d7033251cf1b7721f0c28fde4136aea99be.res" id="8_ev5eu"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/a4f62592eb8d1869f3343063daad6fe011fc55468096a677defc72bdc2d7563f.res" id="9_r6pry"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/c4cb53be7bfb983603b1efb1ae6d7d20f0089d776ac9690254cf94311bffd638.res" id="10_sr1iy"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4d352656e8eaef0cb80ff6393f6ad3466ebe34bd441a6b73799bd31e64fac53b.res" id="11_igkpq"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/f95f195b0f17cf7c8f0118f4dbec202c8f4f5b0f7ecf4b2fd8f7744f95135d79.res" id="12_per27"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/08334b10f7513bbcbd698ee1ac48b52455b350d6a666ba5fd53f29720b803ec8.res" id="13_jnm85"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/architecture/academy-wall.tscn" id="prop_library_1"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/architecture/academy-office-door.tscn" id="prop_library_2"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/tables/academy-desk.tscn" id="prop_library_3"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/decoration/academy-telescope.tscn" id="prop_library_4"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/storage/academy-bookcase.tscn" id="prop_library_5"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/seating/academy-bench.tscn" id="prop_library_6"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/plants/academy-plant.tscn" id="prop_library_7"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/architecture/academy-stairs-down.tscn" id="prop_library_8"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/tables/academy-reading-table.tscn" id="prop_library_9"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/storage/academy-book-trolley.tscn" id="prop_library_10"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/lighting/academy-floor-lamp.tscn" id="prop_library_11"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/plants/academy-plant-2.tscn" id="prop_library_12"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/architecture/academy-front-wall.tscn" id="prop_library_13"]
+
+[node name="AcademySecondFloor2D" type="Node2D"]
+texture_filter = 1
+metadata/layout_schema = 1
+
+[node name="PaintedRoomFloor132" type="Sprite2D" parent="."]
+z_index = -30
+texture = ExtResource("1_3n4d6")
+centered = false
+offset = Vector2(192, 256)
+
+[node name="Academy_wall133" parent="." instance=ExtResource("prop_library_1")]
+position = Vector2(336, 256)
+texture = ExtResource("2_vkq88")
+centered = false
+offset = Vector2(-148, -325)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_347134" parent="." instance=ExtResource("prop_library_1")]
+position = Vector2(624, 256)
+texture = ExtResource("2_vkq88")
+centered = false
+offset = Vector2(-148, -325)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_350135" parent="." instance=ExtResource("prop_library_1")]
+position = Vector2(912, 256)
+texture = ExtResource("2_vkq88")
+centered = false
+offset = Vector2(-148, -325)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_353136" parent="." instance=ExtResource("prop_library_1")]
+position = Vector2(1200, 256)
+texture = ExtResource("2_vkq88")
+centered = false
+offset = Vector2(-148, -325)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="Academy_office_door137" parent="." instance=ExtResource("prop_library_2")]
+position = Vector2(384, 352)
+texture = ExtResource("3_20nkm")
+centered = false
+offset = Vector2(-104, -199)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-104, -84, 208, 96)]
+
+[node name="Academy_desk138" parent="." instance=ExtResource("prop_library_3")]
+position = Vector2(384, 608)
+texture = ExtResource("4_q1ehs")
+centered = false
+offset = Vector2(-80, -156)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-88, -76, 176, 76)]
+
+[node name="Academy_telescope139" parent="." instance=ExtResource("prop_library_4")]
+position = Vector2(1120, 544)
+texture = ExtResource("5_p6moh")
+centered = false
+offset = Vector2(-88, -221)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-88, -96, 184, 96)]
+
+[node name="Academy_bookcase140" parent="." instance=ExtResource("prop_library_5")]
+position = Vector2(1235.2, 352)
+texture = ExtResource("6_88oo0")
+centered = false
+offset = Vector2(-100.2, -208)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="Academy_bench141" parent="." instance=ExtResource("prop_library_6")]
+position = Vector2(384, 953.6)
+texture = ExtResource("7_qnj1y")
+centered = false
+offset = Vector2(-104, -128.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-104, -73.6, 208, 68)]
+
+[node name="Academy_plant142" parent="." instance=ExtResource("prop_library_7")]
+position = Vector2(243.2, 889.6)
+texture = ExtResource("8_ev5eu")
+centered = false
+offset = Vector2(-52.2, -201.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-35.2, -81.6, 64, 88)]
+
+[node name="_Node3D_368143" parent="." instance=ExtResource("prop_library_7")]
+position = Vector2(531.2, 889.6)
+texture = ExtResource("8_ev5eu")
+centered = false
+offset = Vector2(-52.2, -201.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-31.2, -81.6, 64, 88)]
+
+[node name="Academy_stairs_down144" parent="." instance=ExtResource("prop_library_8")]
+position = Vector2(768, 1094.4)
+texture = ExtResource("9_r6pry")
+centered = false
+offset = Vector2(-124, -185.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-116, -118.4, 232, 92)]
+metadata/layout_entity = {"id": "academy_stairs", "name": "1층으로 내려가기", "kind": "academy_stairs", "pos": Vector2(0, -174.4)}
+
+[node name="Academy_reading_table145" parent="." instance=ExtResource("prop_library_9")]
+position = Vector2(1139.2, 985.6)
+texture = ExtResource("10_sr1iy")
+centered = false
+offset = Vector2(-92.2, -116.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-95.2, -61.6, 192, 88)]
+
+[node name="Academy_book_trolley146" parent="." instance=ExtResource("prop_library_10")]
+position = Vector2(537.6, 1011.2)
+texture = ExtResource("11_igkpq")
+centered = false
+offset = Vector2(-53.6, -116.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-41.6, -35.2, 72, 56)]
+
+[node name="Academy_floor_lamp147" parent="." instance=ExtResource("prop_library_11")]
+position = Vector2(236.8, 1024)
+texture = ExtResource("12_per27")
+centered = false
+offset = Vector2(-28.8, -137)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16.8, -16, 32, 32)]
+
+[node name="_Node3D_379148" parent="." instance=ExtResource("prop_library_11")]
+position = Vector2(1280, 947.2)
+texture = ExtResource("12_per27")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -19.2, 32, 32)]
+
+[node name="_Node3D_382149" parent="." instance=ExtResource("prop_library_12")]
+position = Vector2(307.2, 1164.8)
+texture = ExtResource("8_ev5eu")
+centered = false
+offset = Vector2(-52.2, -201.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_385150" parent="." instance=ExtResource("prop_library_12")]
+position = Vector2(1228.8, 1164.8)
+texture = ExtResource("8_ev5eu")
+centered = false
+offset = Vector2(-51.8, -201.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="Academy_front_wall151" parent="." instance=ExtResource("prop_library_13")]
+position = Vector2(320, 1216)
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(-100, -106)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_390152" parent="." instance=ExtResource("prop_library_13")]
+position = Vector2(512, 1216)
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(-100, -106)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_393153" parent="." instance=ExtResource("prop_library_13")]
+position = Vector2(1024, 1216)
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(-100, -106)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_396154" parent="." instance=ExtResource("prop_library_13")]
+position = Vector2(1216, 1216)
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(-100, -106)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+
+[node name="_Node3D_399155" parent="." instance=ExtResource("prop_library_13")]
+position = Vector2(768, 1216)
+texture = ExtResource("13_jnm85")
+centered = false
+offset = Vector2(-100, -106)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+[node name="LayoutBounds" type="Node2D" parent="."]
+metadata/layout_collisions = [Rect2(0, 0, 192, 1376), Rect2(1344, 0, 192, 1376), Rect2(192, 0, 1152, 256), Rect2(192, 1240, 1152, 136), Rect2(192, 1200, 440, 40), Rect2(904, 1200, 440, 40), Rect2(192, 1200, 1152, 40)]
+
+[node name="Arrival" type="Marker2D" parent="."]
+position = Vector2(768, 776)
+metadata/layout_marker = "Arrival"
+
+[node name="StairArrival" type="Marker2D" parent="."]
+position = Vector2(768, 776)
+metadata/layout_marker = "StairArrival"
+
+[node name="Location_headmaster" type="Marker2D" parent="."]
+metadata/layout_entity = {"id": "headmaster", "name": "교장실", "kind": "academy_room", "pos": Vector2(384, 680)}
+
+[node name="Location_garden" type="Marker2D" parent="."]
+metadata/layout_entity = {"id": "garden", "name": "별빛 정원", "kind": "academy_room", "pos": Vector2(384, 1032)}
+
+[node name="Location_observatory" type="Marker2D" parent="."]
+metadata/layout_entity = {"id": "observatory", "name": "천문 관측탑", "kind": "academy_room", "pos": Vector2(1120, 664)}
+

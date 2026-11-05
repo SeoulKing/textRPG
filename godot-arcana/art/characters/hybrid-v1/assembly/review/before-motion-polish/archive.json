@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "purpose": "Pre-animation-polish rendered baseline; source artwork untouched",
+  "archived_at": "2026-11-05",
+  "files": [
+    {
+      "file": "focus-neutral-run025.png",
+      "sha256": "37867b0170bd2c8cf19544fe1ccf3bb647ab2fe0a99337479a54275f85790daf"
+    },
+    {
+      "file": "comparison-dark.png",
+      "sha256": "b405a0d684c560fd3a0c033e9789b0d41c28edee0f210fb54757d46be0c48cd7"
+    },
+    {
+      "file": "neutral-8dir.png",
+      "sha256": "86606f282536ffcb3c53b41b692dbe56eb5647e1d9206788be61f0f2c282bff7"
+    },
+    {
+      "file": "review-manifest.json",
+      "sha256": "4c2d96013ccc53a201a4eef443caf34b4b18299840862ed080f266612cdd2612"
+    },
+    {
+      "file": "neutral/s.png",
+      "sha256": "d2be12875e47589090d99ffb5d6e1c499beb91f18ef2d36aa036a0b526e082a3"
+    },
+    {
+      "file": "neutral/e.png",
+      "sha256": "d3b7f1de0030f78d6c7ace92fcffb5b8e0e1a672c899920ba44874bd2d73fe05"
+    },
+    {
+      "file": "neutral/n.png",
+      "sha256": "7d26107bfde26d807ea758f2b6814ff11c808fb6ac3b9ea7e2a42ab91f162d41"
+    },
+    {
+      "file": "run_000/s.png",
+      "sha256": "f5342cace20ef00c9e654bb643e95f34eb1cf53449959a9f189a0d7e4525039a"
+    },
+    {
+      "file": "run_000/e.png",
+      "sha256": "f962422a7253a15f0cc1f6797adffef6b00577ec5a56d7d144f687218c18ecb7"
+    },
+    {
+      "file": "run_000/n.png",
+      "sha256": "2a46372e27769eef46bd1ed25aab8af45757313f4b4470e7e3112c5ba655bba4"
+    },
+    {
+      "file": "run_025/s.png",
+      "sha256": "91ac2de6a80792c7327719ac531709bb2efc5b5c024afef6647793274d3357a9"
+    },
+    {
+      "file": "run_025/e.png",
+      "sha256": "9052adec676aacc29f724e47699d6aac3273be4a4a4bdbf609384be30f936f4e"
+    },
+    {
+      "file": "run_025/n.png",
+      "sha256": "11b94422f7285b56bbd0dca398bd8a940c19bab11a98afb21a586986d474ddb8"
+    },
+    {
+      "file": "run_050/s.png",
+      "sha256": "711ca1e0c6c3edc5fe36f000f281a2e6976e2c65e9a66f8fe55a37e76105b93a"
+    },
+    {
+      "file": "run_050/e.png",
+      "sha256": "efefb31ddb49ec09ec9fba0fcdd9904bb574081d45fcbf1a188e54b93db3b949"
+    },
+    {
+      "file": "run_050/n.png",
+      "sha256": "cf554c20ba2864b89daf8f6355f689f37ac468204d72faa8dbba755c12f9504c"
+    },
+    {
+      "file": "run_075/s.png",
+      "sha256": "8b93384ef82a7b7cb9d30f98c46ce89ecde21ef17ebce068671dbdc03ecb1f65"
+    },
+    {
+      "file": "run_075/e.png",
+      "sha256": "2cc8d65ba53fb4748da8acd203f7e06124ad7247945387eaeb095936a6dc35bc"
+    },
+    {
+      "file": "run_075/n.png",
+      "sha256": "ea67caa56a89b22c63c009fcb5fbfc47b179dde03a64f633a5fd69abf992be4b"
+    }
+  ]
+}
