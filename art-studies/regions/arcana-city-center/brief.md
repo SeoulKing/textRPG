@@ -1,5 +1,11 @@
 # 아르카나 도심 재구성 작업 명세
 
+## 광장 V2 북극성 분수
+
+- 승인 원본은 [시안](source/north-star-fountain-v1/concept.png)과 [블렌더 모델](source/north-star-fountain-v1/north-star-fountain.blend)입니다. 바닥 중심 피벗과 지름 4.5 월드 단위를 기준으로 합니다.
+- [광장 V2](../../../godot-arcana/scenes/plaza_3d_v2.tscn)의 `Fountain`에 [GLB](../../../godot-arcana/art/source/north-star-fountain-v1/north-star-fountain.glb)를 연결했습니다. 기존 중심 `(0, 0, 5.925)`와 충돌 반경 2.25를 사용합니다.
+- [Blender 내보내기 스크립트](../../../scripts/blender/export_north_star_fountain.py)는 배경·카메라·조명을 제외하고, 물줄기 하이라이트·물방울의 변환과 잔물결 두께를 3초 `WaterLoop`로 굽습니다. Godot의 분수 스크립트는 반복 재생을 시작하고, 석재 표면 요철과 수면의 움직이는 빛무늬 재질을 적용합니다.
+
 ## 현재 요청 · 도트 밀도와 움직이는 하이라이트 (2026-11-02)
 
 - 요청: 사용자가1번 수면을 긍정적으로 평가하셨고, 상단 레이어의 하이라이트 움직임과 주변 장소에 맞춘 도트 묘사 밀도를 요청했습니다. 후속으로 PixelPen에서 픽셀 단위로 구성하도록 지정하셨습니다.

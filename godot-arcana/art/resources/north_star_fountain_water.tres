@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://art/resources/north_star_fountain_water.gdshader" id="1_water"]
+
+[resource]
+resource_name = "North Star Fountain Water"
+shader = ExtResource("1_water")
