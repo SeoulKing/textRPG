@@ -309,8 +309,8 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 					if entity.id == location: world.outside_position = entity.pos + Vector2(0, 7)
 		elif world.indoor != "": world.change_interior("")
 		if initial:
-			if location == "arcana_hunting_ground": world.player_position = world.CityMap.HUNTING_ENTRY
-			elif location == "arcana_city_gate": world.player_position = world.CityMap.GATE - Vector2(0, 12)
+			if location == "arcana_hunting_ground": world.player_position = world.nearest_walkable(world.CityMap.HUNTING_ENTRY)
+			elif location == "arcana_city_gate": world.player_position = world.nearest_walkable(world.CityMap.GATE - Vector2(0, 12))
 			elif location == "arcana_return_portal":
 				for entity in world._outdoor_entities:
 					if entity.id == "arcana_return_portal":
@@ -409,7 +409,7 @@ func _process(delta: float) -> void:
 		heartbeat = 0
 		_clock()
 	# Crossing the southern gate keeps position and commits the existing travel rule.
-	if world.enabled and not busy and world.indoor == "" and battle.is_empty():
+	if world.enabled and not busy and world.indoor == "" and battle.is_empty() and not world.uses_plaza_v2():
 		var p = world.player_position
 		var loc = str(_state().get("location", ""))
 		if p.y > world.CityMap.GATE_OUTBOUND_Y and loc != "arcana_hunting_ground": _cross_gate(true)
@@ -835,7 +835,7 @@ func _choose(entry: Dictionary) -> void:
 		ui.close_panel()
 		if await perform(action, false):
 			if command == "dodge": world.effect("dodge")
-			if command == "retreat": world.player_position = Vector2(576, 910)
+			if command == "retreat": world.player_position = world.spawn_position if world.uses_plaza_v2() else Vector2(576, 910)
 	else:
 		await perform(action)
 
@@ -1483,7 +1483,7 @@ func _bridge_command(args: Array) -> void:
 		"close": ui.close_panel()
 
 func _bridge_state(_args: Array) -> void:
-	var state = {"engine":"Godot 4.5.1", "renderer":"native_2d", "zoomRatio":world_renderer.get_zoom_ratio(), "cameraZoom":world_renderer.camera.zoom.x, "walking":world.walking, "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "worldNetwork":combat_socket.diagnostics(), "motionNetwork":online_presence.diagnostics(), "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
+	var state = {"engine":"Godot 4.5.1", "renderer":"plaza_3d_v2" if world_renderer.uses_plaza_v2() else "native_2d", "zoomRatio":world_renderer.get_zoom_ratio(), "cameraZoom":world_renderer.camera.zoom.x, "walking":world.walking, "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "worldNetwork":combat_socket.diagnostics(), "motionNetwork":online_presence.diagnostics(), "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))
 
@@ -1508,7 +1508,7 @@ func _adjust_controls(key: String, value: float) -> void:
 
 func _update_mei_nameplate() -> void:
 	if not is_instance_valid(ui) or not is_instance_valid(world_renderer):return
-	var shown=not snapshot.is_empty() and world.indoor.is_empty() and not ui.overlay.visible
+	var shown=not snapshot.is_empty() and world.indoor.is_empty() and not world_renderer.uses_plaza_v2() and not ui.overlay.visible
 	var point=Vector2.ZERO
 	if shown:
 		shown=false

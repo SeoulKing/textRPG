@@ -21,6 +21,7 @@ var shop_layout: Dictionary = {}
 const TILE = 16
 
 const CityMap = preload("res://scripts/city_map.gd")
+const PlazaV2 = preload("res://scripts/plaza_3d_game_layout.gd")
 const CELLS = CityMap.CITY_CELLS
 const OUTDOOR_CELLS = CityMap.OUTDOOR_CELLS
 const SPAWN = Vector2(576, 500)
@@ -178,18 +179,22 @@ var impact_remaining = 0.0
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if layout == null:
+		layout = PlazaV2.new()
 	ground = TileMapLayer.new()
 	ground.z_index = -10
 	add_child(ground)
-	if layout == null: layout = load("res://scenes/native_2d/plaza.tscn").instantiate()
 	layout.normalize_coordinate_frame()
 	layout.refresh_plan()
-	_make_tiles()
+	if not uses_plaza_v2(): _make_tiles()
+	else:
+		decals = Node2D.new()
+		add_child(decals)
 	objects = Node2D.new()
 	objects.y_sort_enabled = true
 	add_child(objects)
-	if layout == null: layout = load("res://scenes/native_2d/plaza.tscn").instantiate()
-	_build_outdoors()
+	if uses_plaza_v2(): apply_layout(layout,true)
+	else: _build_outdoors()
 	_outdoor_entities = entities.duplicate(true)
 	outside_obstacles = obstacles.duplicate()
 	for f in range(2): slime_frames.append(Pixels.slime(f))
@@ -214,6 +219,12 @@ func _ready() -> void:
 
 func _material_at(p: Vector2) -> int:
 	return layout.material_at(p)
+
+func uses_plaza_v2() -> bool:
+	return layout is PlazaV2
+
+func outside_walk_bounds() -> Rect2:
+	return layout.walk_bounds() if uses_plaza_v2() else CityMap.WALK_BOUNDS
 
 func _make_tiles() -> void:
 	ground.tile_set = Art.TERRAIN
@@ -342,11 +353,11 @@ func apply_layout(value: Node, initial: bool = false) -> void:
 				entity.interaction_radius = 20.0
 				entity.auto_enter = entry.entrance_id.is_empty() or entry.entrance_enabled
 			next_entities.append(entity)
-	# Regions outside the editable plaza retain their original transition rules.
-
-	next_entities.append({"id":"arcana_city_gate","name":"남문 · 별빛 평원","kind":"gate","pos":CityMap.GATE})
-	next_entities.append({"id":"slime","name":"슬라임의 흔적","kind":"slime","pos":CityMap.HUNTING_HOME})
-	next_entities.append({"id":"city","name":"도시로 돌아가기","kind":"city","pos":CityMap.CITY_RETURN})
+	if not uses_plaza_v2():
+		# The legacy map still includes its connected field and city gate.
+		next_entities.append({"id":"arcana_city_gate","name":"남문 · 별빛 평원","kind":"gate","pos":CityMap.GATE})
+		next_entities.append({"id":"slime","name":"슬라임의 흔적","kind":"slime","pos":CityMap.HUNTING_HOME})
+		next_entities.append({"id":"city","name":"도시로 돌아가기","kind":"city","pos":CityMap.CITY_RETURN})
 	traveler_index = -1
 	if has_resident:
 		if initial or not next_home.is_equal_approx(traveler_home): traveler_position = next_home
@@ -370,7 +381,7 @@ func apply_layout(value: Node, initial: bool = false) -> void:
 		outside_position = player_position
 	elif moved_spawn: outside_position = spawn_position
 	if not initial:
-		if indoor.is_empty(): _make_tiles()
+		if indoor.is_empty() and not uses_plaza_v2(): _make_tiles()
 		_rebuild_grid()
 
 func set_art_state(evening: bool, effects: bool = true) -> void:
@@ -387,9 +398,13 @@ func nearest_walkable(point: Vector2) -> Vector2:
 	if _can_stand(point): return point
 	# Same-place correction; search nearest by actual distance, not loop order.
 	var best = spawn_position if indoor == "" else Vector2(192,200)
+	if indoor.is_empty() and uses_plaza_v2() and not outside_walk_bounds().grow(TILE).has_point(point):
+		# Saved positions from the older city use a separate coordinate range.
+		if _can_stand(spawn_position): return spawn_position
 	var distance = INF
-	for y in range(OUTDOOR_CELLS.y if indoor == "" else 21):
-		for x in range(OUTDOOR_CELLS.x if indoor == "" else 24):
+	var cells := _navigation_region(TILE) if indoor.is_empty() else Rect2i(0, 0, 24, 21)
+	for y in range(cells.position.y, cells.end.y):
+		for x in range(cells.position.x, cells.end.x):
 			var at = Vector2(x*TILE+8,y*TILE+8)
 			if _can_stand(at) and at.distance_squared_to(point) < distance:
 				distance = at.distance_squared_to(point)
@@ -397,15 +412,25 @@ func nearest_walkable(point: Vector2) -> Vector2:
 	return best
 
 func _rebuild_grid() -> void:
-	grid.region = Rect2i(Vector2i.ZERO, OUTDOOR_CELLS)
-	grid.cell_size = Vector2(TILE, TILE)
-	grid.offset = Vector2(8, 8)
+	var cell_step: int = TILE
+	var cells := _navigation_region(cell_step)
+	grid.region = cells
+	grid.cell_size = Vector2(cell_step, cell_step)
+	grid.offset = grid.cell_size * .5
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.update()
-	for y in range(OUTDOOR_CELLS.y):
-		for x in range(OUTDOOR_CELLS.x):
-			var p = Vector2(x * TILE + 8, y * TILE + 8)
-			if not _can_stand(p): grid.set_point_solid(Vector2i(x, y))
+	for y in range(cells.position.y, cells.end.y):
+		for x in range(cells.position.x, cells.end.x):
+			var point: Vector2i = Vector2i(x, y)
+			grid.set_point_solid(point, not _can_stand(grid.get_point_position(point)))
+
+func _navigation_region(cell_step: int) -> Rect2i:
+	if indoor.is_empty() and uses_plaza_v2():
+		var bounds := outside_walk_bounds()
+		var first := Vector2i((bounds.position / cell_step).floor())
+		var end := Vector2i((bounds.end / cell_step).ceil())
+		return Rect2i(first, end - first)
+	return Rect2i(Vector2i.ZERO, OUTDOOR_CELLS)
 
 func _update_entrance_contact() -> void:
 	var contact: Dictionary = {}
@@ -424,7 +449,7 @@ func _can_stand(pos: Vector2) -> bool:
 			if fire.distance_to(pos)<10: return false
 	if indoor == "arcana_shop": return Shop2D.can_stand(shop_layout,pos)
 	if indoor == "":
-		if not CityMap.WALK_BOUNDS.has_point(pos): return false
+		if not outside_walk_bounds().has_point(pos): return false
 	else:
 		if pos.x < 30 or pos.x > 350 or pos.y < 30 or pos.y > 326: return false
 	for rect in obstacles:
@@ -460,8 +485,8 @@ func walk_to(pos: Vector2) -> void:
 				click_door_id = "exit"
 				pos = entity.pos
 				break
-	var from = Vector2i(player_position / TILE)
-	var to = Vector2i(pos / TILE)
+	var from = Vector2i(player_position / grid.cell_size.x)
+	var to = Vector2i(pos / grid.cell_size.x)
 	if not grid.is_in_boundsv(to) or grid.is_point_solid(to):
 		var found = false
 		for radius in range(1, 5):
@@ -477,6 +502,11 @@ func walk_to(pos: Vector2) -> void:
 		if not found: return
 	path = grid.get_point_path(from, to)
 	if not path.is_empty(): path.remove_at(0)
+	if uses_plaza_v2() and indoor.is_empty() and not click_door_id.is_empty():
+		# The authored doorway is not on the navigation-cell center.
+		var approach: Vector2 = player_position if path.is_empty() else path[path.size() - 1]
+		if approach.distance_to(pos) <= TILE * 1.5 and _seat_segment_clear(approach, pos):
+			path.append(pos)
 	_click_marker = pos
 
 # Movement uses manual collision checks, so update it with the rendered frame.
@@ -766,13 +796,13 @@ func _seat_route(to: Vector2) -> PackedVector2Array:
 	if _seat_segment_clear(player_position,to): return PackedVector2Array([to])
 	var result = PackedVector2Array()
 	var best = INF
-	var target_cell = Vector2i(to/TILE)
-	var from_cell = Vector2i(player_position/TILE)
+	var target_cell = Vector2i(to/grid.cell_size.x)
+	var from_cell = Vector2i(player_position/grid.cell_size.x)
 	for dx in range(-2,3):
 		for dy in range(-2,3):
 			var cell = target_cell+Vector2i(dx,dy)
 			if not grid.is_in_boundsv(cell) or grid.is_point_solid(cell): continue
-			var at = Vector2(cell*TILE)+Vector2(8,8)
+			var at = grid.get_point_position(cell)
 			if not _seat_segment_clear(at,to): continue
 			var route = grid.get_point_path(from_cell,cell)
 			if route.is_empty() or not _seat_segment_clear(player_position,route[0]): continue

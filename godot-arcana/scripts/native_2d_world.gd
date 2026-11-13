@@ -6,6 +6,7 @@ const Slime=preload("res://scripts/native_2d_slime.gd")
 const Blink=preload("res://scripts/native_2d_blink.gd")
 const InnLighting=preload("res://scripts/native_2d_inn_lighting.gd")
 const Sunlight=preload("res://scripts/native_2d_sunlight.gd")
+const PlazaV2 = preload("res://scenes/plaza_3d_v2.tscn")
 const CAMERA_ZOOM=4.0
 const MIN_ZOOM_RATIO=.44642857
 const MAX_HERO_SCREEN_HEIGHT=.9
@@ -16,6 +17,7 @@ var plaza_slime: Node2D
 var hunting_slime: Node2D
 var slime: Node2D
 var shop2d: Node2D
+var plaza3d: Node3D
 var camera: Camera2D
 var outside: Node2D
 var inside: Node2D
@@ -58,6 +60,9 @@ func set_render_pixel_scale(value: float) -> void:render_pixel_scale=maxf(.01,va
 func set_quarter_view(_value: bool) -> void:quarter_view=false
 func view_yaw() -> float:return 0.0
 func map_point(point: Vector2,height: float=0.0) -> Vector2:return preload("res://scripts/native_2d_coordinates.gd").canvas(point,height)
+func uses_plaza_v2() -> bool:
+    return world.indoor.is_empty() and world.uses_plaza_v2() and is_instance_valid(plaza3d)
+
 func _ready() -> void:
     texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
     layout=world.layout;outside=layout;add_child(outside)
@@ -101,12 +106,24 @@ func _interior() -> void:
         if child is CanvasItem:child.hide()
         child.queue_free()
     sprites=sprites.filter(func(entry):return is_instance_valid(entry.sprite) and entry.root==outside)
-    outside.visible=world.indoor.is_empty()
+    outside.visible=world.indoor.is_empty() and not world.uses_plaza_v2()
     if is_instance_valid(shop2d):shop2d.hide();shop2d.follow_camera.enabled=false
+    if world.indoor.is_empty() and world.uses_plaza_v2():
+        camera.enabled=false
+        get_viewport().disable_3d=false
+        if not is_instance_valid(plaza3d):
+            plaza3d=PlazaV2.instantiate()
+            plaza3d.set("live_mode", true)
+            add_child(plaza3d)
+        plaza3d.set_live_active(true)
+        return
+    if is_instance_valid(plaza3d):plaza3d.set_live_active(false)
+    get_viewport().disable_3d=true
     var registry = preload("res://scripts/region_registry.gd")
     if world.indoor=="arcana_shop":
         if not is_instance_valid(shop2d):shop2d=registry.scene(world.indoor).instantiate();add_child(shop2d)
         camera.enabled=false;shop2d.show();shop2d.follow_camera.enabled=true
+        shop2d.follow_camera.make_current()
         return
     camera.enabled=true;camera.make_current()
     if not world.indoor.is_empty():
@@ -123,10 +140,11 @@ func _process(delta: float) -> void:
     if world==null:return
     if world.indoor!=last_interior or world.academy_floor!=last_floor:
         last_interior=world.indoor;last_floor=world.academy_floor;_interior()
-    if is_instance_valid(city_life):city_life.sync_city_life(world,delta)
-    if is_instance_valid(river):river.sync_river(world)
-    sunlight.visible=world.indoor.is_empty() and world.effects_enabled
-    world.input_projection=Transform2D.IDENTITY
+    var plaza_active := uses_plaza_v2()
+    if not plaza_active and is_instance_valid(city_life):city_life.sync_city_life(world,delta)
+    if not plaza_active and is_instance_valid(river):river.sync_river(world)
+    sunlight.visible=world.indoor.is_empty() and not plaza_active and world.effects_enabled
+    world.input_projection=Transform2D(Vector2.RIGHT, Vector2.DOWN * sqrt(2.0), Vector2.ZERO) if plaza_active else Transform2D.IDENTITY
     ambience.color=Color.WHITE
     if world.effects_enabled:
         if world.indoor=="arcana_inn":ambience.color=InnLighting.AMBIENT
@@ -135,6 +153,7 @@ func _process(delta: float) -> void:
         inn_lobby.sync_lighting(world.time,world.effects_enabled,world.reduced_motion)
     var motion=world.player_position-previous_player;previous_player=world.player_position
     hero.show();hero.position=map_point(world.bench_visual_position())
+    hero.art.scale.y = sqrt(2.0) if plaza_active else 1.0
     hero.set_bench_pose(world.bench_state,world.bench_age,world.reduced_motion)
     hero.dash_age=world.dash_age;hero.dash_yaw=atan2(world.dash_direction.x,world.dash_direction.y)
     hero.pose(world.time,world.player_gait,world.walking,motion,true,world.effects_enabled and not world.reduced_motion,true,world.last_move_direction)
@@ -148,8 +167,9 @@ func _process(delta: float) -> void:
     slime=plaza_slime if spatial or world.spatial_selected else hunting_slime
     plaza_slime.sync(world.time,world.battle if spatial else {},world.enemy_visual_hp if spatial else 30.0,false,world.effects_enabled and not world.reduced_motion)
     hunting_slime.sync(world.time,{} if spatial else world.battle,30.0 if spatial else world.enemy_visual_hp,world.impact_remaining>0,world.effects_enabled and not world.reduced_motion)
-    plaza_slime.visible=plaza_slime.visible and world.indoor.is_empty()
-    hunting_slime.visible=hunting_slime.visible and world.indoor.is_empty()
+    var plaza_slime_visible: bool = plaza_slime.visible and world.indoor.is_empty()
+    plaza_slime.visible=plaza_slime_visible and not plaza_active
+    hunting_slime.visible=hunting_slime.visible and world.indoor.is_empty() and not plaza_active
     enemy_meter_visible=world.indoor.is_empty() and not world.battle.is_empty() and world.battle.get("phase","") not in ["victory","defeat"]
     if world.enemy_visual_hp>enemy_last_hp:enemy_trail_hp=world.enemy_visual_hp
     else:enemy_trail_hp=move_toward(enemy_trail_hp,world.enemy_visual_hp,delta*15)
@@ -188,11 +208,19 @@ func _process(delta: float) -> void:
     draws.append({"node":hero,"y":map_point(world.player_position).y if world.bench_pose_active() else hero.position.y})
     for node in [plaza_slime,hunting_slime]:draws.append({"node":node,"y":node.position.y})
     for child in get_children():
-        if child is Node2D and child.get_script()==Hero and child!=hero:draws.append({"node":child,"y":float(child.get_meta("seat_sort_y",child.position.y))})
+        if child is Node2D and child.get_script()==Hero and child!=hero:
+            child.art.scale.y = sqrt(2.0) if plaza_active else 1.0
+            draws.append({"node":child,"y":float(child.get_meta("seat_sort_y",child.position.y))})
     for child in get_children():
         if child is Node2D and child.get_meta("campfire",false) and child.visible:draws.append({"node":child,"y":child.position.y})
     draws.sort_custom(func(a,b):return a.y<b.y)
     for i in draws.size():draws[i].node.z_index=i+1
+    if plaza_active:
+        plaza3d.sync_live_slime(plaza_slime.position / 4.0, plaza_slime_visible)
+        plaza3d.sync_live(world.player_position, get_zoom_ratio())
+        get_viewport().canvas_transform = plaza3d.canvas_projection()
+        camera_updated.emit()
+        return
     _camera()
     var sun_actors: Array[Node2D]=[hero,plaza_slime,hunting_slime]
     for child in get_children():
@@ -243,12 +271,15 @@ func _camera() -> void:
     hero.position=final.affine_inverse()*(final*hero.position).round()
     get_tree().call_group("native_slime_pixels","snap_to_pixels")
 func pick(point: Vector2) -> Vector2:
+    if uses_plaza_v2():return plaza3d.pick(point)
     if world.indoor=="arcana_shop":return shop2d.pick(point)
     return (get_viewport().canvas_transform.affine_inverse()*point)/4.0
 func screen_point(point: Vector2,height: float=0.0) -> Vector2:
+    if uses_plaza_v2():return plaza3d.screen_point(point,height)
     if world.indoor=="arcana_shop":return shop2d.screen_point(point,height)
     return get_viewport().canvas_transform*map_point(point,height)
 func pick_interaction(point: Vector2) -> Dictionary:
+    if uses_plaza_v2():return plaza3d.pick_interaction(point,world)
     if world.indoor=="arcana_shop":return shop2d.pick_interaction(point,world)
     var local=get_viewport().canvas_transform.affine_inverse()*point
     var found: Dictionary={}

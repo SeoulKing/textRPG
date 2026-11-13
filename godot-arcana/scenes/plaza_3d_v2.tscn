@@ -1,0 +1,145 @@
+[gd_scene load_steps=18 format=3 uid="uid://c27s3mbuhuwo4"]
+
+[ext_resource type="PackedScene" path="res://art/source/north-star-fountain-v1/north-star-fountain.glb" id="1_model"]
+[ext_resource type="Texture2D" uid="uid://bepfi37rt70ca" path="res://art/export/square-floor-v2/paving.png" id="2_paving"]
+[ext_resource type="PackedScene" uid="uid://bqryd12jorepf" path="res://art/source/slime-mochi/arcana-slime-mochi.glb" id="3_mochi_slime"]
+[ext_resource type="Shader" uid="uid://bkv37m7tyqgu3" path="res://art/resources/shop_screen_edges.gdshader" id="4_edges"]
+[ext_resource type="Script" uid="uid://djt7umdoc1rp5" path="res://scripts/plaza_3d_v2.gd" id="5_controls"]
+[ext_resource type="Script" uid="uid://dc3rfm7vkm433" path="res://scripts/characters/hybrid_v1/billboard_actor.gd" id="6_hero"]
+[ext_resource type="Script" uid="uid://blnanyrn86wo0" path="res://scripts/virtual_joystick.gd" id="7_joystick"]
+[ext_resource type="PackedScene" uid="uid://cdo6b65cctqko" path="res://art/source/plaza-shop-blender/shop-exterior.glb" id="8_shop"]
+[ext_resource type="Script" path="res://scripts/north_star_fountain.gd" id="10_fountain"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_paving"]
+albedo_color = Color(0.72, 0.71, 0.69, 1)
+albedo_texture = ExtResource("2_paving")
+roughness = 0.92
+uv1_scale = Vector3(4.4, 6, 1)
+texture_filter = 2
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_plaza"]
+material = SubResource("StandardMaterial3D_paving")
+size = Vector2(22, 30)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_fountain"]
+height = 1.2
+radius = 2.25
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_shop"]
+size = Vector3(7.2, 1.5, 3.6)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.2
+height = 1.1
+
+[sub_resource type="Environment" id="Environment_plaza"]
+background_mode = 1
+background_color = Color(0.25, 0.33, 0.37, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.78, 0.86, 0.94, 1)
+ambient_light_energy = 0.42
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_plaza_edges"]
+resource_local_to_scene = true
+render_priority = -100
+shader = ExtResource("4_edges")
+shader_parameter/screen_pixel_size = 2
+shader_parameter/highlight_strength = 0.08
+shader_parameter/highlight_direction = Vector3(-0.65, 0.72, 0.24)
+shader_parameter/room_accents_enabled = false
+shader_parameter/room_bounds = Vector4(5, 4, 14, 9)
+shader_parameter/counter_center = Vector2(12, 7.5)
+shader_parameter/lamp_contact = Vector4(0, 0, 0, 0)
+shader_parameter/crate_contact = Vector4(0, 0, 0, 0)
+shader_parameter/shadow_direction = Vector2(1, 0)
+shader_parameter/cube_preview = false
+shader_parameter/cube_outline_width = 0
+shader_parameter/cube_highlight_width = 0
+shader_parameter/cube_highlight_strength = 0.0
+shader_parameter/cube_light_local = Vector4(0, 0, 0, 0)
+shader_parameter/cube_light_level = 0.0
+shader_parameter/world_to_cube = Projection(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+shader_parameter/cube_outline_color = Color(0.23, 0.16, 0.19, 1)
+shader_parameter/asset_mask_enabled = false
+shader_parameter/asset_outline_width = 1
+shader_parameter/asset_outline_groups = 0
+shader_parameter/asset_highlight_width = 1
+shader_parameter/asset_highlight_strength = 0.75
+
+[sub_resource type="QuadMesh" id="QuadMesh_plaza_edges"]
+size = Vector2(2, 2)
+
+[node name="Plaza3DV2" type="Node3D"]
+script = ExtResource("5_controls")
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_plaza")
+
+[node name="Fountain" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.925)
+script = ExtResource("10_fountain")
+
+[node name="Model" parent="Fountain" instance=ExtResource("1_model")]
+
+[node name="Collision" type="StaticBody3D" parent="Fountain"]
+
+[node name="Footprint" type="CollisionShape3D" parent="Fountain/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("CylinderShape3D_fountain")
+
+[node name="MochiSlime" parent="." instance=ExtResource("3_mochi_slime")]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 3.1, 0, 1.4000001)
+
+[node name="Shop" type="Node3D" parent="."]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -0.5, 0, -8.5)
+
+[node name="Exterior" parent="Shop" instance=ExtResource("8_shop")]
+
+[node name="Collision" type="StaticBody3D" parent="Shop"]
+
+[node name="Footprint" type="CollisionShape3D" parent="Shop/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, -1.8)
+shape = SubResource("BoxShape3D_shop")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 3.4)
+collision_layer = 0
+motion_mode = 1
+
+[node name="Footprint" type="CollisionShape3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="Hero" type="Node3D" parent="Player"]
+script = ExtResource("6_hero")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_plaza")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.22414759, 0.44053513, -0.86930245, 1.4901163e-08, 0.8919991, 0.4520371, 0.97455525, 0.10132301, -0.19993946, 0, 4, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 48.0
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, -0.5, 18, 13.5)
+projection = 1
+current = true
+size = 27.0
+far = 70.0
+
+[node name="ScreenEdges" type="MeshInstance3D" parent="Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)
+material_override = SubResource("ShaderMaterial_plaza_edges")
+cast_shadow = 0
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_plaza_edges")
+
+[node name="Controls" type="CanvasLayer" parent="."]
+
+[node name="Joystick" type="Control" parent="Controls"]
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+script = ExtResource("7_joystick")

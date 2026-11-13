@@ -17,13 +17,13 @@ import { GAME_HOUR_MS, REAL_DAY_MS, PHASE_DURATION_MS } from "../game/base-data"
 import { OnlineAccounts, OnlineError, type Character, type Principal } from "./accounts";
 import { OnlineStore } from "./store";
 import { ArcanaItemCatalog } from "./item-catalog";
-import { newWorld, cast, tickCombat, type Death } from "./combat";
+import { newEnemy, newWorld, cast, tickCombat, type Death } from "./combat";
 import { inField, samePlace, type Actor, type SharedWorld, type Place, type Point } from "./model";
 
 import { ensureFishingRod, equipFishingRod, startFishing, fishingInput, tickFishing, fishingActive, type Fishing } from "./fishing";
 type Connection = {sessionId:string;controller:string;send:(value:unknown)=>void;sendState?:(build:()=>unknown)=>void;close:(code:number,reason:string)=>void};
 type Checkpoint = {world:SharedWorld;actors:Actor[]};
-type LayoutArea = {rectangles:{x:number;y:number;w:number;h:number}[];bounds:{x:number;y:number;w:number;h:number};spawn:Point;fishing?:import("./fishing").FishingGeometry;doors:{id:string;x:number;y:number;radius:number;arrival?:Point}[];walkable?:Record<string,boolean>;floorDomain?:{origin:Point;cellSize:number;cells:Record<string,boolean>}};
+type LayoutArea = {layoutId?:string;circles?:{localRadius:number;inverse:[number,number,number,number,number,number]}[];rectangles:{x:number;y:number;w:number;h:number}[];bounds:{x:number;y:number;w:number;h:number};spawn:Point;fishing?:import("./fishing").FishingGeometry;doors:{id:string;x:number;y:number;radius:number;arrival?:Point}[];walkable?:Record<string,boolean>;floorDomain?:{origin:Point;cellSize:number;cells:Record<string,boolean>}};
 type Layouts = Record<string,LayoutArea>;
 const copy=(p:Point)=>({...p});
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -95,6 +95,9 @@ export class ArcanaWorld {
       this.world=saved.world;this.world.campfires ??= {};
       this.world.elapsedMs+=Math.max(0,Date.now()-this.world.updatedAt);
       this.world.projectiles=[];this.world.meteors=[];this.world.barrages=[];
+      if(this.layouts.outside?.layoutId==="plaza_v2" && distance(this.world.enemy.home,spatialLayout().home)>.01) {
+        this.world.enemy=newEnemy();
+      }
       for(const actor of saved.actors) {initializeLife(actor.game);this.restoreLayoutPosition(actor);actor.disconnectedAt=Date.now();actor.lastMoveAt=Date.now();actor.pending=false;this.actors.set(actor.character.id,actor);}
     }
     this.lastTick=Date.now();
@@ -124,6 +127,11 @@ export class ArcanaWorld {
     if(!area) return !place.interior && point.x>=32 && point.x<=1110 && point.y>=48 && point.y<=1400;
     const b=area.bounds;
     if(point.x<b.x || point.y<b.y || point.x>b.x+b.w || point.y>b.y+b.h)return false;
+    if(area.circles?.some(circle=>{
+      const [xx,xy,yx,yy,ox,oy]=circle.inverse;
+      const padding=3*Math.max(Math.hypot(xx,xy),Math.hypot(yx,yy));
+      return Math.hypot(xx*point.x+yx*point.y+ox,xy*point.x+yy*point.y+oy)<circle.localRadius+padding;
+    }))return false;
     if(area.walkable && !area.walkable[Math.round(point.x)+":"+Math.round(point.y)])return false;
     if(area.floorDomain) {
       const domain=area.floorDomain;
@@ -136,6 +144,11 @@ export class ArcanaWorld {
     return !area.rectangles.some(r=>point.x>=r.x-3 && point.x<=r.x+r.w+3 && point.y>=r.y-3 && point.y<=r.y+r.h+3);
   }
   private restoreLayoutPosition(actor:Actor) {
+    if(!actor.place.interior && this.layouts.outside?.layoutId==="plaza_v2" && actor.place.location!=="arcana_plaza") {
+      actor.place={location:"arcana_plaza",interior:"",floor:0};
+      actor.game.state.location=actor.place.location;
+      actor.placeRevision=(actor.placeRevision || 0)+1;
+    }
     // Outdoor edits can put an older checkpoint inside new water/embankments.
     if((actor.place.interior && actor.place.interior!=="arcana_shop") || this.validPoint(actor.place,actor.position))return;
     actor.position=copy(this.area(actor.place).spawn);
@@ -152,7 +165,7 @@ export class ArcanaWorld {
     actor.lastMoveAt=Date.now();
   }
   private resolveMove(place:Place,from:Point,to:Point) {
-    const destination=!place.interior?spatialMove(from,to,3):to;
+    const destination=!place.interior && this.layouts.outside?.layoutId!=="plaza_v2"?spatialMove(from,to,3):to;
     const result=copy(from),steps=Math.max(1,Math.ceil(distance(from,destination)));
     for(let i=1;i<=steps;i++) {
       const next={x:from.x+(destination.x-from.x)*i/steps,y:from.y+(destination.y-from.y)*i/steps};
@@ -256,6 +269,7 @@ export class ArcanaWorld {
       const position=saved && this.validPoint(place,saved.position)?saved.position:copy(this.area(place)?.spawn || spatialLayout().spawn);
       game.state.location=place.location;
       const actor:Actor={character,game,place,position,previous:copy(position),direction:{x:0,y:1},walking:false,bench:"",gait:0,lastMoveAt:Date.now(),disconnectedAt:Date.now(),sessionId:principal.sessionId,controller,accepted:0,version:0,lastSeen:Date.now(),sessionExpires:principal.expires};
+      this.restoreLayoutPosition(actor);
       actor.actionReceipts=stored.receipts || [];
       initializeLife(actor.game);this.actors.set(character.id,actor);this.synchronize(actor);
       await this.persist();

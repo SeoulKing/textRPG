@@ -2,14 +2,14 @@
   "version": 1,
   "regions": {
     "outside": {
-      "scene": "res://scenes/native_2d/plaza.tscn",
+      "scene": "res://scenes/plaza_3d_v2.tscn",
       "location": "arcana_plaza",
-      "adapter": "plaza",
+      "adapter": "plaza_3d_v2",
       "bounds": [
-        128,
-        192,
-        3840,
-        5408
+        7488,
+        7232,
+        1408,
+        1920
       ]
     },
     "arcana_shop": {
