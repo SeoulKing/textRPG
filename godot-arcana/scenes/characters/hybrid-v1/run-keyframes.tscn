@@ -1,0 +1,156 @@
+[gd_scene format=3 uid="uid://b1xg10uchwy4q"]
+
+[ext_resource type="Script" uid="uid://danpvvt7xahny" path="res://scripts/characters/hybrid_v1/run_keyframe_editor.gd" id="1_hyxue"]
+[ext_resource type="Script" uid="uid://bw158gtn835rg" path="res://scripts/characters/hybrid_v1/run_pose_handle.gd" id="2_6xtnc"]
+[ext_resource type="AnimationLibrary" path="res://art/characters/hybrid-v1/run-keyframes.tres" id="3_u4vsr"]
+
+[node name="RunKeyframes" type="Node2D" unique_id=62463368]
+scale = Vector2(2, 2)
+script = ExtResource("1_hyxue")
+
+[node name="Pose" type="Node2D" parent="." unique_id=1898618932]
+z_index = 10
+position = Vector2(-272, 101)
+scale = Vector2(3, 3)
+
+[node name="고급" type="Node2D" parent="Pose" unique_id=1700688242]
+visible = false
+
+[node name="angle_spine" type="Node2D" parent="Pose/고급" unique_id=1006753004]
+script = ExtResource("2_6xtnc")
+handle_label = "고급: 척추 원본 각도"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="angle_head" type="Node2D" parent="Pose/고급" unique_id=136038450]
+rotation = 0.044198036
+script = ExtResource("2_6xtnc")
+handle_label = "고급: 머리 연결 구간"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="angle_shoulder_l" type="Node2D" parent="Pose/고급" unique_id=1013468732]
+rotation = 0.104246855
+script = ExtResource("2_6xtnc")
+handle_label = "고급: 왼어깨 위치"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="angle_shoulder_r" type="Node2D" parent="Pose/고급" unique_id=1724913711]
+rotation = 0.104246855
+script = ExtResource("2_6xtnc")
+handle_label = "고급: 오른어깨 위치"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="angle_hip_l" type="Node2D" parent="Pose/고급" unique_id=1091627645]
+script = ExtResource("2_6xtnc")
+handle_label = "고급: 왼골반 위치"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="angle_hip_r" type="Node2D" parent="Pose/고급" unique_id=1682028084]
+script = ExtResource("2_6xtnc")
+handle_label = "고급: 오른골반 위치"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="end_wrist_l" type="Node2D" parent="Pose/고급" unique_id=685954304]
+rotation = -0.2499998
+script = ExtResource("2_6xtnc")
+handle_label = "고급: 왼손 원본 각도"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="end_wrist_r" type="Node2D" parent="Pose/고급" unique_id=1788437611]
+rotation = -0.94999963
+script = ExtResource("2_6xtnc")
+handle_label = "고급: 오른손 원본 각도"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="전체_이동" type="Node2D" parent="Pose" unique_id=1840521151]
+visible = false
+position = Vector2(0, 3)
+script = ExtResource("2_6xtnc")
+handle_label = "전체 이동"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="몸통_기울기" type="Node2D" parent="Pose" unique_id=1892192565]
+position = Vector2(160, 99.553764)
+rotation = 0.104246974
+script = ExtResource("2_6xtnc")
+handle_label = "몸통 기울기"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="고개_기울기" type="Node2D" parent="Pose" unique_id=289688432]
+position = Vector2(162.74257, 75.68405)
+rotation = -0.0047977897
+script = ExtResource("2_6xtnc")
+handle_label = "고개 기울기"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="왼팔_상박" type="Node2D" parent="Pose" unique_id=373279585]
+position = Vector2(162.57817, 82.91353)
+rotation = 0.98102665
+script = ExtResource("2_6xtnc")
+handle_label = "왼팔 상박"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="왼팔_전완" type="Node2D" parent="Pose" unique_id=1978164234]
+position = Vector2(153.2025, 94.15689)
+rotation = -0.3961811
+script = ExtResource("2_6xtnc")
+handle_label = "왼팔 전완"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="오른팔_상박" type="Node2D" parent="Pose" unique_id=1807110622]
+position = Vector2(165.28146, 84.509735)
+rotation = 0.038880944
+script = ExtResource("2_6xtnc")
+handle_label = "오른팔 상박"
+handle_color = Color(1, 0.79607844, 0.47843137, 1)
+
+[node name="오른팔_전완" type="Node2D" parent="Pose" unique_id=1524815961]
+position = Vector2(165.8363, 96.61714)
+rotation = -1.7432466
+script = ExtResource("2_6xtnc")
+handle_label = "오른팔 전완"
+handle_color = Color(1, 0.79607844, 0.47843137, 1)
+
+[node name="왼다리_허벅지" type="Node2D" parent="Pose" unique_id=805114241]
+position = Vector2(160, 110.03342)
+rotation = -0.6789865
+script = ExtResource("2_6xtnc")
+handle_label = "왼다리 허벅지"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="왼다리_정강이" type="Node2D" parent="Pose" unique_id=1573099112]
+position = Vector2(173.6669, 133.42932)
+rotation = -0.026586771
+script = ExtResource("2_6xtnc")
+handle_label = "왼다리 정강이"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="오른다리_허벅지" type="Node2D" parent="Pose" unique_id=103865470]
+position = Vector2(160, 105.07411)
+rotation = -0.025441527
+script = ExtResource("2_6xtnc")
+handle_label = "오른다리 허벅지"
+handle_color = Color(1, 0.79607844, 0.47843137, 1)
+
+[node name="오른다리_정강이" type="Node2D" parent="Pose" unique_id=1412468616]
+position = Vector2(160.53305, 131.56966)
+rotation = 1.5985119
+script = ExtResource("2_6xtnc")
+handle_label = "오른다리 정강이"
+handle_color = Color(1, 0.79607844, 0.47843137, 1)
+
+[node name="왼발_회전" type="Node2D" parent="Pose" unique_id=1377149731]
+position = Vector2(170.75273, 149.51186)
+script = ExtResource("2_6xtnc")
+handle_label = "왼발 회전"
+handle_color = Color(0.50980395, 0.8392157, 1, 1)
+
+[node name="오른발_회전" type="Node2D" parent="Pose" unique_id=1497413143]
+position = Vector2(142.64375, 131.00189)
+rotation = 1.1621797
+script = ExtResource("2_6xtnc")
+handle_label = "오른발 회전"
+handle_color = Color(1, 0.79607844, 0.47843137, 1)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=140593246]
+root_node = NodePath("../Pose")
+libraries/ = ExtResource("3_u4vsr")

@@ -1,0 +1,464 @@
+{
+  "pixelsPerUnit": 64,
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "alpha": [
+    0,
+    255
+  ],
+  "assets": {
+    "wall": {
+      "file": "res://art/export/academy-interior/wall.png",
+      "size": [
+        296,
+        329
+      ],
+      "foot": [
+        148,
+        325
+      ],
+      "source": "architecture.png",
+      "crop": [
+        57,
+        77,
+        409,
+        456
+      ],
+      "role": "sprite"
+    },
+    "stairs-up": {
+      "file": "res://art/export/academy-interior/stairs-up.png",
+      "size": [
+        296,
+        344
+      ],
+      "foot": [
+        148,
+        340
+      ],
+      "source": "architecture.png",
+      "crop": [
+        537,
+        7,
+        465,
+        543
+      ],
+      "role": "sprite"
+    },
+    "bookcase": {
+      "file": "res://art/export/academy-interior/bookcase.png",
+      "size": [
+        200,
+        212
+      ],
+      "foot": [
+        100,
+        208
+      ],
+      "source": "bookcase-clean.png",
+      "crop": [
+        61,
+        24,
+        1098,
+        1213
+      ],
+      "role": "sprite"
+    },
+    "front-wall": {
+      "file": "res://art/export/academy-interior/front-wall.png",
+      "size": [
+        200,
+        110
+      ],
+      "foot": [
+        100,
+        106
+      ],
+      "source": "architecture.png",
+      "crop": [
+        14,
+        658,
+        484,
+        258
+      ],
+      "role": "sprite"
+    },
+    "office-door": {
+      "file": "res://art/export/academy-interior/office-door.png",
+      "size": [
+        208,
+        203
+      ],
+      "foot": [
+        104,
+        199
+      ],
+      "source": "architecture.png",
+      "crop": [
+        543,
+        560,
+        449,
+        437
+      ],
+      "role": "sprite"
+    },
+    "stairs-down": {
+      "file": "res://art/export/academy-interior/stairs-down.png",
+      "size": [
+        248,
+        189
+      ],
+      "foot": [
+        124,
+        185
+      ],
+      "source": "stairs-down.png",
+      "crop": [
+        109,
+        122,
+        1161,
+        877
+      ],
+      "role": "sprite"
+    },
+    "orrery": {
+      "file": "res://art/export/academy-interior/orrery.png",
+      "size": [
+        200,
+        223
+      ],
+      "foot": [
+        100,
+        219
+      ],
+      "source": "furniture.png",
+      "crop": [
+        42,
+        17,
+        459,
+        514
+      ],
+      "role": "sprite"
+    },
+    "desk": {
+      "file": "res://art/export/academy-interior/desk.png",
+      "size": [
+        160,
+        160
+      ],
+      "foot": [
+        80,
+        156
+      ],
+      "source": "furniture.png",
+      "crop": [
+        570,
+        97,
+        392,
+        393
+      ],
+      "role": "sprite"
+    },
+    "blackboard": {
+      "file": "res://art/export/academy-interior/blackboard.png",
+      "size": [
+        248,
+        225
+      ],
+      "foot": [
+        124,
+        221
+      ],
+      "source": "furniture.png",
+      "crop": [
+        1020,
+        50,
+        493,
+        445
+      ],
+      "role": "sprite"
+    },
+    "bench": {
+      "file": "res://art/export/academy-interior/bench.png",
+      "size": [
+        208,
+        133
+      ],
+      "foot": [
+        104,
+        129
+      ],
+      "source": "furniture.png",
+      "crop": [
+        32,
+        640,
+        558,
+        349
+      ],
+      "role": "sprite"
+    },
+    "plant": {
+      "file": "res://art/export/academy-interior/plant.png",
+      "size": [
+        104,
+        206
+      ],
+      "foot": [
+        52,
+        202
+      ],
+      "source": "furniture.png",
+      "crop": [
+        673,
+        488,
+        245,
+        505
+      ],
+      "role": "sprite"
+    },
+    "telescope": {
+      "file": "res://art/export/academy-interior/telescope.png",
+      "size": [
+        176,
+        225
+      ],
+      "foot": [
+        88,
+        221
+      ],
+      "source": "furniture.png",
+      "crop": [
+        1071,
+        508,
+        386,
+        499
+      ],
+      "role": "sprite"
+    },
+    "reading-table": {
+      "file": "res://art/export/academy-interior/reading-table.png",
+      "size": [
+        184,
+        121
+      ],
+      "foot": [
+        92,
+        117
+      ],
+      "source": "reading-details.png",
+      "crop": [
+        55,
+        166,
+        784,
+        505
+      ],
+      "role": "sprite"
+    },
+    "book-trolley": {
+      "file": "res://art/export/academy-interior/book-trolley.png",
+      "size": [
+        108,
+        120
+      ],
+      "foot": [
+        54,
+        116
+      ],
+      "source": "reading-details.png",
+      "crop": [
+        947,
+        66,
+        544,
+        611
+      ],
+      "role": "sprite"
+    },
+    "floor-lamp": {
+      "file": "res://art/export/academy-interior/floor-lamp.png",
+      "size": [
+        58,
+        141
+      ],
+      "foot": [
+        29,
+        137
+      ],
+      "source": "reading-details.png",
+      "crop": [
+        1743,
+        20,
+        254,
+        678
+      ],
+      "role": "sprite"
+    },
+    "partition-horizontal": {
+      "file": "res://art/export/academy-interior/partition-horizontal.png",
+      "size": [
+        200,
+        63
+      ],
+      "foot": [
+        100,
+        59
+      ],
+      "source": "room-partitions.png",
+      "crop": [
+        92,
+        152,
+        785,
+        223
+      ],
+      "role": "sprite"
+    },
+    "partition-depth": {
+      "file": "res://art/export/academy-interior/partition-depth.png",
+      "size": [
+        28,
+        120
+      ],
+      "foot": [
+        14,
+        116
+      ],
+      "source": "room-partitions.png",
+      "crop": [
+        1115,
+        41,
+        71,
+        399
+      ],
+      "role": "sprite"
+    },
+    "room-arch": {
+      "file": "res://art/export/academy-interior/room-arch.png",
+      "size": [
+        248,
+        236
+      ],
+      "foot": [
+        124,
+        232
+      ],
+      "source": "room-partitions.png",
+      "crop": [
+        210,
+        444,
+        552,
+        524
+      ],
+      "role": "sprite"
+    },
+    "partition-pier": {
+      "file": "res://art/export/academy-interior/partition-pier.png",
+      "size": [
+        36,
+        86
+      ],
+      "foot": [
+        18,
+        82
+      ],
+      "source": "room-partitions.png",
+      "crop": [
+        1094,
+        640,
+        114,
+        318
+      ],
+      "role": "sprite"
+    },
+    "floor-first-painted": {
+      "file": "res://art/export/academy-interior/floor-first-painted.png",
+      "size": [
+        1152,
+        960
+      ],
+      "foot": [
+        576,
+        956
+      ],
+      "role": "room-ground",
+      "source": "floor-first-painted.png",
+      "worldSize": [
+        18,
+        15
+      ],
+      "repeats": [
+        1,
+        1
+      ],
+      "groundBounds": [
+        3,
+        4,
+        21,
+        19
+      ]
+    },
+    "floor-second-painted": {
+      "file": "res://art/export/academy-interior/floor-second-painted.png",
+      "size": [
+        1152,
+        960
+      ],
+      "foot": [
+        576,
+        956
+      ],
+      "role": "room-ground",
+      "source": "floor-second-painted.png",
+      "worldSize": [
+        18,
+        15
+      ],
+      "repeats": [
+        1,
+        1
+      ],
+      "groundBounds": [
+        3,
+        4,
+        21,
+        19
+      ]
+    },
+    "stone-floor": {
+      "file": "res://art/export/academy-interior/stone-floor.png",
+      "size": [
+        256,
+        256
+      ],
+      "foot": [
+        128,
+        252
+      ],
+      "role": "tile"
+    },
+    "study-rug": {
+      "file": "res://art/export/academy-interior/study-rug.png",
+      "size": [
+        256,
+        256
+      ],
+      "foot": [
+        128,
+        252
+      ],
+      "role": "ground"
+    },
+    "medallion": {
+      "file": "res://art/export/academy-interior/medallion.png",
+      "size": [
+        256,
+        256
+      ],
+      "foot": [
+        128,
+        252
+      ],
+      "role": "ground"
+    }
+  }
+}

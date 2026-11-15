@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/6f8d1d49d7df3755abbf2ed6fac7b191c43adfecf0803b8942d63c0ead2cb9a0.res" id="3_20nkm"]
+[node name="Academy_office_door137" type="Sprite2D"]
+texture = ExtResource("3_20nkm")
+centered = false
+offset = Vector2(-104, -199)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-104, -84, 208, 96)]
+texture_filter = 1
+

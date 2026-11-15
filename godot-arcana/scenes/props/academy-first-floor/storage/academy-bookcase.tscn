@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/9675174401c22d1d25432955dffa8152ee727777eaa2f533e9d6c4b586ad5333.res" id="4_x3kem"]
+[node name="Academy_bookcase44" type="Sprite2D"]
+texture = ExtResource("4_x3kem")
+centered = false
+offset = Vector2(-99.8, -207.6)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-108.8, -69.6, 216, 80)]
+texture_filter = 1
+

@@ -1,0 +1,196 @@
+{
+  "art_modified": false,
+  "directions": {
+    "e": {
+      "frame_count": 1,
+      "layer_count": 2,
+      "native_source": "res://art/characters/hybrid-v1/hands/e/hands.pxpen",
+      "outputs": {
+        "hand_l": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/e/hand_l.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "20e094b3460f86759176a793768f5c3e44e47c20e7d7a87c84ccf6032f4c6953"
+        },
+        "hand_r": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/e/hand_r.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "3e3d83522813be0f29329230be5f326111b1c12d50df42a2fa12a289f6d4a991"
+        }
+      },
+      "source_reopened": true,
+      "source_sha256": "e8137ceac8f48de882afc0b75e49eb18aa65791c258af765daccce78ec0771ff"
+    },
+    "n": {
+      "frame_count": 1,
+      "layer_count": 2,
+      "native_source": "res://art/characters/hybrid-v1/hands/n/hands.pxpen",
+      "outputs": {
+        "hand_l": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/n/hand_l.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "771c909914641dcb20653db8b95f7ea7d3e297d7eb2ca594991c26cc5d616da7"
+        },
+        "hand_r": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/n/hand_r.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "dc3b0c14eb48dfce7bbbefcb334d098b25c1d72eee839bfa6231677a61c2c942"
+        }
+      },
+      "source_reopened": true,
+      "source_sha256": "71268c25d698e49d4a30ef2f42d6129fb500568e2401af2f5a9c88b0be4bc049"
+    },
+    "ne": {
+      "frame_count": 1,
+      "layer_count": 2,
+      "native_source": "res://art/characters/hybrid-v1/hands/ne/hands.pxpen",
+      "outputs": {
+        "hand_l": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/ne/hand_l.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "2d5f36c220be34da97c313c84e3ce33a3b36a2bb1af51053ffa05585621021c7"
+        },
+        "hand_r": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/ne/hand_r.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "d4db4c5790a25bcee8d637307c689aad2a5ed7a81e9004f13815bd67ac353cdf"
+        }
+      },
+      "source_reopened": true,
+      "source_sha256": "3d4ca9a960977e4404c446419b4eda24f3d2aa8e0383791592cecb5bd53f91cc"
+    },
+    "nw": {
+      "frame_count": 1,
+      "layer_count": 2,
+      "native_source": "res://art/characters/hybrid-v1/hands/nw/hands.pxpen",
+      "outputs": {
+        "hand_l": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/nw/hand_l.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "9ba50759aa7380116504b43395ab1ff9cdd3eafe68fdce3b2aa05c062e15951f"
+        },
+        "hand_r": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/nw/hand_r.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "9dba8824768438a9110421f0796dd73561749e9c470aa4691bd5c737446f1b6b"
+        }
+      },
+      "source_reopened": true,
+      "source_sha256": "04073e6055c86fb2959196d241919cbe73d58080ebe142c82c15e453c77baba1"
+    },
+    "s": {
+      "frame_count": 1,
+      "layer_count": 2,
+      "native_source": "res://art/characters/hybrid-v1/hands/s/hands.pxpen",
+      "outputs": {
+        "hand_l": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/s/hand_l.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "73dede529ad0dddf2392e1ae5a85ed6d04947b36d09fd5895ff542b613080cb6"
+        },
+        "hand_r": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/s/hand_r.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "2ec683233df020eeb6a617f16ba2894f1dc498b581ff18a783e446ee73e95390"
+        }
+      },
+      "source_reopened": true,
+      "source_sha256": "59e012829bcf0dee5f767eaf6e4e6e9d93906247b017ffb6e738deff6572636e"
+    },
+    "se": {
+      "frame_count": 1,
+      "layer_count": 2,
+      "native_source": "res://art/characters/hybrid-v1/hands/se/hands.pxpen",
+      "outputs": {
+        "hand_l": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/se/hand_l.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "a1ed2e9e28f08fdd3acab593ddff66dbd928e2ba11065f108c078fcefad067a0"
+        },
+        "hand_r": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/se/hand_r.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "059854dc0d1caa0dcd922c3aa76c13843a720260431b5f9e9e8669e24ab04c73"
+        }
+      },
+      "source_reopened": true,
+      "source_sha256": "3405df41483c2edce2cdcea589fd0bc8a2f91e0ee8363eb523d1ef5a3bf6bb32"
+    },
+    "sw": {
+      "frame_count": 1,
+      "layer_count": 2,
+      "native_source": "res://art/characters/hybrid-v1/hands/sw/hands.pxpen",
+      "outputs": {
+        "hand_l": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/sw/hand_l.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "badbcfcb1e282cce58494674e5334a623ca0afb0407656e3adaffca0da6d8f50"
+        },
+        "hand_r": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/sw/hand_r.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "6de7ee1333277e66cdd80c3a522067a9ddc6c3318a9becb54ed7efe4364cdf91"
+        }
+      },
+      "source_reopened": true,
+      "source_sha256": "e77574d1db7c277268f1bdb797fc585b2aa7296f6bf7fbd9fdfb2f77fa369536"
+    },
+    "w": {
+      "frame_count": 1,
+      "layer_count": 2,
+      "native_source": "res://art/characters/hybrid-v1/hands/w/hands.pxpen",
+      "outputs": {
+        "hand_l": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/w/hand_l.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "ca74740d4d47a5fa4fe5c470163af6c20bbd863906fc5cd28707313805c2f028"
+        },
+        "hand_r": {
+          "native_indices_identical": true,
+          "png": "res://art/characters/hybrid-v1/hands/w/hand_r.png",
+          "png_byte_identical": true,
+          "rgba_identical": true,
+          "sha256": "05eb5eddc3d3e45c4e1f19527b69823ee5904b54693bfd0c5aee599718c1c91a"
+        }
+      },
+      "source_reopened": true,
+      "source_sha256": "15f8deb60ecedac60045b3ffee6e5e821f8fd9a172098337c3240db56cc6ee6f"
+    }
+  },
+  "pngs_byte_identical": 16,
+  "schema_version": 1,
+  "source_frames_per_direction": 1,
+  "source_layers": [
+    "hand_l__skin",
+    "hand_r__skin"
+  ]
+}

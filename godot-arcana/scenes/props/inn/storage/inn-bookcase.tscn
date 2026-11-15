@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/acb1204276e35f51ae5266641737b85c0cdc06c08bd3d1f9eabff4e0d849d4cf.res" id="6_qstl6"]
+[sub_resource type="RectangleShape2D" id="Collision_Inn_bookcase10_1"]
+resource_local_to_scene = true
+size = Vector2(92, 100)
+
+[node name="Inn_bookcase10" type="Sprite2D"]
+texture = ExtResource("6_qstl6")
+centered = false
+offset = Vector2(-87.6, -241.8)
+metadata/foot = Vector2(0, 0)
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+texture_filter = 1
+
+[node name="Collision" type="StaticBody2D" parent="."]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" type="CollisionShape2D" parent="Collision"]
+position = Vector2(0.4, -50.8)
+shape = SubResource("Collision_Inn_bookcase10_1")
+metadata/layout_collision = true
+

@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/430a285d61e294efe94994c459016a40a9a72d17bb519b868aa082a51c21f7b1.res" id="25_iqbjw"]
+
+[node name="MarketShadeTree" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "oak"
+collision_parts = Array[Rect2]([Rect2(-5.25, -9, 10.5, 9)])
+registered_transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+source_path = "CityWalk/oak_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("25_iqbjw")
+centered = false
+offset = Vector2(-78.6, -193.2)
+region_rect = Rect2(0, 0, 158, 195)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(158, 195)
+

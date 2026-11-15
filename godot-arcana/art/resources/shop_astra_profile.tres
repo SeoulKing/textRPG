@@ -1,0 +1,27 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://cqmfulwnxhan4"]
+
+[ext_resource type="Shader" uid="uid://0i8kqwa4h0w3" path="res://art/resources/shop_astra_surface.gdshader" id="1_surface"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_surface")
+shader_parameter/surface_color = Color(1, 1, 1, 1)
+shader_parameter/use_surface_texture = false
+shader_parameter/texture_scale = Vector2(1, 1)
+shader_parameter/texture_offset = Vector2(0, 0)
+shader_parameter/ambient_tint = Color(0.95, 0.975, 1, 1)
+shader_parameter/ambient_level = 1.0
+shader_parameter/band_thresholds = Vector3(0.04, 0.37, 0.72)
+shader_parameter/band_levels = Vector4(0, 0.26, 0.6, 1)
+shader_parameter/sun_strength = 0.91
+shader_parameter/local_light_strength = 0.54
+shader_parameter/use_vertex_ao = true
+shader_parameter/use_floor_ao = false
+shader_parameter/use_vertex_edges = true
+shader_parameter/ao_strength = 0.34
+shader_parameter/edge_strength = 0.08
+shader_parameter/debug_mode = 0
+metadata/sun_direction = Vector3(1, -0.4, 0.18)
+metadata/sun_color = Color(1, 0.9490196, 0.854902, 1)
+metadata/sun_energy = 0.35
+metadata/outline_strength = 0.13

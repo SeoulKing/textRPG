@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/a4f62592eb8d1869f3343063daad6fe011fc55468096a677defc72bdc2d7563f.res" id="9_r6pry"]
+[node name="Academy_stairs_down144" type="Sprite2D"]
+texture = ExtResource("9_r6pry")
+centered = false
+offset = Vector2(-124, -185.4)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-116, -118.4, 232, 92)]
+texture_filter = 1
+

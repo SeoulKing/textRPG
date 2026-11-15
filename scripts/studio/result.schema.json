@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Arcana studio task result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["taskId", "goalId", "phase", "outcome", "summary", "artifacts", "evidence", "issues", "requests", "failure"],
+  "properties": {
+    "taskId": { "type": "string", "minLength": 1 },
+    "goalId": { "type": "string", "minLength": 1 },
+    "phase": { "type": "string", "enum": ["producer", "reviewer"] },
+    "outcome": { "type": "string", "enum": ["completed", "needs_changes", "blocked"] },
+    "summary": { "type": "string", "minLength": 1 },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "description"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "claim", "kind", "command"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "claim": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["source", "static", "runtime"] },
+          "command": { "type": "string" }
+        }
+      }
+    },
+    "issues": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "requests": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["title", "organization", "playerChange", "blocking", "dependsOn", "scope", "capabilities", "checks", "acceptance", "surface"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "organization": { "type": "string", "enum": ["director", "design", "narrative", "world", "character", "development", "quality"] },
+          "playerChange": { "type": "string", "minLength": 1 },
+          "blocking": { "type": "boolean" },
+          "dependsOn": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "scope": {
+            "type": "object", "additionalProperties": false,
+            "required": ["read", "write"],
+            "properties": {
+              "read": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "write": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+            }
+          },
+          "capabilities": { "type": "array", "items": { "type": "string", "enum": ["static", "code", "content", "art", "ui", "export", "test", "browser", "publish"] } },
+          "checks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "acceptance": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "surface": { "type": "string", "enum": ["cli", "app"] }
+        }
+      }
+    },
+    "failure": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["fingerprint", "conditionToRetry"],
+          "properties": {
+            "fingerprint": { "type": "string", "minLength": 1 },
+            "conditionToRetry": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    }
+  }
+}

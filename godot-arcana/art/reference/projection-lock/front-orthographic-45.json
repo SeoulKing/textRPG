@@ -1,0 +1,15 @@
+{
+  "purpose": "geometry reference only; not game art",
+  "camera": {
+    "projection": "orthographic",
+    "yaw": 0,
+    "pitch": 45,
+    "roll": 0
+  },
+  "pixelsPerUnit": 64,
+  "panels": {
+    "left": "horizontal 2x2 unit square: equal front/back width, vertical depth edges",
+    "middle": "2x2 footprint, 1 unit tall box; cyan top / gold front",
+    "right": "horizontal circle diameter 2 units; ellipse ratio sin(45)=0.70710678"
+  }
+}

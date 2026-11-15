@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/c4cb53be7bfb983603b1efb1ae6d7d20f0089d776ac9690254cf94311bffd638.res" id="8_obgwy"]
+[node name="Academy_reading_table50" type="Sprite2D"]
+texture = ExtResource("8_obgwy")
+centered = false
+offset = Vector2(-92.4, -116.8)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-94.4, -60.8, 192, 80)]
+texture_filter = 1
+

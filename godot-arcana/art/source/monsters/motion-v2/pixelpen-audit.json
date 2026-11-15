@@ -1,0 +1,13 @@
+{
+  "canvas": [
+    64,
+    80
+  ],
+  "frames": 120,
+  "groundRow": 73,
+  "indexedCorrections": 17005,
+  "nativePixelPen": true,
+  "onePixelSilhouette": true,
+  "rigidFaces": true,
+  "savedReopenedExported": true
+}

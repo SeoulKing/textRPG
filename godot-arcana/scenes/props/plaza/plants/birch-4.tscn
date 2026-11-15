@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/5ddee8e194e697bbad66d3fc7ed5afc140b6901292947109b7b727197f8437d3.res" id="29_uvk6s"]
+[node name="birch_03" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "birch"
+collision_parts = Array[Rect2]([Rect2(-3.84, -7.04, 7.6800537, 7.0400085)])
+registered_transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 0, 0, 0)
+source_path = "CityDistrict/Gardens/birch_03"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+position = Vector2(67, 9)
+texture = ExtResource("29_uvk6s")
+centered = false
+offset = Vector2(-71.6, -206.8)
+region_rect = Rect2(0, 0, 144, 208)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(144, 208)
+

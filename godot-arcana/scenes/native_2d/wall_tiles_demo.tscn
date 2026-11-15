@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=4 uid="uid://dpetromrmvh25"]
+
+[ext_resource type="TileSet" uid="uid://d24a6teq0opvr" path="res://art/resources/native_wall_tileset.tres" id="1_61jlm"]
+
+[node name="WallTilesDemo" type="Node2D"]
+
+[node name="Walls" type="TileMapLayer" parent="."]
+y_sort_enabled = true
+texture_filter = 1
+position = Vector2(64, 256)
+tile_map_data = PackedByteArray("AAAHAAMAAAACAAIAAAAAAAMAAAACAAIAAAAHAAIAAAACAAIAAAAAAAIAAAACAAIAAAAHAAEAAAACAAIAAAAAAAEAAAACAAIAAAAHAAQAAAAAAAMAAAAHAAAAAAACAAEAAAAGAAQAAAABAAEAAAAGAAAAAAABAAEAAAAFAAQAAAABAAAAAAAFAAAAAAABAAEAAAAEAAAAAAABAAEAAAADAAAAAAABAAEAAAACAAQAAAAAAAEAAAACAAAAAAABAAEAAAABAAQAAAABAAEAAAABAAAAAAABAAEAAAAAAAQAAAABAAIAAAAAAAAAAAADAAAAAAA=")
+tile_set = ExtResource("1_61jlm")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(320, 320)
+zoom = Vector2(0.5, 0.5)

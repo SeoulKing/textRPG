@@ -1,0 +1,72 @@
+{
+  "approval": "User: 이 시안으로 적용해 주세요",
+  "concept": "source/magic-ground-v1/approved-concept.png",
+  "master": "source/magic-ground-v1/magic-ground-master.svg",
+  "author": "scripts/build-arcana-magic-ground.py",
+  "detailPass": {
+    "pass": "district-detail-01",
+    "materialReference": "godot-arcana/art/export/fountain-paving/mosaic-ring.png",
+    "zones": {
+      "fountain_stones": 560,
+      "avenue_stones": 300
+    },
+    "scope": [
+      "fountain plaza",
+      "southern ceremonial avenue and gate"
+    ],
+    "features": [
+      "reference stone mineral clusters",
+      "native stone bevels and chips",
+      "native blue tesserae matching fountain mosaic",
+      "enamel segment edges",
+      "shaded gold/blue compass facets",
+      "inset constellation stones",
+      "avenue metal lips and fasteners"
+    ],
+    "preserved": [
+      "all district geometry",
+      "all other district finish",
+      "native density",
+      "building and prop layout",
+      "movement and collision"
+    ]
+  },
+  "worldBoundsXZ": [
+    0,
+    8,
+    72,
+    48
+  ],
+  "nativeDensity": 64,
+  "masterSize": [
+    4608,
+    3072
+  ],
+  "runtimeHalves": {
+    "left": [
+      2304,
+      3072
+    ],
+    "right": [
+      2304,
+      3072
+    ]
+  },
+  "sampling": "two unique contiguous halves; no repeat; no enlargement; nearest; no mipmaps",
+  "registration": {
+    "fountain": [
+      36,
+      28.925
+    ],
+    "academyCourt": [
+      54,
+      30.65
+    ],
+    "southGate": [
+      36,
+      47.1
+    ]
+  },
+  "design": "quiet ivory limestone, cobalt/gold celestial compass, constellation inlays, ceremonial avenue and academy star",
+  "preserved": "buildings, trees, lamps, props, terrain masks, collision, entrances and inner fountain mosaic"
+}

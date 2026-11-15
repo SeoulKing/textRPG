@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/da5b4febbbb0a12cf3f82abdb605adfb2f9ee997b676ec507b464664e0452af7.res" id="6_uq32x"]
+[node name="벤치_01" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "bench"
+display_name = "공원 벤치"
+interaction_kind = "bench"
+collision_parts = Array[Rect2]([Rect2(-13, -5, 26, 5)])
+source_path = "벤치_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("6_uq32x")
+centered = false
+offset = Vector2(-64, -69)
+region_rect = Rect2(0, 0, 128, 71)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(128, 71)
+

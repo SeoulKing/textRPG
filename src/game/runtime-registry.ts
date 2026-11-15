@@ -1,3 +1,16 @@
+import { COOKING_MATERIAL_IDS, FOODS } from "./arcana-cooking";
+import { withAcademyContent } from "./academy-content";
+import { withSubwayStockRooms } from "./text-world/subway-stock-definitions";
+import { withDefaultCivicRooms } from "./text-world/civic-definitions";
+import { withDefaultShelterRooms } from "./text-world/shelter-definitions";
+import { withQuestGuidanceDefaults } from "./quest-guidance";
+import { withDefaultHospitalRooms } from "./text-world/hospital-definitions";
+import { withActivityCatalogDefaults } from "./activity-catalog-updates";
+import { withResourceCatalogDefaults } from "./resource-catalog-updates";
+import { baseItems } from "./data/items";
+import { omitRetiredActions } from "./content-retirements";
+import { applySurvivalCatalogUpdates } from "./survival-catalog-updates";
+import { versionRegistry } from "./content-versions";
 import { worldRegistry } from "./data/registry";
 import type {
   ContentRegistry,
@@ -76,7 +89,7 @@ export function mergeDynamicWorldRegistry(
 }
 
 export function buildRuntimeRegistry(
-  stateOrDynamic?: Pick<GameState, "dynamicContent"> | DynamicWorldRegistry | null,
+  stateOrDynamic?: (Pick<GameState, "dynamicContent" | "contentVersionId"> & Partial<Pick<GameState,"flags">>) | DynamicWorldRegistry | null,
 ): ContentRegistry {
   const dynamicContent =
     !stateOrDynamic
@@ -85,17 +98,33 @@ export function buildRuntimeRegistry(
         ? stateOrDynamic.dynamicContent
         : stateOrDynamic;
 
-  return {
-    items: { ...worldRegistry.items, ...dynamicContent.items },
-    people: { ...worldRegistry.people, ...dynamicContent.people },
-    locations: { ...worldRegistry.locations, ...dynamicContent.locations },
-    quests: { ...worldRegistry.quests, ...dynamicContent.quests },
-    skills: { ...worldRegistry.skills, ...dynamicContent.skills },
-    actions: { ...worldRegistry.actions, ...dynamicContent.actions },
-    choices: { ...worldRegistry.choices, ...dynamicContent.choices },
-    events: { ...worldRegistry.events, ...dynamicContent.events },
-    scenes: { ...worldRegistry.scenes, ...dynamicContent.scenes },
-  };
+  const base = stateOrDynamic && "dynamicContent" in stateOrDynamic ? (versionRegistry(stateOrDynamic.contentVersionId) ?? worldRegistry) : worldRegistry;
+  const registry = withSubwayStockRooms(withDefaultCivicRooms(withDefaultShelterRooms(withDefaultHospitalRooms(withQuestGuidanceDefaults(omitRetiredActions(withActivityCatalogDefaults(withResourceCatalogDefaults(applySurvivalCatalogUpdates({
+    textRooms: base.textRooms,
+    items: { ironDoorKey: baseItems.ironDoorKey, flashlight: baseItems.flashlight, ...base.items, ...dynamicContent.items },
+    people: { ...base.people, ...dynamicContent.people },
+    locations: { ...base.locations, ...dynamicContent.locations },
+    quests: { ...base.quests, ...dynamicContent.quests },
+    skills: { ...base.skills, ...dynamicContent.skills },
+    actions: { ...base.actions, ...dynamicContent.actions },
+    choices: { ...base.choices, ...dynamicContent.choices },
+    events: { ...base.events, ...dynamicContent.events },
+    scenes: { ...base.scenes, ...dynamicContent.scenes },
+  }, worldRegistry), worldRegistry), worldRegistry)), worldRegistry)))));
+  if(stateOrDynamic && "flags" in stateOrDynamic && stateOrDynamic.flags?.arcana_online) {
+    for(const id of ["wood","riverFish","campfire","campfireFine","campfireExcellent",...COOKING_MATERIAL_IDS,...Object.keys(FOODS)]) {
+      registry.items[id]=structuredClone(baseItems[id as keyof typeof baseItems]);
+    }
+    for(const [id,food] of Object.entries(FOODS)) {
+      const item=registry.items[id] as typeof baseItems.grilledFish;
+      item.name=food.name+" · "+food.quality;
+      item.description="허기 "+food.hunger+" 회복";
+      item.effects={...item.effects,hp:0,mind:0,energy:0};item.useMinutes=0;
+    }
+  }
+  registry.items.fishingRod = baseItems.fishingRod;
+  registry.items.slimeMucus = baseItems.slimeMucus;
+  return withAcademyContent(registry);
 }
 
 function expandedFrontierSlots(state: Pick<GameState, "frontierState"> | null | undefined, locationId: string) {

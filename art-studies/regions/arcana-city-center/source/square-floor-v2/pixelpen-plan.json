@@ -1,0 +1,10 @@
+{
+  "jobs": [
+    {
+      "id": "paving",
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/square-floor-v2/prepared.png",
+      "source": "res://art/source/square-floor-v2/paving.pxpen",
+      "output": "res://art/export/square-floor-v2/paving.png"
+    }
+  ]
+}

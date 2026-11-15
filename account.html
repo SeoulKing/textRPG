@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>아르카나 · 계정</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#181c26;color:#f3eadc}body{margin:0;padding:32px 18px}main{max-width:480px;margin:auto}h1{font-size:26px}p{line-height:1.7;color:#c9c6c2}section{background:#242936;border:1px solid #454b59;border-radius:14px;padding:20px;margin:18px 0}a,button{display:inline-block;border:1px solid #666b76;border-radius:8px;background:#353c4b;color:#fff;text-decoration:none;padding:12px 16px;font:inherit;margin:5px 4px 5px 0;cursor:pointer}button:disabled{opacity:.5;cursor:default}input{box-sizing:border-box;width:100%;font:inherit;background:#171c26;border:1px solid #727780;border-radius:6px;color:#fff;padding:12px}label{display:block;margin:12px 0}.primary{background:#756142}#status{min-height:24px;color:#f3d393}[hidden]{display:none!important}.choice{display:block;width:100%;text-align:left}
+</style></head><body><main><a href="/">홈</a><h1>아르카나 계정</h1><p>방문자로 먼저 둘러보거나 로그인해서 이름과 진행을 등록하실 수 있습니다.</p><p id="status" role="status" aria-live="polite">계정을 확인하고 있습니다.</p>
+<section><h2 id="identity">로그인</h2><p id="description"></p><a id="kakao" href="/api/auth/kakao/start">카카오 로그인</a><a id="google" href="/api/auth/google/start">구글 로그인</a><button id="logout" hidden>로그아웃</button></section>
+<section id="registration" hidden><h2>캐릭터 이름</h2><form id="name-form"><label for="name">한글·영문·숫자 2~12자, 중복 불가</label><input id="name" name="name" minlength="2" maxlength="12" pattern="[가-힣a-zA-Z0-9]{2,12}" autocomplete="off" required><button type="submit">이름 등록</button></form></section>
+<section id="choices" hidden><h2>이어갈 캐릭터 선택</h2><p>선택하지 않은 진행은 보관하며, 재화와 성장 수치를 합치지 않습니다.</p><div id="choice-list"></div></section>
+<section><h2>아르카나 세계</h2><p>사람들이 계속 들어와 함께 살아가는 하나의 세계입니다. 현재는 개발 중 임시 동시 접속 제한을 적용합니다. 방문자 진행은 같은 브라우저에서 7일간 이어갈 수 있습니다.</p><a id="play" class="primary" href="/godot/">세계에 입장하기</a></section>
+</main><script src="/account.js" defer></script></body></html>

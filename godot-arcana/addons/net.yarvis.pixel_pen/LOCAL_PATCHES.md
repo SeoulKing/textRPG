@@ -1,0 +1,1 @@
+PixelPen v1.1.4, official release, MIT. Local patch: lazy-load editor window; release its static state on plugin teardown to keep headless imports/exports clean. This addon is excluded from Web exports.

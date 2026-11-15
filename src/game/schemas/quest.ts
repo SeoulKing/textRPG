@@ -23,6 +23,12 @@ export const QuestRequiredItemSchema = z.object({
   amount: z.number().int().min(1).default(1),
 });
 
+export const QuestGuidanceSchema = z.object({
+  gathering: z.string().min(1).max(400),
+  ready: z.string().min(1).max(400),
+  completion: z.object({ kind: z.enum(["choice", "action"]), id: z.string().min(1), locationId: z.string().min(1) }),
+});
+
 export const QuestDefinitionSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -30,6 +36,7 @@ export const QuestDefinitionSchema = z.object({
   type: QuestTypeSchema.default("side"),
   objectives: z.array(ObjectiveSchema),
   requiredItems: z.array(QuestRequiredItemSchema).default([]),
+  guidance: QuestGuidanceSchema.nullable().optional(),
   rewards: z.array(QuestRewardSchema).default([]),
   prerequisites: z.array(ConditionSchema).default([]),
   relatedNpcIds: z.array(z.string()).default([]),

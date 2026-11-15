@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4fbe69f82d2139feeb0762e45036e76d85d91a95aaef9bb00683cb80d41c0bee.res" id="14_gv162"]
+[node name="_Node3D_20484" type="Sprite2D"]
+texture = ExtResource("14_gv162")
+centered = false
+offset = Vector2(-32, -59)
+metadata/foot = Vector2(0, 0)
+texture_filter = 1
+

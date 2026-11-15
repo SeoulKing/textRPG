@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4c2aba6536f75736ac17f03f3d5f8853c1ad7d116e26f690f63e8dbdc14fc964.res" id="20_hsicf"]
+[node name="InnTerrace" type="Node2D"]
+script = ExtResource("1_rimt7")
+display_name = "여관 앞 테라스"
+interaction_kind = "city_corner"
+interaction_point = Vector2(0, 14)
+model_kind = "city-cafe"
+collision_parts = Array[Rect2]([Rect2(-21.60002, -20.8, 43.200012, 20.799988)])
+source_path = "CityWalk/cafe_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("20_hsicf")
+centered = false
+offset = Vector2(-100.2, -193.2)
+region_rect = Rect2(0, 0, 200, 197)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(200, 197)
+

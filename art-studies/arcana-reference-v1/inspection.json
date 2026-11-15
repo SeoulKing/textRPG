@@ -1,0 +1,1380 @@
+{
+  "kind": "asset and source inspection; not browser or automated gameplay testing",
+  "frameSize": [
+    96,
+    128
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "nativeFrameCount": 96,
+  "framesClipped": 0,
+  "files": [
+    {
+      "name": "barrels.png",
+      "size": [
+        96,
+        88
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "basket.png",
+      "size": [
+        72,
+        48
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "bench.png",
+      "size": [
+        128,
+        72
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "birch.png",
+      "size": [
+        180,
+        260
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "crate.png",
+      "size": [
+        64,
+        56
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "flowerpot.png",
+      "size": [
+        58,
+        72
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "flowers.png",
+      "size": [
+        88,
+        56
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "grass-clump.png",
+      "size": [
+        72,
+        32
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "grass.png",
+      "size": [
+        128,
+        128
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-alternate.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-blouse.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-body.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-boots-navy.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-boots-taupe.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-bottom-mask.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-dress-mask.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-dress.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-feet-mask.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-hair.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-no-shawl.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-original.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-shawl.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-skirt.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "hero-top-mask.png",
+      "size": [
+        1536,
+        768
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "oak.png",
+      "size": [
+        210,
+        260
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "planter.png",
+      "size": [
+        84,
+        72
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "shrub.png",
+      "size": [
+        86,
+        80
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "soil.png",
+      "size": [
+        128,
+        128
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "spruce.png",
+      "size": [
+        166,
+        260
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "stone-a.png",
+      "size": [
+        128,
+        128
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    },
+    {
+      "name": "stone-b.png",
+      "size": [
+        128,
+        128
+      ],
+      "binaryAlpha": true,
+      "paletteFixedPoints": true,
+      "losslessNoMipmaps": true
+    }
+  ],
+  "protectedFiles": [
+    {
+      "file": "godot-arcana/scripts/pixel3d_models.gd",
+      "sha256": "3927aac3c0661c731ee9787107aaff9b930b58cdce5383cf505576aae41a383b",
+      "unchanged": true
+    },
+    {
+      "file": "godot-arcana/art/resources/pixel3d.gdshader",
+      "sha256": "03109dfed7e079403ea7b477c99a1c2a7f9a2b6d755b59d6e945ebafc5c50a19",
+      "unchanged": true
+    },
+    {
+      "file": "godot-arcana/scripts/fountain_spec.gd",
+      "sha256": "de204611ee39c1a1ed696e8b12714e83b1604debcdd9c9b32453328c40534978",
+      "unchanged": true
+    },
+    {
+      "file": "godot-arcana/scenes/plaza.tscn",
+      "sha256": "39df7a7797b8603d107ac9739fcfa05fb0b2cef30068b526d99e82d50e7f551e",
+      "unchanged": true
+    }
+  ],
+  "fountainWaterComparison": {
+    "roi": [
+      260,
+      0,
+      394,
+      250
+    ],
+    "samples": 6008,
+    "unchanged": 6008,
+    "percentage": 100
+  },
+  "walk": [
+    {
+      "direction": "s",
+      "distinctWalkPoses": 8,
+      "frames": [
+        {
+          "clip": "idle",
+          "frame": 0,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 1,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 2,
+          "bounds": [
+            20,
+            6,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 3,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 0,
+          "bounds": [
+            19,
+            7,
+            76,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 1,
+          "bounds": [
+            19,
+            6,
+            76,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 2,
+          "bounds": [
+            20,
+            7,
+            76,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 3,
+          "bounds": [
+            21,
+            6,
+            76,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 4,
+          "bounds": [
+            21,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 5,
+          "bounds": [
+            21,
+            6,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 6,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 7,
+          "bounds": [
+            19,
+            6,
+            76,
+            116
+          ]
+        }
+      ]
+    },
+    {
+      "direction": "se",
+      "distinctWalkPoses": 8,
+      "frames": [
+        {
+          "clip": "idle",
+          "frame": 0,
+          "bounds": [
+            21,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 1,
+          "bounds": [
+            21,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 2,
+          "bounds": [
+            21,
+            6,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 3,
+          "bounds": [
+            21,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 0,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 1,
+          "bounds": [
+            20,
+            6,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 2,
+          "bounds": [
+            21,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 3,
+          "bounds": [
+            22,
+            6,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 4,
+          "bounds": [
+            21,
+            7,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 5,
+          "bounds": [
+            20,
+            6,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 6,
+          "bounds": [
+            20,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 7,
+          "bounds": [
+            20,
+            6,
+            75,
+            116
+          ]
+        }
+      ]
+    },
+    {
+      "direction": "e",
+      "distinctWalkPoses": 8,
+      "frames": [
+        {
+          "clip": "idle",
+          "frame": 0,
+          "bounds": [
+            22,
+            7,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 1,
+          "bounds": [
+            22,
+            7,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 2,
+          "bounds": [
+            22,
+            6,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 3,
+          "bounds": [
+            22,
+            7,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 0,
+          "bounds": [
+            22,
+            7,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 1,
+          "bounds": [
+            22,
+            6,
+            71,
+            115
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 2,
+          "bounds": [
+            23,
+            7,
+            71,
+            115
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 3,
+          "bounds": [
+            22,
+            6,
+            71,
+            115
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 4,
+          "bounds": [
+            22,
+            7,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 5,
+          "bounds": [
+            22,
+            6,
+            69,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 6,
+          "bounds": [
+            21,
+            7,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 7,
+          "bounds": [
+            22,
+            6,
+            71,
+            116
+          ]
+        }
+      ]
+    },
+    {
+      "direction": "ne",
+      "distinctWalkPoses": 8,
+      "frames": [
+        {
+          "clip": "idle",
+          "frame": 0,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 1,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 2,
+          "bounds": [
+            24,
+            6,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 3,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 0,
+          "bounds": [
+            23,
+            7,
+            72,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 1,
+          "bounds": [
+            23,
+            6,
+            72,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 2,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 3,
+          "bounds": [
+            25,
+            6,
+            72,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 4,
+          "bounds": [
+            25,
+            7,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 5,
+          "bounds": [
+            24,
+            6,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 6,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 7,
+          "bounds": [
+            23,
+            6,
+            72,
+            116
+          ]
+        }
+      ]
+    },
+    {
+      "direction": "n",
+      "distinctWalkPoses": 8,
+      "frames": [
+        {
+          "clip": "idle",
+          "frame": 0,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 1,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 2,
+          "bounds": [
+            20,
+            6,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 3,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 0,
+          "bounds": [
+            19,
+            7,
+            76,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 1,
+          "bounds": [
+            19,
+            6,
+            76,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 2,
+          "bounds": [
+            20,
+            7,
+            76,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 3,
+          "bounds": [
+            21,
+            6,
+            76,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 4,
+          "bounds": [
+            21,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 5,
+          "bounds": [
+            21,
+            6,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 6,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 7,
+          "bounds": [
+            19,
+            6,
+            76,
+            116
+          ]
+        }
+      ]
+    },
+    {
+      "direction": "nw",
+      "distinctWalkPoses": 8,
+      "frames": [
+        {
+          "clip": "idle",
+          "frame": 0,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 1,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 2,
+          "bounds": [
+            24,
+            6,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 3,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 0,
+          "bounds": [
+            23,
+            7,
+            72,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 1,
+          "bounds": [
+            23,
+            6,
+            72,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 2,
+          "bounds": [
+            24,
+            7,
+            72,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 3,
+          "bounds": [
+            25,
+            6,
+            72,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 4,
+          "bounds": [
+            25,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 5,
+          "bounds": [
+            24,
+            6,
+            70,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 6,
+          "bounds": [
+            24,
+            7,
+            71,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 7,
+          "bounds": [
+            23,
+            6,
+            72,
+            116
+          ]
+        }
+      ]
+    },
+    {
+      "direction": "w",
+      "distinctWalkPoses": 8,
+      "frames": [
+        {
+          "clip": "idle",
+          "frame": 0,
+          "bounds": [
+            25,
+            7,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 1,
+          "bounds": [
+            25,
+            7,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 2,
+          "bounds": [
+            25,
+            6,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 3,
+          "bounds": [
+            25,
+            7,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 0,
+          "bounds": [
+            24,
+            7,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 1,
+          "bounds": [
+            24,
+            6,
+            73,
+            115
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 2,
+          "bounds": [
+            25,
+            7,
+            74,
+            115
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 3,
+          "bounds": [
+            26,
+            6,
+            73,
+            115
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 4,
+          "bounds": [
+            25,
+            7,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 5,
+          "bounds": [
+            24,
+            6,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 6,
+          "bounds": [
+            24,
+            7,
+            72,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 7,
+          "bounds": [
+            24,
+            6,
+            73,
+            116
+          ]
+        }
+      ]
+    },
+    {
+      "direction": "sw",
+      "distinctWalkPoses": 8,
+      "frames": [
+        {
+          "clip": "idle",
+          "frame": 0,
+          "bounds": [
+            21,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 1,
+          "bounds": [
+            21,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 2,
+          "bounds": [
+            21,
+            6,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "idle",
+          "frame": 3,
+          "bounds": [
+            21,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 0,
+          "bounds": [
+            20,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 1,
+          "bounds": [
+            20,
+            6,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 2,
+          "bounds": [
+            21,
+            7,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 3,
+          "bounds": [
+            22,
+            6,
+            75,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 4,
+          "bounds": [
+            22,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 5,
+          "bounds": [
+            22,
+            6,
+            73,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 6,
+          "bounds": [
+            21,
+            7,
+            74,
+            116
+          ]
+        },
+        {
+          "clip": "walk",
+          "frame": 7,
+          "bounds": [
+            20,
+            6,
+            75,
+            116
+          ]
+        }
+      ]
+    }
+  ],
+  "godotImport": "passed",
+  "webExport": "passed",
+  "gpuArtCaptures": [
+    "654x410",
+    "384x824",
+    "eight-directions",
+    "eight-walk-poses",
+    "three-outfits",
+    "matched-fountain"
+  ],
+  "browserPlaytest": "not run",
+  "mobilePerformance": "not measured"
+}

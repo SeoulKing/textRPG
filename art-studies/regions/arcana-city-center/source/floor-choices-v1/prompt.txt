@@ -1,0 +1,22 @@
+Create ONE polished game-art comparison contact sheet containing exactly TEN distinct floor options, in a clean 5-column by 2-row grid, widescreen 2560x1440 composition. This is a visual proposal sheet, NOT finished game assets.
+Image roles:
+1) the supplied 96x136 white-bob heroine PNG is the exact character identity, pixel rendering and scale reference; repeat this same full-body character at the same size and pose in all ten panels, keep white bob hair, purple eyes, pale blue shawl, white/navy dress, small hands, boots. Do not reinterpret or beautify her into another character.
+2) supplied Stardew indoor and outdoor tilesheets are ONLY front-facing top-down plane/readability and relative-scale guidance; do not copy their artwork.
+3) supplied Arcana geometry guide is projection authority.
+4) supplied Arcana city collage is the desired handcrafted pixel-art floor quality and cozy material treatment.
+CAMERA LOCK: front-facing orthographic top-down RPG, yaw 0, elevation 45 degrees above ground, roll 0, horizontal front edges, vertical posts, ground depth screen-vertical. No perspective convergence or distance scaling. A diamond-shaped decorative tile in option 09 is a tile pattern rotation only, never an isometric camera.
+All ten panels show only a generous rectangular patch of walkable floor and the IDENTICAL heroine centered on it with a small soft contact shadow. No buildings, props, fountains, foliage covering the pattern, HUD, menus or scenery. Fine detailed pixel art, crisp colored pixel clusters, restrained dark joints, warm daylight from upper left. Floor internal outlines must be much quieter than the heroine outline. Avoid photorealistic noise, thick black grout, giant slabs and 3D bevels.
+SCALE IS CRITICAL: heroine silhouette approximately 100 source pixels tall (the attached sprite is 96x136 canvas, visible silhouette about99px); most individual pavers should be about 14-24 pixels wide relative to this heroine, about 5-7 pavers across her height. Make the patch wide enough to inspect many repeat units. Repeat heroine at equal relative size in every panel. Do not make her huge.
+Label panels with ONLY clear small numbers 01 to 10 in the upper-left, ordered left-to-right top row01-05 and bottom row06-10. No descriptive text. Narrow neutral ivory gutters, no decorative frame or header.
+Each floor should be clearly different, not ten colors of the same floor:
+01 warm ivory small rounded limestone setts, subtle uneven edges, close to the reference town square, balanced low-contrast aged grout.
+02 precisely cut small cream square limestone tiles, tidy offset edge rows, refined and quiet.
+03 cool gray-blue rounded small cobblestones, softly worn and varied sizes, clean walkable surface.
+04 small irregular sandy-beige flagstones, many interlocking angular shapes, fine edge chips and gentle variation.
+05 muted terracotta small herringbone bricks, warm old market lane, no strong saturation.
+06 light warm-gray small hexagonal stone tiles, fine joints, subtle pale honey variation.
+07 honey-brown narrow timber planks, short staggered joins, restrained grain, warm covered terrace material.
+08 pale ivory fine stone pavers with a VERY THIN lapis-blue and muted gold inlay line and occasional tiny four-point stars; pavers dominate and character readability stays excellent.
+09 subdued alternating light limestone and blue-gray small diamond tiles, low contrast diagonal paving pattern viewed through the SAME fixed camera.
+10 aged gray-beige small garden cobbles with tiny moss flecks limited to a few joints near patch edges; clean center, no tall plants.
+The first panel and eighth panel are especially suitable for this heroine and the Arcana town. Every panel must look like actual game-ground art with small scale paving, not architectural photos or concept paintings.

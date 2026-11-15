@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4106556ad911827f4e8282adeba7386376a8cc14ae70e31aba5720c271034ddc.res" id="24_0tova"]
+[node name="flowerbed_01" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "flowerbed"
+collision_parts = Array[Rect2]([Rect2(-14, -8, 28, 8)])
+source_path = "CityDistrict/Gardens/flowerbed_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("24_0tova")
+centered = false
+offset = Vector2(-42, -70)
+region_rect = Rect2(0, 0, 84, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(84, 72)
+

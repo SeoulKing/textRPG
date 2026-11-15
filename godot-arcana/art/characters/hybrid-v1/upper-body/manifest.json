@@ -1,0 +1,951 @@
+{
+  "actual_used_opaque_colors": 17,
+  "assembly_preview": {
+    "canvas_size": [
+      96,
+      136
+    ],
+    "directions": {
+      "e": {
+        "head_png": "res://art/characters/hybrid-v1/heads/e/head.png",
+        "head_png_sha256": "3459273ddf1afafbdcf6265485cded0fc093667b7e30b6cd08e8a8503e3ddb3e",
+        "torso_png_sha256": "d77203234a418158c447deea93986b0936fce3ca69d187e4c844d67ab75def9a"
+      },
+      "n": {
+        "head_png": "res://art/characters/hybrid-v1/heads/n/head.png",
+        "head_png_sha256": "9acbb54ba4713fc3c00eeb9f12a7eab34882296739928e43e9ae1de9a9f4a108",
+        "torso_png_sha256": "50e8bd7121be552ddbf9b699d8eac5c6c397ae188ab4457eb296e7e5f61714c2"
+      },
+      "ne": {
+        "head_png": "res://art/characters/hybrid-v1/heads/ne/head.png",
+        "head_png_sha256": "2bb0f094727656dbdf846e99f01e349f2d6bd9242fea9cfa7aa2232bdb8c9139",
+        "torso_png_sha256": "d3b2a2536d0ac2f8a078b5bbf2ed47fbc5c0f91aa0e703148202f9aaed13e360"
+      },
+      "nw": {
+        "head_png": "res://art/characters/hybrid-v1/heads/nw/head.png",
+        "head_png_sha256": "0f7a2ee0c59d0c52f3d9faaef6a59b7f5b61b778885410136e690f08c867a638",
+        "torso_png_sha256": "7108cd30698eab7b4014d69bafc71746b4db7bf0091089e814578f078cf0223c"
+      },
+      "s": {
+        "head_png": "res://art/characters/hybrid-v1/heads/s/head.png",
+        "head_png_sha256": "c03b624006d8ddeff2404d11a80ce9fad2ca37c8879a3465f71ee5f6532610f1",
+        "torso_png_sha256": "f224ca3cae25ac763ca2de394d7e9be43d19fc0cc98d4ba6f5aca441c87d97ab"
+      },
+      "se": {
+        "head_png": "res://art/characters/hybrid-v1/heads/se/head.png",
+        "head_png_sha256": "2a12169a761c74dab087dd797ee5cc39c0ae09db7de2c8dd2e8e903792f9b30c",
+        "torso_png_sha256": "5c899a4460a6a8f72fee0da49ed1d33b6d3ea831cb664ff1f10aee26f2b86522"
+      },
+      "sw": {
+        "head_png": "res://art/characters/hybrid-v1/heads/sw/head.png",
+        "head_png_sha256": "b6475ee3004a9260590b435e1c2a5207129b7fc5aa2ae371147e5ab1fed9c6f8",
+        "torso_png_sha256": "a8c1ae95402ebe9c8bb8aef81f33145dbeb376be91e419237b3ef8e819f17a23"
+      },
+      "w": {
+        "head_png": "res://art/characters/hybrid-v1/heads/w/head.png",
+        "head_png_sha256": "c20b176744277663b5849f9fd41f4fdc0270a62f50a357df340838143a65a4d5",
+        "torso_png_sha256": "3821bb369b3c7ad0c31b5fdf16ddfa469108668d5acb6ed8ba875db533518143"
+      }
+    },
+    "head_origin": [
+      24,
+      7
+    ],
+    "neck_canvas": [
+      48,
+      51
+    ],
+    "scope": "head and integrated upper body; lower body separate",
+    "torso_origin": [
+      24,
+      42
+    ]
+  },
+  "canvas_size": [
+    48,
+    48
+  ],
+  "character_proportion_heads": 3,
+  "character_target_canvas": [
+    96,
+    136
+  ],
+  "direction_order": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "directions": {
+    "e": {
+      "actual_opaque_colors": 16,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "58d662071b115b1f83404baa19126935e58fb4d277fb280f1dac3c15eb6d461c",
+      "joints": {
+        "elbow_l": [
+          23,
+          27
+        ],
+        "elbow_r": [
+          28,
+          26
+        ],
+        "neck": [
+          24,
+          9
+        ],
+        "shoulder_l": [
+          23,
+          15
+        ],
+        "shoulder_r": [
+          27,
+          16
+        ],
+        "spine": [
+          24,
+          23
+        ],
+        "wrist_l": [
+          23,
+          36
+        ],
+        "wrist_r": [
+          28,
+          33
+        ]
+      },
+      "landmarks": {
+        "neck": [
+          24,
+          9
+        ],
+        "waist": [
+          24,
+          33
+        ]
+      },
+      "layers": {
+        "collar_trim": {
+          "path": "res://art/characters/hybrid-v1/upper-body/e/collar_trim.png",
+          "sha256": "3be41fcb07f2b1a5990113faeb341f9c9ccf157faade3a951ecdca6f21fe3673"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/upper-body/e/leather.png",
+          "sha256": "2cf3bcac21cad7ce3868d9198002c98e9babdb858d20280fe6833a14e9ebc12e"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/upper-body/e/metal.png",
+          "sha256": "418aaf990f19f2f417a4408ca5e4f2db9608a3a0d368d6b108d0f05e178af0c9"
+        },
+        "shirt": {
+          "path": "res://art/characters/hybrid-v1/upper-body/e/shirt.png",
+          "sha256": "ca9add1fd2c7672029eafb514bd96b2f8637b11c00157034988e48d7d471c6dc"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/upper-body/e/silhouette.png",
+          "sha256": "362a88bd24e6436be6709dc58181e9357936b1d71ff473082693d629c04bff72"
+        },
+        "skin": {
+          "path": "res://art/characters/hybrid-v1/upper-body/e/skin.png",
+          "sha256": "016ecb80a3d9de97f08f093a9542714a0f757720a321142799c93931f208b654"
+        }
+      },
+      "native_fingerprint": "58d662071b115b1f83404baa19126935e58fb4d277fb280f1dac3c15eb6d461c",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/upper-body/e/upper_body.pxpen",
+      "opaque_bounds": [
+        15,
+        6,
+        22,
+        31
+      ],
+      "output_sha256": "d77203234a418158c447deea93986b0936fce3ca69d187e4c844d67ab75def9a",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/upper-body/e/upper_body.png",
+      "png_roundtrip_matches": true,
+      "source_neck_axis_x_relative": 54.46875,
+      "source_rect": [
+        831,
+        216,
+        135,
+        197
+      ],
+      "source_sha256": "c3d109c0229e3f611a59a9cad5f32ebdb8ff974e3007a09162c8f06e987eaae6"
+    },
+    "n": {
+      "actual_opaque_colors": 13,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "a736749eacc2b17b26a98716828e888487106decc37d0ed99766be2a37822657",
+      "joints": {
+        "elbow_l": [
+          39,
+          27
+        ],
+        "elbow_r": [
+          9,
+          27
+        ],
+        "neck": [
+          24,
+          9
+        ],
+        "shoulder_l": [
+          35,
+          15
+        ],
+        "shoulder_r": [
+          13,
+          15
+        ],
+        "spine": [
+          24,
+          23
+        ],
+        "wrist_l": [
+          39,
+          35
+        ],
+        "wrist_r": [
+          9,
+          35
+        ]
+      },
+      "landmarks": {
+        "neck": [
+          24,
+          9
+        ],
+        "waist": [
+          24,
+          33
+        ]
+      },
+      "layers": {
+        "collar_trim": {
+          "path": "res://art/characters/hybrid-v1/upper-body/n/collar_trim.png",
+          "sha256": "613a86e716bba253041568abd2217b45de28046e6ce2bbdc1fcd5020606c4271"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/upper-body/n/leather.png",
+          "sha256": "94f0a488c0713d6f3036557cba7ebf8b7322d75caa111dc307842a1e5cee7acf"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/upper-body/n/metal.png",
+          "sha256": "1a39f2d246fa012f7c310b72f479b785f8f96e2a70528591b4bbe25c5636e471"
+        },
+        "shirt": {
+          "path": "res://art/characters/hybrid-v1/upper-body/n/shirt.png",
+          "sha256": "4e5f7b906a3a29898f1bd12b6329e19b0ad0881439b0e6442416281db261a15a"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/upper-body/n/silhouette.png",
+          "sha256": "3466e284e66e0a9ceccd55f5894c8a7ed039bf7d88b7ef1028532c4d4c6daad8"
+        },
+        "skin": {
+          "path": "res://art/characters/hybrid-v1/upper-body/n/skin.png",
+          "sha256": "40367a5694ba8be697a1ba58b4164060863aef9a73a238483a273b676b399ed6"
+        }
+      },
+      "native_fingerprint": "a736749eacc2b17b26a98716828e888487106decc37d0ed99766be2a37822657",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/upper-body/n/upper_body.pxpen",
+      "opaque_bounds": [
+        4,
+        6,
+        41,
+        31
+      ],
+      "output_sha256": "50e8bd7121be552ddbf9b699d8eac5c6c397ae188ab4457eb296e7e5f61714c2",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/upper-body/n/upper_body.png",
+      "png_roundtrip_matches": true,
+      "source_neck_axis_x_relative": 127.6,
+      "source_rect": [
+        83,
+        670,
+        259,
+        193
+      ],
+      "source_sha256": "a698e53082bb51d725b96c41693a048c770d7d2c49d98e5db273855f5d11fc44"
+    },
+    "ne": {
+      "actual_opaque_colors": 13,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "dc36ddcfd20ac9af78fca2cb21038222db337fc21fc48ac20c4a006bcb662cbd",
+      "joints": {
+        "elbow_l": [
+          38,
+          27
+        ],
+        "elbow_r": [
+          19,
+          26
+        ],
+        "neck": [
+          24,
+          9
+        ],
+        "shoulder_l": [
+          34,
+          15
+        ],
+        "shoulder_r": [
+          19,
+          16
+        ],
+        "spine": [
+          24,
+          23
+        ],
+        "wrist_l": [
+          38,
+          35
+        ],
+        "wrist_r": [
+          19,
+          34
+        ]
+      },
+      "landmarks": {
+        "neck": [
+          24,
+          9
+        ],
+        "waist": [
+          24,
+          33
+        ]
+      },
+      "layers": {
+        "collar_trim": {
+          "path": "res://art/characters/hybrid-v1/upper-body/ne/collar_trim.png",
+          "sha256": "043a109b1755e260de9592209df803030c7ae2cd0d0fc60838c70909c89ac6e3"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/upper-body/ne/leather.png",
+          "sha256": "f7284de0bd8cf129d58b3474fbcce9177f020cf74642b24bccba5146a120d7b5"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/upper-body/ne/metal.png",
+          "sha256": "1a39f2d246fa012f7c310b72f479b785f8f96e2a70528591b4bbe25c5636e471"
+        },
+        "shirt": {
+          "path": "res://art/characters/hybrid-v1/upper-body/ne/shirt.png",
+          "sha256": "ade5a27ff0e16eee47cc7736a6816d9c209b9a8d9656c57dc09a6c85700e4b7d"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/upper-body/ne/silhouette.png",
+          "sha256": "959edecfbf903c97b550c241016d2c9acb983de9c94d9e2cd4a90ee82d7559d6"
+        },
+        "skin": {
+          "path": "res://art/characters/hybrid-v1/upper-body/ne/skin.png",
+          "sha256": "6f1a16e72da48d86db969ca8c8165f9ba6c6352d8f620d00774b8c86949b81e3"
+        }
+      },
+      "native_fingerprint": "dc36ddcfd20ac9af78fca2cb21038222db337fc21fc48ac20c4a006bcb662cbd",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/upper-body/ne/upper_body.pxpen",
+      "opaque_bounds": [
+        6,
+        6,
+        36,
+        32
+      ],
+      "output_sha256": "d3b2a2536d0ac2f8a078b5bbf2ed47fbc5c0f91aa0e703148202f9aaed13e360",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/upper-body/ne/upper_body.png",
+      "png_roundtrip_matches": true,
+      "source_neck_axis_x_relative": 110.0625,
+      "source_rect": [
+        1125,
+        216,
+        225,
+        200
+      ],
+      "source_sha256": "a7f08d39ac6b2412c6ba21ae5e499866d53b410b49c58638ac58c4f8d274819d"
+    },
+    "nw": {
+      "actual_opaque_colors": 13,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "a5eeae7c1e671b70b6a5c3e79ec07061800d138c76661f7438267dab7f2519da",
+      "joints": {
+        "elbow_l": [
+          30,
+          26
+        ],
+        "elbow_r": [
+          10,
+          27
+        ],
+        "neck": [
+          24,
+          9
+        ],
+        "shoulder_l": [
+          29,
+          16
+        ],
+        "shoulder_r": [
+          14,
+          15
+        ],
+        "spine": [
+          24,
+          23
+        ],
+        "wrist_l": [
+          30,
+          34
+        ],
+        "wrist_r": [
+          10,
+          35
+        ]
+      },
+      "landmarks": {
+        "neck": [
+          24,
+          9
+        ],
+        "waist": [
+          24,
+          33
+        ]
+      },
+      "layers": {
+        "collar_trim": {
+          "path": "res://art/characters/hybrid-v1/upper-body/nw/collar_trim.png",
+          "sha256": "e17f163d2805c81c59d210c11a55aec0e8e998470d649007d91103b11e515d26"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/upper-body/nw/leather.png",
+          "sha256": "3a0686cdae0de2a5265964ecc348309375c9d618a3b124636d369c0005daf603"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/upper-body/nw/metal.png",
+          "sha256": "1a39f2d246fa012f7c310b72f479b785f8f96e2a70528591b4bbe25c5636e471"
+        },
+        "shirt": {
+          "path": "res://art/characters/hybrid-v1/upper-body/nw/shirt.png",
+          "sha256": "ec5556e405de87bc764582a166c7b694208e9184996eed1e8f2bee1afdc37e9b"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/upper-body/nw/silhouette.png",
+          "sha256": "92ca38123077777d47d7992da1d31457d212654e1dc42a600dadbc8edf58472a"
+        },
+        "skin": {
+          "path": "res://art/characters/hybrid-v1/upper-body/nw/skin.png",
+          "sha256": "b4a4d483a13a132814b3998dc437d0e04ec0fa92d70c73f6785bbabfd4e0db48"
+        }
+      },
+      "native_fingerprint": "a5eeae7c1e671b70b6a5c3e79ec07061800d138c76661f7438267dab7f2519da",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/upper-body/nw/upper_body.pxpen",
+      "opaque_bounds": [
+        6,
+        6,
+        35,
+        31
+      ],
+      "output_sha256": "7108cd30698eab7b4014d69bafc71746b4db7bf0091089e814578f078cf0223c",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/upper-body/nw/upper_body.png",
+      "png_roundtrip_matches": true,
+      "source_neck_axis_x_relative": 114.125,
+      "source_rect": [
+        452,
+        669,
+        223,
+        197
+      ],
+      "source_sha256": "a9de621d26582216c5ae7cc9f51917830a2d83e360ffe1a5e46bc6926baa1ff1"
+    },
+    "s": {
+      "actual_opaque_colors": 16,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "ab73de74f23c7135c0363ab58037de20804f54a3a07b07176041c62857fd4c9b",
+      "joints": {
+        "elbow_l": [
+          9,
+          26
+        ],
+        "elbow_r": [
+          39,
+          26
+        ],
+        "neck": [
+          24,
+          9
+        ],
+        "shoulder_l": [
+          12,
+          15
+        ],
+        "shoulder_r": [
+          36,
+          15
+        ],
+        "spine": [
+          24,
+          23
+        ],
+        "wrist_l": [
+          9,
+          35
+        ],
+        "wrist_r": [
+          39,
+          35
+        ]
+      },
+      "landmarks": {
+        "neck": [
+          24,
+          9
+        ],
+        "waist": [
+          24,
+          33
+        ]
+      },
+      "layers": {
+        "collar_trim": {
+          "path": "res://art/characters/hybrid-v1/upper-body/s/collar_trim.png",
+          "sha256": "f46a87f1c0f00f2e371a2360c46803a04cee083d498e3b09dd8a97d35eb44a91"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/upper-body/s/leather.png",
+          "sha256": "bed08a9856925617b7b9749db3f67d01c9f520a5a187fafeb1153272f2e2fa3a"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/upper-body/s/metal.png",
+          "sha256": "b3351ace3b08d3a76a5f65593c7b6257f5f4a1d7e1e73aad4bdffec3d6a2dd5e"
+        },
+        "shirt": {
+          "path": "res://art/characters/hybrid-v1/upper-body/s/shirt.png",
+          "sha256": "bb6329df19b91dd6f35b14d3620c8a81142510910afbda2558d7240fb0fcb4d4"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/upper-body/s/silhouette.png",
+          "sha256": "f2e26e9404b081166921a71bbbda968c4d0727950271b2449a877afe8a3ee1ff"
+        },
+        "skin": {
+          "path": "res://art/characters/hybrid-v1/upper-body/s/skin.png",
+          "sha256": "e21fc840c3188a8adf3069e50ccc8bb72fb961c5c2df96ec98bc50ef0515a7df"
+        }
+      },
+      "native_fingerprint": "ab73de74f23c7135c0363ab58037de20804f54a3a07b07176041c62857fd4c9b",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/upper-body/s/upper_body.pxpen",
+      "opaque_bounds": [
+        3,
+        6,
+        42,
+        31
+      ],
+      "output_sha256": "f224ca3cae25ac763ca2de394d7e9be43d19fc0cc98d4ba6f5aca441c87d97ab",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/upper-body/s/upper_body.png",
+      "png_roundtrip_matches": true,
+      "source_neck_axis_x_relative": 132.25,
+      "source_rect": [
+        76,
+        216,
+        263,
+        196
+      ],
+      "source_sha256": "1a3185724fd0f9a2422ca68a41a0999bede7849145ea19687c2fcf1a0be8a976"
+    },
+    "se": {
+      "actual_opaque_colors": 17,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "c2300825c2a8cbb7bbf01384990a55bf6318c0e71b93a51b55b3a638ebe50732",
+      "joints": {
+        "elbow_l": [
+          12,
+          27
+        ],
+        "elbow_r": [
+          35,
+          26
+        ],
+        "neck": [
+          24,
+          9
+        ],
+        "shoulder_l": [
+          16,
+          15
+        ],
+        "shoulder_r": [
+          32,
+          16
+        ],
+        "spine": [
+          24,
+          23
+        ],
+        "wrist_l": [
+          12,
+          36
+        ],
+        "wrist_r": [
+          35,
+          34
+        ]
+      },
+      "landmarks": {
+        "neck": [
+          24,
+          9
+        ],
+        "waist": [
+          24,
+          33
+        ]
+      },
+      "layers": {
+        "collar_trim": {
+          "path": "res://art/characters/hybrid-v1/upper-body/se/collar_trim.png",
+          "sha256": "0372226389034aba2dc56c56db94ac6d31c4e14960a4f1852cbf2fcdd3ab277d"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/upper-body/se/leather.png",
+          "sha256": "6990f749c14f9ce7d0e081fdb271c9986e7b5ff403314f83f82233fa6296f59f"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/upper-body/se/metal.png",
+          "sha256": "5d4b498e4b81523219cc56db5a9aad048b657c0d4ebbeec7e0cd1d1d931f2922"
+        },
+        "shirt": {
+          "path": "res://art/characters/hybrid-v1/upper-body/se/shirt.png",
+          "sha256": "e7220e4d5b512bd6fe90413e4fea1120db6a0c533e6ff5923081c8ee2097f8d5"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/upper-body/se/silhouette.png",
+          "sha256": "6bc2e5c8e42a8ee4567b51b602294343d153b3a1fd1c341246117ee7b1789532"
+        },
+        "skin": {
+          "path": "res://art/characters/hybrid-v1/upper-body/se/skin.png",
+          "sha256": "a389ad610a69232d1393d668a0eb32b6494b0df2906d2b66d205411ae1fce1cf"
+        }
+      },
+      "native_fingerprint": "c2300825c2a8cbb7bbf01384990a55bf6318c0e71b93a51b55b3a638ebe50732",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/upper-body/se/upper_body.pxpen",
+      "opaque_bounds": [
+        5,
+        6,
+        37,
+        31
+      ],
+      "output_sha256": "5c899a4460a6a8f72fee0da49ed1d33b6d3ea831cb664ff1f10aee26f2b86522",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/upper-body/se/upper_body.png",
+      "png_roundtrip_matches": true,
+      "source_neck_axis_x_relative": 120.6875,
+      "source_rect": [
+        437,
+        216,
+        235,
+        197
+      ],
+      "source_sha256": "477713b927a3c4692e90c7dbf01f6eff9aca1928abc74b254c5aa6395116cd5f"
+    },
+    "sw": {
+      "actual_opaque_colors": 17,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "22fd3768ad2a6417ad3b19453bd5a36ebc609d69402d4d7482f2e326e58a33cc",
+      "joints": {
+        "elbow_l": [
+          15,
+          26
+        ],
+        "elbow_r": [
+          36,
+          27
+        ],
+        "neck": [
+          24,
+          9
+        ],
+        "shoulder_l": [
+          17,
+          16
+        ],
+        "shoulder_r": [
+          32,
+          15
+        ],
+        "spine": [
+          24,
+          23
+        ],
+        "wrist_l": [
+          15,
+          34
+        ],
+        "wrist_r": [
+          36,
+          35
+        ]
+      },
+      "landmarks": {
+        "neck": [
+          24,
+          9
+        ],
+        "waist": [
+          24,
+          33
+        ]
+      },
+      "layers": {
+        "collar_trim": {
+          "path": "res://art/characters/hybrid-v1/upper-body/sw/collar_trim.png",
+          "sha256": "d7c99da5ee8a6c18827e3faf0d2118b74f0d50e9483564f964ef4622c2fefddd"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/upper-body/sw/leather.png",
+          "sha256": "b4c6b1673fe662938fcbd9b0faedc7d3dad70525f9bf0e8875d0b7d681b9b3cf"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/upper-body/sw/metal.png",
+          "sha256": "4e9a8803aad63195f83de95ddb71837bc95833874a816cc0166f87139a1e5508"
+        },
+        "shirt": {
+          "path": "res://art/characters/hybrid-v1/upper-body/sw/shirt.png",
+          "sha256": "9e26c642e5298aebcdbed18392e3c2434391ff748cb55cbf686528c7adc2e976"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/upper-body/sw/silhouette.png",
+          "sha256": "c2795c1e94783298517b56314f0365c7760c503ce6f02e9f87d46242fd1e4802"
+        },
+        "skin": {
+          "path": "res://art/characters/hybrid-v1/upper-body/sw/skin.png",
+          "sha256": "b2b2b95da3573ef9803ee48e9c5a49afc538bbd9caefbe359bb2d278c57b5530"
+        }
+      },
+      "native_fingerprint": "22fd3768ad2a6417ad3b19453bd5a36ebc609d69402d4d7482f2e326e58a33cc",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/upper-body/sw/upper_body.pxpen",
+      "opaque_bounds": [
+        6,
+        6,
+        37,
+        31
+      ],
+      "output_sha256": "a8c1ae95402ebe9c8bb8aef81f33145dbeb376be91e419237b3ef8e819f17a23",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/upper-body/sw/upper_body.png",
+      "png_roundtrip_matches": true,
+      "source_neck_axis_x_relative": 114.09375,
+      "source_rect": [
+        1136,
+        670,
+        231,
+        196
+      ],
+      "source_sha256": "51b015c768c2974b3b676d6f9d5bbb43e7be2dd7f9b566e9524ddd2be49193bf"
+    },
+    "w": {
+      "actual_opaque_colors": 17,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "authored_fingerprint": "1ca23d3ea85385e36781417b834e58d6a13278391508227dc144ad8f3077eab5",
+      "joints": {
+        "elbow_l": [
+          19,
+          26
+        ],
+        "elbow_r": [
+          24,
+          27
+        ],
+        "neck": [
+          24,
+          9
+        ],
+        "shoulder_l": [
+          20,
+          16
+        ],
+        "shoulder_r": [
+          24,
+          15
+        ],
+        "spine": [
+          24,
+          23
+        ],
+        "wrist_l": [
+          19,
+          33
+        ],
+        "wrist_r": [
+          24,
+          36
+        ]
+      },
+      "landmarks": {
+        "neck": [
+          24,
+          9
+        ],
+        "waist": [
+          24,
+          33
+        ]
+      },
+      "layers": {
+        "collar_trim": {
+          "path": "res://art/characters/hybrid-v1/upper-body/w/collar_trim.png",
+          "sha256": "09441197687d73fa538b2ec2825ba5925660b0c7a850bf49e940469b29fef9a9"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/upper-body/w/leather.png",
+          "sha256": "b17921d3a908a6c097a6ccb55d14df686d52f9f5ef738c7ae9bb99322ceddf70"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/upper-body/w/metal.png",
+          "sha256": "a6c3d4f56b2d2efa507dd3444e978c84d998c26da29a8bfa66976a903eca1ef3"
+        },
+        "shirt": {
+          "path": "res://art/characters/hybrid-v1/upper-body/w/shirt.png",
+          "sha256": "624cdb326241a961657462d6f552bf2c131783f3cf03dc3f40f3c890412a37b2"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/upper-body/w/silhouette.png",
+          "sha256": "e8f797121f12fb00ee49530e521fb0bc0b3fe61407f5ebd637ddbf0ff2522a7d"
+        },
+        "skin": {
+          "path": "res://art/characters/hybrid-v1/upper-body/w/skin.png",
+          "sha256": "d2a7dd034c5e497fdfd0c9210384fe23dd53e5a1b1f398d39543f6639e8b36d8"
+        }
+      },
+      "native_fingerprint": "1ca23d3ea85385e36781417b834e58d6a13278391508227dc144ad8f3077eab5",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/upper-body/w/upper_body.pxpen",
+      "opaque_bounds": [
+        10,
+        6,
+        23,
+        31
+      ],
+      "output_sha256": "3821bb369b3c7ad0c31b5fdf16ddfa469108668d5acb6ed8ba875db533518143",
+      "pivot": [
+        24,
+        9
+      ],
+      "png": "res://art/characters/hybrid-v1/upper-body/w/upper_body.png",
+      "png_roundtrip_matches": true,
+      "source_neck_axis_x_relative": 85.65625,
+      "source_rect": [
+        840,
+        670,
+        140,
+        197
+      ],
+      "source_sha256": "91facc6dfe9d39a360c60cf0a9a2f91afb800421e72b08728fb6ae44797e5e92"
+    }
+  },
+  "layers_semantics": "Materials only: shirt, leather, metal, collar_trim, skin, silhouette; arms and torso remain one continuous output texture.",
+  "outline_owner": "upper body silhouette layer, baked once; no extra displayed outline",
+  "palette_rgba": [
+    "00000000",
+    "352d40",
+    "8e7999",
+    "b89a92",
+    "d8bdae",
+    "f4e2d2",
+    "fff4e3",
+    "fff9f4",
+    "4d3335",
+    "805854",
+    "9b7166",
+    "b38b77",
+    "8f582e",
+    "c18b4b",
+    "e4b876",
+    "ffe1a1",
+    "65536f",
+    "e9ad9b",
+    "ffd8bd",
+    "c58481"
+  ],
+  "part": "upper_body",
+  "physical_reference_scale": 0.159090909090909,
+  "pivot_semantics": "neck opening [24,9] joins head pivot [24,44] without rescaling",
+  "reference": "reference.png",
+  "reference_sha256": "9b0ecb0fbf28f031ec32c3c1c2e606fcb8b13d1d2b308585c76a6dafd4faa473",
+  "registered_opaque_colors": 19,
+  "render_method": "single Polygon2D texture with Skeleton2D skin weights",
+  "runtime_connected": false,
+  "schema_version": 1,
+  "sheet_order": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "transparent_slots": 1,
+  "visual_approval": "pending",
+  "combined_head_upper_body_opaque_colors": 30,
+  "character_id": "hybrid-v1",
+  "user_art_approval": "approved",
+  "appearance_approved_on": "2026-11-05",
+  "runtime_verified": false
+}

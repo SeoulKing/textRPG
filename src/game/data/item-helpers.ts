@@ -9,6 +9,8 @@ const ZERO_ITEM_EFFECTS: ItemCard["effects"] = {
   mind: 0,
   energy: 0,
   exhaustionRelief: 0,
+  injuryRelief: 0,
+  infectionRelief: 0,
 };
 
 export function defineItem(input: ItemDefinition): Omit<ItemCard, "source" | "generatedAt"> {

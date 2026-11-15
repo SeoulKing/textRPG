@@ -1,0 +1,331 @@
+{
+  "gif": "motion-before-after.gif",
+  "gif_sha256": "429c71ded6698aa4b708edc8e988a2c5f0b1e255039c190f4ed1d54824daf390",
+  "frames": 16,
+  "frame_duration_ms": 80,
+  "playback_speed": 0.5,
+  "direction": "e",
+  "before_after_same_camera_phase": true,
+  "gif_palette_note": "256-color review encoding only; PNG sources retain full RGBA.",
+  "neutral_differing_rgba_pixels": {
+    "s": 0,
+    "e": 0,
+    "n": 0
+  },
+  "neutral_comparison_context": "Same dedicated GPU runtime and unchanged import settings; motion_polish false versus true at weight zero.",
+  "archived_editor_vs_offline_neutral_rgba_pixels": {
+    "s": 362,
+    "e": 56,
+    "n": 400
+  },
+  "cross_context_note": "Different editor/runtime texture-alpha paths; these counts are not attributed to motion tuning or source changes.",
+  "motion_cycle_outside_crop": [],
+  "authoring_route": "Hidden dedicated OpenGL GPU SceneTree; gameplay main scene never loaded and user's running game not controlled.",
+  "support_samples": [
+    {
+      "after": {
+        "phase": 0.0,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 2.19602395216725,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.0,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.0
+    },
+    {
+      "after": {
+        "phase": 0.0625,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 2.299633432767,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.0625,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.0625
+    },
+    {
+      "after": {
+        "phase": 0.125,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 2.08923608585513,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.125,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.125
+    },
+    {
+      "after": {
+        "phase": 0.1875,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.57096419325615,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.1875,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.1875
+    },
+    {
+      "after": {
+        "phase": 0.25,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.00725232676496,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.25,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.25
+    },
+    {
+      "after": {
+        "phase": 0.3125,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 0.376365972771566,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.3125,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.3125
+    },
+    {
+      "after": {
+        "phase": 0.375,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": -0.197349254623759,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.375,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.375
+    },
+    {
+      "after": {
+        "phase": 0.4375,
+        "support_clearance_after_px": 0.995722430686905,
+        "support_clearance_before_px": 1.03479936266314,
+        "target_flight_px": 0.995722430686905,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.4375,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.4375
+    },
+    {
+      "after": {
+        "phase": 0.5,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.96537459591559,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.5,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.5
+    },
+    {
+      "after": {
+        "phase": 0.5625,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 2.03601246061419,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.5625,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.5625
+    },
+    {
+      "after": {
+        "phase": 0.625,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.81413072185927,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.625,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.625
+    },
+    {
+      "after": {
+        "phase": 0.6875,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 1.3283474514746,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.6875,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.6875
+    },
+    {
+      "after": {
+        "phase": 0.75,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 0.811983027221345,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.75,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.75
+    },
+    {
+      "after": {
+        "phase": 0.8125,
+        "support_clearance_after_px": 0.0,
+        "support_clearance_before_px": 0.245001217208085,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.8125,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.8125
+    },
+    {
+      "after": {
+        "phase": 0.875,
+        "support_clearance_after_px": -2.77555756156289E-17,
+        "support_clearance_before_px": -0.239746260364996,
+        "target_flight_px": 0.0,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.875,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.875
+    },
+    {
+      "after": {
+        "phase": 0.9375,
+        "support_clearance_after_px": 0.995722430686905,
+        "support_clearance_before_px": 1.03807452977077,
+        "target_flight_px": 0.995722430686905,
+        "polish_enabled": true,
+        "support_clearance_measured": true
+      },
+      "before": {
+        "phase": 0.9375,
+        "polish_enabled": false,
+        "support_clearance_measured": false,
+        "support_clearance_before_px": null,
+        "support_clearance_after_px": null,
+        "target_flight_px": null
+      },
+      "phase": 0.9375
+    }
+  ],
+  "before_metrics_note": "Disabled tuning does not measure support clearance. Stale builder-state metrics were removed; capture phases are retained."
+}

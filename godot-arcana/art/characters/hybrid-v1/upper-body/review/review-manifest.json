@@ -1,0 +1,88 @@
+{
+	"directions_left_to_right": [
+		"s",
+		"se",
+		"e",
+		"ne",
+		"n",
+		"nw",
+		"w",
+		"sw"
+	],
+	"files": [
+		"res://art/characters/hybrid-v1/upper-body/review/neutral/s.png",
+		"res://art/characters/hybrid-v1/upper-body/review/neutral/se.png",
+		"res://art/characters/hybrid-v1/upper-body/review/neutral/e.png",
+		"res://art/characters/hybrid-v1/upper-body/review/neutral/ne.png",
+		"res://art/characters/hybrid-v1/upper-body/review/neutral/n.png",
+		"res://art/characters/hybrid-v1/upper-body/review/neutral/nw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/neutral/w.png",
+		"res://art/characters/hybrid-v1/upper-body/review/neutral/sw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_000/s.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_000/se.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_000/e.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_000/ne.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_000/n.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_000/nw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_000/w.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_000/sw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_025/s.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_025/se.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_025/e.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_025/ne.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_025/n.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_025/nw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_025/w.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_025/sw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_050/s.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_050/se.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_050/e.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_050/ne.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_050/n.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_050/nw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_050/w.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_050/sw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_075/s.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_075/se.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_075/e.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_075/ne.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_075/n.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_075/nw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_075/w.png",
+		"res://art/characters/hybrid-v1/upper-body/review/run_075/sw.png",
+		"res://art/characters/hybrid-v1/upper-body/review/contact-sheet.png",
+		"res://art/characters/hybrid-v1/upper-body/review/comparison-light.png",
+		"res://art/characters/hybrid-v1/upper-body/review/comparison-dark.png",
+		"res://art/characters/hybrid-v1/upper-body/review/focus-neutral-run025.png"
+	],
+	"focus": {
+		"directions": [
+			"s",
+			"e",
+			"n"
+		],
+		"nearest_scale": 3,
+		"rows": [
+			"neutral",
+			"run_025"
+		]
+	},
+	"mesh_overlay_included": false,
+	"motion_transfer": "projected angle and foreshortening relative to neutral; source proportions retained",
+	"native_viewport": [
+		96,
+		104
+	],
+	"poses_top_to_bottom": [
+		"neutral",
+		"run_000",
+		"run_025",
+		"run_050",
+		"run_075"
+	],
+	"renderer": "one-texture Polygon2D + weighted Skeleton2D",
+	"runtime_verified": false,
+	"shared_motion": "res://art/characters/hybrid-v1/shared-run.json",
+	"status": "exported",
+	"visual_approval": "pending"
+}

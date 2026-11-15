@@ -1,0 +1,64 @@
+"""Production checks for the tree-matched heroine; reads art, emits QA previews."""
+from pathlib import Path
+import json,hashlib,math
+import numpy as np
+from PIL import Image
+ROOT=Path(__file__).resolve().parents[1]
+ART=ROOT/'art-studies/arcana-reference-v1'
+EXPORT=ROOT/'godot-arcana/art/export/reference'
+QA=ROOT/'godot-arcana/art/reference/character-tree-quality'
+manifest=json.loads((ART/'manifest.json').read_text())
+assert manifest['frameSize']==[96,136]
+assert manifest['atlasGrid']==[16,14]
+assert manifest['clips']['walk']['count']==24
+palette={tuple(c) for c in manifest['palette']}
+visible_files=['body','hair','dress','shawl','boots-taupe','blouse','skirt','boots-navy']
+for name in visible_files:
+    arr=np.array(Image.open(EXPORT/f'hero-{name}.png').convert('RGBA'))
+    assert arr.shape==(1904,1536,4),(name,arr.shape)
+    assert set(np.unique(arr[:,:,3])).issubset({0,255}),name
+    rgb=arr[:,:,:3][arr[:,:,3]>0].astype(np.uint32)
+    values=np.unique((rgb[:,0]<<16)|(rgb[:,1]<<8)|rgb[:,2])
+    used={(int(c)>>16,(int(c)>>8)&255,int(c)&255) for c in values}
+    assert used.issubset(palette),(name,used-palette)
+packed=np.array(Image.open(EXPORT/'hero-occlusion.png').convert('RGBA'))
+assert set(np.unique(packed)).issubset({0,255})
+for channel,kind in enumerate(['dress','top','bottom','feet']):
+    mask=np.array(Image.open(EXPORT/f'hero-{kind}-mask.png').convert('RGBA'))[:,:,3]
+    assert np.array_equal(mask,packed[:,:,channel]),kind
+atlas=Image.open(EXPORT/'hero-original.png').convert('RGBA')
+unique=[]
+bounds=[]
+for d in range(8):
+    hashes=[]
+    for f in range(28):
+        i=d*28+f;x=i%16*96;y=i//16*136
+        frame=atlas.crop((x,y,x+96,y+136))
+        b=frame.getbbox()
+        assert b and b[0]>0 and b[1]>0 and b[2]<96 and b[3]<136,(d,f,b)
+        bounds.append(b)
+        if f>=4: hashes.append(hashlib.sha256(frame.tobytes()).hexdigest())
+    unique.append(len(set(hashes)))
+assert min(unique)>=20,unique
+protected=json.loads((ART/'quality-v2-protected.json').read_text())
+changed=[path for path,sha in protected.items() if hashlib.sha256((ROOT/path).read_bytes()).hexdigest()!=sha]
+assert not changed,changed
+# Actual Godot GPU captures, timings sum to the 1600ms two-step cycle.
+frames=[Image.open(QA/f'after-walk-detail-{i}.png').convert('RGB') for i in range(24)]
+frames[0].save(QA/'walk-in-game.gif',save_all=True,append_images=frames[1:],duration=[70,60,70]*8,loop=0)
+before=Image.open(QA/'before-mobile.png').convert('RGB').crop((96,284,288,556))
+after=Image.open(QA/'after-path-mobile.png').convert('RGB').crop((96,284,288,556))
+comparison=Image.new('RGB',(384,272))
+comparison.paste(before,(0,0));comparison.paste(after,(192,0))
+comparison.resize((768,544),Image.Resampling.NEAREST).save(QA/'character-before-after-2x.png')
+report=dict(frame_size=[96,136],frames=224,walk_frames=24,step_seconds=.8,cycle_seconds=1.6,
+    authored_pose_fps=15,tiles_per_step=.5,map_units_per_second=10,pixels_per_unit=64,
+    walk_unique_poses_by_direction=unique,packed_masks_exact=True,binary_alpha=True,
+    shared_palette=True,no_clipped_frames=True,protected_asset_hashes=protected,
+    protected_assets_unchanged=True,appearance_and_mask_atlases_loaded=9,
+    uncompressed_atlas_mib=9*1536*1904*4/1024**2,
+    evidence='offline Godot Compatibility GPU and asset validation; browser/mobile play not performed',
+    comparison='same camera scale and facing; after uses a clear path because a concurrent height-reference box covers spawn')
+(QA/'verification.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
+print(json.dumps({k:report[k] for k in ['frames','walk_unique_poses_by_direction','protected_assets_unchanged','uncompressed_atlas_mib']}))
+

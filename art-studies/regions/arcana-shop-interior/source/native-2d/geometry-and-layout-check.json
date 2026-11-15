@@ -1,0 +1,117 @@
+{
+  "checks": 1289,
+  "connectedNodes": 91,
+  "floorCells": 504,
+  "geometry": [
+    {
+      "asset": "herb-cabinet",
+      "footprint": [
+        2.0,
+        0.5
+      ],
+      "frontHeightPixels": 136.0,
+      "height": 3.0,
+      "roofDepthPixels": 23.0
+    },
+    {
+      "asset": "potion-cabinet",
+      "footprint": [
+        2.0,
+        0.5
+      ],
+      "frontHeightPixels": 136.0,
+      "height": 3.0,
+      "roofDepthPixels": 23.0
+    },
+    {
+      "asset": "travel-cabinet",
+      "footprint": [
+        2.0,
+        0.5
+      ],
+      "frontHeightPixels": 136.0,
+      "height": 3.0,
+      "roofDepthPixels": 23.0
+    },
+    {
+      "asset": "counter",
+      "footprint": [
+        4.0,
+        1.0
+      ],
+      "frontHeightPixels": 45.0,
+      "height": 1.0,
+      "roofDepthPixels": 45.0
+    },
+    {
+      "asset": "apothecary-bench",
+      "footprint": [
+        3.0,
+        1.0
+      ],
+      "frontHeightPixels": 45.0,
+      "height": 1.0,
+      "roofDepthPixels": 45.0
+    },
+    {
+      "asset": "potion-island",
+      "footprint": [
+        1.5,
+        0.5
+      ],
+      "frontHeightPixels": 45.0,
+      "height": 1.0,
+      "roofDepthPixels": 23.0
+    },
+    {
+      "asset": "travel-island",
+      "footprint": [
+        1.5,
+        0.5
+      ],
+      "frontHeightPixels": 45.0,
+      "height": 1.0,
+      "roofDepthPixels": 23.0
+    },
+    {
+      "asset": "travel-stock",
+      "footprint": [
+        2.0,
+        0.5
+      ],
+      "frontHeightPixels": 34.0,
+      "height": 0.75,
+      "roofDepthPixels": 23.0
+    },
+    {
+      "asset": "luggage",
+      "footprint": [
+        1.5,
+        0.5
+      ],
+      "frontHeightPixels": 34.0,
+      "height": 0.75,
+      "roofDepthPixels": 23.0
+    }
+  ],
+  "markers": {
+    "actor": [
+      192.0,
+      104.0
+    ],
+    "arrival": [
+      192.0,
+      189.0
+    ],
+    "exit": [
+      192.0,
+      205.0
+    ],
+    "merchant": [
+      192.0,
+      140.0
+    ]
+  },
+  "passed": true,
+  "walkableNodes": 91
+}

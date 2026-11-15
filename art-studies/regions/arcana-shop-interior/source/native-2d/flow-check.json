@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "shop viewport disables 3D drawing",
+    "native 2D shop is active",
+    "active shop subtree contains no 3D nodes",
+    "foreground wall fades uniformly over player",
+    "2D picking round trip",
+    "counter click selects existing merchant entity",
+    "blocked saved position corrects to walkable point",
+    "existing movement uses the new layout",
+    "exit restores outdoor renderer",
+    "exit releases 2D camera",
+    "shop can be entered again"
+  ],
+  "passed": true,
+  "scope": "offline actual World/Renderer integration; no API/save or browser actions",
+  "serverProbeCount": 3525
+}

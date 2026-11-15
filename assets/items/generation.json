@@ -1,0 +1,155 @@
+{
+  "generator": "built-in image_gen",
+  "actualResolution": "1254x1254",
+  "format": "PNG RGBA",
+  "displaySize": "24x24 CSS pixels",
+  "icons": [
+    {
+      "file": "money.png",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon for MONEY: a small stack of folded muted green banknotes secured by a tan paper band, seen in clear three-quarter view. No lettering, currency numerals, symbols, labels, or extra coins. Style: hand-drawn 2D survival RPG item illustration, crisp dark charcoal outlines, simple warm cel shading, slightly worn everyday object, restrained natural colors, readable silhouette at 48 pixels. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output precisely 1024x1024 square PNG. Object centered, completely visible, occupies 72 percent of canvas in its longest dimension, consistent visual scale for a set of three inventory icons (cash, sealed emergency ration pouch, blue capped water bottle). Soft light from upper left. No text anywhere."
+    },
+    {
+      "file": "emergency-snack.png",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon. Style: hand-drawn 2D survival RPG item illustration, crisp dark charcoal outlines, simple warm cel shading, slightly worn everyday object, restrained natural colors, readable silhouette at 48 pixels. Isolated on genuinely transparent background, no scene, no tile, no frame, no external cast shadow. Output precisely 1024x1024 square PNG. Object centered, completely visible, occupies 72 percent of canvas in longest dimension. Soft light from upper left. No text or lettering anywhere. Consistent visual style and scale with a muted green banknote stack with tan paper band in the same icon set. Subject: EMERGENCY FOOD RATION, one squat sealed ochre-orange survival ration pouch with crimped edges, a simple cream label bearing only a large wheat stalk pictogram, no text. Clear three-quarter view, recognizable as portable packaged food, simple large shapes."
+    },
+    {
+      "file": "water-bottle.png",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon. Style: hand-drawn 2D survival RPG item illustration, crisp dark charcoal outlines, simple warm cel shading, slightly worn everyday object, restrained natural colors, readable silhouette at 48 pixels. Isolated on genuinely transparent background, no scene, no tile, no frame, no external cast shadow. Output precisely 1024x1024 square PNG. Object centered, completely visible, occupies 72 percent of canvas in longest dimension. Soft light from upper left. No text or lettering anywhere. Consistent visual style and scale with a muted green banknote stack with tan paper band in the same icon set. Subject: WATER BOTTLE, one short sturdy clear plastic drinking water bottle with blue screw cap, blue water visible through bottle, simple pale blue unlettered label band. Upright slight three-quarter view, recognizable silhouette, simple large shapes."
+    },
+    {
+      "id": "cannedFood",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A squat closed tin food can, dull silver rim, muted rust-red unlettered label with a simple bean pictogram.",
+      "file": "canned-food.png"
+    },
+    {
+      "id": "hotMeal",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A simple metal bowl of warm white rice topped with orange vegetables, two small curls of steam.",
+      "file": "hot-meal.png"
+    },
+    {
+      "id": "painRelief",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A small silver blister pack containing four large white round pain relief tablets, muted red backing corner.",
+      "file": "pain-relief.png"
+    },
+    {
+      "id": "scrapBundle",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A compact bundle of useful odds and ends wrapped in brown cloth and tied with string, one washer and a spool peeking out.",
+      "file": "scrap-bundle.png"
+    },
+    {
+      "id": "rationTicket",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A worn pale tan paper meal voucher with notched edge and a large simple bowl-and-spoon pictogram, no letters or numbers.",
+      "file": "ration-ticket.png"
+    },
+    {
+      "id": "woodPlank",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: Two short stacked rough brown salvaged wooden planks with split ends and visible wood grain.",
+      "file": "wood-plank.png"
+    },
+    {
+      "id": "scrapMetal",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A small compact pile of bent grey sheet metal scraps and one rusty bolt, clear distinct silhouette.",
+      "file": "scrap-metal.png"
+    },
+    {
+      "id": "clothScrap",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A folded scrap of faded beige fabric with frayed edges, soft simple folds.",
+      "file": "cloth-scrap.png"
+    },
+    {
+      "id": "cordage",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A small thick coil of rough tan rope tied at its middle, easily readable loops.",
+      "file": "cordage.png"
+    },
+    {
+      "id": "crudeAxe",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A small improvised hatchet, chipped dark steel head lashed with beige cloth onto a short worn wooden handle, diagonal.",
+      "file": "crude-axe.png"
+    },
+    {
+      "id": "utilityKnife",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A short improvised knife with a simple grey metal blade and cloth wrapped brown handle, diagonal.",
+      "file": "utility-knife.png"
+    },
+    {
+      "id": "dentedPot",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A squat dented grey metal cooking pot with two small side handles, empty dark interior, no food.",
+      "file": "dented-pot.png"
+    },
+    {
+      "id": "rawRice",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: An open small tan cloth sack filled with uncooked white rice grains, distinct rice mound.",
+      "file": "raw-rice.png"
+    },
+    {
+      "id": "vegetables",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A compact bundle of one orange carrot and green cabbage leaves, clear fresh vegetable shapes.",
+      "file": "vegetables.png"
+    },
+    {
+      "id": "wildGreens",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A small bunch of wild edible green leaves with slender stems tied with string, organic jagged leaf shapes.",
+      "file": "wild-greens.png"
+    },
+    {
+      "id": "staleBread",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A short dull golden bread loaf with one cut end and a torn translucent paper wrapper, slightly flattened and stale, no mould.",
+      "file": "stale-bread.png"
+    },
+    {
+      "id": "ricePorridge",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A plain shallow beige bowl of thin ivory rice porridge with visible rice grains, no green leaves.",
+      "file": "rice-porridge.png"
+    },
+    {
+      "id": "greensSoup",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A plain shallow dark brown bowl of clear pale green broth with several distinct green leaves floating on top.",
+      "file": "greens-soup.png"
+    },
+    {
+      "id": "forestStew",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A rustic squat earthenware bowl of thick golden-green vegetable porridge with hearty carrot chunks and chopped wild greens.",
+      "file": "forest-stew.png"
+    },
+    {
+      "id": "manaShard",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: One angular vivid blue magical crystal shard, clear faceted silhouette, modest pale cyan highlights, no surrounding particles.",
+      "file": "mana-shard.png"
+    },
+    {
+      "id": "moonHerb",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A small silver-blue herb sprig with three crescent shaped leaves, a subtle pale luminous edge, tied with thin string.",
+      "file": "moon-herb.png"
+    },
+    {
+      "id": "arcaneDust",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A small open dark blue cloth pouch containing a mound of fine bright blue magical powder, no floating particles.",
+      "file": "arcane-dust.png"
+    },
+    {
+      "id": "manaPotion",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A small round glass potion flask filled with deep blue liquid, short neck, tan cork and simple string collar.",
+      "file": "mana-potion.png"
+    },
+    {
+      "id": "runeCompass",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A palm sized worn brass compass with a simple blue magical needle and geometric etched marks, lid open, no text or numbers.",
+      "file": "rune-compass.png"
+    },
+    {
+      "id": "radioBattery",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A heavy compact dark olive rectangular radio battery pack with two brass terminals on top, lightly worn casing, no lettering.",
+      "file": "radio-battery.png"
+    },
+    {
+      "id": "radioAntenna",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A folded telescopic radio antenna with dark base and three silver metal sections, diagonal, distinct from a blade.",
+      "file": "radio-antenna.png"
+    },
+    {
+      "id": "radioTransmitter",
+      "prompt": "Use case: stylized-concept. Create ONE production game inventory icon, in the EXACT SAME visual family as hand-drawn survival RPG icons of muted green banknotes, an ochre emergency ration pouch and a blue-capped plastic water bottle. Style: crisp dark charcoal outlines, simple warm cel shading with restrained painterly material texture, slightly worn everyday objects, restrained natural colors, clear readable silhouette at 24 pixels. Three-quarter view, soft light from upper left. Isolated on genuinely transparent background, no scene, no tile, no frame, no cast shadow outside object. Output 1024x1024 square PNG, subject centered, completely visible, around 85 percent of canvas in longest dimension. No text, letters, numerals, labels or watermark anywhere. Subject: A compact old grey-green radio transmitter module with a copper coil and one small orange indicator and short connector, no labels or text.",
+      "file": "radio-transmitter.png"
+    }
+  ]
+}

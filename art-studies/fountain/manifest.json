@@ -1,0 +1,129 @@
+{
+  "size": [
+    296,
+    359
+  ],
+  "foot": [
+    148,
+    268
+  ],
+  "crop": [
+    142,
+    27,
+    971,
+    1182
+  ],
+  "pixelsPerUnit": 64,
+  "atlasGrid": [
+    4,
+    4
+  ],
+  "frames": 16,
+  "fps": 12,
+  "animation": "Downward curved streams, pixel-advection surface ripples, expanding impact rings and splash highlights; immutable stone, metal, orb and alpha",
+  "streams": [
+    {
+      "from": [
+        86,
+        158
+      ],
+      "control": [
+        72,
+        174
+      ],
+      "to": [
+        73,
+        223
+      ]
+    },
+    {
+      "from": [
+        116,
+        184
+      ],
+      "control": [
+        100,
+        213
+      ],
+      "to": [
+        101,
+        270
+      ]
+    },
+    {
+      "from": [
+        209,
+        158
+      ],
+      "control": [
+        222,
+        176
+      ],
+      "to": [
+        221,
+        223
+      ]
+    },
+    {
+      "from": [
+        179,
+        184
+      ],
+      "control": [
+        192,
+        216
+      ],
+      "to": [
+        190,
+        270
+      ]
+    }
+  ],
+  "animatedPixels": 11384,
+  "source": "source/fountain.png",
+  "approvedConcept": "approved-concept.png",
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "collisionRadius": 2.25,
+  "alpha": [
+    0,
+    255
+  ],
+  "status": "integrated-awaiting-in-game-review",
+  "verification": {
+    "nativeGpuFrames": 16,
+    "opaqueAndFadeFramesSynchronized": true,
+    "effectsOffFrame": 0,
+    "webExport": "success",
+    "evidence": "godot-arcana/art/reference/fountain/in-game-water.gif",
+    "browserPlay": "not-run",
+    "finalArtApproval": "pending"
+  },
+  "groundProjection": {
+    "foot": [
+      148,
+      268
+    ],
+    "baseEllipse": {
+      "center": [
+        148,
+        267.90186374159435
+      ],
+      "radii": [
+        144,
+        86.14979594770764
+      ],
+      "ratio": 0.5982624718590809,
+      "rmsPixels": 0.5717093448039239,
+      "samples": 276
+    },
+    "cameraPitch": 45,
+    "worldCanvas": [
+      8.5,
+      7.191602663276696
+    ],
+    "method": "Least-squares lower alpha silhouette with fixed existing 144px basin radius; water/rim height excluded"
+  }
+}

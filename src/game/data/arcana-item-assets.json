@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "realm": "arcana",
+  "items": {
+    "fishingRod": {
+      "category": "life_tool",
+      "equipmentSlot": "lifeTool",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/fishing-rod.png",
+        "source": "godot-arcana/art/source/items/fishing-rod-mystic-v1/fishing-rod.pxpen"
+      }
+    },
+    "riverFish": {
+      "category": "ingredient",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/river-fish.png",
+        "source": "godot-arcana/art/source/items/inventory-v1/river-fish.pxpen"
+      }
+    },
+    "grilledFish": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-fish.png"
+      }
+    },
+    "grilledFishFine": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-fish.png"
+      }
+    },
+    "grilledFishExcellent": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-fish.png"
+      }
+    },
+    "wood": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/wood.png",
+        "source": "godot-arcana/art/source/items/inventory-v1/wood.pxpen"
+      }
+    },
+    "campfire": {
+      "category": "placeable",
+      "thumbnail": {
+        "status": "atlas",
+        "path": "res://art/export/effects/pixelfx-campfire.png",
+        "region": [
+          0,
+          0,
+          128,
+          128
+        ]
+      }
+    },
+    "campfireFine": {
+      "category": "placeable",
+      "thumbnail": {
+        "status": "atlas",
+        "path": "res://art/export/effects/pixelfx-campfire.png",
+        "region": [
+          0,
+          0,
+          128,
+          128
+        ]
+      }
+    },
+    "campfireExcellent": {
+      "category": "placeable",
+      "thumbnail": {
+        "status": "atlas",
+        "path": "res://art/export/effects/pixelfx-campfire.png",
+        "region": [
+          0,
+          0,
+          128,
+          128
+        ]
+      }
+    },
+    "manaPotion": {
+      "category": "potion",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/mana-potion.png"
+      }
+    },
+    "moonHerb": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/moon-herb.png"
+      }
+    },
+    "manaShard": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/mana-shard.png"
+      }
+    },
+    "arcaneDust": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/arcane-dust.png"
+      }
+    },
+    "slimeMucus": {
+      "category": "material",
+      "thumbnail": {
+        "status": "missing"
+      }
+    },
+    "runeCompass": {
+      "category": "tool",
+      "thumbnail": {
+        "status": "missing"
+      }
+    },
+    "mushroom": {
+      "category": "ingredient",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/mushroom.png",
+        "source": "godot-arcana/art/source/items/cooking-food-v2/mushroom.pxpen"
+      }
+    },
+    "potato": {
+      "category": "ingredient",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/potato.png",
+        "source": "godot-arcana/art/source/items/cooking-food-v2/potato.pxpen"
+      }
+    },
+    "rawMeat": {
+      "category": "ingredient",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/raw-meat.png",
+        "source": "godot-arcana/art/source/items/cooking-food-v2/raw-meat.pxpen"
+      }
+    },
+    "treeBranch": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/tree-branch.png",
+        "source": "godot-arcana/art/source/items/cooking-food-v2/tree-branch.pxpen"
+      }
+    },
+    "grilledMushroom": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-mushroom.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/grilled-mushroom.pxpen"
+      }
+    },
+    "grilledMushroomFine": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-mushroom.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/grilled-mushroom.pxpen"
+      }
+    },
+    "grilledMushroomExcellent": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-mushroom.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/grilled-mushroom.pxpen"
+      }
+    },
+    "roastedPotato": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/roasted-potato.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/roasted-potato.pxpen"
+      }
+    },
+    "roastedPotatoFine": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/roasted-potato.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/roasted-potato.pxpen"
+      }
+    },
+    "roastedPotatoExcellent": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/roasted-potato.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/roasted-potato.pxpen"
+      }
+    },
+    "meatSkewer": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/meat-skewer.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/meat-skewer.pxpen"
+      }
+    },
+    "meatSkewerFine": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/meat-skewer.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/meat-skewer.pxpen"
+      }
+    },
+    "meatSkewerExcellent": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/meat-skewer.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/meat-skewer.pxpen"
+      }
+    }
+  }
+}

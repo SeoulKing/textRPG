@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "checkpointCorrection": true,
+  "validSavedPositionPreserved": true,
+  "probes": 3525,
+  "source": "Production TypeScript compiler output: actual ArcanaWorld.validPoint against Godot Shop2D probes"
+}

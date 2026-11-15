@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/727adcd62fe21155441762caa9246eaa62f032e397bd85cbf38883d53cc6d124.res" id="17_i42x4"]
+[ext_resource type="Shader" path="res://art/resources/native_2d_market_cloth.gdshader" id="market_cloth"]
+
+[sub_resource type="ShaderMaterial" id="MarketClothRed"]
+shader = ExtResource("market_cloth")
+shader_parameter/cloth_ink = Color(0.85, 0.22, 0.16, 1)
+
+[node name="MarketCorner" type="Node2D"]
+script = ExtResource("1_rimt7")
+display_name = "푸른 차양 시장"
+interaction_kind = "city_corner"
+interaction_point = Vector2(0, 14)
+model_kind = "city-market"
+collision_parts = Array[Rect2]([Rect2(-27.2, -22.4, 54.400024, 22.399994)])
+source_path = "CityWalk/market_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+material = SubResource("MarketClothRed")
+texture = ExtResource("17_i42x4")
+centered = false
+offset = Vector2(-132, -157.6)
+region_rect = Rect2(0, 0, 264, 162)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(264, 162)
+

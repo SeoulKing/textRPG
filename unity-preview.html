@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>유니티 웹 · 폐허 서울</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { background: #121b18; color: #f3f6ef; font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+    header { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; padding: 14px max(16px, calc((100vw - 1180px) / 2)); }
+    header a { color: #c3e6ba; font-weight: 700; text-decoration: none; }
+    h1 { margin: 0; font-size: 1.1rem; }
+    p { margin: 0; color: #bac9bd; font-size: .85rem; }
+    main { width: min(100%, 1180px); margin: 0 auto; padding: 0 12px 12px; }
+    #preview-status { padding: 32px 20px; border: 1px solid #3e5546; border-radius: 8px; text-align: center; }
+    @media (max-width: 640px) {
+      header { padding: 12px 16px; }
+      main { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">← 웹 게임으로 돌아가기</a>
+    <h1>유니티 웹</h1>
+    <p>선택한 Unity 프로젝트의 별도 미리보기이며 웹 게임 저장 데이터와 연결되지 않습니다.</p>
+  </header>
+  <main>
+    <p id="preview-status">유니티 웹을 불러오고 있습니다.</p>
+  </main>
+  <script>
+    fetch('/assets/unity-preview/index.html', { method: 'HEAD' })
+      .then((response) => {
+        const status = document.getElementById('preview-status');
+        if (!response.ok) {
+          status.textContent = '아직 공개된 유니티 웹 빌드가 없습니다.';
+          return;
+        }
+        window.location.replace('/assets/unity-preview/index.html');
+      })
+      .catch(() => {
+        document.getElementById('preview-status').textContent = '유니티 웹을 불러오지 못했습니다.';
+      });
+  </script>
+</body>
+</html>
