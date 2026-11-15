@@ -1,4 +1,4 @@
-[gd_resource type="TileSet" format=3 uid="uid://dwii36h1fdm4l"]
+[gd_resource type="TileSet" load_steps=3 format=3 uid="uid://dwii36h1fdm4l"]
 
 [ext_resource type="Texture2D" path="res://art/export/river-daylight-v3/ripples.res" id="1_a2cpb"]
 

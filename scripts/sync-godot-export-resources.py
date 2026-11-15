@@ -13,6 +13,7 @@ regions = json.loads((ROOT / "data/regions.json").read_text(encoding="utf-8"))["
 pending = ["main.tscn", "data/regions.json", "tools/export_combat_layout.gd", "tools/export_online_layout.gd"]
 pending += [entry["scene"].removeprefix("res://") for entry in regions.values()]
 # World catalogs still select some prop/item assets by ID.
+legacy_plaza_backdrops = ROOT / "art/export/regions/arcana-city-center/plaza-composed"
 for area in (ROOT / "art/export").iterdir():
     # Retired player outputs stay excluded even while their deletion awaits review.
     if area.name.startswith("heroine") or area.name in {"hero.png", "hero-b45.png"}:
@@ -20,6 +21,8 @@ for area in (ROOT / "art/export").iterdir():
     candidates = area.rglob("*") if area.is_dir() else (area,)
     pending += [p.relative_to(ROOT).as_posix() for p in candidates
                 if p.is_file() and p.suffix in RESOURCE_SUFFIXES
+                # If a selected scene uses these 2D backdrops, follow that scene's references.
+                and not p.is_relative_to(legacy_plaza_backdrops)
                 and not (area.name == "reference" and p.name.startswith(("hero-", "heroine-preview-floor")))]
 
 # Direction templates and native rigs are resolved dynamically. Select the
@@ -74,6 +77,9 @@ while pending:
     if not path.is_file() or path.suffix not in RESOURCE_SUFFIXES:
         continue
     selected.add(relative)
+    if relative == "scenes/shop_astra.tscn":
+        # This texture is selected by the Astra GLB through node extras.
+        pending.append("art/source/shop-astra/floor-ao.png")
     if path.suffix in TEXT_SUFFIXES:
         content = path.read_text(encoding="utf-8-sig")
         if relative.startswith(BUNDLE_PREFIX) and path.suffix == ".json":
@@ -84,6 +90,7 @@ while pending:
             if not include.startswith("res://"):
                 pending.append((path.parent / include).resolve().relative_to(ROOT).as_posix())
 for required in ("scripts/main.gd", "scripts/world.gd", "scripts/native_2d_world.gd", "scripts/game_ui.gd",
+                 "art/characters/hero-v12/hero.glb",
                  "art/characters/hybrid-v1/assembly/parts.json", "art/characters/hybrid-v1/shared-run.json",
                  "art/characters/hybrid-v1/run-keyframes.tres"):
     if required not in selected:
@@ -94,13 +101,12 @@ text = re.sub(r'^export_files=.*$', lambda _: line, text, flags=re.M)
 # Godot does not import JSON as a Resource; selected JSON also needs its include filter.
 include = sorted(item for item in selected if item.endswith(".json")) + ["fonts/NotoSansKR-OFL.txt"]
 text = re.sub(r'^include_filter="[^"\n]*"$', lambda _: 'include_filter="' + ','.join(include) + '"', text, flags=re.M)
-PRESET.write_text(text, encoding="utf-8", newline="\n")
-print(f"Web export selects {len(selected)} runtime resources; hybrid-v1 is the only player bundle.")
+print(f"Web export selects {len(selected)} runtime resources, including the v12 player model.")
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--stage-list", help="Write the exact addon-free build input list")
 args = parser.parse_args()
 if args.stage_list:
-    inputs = selected | {"project.godot", "export_presets.cfg", "web-shell.html"}
+    inputs = selected | {"project.godot", "web-shell.html"}
     for relative in tuple(inputs):
         for suffix in (".import", ".uid"):
             if (ROOT / (relative + suffix)).is_file():
@@ -110,3 +116,6 @@ if args.stage_list:
         raise RuntimeError("Stage list must stay inside .runtime/godot")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(sorted(inputs)), encoding="utf-8")
+    target.with_name("export_presets.cfg").write_text(text, encoding="utf-8", newline="\n")
+else:
+    PRESET.write_text(text, encoding="utf-8", newline="\n")

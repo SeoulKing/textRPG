@@ -1,10 +1,27 @@
 # 아르카나 도심 재구성 작업 명세
 
+## 광장 V2 조명과 분수 둘레
+
+- 3D 광장에 청금 모자이크를 분수 중심에 맞춰 적용했습니다. 모자이크는 지면에 얹은 표시용 메시이며 기존 분수 충돌과 보행 범위를 따릅니다.
+- 따뜻한 햇빛의 각도를 높여 건물 그림자가 통로를 덜 덮도록 했습니다. 상점·여관 입구의 금빛과 분수의 청색 반사광은 가까운 표면에만 적용합니다. Godot 4.5.1에서 분수 중심과 여관 입구 구도를 확인했습니다.
+
+## 광장 V2 석판 바닥
+
+- 참고 이미지의 따뜻한 회갈색 석판과 얕은 줄눈, 살짝 닳은 모서리를 Blender 메시로 만들었습니다. [광장 V2](../../../godot-arcana/scenes/plaza_3d_v2.tscn)의 기존 22×30 보행 범위와 높이에 맞췄습니다.
+- [Blender 원본](source/plaza-stone-paving/plaza-stone-paving.blend) · [GLB](../../../godot-arcana/art/source/plaza-stone-paving/plaza-stone-paving.glb) · [미리보기](source/plaza-stone-paving/plaza-stone-paving-preview.png) · [생성 스크립트](source/plaza-stone-paving/build_plaza_stone_paving.py).
+
+
 ## 광장 V2 북극성 분수
 
 - 승인 원본은 [시안](source/north-star-fountain-v1/concept.png)과 [블렌더 모델](source/north-star-fountain-v1/north-star-fountain.blend)입니다. 바닥 중심 피벗과 지름 4.5 월드 단위를 기준으로 합니다.
 - [광장 V2](../../../godot-arcana/scenes/plaza_3d_v2.tscn)의 `Fountain`에 [GLB](../../../godot-arcana/art/source/north-star-fountain-v1/north-star-fountain.glb)를 연결했습니다. 기존 중심 `(0, 0, 5.925)`와 충돌 반경 2.25를 사용합니다.
 - [Blender 내보내기 스크립트](../../../scripts/blender/export_north_star_fountain.py)는 배경·카메라·조명을 제외하고, 물줄기 하이라이트·물방울의 변환과 잔물결 두께를 3초 `WaterLoop`로 굽습니다. Godot의 분수 스크립트는 반복 재생을 시작하고, 석재 표면 요철과 수면의 움직이는 빛무늬 재질을 적용합니다.
+
+## 광장 마법 상점 외관 · Blender 1차
+
+- 제작 기준은 사용자가 확정한 [상점 5면 시안](source/shop-exterior-blender-v1/concept.png)입니다. 앞면은 청록 지붕과 차양, 금별창, 물약 진열창과 간판을 따르고 측면과 후면에는 석조 아치창을 배치했습니다.
+- 편집 원본은 [shop-exterior.blend](../../../godot-arcana/art/source/plaza-shop-blender/shop-exterior.blend)입니다. 문턱의 바닥 중심이 원점이며 정면은 Blender `-Y`입니다. Blender에서 `Arcana Plaza Shop` 컬렉션의 메시만 선택한 뒤 Y Up을 켜고 GLB로 내보냅니다. [shop-exterior.glb](../../../godot-arcana/art/source/plaza-shop-blender/shop-exterior.glb)의 정면은 Godot `+Z`입니다.
+- [광장 V2](../../../godot-arcana/scenes/plaza_3d_v2.tscn)의 `Shop`에 GLB를 배치했습니다. 기존 건물의 위치와 배율을 이어받고 충돌을 상점 몸체에 맞췄습니다. 상점 내부 출입 연결은 별도 작업입니다.
 
 ## 현재 요청 · 도트 밀도와 움직이는 하이라이트 (2026-11-02)
 

@@ -1,4 +1,4 @@
-[gd_resource type="TileSet" format=3 uid="uid://c04oe4iq2br25"]
+[gd_resource type="TileSet" load_steps=3 format=3 uid="uid://c04oe4iq2br25"]
 
 [ext_resource type="Texture2D" path="res://art/export/river-pixel-v5/highlights.res" id="1_ybo71"]
 

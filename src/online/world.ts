@@ -17,13 +17,13 @@ import { GAME_HOUR_MS, REAL_DAY_MS, PHASE_DURATION_MS } from "../game/base-data"
 import { OnlineAccounts, OnlineError, type Character, type Principal } from "./accounts";
 import { OnlineStore } from "./store";
 import { ArcanaItemCatalog } from "./item-catalog";
-import { newWorld, cast, tickCombat, type Death } from "./combat";
+import { newEnemy, newWorld, cast, tickCombat, type Death } from "./combat";
 import { inField, samePlace, type Actor, type SharedWorld, type Place, type Point } from "./model";
 
 import { ensureFishingRod, equipFishingRod, startFishing, fishingInput, tickFishing, fishingActive, type Fishing } from "./fishing";
 type Connection = {sessionId:string;controller:string;send:(value:unknown)=>void;sendState?:(build:()=>unknown)=>void;close:(code:number,reason:string)=>void};
 type Checkpoint = {world:SharedWorld;actors:Actor[]};
-type LayoutArea = {rectangles:{x:number;y:number;w:number;h:number}[];bounds:{x:number;y:number;w:number;h:number};spawn:Point;fishing?:import("./fishing").FishingGeometry;doors:{id:string;x:number;y:number;radius:number;arrival?:Point}[];walkable?:Record<string,boolean>;floorDomain?:{origin:Point;cellSize:number;cells:Record<string,boolean>}};
+type LayoutArea = {layoutId?:string;circles?:{localRadius:number;inverse:[number,number,number,number,number,number]}[];rooms?:Record<string,Point>;stairs?:Point;stairArrival?:Point;rectangles:{x:number;y:number;w:number;h:number}[];bounds:{x:number;y:number;w:number;h:number};spawn:Point;fishing?:import("./fishing").FishingGeometry;doors:{id:string;x:number;y:number;radius:number;arrival?:Point}[];walkable?:Record<string,boolean>;floorDomain?:{origin:Point;cellSize:number;cells:Record<string,boolean>}};
 type Layouts = Record<string,LayoutArea>;
 const copy=(p:Point)=>({...p});
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -95,6 +95,9 @@ export class ArcanaWorld {
       this.world=saved.world;this.world.campfires ??= {};
       this.world.elapsedMs+=Math.max(0,Date.now()-this.world.updatedAt);
       this.world.projectiles=[];this.world.meteors=[];this.world.barrages=[];
+      if(this.layouts.outside?.layoutId==="plaza_v2" && distance(this.world.enemy.home,spatialLayout().home)>.01) {
+        this.world.enemy=newEnemy();
+      }
       for(const actor of saved.actors) {initializeLife(actor.game);this.restoreLayoutPosition(actor);actor.disconnectedAt=Date.now();actor.lastMoveAt=Date.now();actor.pending=false;this.actors.set(actor.character.id,actor);}
     }
     this.lastTick=Date.now();
@@ -124,6 +127,11 @@ export class ArcanaWorld {
     if(!area) return !place.interior && point.x>=32 && point.x<=1110 && point.y>=48 && point.y<=1400;
     const b=area.bounds;
     if(point.x<b.x || point.y<b.y || point.x>b.x+b.w || point.y>b.y+b.h)return false;
+    if(area.circles?.some(circle=>{
+      const [xx,xy,yx,yy,ox,oy]=circle.inverse;
+      const padding=3*Math.max(Math.hypot(xx,xy),Math.hypot(yx,yy));
+      return Math.hypot(xx*point.x+yx*point.y+ox,xy*point.x+yy*point.y+oy)<circle.localRadius+padding;
+    }))return false;
     if(area.walkable && !area.walkable[Math.round(point.x)+":"+Math.round(point.y)])return false;
     if(area.floorDomain) {
       const domain=area.floorDomain;
@@ -136,8 +144,13 @@ export class ArcanaWorld {
     return !area.rectangles.some(r=>point.x>=r.x-3 && point.x<=r.x+r.w+3 && point.y>=r.y-3 && point.y<=r.y+r.h+3);
   }
   private restoreLayoutPosition(actor:Actor) {
-    // Outdoor edits can put an older checkpoint inside new water/embankments.
-    if((actor.place.interior && actor.place.interior!=="arcana_shop") || this.validPoint(actor.place,actor.position))return;
+    if(!actor.place.interior && this.layouts.outside?.layoutId==="plaza_v2" && actor.place.location!=="arcana_plaza") {
+      actor.place={location:"arcana_plaza",interior:"",floor:0};
+      actor.game.state.location=actor.place.location;
+      actor.placeRevision=(actor.placeRevision || 0)+1;
+    }
+    // Layout edits can put an older checkpoint inside new terrain or furniture.
+    if((actor.place.interior && !["arcana_shop","arcana_academy"].includes(actor.place.interior)) || this.validPoint(actor.place,actor.position))return;
     actor.position=copy(this.area(actor.place).spawn);
     actor.previous=copy(actor.position);actor.walking=false;actor.bench="";
   }
@@ -152,7 +165,7 @@ export class ArcanaWorld {
     actor.lastMoveAt=Date.now();
   }
   private resolveMove(place:Place,from:Point,to:Point) {
-    const destination=!place.interior?spatialMove(from,to,3):to;
+    const destination=!place.interior && this.layouts.outside?.layoutId!=="plaza_v2"?spatialMove(from,to,3):to;
     const result=copy(from),steps=Math.max(1,Math.ceil(distance(from,destination)));
     for(let i=1;i<=steps;i++) {
       const next={x:from.x+(destination.x-from.x)*i/steps,y:from.y+(destination.y-from.y)*i/steps};
@@ -256,6 +269,7 @@ export class ArcanaWorld {
       const position=saved && this.validPoint(place,saved.position)?saved.position:copy(this.area(place)?.spawn || spatialLayout().spawn);
       game.state.location=place.location;
       const actor:Actor={character,game,place,position,previous:copy(position),direction:{x:0,y:1},walking:false,bench:"",gait:0,lastMoveAt:Date.now(),disconnectedAt:Date.now(),sessionId:principal.sessionId,controller,accepted:0,version:0,lastSeen:Date.now(),sessionExpires:principal.expires};
+      this.restoreLayoutPosition(actor);
       actor.actionReceipts=stored.receipts || [];
       initializeLife(actor.game);this.actors.set(character.id,actor);this.synchronize(actor);
       await this.persist();
@@ -360,8 +374,8 @@ export class ArcanaWorld {
       const deaths:Death[]=[];
       try {
         const cooldown=actor.game.state.arcanaCombat.cooldowns;
-        if(!fishingActive(this.fishing.get(id)) && input.position && cooldown.dodge<=4.8 && !(cooldown.teleport===0 && actor.game.state.arcanaCombat.evadeSeconds>.1))this.move(actor,input.position,input.developerSpeed && process.env.NODE_ENV!=="production" ? 3 : 1);
         if(!fishingActive(this.fishing.get(id)) && input.floor && input.floor!==actor.place.floor)this.changeFloor(actor,input.floor);
+        else if(!fishingActive(this.fishing.get(id)) && input.position && cooldown.dodge<=4.8 && !(cooldown.teleport===0 && actor.game.state.arcanaCombat.evadeSeconds>.1))this.move(actor,input.position,input.developerSpeed && process.env.NODE_ENV!=="production" ? 3 : 1);
         if(input.direction)actor.direction=copy(input.direction);
         if(input.bench!==undefined)actor.bench=input.bench;
         if(input.gait!==undefined)actor.gait=input.gait;
@@ -410,10 +424,13 @@ export class ArcanaWorld {
   }
   private changeFloor(actor:Actor,floor:number) {
     if(actor.place.interior!=="arcana_academy" || ![1,2].includes(floor))throw new OnlineError("invalid_floor","이동할 수 없는 층입니다.");
-    const stair=actor.place.floor===1?{x:192,y:112}:{x:192,y:230};
-    if(distance(actor.position,stair)>40)throw new OnlineError("stairs_required","계단 가까이에서 이동해 주세요.");
+    const stair=this.area(actor.place)?.stairs;
+    if(!stair || distance(actor.position,stair)>40)throw new OnlineError("stairs_required","계단 가까이에서 이동해 주세요.");
+    const destination={...actor.place,floor};
+    const arrival=this.area(destination)?.stairArrival;
+    if(!arrival || !this.validPoint(destination,arrival))throw new OnlineError("invalid_floor","계단 도착점을 사용할 수 없습니다.");
     actor.placeRevision=(actor.placeRevision || 0)+1;
-    actor.place.floor=floor;actor.position=floor===1?{x:192,y:152}:{x:192,y:194};actor.previous=copy(actor.position);
+    actor.place=destination;actor.position=copy(arrival);actor.previous=copy(arrival);
   }
   async state(principal:Principal,gameId:string) {
     const owner=await this.accounts.authorize(gameId,principal);
@@ -474,9 +491,8 @@ export class ArcanaWorld {
       if(action.type==="travel")this.validateTravel(actor,action.targetId);
       if(action.type==="arcana_combat" && action.command==="dev_sofa_rest" && process.env.NODE_ENV==="production")throw new OnlineError("development_only","개발 전용 기능입니다.",403);
       if(action.type==="academy_move") {
-        const rooms:Record<string,Point & {floor:number}>={courtyard:{x:192,y:276,floor:1},hall:{x:192,y:222,floor:1},library:{x:88,y:151,floor:1},classroom:{x:284,y:171,floor:1},practice:{x:284,y:239,floor:1},headmaster:{x:96,y:170,floor:2},garden:{x:96,y:258,floor:2},observatory:{x:280,y:166,floor:2}};
-        const room=rooms[action.roomId];
-        if(actor.place.interior!=="arcana_academy" || !room || room.floor!==actor.place.floor || distance(actor.position,room)>60)throw new OnlineError("room_required","해당 층의 방 가까이에서 이용해 주세요.");
+        const room=this.area(actor.place)?.rooms?.[action.roomId];
+        if(actor.place.interior!=="arcana_academy" || !room || distance(actor.position,room)>40)throw new OnlineError("room_required","해당 층의 방 가까이에서 이용해 주세요.");
       }
       actor.pending=true;this.synchronize(actor);
       return {actor,baseline:structuredClone(actor.game),location:actor.game.state.location};

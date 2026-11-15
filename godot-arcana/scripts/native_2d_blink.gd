@@ -8,6 +8,9 @@ func _sprite() -> Sprite2D:
     var sprite=Sprite2D.new();sprite.texture=ATLAS;sprite.centered=false
     sprite.offset=Vector2(-48,-116);sprite.region_enabled=true;add_child(sprite);sprite.hide()
     return sprite
+func set_projected_height(factor: float) -> void:
+    departure.scale.y=factor
+    arrival.scale.y=factor
 func update_pose(age: float,direction: int,origin: Vector2,destination: Vector2,effects: bool,reduced: bool) -> void:
     var active=age>=0 and age<.16 and effects and not reduced
     var frame=clampi(int(age/.02),0,7)

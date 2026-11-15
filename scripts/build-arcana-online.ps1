@@ -25,7 +25,7 @@ $projectText = [regex]::Replace($projectText,'(?ms)\[editor_plugins\]\s*.*?(?=\[
 $projectText = [regex]::Replace($projectText,'(?m)^_mcp_game_helper="\*res://addons/godot_ai/runtime/game_helper\.gd"\r?\n','')
 [IO.File]::WriteAllText($projectPath,$projectText)
 $presetPath = Join-Path $stagePath 'export_presets.cfg'
-$presetText = [IO.File]::ReadAllText($presetPath).Replace('../.runtime/godot/web_nothreads_release.zip',(Join-Path $rootPath '.runtime/godot/web_nothreads_release.zip').Replace('\','/'))
+$presetText = [IO.File]::ReadAllText((Join-Path $buildPath 'export_presets.cfg')).Replace('../.runtime/godot/web_nothreads_release.zip',(Join-Path $rootPath '.runtime/godot/web_nothreads_release.zip').Replace('\','/'))
 [IO.File]::WriteAllText($presetPath,$presetText)
 $enginePath = if ($GodotPath) { [IO.Path]::GetFullPath($GodotPath) } else { Join-Path $rootPath '.runtime/godot/Godot_v4.5.1-stable_win64_console.exe' }
 if (-not (Test-Path -LiteralPath $enginePath -PathType Leaf)) { throw 'The pinned Godot 4.5.1 build engine is missing. Use build-godot-arcana.ps1 -PrepareTools.' }
@@ -48,8 +48,16 @@ foreach ($phase in @('import','combat','layout','export')) {
     throw ("Godot "+$phase+" failed; logs: "+$buildPath)
   }
 }
-Copy-Item -LiteralPath (Join-Path $stagePath 'art/export/combat-layout.json') -Destination (Join-Path $rootPath 'godot-arcana/art/export/combat-layout.json')
-Copy-Item -LiteralPath (Join-Path $stagePath 'art/export/online-layout.json') -Destination (Join-Path $rootPath 'godot-arcana/art/export/online-layout.json')
+$stagedLayout = Join-Path $stagePath 'art/export/combat-layout.json'
+$sourceLayout = Join-Path $rootPath 'godot-arcana/art/export/combat-layout.json'
+if (-not (Test-Path -LiteralPath $sourceLayout) -or (Get-FileHash -LiteralPath $sourceLayout).Hash -ne (Get-FileHash -LiteralPath $stagedLayout).Hash) {
+  Copy-Item -LiteralPath $stagedLayout -Destination $sourceLayout
+}
+$stagedLayout = Join-Path $stagePath 'art/export/online-layout.json'
+$sourceLayout = Join-Path $rootPath 'godot-arcana/art/export/online-layout.json'
+if (-not (Test-Path -LiteralPath $sourceLayout) -or (Get-FileHash -LiteralPath $sourceLayout).Hash -ne (Get-FileHash -LiteralPath $stagedLayout).Hash) {
+  Copy-Item -LiteralPath $stagedLayout -Destination $sourceLayout
+}
 # Resolve runtime scripts from the archive, without a source-tree fallback.
 $verifyPath = Join-Path $buildPath 'pack-verify'
 New-Item -ItemType Directory -Force $verifyPath | Out-Null

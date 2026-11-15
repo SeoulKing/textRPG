@@ -33,6 +33,7 @@ func _export() -> void:
 	quit()
 
 func _area(world: Node, outside: bool) -> Dictionary:
+	var plaza_v2: bool = outside and world.uses_plaza_v2()
 	var area_fishing: Dictionary = {}
 	var rectangles: Array = []
 	for rect in world.obstacles:
@@ -50,14 +51,41 @@ func _area(world: Node, outside: bool) -> Dictionary:
 				door.arrival = {"x":outside_point.x,"y":outside_point.y}
 			doors.append(door)
 	if outside:
-		var river = world.layout.get_node_or_null("Placements/RiverQuarter")
-		if river != null: area_fishing = river.fishing_geometry()
-		doors.append({"id":"arcana_plaza","x":world.CityMap.CITY_RETURN.x,"y":world.CityMap.CITY_RETURN.y,"radius":72})
-		doors.append({"id":"arcana_hunting_ground","x":world.CityMap.FIELD_ENTRY.x,"y":world.CityMap.FIELD_ENTRY.y,"radius":72})
-	var box: Rect2 = world.CityMap.WALK_BOUNDS if outside else Rect2(30,30,320,296)
+		if not plaza_v2:
+			var river = world.layout.get_node_or_null("Placements/RiverQuarter")
+			if river != null: area_fishing = river.fishing_geometry()
+			doors.append({"id":"arcana_plaza","x":world.CityMap.CITY_RETURN.x,"y":world.CityMap.CITY_RETURN.y,"radius":72})
+			doors.append({"id":"arcana_hunting_ground","x":world.CityMap.FIELD_ENTRY.x,"y":world.CityMap.FIELD_ENTRY.y,"radius":72})
+	var box: Rect2 = world.outside_walk_bounds() if outside else Rect2(30,30,320,296)
 	var bounds: Dictionary = {"x":box.position.x,"y":box.position.y,"w":box.size.x,"h":box.size.y}
 	var area: Dictionary = {"rectangles":rectangles,"doors":doors,"bounds":bounds,"spawn":{"x":world.player_position.x,"y":world.player_position.y}}
-	if outside: area.fishing = area_fishing
+	if outside:
+		if plaza_v2:
+			area.layoutId = "plaza_v2"
+			area.circles = _collision_circles(world.round_obstacles)
+		else:
+			area.fishing = area_fishing
+	if world.indoor == "arcana_academy":
+		var authored := preload("res://scripts/region_layout.gd").load_region(world.indoor, world.academy_floor)
+		var rooms := {}
+		for entity in world.entities:
+			if entity.kind == "academy_room":
+				rooms[entity.id] = _point(entity.pos)
+			elif entity.kind == "academy_stairs":
+				area.stairs = _point(entity.pos)
+		area.rooms = rooms
+		area.stairArrival = _point(authored.markers.StairArrival)
 	if world.indoor == "arcana_shop":
 		area.floorDomain = {"origin":{"x":80,"y":64},"cellSize":8,"cells":world.shop_layout.floor.duplicate()}
 	return area
+
+func _collision_circles(obstacles: Array) -> Array[Dictionary]:
+	var circles: Array[Dictionary] = []
+	for obstacle: Dictionary in obstacles:
+		var inverse: Transform2D = obstacle.inverse
+		circles.append({"localRadius": obstacle.radius,
+			"inverse": [inverse.x.x, inverse.x.y, inverse.y.x, inverse.y.y, inverse.origin.x, inverse.origin.y]})
+	return circles
+
+func _point(position: Vector2) -> Dictionary:
+	return {"x": position.x, "y": position.y}

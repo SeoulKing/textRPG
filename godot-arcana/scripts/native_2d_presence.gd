@@ -213,11 +213,21 @@ func accept(value: Dictionary) -> void:
 			remote.hero.begin_cast(heading)
 	for id in actors.keys():
 		if not retained.has(id):
-			if is_instance_valid(main.world_renderer.shop2d): main.world_renderer.shop2d.remove_remote(str(id))
+			if is_instance_valid(main.world_renderer.shop3d): main.world_renderer.shop3d.remove_remote(str(id))
+			if is_instance_valid(main.world_renderer.inn3d): main.world_renderer.inn3d.remove_remote(str(id))
 			actors[id].hero.queue_free()
 			actors[id].blink.queue_free()
 			actors[id].label.queue_free()
 			actors.erase(id)
+
+func apply_local_correction(delta: float) -> void:
+	if not correction_remaining.is_zero_approx() and main.combat_socket.socket_ready and main.world.dash_age<0 and main.world.teleport_age<0 and main.world.bench_state.is_empty():
+		var step: Vector2 = correction_remaining*(1-exp(-minf(delta,.05)*14))
+		var before: Vector2 = main.world.player_position
+		main.world._move_player(step)
+		correction_total += main.world.player_position-before
+		correction_remaining -= step
+		if correction_remaining.length()<.05: correction_remaining = Vector2.ZERO
 
 func _process(delta: float) -> void:
 	if main.snapshot.is_empty(): return
@@ -226,13 +236,6 @@ func _process(delta: float) -> void:
 		var target: float = minf(server_time,server_time+age-interpolation_delay)
 		if target-render_time>.5: render_time = target
 		else: render_time = minf(target,render_time+minf(delta,.25)*clampf(1+(target-render_time)*3,.8,1.2)) if target>=render_time else render_time
-	if not correction_remaining.is_zero_approx() and main.combat_socket.socket_ready and main.world.dash_age<0 and main.world.teleport_age<0 and main.world.bench_state.is_empty():
-		var step: Vector2 = correction_remaining*(1-exp(-minf(delta,.05)*14))
-		var before: Vector2 = main.world.player_position
-		main.world._move_player(step)
-		correction_total += main.world.player_position-before
-		correction_remaining -= step
-		if correction_remaining.length()<.05: correction_remaining = Vector2.ZERO
 	if is_instance_valid(self_name):
 		self_name.visible = not main.ui.overlay.visible
 		self_name.position = main.spatial_combat._screen(main.world.player_position,2.1)-Vector2(self_name.size.x*.5,0)
@@ -249,6 +252,8 @@ func _process(delta: float) -> void:
 		var seat_state: String = str(data.get("bench",""))
 		var seat: Dictionary = main.world.furniture_at(remote.position) if seat_state in ["sit","seated","stand"] else {}
 		hero.position = main.world_renderer.map_point(main.world.furniture_visual_position(remote.position,seat_state,float(remote.bench_age),seat))
+		if main.world_renderer.uses_plaza_v2():
+			hero.position = main.world_renderer.snap_actor_position(hero.position)
 		hero.set_meta("seat_id",str(seat.get("id","")))
 		hero.set_meta("seat_sort_y",main.world_renderer.map_point(remote.position).y)
 		hero.set_bench_pose(seat_state,float(remote.bench_age),main.world.reduced_motion)
@@ -269,8 +274,16 @@ func _process(delta: float) -> void:
 			remote.blink.update_pose(float(remote.blink_age),direction,main.world_renderer.map_point(from),main.world_renderer.map_point(to),main.world.effects_enabled,main.world.reduced_motion)
 		hero.pose(main.world.time,float(sample.get("gait",0)),bool(sample.get("walking",false)),rendered_motion,main.world_renderer.pixelated,main.world.effects_enabled,false,heading)
 		hero.apply_bench_pose()
-		if main.world.indoor == "arcana_shop" and is_instance_valid(main.world_renderer.shop2d):
-			main.world_renderer.shop2d.sync_remote(str(data.id),hero,remote.position)
+		var in_shop: bool = main.world.indoor == "arcana_shop"
+		var in_inn_3d := is_instance_valid(main.world_renderer.inn3d)
+		remote.blink.visible = not in_shop
+		remote.blink.set_projected_height(sqrt(2.0) if in_inn_3d else 1.0)
+		if in_shop and is_instance_valid(main.world_renderer.shop3d):
+			main.world_renderer.shop3d.sync_remote(str(data.id),hero,remote.position)
+			hero.hide()
+		elif in_inn_3d:
+			main.world_renderer.inn3d.sync_remote(str(data.id),hero,main.world,remote.position,
+				seat_state,float(remote.bench_age),seat)
 			hero.hide()
 		remote.label.position = main.spatial_combat._screen(remote.position,2.1)-Vector2(remote.label.size.x*.5,0)
 		remote.label.visible = not main.ui.overlay.visible and main.get_viewport().get_visible_rect().has_point(remote.label.position)

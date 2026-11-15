@@ -13,6 +13,7 @@ var duration: float = 0.64
 var joint_order: Array[String] = []
 var parents: Dictionary[String, String] = {}
 var last_end_pitch: Dictionary[String, float] = {}
+var last_action_pose: Dictionary = {}
 var _data: Dictionary = {}
 var keyframes = RunClip.new()
 var _authoring_pose: Dictionary = {}
@@ -22,6 +23,7 @@ func setup(path: String = DEFAULT_PATH) -> bool:
 	joint_order.clear()
 	parents.clear()
 	last_end_pitch.clear()
+	last_action_pose = {}
 	_authoring_pose.clear()
 	last_error = ""
 	if not FileAccess.file_exists(path):
@@ -89,8 +91,9 @@ func set_authoring_pose(pose: Dictionary = {}) -> bool:
 func get_neutral_pose() -> Dictionary:
 	return _data.get("neutral", {}).duplicate(true)
 
-func sample(phase: float, blend: float = 1.0) -> Dictionary[String, Vector3]:
+func sample(phase: float, blend: float = 1.0, action: Dictionary = {}) -> Dictionary[String, Vector3]:
 	var points: Dictionary[String, Vector3] = {}
+	last_action_pose = {}
 	if _data.is_empty():
 		last_error = "Call setup before sampling shared motion"
 		return points
@@ -105,6 +108,15 @@ func sample(phase: float, blend: float = 1.0) -> Dictionary[String, Vector3]:
 	duration = keyframes.duration
 	var neutral: Dictionary = _data.neutral
 	var weight: float = clampf(blend, 0.0, 1.0)
+	if not action.is_empty():
+		var pose := _blend_pose(neutral, animated_pose, weight)
+		if float(action.get("from_weight", 0.0)) > 0.0:
+			pose = _blend_pose(pose, action.from, float(action.from_weight))
+		if float(action.get("weight", 0.0)) > 0.0:
+			pose = _blend_pose(pose, action.target, float(action.weight))
+		last_action_pose = pose
+		animated_pose = pose
+		weight = 1.0
 	var root2: Vector2 = _point(neutral.root).lerp(_point(animated_pose.root), weight)
 	points["hip"] = Vector3(0.0, -root2.y, root2.x)
 	for joint: String in joint_order:
@@ -120,6 +132,17 @@ func sample(phase: float, blend: float = 1.0) -> Dictionary[String, Vector3]:
 		var animated: float = float(animated_pose.ends[joint])
 		last_end_pitch[joint] = lerp_angle(float(neutral.ends[joint]), animated, weight)
 	return points
+
+func _blend_pose(from: Dictionary, to: Dictionary, amount: float) -> Dictionary:
+	var root := _point(from.root).lerp(_point(to.root), amount)
+	var angles := {}
+	for joint: String in joint_order:
+		if joint != "hip":
+			angles[joint] = lerp_angle(float(from.angles[joint]), float(to.angles[joint]), amount)
+	var ends := {}
+	for joint: String in END_JOINTS:
+		ends[joint] = lerp_angle(float(from.ends[joint]), float(to.ends[joint]), amount)
+	return {"root": [root.x, root.y], "angles": angles, "ends": ends}
 
 func _valid_pose(value: Variant, order: Array[String]) -> bool:
 	if not value is Dictionary:

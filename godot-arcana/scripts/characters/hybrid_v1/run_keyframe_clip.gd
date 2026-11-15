@@ -40,6 +40,18 @@ var _needs_validation := false
 static func channel_specs() -> Array:
 	return CHANNELS.duplicate(true)
 
+static func valid_pose_deltas(values: Dictionary) -> bool:
+	if values.is_empty():
+		return false
+	var recognized := 0
+	for channel: Dictionary in CHANNELS:
+		if not values.has(channel.path):
+			continue
+		if not _valid_value(values[channel.path], channel.property == "position"):
+			return false
+		recognized += 1
+	return recognized == values.size()
+
 static func pose_to_deltas(pose: Dictionary, neutral: Dictionary) -> Dictionary:
 	var result := {}
 	for channel: Dictionary in CHANNELS:

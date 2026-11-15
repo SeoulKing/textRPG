@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/shop_counter_face_model.gd" id="1_counter"]
+[ext_resource type="Texture2D" path="res://art/export/shop-counter-face-v1/counter.png" id="2_atlas"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_counter"]
+size = Vector3(4, 1, 1)
+
+[node name="CounterFace3D" type="Node3D"]
+script = ExtResource("1_counter")
+atlas = ExtResource("2_atlas")
+
+[node name="Surface" type="MeshInstance3D" parent="."]
+
+[node name="Body" type="StaticBody3D" parent="."]
+
+[node name="Collision" type="CollisionShape3D" parent="Body"]
+position = Vector3(0, 0.5, 0)
+shape = SubResource("BoxShape3D_counter")

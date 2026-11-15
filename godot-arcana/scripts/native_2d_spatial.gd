@@ -339,7 +339,7 @@ func queue_command(command: String, direction: Vector2 = Vector2.ZERO, target: V
 func _start_fireball(direction: Vector2) -> void:
 	anticipation.last_cast_id = ""
 	pending_cast = {"direction":direction,"elapsed":0.0}
-	main.world_renderer.hero.begin_cast(direction)
+	main.world_renderer.hero.begin_cast(direction, "fireball")
 	main.world.casting = true
 	charge_vfx = effect_pool.charge
 

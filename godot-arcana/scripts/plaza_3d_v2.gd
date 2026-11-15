@@ -5,29 +5,38 @@ const Joystick = preload("res://scripts/virtual_joystick.gd")
 const PIXEL_SHADING = preload("res://art/resources/arcana_pixel_shading.gdshader")
 const AssetMask = preload("res://scripts/shop_asset_mask.gd")
 const LiveLayout = preload("res://scripts/plaza_3d_game_layout.gd")
+const WorldDisplay = preload("res://scripts/services/world_display_settings.gd")
 const WALK_SPEED := 3.0
 const PLAYER_RADIUS := 0.20
 const DEFAULT_VIEW_HEIGHT := 9.0
 const ZOOM_STEP := 1.12
 const MIN_ZOOM := 0.5 / ZOOM_STEP
 const MAX_ZOOM := 2.0
+const FOLLOW_RESPONSE := 28.0
 
 var live_mode := false
+var camera_texel_offset := Vector2.ZERO
 
 @onready var player: CharacterBody3D = $Player
 @onready var hero: Hero = $Player/Hero
 @onready var camera: Camera3D = $Camera3D
 @onready var joystick: Joystick = $Controls/Joystick
 @onready var ground: MeshInstance3D = $Ground
+@onready var inn_door: Marker3D = $Inn/InteractionPoint
+@onready var inn_camera_focus: Marker3D = $Inn/CameraFocus
 
 var _zoom := 1.0
 var _elapsed := 0.0
 var _gait := 0.0
 var _camera_center := Vector2.ZERO
+var _follow_center := Vector2.ZERO
+var _reset_live_camera := true
 var _ground_half_size := Vector2.ZERO
 var _touches: Dictionary[int, Vector2] = {}
 var _pinch_distance := 0.0
 var _asset_mask: AssetMask
+var _standalone_presentation: ShaderMaterial
+var _presentation_minimum := 2
 
 
 func _ready() -> void:
@@ -36,6 +45,7 @@ func _ready() -> void:
 	_apply_slime_shading()
 	_configure_screen_edges()
 	_camera_center = Vector2(player.position.x, player.position.z)
+	_follow_center = _camera_center
 	if live_mode:
 		$Controls.hide()
 		player.hide()
@@ -43,25 +53,31 @@ func _ready() -> void:
 		set_process_input(false)
 		set_process_unhandled_input(false)
 		return
+	if get_parent() == get_tree().root:
+		get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+		$Controls.layer = 2
+		_presentation_minimum = WorldDisplay.pixel_size()
+		_standalone_presentation = WorldDisplay.attach_screen_presentation(self)
 	get_viewport().size_changed.connect(_update_camera)
 	_update_camera()
-	call_deferred("_maximize_scene_window")
 
 
 func set_live_active(active: bool) -> void:
 	visible = active
 	process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
 	if active:
+		_reset_live_camera = true
 		camera.make_current()
 	else:
 		camera.clear_current(false)
 	_asset_mask.set_active(active)
 
 
-func sync_live(world_position: Vector2, zoom_ratio: float) -> void:
+func sync_live(world_position: Vector2, zoom_ratio: float, visible_raster: Vector2, delta: float, immediate: bool) -> void:
 	player.position = LiveLayout.to_world(world_position)
 	_zoom = clampf(zoom_ratio, MIN_ZOOM, MAX_ZOOM)
-	_update_camera()
+	_update_camera(visible_raster, delta, immediate or _reset_live_camera)
+	_reset_live_camera = false
 
 
 func sync_live_slime(world_position: Vector2, shown: bool) -> void:
@@ -126,6 +142,8 @@ func _apply_slime_shading() -> void:
 func _configure_screen_edges() -> void:
 	var edges: MeshInstance3D = $Camera3D/ScreenEdges
 	var material := edges.material_override as ShaderMaterial
+	if live_mode or get_parent() == get_tree().root:
+		material.set_shader_parameter("screen_pixel_size", 1)
 	var view_direction: Vector3 = material.get_shader_parameter("highlight_direction")
 	var assets: Array[Node] = [$Shop/Exterior, $MochiSlime, $Inn]
 	var fountain_body := $Fountain/Model.find_child("FountainBody", true, false)
@@ -135,11 +153,6 @@ func _configure_screen_edges() -> void:
 	add_child(_asset_mask)
 	_asset_mask.setup_assets(assets, camera, material, [&"Exterior", &"MochiSlime", &"Inn", &"FountainBody"],
 		camera.global_basis * view_direction, $MochiSlime if live_mode else null)
-
-
-func _maximize_scene_window() -> void:
-	if get_tree().current_scene == self and get_window().mode == Window.MODE_WINDOWED:
-		get_window().mode = Window.MODE_MAXIMIZED
 
 
 func _physics_process(delta: float) -> void:
@@ -167,21 +180,60 @@ func _pressed(primary: Key, alternate: Key) -> bool:
 	return Input.is_physical_key_pressed(primary) or Input.is_physical_key_pressed(alternate)
 
 
-func _update_camera() -> void:
-	var viewport_size := get_viewport().get_visible_rect().size
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
-		return
-	var aspect := viewport_size.x / viewport_size.y
+func view_height(aspect: float, zoom_ratio: float) -> float:
 	var pitch_sine := absf(camera.basis.z.y)
 	var fit_height := 2.0 * minf(_ground_half_size.x / aspect, _ground_half_size.y * pitch_sine)
 	var base_height := minf(DEFAULT_VIEW_HEIGHT, fit_height / ZOOM_STEP)
-	camera.size = minf(base_height / _zoom, fit_height)
-	var view_extents := Vector2(camera.size * aspect, camera.size / pitch_sine) * 0.5
+	return minf(base_height / clampf(zoom_ratio, MIN_ZOOM, MAX_ZOOM), fit_height)
+
+
+func _update_camera(visible_raster: Vector2 = Vector2.ZERO, delta: float = 0.0, immediate: bool = false) -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	var visible_size := visible_raster if visible_raster != Vector2.ZERO else viewport_size
+	var aspect := visible_size.x / visible_size.y
+	var pitch_sine := absf(camera.basis.z.y)
+	var height := view_height(aspect, _zoom)
+	var texel_size := height / visible_size.y
+	camera.size = texel_size * viewport_size.y
+	var effective_size := 1
+	if _standalone_presentation != null:
+		var projected_actor_pixel := 1.0 / (texel_size * Hero.SPEC.PIXELS_PER_UNIT)
+		effective_size = WorldDisplay.camera_pixel_size(_presentation_minimum, projected_actor_pixel)
+		if _standalone_presentation.get_shader_parameter("pixel_size") != effective_size:
+			_standalone_presentation.set_shader_parameter("pixel_size", effective_size)
+	var view_extents := Vector2(height * aspect, height / pitch_sine) * 0.5
 	var bounds := (_ground_half_size - view_extents).max(Vector2.ZERO)
-	var target := Vector2(player.position.x, player.position.z - 0.5)
+	var player_ground := Vector2(player.position.x, player.position.z)
+	var target := player_ground - Vector2(0.0, 0.5)
+	# Frame the facade on approach when the current zoom and aspect can fit it.
+	var door := to_local(inn_door.global_position)
+	var door_ground := Vector2(door.x, door.z)
+	var approach := 1.0 - smoothstep(1.5, 4.0, player_ground.distance_to(door_ground))
+	var front := smoothstep(-0.4, 0.0, player_ground.y - door_ground.y)
+	var room_to_frame := smoothstep(7.4, 8.2, height * aspect) * smoothstep(8.2, 8.8, height)
+	var focus := to_local(inn_camera_focus.global_position)
+	target = target.lerp(Vector2(focus.x, focus.z), approach * front * room_to_frame)
 	var dead_zone := Vector2(0.35, 0.45)
-	_camera_center = _camera_center.clamp(target - dead_zone, target + dead_zone).clamp(-bounds, bounds)
-	camera.position = Vector3(_camera_center.x, 0.0, _camera_center.y) + camera.basis.z * 24.0
+	_follow_center = target if _reset_live_camera and live_mode else _follow_center.clamp(target - dead_zone, target + dead_zone)
+	_follow_center = _follow_center.clamp(-bounds, bounds)
+	if live_mode and not immediate:
+		# Ease into and out of follow before snapping the shared scene raster.
+		_camera_center = _camera_center.lerp(_follow_center, 1.0 - exp(-FOLLOW_RESPONSE * delta)).clamp(-bounds, bounds)
+		if _camera_center.distance_squared_to(_follow_center) < 0.00000001:
+			_camera_center = _follow_center
+	else:
+		_camera_center = _follow_center
+	var desired_position := Vector3(_camera_center.x, 0.0, _camera_center.y) + camera.basis.z * 24.0
+	camera_texel_offset = Vector2.ZERO
+	if visible_raster != Vector2.ZERO:
+		camera_texel_offset = WorldDisplay.snap_orthographic_camera(camera, desired_position, texel_size, viewport_size)
+	elif _standalone_presentation != null:
+		var residual := WorldDisplay.snap_orthographic_camera(camera, desired_position, texel_size * effective_size, viewport_size / effective_size)
+		_standalone_presentation.set_shader_parameter("pixel_offset", (residual * effective_size + Vector2.ONE * 0.5).floor())
+	else:
+		camera.position = desired_position
 	_asset_mask.sync()
 
 

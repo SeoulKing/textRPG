@@ -1,4 +1,4 @@
-[gd_resource type="AnimationLibrary" format=3 uid="uid://c7fycwcs7e0wn"]
+[gd_resource type="AnimationLibrary" load_steps=2 format=3 uid="uid://c7fycwcs7e0wn"]
 
 [sub_resource type="Animation" id="Animation_6x12x"]
 resource_name = "run"

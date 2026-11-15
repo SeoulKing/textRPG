@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=4 uid="uid://bdow80ba81an6"]
+[gd_scene load_steps=8 format=4 uid="uid://bdow80ba81an6"]
 
 [ext_resource type="Script" uid="uid://xpn8b7p0a75y" path="res://scripts/shop_world_2d.gd" id="1_wqkbo"]
 [ext_resource type="TileSet" uid="uid://duelje0iifyx8" path="res://art/resources/shop_2d_tileset.tres" id="2_tnsa0"]
@@ -6,12 +6,6 @@
 [ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/potion-cabinet.tscn" id="6_bycjr"]
 [ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/travel-cabinet.tscn" id="8_k4kxe"]
 [ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/counter.tscn" id="10_xdbpa"]
-[ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/apothecary-bench.tscn" id="12_a4lcm"]
-[ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/potion-island.tscn" id="14_gxm66"]
-[ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/travel-island.tscn" id="16_wprwp"]
-[ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/travel-stock.tscn" id="18_j7efg"]
-[ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/luggage.tscn" id="20_f36cn"]
-[ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/plant.tscn" id="22_f46fe"]
 [ext_resource type="Texture2D" uid="uid://b0ng2jk4qu3xw" path="res://art/export/shop-2d/merchant.png" id="24_prxx3"]
 
 [node name="Shop2D" type="Node2D"]
@@ -74,41 +68,6 @@ metadata/shop_asset = "travel-cabinet"
 position = Vector2(448, 256)
 offset = Vector2(-128, -156)
 metadata/shop_asset = "counter"
-
-[node name="ApothecaryBench" parent="Furniture" instance=ExtResource("12_a4lcm")]
-position = Vector2(768, 257)
-offset = Vector2(-96, -156)
-metadata/shop_asset = "apothecary-bench"
-
-[node name="PotionIsland" parent="Furniture" instance=ExtResource("14_gxm66")]
-position = Vector2(80, 384)
-offset = Vector2(-48, -124)
-metadata/shop_asset = "potion-island"
-
-[node name="TravelIsland" parent="Furniture" instance=ExtResource("16_wprwp")]
-position = Vector2(816, 384)
-offset = Vector2(-48, -124)
-metadata/shop_asset = "travel-island"
-
-[node name="TravelStock" parent="Furniture" instance=ExtResource("18_j7efg")]
-position = Vector2(800, 512)
-offset = Vector2(-64, -124)
-metadata/shop_asset = "travel-stock"
-
-[node name="Luggage" parent="Furniture" instance=ExtResource("20_f36cn")]
-position = Vector2(144, 480)
-offset = Vector2(-48, -124)
-metadata/shop_asset = "luggage"
-
-[node name="Plant" parent="Furniture" instance=ExtResource("22_f46fe")]
-position = Vector2(48, 512)
-offset = Vector2(-44, -89)
-metadata/shop_asset = "plant"
-
-[node name="Plant2" parent="Furniture" instance=ExtResource("22_f46fe")]
-position = Vector2(848, 320)
-offset = Vector2(-44, -89)
-metadata/shop_asset = "plant"
 
 [node name="Actors" type="Node2D" parent="."]
 y_sort_enabled = true

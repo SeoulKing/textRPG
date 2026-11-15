@@ -4,7 +4,8 @@ var hp_ratio = 1.0
 var trail_ratio = 1.0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	z_index = 200
+	# This CanvasLayer keeps meters above the world and below the HUD controls.
+	z_index = -1
 	hide()
 func update_meter(anchor: Vector2, width: float, hp: float, trail: float, shown: bool) -> void:
 	visible = shown

@@ -21,6 +21,9 @@ const MOTION_DEFAULTS := {"thigh_gain":0.72,"knee_flex_soft_start_deg":100.0,"kn
 ## Gameplay actions deform the same approved art; no legacy character atlas.
 var presentation_clip := ""
 var presentation_progress := 0.0
+var presentation_arms := Vector2.ZERO
+var presentation_lean := 0.0
+var presentation_rod_carry := 0.0
 
 var source = PoseSource.new()
 var skeleton: Skeleton3D
@@ -43,6 +46,7 @@ var show_mesh := false
 var motion_metrics: Dictionary = {}
 
 var _canvas: Node2D
+var _draw_parts := true
 var _cache: Dictionary = {}
 var _upper_manifest: Dictionary = {}
 var _leg_manifest: Dictionary = {}
@@ -114,29 +118,38 @@ func _build_skeleton() -> void:
 		if not parent.is_empty():skeleton.set_bone_parent(index,joints[parent])
 		skeleton.set_bone_rest(index,Transform3D.IDENTITY)
 
-func apply_pose(p_phase: float,p_weight: float,p_heading: float,p_floor_position: Vector3=Vector3.ZERO,forced_direction: int=-1) -> bool:
+func apply_pose(p_phase: float,p_weight: float,p_heading: float,p_floor_position: Vector3=Vector3.ZERO,forced_direction: int=-1,action: Dictionary={}) -> bool:
 	if not is_instance_valid(skeleton):return _fail("Reference assembler is not configured")
 	phase=p_phase;weight=p_weight;heading=p_heading;floor_position=p_floor_position
-	var sampled: Dictionary=source.sample(phase,weight)
+	var sampled: Dictionary=source.sample(phase,weight,action)
 	if sampled.is_empty():return _fail(source.last_error)
 	var candidate := posmod(roundi(heading/(TAU/8.0)),8)
 	if direction<0 or absf(wrapf(heading-float(direction)*TAU/8.0,-PI,PI))>deg_to_rad(27):direction=candidate
 	if forced_direction>=0:direction=posmod(forced_direction,8)
-	var retargeted := _retarget(sampled)
+	var action_weight := maxf(float(action.get("weight", 0.0)), float(action.get("from_weight", 0.0)))
+	var retargeted := _retarget(sampled, false, action_weight)
 	_pose_skeleton(retargeted)
+	if not _draw_parts:
+		return true
 	var key: String=DIRECTIONS[direction]
 	if not _cache.has(key) and not _make_direction(key):return false
 	for d: String in _cache:(_cache[d].group as Node2D).visible=d==key
 	_place_art(_cache[key])
 	return true
 
-func _retarget(sampled: Dictionary,neutral_registration: bool=false) -> Dictionary:
+func use_mesh_presentation() -> void:
+	_draw_parts = false
+	_canvas.hide()
+
+func _retarget(sampled: Dictionary,neutral_registration: bool=false,action_weight: float=0.0) -> Dictionary:
 	var local := {}
 	var root_delta: Vector3=(sampled.hip as Vector3)-(_neutral.hip as Vector3)
 	var root_motion := root_delta*1.3
 	if motion_polish:root_motion.y=root_delta.y*float(_motion.body_bob_gain)
 	local.hip=Vector3(0,_waist_height,0)+root_motion
 	var lean := _motion_delta("neck",sampled)
+	if not neutral_registration:
+		lean += presentation_lean
 	for joint: String in source.joint_order:
 		if joint=="hip":continue
 		var parent: String=source.parents[joint]
@@ -154,8 +167,8 @@ func _retarget(sampled: Dictionary,neutral_registration: bool=false) -> Dictiona
 	# Seated feet follow the existing seat's visual anchor.
 	if not neutral_registration and presentation_clip=="bench":
 		motion_metrics={"phase":phase,"polish_enabled":motion_polish,"support_clearance_measured":false}
-	elif motion_polish and not neutral_registration and weight>0.00001:
-		_ground_support(local)
+	elif motion_polish and not neutral_registration and maxf(weight,action_weight)>0.00001:
+		_ground_support(local,action_weight)
 	else:
 		var minimum := minf((local.ankle_l as Vector3).y,(local.ankle_r as Vector3).y)
 		var sole_height: float=PROFILE.sole_drop/maxf(0.1,camera.global_basis.y.y)
@@ -169,6 +182,11 @@ func _retarget(sampled: Dictionary,neutral_registration: bool=false) -> Dictiona
 	for joint: String in source.joint_order:result[joint]=yaw*(local[joint] as Vector3)+floor_position
 	return result
 
+static func action_arm_angles(clip: String, progress: float) -> Vector2:
+	if clip == "cast":
+		return Vector2(-1.05, -0.35) * sin(clampf(progress, 0.0, 1.0) * PI)
+	return Vector2.ZERO
+
 func _apply_presentation(local: Dictionary) -> void:
 	if presentation_clip=="bench":
 		var seated := clampf(presentation_progress,0.0,1.0)
@@ -176,14 +194,25 @@ func _apply_presentation(local: Dictionary) -> void:
 		for side: String in ["l","r"]:
 			_rotate_chain(local,"hip_"+side,["knee_"+side,"ankle_"+side],-1.25*seated)
 			_rotate_chain(local,"knee_"+side,["ankle_"+side],1.25*seated)
-	elif presentation_clip in ["cast","carry_idle","carry_run","fishing"]:
-		var amount := 1.0
-		if presentation_clip=="cast":amount=sin(clampf(presentation_progress,0.0,1.0)*PI)
-		elif presentation_clip=="fishing":amount=smoothstep(0.0,2.0/3.0,presentation_progress)
-		var arm_angle := -0.75 if presentation_clip.begins_with("carry") else -1.05
+		return
+	var arms := presentation_arms * (1.0 - presentation_rod_carry)
+	if arms != Vector2.ZERO:
 		for side: String in ["l","r"]:
-			_rotate_chain(local,"shoulder_"+side,["elbow_"+side,"wrist_"+side],arm_angle*amount)
-			_rotate_chain(local,"elbow_"+side,["wrist_"+side],-0.35*amount)
+			_rotate_chain(local, "shoulder_" + side, ["elbow_" + side, "wrist_" + side], arms.x)
+			_rotate_chain(local, "elbow_" + side, ["wrist_" + side], arms.y)
+	if presentation_rod_carry > 0.0:
+		_apply_rod_carry(local)
+
+func _apply_rod_carry(local: Dictionary) -> void:
+	# Keep the grip relative to the shoulder while the torso and free arm run.
+	var shoulder: Vector3 = local.shoulder_r
+	var upper: Vector3 = (local.elbow_r as Vector3) - shoulder
+	var forearm: Vector3 = (local.wrist_r as Vector3) - (local.elbow_r as Vector3)
+	var carry_upper := Vector3(0.28, -0.9, 0.32).normalized() * upper.length()
+	var carry_forearm := Vector3(0.02, 0.77, 0.63).normalized() * forearm.length()
+	var elbow := shoulder + upper.slerp(carry_upper, presentation_rod_carry)
+	local.elbow_r = elbow
+	local.wrist_r = elbow + forearm.slerp(carry_forearm, presentation_rod_carry)
 
 func _rotate_chain(local: Dictionary,pivot: String,chain: Array,angle: float) -> void:
 	var origin: Vector3=local[pivot]
@@ -243,7 +272,7 @@ func _boot_angle(side: String,world_points: Dictionary) -> float:
 	var limit := deg_to_rad(float(_motion.boot_relative_roll_limit_deg))
 	return driven+clampf(wrapf(roll-driven,-PI,PI),-limit,limit)*float(_motion.boot_roll_follow)
 
-func _ground_support(local: Dictionary) -> void:
+func _ground_support(local: Dictionary, action_weight: float) -> void:
 	# Existing editor/runtime instances can survive a script hot reload while
 	# gaining this cache field. Build it once before using the new contact solver.
 	if _boot_foot_hulls.is_empty():_prepare_boot_contacts()
@@ -261,8 +290,8 @@ func _ground_support(local: Dictionary) -> void:
 	var half_phase := fposmod(phase,0.5)
 	var start := clampf(float(_motion.flight_start_half_cycle),0.0,0.49)
 	var flight := 0.0
-	if half_phase>start:flight=pow(sin(PI*(half_phase-start)/(0.5-start)),2.0)*float(_motion.flight_height_px)*weight
-	var blend := smoothstep(0.0,maxf(0.001,float(_motion.support_fade_weight)),weight)
+	if half_phase>start:flight=pow(sin(PI*(half_phase-start)/(0.5-start)),2.0)*float(_motion.flight_height_px)*weight*(1.0-action_weight)
+	var blend := smoothstep(0.0,maxf(0.001,float(_motion.support_fade_weight)),maxf(weight,action_weight))
 	var correction := (flight-minimum)*blend/up_y
 	for name: String in local:local[name]=(local[name] as Vector3)+Vector3(0,correction,0)
 	motion_metrics={"phase":phase,"polish_enabled":true,"support_clearance_measured":true,"support_clearance_before_px":minimum,"support_clearance_after_px":minimum+correction*up_y,"target_flight_px":flight}
@@ -336,6 +365,13 @@ func _place_art(entry: Dictionary) -> void:
 	var ref: Dictionary=entry.upper_reference
 	var upper_pose := _registered_upper_pose(projected,ref)
 	upper_pose=SleeveMotion.polish(upper_pose,ref,1.0 if motion_polish else 0.0)
+	if presentation_rod_carry > 0.0:
+		# The relaxed-sleeve limit would open this deliberate bend. Preserve the
+		# 3D grip through direction changes while keeping the painted shoulder seam.
+		var shoulder_offset := (upper_pose.shoulder_r as Vector2) - (projected.shoulder_r as Vector2)
+		var carry_elbow := (projected.elbow_r as Vector2) + shoulder_offset * 0.25
+		upper_pose.elbow_r = (upper_pose.elbow_r as Vector2).lerp(carry_elbow, presentation_rod_carry)
+		upper_pose.wrist_r = (upper_pose.wrist_r as Vector2).lerp(projected.wrist_r, presentation_rod_carry)
 	art_points=projected.duplicate()
 	for joint: String in upper_pose:art_points[joint]=upper_pose[joint]
 	entry.upper.show_mesh=show_mesh

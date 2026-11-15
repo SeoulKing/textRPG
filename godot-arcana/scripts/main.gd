@@ -5,6 +5,8 @@ const HeroSpec = preload("res://art/resources/heroine_reference_spec.gd")
 const NativeWorld = preload("res://scripts/native_2d_world.gd")
 const UI = preload("res://scripts/game_ui.gd")
 const SpatialCombat = preload("res://scripts/native_2d_spatial.gd")
+const WorldDisplaySettings = preload("res://scripts/services/world_display_settings.gd")
+const WORLD_PRESENTATION_SHADER = preload("res://art/resources/world_presentation.gdshader")
 var fishing: Control
 var life: Node
 var spatial_combat
@@ -20,6 +22,10 @@ var world_renderer
 var ui
 var viewport: SubViewport
 var viewport_host: TextureRect
+var _world_display: Node2D
+var _world_display_size := Vector2i.ZERO
+var _world_presentation: ShaderMaterial
+var _screen_pixel_size := WorldDisplaySettings.pixel_size()
 var mei_nameplate_target: Node2D
 var mei_projection_valid = false
 var mei_camera_transform: Transform3D
@@ -81,8 +87,17 @@ func _ready() -> void:
 	viewport_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	viewport_host.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	viewport_host.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(viewport_host)
+	viewport_host.stretch_mode = TextureRect.STRETCH_SCALE
+	_world_presentation = ShaderMaterial.new()
+	_world_presentation.shader = WORLD_PRESENTATION_SHADER
+	_world_presentation.set_shader_parameter("pixel_size", _screen_pixel_size)
+	_world_presentation.set_shader_parameter("use_viewport_texels", true)
+	viewport_host.material = _world_presentation
+	_world_display = Node2D.new()
+	add_child(_world_display)
+	_world_display.add_child(viewport_host)
 	viewport = SubViewport.new()
+	viewport.positional_shadow_atlas_size = 2048
 	viewport.disable_3d = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
@@ -97,8 +112,9 @@ func _ready() -> void:
 	world.camera.enabled = false
 	world_renderer = NativeWorld.new()
 	world_renderer.world = world
+	world_renderer.presentation_minimum = _screen_pixel_size
 	viewport.add_child(world_renderer)
-	world_renderer.camera_updated.connect(_update_mei_nameplate)
+	world_renderer.camera_updated.connect(_on_world_camera_updated)
 	world.interacted.connect(_interact)
 	world.building_entry_intended.connect(_auto_enter_building)
 	world.building_exit_intended.connect(_auto_exit_building)
@@ -168,25 +184,17 @@ func _toggle_camera_view() -> void:
 	world_renderer.set_quarter_view(not world_renderer.quarter_view)
 	ui.close_panel()
 
-func _toggle_pixel_render() -> void:
-	world_renderer.pixelated = not world_renderer.pixelated
-	_resize()
-	ui.close_panel()
-
 func _resize() -> void:
 	var size = get_viewport().get_visible_rect().size
 	var stretch_scale = get_viewport().get_stretch_transform().get_scale()
-	var physical = (size*stretch_scale).round()
+	_world_display_size = Vector2i((size*stretch_scale).round()).max(Vector2i(2, 2))
 	world_renderer.set_display_size(size)
-	# Render the original room art at physical screen resolution, even when zoomed in.
-	# A shrinking render target used to discard details before nearest enlargement.
 	var source_pixel_scale = minf(stretch_scale.x, stretch_scale.y) * 2.0 * world_renderer.camera_zoom / world_renderer.CAMERA_ZOOM
-	viewport.size = Vector2i(physical).max(Vector2i(2,2))
+	world_renderer.set_physical_size(_world_display_size)
 	world_renderer.set_render_pixel_scale(source_pixel_scale)
-	viewport_host.position = Vector2.ZERO
-	viewport_host.scale = Vector2.ONE/stretch_scale
-	viewport_host.size = Vector2(viewport.size)
+	_world_display.scale = Vector2.ONE / stretch_scale
 	world._update_camera()
+
 func _api(route: String, method: int = HTTPClient.METHOD_GET, data: Dictionary = {}, timeout_seconds: float = 0.0, action_id: String = "") -> Dictionary:
 	# Only reads may be replayed: a lost POST response can already be committed.
 	var attempts: int = 3 if method == HTTPClient.METHOD_GET else 1
@@ -309,8 +317,8 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 					if entity.id == location: world.outside_position = entity.pos + Vector2(0, 7)
 		elif world.indoor != "": world.change_interior("")
 		if initial:
-			if location == "arcana_hunting_ground": world.player_position = world.CityMap.HUNTING_ENTRY
-			elif location == "arcana_city_gate": world.player_position = world.CityMap.GATE - Vector2(0, 12)
+			if location == "arcana_hunting_ground": world.player_position = world.nearest_walkable(world.CityMap.HUNTING_ENTRY)
+			elif location == "arcana_city_gate": world.player_position = world.nearest_walkable(world.CityMap.GATE - Vector2(0, 12))
 			elif location == "arcana_return_portal":
 				for entity in world._outdoor_entities:
 					if entity.id == "arcana_return_portal":
@@ -393,6 +401,8 @@ func _process(delta: float) -> void:
 	ui.joystick.set_enabled(network_ready and page_active and not ui.overlay.visible and not fishing.visible and not life.blocking() and not snapshot.is_empty())
 	if world.enabled and ui.joystick.is_active(): _joystick_move(ui.joystick.direction)
 	if snapshot.is_empty(): return
+	# Resolve the local position before the world, camera, and HUD sample it.
+	online_presence.apply_local_correction(delta)
 	heartbeat += delta
 	ui_refresh += delta
 	var battle = _battle()
@@ -409,7 +419,7 @@ func _process(delta: float) -> void:
 		heartbeat = 0
 		_clock()
 	# Crossing the southern gate keeps position and commits the existing travel rule.
-	if world.enabled and not busy and world.indoor == "" and battle.is_empty():
+	if world.enabled and not busy and world.indoor == "" and battle.is_empty() and not world.uses_plaza_v2():
 		var p = world.player_position
 		var loc = str(_state().get("location", ""))
 		if p.y > world.CityMap.GATE_OUTBOUND_Y and loc != "arcana_hunting_ground": _cross_gate(true)
@@ -652,6 +662,9 @@ func _interact(entity: Dictionary) -> void:
 			if not str(school.get("blockedReason","")).is_empty():
 				ui.toast(school.blockedReason)
 				return
+			if online_world and not await spatial_combat.before_action():
+				ui.toast("서버에 다시 연결하고 있습니다. 잠시 후 이용해 주세요.")
+				return
 			world.change_academy_floor(2 if world.academy_floor == 1 else 1)
 			_remember_position()
 			_update_hud()
@@ -835,7 +848,7 @@ func _choose(entry: Dictionary) -> void:
 		ui.close_panel()
 		if await perform(action, false):
 			if command == "dodge": world.effect("dodge")
-			if command == "retreat": world.player_position = Vector2(576, 910)
+			if command == "retreat": world.player_position = world.spawn_position if world.uses_plaza_v2() else Vector2(576, 910)
 	else:
 		await perform(action)
 
@@ -1109,6 +1122,7 @@ func _menu(kind: String) -> void:
 			ui.open_panel("잠시 쉬어가기")
 			ui.paragraph("아르카나 · 별빛의 도시", ui.GOLD)
 			ui.choice("진행 저장", "현재 모험과 위치를 저장합니다.", _save)
+			ui.choice("환경 설정", "화면 도트 크기", _environment_settings)
 			ui.choice("조작 버튼 설정", "버튼 영역 크기 · 좌우 · 상하 위치", _controls_settings)
 			ui.choice("조작 방법", "터치와 키보드 안내", _help)
 			ui.choice("연결 기록 저장", "끊김이 있었을 때 최근 상태를 파일로 저장합니다.", _export_network_report)
@@ -1436,9 +1450,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		tapped = true
 	if tapped:
 		if not gate_crossing and spatial_combat.select_at(position): return
-		var local = viewport_host.get_global_transform().affine_inverse() * position
-		if Rect2(Vector2.ZERO, viewport_host.size).has_point(local):
-			var render_point = local*Vector2(viewport.size)/viewport_host.size
+		if get_viewport().get_visible_rect().has_point(position):
+			var render_point := NativeWorld.display_to_raster(viewport_host, viewport.size, position)
 			var object = world_renderer.pick_interaction(render_point)
 			if not object.is_empty() and not gate_crossing and page_active and not spatial_combat.request_busy and spatial_combat.aim_owner == -1:
 				world.interact_with(object)
@@ -1483,9 +1496,34 @@ func _bridge_command(args: Array) -> void:
 		"close": ui.close_panel()
 
 func _bridge_state(_args: Array) -> void:
-	var state = {"engine":"Godot 4.5.1", "renderer":"native_2d", "zoomRatio":world_renderer.get_zoom_ratio(), "cameraZoom":world_renderer.camera.zoom.x, "walking":world.walking, "characterRendering":"layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "worldNetwork":combat_socket.diagnostics(), "motionNetwork":online_presence.diagnostics(), "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
+	var state = {"engine":"Godot 4.5.1", "renderer":"plaza_3d_v2" if world_renderer.uses_plaza_v2() else "native_2d", "zoomRatio":world_renderer.get_zoom_ratio(), "cameraZoom":world_renderer.camera.zoom.x, "walking":world.walking, "characterRendering":"skinned_pixel3d_v12" if world_renderer.hero.get_meta("model_outline", false) else "layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "worldNetwork":combat_socket.diagnostics(), "motionNetwork":online_presence.diagnostics(), "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))
+
+func _environment_settings(save_failed: bool = false) -> void:
+	panel_mode = "settings"
+	ui.open_panel("환경 설정")
+	ui.paragraph("기본 도트 크기 · 현재 %d×%d" % [_screen_pixel_size, _screen_pixel_size])
+	var selected := [2, 4].find(_screen_pixel_size)
+	ui.section_tabs(["2×2", "4×4"], selected, [_set_screen_pixel_size.bind(2), _set_screen_pixel_size.bind(4)])
+	if save_failed:
+		ui.paragraph("설정을 저장하지 못했습니다. 이번 실행 동안 적용됩니다.", ui.MUTED)
+
+func _set_screen_pixel_size(value: int) -> void:
+	_screen_pixel_size = value
+	world_renderer.presentation_minimum = value
+	_environment_settings(WorldDisplaySettings.save_pixel_size(value) != OK)
+
+func _on_world_camera_updated() -> void:
+	var effective_size: int = world_renderer.presentation_pixel_size
+	viewport_host.size = Vector2(viewport.size * effective_size)
+	# Crop the guard texels and offset the entire raster in physical pixels.
+	var residual: Vector2 = world_renderer.camera_texel_offset
+	var offset := WorldDisplaySettings.presentation_offset(viewport_host.size, Vector2(_world_display_size), residual, effective_size)
+	_world_display.position = offset * _world_display.scale
+	if _world_presentation.get_shader_parameter("pixel_size") != effective_size:
+		_world_presentation.set_shader_parameter("pixel_size", effective_size)
+	_update_mei_nameplate()
 
 func _controls_settings() -> void:
 	panel_mode = "controls"
@@ -1508,7 +1546,7 @@ func _adjust_controls(key: String, value: float) -> void:
 
 func _update_mei_nameplate() -> void:
 	if not is_instance_valid(ui) or not is_instance_valid(world_renderer):return
-	var shown=not snapshot.is_empty() and world.indoor.is_empty() and not ui.overlay.visible
+	var shown=not snapshot.is_empty() and world.indoor.is_empty() and not world_renderer.uses_plaza_v2() and not ui.overlay.visible
 	var point=Vector2.ZERO
 	if shown:
 		shown=false
@@ -1518,7 +1556,7 @@ func _update_mei_nameplate() -> void:
 				# All approved Mei idle frames start at row 17 of the 136px sprite.
 				var head=world_renderer.to_local(sprite.to_global(Vector2(0,sprite.offset.y+17.0)))
 				point=world_renderer.screen_point(head/4.0)
-				point=viewport_host.position+point*viewport_host.size/Vector2(viewport.size)*viewport_host.scale
+				point=NativeWorld.raster_to_display(viewport_host, viewport.size, point)
 				shown=true
 				break
 	ui.update_mei_nameplate(point,shown)

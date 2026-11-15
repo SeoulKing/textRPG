@@ -4,6 +4,7 @@ render_mode unshaded, fog_disabled, cull_disabled, depth_test_disabled, depth_dr
 uniform sampler2D scene_color : hint_screen_texture, filter_nearest, repeat_disable;
 uniform sampler2D scene_depth : hint_depth_texture, filter_nearest, repeat_disable;
 uniform int screen_pixel_size : hint_range(1, 4) = 1;
+uniform bool average_2x2_color = false;
 uniform float highlight_strength : hint_range(0.0, 1.0) = 0.08;
 uniform vec3 highlight_direction = vec3(-0.65, 0.72, 0.24);
 uniform bool room_accents_enabled = true;
@@ -22,8 +23,10 @@ uniform mat4 world_to_cube;
 uniform vec3 cube_outline_color : source_color = vec3(0.23, 0.16, 0.19);
 uniform sampler2D asset_mask_texture : filter_nearest, repeat_disable;
 uniform bool asset_mask_enabled = false;
+uniform float asset_edge_step = 1.0;
 uniform int asset_outline_width : hint_range(0, 4) = 1;
 uniform int asset_outline_groups = 0;
+uniform bool stable_asset_silhouette = false;
 uniform int asset_highlight_width : hint_range(0, 4) = 1;
 uniform float asset_highlight_strength : hint_range(0.0, 1.0) = 0.75;
 
@@ -128,12 +131,23 @@ vec3 room_accents(vec3 color, vec3 world) {
 	return color;
 }
 
+vec3 to_linear_srgb(vec3 color) {
+	return mix(pow((color + 0.055) / 1.055, vec3(2.4)), color / 12.92,
+		lessThanEqual(color, vec3(0.04045)));
+}
+
+vec3 from_linear_srgb(vec3 color) {
+	return mix(1.055 * pow(color, vec3(1.0 / 2.4)) - 0.055, color * 12.92,
+		lessThanEqual(color, vec3(0.0031308)));
+}
+
 void fragment() {
 	float pixel_size = float(screen_pixel_size);
 	vec2 uv = SCREEN_UV;
+	vec2 block_origin = vec2(0.0);
 	if (screen_pixel_size > 1) {
-		vec2 block = floor(uv * VIEWPORT_SIZE / pixel_size);
-		vec2 sample_pixel = min((block + 0.5) * pixel_size, VIEWPORT_SIZE - 0.5);
+		block_origin = floor(uv * VIEWPORT_SIZE / pixel_size) * pixel_size;
+		vec2 sample_pixel = min(block_origin + 0.5 * pixel_size, VIEWPORT_SIZE - 0.5);
 		uv = sample_pixel / VIEWPORT_SIZE;
 	}
 	vec2 texel = pixel_size / VIEWPORT_SIZE;
@@ -144,7 +158,22 @@ void fragment() {
 		+ INV_PROJECTION_MATRIX[2].z * CLIP_SPACE_FAR,
 		INV_PROJECTION_MATRIX[2].z * (1.0 - CLIP_SPACE_FAR));
 	float center = view_depth(scene_depth, uv, linear_depth);
-	vec3 color = textureLod(scene_color, uv, 0.0).rgb;
+	// Resolve color only. Asset IDs and depth still refer to the same discrete sample.
+	vec3 color;
+	if (average_2x2_color && screen_pixel_size == 2) {
+		ivec2 first = ivec2(block_origin);
+		ivec2 last = min(first + ivec2(1), ivec2(VIEWPORT_SIZE) - ivec2(1));
+		vec3 a = texelFetch(scene_color, first, 0).rgb;
+		vec3 b = texelFetch(scene_color, ivec2(last.x, first.y), 0).rgb;
+		vec3 c = texelFetch(scene_color, ivec2(first.x, last.y), 0).rgb;
+		vec3 d = texelFetch(scene_color, last, 0).rgb;
+		color = OUTPUT_IS_SRGB
+			? from_linear_srgb((to_linear_srgb(a) + to_linear_srgb(b)
+				+ to_linear_srgb(c) + to_linear_srgb(d)) * 0.25)
+			: (a + b + c + d) * 0.25;
+	} else {
+		color = textureLod(scene_color, uv, 0.0).rgb;
+	}
 	float highlight = 0.0;
 	float cube_outline = 0.0;
 	float cube_highlight = 0.0;
@@ -227,9 +256,10 @@ void fragment() {
 				int outline_width = (asset_outline_groups & (1 << (int(group) - 1))) != 0 ? asset_outline_width : 0;
 				int highlight_width = bytes.r - group * 24.0 >= 6.0 ? asset_highlight_width : 0;
 				for (int i = 1; i <= max(outline_width, highlight_width); i++) {
-					vec2 dx = x * float(i);
-					vec2 dy = y * float(i);
-					vec4 depths = i == 1 ? adjacent : vec4(view_depth(scene_depth, uv + dx, linear_depth),
+					float distance_in_cells = float(i) * asset_edge_step;
+					vec2 dx = x * distance_in_cells;
+					vec2 dy = y * distance_in_cells;
+					vec4 depths = distance_in_cells == 1.0 ? adjacent : vec4(view_depth(scene_depth, uv + dx, linear_depth),
 						view_depth(scene_depth, uv - dx, linear_depth), view_depth(scene_depth, uv + dy, linear_depth),
 						view_depth(scene_depth, uv - dy, linear_depth));
 					// Scene depth only rejects hidden center pixels. Nearby depth changes
@@ -239,13 +269,21 @@ void fragment() {
 						asset_group(textureLod(asset_mask_texture, uv + dy, 0.0).r),
 						asset_group(textureLod(asset_mask_texture, uv - dy, 0.0).r));
 					vec4 border = step(vec4(0.5), abs(groups - group));
+					vec4 depth_difference = depths - center;
 					// An adjoining asset behind this one doesn't also draw its touching edge.
-					border *= max(1.0 - step(vec4(0.5), groups), step(vec4(-pixel_width * float(i)), depths - center));
+					vec4 visible_border = step(vec4(-pixel_width * distance_in_cells), depth_difference);
+					border *= stable_asset_silhouette ? visible_border : max(1.0 - step(vec4(0.5), groups), visible_border);
 					if (dot(border, vec4(1.0)) > 0.0) {
-						// Skip faint depth transitions and let material contrast carry most seams.
-						float separation = max(max(border.x * (depths.x - center), border.y * (depths.y - center)),
-							max(border.z * (depths.z - center), border.w * (depths.w - center)));
-						asset_outline = i <= outline_width ? 0.58 * smoothstep(pixel_width * 0.25, pixel_width * 2.0, separation) : 0.0;
+						if (i <= outline_width) {
+							if (stable_asset_silhouette) {
+								// Group coverage defines the line. Depth only rejects a foreground occluder.
+								asset_outline = 0.58;
+							} else {
+								vec4 separation = border * depth_difference;
+								float farthest = max(max(separation.x, separation.y), max(separation.z, separation.w));
+								asset_outline = 0.58 * smoothstep(pixel_width * 0.25, pixel_width * 2.0, farthest);
+							}
+						}
 						asset_highlight = i <= highlight_width ? asset_highlight_strength : 0.0;
 						break;
 					}
@@ -273,7 +311,14 @@ void fragment() {
 	vec3 edged = mix(color, vec3(0.98, 0.94, 0.85),
 		highlight * highlight_strength);
 	edged = mix(edged, max(edged, vec3(1.0, 0.95, 0.81)), cube_highlight);
-	edged = mix(edged, cube_outline_color, asset_outline * (1.0 - asset_highlight));
-	edged = mix(edged, max(color, vec3(1.0, 0.91, 0.75)), asset_highlight);
+	vec3 rim_color = max(color, vec3(1.0, 0.91, 0.75));
+	if (stable_asset_silhouette) {
+		// Keep highlights on top of the surface without replacing the silhouette.
+		float rim = asset_outline > 0.0 ? asset_highlight * 0.25 : asset_highlight;
+		edged = mix(mix(edged, rim_color, rim), cube_outline_color, asset_outline);
+	} else {
+		edged = mix(edged, cube_outline_color, asset_outline * (1.0 - asset_highlight));
+		edged = mix(edged, rim_color, asset_highlight);
+	}
 	ALBEDO = mix(edged, cube_outline_color, cube_outline);
 }

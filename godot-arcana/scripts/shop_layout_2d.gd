@@ -57,9 +57,12 @@ static func collect(source: Node) -> Dictionary:
 		if spec.kind == "floor":
 			result.floor["%d:%d" % [cell.x,cell.y]] = true
 			continue
-		result.entries.append({"id":id,"spec":spec,"start":start,"cell":cell})
+		var collision_rectangles: Array[Rect2] = []
 		for box in spec.get("collisions",[]):
-			result.rectangles.append(Rect2((start+Vector2(box[0],box[1]))*UNIT,Vector2(box[2],box[3])*UNIT))
+			var blocker := Rect2((start+Vector2(box[0],box[1]))*UNIT,Vector2(box[2],box[3])*UNIT)
+			collision_rectangles.append(blocker)
+			result.rectangles.append(blocker)
+		result.entries.append({"id":id,"spec":spec,"start":start,"cell":cell,"collision_rectangles":collision_rectangles})
 		if spec.has("interaction"):
 			counters += 1
 			var interaction: Dictionary = spec.interaction
@@ -68,7 +71,9 @@ static func collect(source: Node) -> Dictionary:
 			var at = start+Vector2(actor.offset[0],actor.offset[1])
 			result.markers.actor = at*UNIT
 			var sz = Vector2(actor.footprint[0],actor.footprint[1])
-			result.rectangles.append(Rect2((at-Vector2(sz.x*.5,sz.y))*UNIT,sz*UNIT))
+			var actor_blocker := Rect2((at-Vector2(sz.x*.5,sz.y))*UNIT,sz*UNIT)
+			result["actor_collision"] = actor_blocker
+			result.rectangles.append(actor_blocker)
 		if spec.kind == "door":
 			doors += 1
 			result.markers.arrival = (start+Vector2(spec.arrivalOffset[0],spec.arrivalOffset[1]))*UNIT

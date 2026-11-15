@@ -65,11 +65,14 @@ func pose(time: float, gait: float, walking: bool, motion: Vector2, pixelated: b
 
 func face_attack(direction: Vector2) -> void:
 	if direction.length_squared() > .00001: last_yaw = atan2(direction.x, direction.y)
-func begin_cast(direction: Vector2) -> void:
+func begin_cast(direction: Vector2, spell_id: String = "") -> void:
 	face_attack(direction)
 	cast_yaw = last_yaw
 	cast_age = 0.0
-func cancel_cast() -> void: cast_age = -1.0
+	if is_instance_valid(actor): actor.begin_cast(direction, spell_id)
+func cancel_cast() -> void:
+	cast_age = -1.0
+	if is_instance_valid(actor): actor.cancel_cast()
 func advance_cast(delta: float, paused: bool) -> void:
 	if cast_age >= 0 and not paused:
 		cast_age += delta

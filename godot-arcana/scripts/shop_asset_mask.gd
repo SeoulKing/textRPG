@@ -11,6 +11,8 @@ var _source_camera: Camera3D
 var _edge_material: ShaderMaterial
 var _proxies: Node3D
 var _active := true
+var _mask_enabled := false
+var _mask_dirty := true
 var _light_world := Vector4.ZERO
 var _highlight_direction_world := Vector3.ZERO
 var _materials: Array[ShaderMaterial] = []
@@ -57,6 +59,7 @@ func setup_assets(assets: Array[Node], camera: Camera3D, edge_material: ShaderMa
 			outlined_groups |= 1 << index
 	_edge_material.set_shader_parameter("asset_outline_groups", outlined_groups)
 	_edge_material.set_shader_parameter("asset_mask_texture", _viewport.get_texture())
+	_mask_dirty = true
 	sync()
 
 
@@ -67,6 +70,8 @@ func set_light(world_position: Vector3, radius: float) -> void:
 	_light_world = light
 	for material in _materials:
 		material.set_shader_parameter("light_world", _light_world)
+	_mask_dirty = true
+	sync()
 
 
 func set_active(enabled: bool) -> void:
@@ -80,27 +85,46 @@ func sync() -> void:
 	if _viewport == null:
 		return
 	var enabled := _active and _source_camera.is_visible_in_tree()
-	_edge_material.set_shader_parameter("asset_mask_enabled", enabled)
-	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if enabled else SubViewport.UPDATE_DISABLED
+	if enabled != _mask_enabled or _mask_dirty:
+		_edge_material.set_shader_parameter("asset_mask_enabled", enabled)
+	if enabled != _mask_enabled:
+		_mask_enabled = enabled
+		_mask_dirty = true
 	if not enabled:
+		_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		return
 
 	var size := Vector2i(_source_camera.get_viewport().get_visible_rect().size).max(Vector2i(2, 2))
 	if _viewport.size != size:
 		_viewport.size = size
-	_camera.global_transform = _source_camera.global_transform
-	_camera.keep_aspect = _source_camera.keep_aspect
-	_camera.projection = _source_camera.projection
-	_camera.size = _source_camera.size
-	_camera.near = _source_camera.near
-	_camera.far = _source_camera.far
-	_camera.h_offset = _source_camera.h_offset
-	_camera.v_offset = _source_camera.v_offset
+		_mask_dirty = true
+	if not _camera.global_transform.is_equal_approx(_source_camera.global_transform):
+		_camera.global_transform = _source_camera.global_transform
+		_mask_dirty = true
+	if _camera.keep_aspect != _source_camera.keep_aspect or _camera.projection != _source_camera.projection \
+			or _camera.size != _source_camera.size or _camera.near != _source_camera.near \
+			or _camera.far != _source_camera.far or _camera.h_offset != _source_camera.h_offset \
+			or _camera.v_offset != _source_camera.v_offset:
+		_camera.keep_aspect = _source_camera.keep_aspect
+		_camera.projection = _source_camera.projection
+		_camera.size = _source_camera.size
+		_camera.near = _source_camera.near
+		_camera.far = _source_camera.far
+		_camera.h_offset = _source_camera.h_offset
+		_camera.v_offset = _source_camera.v_offset
+		_mask_dirty = true
 	for pair in _moving_proxies:
 		var source := pair.source as MeshInstance3D
 		var proxy := pair.proxy as MeshInstance3D
-		proxy.global_transform = source.global_transform
-		proxy.visible = source.is_visible_in_tree()
+		var visible := source.is_visible_in_tree()
+		if proxy.visible != visible or (visible and proxy.global_transform != source.global_transform):
+			proxy.global_transform = source.global_transform
+			proxy.visible = visible
+			_mask_dirty = true
+	if _mask_dirty:
+		# Presenter-only motion can reuse the last mask until a raster input changes.
+		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+		_mask_dirty = false
 
 
 func _create_viewport() -> void:

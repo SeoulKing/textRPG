@@ -40,5 +40,32 @@ func verify_pack() -> void:
     if not FileAccess.file_exists("res://art/characters/hybrid-v1/shared-run.json"):
         push_error("Missing hybrid shared motion");quit(1);return
     print("ARCANA_HYBRID_V1_PACKAGED_8_DIRECTIONS")
+    var shop_scene := load("res://scenes/shop_3d.tscn") as PackedScene
+    if shop_scene == null or not shop_scene.can_instantiate():
+        push_error("Missing packaged shop");quit(1);return
+    var stage := Node3D.new()
+    root.add_child(stage)
+    var shop := shop_scene.instantiate()
+    stage.add_child(shop)
+    var shop_geometry: Node3D = shop.get_node("Geometry")
+    if not shop_geometry.authored_scene_active or shop_geometry.astra_active:
+        push_error("Packaged shop did not load the previous Blender room");quit(1);return
+    var crate := shop_geometry.find_child("WoodenCrate_Test", true, false)
+    if crate == null or not crate.has_node("CratePixelModel"):
+        push_error("Packaged shop did not load the Blender pixel crate");quit(1);return
+    var merchant := shop.get_node("Actors/Merchant") as Sprite3D
+    if merchant.billboard != BaseMaterial3D.BILLBOARD_DISABLED:
+        push_error("Packaged shop actors did not use upright depth");quit(1);return
+    var inn_scene := load("res://scenes/inn_lobby_3d.tscn") as PackedScene
+    if inn_scene == null or not inn_scene.can_instantiate():
+        push_error("Missing packaged inn display");quit(1);return
+    var inn: Node3D = inn_scene.instantiate()
+    stage.add_child(inn)
+    var inn_layout: Node2D = registry_script.scene("arcana_inn").instantiate()
+    var inn_configured: bool = inn.configure(inn_layout, registry_script.camera_bounds("arcana_inn"))
+    inn_layout.free()
+    if not inn_configured:
+        push_error("Packaged inn did not align with the authored layout");quit(1);return
+    stage.free()
     print("ARCANA_WEB_PACK_VERIFIED")
     quit()

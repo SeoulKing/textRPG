@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=33 format=3]
 
 [ext_resource type="Texture2D" path="res://art/export/native-2d/56488b58ea564644d16d21ebed23caa10a6c3421da32408ea105200a6c4b5ed2.res" id="1_3n4d6"]
 [ext_resource type="Texture2D" path="res://art/export/native-2d/249c87ca96fddb3b68816fd2af9a7b4489edb4319fb073aeb03f9f1e5e8955ea.res" id="2_vkq88"]
@@ -40,9 +40,23 @@
 
 [ext_resource type="PackedScene" path="res://scenes/props/academy-second-floor/architecture/academy-front-wall.tscn" id="prop_library_13"]
 
+[ext_resource type="Script" path="res://scripts/native_2d_academy_lighting.gd" id="academy_lighting"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-shared/lighting/study-light.tscn" id="study_light"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-shared/storage/reagent-cabinet.tscn" id="reagent_cabinet"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-shared/tables/specimen-stand.tscn" id="specimen_stand"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/inn/tables/inn-tea-table.tscn" id="garden_tea"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/seating/inn-armchair.tscn" id="study_chair"]
+
 [node name="AcademySecondFloor2D" type="Node2D"]
+script = ExtResource("academy_lighting")
 texture_filter = 1
 metadata/layout_schema = 1
+
+[node name="VoidBackground" type="Polygon2D" parent="."]
+z_index = -4096
+polygon = PackedVector2Array(-4096, -4096, 4096, -4096, 4096, 4096, -4096, 4096)
+color = Color(0, 0, 0, 1)
 
 [node name="PaintedRoomFloor132" type="Sprite2D" parent="."]
 z_index = -30
@@ -245,6 +259,53 @@ centered = false
 offset = Vector2(-100, -106)
 metadata/foot = Vector2(0, 0)
 metadata/interaction_id = ""
+[node name="WestArchiveBookcase" parent="." instance=ExtResource("prop_library_5")]
+position = Vector2(608, 352)
+metadata/layout_collisions = [Rect2(-108, -70, 216, 80)]
+
+[node name="EastArchiveBookcase" parent="." instance=ExtResource("prop_library_5")]
+position = Vector2(832, 352)
+metadata/layout_collisions = [Rect2(-108, -70, 216, 80)]
+
+[node name="OfficeStudyLamp" parent="." instance=ExtResource("prop_library_11")]
+position = Vector2(512, 544)
+
+[node name="OfficeStudyPlant" parent="." instance=ExtResource("prop_library_7")]
+position = Vector2(256, 704)
+
+[node name="ObservatoryBookTrolley" parent="." instance=ExtResource("prop_library_10")]
+position = Vector2(1280, 680)
+
+[node name="QuietReadingTable" parent="." instance=ExtResource("prop_library_9")]
+position = Vector2(1090, 800)
+
+[node name="QuietReadingLamp" parent="." instance=ExtResource("prop_library_11")]
+position = Vector2(1280, 800)
+[node name="OfficeVisitorArmchair" parent="." instance=ExtResource("study_chair")]
+position = Vector2(544, 704)
+metadata/layout_decoration_id = "OfficeVisitorArmchair"
+metadata/placement_note = "교수님과 상담을 기다리는 자리"
+
+[node name="GardenTeaTable" parent="." instance=ExtResource("garden_tea")]
+position = Vector2(416, 1144)
+metadata/layout_decoration_id = "GardenTeaTable"
+metadata/placement_note = "별빛 정원 가장자리의 차와 휴식 자리"
+
+[node name="GardenReadingArmchair" parent="." instance=ExtResource("study_chair")]
+position = Vector2(544, 1144)
+metadata/layout_decoration_id = "GardenReadingArmchair"
+metadata/placement_note = "계단 통로 밖에 둔 조용한 정원 독서석"
+
+[node name="GardenHerbCabinet" parent="." instance=ExtResource("reagent_cabinet")]
+position = Vector2(256, 792)
+metadata/layout_decoration_id = "GardenHerbCabinet"
+metadata/placement_note = "별빛 정원의 약초와 식물 관찰 표본"
+
+[node name="ObservatorySpectrumStand" parent="." instance=ExtResource("specimen_stand")]
+position = Vector2(1280, 600)
+metadata/layout_decoration_id = "ObservatorySpectrumStand"
+metadata/placement_note = "관측기 옆 빛·색 실험용 유리 표본"
+
 [node name="LayoutBounds" type="Node2D" parent="."]
 metadata/layout_collisions = [Rect2(0, 0, 192, 1376), Rect2(1344, 0, 192, 1376), Rect2(192, 0, 1152, 256), Rect2(192, 1240, 1152, 136), Rect2(192, 1200, 440, 40), Rect2(904, 1200, 440, 40), Rect2(192, 1200, 1152, 40)]
 
@@ -265,3 +326,38 @@ metadata/layout_entity = {"id": "garden", "name": "별빛 정원", "kind": "acad
 [node name="Location_observatory" type="Marker2D" parent="."]
 metadata/layout_entity = {"id": "observatory", "name": "천문 관측탑", "kind": "academy_room", "pos": Vector2(1120, 664)}
 
+
+[node name="StudyLight" parent="Academy_floor_lamp147" instance=ExtResource("study_light")]
+position = Vector2(0, -112)
+energy = 0.24
+texture_scale = 0.55
+
+[node name="StudyLight" parent="_Node3D_379148" instance=ExtResource("study_light")]
+position = Vector2(0, -112)
+energy = 0.24
+texture_scale = 0.55
+
+[node name="StudyLight" parent="OfficeStudyLamp" instance=ExtResource("study_light")]
+position = Vector2(0, -112)
+energy = 0.2
+texture_scale = 0.55
+
+[node name="StudyLight" parent="QuietReadingLamp" instance=ExtResource("study_light")]
+position = Vector2(0, -112)
+energy = 0.2
+texture_scale = 0.55
+
+[node name="StudyLight" parent="Academy_desk138" instance=ExtResource("study_light")]
+position = Vector2(48, -104)
+energy = 0.14
+texture_scale = 0.55
+
+[node name="StudyLight" parent="Academy_reading_table145" instance=ExtResource("study_light")]
+position = Vector2(45, -79)
+energy = 0.14
+texture_scale = 0.55
+
+[node name="StudyLight" parent="QuietReadingTable" instance=ExtResource("study_light")]
+position = Vector2(45, -79)
+energy = 0.14
+texture_scale = 0.55

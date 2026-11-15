@@ -3,6 +3,9 @@ extends Node2D
 ## Hybrid version 1: gameplay owns the floor anchor; the fixed pixel viewport
 ## presents the approved shared Skeleton3D and continuous Polygon2D parts.
 const Assembler = preload("res://scripts/characters/hybrid_v1/reference_character_assembler.gd")
+const ActionLibrary = preload("res://scripts/characters/hybrid_v1/action_pose_library.gd")
+const RodVisual = preload("res://scripts/fishing_rod_visual.gd")
+const ACTIONS = preload("res://art/characters/hybrid-v1/action-poses.tres")
 const SPEC = preload("res://art/resources/heroine_reference_spec.gd")
 const BUNDLE := "res://art/characters/hybrid-v1/assembly/parts.json"
 const VIEW_SIZE := Vector2i(320,180)
@@ -11,6 +14,10 @@ const DEFAULT_OUTFIT := ["travel-top","travel-trousers","boots-taupe"]
 const CAST_GATHER := 0.32
 const CAST_DURATION := 0.68
 const RUN_CYCLE_DISTANCE := 24.0
+const RUN_BLEND_IN := 0.12
+const RUN_BLEND_OUT := 0.16
+const ARM_BLEND_RESPONSE := 0.04
+const ACTION_INTERRUPTION_BLEND := 0.08
 class OutfitSlots:
 	const ITEM_SLOTS = {"travel-top":["top"],"travel-trousers":["bottom"],"boots-taupe":["feet"]}
 const LEGACY = OutfitSlots
@@ -49,11 +56,22 @@ var preview_direction := 0
 var preview_frame := 0
 var current_frame: Vector2:
 	get:return Vector2(floori(walk_phase*8.0),display_direction)
+var _movement_progress := 0.0
 var _movement_weight := 0.0
-var _contact := {}
+var _arm_pose := Vector2.ZERO
+var _previous_frame_arms := Vector2.ZERO
+var _arm_blend_weight := 0.0
+var _action_target: Dictionary = {}
+var _action_duration := 0.0
+var _action_age := 0.0
+var _outgoing_pose: Dictionary = {}
+var _outgoing_age := 0.0
+var _authored_cast := false
+var _action_from_cast := false
+var _previous_dash_age := -1.0
 var _contact_shadow: Polygon2D
 var _capture_anchor := Vector2(160,164)
-var _rod: Line2D
+var _rod: RodVisual
 
 func _ready() -> void:
 	texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
@@ -84,8 +102,12 @@ func _ready() -> void:
 	for i in range(24):shadow_points.append(Vector2(cos(i*TAU/24)*17,sin(i*TAU/24)*7))
 	_contact_shadow.polygon=shadow_points;_contact_shadow.color=Color(0,0,0,0.18);_contact_shadow.z_index=-1
 	add_child(_contact_shadow)
-	_rod=Line2D.new();_rod.name="EquippedRod";_rod.width=2.0;_rod.default_color=Color("58434a")
-	_rod.antialiased=false;_rod.z_index=100;_rod.hide();stage.add_child(_rod)
+	_rod = RodVisual.new()
+	_rod.name = "EquippedRod"
+	# The shaft sits behind the shoulder, sleeves and head in all eight views.
+	_rod.z_index = 6
+	_rod.hide()
+	stage.add_child(_rod)
 	pose(0,0,false,Vector2.ZERO,true,false)
 
 static func direction_for_yaw(world_yaw: float,view_yaw: float) -> int:
@@ -98,6 +120,15 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,_pixelated: bool
 	pose_updates+=1
 	var delta := clampf(time-previous_pose_time,0.0,0.1) if previous_pose_time>=0 else 0.0
 	previous_pose_time=time;gameplay_pose_delta=delta
+	# Life poses can replace locomotion later in the same frame.
+	# Each request blends from the last pose displayed, without advancing twice.
+	_previous_frame_arms = _arm_pose
+	# The movement clock pauses while the fishing panel is open.
+	var frame_delta := minf(get_process_delta_time(), 0.1)
+	_arm_blend_weight = 1.0 - exp(-frame_delta / ARM_BLEND_RESPONSE)
+	if dash_age >= 0.0 and (_previous_dash_age < 0.0 or dash_age < _previous_dash_age):
+		play_action_pose("dodge")
+	_previous_dash_age = dash_age
 	var facing := locomotion_heading if locomotion_heading.length_squared()>0.00001 else motion
 	if walking and facing.length_squared()>0.00001:last_yaw=atan2(facing.x,facing.y)
 	if aim_facing.length_squared()>0.00001:last_yaw=atan2(aim_facing.x,aim_facing.y)
@@ -111,49 +142,80 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,_pixelated: bool
 		idle_age=0.0
 	else:idle_age+=delta
 	previous_gait=gait;was_walking=walking
-	_movement_weight=move_toward(_movement_weight,1.0 if walking else 0.0,delta*10.0)
+	var blend_duration := RUN_BLEND_IN if walking else RUN_BLEND_OUT
+	_movement_progress = move_toward(_movement_progress, 1.0 if walking else 0.0, delta / blend_duration)
+	_movement_weight = smoothstep(0.0, 1.0, _movement_progress)
 	var clip := "run" if walking or _movement_weight>0.001 else "idle"
 	var progress := 0.0
 	if cast_age>=0:clip="cast";progress=cast_age/CAST_DURATION
 	if not preview_clip.is_empty():
 		clip=preview_clip;display_direction=preview_direction;walk_phase=float(preview_frame)/8.0
-	_present(clip,display_direction,walk_phase,_movement_weight,progress)
+	var action: Dictionary = {}
+	if bench_state.is_empty() and preview_clip.is_empty():
+		action = _sample_action_pose()
+	_present(clip,display_direction,walk_phase,_movement_weight,progress,action)
+	if not _action_target.is_empty():
+		if _action_age >= _action_duration:
+			_action_target = {}
+		else:
+			_action_age = minf(_action_duration, _action_age + frame_delta)
+	if not _outgoing_pose.is_empty():
+		if _outgoing_age >= ACTION_INTERRUPTION_BLEND:
+			_outgoing_pose = {}
+		else:
+			_outgoing_age = minf(ACTION_INTERRUPTION_BLEND, _outgoing_age + frame_delta)
 	_rod.hide()
 	update_hurt(delta,effects)
 
-func _present(clip: String,direction: int,phase: float,movement: float,progress: float=0.0) -> bool:
+func _present(clip: String,direction: int,phase: float,movement: float,progress: float=0.0,action: Dictionary={},fishing_pose: Vector3=Vector3.ZERO,rod_carry: float=0.0,visual_yaw: float=NAN) -> bool:
 	if not skeleton_ready:return false
 	assembler.presentation_clip=clip
 	assembler.presentation_progress=progress
-	if not assembler.apply_pose(phase,movement,float(direction)*TAU/8.0,Vector3.ZERO,direction):return false
-	_update_contact()
+	var target_arms := Vector2.ZERO if clip == "cast" and _authored_cast else Assembler.action_arm_angles(clip, progress)
+	var arms := target_arms
+	if clip == "fishing":
+		arms = Vector2(fishing_pose.x, fishing_pose.y)
+	elif preview_clip.is_empty() and clip != "bench":
+		arms = _previous_frame_arms.lerp(target_arms, _arm_blend_weight)
+		if arms.distance_squared_to(target_arms) < 0.000001:
+			arms = target_arms
+	assembler.presentation_arms = arms
+	assembler.presentation_lean = fishing_pose.z
+	assembler.presentation_rod_carry = rod_carry
+	var yaw := float(direction) * TAU / 8.0 if is_nan(visual_yaw) else visual_yaw
+	if not assembler.apply_pose(phase,movement,yaw,Vector3.ZERO,direction,action):return false
+	_arm_pose = arms
 	return true
-
-func _update_contact() -> void:
-	var projected: Dictionary=assembler.art_points
-	if not projected.get("wrist_r") is Vector2:return
-	var grip: Vector2=(projected.wrist_r as Vector2)-_capture_anchor
-	var heading := Vector2(sin(last_yaw-camera_yaw),cos(last_yaw-camera_yaw))
-	var rod_vector := Vector2(heading.x*55.0,heading.y*18.0-75.0)
-	if assembler.presentation_clip=="fishing":
-		var progress: float=clampf(assembler.presentation_progress,0.0,1.0)
-		var resting := Vector2(heading.x*85.0,heading.y*30.0-95.0)
-		rod_vector=rod_vector.lerp(resting,smoothstep(0.0,2.0/3.0,progress))
-		if progress>2.0/3.0:rod_vector=resting.lerp(Vector2(heading.x*38.0,-136.0),(progress-2.0/3.0)*3.0)
-	_contact={"hand":[grip.x,grip.y],"rodVector":[rod_vector.x,rod_vector.y],"vector":[rod_vector.x,rod_vector.y],"character_id":"hybrid-v1"}
 
 func is_skeleton_active() -> bool:return skeleton_ready
 func clip_duration(_clip: String,_direction: int=0) -> float:return float(assembler.source.duration) if skeleton_ready else 0.64
-func skeleton_contact_data() -> Dictionary:return _contact.duplicate(true)
 
-func present_life_pose(clip: String,direction: int,source_frame: float=-1.0,seconds: float=0.0,with_rod: bool=false) -> Dictionary:
-	var phase := fposmod(seconds/clip_duration(clip,direction),1.0) if clip=="carry_run" else 0.0
-	if not _present(clip,direction,phase,_movement_weight if clip=="carry_run" else 0.0,source_frame/3.0 if source_frame>=0 else 0.0):return {}
-	if with_rod and not _contact.is_empty():
-		var grip: Array=_contact.hand;var axis: Array=_contact.rodVector
-		var start := Vector2(float(grip[0]),float(grip[1]))+_capture_anchor
-		_rod.points=PackedVector2Array([start,start+Vector2(float(axis[0]),float(axis[1]))]);_rod.show()
-	return skeleton_contact_data()
+func present_rod_carry(view_yaw: float) -> Variant:
+	display_direction = direction_for_yaw(view_yaw, 0.0)
+	if not _present("rod_carry", display_direction, walk_phase, _movement_weight, 0.0, {}, Vector3.ZERO, 1.0, view_yaw):
+		return null
+	return _rod_grip()
+
+func present_fishing_pose(heading: Vector2, pose_angles: Vector3, rod_carry: float) -> Variant:
+	face_attack(heading)
+	display_direction = direction_for_yaw(last_yaw, camera_yaw)
+	if not _present("fishing", display_direction, 0.0, 0.0, 0.0, {}, pose_angles, rod_carry):
+		return null
+	return _rod_grip()
+
+func _rod_grip() -> Variant:
+	var wrist: Variant = assembler.art_points.get("wrist_r")
+	return wrist - _capture_anchor if wrist is Vector2 else null
+
+func shoulder_rod_vector(view_yaw: float, reduced: bool) -> Vector2:
+	var sway := 0.0 if reduced else sin(walk_phase * TAU * 2.0) * _movement_weight * 0.045
+	var shaft := Basis(Vector3.UP, view_yaw) * Vector3(-0.12, 0.46 + sway, -1.0) * 84.0
+	var projection := fixed_camera.unproject_position(shaft) - fixed_camera.unproject_position(Vector3.ZERO)
+	projection.y = minf(-28.0, projection.y)
+	return projection
+
+func draw_rod_behind_actor(grip: Vector2, tip: Vector2) -> void:
+	_rod.show_rod(grip + _capture_anchor, tip + _capture_anchor)
 
 func supports_bench_pose() -> bool:return skeleton_ready
 func set_bench_pose(state: String,age: float,reduced: bool) -> void:
@@ -169,15 +231,62 @@ func apply_bench_pose() -> void:
 
 func face_attack(direction: Vector2) -> void:
 	if direction.length_squared()>0.00001:last_yaw=atan2(direction.x,direction.y)
-func begin_cast(direction: Vector2) -> void:
+func begin_cast(direction: Vector2, spell_id: String = "") -> void:
 	face_attack(direction);cast_yaw=last_yaw;cast_age=0.0
-func cancel_cast() -> void:cast_age=-1.0
+	_authored_cast = play_action_pose(spell_id, "cast")
+	if not _authored_cast:
+		_stop_cast_pose()
+	_action_from_cast = _authored_cast
+
+func cancel_cast() -> void:
+	cast_age = -1.0
+	_authored_cast = false
+	_stop_cast_pose()
+
+func _stop_cast_pose() -> void:
+	if _action_from_cast:
+		_capture_outgoing_pose()
+		_action_target = {}
+		_action_from_cast = false
+
+func play_action_pose(action_id: String, fallback_id: String = "") -> bool:
+	if not skeleton_ready:
+		return false
+	var entry: Dictionary = ACTIONS.find_pose(action_id)
+	if entry.is_empty() and not fallback_id.is_empty() and action_id != fallback_id:
+		entry = ACTIONS.find_pose(fallback_id)
+	if entry.is_empty():
+		return false
+	_capture_outgoing_pose()
+	_action_target = ActionLibrary.target_pose(entry, assembler.source.get_neutral_pose())
+	_action_duration = float(entry.duration)
+	_action_age = 0.0
+	_action_from_cast = false
+	return true
+
+func _capture_outgoing_pose() -> void:
+	if not skeleton_ready:
+		return
+	_outgoing_pose = assembler.source.last_action_pose
+	_outgoing_age = 0.0
+
+func _sample_action_pose() -> Dictionary:
+	var mix := {}
+	if not _action_target.is_empty():
+		mix.target = _action_target
+		mix.weight = ActionLibrary.weight_at(_action_age, _action_duration)
+	if not _outgoing_pose.is_empty():
+		mix.from = _outgoing_pose
+		mix.from_weight = 1.0 - smoothstep(0.0, ACTION_INTERRUPTION_BLEND, _outgoing_age)
+	return mix
+
 func advance_cast(delta: float,paused: bool) -> void:
 	if cast_age<0 or paused:return
 	cast_age+=delta
 	if cast_age>=CAST_DURATION:cast_age=-1.0
 func play_hurt(direction: Vector2) -> void:
 	hurt_age=0.0;hurt_direction=direction.normalized()
+	play_action_pose("hurt")
 func update_hurt(delta: float,effects: bool) -> void:
 	if sprite_material==null:return
 	var strength := 0.0

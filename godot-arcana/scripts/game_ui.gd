@@ -60,6 +60,14 @@ var toast_time = 0.0
 var joystick
 var touch_buttons: Array[Button] = []
 var action_touches: Dictionary = {}
+var panel_scroll: ScrollContainer
+var skill_list_touch_enabled: bool = false
+var panel_touch_index: int = -1
+var panel_touch_origin: Vector2 = Vector2.ZERO
+var panel_touch_scroll: int = 0
+var panel_touch_dragged: bool = false
+var panel_touch_button: Button
+const PANEL_DRAG_DISTANCE: float = 10.0
 
 func style(background: Color, border: Color = Color.TRANSPARENT) -> StyleBoxFlat:
 	var value = StyleBoxFlat.new()
@@ -390,6 +398,7 @@ func _build_panel() -> void:
 	var line = HSeparator.new()
 	stack.add_child(line)
 	var scroll = ScrollContainer.new()
+	panel_scroll = scroll
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	stack.add_child(scroll)
@@ -411,6 +420,7 @@ func open_skill_tree(spell: Dictionary, selected: String, invest: Callable, rese
 	overlay.add_child(skill_tree_view)
 
 func open_panel(title: String, can_close: bool = true) -> void:
+	skill_list_touch_enabled = title == "스킬"
 	_clear_inventory()
 	_clear_shop()
 	_clear_quests()
@@ -429,6 +439,8 @@ func open_panel(title: String, can_close: bool = true) -> void:
 	overlay.show()
 
 func close_panel() -> void:
+	skill_list_touch_enabled = false
+	_reset_panel_touch()
 	_clear_inventory()
 	_clear_shop()
 	_clear_quests()
@@ -526,13 +538,70 @@ func toast(text: String) -> void:
 	toast_time = 4
 
 func reset_touch_controls() -> void:
+	_reset_panel_touch()
 	joystick.reset()
 	for target in action_touches.values(): target.set_pressed_no_signal(false)
 	action_touches.clear()
 
+func _reset_panel_touch() -> void:
+	if is_instance_valid(panel_touch_button):
+		panel_touch_button.set_pressed_no_signal(false)
+	panel_touch_button = null
+	panel_touch_index = -1
+	panel_touch_dragged = false
+
+# Own raw touches only in the skill list. Child buttons and decorative icons
+# cannot stop a swipe, and no emulated mouse press can select a dragged row.
+func _skill_list_input(event: InputEvent) -> bool:
+	if not skill_list_touch_enabled or not overlay.visible or not panel.visible:
+		return false
+	if event is InputEventMouse and event.device == InputEvent.DEVICE_ID_EMULATION:
+		if panel_touch_index == -1 and panel_scroll.get_v_scroll_bar().is_visible_in_tree() and panel_scroll.get_v_scroll_bar().get_global_rect().has_point(event.position):
+			return false
+		return panel_touch_index != -1 or panel_scroll.get_global_rect().has_point(event.position)
+	if event is InputEventScreenTouch:
+		if event.index == panel_touch_index:
+			if not event.pressed or event.canceled:
+				var target: Button = panel_touch_button
+				var activate: bool = not event.canceled and not panel_touch_dragged and event.position.distance_to(panel_touch_origin) < PANEL_DRAG_DISTANCE and is_instance_valid(target)
+				_reset_panel_touch()
+				# Reset before callbacks, which may replace the entire panel.
+				if activate and not target.disabled and target.get_global_rect().has_point(event.position) and panel_scroll.get_global_rect().has_point(event.position):
+					target.pressed.emit()
+			return true
+		if event.pressed and not event.canceled and panel_scroll.get_global_rect().has_point(event.position):
+			# Leave the scrollbar's native dragging intact.
+			if panel_scroll.get_v_scroll_bar().is_visible_in_tree() and panel_scroll.get_v_scroll_bar().get_global_rect().has_point(event.position):
+				return false
+			if panel_touch_index != -1:
+				return true
+			panel_touch_index = event.index
+			panel_touch_origin = event.position
+			panel_touch_scroll = panel_scroll.scroll_vertical
+			panel_touch_dragged = false
+			for node in content.find_children("*", "Button", true, false):
+				var target: Button = node as Button
+				if target.is_visible_in_tree() and not target.disabled and target.get_global_rect().has_point(event.position):
+					panel_touch_button = target
+					target.set_pressed_no_signal(true)
+					break
+			return true
+	elif event is InputEventScreenDrag and event.index == panel_touch_index:
+		if event.position.distance_to(panel_touch_origin) >= PANEL_DRAG_DISTANCE:
+			panel_touch_dragged = true
+		if panel_touch_dragged:
+			if is_instance_valid(panel_touch_button):
+				panel_touch_button.set_pressed_no_signal(false)
+			panel_scroll.scroll_vertical = panel_touch_scroll + roundi(panel_touch_origin.y - event.position.y)
+		return true
+	return false
+
 # BaseButton relies on a single emulated mouse. Track action fingers separately
 # so the right thumb still works while the left thumb owns the joystick.
 func _input(event: InputEvent) -> void:
+	if _skill_list_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	# Explicit touch handling owns these controls; suppress the compatibility
 	# mouse events so a single tap cannot also activate a BaseButton or path.
 	if event is InputEventMouse and event.device == InputEvent.DEVICE_ID_EMULATION and not overlay.visible:

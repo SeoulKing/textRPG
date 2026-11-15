@@ -1,26 +1,31 @@
-[gd_scene load_steps=20 format=3 uid="uid://c27s3mbuhuwo4"]
+[gd_scene load_steps=22 format=3 uid="uid://c27s3mbuhuwo4"]
 
-[ext_resource type="PackedScene" path="res://art/source/north-star-fountain-v1/north-star-fountain.glb" id="1_model"]
-[ext_resource type="Texture2D" uid="uid://bepfi37rt70ca" path="res://art/export/square-floor-v2/paving.png" id="2_paving"]
+[ext_resource type="PackedScene" uid="uid://di50pib2apohr" path="res://art/source/north-star-fountain-v1/north-star-fountain.glb" id="1_model"]
+[ext_resource type="PackedScene" path="res://art/source/plaza-stone-paving/plaza-stone-paving.glb" id="2_paving"]
 [ext_resource type="PackedScene" uid="uid://bqryd12jorepf" path="res://art/source/slime-mochi/arcana-slime-mochi.glb" id="3_mochi_slime"]
 [ext_resource type="Shader" uid="uid://bkv37m7tyqgu3" path="res://art/resources/shop_screen_edges.gdshader" id="4_edges"]
 [ext_resource type="Script" uid="uid://djt7umdoc1rp5" path="res://scripts/plaza_3d_v2.gd" id="5_controls"]
 [ext_resource type="Script" uid="uid://dc3rfm7vkm433" path="res://scripts/characters/hybrid_v1/billboard_actor.gd" id="6_hero"]
 [ext_resource type="Script" uid="uid://blnanyrn86wo0" path="res://scripts/virtual_joystick.gd" id="7_joystick"]
 [ext_resource type="PackedScene" uid="uid://cdo6b65cctqko" path="res://art/source/plaza-shop-blender/shop-exterior.glb" id="8_shop"]
-[ext_resource type="Script" path="res://scripts/north_star_fountain.gd" id="10_fountain"]
-[ext_resource type="PackedScene" path="res://art/source/plaza-inn-blender/inn-exterior.glb" id="11_inn"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_paving"]
-albedo_color = Color(0.72, 0.71, 0.69, 1)
-albedo_texture = ExtResource("2_paving")
-roughness = 0.92
-uv1_scale = Vector3(4.4, 6, 1)
-texture_filter = 2
+[ext_resource type="Script" uid="uid://clwji4rbounqn" path="res://scripts/north_star_fountain.gd" id="10_fountain"]
+[ext_resource type="PackedScene" uid="uid://bv48xfppnjxqq" path="res://art/source/plaza-inn-blender/inn-exterior.glb" id="11_inn"]
+[ext_resource type="Texture2D" path="res://art/export/fountain-paving/mosaic-ring.png" id="12_mosaic"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_plaza"]
-material = SubResource("StandardMaterial3D_paving")
 size = Vector2(22, 30)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_fountain_inlay"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+albedo_color = Color(0.84, 0.84, 0.84, 1)
+albedo_texture = ExtResource("12_mosaic")
+roughness = 0.9
+texture_filter = 2
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_fountain_inlay"]
+material = SubResource("StandardMaterial_fountain_inlay")
+size = Vector2(8.4, 8.4)
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_fountain"]
 height = 1.2
@@ -38,18 +43,19 @@ height = 1.1
 
 [sub_resource type="Environment" id="Environment_plaza"]
 background_mode = 1
-background_color = Color(0.25, 0.33, 0.37, 1)
+background_color = Color(0.24, 0.3, 0.36, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.78, 0.86, 0.94, 1)
-ambient_light_energy = 0.42
+ambient_light_color = Color(0.87, 0.91, 1, 1)
+ambient_light_energy = 0.52
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_plaza_edges"]
 resource_local_to_scene = true
 render_priority = -100
 shader = ExtResource("4_edges")
 shader_parameter/screen_pixel_size = 2
+shader_parameter/average_2x2_color = true
 shader_parameter/highlight_strength = 0.08
-shader_parameter/highlight_direction = Vector3(-0.69093956, -0.07927564, 0.71855264)
+shader_parameter/highlight_direction = Vector3(-0.37, 0.235, 0.898)
 shader_parameter/room_accents_enabled = false
 shader_parameter/room_bounds = Vector4(5, 4, 14, 9)
 shader_parameter/counter_center = Vector2(12, 7.5)
@@ -65,10 +71,12 @@ shader_parameter/cube_light_level = 0.0
 shader_parameter/world_to_cube = Projection(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 shader_parameter/cube_outline_color = Color(0.23, 0.16, 0.19, 1)
 shader_parameter/asset_mask_enabled = false
+shader_parameter/asset_edge_step = 1.0
 shader_parameter/asset_outline_width = 1
 shader_parameter/asset_outline_groups = 0
+shader_parameter/stable_asset_silhouette = true
 shader_parameter/asset_highlight_width = 1
-shader_parameter/asset_highlight_strength = 0.75
+shader_parameter/asset_highlight_strength = 0.55
 
 [sub_resource type="QuadMesh" id="QuadMesh_plaza_edges"]
 size = Vector2(2, 2)
@@ -77,14 +85,29 @@ size = Vector2(2, 2)
 script = ExtResource("5_controls")
 
 [node name="Ground" type="MeshInstance3D" parent="."]
+visible = false
 cast_shadow = 0
 mesh = SubResource("PlaneMesh_plaza")
+
+[node name="StonePaving" parent="." instance=ExtResource("2_paving")]
 
 [node name="Fountain" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.925)
 script = ExtResource("10_fountain")
 
 [node name="Model" parent="Fountain" instance=ExtResource("1_model")]
+
+[node name="MosaicInlay" type="MeshInstance3D" parent="Fountain"]
+position = Vector3(0, 0.027, 0)
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_fountain_inlay")
+
+[node name="WaterFill" type="OmniLight3D" parent="Fountain"]
+position = Vector3(0, 1, 0)
+light_color = Color(0.55, 0.85, 1, 1)
+light_energy = 0.28
+omni_range = 4.05
+omni_attenuation = 1.45
 
 [node name="Collision" type="StaticBody3D" parent="Fountain"]
 
@@ -100,6 +123,12 @@ transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -0.5, 0, -8.5)
 
 [node name="Exterior" parent="Shop" instance=ExtResource("8_shop")]
 
+[node name="DoorFill" type="OmniLight3D" parent="Shop"]
+position = Vector3(0, 1.55, 0.72)
+light_color = Color(1, 0.79, 0.5, 1)
+light_energy = 0.36
+omni_range = 3.15
+
 [node name="Collision" type="StaticBody3D" parent="Shop"]
 
 [node name="Footprint" type="CollisionShape3D" parent="Shop/Collision"]
@@ -107,18 +136,27 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, -1.8)
 shape = SubResource("BoxShape3D_shop")
 
 [node name="Inn" type="Node3D" parent="."]
-position = Vector3(-6.5, 0, -2.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, -2.5)
 
 [node name="Exterior" parent="Inn" instance=ExtResource("11_inn")]
+
+[node name="DoorFill" type="OmniLight3D" parent="Inn"]
+position = Vector3(0, 1.95, 2.66)
+light_color = Color(1, 0.71, 0.37, 1)
+light_energy = 0.46
+omni_range = 3.2
 
 [node name="Collision" type="StaticBody3D" parent="Inn"]
 
 [node name="Footprint" type="CollisionShape3D" parent="Inn/Collision"]
-position = Vector3(0, 2.75, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.75, 0)
 shape = SubResource("BoxShape3D_inn")
 
 [node name="InteractionPoint" type="Marker3D" parent="Inn"]
-position = Vector3(0, 0, 2.7)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.7)
+
+[node name="CameraFocus" type="Marker3D" parent="Inn"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.8)
 
 [node name="Player" type="CharacterBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 3.4)
@@ -136,8 +174,9 @@ script = ExtResource("6_hero")
 environment = SubResource("Environment_plaza")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.63245553, 0.35014643, -0.69093956, 0, 0.89199914, 0.4520371, 0.77459667, -0.28589336, 0.56414979, 0, 4, 0)
-light_energy = 1.12
+rotation_degrees = Vector3(-53, -38, 0)
+light_color = Color(1, 0.92, 0.8, 1)
+light_energy = 0.43
 shadow_enabled = true
 directional_shadow_max_distance = 48.0
 
