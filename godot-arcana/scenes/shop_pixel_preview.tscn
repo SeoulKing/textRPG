@@ -1,0 +1,217 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/shop_pixel_preview.gd" id="1_preview"]
+[ext_resource type="PackedScene" path="res://scenes/shop_3d.tscn" id="2_shop"]
+[ext_resource type="FontVariation" path="res://fonts/NotoSansKR-Medium.tres" id="3_font"]
+
+[sub_resource type="Theme" id="Theme_preview"]
+default_font = ExtResource("3_font")
+default_font_size = 14
+
+[sub_resource type="StandardMaterial3D" id="Material_light_marker"]
+shading_mode = 0
+albedo_color = Color(1, 0.87, 0.39, 1)
+
+[sub_resource type="SphereMesh" id="Sphere_light_marker"]
+material = SubResource("Material_light_marker")
+radius = 0.11
+height = 0.22
+radial_segments = 8
+rings = 4
+
+[node name="ShopPixelPreview" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = SubResource("Theme_preview")
+script = ExtResource("1_preview")
+
+[node name="WorldDisplay" type="TextureRect" parent="."]
+texture_filter = 1
+layout_mode = 1
+mouse_filter = 2
+expand_mode = 1
+
+[node name="WorldViewport" type="SubViewport" parent="."]
+size = Vector2i(576, 360)
+positional_shadow_atlas_size = 2048
+render_target_update_mode = 4
+
+[node name="Shop3D" parent="WorldViewport" instance=ExtResource("2_shop")]
+
+[node name="MovableLight" type="OmniLight3D" parent="WorldViewport/Shop3D"]
+position = Vector3(16.4, 1.65, 10.85)
+light_color = Color(1, 0.84, 0.59, 1)
+light_energy = 3.6
+light_specular = 0.0
+shadow_enabled = true
+shadow_bias = 0.035
+shadow_normal_bias = 0.12
+omni_range = 4.6
+omni_attenuation = 1.0
+
+[node name="Handle" type="MeshInstance3D" parent="WorldViewport/Shop3D/MovableLight"]
+cast_shadow = 0
+mesh = SubResource("Sphere_light_marker")
+
+[node name="Controls" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+mouse_force_pass_scroll_events = false
+
+[node name="Margin" type="MarginContainer" parent="Controls"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="Rows" type="VBoxContainer" parent="Controls/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PixelSize" type="HBoxContainer" parent="Controls/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Controls/Margin/Rows/PixelSize"]
+layout_mode = 2
+text = "도트 한 칸"
+
+[node name="Slider" type="HSlider" parent="Controls/Margin/Rows/PixelSize"]
+custom_minimum_size = Vector2(104, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 4.0
+step = 1.0
+value = 2.0
+tick_count = 4
+ticks_on_borders = true
+scrollable = false
+
+[node name="Value" type="Label" parent="Controls/Margin/Rows/PixelSize"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+text = "2×2 px"
+horizontal_alignment = 2
+
+[node name="Zoom" type="Label" parent="Controls/Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "확대 100% · 휠 확대/축소 · WASD 이동"
+
+[node name="CubeEdges" type="HBoxContainer" parent="Controls/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Controls/Margin/Rows/CubeEdges"]
+layout_mode = 2
+text = "큐브 외곽선 두께"
+
+[node name="Slider" type="HSlider" parent="Controls/Margin/Rows/CubeEdges"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(104, 24)
+max_value = 4.0
+step = 1.0
+tick_count = 5
+ticks_on_borders = true
+scrollable = false
+
+[node name="Value" type="Label" parent="Controls/Margin/Rows/CubeEdges"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="CubeHighlight" type="HBoxContainer" parent="Controls/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Controls/Margin/Rows/CubeHighlight"]
+layout_mode = 2
+text = "하이라이트 강도"
+
+[node name="Slider" type="HSlider" parent="Controls/Margin/Rows/CubeHighlight"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(104, 24)
+max_value = 1.0
+step = 0.05
+value = 0.75
+scrollable = false
+
+[node name="Value" type="Label" parent="Controls/Margin/Rows/CubeHighlight"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="CubeHighlightWidth" type="HBoxContainer" parent="Controls/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Controls/Margin/Rows/CubeHighlightWidth"]
+layout_mode = 2
+text = "하이라이트 두께"
+
+[node name="Slider" type="HSlider" parent="Controls/Margin/Rows/CubeHighlightWidth"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(104, 24)
+max_value = 4.0
+step = 1.0
+value = 1.0
+tick_count = 5
+ticks_on_borders = true
+scrollable = false
+
+[node name="Value" type="Label" parent="Controls/Margin/Rows/CubeHighlightWidth"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="CubeBands" type="CheckButton" parent="Controls/Margin/Rows"]
+layout_mode = 2
+button_pressed = true
+text = "큐브 단계 조명"
+
+[node name="MoveLight" type="CheckButton" parent="Controls/Margin/Rows"]
+layout_mode = 2
+text = "실험 광원 · 노란 점 드래그"
+
+[node name="ShowCube" type="CheckButton" parent="Controls/Margin/Rows"]
+layout_mode = 2
+button_pressed = true
+text = "실험 큐브 표시"
+
+[node name="LightEnergy" type="HBoxContainer" parent="Controls/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Controls/Margin/Rows/LightEnergy"]
+layout_mode = 2
+text = "광원 세기"
+
+[node name="Slider" type="HSlider" parent="Controls/Margin/Rows/LightEnergy"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(104, 24)
+max_value = 200.0
+step = 5.0
+value = 20.0
+scrollable = false
+
+[node name="Value" type="Label" parent="Controls/Margin/Rows/LightEnergy"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
+[node name="SaveDefault" type="Button" parent="Controls/Margin/Rows"]
+layout_mode = 2
+size_flags_horizontal = 0
+text = "게임 기본값 저장"

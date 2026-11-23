@@ -5,6 +5,8 @@ signal interact_pressed
 signal quickslot_pressed(index: int)
 signal move_changed(direction: Vector2)
 signal panel_closed
+signal hud_size_committed(percentage: int)
+signal menu_size_committed(percentage: int)
 const FONT = preload("res://fonts/NotoSansKR-Medium.tres")
 const FONT_STRONG = preload("res://fonts/NotoSansKR-SemiBold.tres")
 const Joystick = preload("res://scripts/virtual_joystick.gd")
@@ -23,12 +25,40 @@ const MUTED = Color("586779")
 const GOLD = Color("856129")
 const PAPER = Color("fffaf0")
 const EDGE = Color("c7cbd2")
+const MENU_NAVY = Color("263b51")
+const MENU_RULE = Color("ded7c8")
+const DESKTOP_MENU_DEFAULT := 70
+const DESKTOP_MENU_AREA := Vector2(780, 560)
+const DESKTOP_MENU_CSS_SCALE := 1.5
+const QUICKSLOT_SIZE_MIN := 0.4
+const QUICKSLOT_SIZE_MAX := 1.1
+
+class MenuSky extends Control:
+	func _draw() -> void:
+		var center := Vector2(size.x - 62.0, size.y * 0.57)
+		var brass := Color("e4c788")
+		for radius: float in [24.0, 35.0]:
+			draw_arc(center, radius, 0.0, TAU, 80, Color(brass, 0.19), 1.0, true)
+		var star := center + Vector2(-26, -15)
+		draw_colored_polygon(PackedVector2Array([
+			star + Vector2(0, -6), star + Vector2(1.5, -1.5), star + Vector2(6, 0),
+			star + Vector2(1.5, 1.5), star + Vector2(0, 6), star + Vector2(-1.5, 1.5),
+			star + Vector2(-6, 0), star + Vector2(-1.5, -1.5)]), brass)
+		draw_circle(center + Vector2(0, 24), 2, brass, true, -1, true)
+
 var mei_nameplate: Label
 var mei_nameplate_anchor: Node2D
 var mei_nameplate_pixel_scale = Vector2.ZERO
 var mei_nameplate_layout_size = Vector2.ZERO
 var mei_nameplate_pixel_offset = Vector2.ZERO
 var root: Control
+var hud: Control
+var hud_size_percent: int = 100
+var menu_size_percent: int = 100
+var _desktop_web := false
+var _hud_size_slider: HSlider
+var _menu_size_slider: HSlider
+var _dragged_size_slider: HSlider
 var header: PanelContainer
 var navigation: PanelContainer
 var title_label: Label
@@ -43,11 +73,13 @@ var hunger_label: Label
 var hint_label: Label
 var toast_label: Label
 var overlay: Control
+var menu_views: Control
 var panel: PanelContainer
 var panel_title: Label
 var content: VBoxContainer
 var close_button: Button
 var interaction: Button
+var interaction_caption: Label
 var control_layouts: Dictionary = {}
 var action_cluster: Control
 var quickslot_buttons: Array[Button] = []
@@ -61,7 +93,12 @@ var joystick
 var touch_buttons: Array[Button] = []
 var action_touches: Dictionary = {}
 var panel_scroll: ScrollContainer
-var skill_list_touch_enabled: bool = false
+var panel_body: MarginContainer
+var panel_header: PanelContainer
+var panel_dim: ColorRect
+var cooking_panel_on_left := false
+var fit_menu_height := false
+var button_list_touch_enabled: bool = false
 var panel_touch_index: int = -1
 var panel_touch_origin: Vector2 = Vector2.ZERO
 var panel_touch_scroll: int = 0
@@ -98,6 +135,10 @@ func button(text: String, callback: Callable, min_size: Vector2 = Vector2(46, 40
 	return node
 
 func _ready() -> void:
+	if OS.has_feature("web"):
+		_desktop_web = bool(JavaScriptBridge.eval("matchMedia('(pointer: fine)').matches"))
+		if _desktop_web:
+			menu_size_percent = DESKTOP_MENU_DEFAULT
 	root = Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -129,6 +170,9 @@ func _ready() -> void:
 	theme.set_stylebox("disabled", "Button", style(Color("e9e9e6"), Color("d3d7dd")))
 	theme.set_stylebox("focus", "Button", style(Color.TRANSPARENT, Color("4678b5")))
 	root.theme = theme
+	hud = Control.new()
+	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(hud)
 	var top = PanelContainer.new()
 	header = top
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
@@ -145,7 +189,7 @@ func _ready() -> void:
 	header_style.content_margin_top = 11
 	header_style.content_margin_bottom = 11
 	top.add_theme_stylebox_override("panel", header_style)
-	root.add_child(top)
+	hud.add_child(top)
 	var stack = VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 6)
 	top.add_child(stack)
@@ -187,7 +231,7 @@ func _ready() -> void:
 	bottom.offset_bottom = -16
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	var dock_style = style(Color("fcfcfd"),Color("d9dfe7"))
+	var dock_style = style(PAPER, Color("d7cbb4"))
 	dock_style.set_corner_radius_all(18)
 	dock_style.shadow_color = Color(.10,.17,.28,.20)
 	dock_style.shadow_size = 8
@@ -197,7 +241,7 @@ func _ready() -> void:
 	dock_style.content_margin_top = 3
 	dock_style.content_margin_bottom = 3
 	bottom.add_theme_stylebox_override("panel",dock_style)
-	root.add_child(bottom)
+	hud.add_child(bottom)
 	var bottom_stack = VBoxContainer.new()
 	bottom_stack.add_theme_constant_override("separation", 7)
 	bottom.add_child(bottom_stack)
@@ -214,7 +258,7 @@ func _ready() -> void:
 	hint_label.offset_left = 16
 	hint_label.offset_right = -16
 	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(hint_label)
+	hud.add_child(hint_label)
 	joystick = Joystick.new()
 	joystick.direction_changed.connect(func(value): move_changed.emit(value))
 	root.add_child(joystick)
@@ -237,6 +281,13 @@ func _ready() -> void:
 	interaction.size = Vector2(76,76)
 	interaction.pressed.connect(func(): interact_pressed.emit())
 	cluster.add_child(interaction)
+	interaction_caption = label("", 12, INK, true)
+	interaction_caption.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	interaction_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	interaction_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	interaction_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	interaction_caption.hide()
+	interaction.add_child(interaction_caption)
 	touch_buttons.append(interaction)
 	var slot_positions = [Vector2(136,30),Vector2(68,52),Vector2(40,120),Vector2(76,192)]
 	for i in range(4):
@@ -247,6 +298,7 @@ func _ready() -> void:
 		slot.custom_minimum_size = Vector2(56,56)
 		slot.size = Vector2(56,56)
 		cluster.add_child(slot)
+		slot.pivot_offset = slot.size * 0.5
 		touch_buttons.append(slot)
 		quickslot_buttons.append(slot)
 		var icon = SlotIcon.new()
@@ -280,7 +332,7 @@ func _ready() -> void:
 	var nav = HBoxContainer.new()
 	nav.add_theme_constant_override("separation", 0)
 	bottom_stack.add_child(nav)
-	for item in [["지도", "map"], ["소지품", "inventory"], ["의뢰", "quests"], ["스킬", "skills"], ["메뉴", "menu"]]:
+	for item in [["지도", "map"], ["소지품", "inventory"], ["생활 수첩", "journal"], ["의뢰", "quests"], ["스킬", "skills"], ["메뉴", "menu"]]:
 		var nav_button = button(item[0], func(): menu_requested.emit(item[1]), Vector2(0, 64))
 		nav_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_button.text = ""
@@ -298,12 +350,14 @@ func _ready() -> void:
 		nav_button.tooltip_text = item[0]
 		nav_button.accessibility_name = item[0]
 		nav_button.add_theme_stylebox_override("normal", style(Color.TRANSPARENT))
-		nav_button.add_theme_stylebox_override("hover",style(Color("edf2f7")))
-		nav_button.add_theme_stylebox_override("pressed",style(Color("e0e8f1")))
+		nav_button.add_theme_stylebox_override("hover",style(Color("f2ebdb")))
+		nav_button.add_theme_stylebox_override("pressed",style(Color("e6dbc2")))
 		nav.add_child(nav_button)
 		touch_buttons.append(nav_button)
 	for target in touch_buttons: joystick.blocked_controls.append(target)
 	toast_label = label("", 14, Color("fffaf0"))
+	toast_label.z_index = 1
+	toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toast_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	toast_label.offset_top = 116
 	toast_label.offset_bottom = 156
@@ -313,7 +367,7 @@ func _ready() -> void:
 	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast_label.add_theme_color_override("font_shadow_color", Color("142e33"))
 	toast_label.add_theme_constant_override("shadow_outline_size", 5)
-	root.add_child(toast_label)
+	hud.add_child(toast_label)
 	_build_panel()
 	root.resized.connect(_layout)
 	_layout()
@@ -370,42 +424,82 @@ func make_bar(color: Color, height: int) -> ProgressBar:
 
 func _build_panel() -> void:
 	overlay = Control.new()
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(overlay)
-	var dim = ColorRect.new()
-	dim.color = Color(.03, .10, .13, .68)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(dim)
+	panel_dim = ColorRect.new()
+	panel_dim.color = Color("112131a6")
+	panel_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(panel_dim)
+	menu_views = Control.new()
+	menu_views.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(menu_views)
 	panel = PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	panel.offset_left = 14
-	panel.offset_right = -14
-	panel.offset_top = 165
-	panel.offset_bottom = -22
-	panel.add_theme_stylebox_override("panel", style(PAPER, Color("ffffff")))
+	var paper := StyleBoxFlat.new()
+	paper.bg_color = PAPER
+	paper.border_color = Color("d9c8a8")
+	paper.set_border_width_all(1)
+	paper.set_corner_radius_all(14)
+	paper.shadow_color = Color("0e1b2a66")
+	paper.shadow_size = 12
+	paper.shadow_offset = Vector2(0, 4)
+	panel.add_theme_stylebox_override("panel", paper)
 	overlay.add_child(panel)
 	var stack = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 12)
+	stack.add_theme_constant_override("separation", 0)
 	panel.add_child(stack)
+	panel_header = PanelContainer.new()
+	var band := style(MENU_NAVY)
+	band.set_corner_radius_all(0)
+	band.corner_radius_top_left = 13
+	band.corner_radius_top_right = 13
+	band.border_width_bottom = 2
+	band.border_color = Color("bda26b")
+	band.content_margin_left = 19
+	band.content_margin_right = 10
+	band.content_margin_top = 6
+	band.content_margin_bottom = 6
+	panel_header.add_theme_stylebox_override("panel", band)
+	panel_header.clip_contents = true
+	stack.add_child(panel_header)
+	var sky := MenuSky.new()
+	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel_header.add_child(sky)
 	var heading = HBoxContainer.new()
 	heading.add_theme_constant_override("separation",8)
-	stack.add_child(heading)
-	panel_title = label("아르카나", 20, GOLD, true)
+	panel_header.add_child(heading)
+	panel_title = label("아르카나", 21, PAPER, true)
 	panel_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	heading.add_child(panel_title)
-	close_button = button("닫기", close_panel, Vector2(48, 36))
+	close_button = button("×", close_panel, Vector2(44, 44))
+	close_button.tooltip_text = "닫기"
+	close_button.accessibility_name = "닫기"
+	close_button.add_theme_font_size_override("font_size", 23)
+	for state in ["normal", "hover", "pressed"]:
+		var fill := Color("33495e") if state == "normal" else Color("455c71")
+		var close_style := style(fill)
+		close_style.set_content_margin_all(0)
+		close_button.add_theme_stylebox_override(state, close_style)
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		close_button.add_theme_color_override(state, PAPER)
 	heading.add_child(close_button)
-	var line = HSeparator.new()
-	stack.add_child(line)
+	panel_body = MarginContainer.new()
+	panel_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel_body.add_theme_constant_override("margin_left", 16)
+	panel_body.add_theme_constant_override("margin_right", 16)
+	panel_body.add_theme_constant_override("margin_top", 10)
+	panel_body.add_theme_constant_override("margin_bottom", 12)
+	stack.add_child(panel_body)
 	var scroll = ScrollContainer.new()
 	panel_scroll = scroll
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	stack.add_child(scroll)
+	panel_body.add_child(scroll)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 0)
 	scroll.add_child(content)
+	content.minimum_size_changed.connect(_layout_panel)
 	overlay.hide()
 
 func open_skill_tree(spell: Dictionary, selected: String, invest: Callable, reset: Callable, back: Callable) -> void:
@@ -417,10 +511,12 @@ func open_skill_tree(spell: Dictionary, selected: String, invest: Callable, rese
 	skill_tree_view.invest_requested.connect(invest)
 	skill_tree_view.reset_requested.connect(reset)
 	skill_tree_view.close_requested.connect(back)
-	overlay.add_child(skill_tree_view)
+	menu_views.add_child(skill_tree_view)
 
-func open_panel(title: String, can_close: bool = true) -> void:
-	skill_list_touch_enabled = title == "스킬"
+func open_panel(title: String, can_close: bool = true, dock_left: bool = false) -> void:
+	cooking_panel_on_left = dock_left
+	fit_menu_height = title == "모험 메뉴"
+	button_list_touch_enabled = title in ["스킬", "모험 메뉴", "화면 설정", "도움말", "모닥불 · 요리", "제작 · 모닥불", "생활 수첩", "생활 수첩 · 식사", "집 · 주방", "내 집 · 거실", "내 집 · 침실"]
 	_clear_inventory()
 	_clear_shop()
 	_clear_quests()
@@ -429,6 +525,8 @@ func open_panel(title: String, can_close: bool = true) -> void:
 		skill_tree_view = null
 	panel.show()
 	reset_touch_controls()
+	_hud_size_slider = null
+	_menu_size_slider = null
 	joystick.set_enabled(false)
 	panel_title.text = title
 	content.get_parent().scroll_vertical = 0
@@ -437,10 +535,12 @@ func open_panel(title: String, can_close: bool = true) -> void:
 		content.remove_child(child)
 		child.queue_free()
 	overlay.show()
+	_layout_panel()
 
 func close_panel() -> void:
-	skill_list_touch_enabled = false
+	button_list_touch_enabled = false
 	_reset_panel_touch()
+	_finish_size_drag()
 	_clear_inventory()
 	_clear_shop()
 	_clear_quests()
@@ -502,8 +602,10 @@ func choice(text: String, detail: String, callback: Callable, disabled: bool = f
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(row)
 	var target = Button.new()
-	target.custom_minimum_size.y = 40
+	target.custom_minimum_size.y = 44
 	target.disabled = disabled
+	target.accessibility_name = text
+	target.accessibility_description = detail
 	target.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	target.add_theme_stylebox_override("normal", style(Color.TRANSPARENT))
 	target.add_theme_stylebox_override("disabled", style(Color.TRANSPARENT))
@@ -533,12 +635,67 @@ func choice(text: String, detail: String, callback: Callable, disabled: bool = f
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		stack.add_child(desc)
+
+func menu_entry(title: String, detail: String, callback: Callable, icon_kind: String) -> void:
+	var row := MarginContainer.new()
+	row.custom_minimum_size.y = 61
+	content.add_child(row)
+	var target := button("", callback)
+	target.accessibility_name = title
+	target.accessibility_description = detail
+	target.add_theme_stylebox_override("normal", style(Color("f4ecdc") if icon_kind == "save" else Color.TRANSPARENT))
+	target.add_theme_stylebox_override("hover", style(Color("eee8da")))
+	target.add_theme_stylebox_override("pressed", style(Color("e4ddce")))
+	row.add_child(target)
+	var inset := MarginContainer.new()
+	inset.add_theme_constant_override("margin_left", 10)
+	inset.add_theme_constant_override("margin_right", 10)
+	inset.add_theme_constant_override("margin_top", 7)
+	inset.add_theme_constant_override("margin_bottom", 7)
+	inset.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(inset)
+	var body := HBoxContainer.new()
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_theme_constant_override("separation", 14)
+	inset.add_child(body)
+	var icon := NavIcon.new()
+	icon.kind = icon_kind
+	icon.custom_minimum_size = Vector2(27, 27)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	body.add_child(icon)
+	var copy := VBoxContainer.new()
+	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 1)
+	body.add_child(copy)
+	var name_label := label(title, 16, INK, true)
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	copy.add_child(name_label)
+	if not detail.is_empty():
+		var description := label(detail, 12, MUTED)
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		description.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		copy.add_child(description)
+	if icon_kind in ["display", "controls", "help", "account"]:
+		var arrow := label("›", 19, GOLD)
+		arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		body.add_child(arrow)
+	if icon_kind != "home":
+		var rule := ColorRect.new()
+		rule.custom_minimum_size.y = 1
+		rule.color = MENU_RULE
+		rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(rule)
+
 func toast(text: String) -> void:
 	toast_label.text = text
 	toast_time = 4
 
 func reset_touch_controls() -> void:
 	_reset_panel_touch()
+	_finish_size_drag()
 	joystick.reset()
 	for target in action_touches.values(): target.set_pressed_no_signal(false)
 	action_touches.clear()
@@ -550,15 +707,19 @@ func _reset_panel_touch() -> void:
 	panel_touch_index = -1
 	panel_touch_dragged = false
 
-# Own raw touches only in the skill list. Child buttons and decorative icons
-# cannot stop a swipe, and no emulated mouse press can select a dragged row.
-func _skill_list_input(event: InputEvent) -> bool:
-	if not skill_list_touch_enabled or not overlay.visible or not panel.visible:
+func _panel_native_drag_target(point: Vector2) -> bool:
+	var scrollbar := panel_scroll.get_v_scroll_bar()
+	for target: Control in [scrollbar, _hud_size_slider, _menu_size_slider]:
+		if is_instance_valid(target) and target.is_visible_in_tree() and target.get_global_rect().has_point(point):
+			return true
+	return false
+
+# Handle swipes across button rows and pass slider drags to Godot's GUI.
+func _button_list_input(event: InputEvent) -> bool:
+	if not button_list_touch_enabled or not overlay.visible or not panel.visible or is_instance_valid(_dragged_size_slider):
 		return false
 	if event is InputEventMouse and event.device == InputEvent.DEVICE_ID_EMULATION:
-		if panel_touch_index == -1 and panel_scroll.get_v_scroll_bar().is_visible_in_tree() and panel_scroll.get_v_scroll_bar().get_global_rect().has_point(event.position):
-			return false
-		return panel_touch_index != -1 or panel_scroll.get_global_rect().has_point(event.position)
+		return panel_touch_index != -1 or (panel_scroll.get_global_rect().has_point(event.position) and not _panel_native_drag_target(event.position))
 	if event is InputEventScreenTouch:
 		if event.index == panel_touch_index:
 			if not event.pressed or event.canceled:
@@ -570,11 +731,10 @@ func _skill_list_input(event: InputEvent) -> bool:
 					target.pressed.emit()
 			return true
 		if event.pressed and not event.canceled and panel_scroll.get_global_rect().has_point(event.position):
-			# Leave the scrollbar's native dragging intact.
-			if panel_scroll.get_v_scroll_bar().is_visible_in_tree() and panel_scroll.get_v_scroll_bar().get_global_rect().has_point(event.position):
-				return false
 			if panel_touch_index != -1:
 				return true
+			if _panel_native_drag_target(event.position):
+				return false
 			panel_touch_index = event.index
 			panel_touch_origin = event.position
 			panel_touch_scroll = panel_scroll.scroll_vertical
@@ -592,14 +752,14 @@ func _skill_list_input(event: InputEvent) -> bool:
 		if panel_touch_dragged:
 			if is_instance_valid(panel_touch_button):
 				panel_touch_button.set_pressed_no_signal(false)
-			panel_scroll.scroll_vertical = panel_touch_scroll + roundi(panel_touch_origin.y - event.position.y)
+			panel_scroll.scroll_vertical = panel_touch_scroll + roundi((panel_touch_origin.y - event.position.y) / overlay.scale.y)
 		return true
 	return false
 
 # BaseButton relies on a single emulated mouse. Track action fingers separately
 # so the right thumb still works while the left thumb owns the joystick.
 func _input(event: InputEvent) -> void:
-	if _skill_list_input(event):
+	if _button_list_input(event):
 		get_viewport().set_input_as_handled()
 		return
 	# Explicit touch handling owns these controls; suppress the compatibility
@@ -609,7 +769,7 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		for target in touch_buttons:
-			if target.get_global_rect().has_point(event.position):
+			if target.is_visible_in_tree() and target.get_global_rect().has_point(event.position):
 				get_viewport().set_input_as_handled()
 				return
 	if event is InputEventScreenTouch:
@@ -642,22 +802,70 @@ func _process(delta: float) -> void:
 	toast_time = maxf(0, toast_time - delta)
 	toast_label.visible = toast_time > 0
 
+func set_hud_size(percentage: int) -> void:
+	hud_size_percent = percentage
+	_layout_hud()
+
+func set_menu_size(percentage: int) -> void:
+	menu_size_percent = percentage
+	# Apply after release to keep the slider under the pointer during a drag.
+	if not is_instance_valid(_dragged_size_slider):
+		_layout_overlay()
+
 func _layout() -> void:
-	var available = root.get_viewport_rect().size
-	var width = available.x
+	_layout_hud()
+	_layout_overlay()
+	if not is_instance_valid(_dragged_size_slider):
+		reset_touch_controls()
+
+func _layout_hud() -> void:
+	var factor := hud_size_percent / 100.0
+	var available := root.size / factor
+	hud.scale = Vector2.ONE * factor
+	hud.size = available
+	var width := available.x
 	# Keep the status panel at the upper left in either orientation.
 	var header_width: float = minf(320.0, width - 24.0)
-	header.scale = Vector2.ONE
 	header.offset_left = 12.0
 	header.offset_right = header.offset_left + header_width
-	_layout_controls()
 	navigation.offset_left = maxf(12, (width - 480) / 2)
 	navigation.offset_right = -navigation.offset_left
-	var panel_width = minf(720, width * .75) if width >= 900 else 480.0
-	panel.offset_left = maxf(14, (width - panel_width) / 2)
-	panel.offset_right = -panel.offset_left
-	panel.offset_top = minf(165, available.y * .18)
-	reset_touch_controls()
+	_layout_controls()
+
+func _layout_overlay() -> void:
+	if not is_instance_valid(_dragged_size_slider):
+		var factor := menu_size_percent / 100.0
+		if _desktop_web:
+			# Cap the stretch in CSS pixels so fullscreen and high DPI don't enlarge menus.
+			var css_height := float(JavaScriptBridge.eval("window.innerHeight"))
+			if css_height > 0.0 and root.size.y > 0.0:
+				factor *= minf(1.0, DESKTOP_MENU_CSS_SCALE * root.size.y / css_height)
+		overlay.scale = Vector2.ONE * factor
+	overlay.size = root.size / overlay.scale.x
+	menu_views.size = (overlay.size - Vector2(24, 24)).max(Vector2.ZERO).min(DESKTOP_MENU_AREA) if _desktop_web else overlay.size
+	menu_views.position = (overlay.size - menu_views.size) * 0.5
+	_layout_panel()
+
+func _layout_panel() -> void:
+	var available := overlay.size
+	var max_width := 496.0 if fit_menu_height else 660.0
+	var side := maxf(12.0, floorf((available.x - max_width) * 0.5))
+	var height := DESKTOP_MENU_AREA.y if _desktop_web else 680.0
+	if fit_menu_height:
+		height = panel_header.get_combined_minimum_size().y + content.get_combined_minimum_size().y
+		height += panel_body.get_theme_constant("margin_top") + panel_body.get_theme_constant("margin_bottom") + 2
+	var vertical := maxf(12.0, floorf((available.y - height) * 0.5))
+	var beside_fire := panel_title.text == "모닥불 · 요리" and available.x > available.y and available.x >= 600.0
+	if beside_fire:
+		var width := clampf(available.x * 0.36, 260.0, 340.0)
+		panel.offset_left = 12.0 if cooking_panel_on_left else available.x - width - 12.0
+		panel.offset_right = width + 12.0 - available.x if cooking_panel_on_left else -12.0
+	else:
+		panel.offset_left = side
+		panel.offset_right = -side
+	panel_dim.color.a = 0.16 if beside_fire else 0.65
+	panel.offset_top = vertical
+	panel.offset_bottom = -vertical
 
 func controls_orientation() -> String:
 	var available = root.get_viewport_rect().size
@@ -669,13 +877,20 @@ func controls_layout() -> Dictionary:
 
 func restore_controls(value: Variant) -> void:
 	if value is Dictionary:
+		var ranges := {
+			"scale": Vector2(0.75, 2.0),
+			"quickslot_scale": Vector2(QUICKSLOT_SIZE_MIN, QUICKSLOT_SIZE_MAX),
+			"x": Vector2(0.0, 1.0),
+			"y": Vector2(0.0, 1.0),
+		}
 		for orientation in ["landscape", "portrait"]:
 			if not value.get(orientation) is Dictionary: continue
 			var entry: Dictionary = {}
-			for key in ["scale", "x", "y"]:
+			for key in ranges:
 				var number: Variant = value[orientation].get(key)
 				if (number is float or number is int) and is_finite(float(number)):
-					entry[key] = clampf(float(number), .75 if key == "scale" else 0.0, 2.0 if key == "scale" else 1.0)
+					var limits: Vector2 = ranges[key]
+					entry[key] = clampf(float(number), limits.x, limits.y)
 			control_layouts[orientation] = entry
 	_layout_controls()
 
@@ -696,14 +911,45 @@ func _layout_controls() -> void:
 	var available = root.get_viewport_rect().size
 	var entry = controls_layout()
 	# Reserve the bottom dock and keep every scaled touch target inside the screen.
-	var room = Vector2(maxf(1.0, available.x - 24.0), maxf(1.0, available.y - 116.0))
+	var reserved_height := 24.0 + 92.0 * maxf(1.0, hud.scale.y)
+	var room = Vector2(maxf(1.0, available.x - 24.0), maxf(1.0, available.y - reserved_height))
 	var factor: float = minf(float(entry.get("scale", 1.25 if controls_orientation() == "landscape" else 1.0)), minf(room.x / 220.0, room.y / 248.0))
 	action_cluster.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	action_cluster.size = Vector2(220, 248)
 	action_cluster.scale = Vector2.ONE * factor
 	action_cluster.position = Vector2(12, 12) + (room - action_cluster.size * factor) * Vector2(float(entry.get("x", 1.0)), float(entry.get("y", 1.0)))
+	var quickslot_scale := float(entry.get("quickslot_scale", 1.0))
+	for slot in quickslot_buttons:
+		slot.scale = Vector2.ONE * quickslot_scale
 
-func setting_slider(title: String, minimum: float, maximum: float, step: float, value: float, suffix: String, changed: Callable) -> void:
+func add_size_sliders(hud_minimum: int, menu_minimum: int, maximum: int) -> void:
+	_hud_size_slider = setting_slider("HUD 크기", hud_minimum, maximum, 1, hud_size_percent, "%", func(value: float):
+		set_hud_size(roundi(value))
+		if not is_instance_valid(_dragged_size_slider):
+			hud_size_committed.emit(hud_size_percent))
+	_menu_size_slider = setting_slider("메뉴 UI 크기", menu_minimum, maximum, 1, menu_size_percent, "%", func(value: float):
+		set_menu_size(roundi(value))
+		if not is_instance_valid(_dragged_size_slider):
+			menu_size_committed.emit(menu_size_percent))
+	_hud_size_slider.accessibility_name = "HUD 크기"
+	_menu_size_slider.accessibility_name = "메뉴 UI 크기"
+	for slider: HSlider in [_hud_size_slider, _menu_size_slider]:
+		slider.scrollable = false
+		slider.drag_started.connect(func(): _dragged_size_slider = slider)
+		slider.drag_ended.connect(func(_changed: bool): _finish_size_drag())
+
+func _finish_size_drag() -> void:
+	if not is_instance_valid(_dragged_size_slider):
+		return
+	var menu_drag := _dragged_size_slider == _menu_size_slider
+	_dragged_size_slider = null
+	if menu_drag:
+		_layout_overlay()
+		menu_size_committed.emit(menu_size_percent)
+	else:
+		hud_size_committed.emit(hud_size_percent)
+
+func setting_slider(title: String, minimum: float, maximum: float, step: float, value: float, suffix: String, changed: Callable) -> HSlider:
 	var caption = label("%s  %d%s" % [title, roundi(value), suffix], 15, INK, true)
 	content.add_child(caption)
 	var slider = HSlider.new()
@@ -717,6 +963,7 @@ func setting_slider(title: String, minimum: float, maximum: float, step: float, 
 		caption.text = "%s  %d%s" % [title, roundi(number), suffix]
 		changed.call(number))
 	content.add_child(slider)
+	return slider
 
 func update_mei_nameplate(screen_position: Vector2, shown: bool) -> void:
 	if mei_nameplate_anchor.visible != shown:
@@ -750,7 +997,7 @@ func open_shop(entries: Array, inventory: Dictionary, money: int, selling: bool,
 	shop_view.selling = selling
 	shop_view.trade_requested.connect(func(action: Dictionary, quantity: int): trade.call(action, quantity, shop_view.selling))
 	shop_view.close_requested.connect(close_panel)
-	overlay.add_child(shop_view)
+	menu_views.add_child(shop_view)
 
 func _clear_quests() -> void:
 	if is_instance_valid(quest_view):
@@ -762,10 +1009,10 @@ func open_quests(entries: Array, show_map: Callable) -> void:
 	open_panel("퀘스트")
 	panel.hide()
 	quest_view = preload("res://scripts/quest_view.gd").new()
-	quest_view.quests = entries
+	quest_view.quests = entries.duplicate(true)
 	quest_view.close_requested.connect(close_panel)
 	quest_view.map_requested.connect(show_map)
-	overlay.add_child(quest_view)
+	menu_views.add_child(quest_view)
 
 func _clear_inventory() -> void:
 	if is_instance_valid(inventory_view):
@@ -784,4 +1031,4 @@ func open_inventory(entries: Array, money: int, selected_id: String, action: Cal
 	inventory_view.equipment_requested.connect(equipment)
 	inventory_view.craft_requested.connect(craft)
 	inventory_view.close_requested.connect(close_panel)
-	overlay.add_child(inventory_view)
+	menu_views.add_child(inventory_view)

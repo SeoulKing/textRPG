@@ -1,4 +1,4 @@
-[gd_resource type="TileSet" format=3 uid="uid://bnix6utp3wyqw"]
+[gd_resource type="TileSet" load_steps=29 format=3 uid="uid://bnix6utp3wyqw"]
 
 [ext_resource type="Texture2D" uid="uid://cchnn48tyjbjw" path="res://art/export/walls/assembled-wall-atlas.res" id="1_lgtog"]
 

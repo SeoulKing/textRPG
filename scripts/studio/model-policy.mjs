@@ -1,6 +1,8 @@
 const FALLBACK = { profile: 'standard', model: 'gpt-6.1-terra', reasoningEffort: 'medium', reason: '모델 정책이 없는 이전 원장의 호환 기본값입니다.' };
 const MODELS = new Set(['gpt-6-luna', 'gpt-6.1-terra', 'gpt-6.1-sol']);
-const EFFORTS = new Set(['low', 'medium', 'high', 'xhigh']);
+const EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'ultra']);
+const modelId = (value) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/.test(value);
+const effortId = (value) => typeof value === 'string' && /^[a-z][a-z0-9_-]{0,31}$/.test(value);
 const nonempty = (value) => typeof value === 'string' && value.trim().length > 0;
 
 export function validateModelPolicy(settings, organizations) {
@@ -14,6 +16,16 @@ export function validateModelPolicy(settings, organizations) {
   for (const [name, profile] of Object.entries(policy.profiles)) {
     if (!/^[a-z][a-z0-9-]*$/.test(name) || !profile || !MODELS.has(profile.model) || !EFFORTS.has(profile.reasoningEffort)) {
       throw new Error('절약 정책의 모델과 추론 강도를 확인해 주세요: ' + name);
+    }
+  }
+  if (policy.departmentDefaults !== undefined) {
+    if (!policy.departmentDefaults || typeof policy.departmentDefaults !== 'object' || Array.isArray(policy.departmentDefaults)) {
+      throw new Error('부서별 기본 모델 설정을 확인해 주세요.');
+    }
+    for (const [role, entry] of Object.entries(policy.departmentDefaults)) {
+      if (!organizations.includes(role) || !entry || !modelId(entry.model) || !effortId(entry.reasoningEffort)) {
+        throw new Error('부서별 기본 모델과 추론 강도를 확인해 주세요: ' + role);
+      }
     }
   }
   for (const organization of organizations) {
@@ -38,6 +50,10 @@ export function resolveExecution(board, task = null, phase = 'producer') {
   }
   const producerProfile = task?.modelProfile ?? policy.organizations[task?.organization];
   const inherited = phase === 'reviewer' && producerProfile === 'critical' ? 'critical' : undefined;
+  const departmentDefault = policy.departmentDefaults?.[role];
+  if (override === undefined && inherited === undefined && departmentDefault) {
+    return { role, profile: 'department-default', ...departmentDefault, reason: '사용자가 설정한 담당 부서의 기본 배정입니다.' };
+  }
   const name = override ?? inherited ?? policy.organizations[role];
   if (!Object.hasOwn(policy.profiles, name)) throw new Error('정의되지 않은 모델 프로필입니다: ' + name);
   if (inherited && override === undefined) reason = task.modelReason;
@@ -46,4 +62,29 @@ export function resolveExecution(board, task = null, phase = 'producer') {
 
 export function codexModelArgs(execution) {
   return ['--model', execution.model, '--config', 'model_reasoning_effort=' + JSON.stringify(execution.reasoningEffort)];
+}
+
+// Picker choices come from the authenticated app-server, never a guessed model list.
+export function modelCatalog(models = []) {
+  return models.filter((item) => !item.hidden).flatMap((item) => {
+    const model = item.model ?? item.id;
+    const reasoningEfforts = [...new Set((item.supportedReasoningEfforts ?? [])
+      .map((entry) => entry.reasoningEffort ?? entry.effort).filter(effortId))];
+    if (!modelId(model) || !reasoningEfforts.length) return [];
+    return [{ model, displayName: item.displayName || model, reasoningEfforts,
+      defaultReasoningEffort: reasoningEfforts.includes(item.defaultReasoningEffort) ? item.defaultReasoningEffort : reasoningEfforts[0] }];
+  });
+}
+
+export function setDepartmentDefault(board, role, selection, organizations) {
+  if (!organizations.includes(role) || !selection || !modelId(selection.model) || !effortId(selection.reasoningEffort)) {
+    throw new Error('부서와 모델 설정을 확인해 주세요.');
+  }
+  board.settings.modelPolicy ??= {
+    profiles: { standard: { model: FALLBACK.model, reasoningEffort: FALLBACK.reasoningEffort } },
+    organizations: Object.fromEntries(organizations.map((id) => [id, 'standard'])),
+  };
+  board.settings.modelPolicy.departmentDefaults ??= {};
+  board.settings.modelPolicy.departmentDefaults[role] = { model: selection.model, reasoningEffort: selection.reasoningEffort };
+  validateModelPolicy(board.settings, organizations);
 }

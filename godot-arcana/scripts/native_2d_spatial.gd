@@ -14,6 +14,7 @@ var dash_pending=false
 var charge_vfx: Node2D
 var flame_bursts: Array[Node2D] = []
 const AimOverlay = preload("res://scripts/spell_aim_overlay.gd")
+const AIMED_SPELLS = ["fireball", "flame_wave", "meteor", "giant_fireball"]
 const CONFIG = preload("res://art/export/combat-layout.json")
 var main
 var layout: Dictionary = {}
@@ -368,8 +369,30 @@ func _update_cast(delta: float, active: bool, paused: bool) -> void:
 
 func _aim_slot(point: Vector2) -> String:
 	for i in range(main.ui.quickslot_buttons.size()):
-		if main.ui.quickslot_bindings[i] in ["fireball","flame_wave","meteor","giant_fireball"] and main.ui.quickslot_buttons[i].get_global_rect().has_point(point): return main.ui.quickslot_bindings[i]
+		if main.ui.quickslot_bindings[i] in AIMED_SPELLS and main.ui.quickslot_buttons[i].get_global_rect().has_point(point): return main.ui.quickslot_bindings[i]
 	return ""
+
+func _preview_auto_aim_spell() -> String:
+	if aim_owner != -1:
+		return aim_spell if not manual and can_cast(aim_spell) else ""
+	var hovered := _aim_slot(main.get_viewport().get_mouse_position())
+	if not hovered.is_empty():
+		return hovered if can_cast(hovered) else ""
+	for command: String in main.ui.quickslot_bindings:
+		if command in AIMED_SPELLS and can_cast(command):
+			return command
+	return ""
+
+func _update_target_outline(active: bool, paused: bool) -> void:
+	var outlined := false
+	if active and not paused and (not main.online_world or main.combat_socket.socket_ready):
+		var command := _preview_auto_aim_spell()
+		if not command.is_empty():
+			var targets := _visible_targets(command)
+			# The world renderer presents the primary enemy from the combat snapshot.
+			var displayed_id := str(_spatial().get("primaryEnemyId", "slime_0"))
+			outlined = not targets.is_empty() and str(targets[0].id) == displayed_id
+	main.world_renderer.set_slime_target_outline(outlined)
 
 func _input(event: InputEvent) -> void:
 	if not available(): return
@@ -383,7 +406,7 @@ func _input(event: InputEvent) -> void:
 	var handled = false
 	if event is InputEventKey and not event.echo:
 		var keys = [KEY_1,KEY_2,KEY_3,KEY_4]
-		if event.physical_keycode in keys and main.ui.quickslot_bindings[keys.find(event.physical_keycode)] in ["fireball","flame_wave","meteor","giant_fireball"]:
+		if event.physical_keycode in keys and main.ui.quickslot_bindings[keys.find(event.physical_keycode)] in AIMED_SPELLS:
 			if event.pressed and aim_owner == -1: _begin(-3,main.get_viewport().get_mouse_position(),event.physical_keycode,main.ui.quickslot_bindings[keys.find(event.physical_keycode)])
 			elif not event.pressed and aim_owner == -3 and aim_key == event.physical_keycode: _finish()
 			handled = true
@@ -485,6 +508,7 @@ func _process(delta: float) -> void:
 			_request(command.command,false,command.direction,command.get("origin",Vector2.INF),command.get("endpoint",Vector2.INF),command.get("shotId",""),int(command.get("movementSequence",0)),command.get("target",Vector2.INF))
 		elif not main.online_world and not request_busy and _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or _battle().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=sync_interval) or connection_lost):
 			_request("spatial_sync",paused or connection_lost)
+	_update_target_outline(active, paused)
 	_render(delta,active,false if main.online_world else paused)
 
 func _restore_result_panel() -> void:

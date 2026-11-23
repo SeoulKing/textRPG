@@ -88,12 +88,26 @@ func _ready() -> void:
 	rebuild()
 
 func _fit() -> void:
-	var viewport_size = get_viewport_rect().size
+	var viewport_size := get_parent_area_size()
 	var margin = maxf(12.0, (viewport_size.x - 760.0) * 0.5)
 	offset_left = margin
 	offset_right = -margin
 	offset_top = 12
 	offset_bottom = -12
+
+func sync_slime_progress(kills: int) -> void:
+	for quest in quests:
+		if quest.id != "arcana_inn_slimes" or quest.status != "active": continue
+		var objectives: Array = quest.get("objectives", [])
+		if objectives.is_empty(): return
+		var objective: Dictionary = objectives[0]
+		var required: int = int(objective.amount)
+		var current := clampi(kills, 0, required)
+		if current != int(objective.ownedAmount):
+			objective.ownedAmount = current
+			quest.readyToReport = current >= required
+			rebuild()
+		return
 
 func rebuild() -> void:
 	for child in rows.get_children():

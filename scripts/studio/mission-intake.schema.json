@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["reply", "kind", "mode", "goal", "tasks", "existingGoalId"],
+  "properties": {
+    "reply": { "type": "string", "minLength": 1 },
+    "kind": { "type": "string", "enum": ["discussion", "instruction"] },
+    "mode": { "type": "string", "enum": ["new_goal", "existing_goal", "none"] },
+    "goal": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["title", "summary", "scope", "acceptance"],
+          "properties": {
+            "title": { "type": "string", "minLength": 1 },
+            "summary": { "type": "string", "minLength": 1 },
+            "scope": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["read", "write"],
+              "properties": {
+                "read": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+                "write": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+              }
+            },
+            "acceptance": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "tasks": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["localId", "title", "organization", "playerChange", "dependsOn", "scope", "capabilities", "checks", "acceptance", "surface", "productionMethod"],
+        "properties": {
+          "localId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$" },
+          "title": { "type": "string", "minLength": 1 },
+          "organization": { "type": "string", "enum": ["director", "design", "narrative", "world", "character", "development", "quality"] },
+          "playerChange": { "type": "string", "minLength": 1 },
+          "dependsOn": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "scope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["read", "write"],
+            "properties": {
+              "read": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "write": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+            }
+          },
+          "capabilities": { "type": "array", "minItems": 1, "items": { "type": "string", "enum": ["static", "code", "content", "ui", "art", "export", "test", "browser", "publish"] } },
+          "checks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "acceptance": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "surface": { "type": "string", "enum": ["cli", "app"] },
+          "productionMethod": { "type": ["string", "null"], "enum": ["blender", "pixelpen", "godot", null] }
+        }
+      }
+    },
+    "existingGoalId": { "type": ["string", "null"], "minLength": 1 }
+  }
+}

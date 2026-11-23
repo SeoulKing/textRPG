@@ -1,4 +1,4 @@
-import { awardSlimeLoot, performSlimeQuest, SLIME_QUEST_ID, slimeQuestProgress } from "./arcana-economy";
+import { awardSlimeLoot, performFishQuest, performSlimeQuest, SLIME_QUEST_ID, slimeQuestProgress } from "./arcana-economy";
 import { buildArcanaShopActions, tradeArcanaShop } from "./arcana-shop";
 import { investSkillTree, resetSkillTree, normalizeFireballTraining } from "./arcana-skill-tree";
 import { equipArcanaSkill, trainArcanaSkill, equippedArcanaSkill } from "./arcana-skill-training";
@@ -98,6 +98,10 @@ export function performArcanaAction(state: GameState, action: Command) {
   const c = state.arcanaCombat;
   if (!usesArcanaStats(state) || state.isGameOver || state.subwayExpedition.active || state.npcDialogue.active) throw new Error("현재는 평원 전투 행동을 할 수 없습니다.");
   if (action.command === "accept_slime_quest" || action.command === "claim_slime_quest") { performSlimeQuest(state, action.command === "claim_slime_quest"); return; }
+  if (action.command === "accept_fish_quest" || action.command === "claim_fish_quest") {
+    performFishQuest(state, action.command === "claim_fish_quest");
+    return;
+  }
   if (action.command === "dev_sofa_rest") {
     if (process.env.NODE_ENV === "production") throw new Error("개발 환경에서만 사용할 수 있습니다.");
     if (state.location !== "arcana_inn" || c.battle) throw new Error("전투를 마친 뒤 여관 로비의 소파에서 쉬어 주세요.");

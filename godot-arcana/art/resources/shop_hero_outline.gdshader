@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, cull_disabled;
+render_mode unshaded, cull_disabled, depth_prepass_alpha;
 
 uniform sampler2D avatar_texture : source_color, filter_nearest, repeat_disable;
 uniform vec4 model_ink : source_color = vec4(0.207843, 0.176471, 0.250980, 1.0);
@@ -17,6 +17,9 @@ void fragment() {
 		avatar = vec4(model_ink.rgb, step(0.5, adjacent) * model_ink.a);
 	}
 	ALBEDO = mix(avatar.rgb, vec3(1.0), flash * 0.6) * COLOR.rgb;
-	ALPHA = avatar.a * COLOR.a;
-	ALPHA_SCISSOR_THRESHOLD = 0.5;
+	// Keep the silhouette in the depth/shadow pass and draw its color after world edges.
+	if (avatar.a * COLOR.a < 0.5) {
+		discard;
+	}
+	ALPHA = 1.0;
 }

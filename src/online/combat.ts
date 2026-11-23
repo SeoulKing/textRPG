@@ -2,16 +2,39 @@ import crypto from "node:crypto";
 import { spatialLayout, sweptCircle, circleIntersectsCone, spatialMove, spatialWall, spatialRoute } from "../game/arcana-spatial";
 import { ARCANA_SPELLS, isArcanaSpell, effectiveSpell, spellMagnitude, spendSpell, tickSpellTimers, absorbArcanaDamage, castFlameGuard, clearFlameGuard } from "../game/arcana-spells";
 import { GAME_HOUR_MS } from "../game/base-data";
+import { awardSlimeLoot } from "../game/arcana-economy";
 import { trainArcanaSkill } from "../game/arcana-skill-training";
 import { fireballSpecialization } from "../game/arcana-skill-tree";
 import { OnlineError } from "./accounts";
-import { inField, type Actor, type Point, type SharedWorld, type WorldEvent, type Shot } from "./model";
+import { inField, type Actor, type Point, type SharedEnemy, type SharedWorld, type WorldEvent, type Shot } from "./model";
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
 const copy=(p:Point)=>({...p});
 const mix=(a:Point,b:Point,t:number)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
-export function newEnemy() {
+const SLIME_RECOVERY_SECONDS = 1.2;
+const SLIME_LEAP_WINDUP = 3;
+const SLIME_LEAP_MIN_RANGE = 18;
+const SLIME_HIT_WALL_PROBE = 0.1;
+const SLIME_HOP_DURATION = 0.32;
+const SLIME_HOP_REST = 0.45;
+const SLIME_FLEE_HEALTH_FRACTION = 1 / 3;
+const SLIME_FLEE_DISTANCE = 24;
+const SLIME_FLEE_DURATION = 0.44;
+const SLIME_CONTACT_DAMAGE = 3;
+const SLIME_CONTACT_INTERVAL_MS = 1000;
+type SlimeAction = NonNullable<SharedEnemy["slimeAction"]>;
+
+export function slimeActionTiming(action: SharedEnemy["slimeAction"]) {
+  switch (action) {
+    case "leap": return { windupDuration: SLIME_LEAP_WINDUP, actionDuration: spatialLayout().tuning.jumpDuration, recoveryDuration: SLIME_RECOVERY_SECONDS };
+    case "hop": return { actionDuration: SLIME_HOP_DURATION };
+    case "flee": return { actionDuration: SLIME_FLEE_DURATION };
+    default: return {};
+  }
+}
+
+export function newEnemy(): SharedEnemy {
   const home=copy(spatialLayout().home);
-  return {id:"slime_0",lifeId:crypto.randomUUID(),position:copy(home),home,hp:30,maxHp:30,attackIn:6,behavior:"neutral" as const,jumpFrom:copy(home),jumpTo:copy(home),jumpHit:false,jumpElapsed:0,targetLocked:false,rewarded:false,respawnAt:0,contribution:{},targetId:null};
+  return {id:"slime_0",lifeId:crypto.randomUUID(),position:copy(home),home,hp:30,maxHp:30,attackIn:6,behavior:"neutral",jumpFrom:copy(home),jumpTo:copy(home),jumpHit:false,jumpElapsed:0,recoveryElapsed:0,hopCooldown:0,hasFled:false,targetLocked:false,rewarded:false,respawnAt:0,contribution:{},targetId:null};
 }
 export function newWorld():SharedWorld {return {id:"main",revision:0,elapsedMs:0,updatedAt:Date.now(),enemy:newEnemy(),projectiles:[],meteors:[],barrages:[],events:[]};}
 export function event(world:SharedWorld,kind:WorldEvent["kind"],position:Point,extra:Partial<WorldEvent>={}) {
@@ -25,7 +48,7 @@ function projectile(world:SharedWorld,actor:Actor,id:"fireball"|"giant_fireball"
   world.projectiles.push(shot);
   event(world,"cast",actor.position,{actorId:actor.character.id,projectileId:shot.id,direction:shot.direction,clientActionId});
 }
-export type Death = {lifeId:string;winnerId:string;money:number;xp:number};
+export type Death = {lifeId:string;winnerId:string} & NonNullable<WorldEvent["rewards"]>;
 /** Strategy boundary for future boss encounters: distribute actual HP damage, never overkill. */
 export function rewardShares(kind:"normal"|"boss",lastHit:string,contribution:Record<string,number>,total:number) {
   if (kind==="normal") return {[lastHit]:total};
@@ -45,9 +68,9 @@ function damage(world:SharedWorld,actor:Actor,amount:number,deaths:Death[],extra
   if(e.behavior==="neutral") {e.behavior="chase";e.attackIn=spatialLayout().tuning.attackInterval;}
   if(e.hp===0 && !e.rewarded) {
     e.rewarded=true;e.respawnAt=Date.now();
-    deaths.push({lifeId:e.lifeId,winnerId:actor.character.id,money:30,xp:0});
-    actor.game.state.money+=30;
-    event(world,"enemy_down",e.position,{actorId:actor.character.id,enemyId:e.id,rewards:{money:30,xp:0}});
+    const rewards = awardSlimeLoot(actor.game.state);
+    deaths.push({lifeId:e.lifeId,winnerId:actor.character.id,...rewards});
+    event(world,"enemy_down",e.position,{actorId:actor.character.id,enemyId:e.id,rewards});
   }
   return dealt;
 }
@@ -92,6 +115,216 @@ export function cast(world:SharedWorld,actor:Actor,command:string,aim:Point|unde
     } else projectile(world,actor,command,aim,spellMagnitude(state,command),undefined,clientActionId);
   }
 }
+function chooseSlimeAction(enemy: SharedEnemy, target: Actor) {
+  const tuning = spatialLayout().tuning;
+  const gap = distance(enemy.position, target.position);
+  const attackReady = enemy.attackIn <= SLIME_LEAP_WINDUP;
+  const leapIdeal = (SLIME_LEAP_MIN_RANGE + tuning.jumpRange) / 2;
+  const fleeTo = !enemy.hasFled && enemy.hp <= enemy.maxHp * SLIME_FLEE_HEALTH_FRACTION
+    ? fleeEndpoint(enemy, target.position) : undefined;
+  const scores: { action: SlimeAction; score: number; destination?: Point }[] = [
+    { action: "flee", score: fleeTo ? 1 : 0, destination: fleeTo },
+    { action: "leap", score: attackReady && gap >= SLIME_LEAP_MIN_RANGE && gap <= tuning.jumpRange
+      && spatialWall(enemy.position, target.position, tuning.enemyRadius) === null
+      ? 0.48 + 0.38 * Math.max(0, 1 - Math.abs(gap - leapIdeal) / Math.max(1, leapIdeal - SLIME_LEAP_MIN_RANGE)) : 0 },
+    { action: "hop", score: enemy.hopCooldown <= 0 ? 0.25 : 0 },
+  ];
+  const best = scores.reduce((current, option) => option.score > current.score ? option : current);
+  return best.score > 0 ? best : undefined;
+}
+
+function leapEndpoint(position: Point, target: Point): Point {
+  const { jumpRange } = spatialLayout().tuning;
+  const length = distance(position, target);
+  return landingEndpoint(position, mix(position, target, Math.min(1, jumpRange / Math.max(.001, length))));
+}
+
+function landingEndpoint(position: Point, end: Point): Point {
+  const obstacle = spatialWall(position, end, spatialLayout().tuning.enemyRadius);
+  if (obstacle === null) return end;
+  // Slime movement interpolates a straight segment to the landing point.
+  return mix(position, end, Math.max(0, obstacle - .75 / Math.max(.75, distance(position, end))));
+}
+
+function hopEndpoint(position: Point, target: Point): Point {
+  const { jumpRange, enemyRadius } = spatialLayout().tuning;
+  const gap = distance(position, target);
+  if (gap > jumpRange || spatialWall(position, target, enemyRadius) !== null) {
+    return landingEndpoint(position, spatialRoute(position, target, 16, enemyRadius));
+  }
+  const heading = gap > .001 ? { x: (target.x - position.x) / gap, y: (target.y - position.y) / gap } : { x: 0, y: 1 };
+  const inward = gap < SLIME_LEAP_MIN_RANGE ? -4 : 4;
+  for (const side of [1, -1]) {
+    const end = { x: position.x + heading.x * inward - heading.y * 14 * side, y: position.y + heading.y * inward + heading.x * 14 * side };
+    if (spatialWall(position, end, enemyRadius) === null) return end;
+  }
+  return copy(position);
+}
+
+function fleeEndpoint(enemy: SharedEnemy, target: Point): Point | undefined {
+  const { chaseLimit } = spatialLayout().tuning;
+  const start = enemy.position;
+  const gap = distance(start, target);
+  const heading = gap > .001 ? Math.atan2(start.y - target.y, start.x - target.x) : Math.PI / 2;
+  const homeLimit = Math.max(chaseLimit, distance(start, enemy.home));
+  for (const turn of [0, Math.PI / 4, -Math.PI / 4, Math.PI / 2.5, -Math.PI / 2.5]) {
+    const angle = heading + turn;
+    const end = landingEndpoint(start, {
+      x: start.x + Math.cos(angle) * SLIME_FLEE_DISTANCE,
+      y: start.y + Math.sin(angle) * SLIME_FLEE_DISTANCE,
+    });
+    const retreatGap = distance(end, target);
+    if (retreatGap >= gap + SLIME_FLEE_DISTANCE / 3 && retreatGap <= chaseLimit
+      && distance(end, enemy.home) <= homeLimit) return end;
+  }
+  return undefined;
+}
+
+function canReceiveSlimeHit(actor: Actor) {
+  return actor.disconnectedAt === null && inField(actor) && actor.game.state.arcanaCombat.hp > 0;
+}
+
+function touchesSlime(from: Point, to: Point, actor: Actor, radius: number) {
+  const at = sweptCircle(from, to, actor.previous, actor.position, radius);
+  return at !== null
+    && spatialWall(mix(from, to, at), mix(actor.previous, actor.position, at), SLIME_HIT_WALL_PROBE) === null;
+}
+
+function hitPlayer(world: SharedWorld, target: Actor, amount: number, awardEvadeTraining = true) {
+  const state = target.game.state;
+  // A resolved attack takes priority over body contact in the same tick.
+  target.slimeContactReadyAtMs = world.elapsedMs + SLIME_CONTACT_INTERVAL_MS;
+  if (state.arcanaCombat.evadeSeconds > 0) {
+    if (awardEvadeTraining) trainArcanaSkill(state, state.arcanaCombat.evadeSkill, 10);
+    event(world, "evade", target.position, { targetPlayerId: target.character.id });
+    return;
+  }
+  const result = absorbArcanaDamage(state, amount);
+  if (result.absorbed) event(world, "absorb", target.position, { amount: result.absorbed, targetPlayerId: target.character.id });
+  if (result.hurt) event(world, "hurt", target.position, { amount: result.hurt, targetPlayerId: target.character.id });
+  if (state.arcanaCombat.hp <= 0) {
+    state.arcanaCombat.hp = 30;
+    clearFlameGuard(state);
+    target.position = copy(spatialLayout().spawn);
+    target.previous = copy(target.position);
+    target.place = { location: "arcana_plaza", interior: "", floor: 0 };
+    state.location = "arcana_plaza";
+    delete world.enemy.contribution[target.character.id];
+    event(world, "defeat", target.position, { targetPlayerId: target.character.id });
+  }
+}
+
+function tickSlimeContact(world: SharedWorld, actors: Map<string, Actor>, before: Point, radius: number) {
+  const enemy = world.enemy;
+  if (enemy.hp <= 0 || enemy.behavior === "return") return;
+  for (const actor of actors.values()) {
+    if (canReceiveSlimeHit(actor) && world.elapsedMs >= (actor.slimeContactReadyAtMs ?? 0)
+      && touchesSlime(before, enemy.position, actor, radius)) {
+      hitPlayer(world, actor, SLIME_CONTACT_DAMAGE, false);
+    }
+  }
+}
+
+function finishSlimeAction(enemy: SharedEnemy, target: Actor | undefined) {
+  enemy.slimeAction = undefined;
+  enemy.behavior = target ? "chase" : "return";
+  enemy.recoveryElapsed = 0;
+  enemy.jumpHit = false;
+  enemy.targetLocked = false;
+}
+
+function tickSlime(world: SharedWorld, actors: Map<string, Actor>, seconds: number) {
+  const enemy = world.enemy;
+  if (enemy.hp <= 0 || enemy.behavior === "neutral") return;
+  const tuning = spatialLayout().tuning;
+  const candidates = [...actors.values()]
+    .filter(actor => canReceiveSlimeHit(actor)
+      && distance(actor.position, enemy.position) <= tuning.chaseLimit && enemy.contribution[actor.character.id] > 0)
+    .sort((a, b) => enemy.contribution[b.character.id] - enemy.contribution[a.character.id] || a.character.id.localeCompare(b.character.id));
+  const target = enemy.targetLocked ? candidates.find(actor => actor.character.id === enemy.targetId) : candidates[0];
+  if (!enemy.targetLocked) enemy.targetId = target?.character.id ?? null;
+  enemy.hopCooldown = Math.max(0, enemy.hopCooldown - seconds);
+  if (!target && !enemy.targetLocked && (enemy.behavior === "chase" || enemy.behavior === "prepare")) {
+    finishSlimeAction(enemy, undefined);
+  }
+
+  if (enemy.behavior === "return") {
+    enemy.position = spatialRoute(enemy.position, enemy.home, tuning.returnSpeed * seconds, tuning.enemyRadius);
+    if (distance(enemy.position, enemy.home) < .5) {
+      enemy.position = copy(enemy.home);
+      enemy.hp = enemy.maxHp;
+      enemy.behavior = "neutral";
+      enemy.contribution = {};
+      enemy.attackIn = tuning.attackInterval;
+      enemy.hopCooldown = 0;
+      enemy.hasFled = false;
+      event(world, "reset", enemy.position);
+    }
+    return;
+  }
+
+  const action = enemy.slimeAction ?? "leap";
+  if (enemy.behavior !== "attack" || action !== "leap") {
+    enemy.attackIn = Math.max(0, enemy.attackIn - seconds);
+  }
+  if (enemy.behavior === "recover") {
+    enemy.recoveryElapsed = Math.min(SLIME_RECOVERY_SECONDS, enemy.recoveryElapsed + seconds);
+    if (enemy.recoveryElapsed >= SLIME_RECOVERY_SECONDS) finishSlimeAction(enemy, target);
+    return;
+  }
+  if (enemy.behavior === "prepare") {
+    if (action === "leap" && !enemy.targetLocked && target) {
+      enemy.jumpTo = leapEndpoint(enemy.position, target.position);
+      if (enemy.attackIn <= 1) enemy.targetLocked = true;
+    }
+    if (enemy.attackIn > 0) return;
+    enemy.behavior = "attack";
+    enemy.jumpElapsed = 0;
+    return;
+  }
+  if (enemy.behavior === "attack") {
+    const duration = slimeActionTiming(action).actionDuration ?? tuning.jumpDuration;
+    const before = enemy.position;
+    enemy.jumpElapsed = Math.min(duration, enemy.jumpElapsed + seconds);
+    enemy.position = mix(enemy.jumpFrom, enemy.jumpTo, enemy.jumpElapsed / duration);
+    if (action === "leap" && target && !enemy.jumpHit
+      && touchesSlime(before, enemy.position, target, tuning.enemyRadius + tuning.playerRadius)) {
+      enemy.jumpHit = true;
+      hitPlayer(world, target, 5);
+    }
+    if (enemy.jumpElapsed >= duration) {
+      if (action !== "leap") {
+        enemy.hopCooldown = SLIME_HOP_REST;
+        finishSlimeAction(enemy, target);
+      } else {
+        enemy.behavior = "recover";
+        enemy.recoveryElapsed = 0;
+        enemy.attackIn = tuning.attackInterval - duration;
+        enemy.targetLocked = false;
+        enemy.jumpHit = false;
+      }
+    }
+    return;
+  }
+  if (!target) return;
+  const next = chooseSlimeAction(enemy, target);
+  if (!next) return;
+  enemy.slimeAction = next.action;
+  enemy.jumpFrom = copy(enemy.position);
+  enemy.jumpTo = copy(enemy.position);
+  enemy.jumpElapsed = 0;
+  enemy.jumpHit = false;
+  if (next.action === "leap") {
+    enemy.jumpTo = leapEndpoint(enemy.position, target.position);
+    enemy.attackIn = SLIME_LEAP_WINDUP;
+    enemy.behavior = "prepare";
+  } else {
+    enemy.jumpTo = next.destination ?? hopEndpoint(enemy.position, target.position);
+    enemy.hasFled ||= next.action === "flee";
+    enemy.behavior = "attack";
+  }
+}
+
 export function tickCombat(world:SharedWorld,actors:Map<string,Actor>,seconds:number,deaths:Death[]) {
   const t=spatialLayout().tuning,e=world.enemy;
   for(const actor of actors.values()) {
@@ -100,52 +333,10 @@ export function tickCombat(world:SharedWorld,actors:Map<string,Actor>,seconds:nu
     c.mp=Math.min(30,c.mp+seconds*1000/GAME_HOUR_MS*12);
   }
   if(e.hp<=0 && Date.now()>=e.respawnAt) {world.enemy=newEnemy();event(world,"reset",world.enemy.position);return;}
-  const candidates=[...actors.values()].filter(a=>inField(a) && a.game.state.arcanaCombat.hp>0 && distance(a.position,e.position)<=t.chaseLimit && e.contribution[a.character.id]>0).sort((a,b)=>(e.contribution[b.character.id]||0)-(e.contribution[a.character.id]||0) || a.character.id.localeCompare(b.character.id));
-  const target=candidates[0];
-  e.targetId=target?.character.id || null;
   const before=copy(e.position);
-  if(e.hp>0) {
-    if(!target && e.behavior!=="neutral") {e.behavior="return";e.targetLocked=false;}
-    if(e.behavior==="return") {
-      e.position=spatialRoute(e.position,e.home,t.returnSpeed*seconds,t.enemyRadius);
-      if(distance(e.position,e.home)<.5) {e.position=copy(e.home);e.hp=e.maxHp;e.behavior="neutral";e.contribution={};e.attackIn=t.attackInterval;event(world,"reset",e.position);}
-    } else if(target) {
-      if(e.behavior!=="attack") {
-        e.attackIn=Math.max(0,e.attackIn-seconds);
-        if(e.attackIn>3) {e.behavior="chase";if(distance(e.position,target.position)>t.jumpRange*.75)e.position=spatialRoute(e.position,target.position,t.chaseSpeed*seconds,t.enemyRadius);}
-        else {
-          e.behavior="prepare";
-          if(!e.targetLocked) {
-            e.jumpFrom=copy(e.position);
-            const length=distance(e.position,target.position), destination=mix(e.position,target.position,Math.min(1,t.jumpRange/Math.max(.001,length)));
-            e.jumpTo=spatialMove(e.position,destination,t.enemyRadius);
-            if(e.attackIn<=1)e.targetLocked=true;
-          }
-          if(e.attackIn<=0) {e.behavior="attack";e.jumpElapsed=0;e.jumpHit=false;}
-        }
-      }
-      if(e.behavior==="attack") {
-        e.jumpElapsed=Math.min(t.jumpDuration,e.jumpElapsed+seconds);
-        e.position=mix(e.jumpFrom,e.jumpTo,e.jumpElapsed/t.jumpDuration);
-        if(!e.jumpHit && sweptCircle(before,e.position,target.previous,target.position,t.enemyRadius+t.playerRadius)!==null) {
-          e.jumpHit=true;
-          if(target.game.state.arcanaCombat.evadeSeconds>0) {trainArcanaSkill(target.game.state,target.game.state.arcanaCombat.evadeSkill,10);event(world,"evade",target.position,{targetPlayerId:target.character.id});}
-          else {
-            const result=absorbArcanaDamage(target.game.state,5);
-            if(result.absorbed)event(world,"absorb",target.position,{amount:result.absorbed,targetPlayerId:target.character.id});
-            if(result.hurt)event(world,"hurt",target.position,{amount:result.hurt,targetPlayerId:target.character.id});
-            if(target.game.state.arcanaCombat.hp<=0) {
-              target.game.state.arcanaCombat.hp=30;clearFlameGuard(target.game.state);
-              target.position=copy(spatialLayout().spawn);target.previous=copy(target.position);target.place={location:"arcana_plaza",interior:"",floor:0};
-              target.game.state.location="arcana_plaza";delete e.contribution[target.character.id];
-              event(world,"defeat",target.position,{targetPlayerId:target.character.id});
-            }
-          }
-        }
-        if(e.jumpElapsed>=t.jumpDuration) {e.behavior="chase";e.attackIn=t.attackInterval-t.jumpDuration;e.targetLocked=false;e.jumpHit=false;}
-      }
-    }
-  }
+  const wasReturning = e.behavior === "return";
+  tickSlime(world, actors, seconds);
+  if (!wasReturning) tickSlimeContact(world, actors, before, t.enemyRadius + t.playerRadius);
   for(const meteor of [...world.meteors]) {
     meteor.remaining-=seconds;
     if(meteor.remaining<=0) {

@@ -2379,6 +2379,52 @@
       ],
       "has_collision": true,
       "interaction_policy": "Choose Node2D variants ending _2d for the native 2D world; Node3D variants are retained model authoring resources."
+    },
+    {
+      "id": "academy-shared/reagent-cabinet",
+      "region": "academy-shared",
+      "category": "storage",
+      "asset_name": "reagent-cabinet",
+      "label": "학교 약초·시약 보관장",
+      "scene": "res://scenes/props/academy-shared/storage/reagent-cabinet.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/herb-cabinet.png"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "PracticeReagentCabinet",
+      "has_collision": true,
+      "interaction_policy": "장식용입니다. 기존 미술과 발점·충돌을 재사용하며 상호작용 ID는 없습니다."
+    },
+    {
+      "id": "academy-shared/specimen-stand",
+      "region": "academy-shared",
+      "category": "tables",
+      "asset_name": "specimen-stand",
+      "label": "학교 유리병·관측 표본대",
+      "scene": "res://scenes/props/academy-shared/tables/specimen-stand.tscn",
+      "root_type": "Sprite2D",
+      "texture_resources": [
+        "res://art/export/shop-2d/potion-island.png"
+      ],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "PracticeSpecimenStand",
+      "has_collision": true,
+      "interaction_policy": "장식용입니다. 기존 미술과 발점·충돌을 재사용하며 상호작용 ID는 없습니다."
+    },
+    {
+      "id": "academy-shared/study-light",
+      "region": "academy-shared",
+      "category": "lighting",
+      "asset_name": "study-light",
+      "label": "학교 고정 학습 조명",
+      "scene": "res://scenes/props/academy-shared/lighting/study-light.tscn",
+      "root_type": "PointLight2D",
+      "texture_resources": [],
+      "source_scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "source_node": "Academy_floor_lamp53/StudyLight",
+      "has_collision": false,
+      "interaction_policy": "장식용입니다. 기존 미술과 발점·충돌을 재사용하며 상호작용 ID는 없습니다."
     }
   ],
   "notes": [

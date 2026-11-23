@@ -17,6 +17,9 @@ const Pixels = preload("res://scripts/pixel_art.gd")
 const Art = preload("res://scripts/art_library.gd")
 const Fountain = preload("res://scripts/fountain_spec.gd")
 const Shop2D = preload("res://scripts/shop_layout_2d.gd")
+const InnTileLayout = preload("res://scripts/inn_tile_layout.gd")
+const RestaurantTileLayout = preload("res://scripts/restaurant_tile_layout.gd")
+const BenchMotion = preload("res://scripts/bench_motion.gd")
 var shop_layout: Dictionary = {}
 const TILE = 16
 
@@ -115,8 +118,6 @@ var bench_stalled = 0.0
 var bench_wants_stand = false
 var bench_destination = Vector2.ZERO
 var bench_has_destination = false
-const BENCH_SIT_DURATION = .52
-const BENCH_STAND_DURATION = .42
 var direction = 0
 var anim = 0.0
 var time = 0.0
@@ -168,6 +169,7 @@ var effects_layer: Node2D
 var camera_follow = SPAWN
 var camera_player_position = SPAWN
 var player_gait = 0.0
+var player_move_strength := 0.0
 var traveler_gait = 0.0
 var traveler_facing = "south"
 var footstep_distance = 0.0
@@ -402,21 +404,23 @@ func nearest_walkable(point: Vector2) -> Vector2:
 		# Saved positions from the older city use a separate coordinate range.
 		if _can_stand(spawn_position): return spawn_position
 	var distance = INF
-	var cells := _navigation_region(TILE) if indoor.is_empty() else Rect2i(0, 0, 24, 21)
+	var tiled_room: bool = indoor in ["arcana_inn", "arcana_restaurant"]
+	var sample_step: int = 4 if tiled_room else TILE
+	var cells := _navigation_region(sample_step) if indoor.is_empty() or tiled_room else Rect2i(0, 0, 24, 21)
 	for y in range(cells.position.y, cells.end.y):
 		for x in range(cells.position.x, cells.end.x):
-			var at = Vector2(x*TILE+8,y*TILE+8)
+			var at := (Vector2(x, y) + Vector2.ONE * 0.5) * sample_step
 			if _can_stand(at) and at.distance_squared_to(point) < distance:
 				distance = at.distance_squared_to(point)
 				best = at
 	return best
 
 func _rebuild_grid() -> void:
-	# Academy furniture leaves walkable aisles narrower than the default 16px grid.
-	# Refine this interior only; outdoor and other interior navigation stay unchanged.
-	var academy_navigation: bool = indoor == "arcana_academy"
-	var cell_step: int = 4 if academy_navigation else TILE
-	var cells := Rect2i(0, 0, 96, 88) if academy_navigation else _navigation_region(cell_step)
+	# Use smaller steps in narrow aisles and around doorway and tile edges.
+	var legacy_detailed_interior: bool = indoor in ["arcana_academy", "arcana_home"]
+	var detailed_interior := legacy_detailed_interior or indoor in ["arcana_inn", "arcana_restaurant"]
+	var cell_step: int = 4 if detailed_interior else TILE
+	var cells := Rect2i(0, 0, 96, 88) if legacy_detailed_interior else _navigation_region(cell_step)
 	grid.region = cells
 	grid.cell_size = Vector2(cell_step, cell_step)
 	grid.offset = grid.cell_size * .5
@@ -428,12 +432,18 @@ func _rebuild_grid() -> void:
 			grid.set_point_solid(point, not _can_stand(grid.get_point_position(point)))
 
 func _navigation_region(cell_step: int) -> Rect2i:
-	if indoor.is_empty() and uses_plaza_v2():
-		var bounds := outside_walk_bounds()
-		var first := Vector2i((bounds.position / cell_step).floor())
-		var end := Vector2i((bounds.end / cell_step).ceil())
-		return Rect2i(first, end - first)
-	return Rect2i(Vector2i.ZERO, OUTDOOR_CELLS)
+	var bounds: Rect2
+	if indoor == "arcana_inn":
+		bounds = InnTileLayout.WALK_BOUNDS
+	elif indoor == "arcana_restaurant":
+		bounds = RestaurantTileLayout.WALK_BOUNDS
+	elif indoor.is_empty() and uses_plaza_v2():
+		bounds = outside_walk_bounds()
+	else:
+		return Rect2i(Vector2i.ZERO, OUTDOOR_CELLS)
+	var first := Vector2i((bounds.position / cell_step).floor())
+	var end := Vector2i((bounds.end / cell_step).ceil())
+	return Rect2i(first, end - first)
 
 func _update_entrance_contact() -> void:
 	var contact: Dictionary = {}
@@ -453,6 +463,9 @@ func _can_stand(pos: Vector2) -> bool:
 	if indoor == "arcana_shop": return Shop2D.can_stand(shop_layout,pos)
 	if indoor == "":
 		if not outside_walk_bounds().has_point(pos): return false
+	elif indoor in ["arcana_inn", "arcana_restaurant"]:
+		var bounds := InnTileLayout.WALK_BOUNDS if indoor == "arcana_inn" else RestaurantTileLayout.WALK_BOUNDS
+		if pos.x < bounds.position.x or pos.x > bounds.end.x or pos.y < bounds.position.y or pos.y > bounds.end.y: return false
 	else:
 		if pos.x < 30 or pos.x > 350 or pos.y < 30 or pos.y > 326: return false
 	for rect in obstacles:
@@ -489,6 +502,9 @@ func walk_to(pos: Vector2) -> void:
 				pos = entity.pos
 				break
 	var from = Vector2i(player_position / grid.cell_size.x)
+	if indoor == "arcana_restaurant":
+		# The walkable perimeter includes its edge, outside the last cell center.
+		from = from.clamp(grid.region.position, grid.region.end - Vector2i.ONE)
 	var to = Vector2i(pos / grid.cell_size.x)
 	if not grid.is_in_boundsv(to) or grid.is_point_solid(to):
 		var found = false
@@ -542,7 +558,8 @@ func _process(delta: float) -> void:
 	var input_strength = minf(motion.length(),1.0)
 	motion = (input_projection*motion).normalized()*input_strength
 	# Discard long suspension gaps rather than jumping through obstacles on resume.
-	var movement_budget = WALK_SPEED * (3.0 if developer_speed_boost else 1.0) * minf(delta, .05)
+	var full_step := WALK_SPEED * (3.0 if developer_speed_boost else 1.0) * minf(delta, .05)
+	var movement_budget := full_step
 	if not bench_state.is_empty() and (indoor!=str(bench_entity.get("seat_room","")) or (not battle.is_empty() and (not battle.get("online",false) or battle.get("selfCombat",false)))): clear_bench()
 	if enabled:
 		if motion.length()>.01:
@@ -606,6 +623,7 @@ func _process(delta: float) -> void:
 	player.position = (player_position * 2).round() / 2
 	var facing = ["south","north","west","east"][direction]
 	var traveled = player_position.distance_to(before_motion)
+	player_move_strength = clampf(traveled / full_step, 0.0, 1.0) if full_step > 0.0 else 0.0
 	player_gait = _animate_actor(player,walking,facing,traveled,player_gait)
 	if walking and effects_enabled and not reduced_motion:
 		footstep_distance += traveled
@@ -633,11 +651,13 @@ func _process(delta: float) -> void:
 		if dist < closest and dist < float(entity.get("interaction_radius",34.0)):
 			closest = dist
 			nearest = entity
-	if nearest.is_empty() and bench_state.is_empty() and not river_cast_target().is_empty():
-		nearest = {"id":"river_fishing","name":"강 낚시","kind":"fishing","pos":player_position,"interaction_radius":26.0}
+	if nearest.is_empty() and bench_state.is_empty() and not water_cast_target().is_empty():
+		nearest = _fishing_interaction()
 	if enabled and bench_state.is_empty() and not clicked_interaction_id.is_empty():
+		var target_exists := false
 		for entity in entities:
 			if entity.id != clicked_interaction_id: continue
+			target_exists = true
 			if player_position.distance_to(entity.pos) < float(entity.get("interaction_radius",34.0)):
 				clicked_interaction_id = ""
 				path.clear()
@@ -645,6 +665,9 @@ func _process(delta: float) -> void:
 				interacted.emit(entity)
 			elif path.is_empty(): clicked_interaction_id = ""
 			break
+		if not target_exists:
+			clicked_interaction_id = ""
+			path.clear()
 	if bench_pose_active(): nearest = bench_entity
 	for p in footsteps: p.life -= delta if enabled else 0.0
 	footsteps = footsteps.filter(func(p): return p.life > 0)
@@ -762,7 +785,7 @@ func _animate_actor(actor: AnimatedSprite2D, moving: bool, facing: String, dista
 	return phase
 
 func bench_pose_active() -> bool:
-	return bench_state in ["sit","seated","stand"]
+	return BenchMotion.has_pose(bench_state)
 
 func clear_bench() -> void:
 	if bench_state=="approach": path.clear()
@@ -778,7 +801,7 @@ func sit_on_bench(entity: Dictionary) -> bool:
 	if not enabled or casting or dash_age>=0 or teleport_age>=0: return false
 	if not battle.is_empty() and (not battle.get("online",false) or battle.get("selfCombat",false)): return false
 	if indoor!=str(entity.get("seat_room","")): return false
-	if entity.get("kind","") not in ["bench","inn_sofa","inn_chair"] or not entity.get("seat_visual") is Vector2 or not _can_stand(entity.pos): return false
+	if entity.get("kind","") not in ["bench","inn_sofa","inn_chair","home_sofa"] or not entity.get("seat_visual") is Vector2 or not _can_stand(entity.pos): return false
 	clear_bench()
 	click_door_id = ""
 	path = _seat_route(entity.pos)
@@ -827,11 +850,11 @@ func stand_from_bench() -> void:
 func advance_bench(delta: float) -> void:
 	if not bench_pose_active(): return
 	bench_age += delta
-	if bench_state=="sit" and bench_age>=BENCH_SIT_DURATION:
+	if bench_state=="sit" and bench_age>=BenchMotion.SIT_DURATION:
 		bench_state = "seated"
 		bench_age = 0.0
 		if bench_wants_stand: stand_from_bench()
-	elif bench_state=="stand" and bench_age>=BENCH_STAND_DURATION:
+	elif bench_state=="stand" and bench_age>=BenchMotion.STAND_DURATION:
 		var resume = bench_has_destination
 		var destination_after_stand = bench_destination
 		var interaction_after_stand = clicked_interaction_id
@@ -849,15 +872,11 @@ func furniture_at(point: Vector2) -> Dictionary:
 	return {}
 
 func furniture_visual_position(point: Vector2, state: String, age: float, seat: Dictionary = {}) -> Vector2:
-	if state not in ["sit","seated","stand"]: return point
+	if not BenchMotion.has_pose(state): return point
 	# Remote players publish their walkable foot anchor; resolve its authored seat.
 	if seat.is_empty(): seat = furniture_at(point)
 	if seat.is_empty(): return point
-	var blend: float = 1.0
-	if state=="sit": blend = clampf(age/BENCH_SIT_DURATION,0,1)
-	elif state=="stand": blend = 1.0-clampf(age/BENCH_STAND_DURATION,0,1)
-	if reduced_motion: blend = 0.0 if state=="stand" else 1.0
-	return point.lerp(seat.seat_visual,smoothstep(0,1,blend))
+	return point.lerp(seat.seat_visual, BenchMotion.seated_weight(state, age, reduced_motion))
 
 func interact_with(entity: Dictionary) -> void:
 	if not enabled: return
@@ -882,12 +901,74 @@ func interact_with(entity: Dictionary) -> void:
 		path.clear()
 		nearest = entity
 		interacted.emit(entity)
+	elif entity.kind == "campfire":
+		# The logs occupy a blocked cell. Walk to a reachable cooking spot beside them.
+		click_door_id = ""
+		path = _campfire_approach(entity)
+		clicked_interaction_id = "" if path.is_empty() else str(entity.id)
+		if not path.is_empty(): _click_marker = path[-1]
 	else:
 		walk_to(entity.pos)
 		if not path.is_empty(): clicked_interaction_id = str(entity.id)
 
-func river_cast_target() -> Dictionary:
+func _campfire_approach(entity: Dictionary) -> PackedVector2Array:
+	var center: Vector2 = entity.pos
+	var radius := float(entity.interaction_radius)
+	var first := Vector2i(((center - Vector2.ONE * radius) / grid.cell_size).floor())
+	var last := Vector2i(((center + Vector2.ONE * radius) / grid.cell_size).floor())
+	var cells: Array[Vector2i] = []
+	for y in range(first.y, last.y + 1):
+		for x in range(first.x, last.x + 1):
+			var cell := Vector2i(x, y)
+			if not grid.is_in_boundsv(cell) or grid.is_point_solid(cell): continue
+			if grid.get_point_position(cell).distance_to(center) < radius: cells.append(cell)
+	cells.sort_custom(func(a, b): return player_position.distance_squared_to(grid.get_point_position(a)) < player_position.distance_squared_to(grid.get_point_position(b)))
+	var from_cell := Vector2i((player_position / grid.cell_size).floor())
+	if grid.is_in_boundsv(from_cell):
+		for cell in cells:
+			var route: PackedVector2Array = grid.get_point_path(from_cell, cell)
+			if route.is_empty(): continue
+			if route.size() > 1: route.remove_at(0)
+			return route
+	return PackedVector2Array()
+
+func _fishing_interaction() -> Dictionary:
+	var pond := uses_plaza_v2()
+	return {"id":"plaza_pond" if pond else "river_fishing", "name":"광장 연못 낚시" if pond else "강 낚시", "kind":"fishing", "pos":player_position}
+
+func pond_fishing_spot() -> Vector2:
+	if not indoor.is_empty() or not uses_plaza_v2(): return Vector2.INF
+	var water: Rect2 = layout.pond_water_bounds()
+	var shore := water.grow(TILE * 2.0)
+	var first := Vector2i((shore.position / grid.cell_size).floor())
+	var end := Vector2i((shore.end / grid.cell_size).ceil())
+	var cells := Rect2i(first, end - first).intersection(grid.region)
+	var closest := Vector2.INF
+	var best_distance := INF
+	for y in range(cells.position.y, cells.end.y):
+		for x in range(cells.position.x, cells.end.x):
+			var cell := Vector2i(x, y)
+			var feet: Vector2 = grid.get_point_position(cell)
+			var distance := feet.distance_squared_to(player_position)
+			if distance >= best_distance or grid.is_point_solid(cell) or not _can_stand(feet): continue
+			var cast: Dictionary = layout.cast_target(feet, feet.direction_to(water.get_center()))
+			if cast.is_empty() or feet.distance_to(Vector2(cast.x, cast.y)) > TILE * 2.0: continue
+			closest = feet
+			best_distance = distance
+	return closest
+
+func face_pond_from_bank(water_point: Vector2) -> bool:
+	if not enabled or not indoor.is_empty() or not uses_plaza_v2() or not bench_state.is_empty(): return false
+	if not layout.pond_water_at(water_point): return false
+	var heading: Vector2 = player_position.direction_to(water_point)
+	if layout.cast_target(player_position, heading).is_empty(): return false
+	last_move_direction = heading
+	interact_with(_fishing_interaction())
+	return true
+
+func water_cast_target() -> Dictionary:
 	if not indoor.is_empty() or layout == null: return {}
+	if uses_plaza_v2(): return layout.cast_target(player_position, last_move_direction)
 	var river = layout.get_node_or_null("Placements/RiverQuarter")
 	return river.cast_target(player_position,last_move_direction) if river != null else {}
 

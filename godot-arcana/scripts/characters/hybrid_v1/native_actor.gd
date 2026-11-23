@@ -4,7 +4,7 @@ extends Node2D
 ## presents the approved shared Skeleton3D and continuous Polygon2D parts.
 const Assembler = preload("res://scripts/characters/hybrid_v1/reference_character_assembler.gd")
 const ActionLibrary = preload("res://scripts/characters/hybrid_v1/action_pose_library.gd")
-const RodVisual = preload("res://scripts/fishing_rod_visual.gd")
+const BenchMotion = preload("res://scripts/bench_motion.gd")
 const ACTIONS = preload("res://art/characters/hybrid-v1/action-poses.tres")
 const SPEC = preload("res://art/resources/heroine_reference_spec.gd")
 const BUNDLE := "res://art/characters/hybrid-v1/assembly/parts.json"
@@ -45,6 +45,7 @@ var dash_age := -1.0
 var dash_yaw := 0.0
 var cast_age := -1.0
 var cast_yaw := 0.0
+var _fishing_cast_drive := 0.0
 var aim_facing := Vector2.ZERO
 var hurt_age := -1.0
 var hurt_direction := Vector2.ZERO
@@ -70,8 +71,9 @@ var _authored_cast := false
 var _action_from_cast := false
 var _previous_dash_age := -1.0
 var _contact_shadow: Polygon2D
+var _contact_shadow_base: PackedVector2Array
+var _contact_shadow_offset := Vector2.ZERO
 var _capture_anchor := Vector2(160,164)
-var _rod: RodVisual
 
 func _ready() -> void:
 	texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
@@ -100,15 +102,27 @@ func _ready() -> void:
 	_contact_shadow=Polygon2D.new();_contact_shadow.name="ContactShadow"
 	var shadow_points := PackedVector2Array()
 	for i in range(24):shadow_points.append(Vector2(cos(i*TAU/24)*17,sin(i*TAU/24)*7))
+	_contact_shadow_base = shadow_points
 	_contact_shadow.polygon=shadow_points;_contact_shadow.color=Color(0,0,0,0.18);_contact_shadow.z_index=-1
 	add_child(_contact_shadow)
-	_rod = RodVisual.new()
-	_rod.name = "EquippedRod"
-	# The shaft sits behind the shoulder, sleeves and head in all eight views.
-	_rod.z_index = 6
-	_rod.hide()
-	stage.add_child(_rod)
 	pose(0,0,false,Vector2.ZERO,true,false)
+
+func set_contact_shadow_offset(offset: Vector2) -> void:
+	if _contact_shadow_offset.is_equal_approx(offset):
+		return
+	_contact_shadow_offset = offset
+	if offset.is_zero_approx():
+		_contact_shadow.polygon = _contact_shadow_base
+		_contact_shadow.color = Color(0, 0, 0, 0.18)
+		return
+	# Keep the ground silhouette independent of the animated model's alpha.
+	var points := _contact_shadow_base.duplicate()
+	for point in _contact_shadow_base:
+		points.append(offset + point * 0.65)
+	var outline := Geometry2D.convex_hull(points)
+	outline.remove_at(outline.size() - 1)
+	_contact_shadow.polygon = outline
+	_contact_shadow.color = Color(0.13, 0.15, 0.21, 0.34)
 
 static func direction_for_yaw(world_yaw: float,view_yaw: float) -> int:
 	return posmod(roundi((world_yaw-view_yaw)/TAU*8.0),8)
@@ -138,9 +152,9 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,_pixelated: bool
 	if walking:
 		# World.player_gait advances by map distance * 0.20.
 		var distance := maxf(0.0,gait-previous_gait)*5.0 if use_gait_distance and was_walking else motion.length()
-		walk_phase=fposmod(walk_phase+distance/RUN_CYCLE_DISTANCE,1.0)
-		idle_age=0.0
-	else:idle_age+=delta
+		_advance_gait(distance, frame_delta)
+	# Keep breathing continuous across the idle/movement blend.
+	idle_age += delta
 	previous_gait=gait;was_walking=walking
 	var blend_duration := RUN_BLEND_IN if walking else RUN_BLEND_OUT
 	_movement_progress = move_toward(_movement_progress, 1.0 if walking else 0.0, delta / blend_duration)
@@ -164,8 +178,10 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,_pixelated: bool
 			_outgoing_pose = {}
 		else:
 			_outgoing_age = minf(ACTION_INTERRUPTION_BLEND, _outgoing_age + frame_delta)
-	_rod.hide()
 	update_hurt(delta,effects)
+
+func _advance_gait(distance: float, _delta: float) -> void:
+	walk_phase = fposmod(walk_phase + distance / RUN_CYCLE_DISTANCE, 1.0)
 
 func _present(clip: String,direction: int,phase: float,movement: float,progress: float=0.0,action: Dictionary={},fishing_pose: Vector3=Vector3.ZERO,rod_carry: float=0.0,visual_yaw: float=NAN) -> bool:
 	if not skeleton_ready:return false
@@ -196,10 +212,11 @@ func present_rod_carry(view_yaw: float) -> Variant:
 		return null
 	return _rod_grip()
 
-func present_fishing_pose(heading: Vector2, pose_angles: Vector3, rod_carry: float) -> Variant:
+func present_fishing_pose(heading: Vector2, pose_angles: Vector3, rod_carry: float, crank: float = 0.0, cast_drive: float = 0.0) -> Variant:
 	face_attack(heading)
 	display_direction = direction_for_yaw(last_yaw, camera_yaw)
-	if not _present("fishing", display_direction, 0.0, 0.0, 0.0, {}, pose_angles, rod_carry):
+	_fishing_cast_drive = cast_drive
+	if not _present("fishing", display_direction, 0.0, 0.0, crank, {}, pose_angles, rod_carry, last_yaw - camera_yaw):
 		return null
 	return _rod_grip()
 
@@ -207,27 +224,20 @@ func _rod_grip() -> Variant:
 	var wrist: Variant = assembler.art_points.get("wrist_r")
 	return wrist - _capture_anchor if wrist is Vector2 else null
 
-func shoulder_rod_vector(view_yaw: float, reduced: bool) -> Vector2:
-	var sway := 0.0 if reduced else sin(walk_phase * TAU * 2.0) * _movement_weight * 0.045
-	var shaft := Basis(Vector3.UP, view_yaw) * Vector3(-0.12, 0.46 + sway, -1.0) * 84.0
-	var projection := fixed_camera.unproject_position(shaft) - fixed_camera.unproject_position(Vector3.ZERO)
-	projection.y = minf(-28.0, projection.y)
-	return projection
-
-func draw_rod_behind_actor(grip: Vector2, tip: Vector2) -> void:
-	_rod.show_rod(grip + _capture_anchor, tip + _capture_anchor)
-
 func supports_bench_pose() -> bool:return skeleton_ready
-func set_bench_pose(state: String,age: float,reduced: bool) -> void:
-	bench_state=state;bench_age=age;bench_reduced=reduced
+func set_bench_pose(state: String, age: float, reduced: bool) -> void:
+	bench_state = state if BenchMotion.has_pose(state) else ""
+	bench_age = age
+	bench_reduced = reduced
+
 func apply_bench_pose() -> void:
-	if bench_state.is_empty():return
-	var amount := 1.0
-	if bench_state=="sit":amount=1.0 if bench_reduced else smoothstep(0,0.39,bench_age)
-	elif bench_state=="stand":amount=0.0 if bench_reduced else 1.0-smoothstep(0,0.315,bench_age)
-	display_direction=0;last_yaw=camera_yaw
-	_present("bench",0,0.0,0.0,amount)
-	_contact_shadow.visible=amount<0.5
+	if bench_state.is_empty():
+		return
+	var amount := BenchMotion.seated_weight(bench_state, bench_age, bench_reduced)
+	display_direction = 0
+	last_yaw = camera_yaw
+	_present("bench", 0, 0.0, 0.0, amount)
+	_contact_shadow.visible = amount < 0.5
 
 func face_attack(direction: Vector2) -> void:
 	if direction.length_squared()>0.00001:last_yaw=atan2(direction.x,direction.y)

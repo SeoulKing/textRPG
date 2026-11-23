@@ -1,0 +1,45 @@
+Arcana shop redesign concept — 2026-11-13
+Mode: built-in image_gen, reference-conditioned concept generation and one finish refinement.
+Status: pending explicit visual design approval; not a Godot render.
+
+=== Initial concept ===
+Use case: stylized-concept. Produce ONE polished redesign concept image of the Arcana daytime magical general store, for an actual Blender-to-Godot realtime 3D pixel-art production.
+
+INPUT ROLES:
+Image 1 is the current shop screenshot, the EDIT TARGET for room footprint, straight-on camera, five rear cabinets and central counter layout ONLY. Fully redesign the architecture and furniture appearance. Remove both people. Do not preserve its dense painted texture or baked highlights.
+Image 2, the user's forest/ruins screenshot, is the PRIMARY VISUAL STYLE AUTHORITY: restrained broad color planes, pale warm stone faces, blue-gray cool shaded faces, carefully selected thin bright convex edges, pixel clusters, dimensional but calm stylized realtime 3D rendering. Ignore its round watermark and corner interface. Do not copy its outdoor composition or rotated camera.
+Image 3 is the geometric projection guide and controls the projection of cuboids and circles.
+Images 4 and 5 are secondary construction/proportion guides ONLY, for readable furniture thickness and ground contact. Do not copy their assets, dense texture, heavy black outlining, or bright saturated palettes.
+
+COMPOSITION AND CAMERA:
+Single full-room gameplay composition, landscape approximately 3:2, tightly framed with the entire room visible. Roofless cutaway rectangular room, width 14 units and depth 9. Perfectly front-facing orthographic RPG camera, yaw 0 degrees, elevation 45 degrees above horizontal, roll 0. No perspective convergence. Back wall and every front horizontal edge are exactly horizontal; vertical posts stay vertical; floor depth recedes straight up the image. No diamond isometric view, no camera yaw, no vanishing point. Front-facing furniture shows front and top but not a fabricated large side face. Horizontal circles have projected height/width approximately 0.707. Pure black outside the room.
+
+FIXED LAYOUT:
+At the north/back wall exactly five distinct tall narrow cupboards in one evenly spaced row: two herb/apothecary cabinets on the left, one potion cabinet in the middle, two travel supply cabinets on the right. Approximate centers along room width at 3,5,7,9,11 units. ONE broad low trading counter centered at x=7, about 4 units from the back wall, separated from the cupboards by usable standing space. Counter top mostly clear. Entry is centered on the south/front edge, with a short limestone threshold. Preserve generous clear walking space from entrance to counter and around its two ends. Keep side/front walls low enough for clear visibility. A large physically credible window opening in the west/left wall is the main light source.
+
+NEW DESIGN:
+A refined but approachable daytime magical general store. Light warm limestone masonry, substantial simple pillars and stepped window molding, broad quiet surfaces with a few meaningful stone joints. Desaturated medium oak furniture with visibly thick tops, open shelf recesses, subtle chamfered edges and grounded bases. Large dark navy inset panels and a very small amount of muted brass celestial decoration concentrate interest on the counter and central cupboard. Avoid ornate gold filigree across every shelf. Herbs are grouped into restrained sage-green bundles and ceramic jars. Potions form readable groupings of a few bottle shapes in subdued teal, dusty blue, amber and violet. Travel goods are books, rolled parchment, folded cloth and compact satchels grouped with space between them. Do not add freestanding furniture that blocks the floor.
+Floor: ordered long oak planks with staggered joints, subdued grain appearing as sparse connected pixel clusters, low-contrast seams, broad coherent wood tones. Avoid uniformly thick dark outlines around planks. No rug, no tiled floor, no random debris.
+
+LIGHT AND MATERIAL:
+Treat this as the output of a carefully art-directed realtime 3D pixel renderer. West sunlight makes a broad pale-gold geometrical window-light patch leading across the floor toward the counter. Use a consistent light direction across floor, counter, cabinet shelves, stone and window molding. Large unlit areas are cool muted blue-gray while retaining each material's local color. 3–5 principal discrete tone steps per material. Shelf recesses and contact points give depth without becoming black voids. Counter top, front and shelf undersides must read as different planes. A few one-pixel pale convex edge accents show thickness; don't outline everything. No global sepia wash. No photorealistic PBR gloss, glossy bevels, depth of field, bloom, soft airbrushed shading, ambient fog or volumetric beams.
+
+PIXEL FINISH:
+Clean coherent square pixels and hard pixel-stepped boundaries throughout, comparable to image 2. Deliberate medium/large pixel clusters, consistent pixel scale, low detail density on broad surfaces, more detail only in grouped merchandise. The room should read from large shapes and lighting before texture. Preserve the sophisticated flat-shaded 3D pixel-art aesthetic of image 2, avoid a generic high-detail hand-painted pixel room or a smooth voxel toy render.
+
+DELIVERABLE:
+One single complete environment concept image. No people, no replacement character designs, no HUD, no written labels, no watermark, no palette sheet, no comparison panels. This is a visual target for approval, not a mock screenshot claiming code implementation.
+
+=== Finish refinement ===
+Use case: style-transfer refinement. EDIT image 1, the Arcana shop concept, keeping its exact camera, geometry, proportions, five-cabinet layout, counter silhouette, doors, window, merchandise placement, existing ornaments and unobstructed floor. This is one targeted finish correction, not a new design.
+
+Image 2 (forest/ruins) is the authoritative reference for the corrected pixel-art shading and palette relationships. Ignore its outdoor subject, perspective orientation, logo and interface. Images 3/4/5 remain projection and relative-proportion guides only, not style sources.
+
+Correct only the rendering and color treatment of image 1 to closely match image 2:
+- Replace soft continuous shading and polished toy-render gradients with clearly bounded, broad, restrained flat-shaded pixel color clusters, about 3–5 dominant tone steps per material.
+- Remove the global orange/sepia cast. Limestone lit planes should be pale low-saturation warm beige, shaded stone distinctly cool gray-blue. Oak should be subdued grayish medium honey-brown, shaded wood cool brown-gray; preserve warm sunlight as a SELECTIVE window patch rather than warmth everywhere.
+- Keep the exact window-light footprint and coherent light direction. Strong surface-plane separation (counter top vs front, shelf recesses) with a few thin pale light-facing convex edges and restrained dark occlusion. Foreground floor should not be evenly glowing orange.
+- Make genuine, consistent square pixel steps and intentional pixel clusters throughout the image, comparable to reference 2. Think a clean 768x512 game render displayed at exactly 2x nearest-neighbor, avoiding isolated grain/noise and extra microscopic textures. No blur or soft painterly brushwork.
+- Quiet the floor grain and retain the organized boards. Do not add harsh dark outlines around every board.
+- Keep all objects and geometry exactly as in image 1. Keep the five independent tall cupboards: left two herbs, center potions, right two travel goods; keep the single central counter, empty floor, front entrance and west window.
+- No people, HUD, text, watermark, extra panels or decorative objects. Pure black outside the room. One final full-room scene only.

@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-13",
+  "status": "archived",
+  "scope": "Shop Astra version: approved full-room redesign, reference area first",
+  "tool": "built-in image_gen",
+  "review_image": "concept-review.png",
+  "intermediate_image": "concept-base.png",
+  "user_style_reference": "user-style-reference.png",
+  "prompt_file": "prompts.txt",
+  "camera": {
+    "yaw_degrees": 0,
+    "elevation_degrees": 45,
+    "projection": "orthographic",
+    "note": "Design intent; generated image is not a measured camera projection."
+  },
+  "room": {
+    "width": 14,
+    "depth": 9,
+    "cabinets": {
+      "herb": 2,
+      "potion": 1,
+      "travel": 2
+    },
+    "counter": 1,
+    "entry": "south-center",
+    "sunlight": "west"
+  },
+  "preserve": [
+    "hybrid-v1 characters",
+    "gameplay IDs",
+    "trade/entry/collision positions"
+  ],
+  "references": [
+    "D:/BANG/project/textRPG/art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png",
+    "C:/Users/BANG/AppData/Local/Temp/codex-clipboard-97d898fd-958a-4c5b-ae6d-f829c18bd1fd.png",
+    "D:/BANG/project/textRPG/godot-arcana/art/reference/projection-lock/front-orthographic-45.png",
+    "D:/BANG/project/textRPG/docs/art-reference/stardew-projection/interior-furniture.png",
+    "D:/BANG/project/textRPG/docs/art-reference/stardew-projection/outdoors-summer.png"
+  ],
+  "validation": {
+    "image_review": "5 cabinets, centered counter, front entrance, left window, open floor; cooler shadows and quieter surfaces after refinement.",
+    "godot_editor": "Godot AI requires 4.7; used actual Godot 4.5.1 Compatibility offline art viewports instead. Full room and 78 percent captured.",
+    "runtime": "Astra output preserved. Source entry points returned to the previous shop.",
+    "approval": "2026-11-13: user explicitly approved this concept and authorized Blender/Godot reference area followed by full shop"
+  },
+  "next": "Keep Astra editable as an alternative. The user prefers the previous shop as the active version."
+}

@@ -1,4 +1,4 @@
-import { slimeQuestCard } from "./arcana-economy";
+import { fishQuestCard, slimeQuestCard } from "./arcana-economy";
 import { buildAcademyMap } from "./academy-navigation";
 import { academyKnownFacts } from "./academy-content";
 import { advanceConversation, conversationObstacle, interruptConversation } from "./text-world/conversation-flow";
@@ -2294,7 +2294,7 @@ export class GameService {
     };
 
     if (session.state.flags.in_magic_world) {
-      snapshot.quests.push({ ...slimeQuestCard(session.state), requirements: [] });
+      snapshot.quests.push({ ...slimeQuestCard(session.state), requirements: [] }, fishQuestCard(session.state));
       for (const item of [...snapshot.inventoryCards, ...snapshot.itemCatalog]) {
         if (item?.id === "manaPotion") { item.effects = { ...item.effects, mind: 20 }; item.useMinutes = 0; item.price = 10; }
       }

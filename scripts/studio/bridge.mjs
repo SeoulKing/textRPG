@@ -117,7 +117,7 @@ async function start() {
     state.updates[id] = value; saveState();
   };
   for (const [id, record] of Object.entries(state.processed)) {
-    if (record.status === 'running') updateCommand(id, 'needs_attention', { error: 'PC 연결 프로그램이 중단되었습니다. 기록을 확인한 뒤 새 지시로 재개해 주세요.' });
+    if (record.status === 'running' && !state.modelSettingsQueue?.some((entry) => entry.id === id)) updateCommand(id, 'needs_attention', { error: 'PC 연결 프로그램이 중단되었습니다. 기록을 확인한 뒤 새 지시로 재개해 주세요.' });
   }
   const sendMessage = (message) => { state.messages.push(message); saveState(); };
   const runtime = new BridgeRuntime({ root: ROOT, state, saveState, sendMessage, updateCommand });
@@ -135,6 +135,7 @@ async function start() {
           // Refresh is read-only; it never consumes a reset or starts a model turn.
           await runtime.refreshUsage();
         }
+        await runtime.tick();
         const snapshot = runtime.snapshot();
         const updates = Object.values(state.updates).slice(0, 20);
         const messages = state.messages.slice(0, 30);

@@ -3,47 +3,95 @@ extends Node3D
 const Hero = preload("res://scripts/characters/hybrid_v1/billboard_actor.gd")
 const Joystick = preload("res://scripts/virtual_joystick.gd")
 const PIXEL_SHADING = preload("res://art/resources/arcana_pixel_shading.gdshader")
+const SLIME_TARGET_OUTLINE = preload("res://art/resources/slime_target_outline.gdshader")
 const AssetMask = preload("res://scripts/shop_asset_mask.gd")
 const LiveLayout = preload("res://scripts/plaza_3d_game_layout.gd")
 const WorldDisplay = preload("res://scripts/services/world_display_settings.gd")
+const WorldPreset := preload("res://scripts/rendering/inn_shader_preset.gd")
+const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
+const PAVING_SHADER = preload("res://art/resources/plaza_approach_paving.gdshader")
 const WALK_SPEED := 3.0
 const PLAYER_RADIUS := 0.20
+const CAMERA_DISTANCE := 24.0
 const DEFAULT_VIEW_HEIGHT := 9.0
 const ZOOM_STEP := 1.12
 const MIN_ZOOM := 0.5 / ZOOM_STEP
 const MAX_ZOOM := 2.0
 const FOLLOW_RESPONSE := 28.0
+const HERO_CONTACT_SHADOW_HEIGHT := 0.78
+const SLIME_CROUCH := Vector3(1.23, 0.64, 1.23)
+const SLIME_STRETCH := Vector3(0.88, 1.19, 0.88)
+const SLIME_LANDING := Vector3(1.32, 0.54, 1.32)
+const SLIME_REBOUND := Vector3(0.97, 1.06, 0.97)
+const SLIME_JUMP_HEIGHT := 0.48
+const SLIME_HOP_HEIGHT := 0.20
+const SLIME_FLEE_HEIGHT := 0.12
+const SLIME_LANDING_FX_FRAME_SECONDS := 0.04
 
 var live_mode := false
 var camera_texel_offset := Vector2.ZERO
 
 @onready var player: CharacterBody3D = $Player
-@onready var hero: Hero = $Player/Hero
+var hero: Hero
 @onready var camera: Camera3D = $Camera3D
 @onready var joystick: Joystick = $Controls/Joystick
 @onready var ground: MeshInstance3D = $Ground
+@onready var pond_water: ShaderMaterial = $FishingPond/Water.get_active_material(0)
+@onready var sun: DirectionalLight3D = $Sun
+@onready var _default_shadow_distance := sun.directional_shadow_max_distance
+@onready var inn: Node3D = $Inn
 @onready var inn_door: Marker3D = $Inn/InteractionPoint
-@onready var inn_camera_focus: Marker3D = $Inn/CameraFocus
+@onready var _slime: Node3D = $MochiSlime
+@onready var _slime_rest: Transform3D = _slime.transform
+@onready var _slime_landing_fx: Sprite3D = $SlimeLandingFX
 
 var _zoom := 1.0
 var _elapsed := 0.0
+var _pond_ripples := true
 var _gait := 0.0
 var _camera_center := Vector2.ZERO
 var _follow_center := Vector2.ZERO
 var _reset_live_camera := true
+var _last_visible_raster := Vector2.ZERO
 var _ground_half_size := Vector2.ZERO
+var _ground_center := Vector2.ZERO
+var _projected_live_bounds := Rect2()
+var _live_depth_bounds := Vector2(INF, -INF)
+var _live_highest_point := 0.0
+var _visual_building_meshes := {}
 var _touches: Dictionary[int, Vector2] = {}
 var _pinch_distance := 0.0
 var _asset_mask: AssetMask
+var _door_lights: Dictionary[OmniLight3D, float] = {}
+var _approved_preset: WorldPreset
+var _pixel_effect: Node3D
 var _standalone_presentation: ShaderMaterial
 var _presentation_minimum := 2
+var _slime_airborne := false
+var _slime_landing_fx_age := 0.0
+var _slime_body_material: ShaderMaterial
+var _slime_outline_material: ShaderMaterial
+
+
+func _enter_tree() -> void:
+	if live_mode:
+		# Gameplay draws its own hero. Skip the standalone preview's rig and capture viewport.
+		var preview_hero := get_node_or_null("Player/Hero")
+		if preview_hero != null:
+			preview_hero.free()
 
 
 func _ready() -> void:
 	_ground_half_size = (ground.mesh as PlaneMesh).size * 0.5
-	hero.material.set_shader_parameter("editor_preview", true)
+	_ground_center = Vector2(ground.position.x, ground.position.z)
+	for light: OmniLight3D in [
+		$Shop/DoorFill, $Inn/DoorFill, $PlayerHome/DoorFill, $Restaurant/DoorFill, $Academy/DoorFill,
+	]:
+		_door_lights[light] = light.light_energy
+	_visual_building_meshes["arcana_restaurant"] = _visible_building_meshes($Restaurant)
+	_visual_building_meshes["arcana_academy"] = _visible_building_meshes($Academy)
+	_finish_approach_materials()
 	_apply_slime_shading()
-	_configure_screen_edges()
 	_camera_center = Vector2(player.position.x, player.position.z)
 	_follow_center = _camera_center
 	if live_mode:
@@ -52,7 +100,27 @@ func _ready() -> void:
 		set_physics_process(false)
 		set_process_input(false)
 		set_process_unhandled_input(false)
+		_approved_preset = WorldPreset.load_approved() as WorldPreset
+		camera.rotation_degrees = TileStyle.CAMERA_ROTATION_DEGREES
+		var floor_corner := _ground_center - _ground_half_size
+		var frame_bounds := AABB(Vector3(floor_corner.x, ground.position.y, floor_corner.y),
+			Vector3(_ground_half_size.x * 2.0, WorldPreset.AVATAR_HEIGHT, _ground_half_size.y * 2.0))
+		_projected_live_bounds = TileStyle.projected_bounds(camera.basis, frame_bounds)
+		_include_live_depth(frame_bounds)
+		for building: Node3D in [$Shop, $Inn, $PlayerHome, $Restaurant, $Academy]:
+			for instance: MeshInstance3D in _visible_building_meshes(building):
+				var mesh_bounds := instance.global_transform * instance.get_aabb()
+				var visible_bounds := TileStyle.projected_bounds(camera.basis, mesh_bounds)
+				_projected_live_bounds = _projected_live_bounds.merge(visible_bounds)
+				_include_live_depth(mesh_bounds)
+		$Camera3D/ScreenEdges.hide()
+		_apply_live_daylight()
+		var render_preset := _approved_preset.tile_world_variant() as WorldPreset
+		_pixel_effect = render_preset.attach_effect(self, camera)
 		return
+	hero = $Player/Hero
+	hero.material.set_shader_parameter("editor_preview", true)
+	_configure_screen_edges()
 	if get_parent() == get_tree().root:
 		get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 		$Controls.layer = 2
@@ -60,6 +128,20 @@ func _ready() -> void:
 		_standalone_presentation = WorldDisplay.attach_screen_presentation(self)
 	get_viewport().size_changed.connect(_update_camera)
 	_update_camera()
+
+
+func _apply_live_daylight() -> void:
+	# A camera override keeps the light palette local to the plaza view.
+	var environment := $WorldEnvironment.environment.duplicate() as Environment
+	environment.ambient_light_color = Color(0.78, 0.86, 1.0)
+	environment.ambient_light_energy = 0.41
+	camera.environment = environment
+	sun.light_color = Color(1.0, 0.94, 0.83)
+	sun.light_energy = 0.70
+
+
+func prepare_presentation_scale(zoom_ratio: float, _viewport_height: float) -> int:
+	return TileStyle.presentation_scale(zoom_ratio)
 
 
 func set_live_active(active: bool) -> void:
@@ -70,20 +152,148 @@ func set_live_active(active: bool) -> void:
 		camera.make_current()
 	else:
 		camera.clear_current(false)
-	_asset_mask.set_active(active)
+		_slime_airborne = false
+		_slime_landing_fx.hide()
+	if _pixel_effect != null:
+		_pixel_effect.set_effect_enabled(active and _approved_preset.effect_enabled)
+	elif _asset_mask != null:
+		_asset_mask.set_active(active)
 
 
-func sync_live(world_position: Vector2, zoom_ratio: float, visible_raster: Vector2, delta: float, immediate: bool) -> void:
+func sync_live(world_position: Vector2, zoom_ratio: float, visible_raster: Vector2, delta: float, immediate: bool, animate_environment: bool = true) -> void:
+	if _pond_ripples != animate_environment:
+		_pond_ripples = animate_environment
+		pond_water.set_shader_parameter("animate_ripples", animate_environment)
 	player.position = LiveLayout.to_world(world_position)
-	_zoom = clampf(zoom_ratio, MIN_ZOOM, MAX_ZOOM)
+	_update_door_lights(animate_environment)
+	_zoom = zoom_ratio
+	if visible_raster != _last_visible_raster:
+		_reset_live_camera = true
+		_last_visible_raster = visible_raster
 	_update_camera(visible_raster, delta, immediate or _reset_live_camera)
 	_reset_live_camera = false
 
 
-func sync_live_slime(world_position: Vector2, shown: bool) -> void:
-	var slime: Node3D = $MochiSlime
-	slime.position = LiveLayout.to_world(world_position)
-	slime.visible = shown
+func set_slime_target_outline(enabled: bool) -> void:
+	var outline: Material = _slime_outline_material if enabled else null
+	if _slime_body_material.next_pass != outline:
+		_slime_body_material.next_pass = outline
+
+
+func sync_live_slime(world_position: Vector2, shown: bool, battle: Dictionary,
+		jump_progress: float, animate: bool, delta: float) -> void:
+	_slime.visible = shown
+	if not shown:
+		_slime_airborne = false
+		_slime_landing_fx.hide()
+		return
+	var spatial: Dictionary = battle.get("spatial", {})
+	var behavior := str(spatial.get("behavior", "")) if battle.get("phase") == "battle" else ""
+	var action := str(spatial.get("slimeAction", "leap"))
+	var jump_from: Dictionary = spatial.get("jumpFrom", {})
+	var jump_to: Dictionary = spatial.get("jumpTo", {})
+	var start := Vector2(float(jump_from.get("x", world_position.x)), float(jump_from.get("y", world_position.y)))
+	var travel := Vector2(float(jump_to.get("x", start.x)), float(jump_to.get("y", start.y))) - start
+	var pose_scale := Vector3.ONE
+	var lift := 0.0
+	var lean := 0.0
+	var airborne := false
+	var landed := false
+	var recovery := 0.0
+	if behavior == "recover":
+		var duration := maxf(0.001, float(spatial.get("recoveryDuration", 1.0)))
+		recovery = clampf(float(spatial.get("recoveryElapsed", 0.0)) / duration, 0.0, 1.0)
+	if behavior == "prepare":
+		var windup := maxf(0.001, float(spatial.get("windupDuration", 3.0)))
+		var remaining := float(battle.get("attackIn", windup))
+		var crouch := 1.0 - smoothstep(windup * (0.35 / 3.0), windup, remaining) if animate else 1.0
+		pose_scale = Vector3.ONE.lerp(SLIME_CROUCH, crouch)
+		if animate and spatial.get("targetLocked", false):
+			lean = 0.22 * (1.0 - smoothstep(0.0, 1.0, remaining))
+	elif behavior in ["attack", "recover"]:
+		var progress := jump_progress if behavior == "attack" else 1.0
+		# The height arc shares the ground position's network interpolation.
+		if travel.length_squared() >= 1.0:
+			progress = clampf((world_position - start).dot(travel) / travel.length_squared(), 0.0, 1.0)
+		if action in ["hop", "flee"]:
+			if animate:
+				var arc := 4.0 * progress * (1.0 - progress)
+				if action == "flee":
+					lift = SLIME_FLEE_HEIGHT * arc
+					pose_scale = Vector3.ONE.lerp(SLIME_CROUCH, 0.5 * arc)
+					lean = 0.44 * arc
+				else:
+					lift = SLIME_HOP_HEIGHT * arc
+					pose_scale = Vector3.ONE.lerp(SLIME_STRETCH, 0.4 * arc)
+		elif behavior == "attack" or progress < 0.995:
+			airborne = true
+			if animate:
+				pose_scale = SLIME_CROUCH.lerp(SLIME_STRETCH, smoothstep(0.0, 0.26, progress))
+				pose_scale = pose_scale.lerp(SLIME_LANDING, smoothstep(0.64, 1.0, progress))
+				lift = SLIME_JUMP_HEIGHT * 4.0 * progress * (1.0 - progress)
+				lean = 0.22 * (1.0 - smoothstep(0.6, 1.0, progress))
+			else:
+				pose_scale = SLIME_STRETCH
+		else:
+			landed = _slime_airborne
+			if animate:
+				pose_scale = SLIME_LANDING.lerp(SLIME_REBOUND, smoothstep(0.18, 0.62, recovery))
+				pose_scale = pose_scale.lerp(Vector3.ONE, smoothstep(0.62, 1.0, recovery))
+			else:
+				pose_scale = SLIME_LANDING.lerp(Vector3.ONE, recovery)
+	var basis := _slime_rest.basis.scaled_local(pose_scale)
+	var heading := travel.normalized()
+	basis.y += Vector3(heading.x, 0.0, heading.y) * lean * basis.y.length()
+	var pose := Transform3D(basis, LiveLayout.to_world(world_position, _slime_rest.origin.y + lift))
+	if _slime.transform != pose: _slime.transform = pose
+	_slime_airborne = airborne
+	if not animate:
+		_slime_landing_fx.hide()
+	elif landed:
+		# Start on the same rendered frame as the squash. The burst stays at the contact point.
+		_slime_landing_fx.position = LiveLayout.to_world(start + travel, _slime_rest.origin.y + 0.04)
+		_slime_landing_fx_age = 0.0
+		_slime_landing_fx.frame = 0
+		_slime_landing_fx.show()
+	elif _slime_landing_fx.visible:
+		_slime_landing_fx_age += delta
+		var frame := int(_slime_landing_fx_age / SLIME_LANDING_FX_FRAME_SECONDS)
+		if frame < _slime_landing_fx.hframes:
+			_slime_landing_fx.frame = frame
+		else:
+			_slime_landing_fx.hide()
+
+
+func _update_door_lights(enabled: bool) -> void:
+	for light: OmniLight3D in _door_lights:
+		var energy: float = _door_lights[light]
+		if enabled:
+			# Measure from the threshold in the building's own facing direction.
+			var offset := light.to_local(player.global_position)
+			var distance := Vector2(offset.x * 1.5, offset.z).length()
+			var proximity := 1.0 - smoothstep(1.0, 4.0, distance)
+			var in_front := smoothstep(-0.8, 0.0, offset.z)
+			energy *= 1.0 + 0.8 * proximity * in_front
+		if not is_equal_approx(light.light_energy, energy):
+			light.light_energy = energy
+
+
+func contact_shadow_offset() -> Vector2:
+	if not sun.shadow_enabled:
+		return Vector2.ZERO
+	var light_direction := -sun.global_basis.z.normalized()
+	if light_direction.y >= 0.0:
+		return Vector2.ZERO
+	var cast_length := HERO_CONTACT_SHADOW_HEIGHT / maxf(-light_direction.y, 0.25)
+	return Vector2(light_direction.x, light_direction.z) * cast_length * Hero.SPEC.PIXELS_PER_UNIT
+
+
+func input_projection() -> Transform2D:
+	return _approved_preset.input_projection(camera)
+
+
+func overlay_height_scale() -> float:
+	return _approved_preset.projected_height_scale(camera)
 
 
 func canvas_projection() -> Transform2D:
@@ -107,11 +317,28 @@ func pick_interaction(point: Vector2, world: Node) -> Dictionary:
 	var direction := camera.project_ray_normal(point)
 	var shop_distance := _building_pick_distance($Shop/Collision/Footprint, origin, direction, 8.0)
 	var inn_distance := _building_pick_distance($Inn/Collision/Footprint, origin, direction)
-	if is_inf(minf(shop_distance, inn_distance)):
-		return {}
-	var building_id := "arcana_shop" if shop_distance <= inn_distance else "arcana_inn"
+	var closest := minf(shop_distance, inn_distance)
+	var target_id := "arcana_shop" if shop_distance <= inn_distance else "arcana_inn"
+	var home_distance := _building_pick_distance($PlayerHome/Collision/Footprint, origin, direction)
+	if home_distance < closest:
+		closest = home_distance
+		target_id = "arcana_home"
+	for id: String in _visual_building_meshes:
+		var distance := _visual_pick_distance(_visual_building_meshes[id], origin, direction)
+		if distance < closest:
+			closest = distance
+			target_id = id
+	# Dynamic campfires use the same ground anchors as their projected sprites.
 	for entity: Dictionary in world.entities:
-		if entity.id == building_id:
+		if entity.kind != "campfire": continue
+		var base := LiveLayout.to_world(entity.pos)
+		var hit: Variant = AABB(base - Vector3(0.55, 0.0, 0.55), Vector3(1.1, 0.8, 1.1)).intersects_ray(origin, direction)
+		if hit is Vector3 and origin.distance_squared_to(hit) < closest:
+			closest = origin.distance_squared_to(hit)
+			target_id = str(entity.id)
+	if is_inf(closest): return {}
+	for entity: Dictionary in world.entities:
+		if entity.id == target_id:
 			return entity
 	return {}
 
@@ -124,35 +351,88 @@ func _building_pick_distance(footprint: CollisionShape3D, origin: Vector3, direc
 	return origin.distance_squared_to(hit) if hit is Vector3 else INF
 
 
+func _visible_building_meshes(building: Node3D) -> Array[MeshInstance3D]:
+	var result: Array[MeshInstance3D] = []
+	for instance: MeshInstance3D in building.find_children("*", "MeshInstance3D", true, false):
+		if instance.mesh == null or not instance.is_visible_in_tree():
+			continue
+		if instance.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY:
+			result.append(instance)
+	return result
+
+
+func _visual_pick_distance(meshes: Array[MeshInstance3D], origin: Vector3, direction: Vector3) -> float:
+	var closest := INF
+	# Roof and facade geometry can be taller or wider than the separate walk footprint.
+	for instance in meshes:
+		var pose := instance.global_transform
+		var inverse := pose.affine_inverse()
+		var hit: Variant = instance.get_aabb().intersects_ray(inverse * origin, inverse.basis * direction)
+		if hit is Vector3:
+			closest = minf(closest, origin.distance_squared_to(pose * hit))
+	return closest
+
+
+func _finish_approach_materials() -> void:
+	var fountain_pos: Vector3 = $Fountain.global_position
+	var door_pos := inn_door.global_position
+	var route := Vector4(fountain_pos.x, fountain_pos.z, door_pos.x, door_pos.z)
+	for instance: MeshInstance3D in $StonePaving.find_children("*", "MeshInstance3D", true, false):
+		for surface in instance.mesh.get_surface_count():
+			var original := instance.get_active_material(surface) as BaseMaterial3D
+			if original == null:
+				continue
+			var paving := ShaderMaterial.new()
+			paving.shader = PAVING_SHADER
+			paving.set_shader_parameter("stone_color", original.albedo_color)
+			paving.set_shader_parameter("approach", route)
+			instance.set_surface_override_material(surface, paving)
+
+	# A lit oak frame around the inset door stays readable as the camera pulls back.
+	var entrance_colors := {"Oak trim": Color("#ad784c"), "Honeyed oak": Color("#895632"),
+		"Dark inset oak": Color("#503731"), "Pale hand-cut stone edges": Color("#dec49d")}
+	for instance: MeshInstance3D in $Inn/Exterior.find_children("*", "MeshInstance3D", true, false):
+		if instance.name not in [&"Oak guest door", &"Entrance arch and limestone step"]:
+			continue
+		for surface in instance.mesh.get_surface_count():
+			var original := instance.get_active_material(surface) as BaseMaterial3D
+			if original != null and entrance_colors.has(original.resource_name):
+				var trim := original.duplicate() as BaseMaterial3D
+				trim.albedo_color = entrance_colors[original.resource_name]
+				instance.set_surface_override_material(surface, trim)
+
+
 func _apply_slime_shading() -> void:
-	var slime: Node3D = $MochiSlime
 	# The exported vertex colors bake a continuous gradient over the source green.
-	var body_material := ShaderMaterial.new()
-	body_material.shader = PIXEL_SHADING
-	body_material.set_shader_parameter("paint", Color("659646"))
-	for mesh: MeshInstance3D in slime.find_children("*", "MeshInstance3D", true, false):
+	_slime_body_material = ShaderMaterial.new()
+	_slime_body_material.shader = PIXEL_SHADING
+	_slime_body_material.set_shader_parameter("paint", Color("659646"))
+	if live_mode:
+		_slime_outline_material = ShaderMaterial.new()
+		_slime_outline_material.shader = SLIME_TARGET_OUTLINE
+	for mesh: MeshInstance3D in _slime.find_children("*", "MeshInstance3D", true, false):
 		if mesh.mesh == null:
 			continue
 		for surface in mesh.mesh.get_surface_count():
 			var paint := mesh.get_active_material(surface) as BaseMaterial3D
 			if paint != null and paint.vertex_color_use_as_albedo:
-				mesh.set_surface_override_material(surface, body_material)
+				mesh.set_surface_override_material(surface, _slime_body_material)
 
 
 func _configure_screen_edges() -> void:
 	var edges: MeshInstance3D = $Camera3D/ScreenEdges
 	var material := edges.material_override as ShaderMaterial
-	if live_mode or get_parent() == get_tree().root:
+	if get_parent() == get_tree().root:
 		material.set_shader_parameter("screen_pixel_size", 1)
 	var view_direction: Vector3 = material.get_shader_parameter("highlight_direction")
-	var assets: Array[Node] = [$Shop/Exterior, $MochiSlime, $Inn]
+	var assets: Array[Node] = [$Shop/Exterior, $MochiSlime, $Inn, $PlayerHome]
 	var fountain_body := $Fountain/Model.find_child("FountainBody", true, false)
 	if fountain_body != null:
 		assets.append(fountain_body)
 	_asset_mask = AssetMask.new()
 	add_child(_asset_mask)
-	_asset_mask.setup_assets(assets, camera, material, [&"Exterior", &"MochiSlime", &"Inn", &"FountainBody"],
-		camera.global_basis * view_direction, $MochiSlime if live_mode else null)
+	_asset_mask.setup_assets(assets, camera, material, [&"Exterior", &"MochiSlime", &"Inn", &"FountainBody", &"PlayerHome"],
+		camera.global_basis * view_direction)
 
 
 func _physics_process(delta: float) -> void:
@@ -164,10 +444,12 @@ func _physics_process(delta: float) -> void:
 	input.y /= absf(camera.basis.z.y)
 	var previous := Vector2(player.position.x, player.position.z)
 	var bounds := _ground_half_size - Vector2.ONE * PLAYER_RADIUS
-	var destination := (previous + input.normalized() * strength * WALK_SPEED * delta).clamp(-bounds, bounds)
+	var destination := (previous + input.normalized() * strength * WALK_SPEED * delta).clamp(
+		_ground_center - bounds, _ground_center + bounds)
 	var motion := (destination - previous) / delta
 	player.velocity = Vector3(motion.x, 0.0, motion.y)
 	player.move_and_slide()
+	_update_door_lights(true)
 
 	var actual := Vector2(player.position.x, player.position.z) - previous
 	_elapsed += delta
@@ -180,7 +462,7 @@ func _pressed(primary: Key, alternate: Key) -> bool:
 	return Input.is_physical_key_pressed(primary) or Input.is_physical_key_pressed(alternate)
 
 
-func view_height(aspect: float, zoom_ratio: float) -> float:
+func _preview_view_height(aspect: float, zoom_ratio: float) -> float:
 	var pitch_sine := absf(camera.basis.z.y)
 	var fit_height := 2.0 * minf(_ground_half_size.x / aspect, _ground_half_size.y * pitch_sine)
 	var base_height := minf(DEFAULT_VIEW_HEIGHT, fit_height / ZOOM_STEP)
@@ -193,9 +475,11 @@ func _update_camera(visible_raster: Vector2 = Vector2.ZERO, delta: float = 0.0, 
 		return
 	var visible_size := visible_raster if visible_raster != Vector2.ZERO else viewport_size
 	var aspect := visible_size.x / visible_size.y
-	var pitch_sine := absf(camera.basis.z.y)
-	var height := view_height(aspect, _zoom)
-	var texel_size := height / visible_size.y
+	var texel_size: float
+	if live_mode:
+		texel_size = TileStyle.world_texel_size(_zoom)
+	else:
+		texel_size = _preview_view_height(aspect, _zoom) / visible_size.y
 	camera.size = texel_size * viewport_size.y
 	var effective_size := 1
 	if _standalone_presentation != null:
@@ -203,38 +487,88 @@ func _update_camera(visible_raster: Vector2 = Vector2.ZERO, delta: float = 0.0, 
 		effective_size = WorldDisplay.camera_pixel_size(_presentation_minimum, projected_actor_pixel)
 		if _standalone_presentation.get_shader_parameter("pixel_size") != effective_size:
 			_standalone_presentation.set_shader_parameter("pixel_size", effective_size)
-	var view_extents := Vector2(height * aspect, height / pitch_sine) * 0.5
-	var bounds := (_ground_half_size - view_extents).max(Vector2.ZERO)
-	var player_ground := Vector2(player.position.x, player.position.z)
-	var target := player_ground - Vector2(0.0, 0.5)
-	# Frame the facade on approach when the current zoom and aspect can fit it.
-	var door := to_local(inn_door.global_position)
-	var door_ground := Vector2(door.x, door.z)
-	var approach := 1.0 - smoothstep(1.5, 4.0, player_ground.distance_to(door_ground))
-	var front := smoothstep(-0.4, 0.0, player_ground.y - door_ground.y)
-	var room_to_frame := smoothstep(7.4, 8.2, height * aspect) * smoothstep(8.2, 8.8, height)
-	var focus := to_local(inn_camera_focus.global_position)
-	target = target.lerp(Vector2(focus.x, focus.z), approach * front * room_to_frame)
-	var dead_zone := Vector2(0.35, 0.45)
-	_follow_center = target if _reset_live_camera and live_mode else _follow_center.clamp(target - dead_zone, target + dead_zone)
-	_follow_center = _follow_center.clamp(-bounds, bounds)
-	if live_mode and not immediate:
-		# Ease into and out of follow before snapping the shared scene raster.
-		_camera_center = _camera_center.lerp(_follow_center, 1.0 - exp(-FOLLOW_RESPONSE * delta)).clamp(-bounds, bounds)
-		if _camera_center.distance_squared_to(_follow_center) < 0.00000001:
-			_camera_center = _follow_center
-	else:
-		_camera_center = _follow_center
-	var desired_position := Vector3(_camera_center.x, 0.0, _camera_center.y) + camera.basis.z * 24.0
+	var coverage := visible_size * texel_size
+	var focus := _live_camera_focus(coverage, delta, immediate) if live_mode else _preview_camera_focus(coverage)
+	var distance := _live_camera_distance(focus) if live_mode else CAMERA_DISTANCE
+	var desired_position := focus + camera.basis.z * distance
 	camera_texel_offset = Vector2.ZERO
-	if visible_raster != Vector2.ZERO:
+	if live_mode and not _approved_preset.effect_enabled:
+		camera.position = desired_position
+	elif visible_raster != Vector2.ZERO:
 		camera_texel_offset = WorldDisplay.snap_orthographic_camera(camera, desired_position, texel_size, viewport_size)
 	elif _standalone_presentation != null:
 		var residual := WorldDisplay.snap_orthographic_camera(camera, desired_position, texel_size * effective_size, viewport_size / effective_size)
 		_standalone_presentation.set_shader_parameter("pixel_offset", (residual * effective_size + Vector2.ONE * 0.5).floor())
 	else:
 		camera.position = desired_position
-	_asset_mask.sync()
+	if _pixel_effect != null:
+		_pixel_effect.sync()
+	elif _asset_mask != null:
+		_asset_mask.sync()
+
+
+func _include_live_depth(bounds: AABB) -> void:
+	var forward := camera.basis.z
+	var center := bounds.get_center().dot(forward)
+	var half_depth := bounds.size.dot(forward.abs()) * 0.5
+	_live_depth_bounds.x = minf(_live_depth_bounds.x, center - half_depth)
+	_live_depth_bounds.y = maxf(_live_depth_bounds.y, center + half_depth)
+	_live_highest_point = maxf(_live_highest_point, bounds.end.y)
+
+
+func _live_camera_distance(focus: Vector3) -> float:
+	var basis := camera.basis
+	var pitch_sine := absf(basis.z.y)
+	# The bottom ray reaches the near edge of the plaza. Include the raster border.
+	var bottom_rise := camera.size * absf(basis.y.y) * 0.5
+	var clip_margin := camera.near + 0.1
+	var ground_distance := (ground.position.y - focus.y + bottom_rise) / pitch_sine + clip_margin
+	var distance := CAMERA_DISTANCE
+	var shadow_distance := _default_shadow_distance
+	if ground_distance > CAMERA_DISTANCE:
+		var focus_depth := focus.dot(basis.z)
+		var roof_distance := (maxf(_live_highest_point, ground.position.y) - focus.y + bottom_rise) / pitch_sine
+		var near_depth := minf(roof_distance, _live_depth_bounds.y - focus_depth)
+		distance = maxf(CAMERA_DISTANCE, near_depth + clip_margin)
+		if distance > CAMERA_DISTANCE:
+			var far_depth := distance + focus_depth - _live_depth_bounds.x
+			shadow_distance = maxf(_default_shadow_distance + distance - CAMERA_DISTANCE, far_depth)
+	if not is_equal_approx(sun.directional_shadow_max_distance, shadow_distance):
+		sun.directional_shadow_max_distance = shadow_distance
+	return distance
+
+
+func _live_camera_focus(coverage: Vector2, delta: float, immediate: bool) -> Vector3:
+	var basis := camera.basis
+	var player_focus := player.position + Vector3.UP * WorldPreset.AVATAR_HEIGHT * 0.5
+	var target := Vector2(player_focus.dot(basis.x), player_focus.dot(basis.y))
+	var projected_hero_height := WorldPreset.AVATAR_HEIGHT * absf(basis.y.y)
+	var dead_zone := Vector2(0.35, minf(0.45 * absf(basis.z.y),
+		maxf(0.0, coverage.y - projected_hero_height) * 0.5))
+	# Clamp in camera axes so the view follows both sides of the rotated ground.
+	var center := _projected_live_bounds.get_center()
+	var travel := (_projected_live_bounds.size - coverage).max(Vector2.ZERO) * 0.5
+	_follow_center = target if _reset_live_camera else _follow_center.clamp(target - dead_zone, target + dead_zone)
+	_follow_center = _follow_center.clamp(center - travel, center + travel)
+	if immediate:
+		_camera_center = _follow_center
+	else:
+		_camera_center = _camera_center.lerp(_follow_center, 1.0 - exp(-FOLLOW_RESPONSE * delta))
+		_camera_center = _camera_center.clamp(center - travel, center + travel)
+		if _camera_center.distance_squared_to(_follow_center) < 0.00000001:
+			_camera_center = _follow_center
+	return basis.x * _camera_center.x + basis.y * _camera_center.y + basis.z * player_focus.dot(basis.z)
+
+
+func _preview_camera_focus(coverage: Vector2) -> Vector3:
+	var pitch_sine := absf(camera.basis.z.y)
+	var view_extents := Vector2(coverage.x, coverage.y / pitch_sine) * 0.5
+	var bounds := (_ground_half_size - view_extents).max(Vector2.ZERO)
+	var target := Vector2(player.position.x, player.position.z - 0.5)
+	var dead_zone := Vector2(0.35, 0.45)
+	_follow_center = _follow_center.clamp(target - dead_zone, target + dead_zone).clamp(
+		_ground_center - bounds, _ground_center + bounds)
+	return Vector3(_follow_center.x, 0.0, _follow_center.y)
 
 
 func _change_zoom(factor: float) -> void:

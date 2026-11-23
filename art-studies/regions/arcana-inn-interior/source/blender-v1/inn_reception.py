@@ -3,6 +3,7 @@
 import math
 
 import bpy
+from mathutils import Vector
 
 
 def build_inn_reception():
@@ -272,7 +273,14 @@ def build_inn_reception():
                          (.392, .137, .344), linen, .065)
             pillow.rotation_euler.x = math.radians(-19)
             pillow.rotation_euler.y = side * math.radians(14)
-            diamond("Bench pillow | woven lozenge", pillow_x, y + .031, .749, .065, .073, .008, gold)
+            # Put the stitched diamond on the rotated front and center it in
+            # the inn's 45-degree orthographic view of the whole cushion.
+            bpy.context.view_layer.update()
+            view = pillow.matrix_world.to_3x3().inverted() @ Vector((0, -1, 1))
+            center = view * (-.0785 / view.y)
+            points = [pillow.matrix_world @ Vector((center.x + dx, center.y, center.z + dz))
+                      for dx, dz in ((0, .073), (.065, 0), (0, -.073), (-.065, 0))]
+            path("Bench pillow | woven lozenge", points, .008, gold, cyclic=True)
         for col in (-1, 0, 1):
             dx = col * (width - .36) / 3
             panel_width = (width - .36) / 3 - .043

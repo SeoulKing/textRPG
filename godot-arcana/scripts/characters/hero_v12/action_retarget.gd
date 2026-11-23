@@ -24,6 +24,8 @@ var _model: Skeleton3D
 var _hips := -1
 var _rod_upper_arm := -1
 var _rod_forearm := -1
+var _chest := -1
+var _cast_legs: Array[Vector3i] = []
 var _neutral_hip := Vector3.ZERO
 var _parents := PackedInt32Array()
 var _rest_rotations: Array[Quaternion] = []
@@ -66,6 +68,10 @@ func setup(model: Skeleton3D, neutral_points: Dictionary) -> bool:
 	for index in count:
 		_parents[index] = model.get_bone_parent(index)
 		_rest_rotations[index] = model.get_bone_global_rest(index).basis.get_rotation_quaternion()
+	_chest = model.find_bone("Chest")
+	_cast_legs.clear()
+	for side: String in ["L", "R"]:
+		_cast_legs.append(Vector3i(model.find_bone("Thigh." + side), model.find_bone("Shin." + side), model.find_bone("Foot." + side)))
 	_rest_hips_position = model.get_bone_rest(_hips).origin
 	_neutral_hip = neutral_points.hip
 	_model = model
@@ -77,7 +83,10 @@ func apply_upper_body(points: Dictionary, yaw: float) -> void:
 func apply(points: Dictionary, yaw: float, blend: float, root_y: float = 1.0, root_z: float = 1.0) -> void:
 	_apply(points, yaw, blend, root_y, root_z, false)
 
-func _apply(points: Dictionary, yaw: float, blend: float, root_y: float, root_z: float, rod_arm_only: bool) -> void:
+func apply_fishing(points: Dictionary, yaw: float, cast_drive: float) -> void:
+	_apply(points, yaw, 1.0, 1.0, 1.0, false, cast_drive)
+
+func _apply(points: Dictionary, yaw: float, blend: float, root_y: float, root_z: float, rod_arm_only: bool, cast_drive: float = 0.0) -> void:
 	if not is_instance_valid(_model) or blend <= 0.0 or not points.get("hip") is Vector3:
 		return
 	var weight := clampf(blend, 0.0, 1.0)
@@ -118,4 +127,41 @@ func _apply(points: Dictionary, yaw: float, blend: float, root_y: float, root_z:
 			_model.set_bone_pose_rotation(index, rotation)
 			pose.basis = Basis(rotation).scaled_local(_model.get_bone_pose_scale(index))
 		_global_poses[index] = parent_pose * pose
+	if not is_zero_approx(cast_drive):
+		_shift_cast_weight(cast_drive)
 	_model.force_update_all_bone_transforms()
+
+func _shift_cast_weight(drive: float) -> void:
+	# The hips move from the rod-side heel onto the opposite foot.
+	# Solve the two legs against the ankle positions before shifting the body.
+	var shift := Vector3(-0.028 * drive, -0.030 * absf(drive), 0.061 * drive)
+	var hips_parent := _global_poses[_parents[_hips]].basis
+	_model.set_bone_pose_position(_hips, _model.get_bone_pose_position(_hips) + hips_parent.inverse() * shift)
+	var shoulder_turn := Quaternion(Vector3.UP, -0.29 * drive)
+	var chest_rotation := _global_poses[_chest].basis.get_rotation_quaternion()
+	var chest_parent := _global_poses[_parents[_chest]].basis.get_rotation_quaternion()
+	_model.set_bone_pose_rotation(_chest, (chest_parent.inverse() * shoulder_turn * chest_rotation).normalized())
+	for leg: Vector3i in _cast_legs:
+		_plant_cast_foot(leg, shift, absf(drive))
+
+func _plant_cast_foot(leg: Vector3i, shift: Vector3, transfer: float) -> void:
+	var thigh := _global_poses[leg.x]
+	var shin := _global_poses[leg.y]
+	var foot := _global_poses[leg.z]
+	var upper := shin.origin - thigh.origin
+	var lower := foot.origin - shin.origin
+	var new_hip := thigh.origin + shift
+	var to_ankle := foot.origin - new_hip
+	var reach := to_ankle.length()
+	var axis := to_ankle / reach
+	var along := (upper.length_squared() - lower.length_squared() + reach * reach) / (2.0 * reach)
+	var bend := sqrt(maxf(0.0, upper.length_squared() - along * along))
+	var rest_axis := (foot.origin - thigh.origin).normalized()
+	var pole := (upper.slide(rest_axis) + Vector3.BACK * (transfer * 0.10)).slide(axis).normalized()
+	var new_knee := new_hip + along * axis + bend * pole
+	var thigh_rotation := Quaternion(upper.normalized(), (new_knee - new_hip).normalized()) * thigh.basis.get_rotation_quaternion()
+	var shin_rotation := Quaternion(lower.normalized(), (foot.origin - new_knee).normalized()) * shin.basis.get_rotation_quaternion()
+	var parent_rotation := _global_poses[_parents[leg.x]].basis.get_rotation_quaternion()
+	_model.set_bone_pose_rotation(leg.x, (parent_rotation.inverse() * thigh_rotation).normalized())
+	_model.set_bone_pose_rotation(leg.y, (thigh_rotation.inverse() * shin_rotation).normalized())
+	_model.set_bone_pose_rotation(leg.z, (shin_rotation.inverse() * foot.basis.get_rotation_quaternion()).normalized())

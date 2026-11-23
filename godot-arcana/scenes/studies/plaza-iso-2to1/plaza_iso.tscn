@@ -1,0 +1,463 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/studies/plaza-iso-2to1/plaza_iso.gd" id="1_control"]
+[ext_resource type="Texture2D" path="res://scenes/studies/plaza-iso-2to1/plaza_layers.png" id="2_art"]
+[ext_resource type="Script" path="res://scripts/native_2d_hero.gd" id="3_hero"]
+
+[node name="PlazaIsometricStudy" type="Node2D"]
+texture_filter = 1
+script = ExtResource("1_control")
+room_origin = Vector2(640, 228)
+room_size = Vector2(1280, 1216)
+start = Vector2(704, 860)
+follow_camera = true
+
+[node name="PlazaGround" type="Sprite2D" parent="."]
+z_index = -3
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 1312, 900)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(681, 460)
+
+
+[node name="DepthSort" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Oak_01" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 304.25)
+metadata/footprint = Rect2(78, 138, 43, 46)
+metadata/paint_origin = Vector2(543, 128)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Oak_01"]
+position = Vector2(543, -176.25)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1318, 544, 134, 166)
+
+[node name="Oak_02" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 370.5)
+metadata/footprint = Rect2(384, 97, 43, 46)
+metadata/paint_origin = Vector2(716, 195)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Oak_02"]
+position = Vector2(716, -175.5)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1318, 544, 134, 166)
+
+[node name="Flowerbed_03" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 380.25)
+metadata/footprint = Rect2(134, 400, 48, 27)
+metadata/paint_origin = Vector2(487, 338)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_03"]
+position = Vector2(487, -42.25)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Oak_04" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 394.25)
+metadata/footprint = Rect2(104, 472, 43, 46)
+metadata/paint_origin = Vector2(388, 218)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Oak_04"]
+position = Vector2(388, -176.25)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1318, 544, 134, 166)
+
+[node name="Lamp_05" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 446.75)
+metadata/footprint = Rect2(503, 336, 18, 18)
+metadata/paint_origin = Vector2(712, 307)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Lamp_05"]
+position = Vector2(712, -139.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1563, 544, 26, 135)
+
+[node name="Flowerbed_06" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 449.75)
+metadata/footprint = Rect2(452, 360, 48, 27)
+metadata/paint_origin = Vector2(666, 407)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_06"]
+position = Vector2(666, -42.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Market_07" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 461)
+metadata/footprint = Rect2(70, 715, 91, 56)
+metadata/paint_origin = Vector2(247, 348)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Market_07"]
+position = Vector2(247, -113)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1593, 544, 159, 95)
+
+[node name="Shop_08" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 468)
+metadata/footprint = Rect2(128, 192, 384, 256)
+metadata/paint_origin = Vector2(509, 205)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Shop_08"]
+position = Vector2(509, -263)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1318, 294, 278, 246)
+
+[node name="Spruce_09" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 493.5)
+metadata/footprint = Rect2(64, 909, 43, 46)
+metadata/paint_origin = Vector2(165, 322)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Spruce_09"]
+position = Vector2(165, -171.5)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1456, 544, 103, 161)
+
+[node name="Lamp_10" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 503.25)
+metadata/footprint = Rect2(784, 281, 18, 18)
+metadata/paint_origin = Vector2(880, 364)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Lamp_10"]
+position = Vector2(880, -139.25)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1563, 544, 26, 135)
+
+[node name="Bench_11" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 508.75)
+metadata/footprint = Rect2(456, 569, 74, 24)
+metadata/paint_origin = Vector2(551, 447)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Bench_11"]
+position = Vector2(551, -61.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1756, 544, 91, 49)
+
+[node name="Lamp_12" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 514.75)
+metadata/footprint = Rect2(446, 665, 18, 18)
+metadata/paint_origin = Vector2(518, 375)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Lamp_12"]
+position = Vector2(518, -139.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1563, 544, 26, 135)
+
+[node name="Flowerbed_13" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 545.75)
+metadata/footprint = Rect2(920, 276, 48, 27)
+metadata/paint_origin = Vector2(942, 503)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_13"]
+position = Vector2(942, -42.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Oak_14" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 546)
+metadata/footprint = Rect2(96, 1087, 43, 46)
+metadata/paint_origin = Vector2(77, 370)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Oak_14"]
+position = Vector2(77, -176)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1318, 544, 134, 166)
+
+[node name="Inn_15" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 548)
+metadata/footprint = Rect2(128, 576, 320, 256)
+metadata/paint_origin = Vector2(304, 286)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Inn_15"]
+position = Vector2(304, -262)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1576, 0, 263, 249)
+
+[node name="Flowerbed_16" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 555.75)
+metadata/footprint = Rect2(434, 802, 48, 27)
+metadata/paint_origin = Vector2(437, 513)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_16"]
+position = Vector2(437, -42.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Bench_17" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 558.25)
+metadata/footprint = Rect2(356, 867, 74, 24)
+metadata/paint_origin = Vector2(352, 497)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Bench_17"]
+position = Vector2(352, -61.25)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1756, 544, 91, 49)
+
+[node name="Lamp_18" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 562.75)
+metadata/footprint = Rect2(953, 350, 18, 18)
+metadata/paint_origin = Vector2(930, 423)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Lamp_18"]
+position = Vector2(930, -139.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1563, 544, 26, 135)
+
+[node name="Oak_19" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 570.5)
+metadata/footprint = Rect2(338, 943, 43, 46)
+metadata/paint_origin = Vector2(270, 395)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Oak_19"]
+position = Vector2(270, -175.5)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1318, 544, 134, 166)
+
+[node name="Lamp_20" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 589)
+metadata/footprint = Rect2(537, 871, 18, 18)
+metadata/paint_origin = Vector2(461, 449)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Lamp_20"]
+position = Vector2(461, -140)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1563, 544, 26, 135)
+
+[node name="Academy_21" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 596)
+metadata/footprint = Rect2(832, 64, 384, 192)
+metadata/paint_origin = Vector2(946, 298)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Academy_21"]
+position = Vector2(946, -298)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1318, 0, 254, 290)
+
+[node name="Fountain_22" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 596)
+metadata/footprint = Rect2(576, 384, 256, 256)
+metadata/paint_origin = Vector2(646, 403)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Fountain_22"]
+position = Vector2(646, -193)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1848, 294, 180, 172)
+
+[node name="Spruce_23" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 614.75)
+metadata/footprint = Rect2(1210, 248, 43, 46)
+metadata/paint_origin = Vector2(1069, 444)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Spruce_23"]
+position = Vector2(1069, -170.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1456, 544, 103, 161)
+
+[node name="Flowerbed_24" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 643.75)
+metadata/footprint = Rect2(560, 1028, 48, 27)
+metadata/paint_origin = Vector2(387, 601)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_24"]
+position = Vector2(387, -42.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Flowerbed_25" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 663.75)
+metadata/footprint = Rect2(950, 718, 48, 27)
+metadata/paint_origin = Vector2(737, 621)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_25"]
+position = Vector2(737, -42.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Lamp_26" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 665)
+metadata/footprint = Rect2(621, 1091, 18, 18)
+metadata/paint_origin = Vector2(393, 525)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Lamp_26"]
+position = Vector2(393, -140)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1563, 544, 26, 135)
+
+[node name="Market_27" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 677)
+metadata/footprint = Rect2(992, 657, 91, 56)
+metadata/paint_origin = Vector2(737, 563)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Market_27"]
+position = Vector2(737, -114)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1593, 544, 159, 95)
+
+[node name="Bench_28" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 679.75)
+metadata/footprint = Rect2(931, 778, 74, 24)
+metadata/paint_origin = Vector2(684, 619)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Bench_28"]
+position = Vector2(684, -60.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1756, 544, 91, 49)
+
+[node name="Flowerbed_29" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 687.75)
+metadata/footprint = Rect2(1176, 588, 48, 27)
+metadata/paint_origin = Vector2(915, 645)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_29"]
+position = Vector2(915, -42.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Restaurant_30" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 692)
+metadata/footprint = Rect2(960, 384, 320, 192)
+metadata/paint_origin = Vector2(838, 464)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Restaurant_30"]
+position = Vector2(838, -228)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1600, 294, 244, 223)
+
+[node name="Lamp_31" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 694)
+metadata/footprint = Rect2(837, 991, 18, 18)
+metadata/paint_origin = Vector2(551, 555)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Lamp_31"]
+position = Vector2(551, -139)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1563, 544, 26, 135)
+
+[node name="Bench_32" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 699.25)
+metadata/footprint = Rect2(969, 818, 74, 24)
+metadata/paint_origin = Vector2(683, 638)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Bench_32"]
+position = Vector2(683, -61.25)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1756, 544, 91, 49)
+
+[node name="Flowerbed_33" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 705.75)
+metadata/footprint = Rect2(798, 1038, 48, 27)
+metadata/paint_origin = Vector2(500, 663)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_33"]
+position = Vector2(500, -42.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Oak_34" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 726.75)
+metadata/footprint = Rect2(1188, 718, 43, 46)
+metadata/paint_origin = Vector2(807, 551)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Oak_34"]
+position = Vector2(807, -175.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1318, 544, 134, 166)
+
+[node name="Flowerbed_35" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 752.75)
+metadata/footprint = Rect2(1110, 914, 48, 27)
+metadata/paint_origin = Vector2(718, 711)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Flowerbed_35"]
+position = Vector2(718, -41.75)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1851, 544, 50, 33)
+
+[node name="Spruce_36" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 799)
+metadata/footprint = Rect2(1108, 1087, 43, 46)
+metadata/paint_origin = Vector2(599, 628)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Spruce_36"]
+position = Vector2(599, -171)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(1456, 544, 103, 161)
+
+[node name="Hero" type="Node2D" parent="DepthSort"]
+position = Vector2(562, 619)
+script = ExtResource("3_hero")

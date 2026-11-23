@@ -11,8 +11,8 @@
 ## 편집 원본과 게임 연결
 
 - [Blender 원본](source/blender-v1/inn-exterior.blend) · [정면 렌더](source/blender-v1/inn-exterior.png) · [재생성 스크립트](source/blender-v1/build_inn_exterior.py) · [Godot 모델](../../../godot-arcana/art/source/plaza-inn-blender/inn-exterior.glb)
-- [광장 V2](../../../godot-arcana/scenes/plaza_3d_v2.tscn) `Inn`의 원점은 `(-6.5, 0, -2.5)`이며 중앙문은 `+Z`를 향합니다. 건물 충돌의 너비와 깊이는 각각 6.2, 4.0입니다.
-- `Inn/InteractionPoint`는 건물 기준 `(0, 0, 2.7)`입니다. 게임 좌표 `(1944, 2051.2)`에서 [기존 로비](../../../godot-arcana/scenes/native_2d/inn_lobby.tscn)로 들어가며, 온라인 복귀점은 문 앞 `(1944, 2063.2)`입니다.
+- [광장 V2](../../../godot-arcana/scenes/plaza_3d_v2.tscn) `Inn`은 상점과 지붕 높이를 맞추기 위해 1.42배로 배치합니다. 원점은 `(-6.2, 0, -2.4)`이며 중앙문은 `+Z`를 향합니다. 광장에서 충돌 너비는 8.804, 깊이는 5.68입니다.
+- `Inn/InteractionPoint`는 건물 기준 `(0, 0, 2.7)`입니다. 게임 좌표 `(1948.8, 2070.944)`에서 [기존 로비](../../../godot-arcana/scenes/native_2d/inn_lobby.tscn)로 들어가며, 온라인 복귀점은 문 앞 `(1948.8, 2082.944)`입니다.
 
 ## 확인
 

@@ -32,10 +32,13 @@ func water_at(point: Vector2) -> bool:
     if deck.get_rect().has_point(deck.to_local(point*4.0)): return false
     return water.get_cell_source_id(water.local_to_map(water.to_local(point*4.0))) >= 0
 func cast_target(point: Vector2, heading: Vector2) -> Dictionary:
-    if heading.length_squared()<.001 or water_at(point): return {}
+    return cast_over_water(point, heading, water_at)
+
+static func cast_over_water(point: Vector2, heading: Vector2, wet: Callable) -> Dictionary:
+    if heading.length_squared()<.001 or wet.call(point): return {}
     var direction: Vector2 = heading.normalized()
     for distance in range(16,65,2):
         var target: Vector2 = point+direction*float(distance)
-        if water_at(target) and water_at(target+direction*6.0):
+        if wet.call(target) and wet.call(target+direction*6.0):
             return {"x":target.x,"y":target.y}
     return {}

@@ -7,7 +7,7 @@
 | 역할 | 읽을 문서 | 실제 수정의 진입점 |
 | --- | --- | --- |
 | 개발 | [DEVELOPMENT.md](roles/DEVELOPMENT.md) | `godot-arcana/project.godot` → `main.tscn` → `scripts/main.gd`, `src/server.ts`와 `src/online/` |
-| 캐릭터 아트 | [CHARACTER_ART.md](roles/CHARACTER_ART.md) | `godot-arcana/art/characters/hybrid-v1/`, `scripts/characters/hybrid_v1/`, `scenes/characters/hybrid-v1/` |
+| 캐릭터 아트 | [CHARACTER_ART.md](roles/CHARACTER_ART.md) | `scripts/native_2d_hero.gd` → `art/characters/hero-v12/`, 행동 자세 편집은 `scenes/characters/hybrid-v1/` |
 | 월드 제작·배치 | [WORLD_BUILDING.md](roles/WORLD_BUILDING.md) | `scenes/native_2d/`, `scenes/shop_2d.tscn`, `scenes/props/<region>/<category>/`, `data/prop-library.json` |
 | 서사 | [NARRATIVE.md](roles/NARRATIVE.md) | 해당 지역·NPC 콘텐츠와 실제 상태를 전달하는 `src/game/` 호출부 |
 
@@ -25,7 +25,7 @@
 
 ## 프로젝트 분리
 
-이 폴더는 **아르카나 본편과 그 안의 하이브리드 캐릭터 제작실**을 유지합니다. 과거 독립 캐릭터 프로젝트 대신 본편의 `scenes/characters/hybrid-v1/`에서 작업합니다. 확정 외형의 단일 편집 원본은 `art/characters/hybrid-v1/`입니다.
+이 폴더는 **아르카나 본편과 그 안의 하이브리드 캐릭터 제작실**을 유지합니다. 주인공 외형은 Blender v12에서 편집하고, 행동 자세는 본편의 `scenes/characters/hybrid-v1/`에서 편집합니다.
 
 폐허 서울 텍스트 RPG·콘텐츠 스튜디오·상태 기반 월드는 [별도 프로젝트](../../seoul-survival/README.md)에서 작업합니다. 아르카나가 사용하는 `src/game/` 엔진·스키마·콘텐츠 시드는 현재 프로젝트에 보존하며 다른 프로젝트 폴더를 직접 참조하지 않습니다.
 
@@ -33,9 +33,9 @@
 
 | 구분 | 경로와 취급 |
 | --- | --- |
-| 캐릭터 단일 원본 | `godot-arcana/art/characters/hybrid-v1/`: PixelPen·PNG·리그·공통 동작·조립 명세. 수동 원본을 생성기로 덮어쓰지 않습니다. |
-| 지역 원본·승인 | `art-studies/regions/<region-id>/brief.md`, 대상 manifest와 `godot-arcana/art/source/`의 실제 연결 원본 |
-| 배치 원본 | `godot-arcana/scenes/native_2d/`, `scenes/shop_2d.tscn`: 사용자 Transform·인스턴스 override·ID 보존 |
+| 주인공 외형과 행동 자세 | `art-studies/characters/arcana-hero-pixel3d/arcana-hero-pixel3d-v12.blend`는 외형·대기·걷기 원본입니다. `godot-arcana/art/characters/hybrid-v1/`의 수동 제작 자료와 행동 자세를 보존합니다. |
+| 지역 원본·승인 | `art-studies/regions/<region-id>/brief.md`에서 대상 manifest와 실제 편집 원본을 확인합니다. 새 3D 공간의 `.blend`·`.glb`·`.tscn` 책임은 [3D 맵 제작 흐름](roles/WORLD_BUILDING.md#3d-맵-제작-흐름)을 따릅니다. |
+| 배치 원본 | `godot-arcana/data/regions.json`과 실제 씬 호출에서 `.tscn`을 확인합니다. 사용자 Transform·인스턴스 override·ID를 보존합니다. |
 | 재사용 사물 | `godot-arcana/scenes/props/<region>/<category>/*.tscn`: 그림·접지·충돌을 함께 배치 |
 | 게임 코드 | `godot-arcana/`, `src/`, 현재 계정·진입 웹 파일. 서버 판정과 클라이언트 표시 책임을 구별합니다. |
 | 생성 산출물 | `.server-dist/`, `godot-web/`, `assets/unity-preview/`: 산출물만 직접 고치지 않습니다. |

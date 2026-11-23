@@ -5,7 +5,8 @@
   "main": "src/server.ts",
   "scripts": {
     "build": "npm run build:server && npm run build:web",
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx src/server.ts",
+    "dev:watch": "tsx watch src/server.ts",
     "start": "npm run build && node .server-dist/server.js",
     "typecheck": "tsc --noEmit",
     "db:init": "tsx src/db/init.ts",

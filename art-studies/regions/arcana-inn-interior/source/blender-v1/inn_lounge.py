@@ -98,11 +98,12 @@ def lounge_foot(x, y):
 
 
 def lounge_throw(blue_binding):
-    # Cross-section follows the back, the seat and the front of the center cushion.
-    profile = [(.035, 1.33), (-.075, 1.38), (-.21, 1.365), (-.308, 1.32),
-               (-.370, 1.24), (-.400, 1.12), (-.427, .96), (-.450, .79),
-               (-.52, .682), (-.70, .659), (-.93, .659), (-1.19, .657),
-               (-1.336, .633), (-1.391, .548), (-1.417, .419), (-1.434, .296)]
+    # Fold around the back edge, then lay the embroidered face over the backrest.
+    profile = [(-.317, 1.384), (-.22, 1.38), (-.12, 1.376), (-.037, 1.378),
+               (.005, 1.392), (.015, 1.416), (-.005, 1.435), (-.062, 1.442),
+               (-.12, 1.445), (-.18, 1.447), (-.24, 1.445), (-.30, 1.443),
+               (-.35, 1.439), (-.381, 1.432), (-.399, 1.419), (-.410, 1.408)]
+    last = len(profile) - 1
 
     def point(u, v, offset=0):
         start = min(int(v), len(profile) - 2)
@@ -111,9 +112,9 @@ def lounge_throw(blue_binding):
         y2, z2 = profile[start + 1]
         y = y1 + (y2 - y1) * t
         z = z1 + (z2 - z1) * t
-        fold = cos(u * 9.2 + .20 * v) * .016 + sin(u * 21.0 - .23 * v) * .009
-        return (-3.91 + u * (.47 + .015 * cos(v * .45)) + .025 * sin(v * .6),
-                y - fold * .72 - offset, z + fold * .75 + offset)
+        fold = cos(u * 9.2 + .20 * v) * .007 + sin(u * 21.0 - .23 * v) * .004
+        return (-3.52 + u * (.54 + .015 * cos(v * .45)) + .012 * sin(v * .6),
+                y - fold * .5 - offset * .45, z + fold + offset)
 
     across = 13
     along = 31
@@ -124,18 +125,20 @@ def lounge_throw(blue_binding):
     cloth = lounge_mesh('Indigo throw / folded cloth', vertices, faces, blue)
     thickness = cloth.modifiers.new('Woven cloth thickness', 'SOLIDIFY')
     thickness.thickness = .013
-    last = len(profile) - 1
+    first_visible = 6
     for u in (-.46, -.37, .37, .46):
-        path('Throw / woven border', [point(u, last * j / 30, .019) for j in range(31)], .014,
+        path('Throw / woven border',
+             [point(u, first_visible + (last - first_visible) * j / 30, .013) for j in range(31)], .009,
              gold if abs(u) > .4 else blue_binding)
-    for v in (1.7, 3.6, 6.0, 9.0, 11.15, 13.55):
+    for v in (8.0, 10.2, 12.5):
         for u in (-.14, .14):
-            path('Throw / gold embroidery', [point(u, v - .52, .013), point(u + .085, v, .013),
-                 point(u, v + .52, .013), point(u - .085, v, .013)], .006, gold, cyclic=True)
+            path('Throw / gold embroidery', [point(u, v - .76, .01), point(u + .075, v, .01),
+                 point(u, v + .76, .01), point(u - .075, v, .01)], .006, gold, cyclic=True)
     path('Throw / gold fringe binding', [point(i / 20 - .5, last, .012) for i in range(21)], .008, gold)
     for i in range(16):
         x, y, z = point(i / 16 - .465, last, .008)
-        path('Throw / tassel', [(x, y, z), (x + .006, y - .021, z - .04), (x + .008 * cos(i), y - .028, z - .078)], .007, gold)
+        path('Throw / tassel', [(x, y, z), (x + .004, y - .010, z - .018),
+             (x + .006 * cos(i), y - .018, z - .035)], .006, gold)
 
 
 def lounge_sofa(arm_dark, piping, blue_binding, linen_welt):

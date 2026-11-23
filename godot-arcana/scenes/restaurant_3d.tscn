@@ -1,0 +1,107 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/restaurant_3d.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/architecture/room.glb" id="2_room"]
+[ext_resource type="PackedScene" path="res://scenes/restaurant_furniture.tscn" id="3_furniture"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/architecture/window-arch.glb" id="4_window"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/architecture/window-harbor.glb" id="5_harbor"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/architecture/window-harbor-quay.glb" id="6_quay"]
+[ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/kitchen-task-lantern.glb" id="7_lantern"]
+[ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/entry-rug.glb" id="8_entry"]
+
+[sub_resource type="Environment" id="Environment_restaurant"]
+background_mode = 1
+background_color = Color(0.126, 0.145, 0.168, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.92, 0.94, 1, 1)
+ambient_light_energy = 0.70
+
+[node name="Restaurant3D" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Room" type="Node3D" parent="."]
+
+[node name="Building" parent="Room" instance=ExtResource("2_room")]
+
+[node name="Furniture" parent="Room" instance=ExtResource("3_furniture")]
+
+[node name="ArchedWindows" type="Node3D" parent="Room"]
+
+[node name="NorthWindow" parent="Room/ArchedWindows" instance=ExtResource("4_window")]
+position = Vector3(0, 0.94, 3.5)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="SouthWindow" parent="Room/ArchedWindows" instance=ExtResource("4_window")]
+position = Vector3(0, 0.94, 8.5)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="HarborViews" type="Node3D" parent="Room"]
+
+[node name="Quay" parent="Room/HarborViews" instance=ExtResource("6_quay")]
+position = Vector3(0, 0.94, 3.5)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="Sailboat" parent="Room/HarborViews" instance=ExtResource("5_harbor")]
+position = Vector3(0, 0.94, 8.5)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="WindowLantern" parent="Room" instance=ExtResource("7_lantern")]
+position = Vector3(0.12, 2.15, 6)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="PantryLantern" parent="Room" instance=ExtResource("7_lantern")]
+position = Vector3(3.6, 2.28, 0.14)
+
+[node name="EntryRug" parent="Room" instance=ExtResource("8_entry")]
+position = Vector3(7.1, 0.012, 10.2)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(20.96, 13.05, 19.87)
+rotation = Vector3(-0.5235988, 0.7853982, 0)
+environment = SubResource("Environment_restaurant")
+projection = 1
+current = true
+size = 14.4
+far = 70.0
+
+[node name="CeilingLight" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.80, -1.82, 0)
+light_color = Color(1, 0.94, 0.83, 1)
+light_energy = 0.66
+shadow_enabled = true
+directional_shadow_max_distance = 36.0
+
+[node name="HearthLight" type="OmniLight3D" parent="."]
+position = Vector3(4.5, 0.72, 3.34)
+light_color = Color(1, 0.62, 0.35, 1)
+light_energy = 0.8
+omni_range = 3.6
+omni_attenuation = 1.4
+
+[node name="ReceptionLight" type="OmniLight3D" parent="."]
+position = Vector3(9, 2.55, 4.45)
+light_color = Color(1, 0.86, 0.67, 1)
+light_energy = 0.58
+omni_range = 5.4
+omni_attenuation = 1.3
+
+[node name="LoungeLight" type="OmniLight3D" parent="."]
+position = Vector3(2.1, 2.55, 6)
+light_color = Color(1, 0.90, 0.72, 1)
+light_energy = 0.45
+omni_range = 6.8
+omni_attenuation = 1.5
+
+[node name="ExitLight" type="OmniLight3D" parent="."]
+position = Vector3(7.1, 1.8, 11.35)
+light_color = Color(1, 0.88, 0.69, 1)
+light_energy = 0.34
+omni_range = 3.9
+omni_attenuation = 1.5
+
+[node name="Avatar" type="Sprite3D" parent="."]
+visible = false
+centered = false
+pixel_size = 0.0125
+alpha_cut = 1
+texture_filter = 0

@@ -215,6 +215,9 @@ planks = [material(f"Oak floor | plank {i}", color, .58) for i, color in enumera
     ("A56B40", "98603B", "AD774A", "945C39", "B17C4D", "A66A3E", "AA7348"), 1)]
 for mat in planks:
     grain(mat, (1.4, 48, 20), .27, .68, 1.20)
+# Five display pixels at the shader lab's 100% zoom and 30-degree pitch.
+plank_end_gap = 5.0 * 16.7 / (1614.0 * 3.0)
+plank_row_gap = plank_end_gap / 0.5
 for row in range(37):
     row_width = 10.48 / 37
     y = -5.24 + (row + .5) * row_width
@@ -224,7 +227,7 @@ for row in range(37):
         if 0 < 7.49 - x - length < .44:
             length = 7.49 - x
         box("Staggered oak plank", (x + length / 2, y, -.033),
-            (length - .009, row_width - .009, .066), rng.choice(planks), .007)
+            (length - plank_end_gap, row_width - plank_row_gap, .066), rng.choice(planks), .007)
         x += length
 finish_group()
 

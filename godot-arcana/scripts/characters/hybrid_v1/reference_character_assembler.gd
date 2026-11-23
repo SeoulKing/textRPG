@@ -200,6 +200,13 @@ func _apply_presentation(local: Dictionary) -> void:
 		for side: String in ["l","r"]:
 			_rotate_chain(local, "shoulder_" + side, ["elbow_" + side, "wrist_" + side], arms.x)
 			_rotate_chain(local, "elbow_" + side, ["wrist_" + side], arms.y)
+	if presentation_clip == "fishing":
+		# The right hand bears the rod. The left reaches under it and winds the reel.
+		var grip := 1.0 - presentation_rod_carry
+		_rotate_chain(local, "shoulder_l", ["elbow_l", "wrist_l"], (0.22 + 0.15 * presentation_progress) * grip)
+		_rotate_chain(local, "elbow_l", ["wrist_l"], (-0.33 + 0.20 * presentation_progress) * grip)
+		_rotate_chain(local, "shoulder_l", ["elbow_l", "wrist_l"], 0.60 * grip, Vector3.UP)
+		_rotate_chain(local, "shoulder_r", ["elbow_r", "wrist_r"], -0.31 * grip, Vector3.UP)
 	if presentation_rod_carry > 0.0:
 		_apply_rod_carry(local)
 
@@ -214,9 +221,9 @@ func _apply_rod_carry(local: Dictionary) -> void:
 	local.elbow_r = elbow
 	local.wrist_r = elbow + forearm.slerp(carry_forearm, presentation_rod_carry)
 
-func _rotate_chain(local: Dictionary,pivot: String,chain: Array,angle: float) -> void:
+func _rotate_chain(local: Dictionary,pivot: String,chain: Array,angle: float,axis: Vector3=Vector3.RIGHT) -> void:
 	var origin: Vector3=local[pivot]
-	var rotation := Basis(Vector3.RIGHT,angle)
+	var rotation := Basis(axis,angle)
 	for joint: String in chain:local[joint]=origin+rotation*((local[joint] as Vector3)-origin)
 
 func _motion_delta(joint: String,sampled: Dictionary) -> float:

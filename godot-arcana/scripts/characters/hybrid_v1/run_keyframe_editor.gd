@@ -2,6 +2,7 @@
 extends Node2D
 ## Native AnimationPlayer keys edit the same shared run used by the game.
 const RunClip = preload("res://scripts/characters/hybrid_v1/run_keyframe_clip.gd")
+const ActionLibrary = preload("res://scripts/characters/hybrid_v1/action_pose_library.gd")
 const Assembler = preload("res://scripts/characters/hybrid_v1/reference_character_assembler.gd")
 const CameraSetup = preload("res://scripts/characters/hybrid_v1/camera_setup.gd")
 const SOURCE := "res://art/characters/hybrid-v1/shared-run.json"
@@ -39,6 +40,13 @@ const PIVOTS := {
 		if is_node_ready(): _seek_cursor()
 @export_tool_button("달리기 저장 (Ctrl+S)", "Save") var save_keys_action: Callable = save_run_keys
 
+@export_group("게임 동작 만들기")
+@export var action_id := ""
+@export_range(0.05, 10.0, 0.01, "suffix:s") var action_duration := 0.35
+@export_tool_button("저장한 자세 불러오기") var load_action_button: Callable = load_action_pose
+@export_tool_button("현재 자세로 동작 미리보기", "Play") var preview_action_button: Callable = preview_action_pose
+@export_tool_button("현재 자세로 동작 저장", "Save") var save_action_button: Callable = save_action_pose
+
 var _cursor := 0.0
 var _neutral: Dictionary = {}
 var _stages: Array[Dictionary] = []
@@ -48,6 +56,9 @@ var _last_values: Dictionary = {}
 var _status := "회전 수정 → 🔑 또는 현재 위치 키 기록 → Ctrl+S"
 var _font: Font
 var _selected_name := ""
+var _action_preview: Dictionary = {}
+var _action_preview_age := 0.0
+var _action_preview_duration := 0.0
 
 func is_hybrid_run_editor() -> bool: return true
 
@@ -87,6 +98,68 @@ func save_run_keys() -> void:
 	if not Engine.is_editor_hint(): return
 	var result := EditorInterface.save_scene()
 	if result != OK: set_editor_status("씬 저장 실패: " + error_string(result))
+
+func load_action_pose() -> void:
+	var library := _load_action_library()
+	if library == null: return
+	var id := action_id.strip_edges()
+	var entry := library.find_pose(id)
+	if entry.is_empty():
+		set_editor_status("저장된 동작이 없습니다. 동작 ID를 확인해 주세요.")
+		return
+	(get_node("AnimationPlayer") as AnimationPlayer).pause()
+	for channel: Dictionary in RunClip.channel_specs():
+		var control := get_node("Pose/" + str(channel.node_path))
+		var default_value: Variant = Vector2.ZERO if channel.property == "position" else 0.0
+		control.set(channel.property, entry.target.get(channel.path, default_value))
+	action_duration = float(entry.duration)
+	notify_property_list_changed()
+	_action_preview = {}
+	_refresh = true
+	set_editor_status("‘%s’의 목표 자세를 불러왔습니다." % id)
+
+func preview_action_pose() -> void:
+	var entry := _collect_action_pose()
+	if entry.is_empty(): return
+	_action_preview = ActionLibrary.target_pose(entry, _neutral)
+	_action_preview_age = 0.0
+	_action_preview_duration = float(entry.duration)
+	set_editor_status("대기 → 목표 자세 → 대기 미리보기")
+
+func save_action_pose() -> void:
+	var id := action_id.strip_edges()
+	if not id.is_valid_identifier():
+		set_editor_status("동작 ID를 입력해 주세요. 예시 dodge, hurt, cast, fireball")
+		return
+	var entry := _collect_action_pose()
+	if entry.is_empty(): return
+	var library := _load_action_library()
+	if library == null: return
+	library.poses[id] = entry
+	var result := ResourceSaver.save(library, ActionLibrary.PATH)
+	if result != OK:
+		set_editor_status("동작 저장 실패 · " + error_string(result))
+		return
+	set_editor_status("‘%s’ %.2f초 저장 완료 · 본편 재실행 후 같은 ID의 행동에서 재생됩니다." % [id, action_duration])
+
+func _collect_action_pose() -> Dictionary:
+	if not Engine.is_editor_hint() or _neutral.is_empty():
+		return {}
+	if not ActionLibrary.is_valid_duration(action_duration):
+		set_editor_status("재생 시간은 0.05~10초 사이로 입력해 주세요.")
+		return {}
+	(get_node("AnimationPlayer") as AnimationPlayer).pause()
+	var target := collect_pose_deltas()
+	if not RunClip.valid_pose_deltas(target):
+		set_editor_status("관절 자세를 읽을 수 없습니다.")
+		return {}
+	return {"duration": action_duration, "target": target}
+
+func _load_action_library() -> ActionLibrary:
+	var library := ResourceLoader.load(ActionLibrary.PATH, "", ResourceLoader.CACHE_MODE_IGNORE) as ActionLibrary
+	if library == null:
+		set_editor_status("게임 동작 목록을 열 수 없습니다.")
+	return library
 
 func _ready() -> void:
 	set_process(true)
@@ -156,7 +229,7 @@ func _build_previews() -> void:
 		pose.position = Vector2(40,125) - Vector2(CROP.position)*ZOOM
 		pose.scale = Vector2.ONE*ZOOM
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _neutral.is_empty() or _stages.is_empty(): return
 	var values := collect_pose_deltas()
 	if values.is_empty(): return
@@ -169,12 +242,16 @@ func _process(_delta: float) -> void:
 	if selected != _selected_name:
 		_selected_name = selected
 		queue_redraw()
-	if not _refresh and values == _last_values: return
+	var previewing := not _action_preview.is_empty()
+	if not previewing and not _refresh and values == _last_values: return
 	_last_values = values.duplicate(true)
 	_refresh = false
-	var pose := RunClip.deltas_to_pose(values, _neutral)
+	var pose := {} if previewing else RunClip.deltas_to_pose(values, _neutral)
 	var animation := get_run_animation()
 	var phase := _cursor/maxf(0.001, animation.length) if animation != null else 0.0
+	var mix := {}
+	if previewing:
+		mix = {"target": _action_preview, "weight": ActionLibrary.weight_at(_action_preview_age, _action_preview_duration)}
 	for index in range(_stages.size()):
 		var entry: Dictionary = _stages[index]
 		var direction: int = preview_direction if index == 0 else 0
@@ -184,12 +261,18 @@ func _process(_delta: float) -> void:
 		if not actor.source.set_authoring_pose(pose):
 			set_editor_status(actor.source.last_error)
 			continue
-		if not actor.apply_pose(phase, 1.0, float(direction)*TAU/8.0, Vector3.ZERO, direction):
+		if not actor.apply_pose(phase, 0.0 if previewing else 1.0, float(direction)*TAU/8.0, Vector3.ZERO, direction, mix):
 			set_editor_status(actor.last_error)
 			continue
 		_hide_native_bone_gizmos(actor)
 		entry.stage.render_target_update_mode = SubViewport.UPDATE_ONCE
 	_update_handles(_stages[0].actor)
+	if previewing:
+		if _action_preview_age >= _action_preview_duration:
+			_action_preview = {}
+			_refresh = true
+		else:
+			_action_preview_age = minf(_action_preview_duration, _action_preview_age + delta)
 	queue_redraw()
 
 func _update_handles(actor: Node3D) -> void:

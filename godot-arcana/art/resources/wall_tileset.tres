@@ -1,4 +1,4 @@
-[gd_resource type="TileSet" load_steps=5 format=3 uid="uid://cp3q6lb8gh0pq"]
+[gd_resource type="TileSet" format=3 uid="uid://cp3q6lb8gh0pq"]
 
 [ext_resource type="Texture2D" uid="uid://cfhmgdd8qmo7f" path="res://art/export/walls/wall-terrain.png" id="1_86r0x"]
 [ext_resource type="Texture2D" uid="uid://balwaejbi31hl" path="res://art/export/walls/gate-tower.png" id="2_ib5u4"]

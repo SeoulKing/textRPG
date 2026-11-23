@@ -118,12 +118,19 @@ test("normal monster rewards go to last hit once, boss strategy conserves total"
     return {character:{id},game:{state},position:{x:home.x-12,y:home.y},previous:{x:home.x-12,y:home.y},place:{location:"arcana_plaza",interior:"",floor:0},bench:""};
   }
   const a=actor("first"),b=actor("last"),actors=new Map([["first",a],["last",b]]),deaths=[];
+  world.enemy.hp=20;
+  b.game.state.quests.arcana_inn_slimes="active";
   cast(world,a,"flame_wave",{x:1,y:0},undefined,deaths);
-  assert.ok(world.enemy.hp>0 && world.enemy.hp<30);
+  assert.ok(world.enemy.hp>0 && world.enemy.hp<20);
   cast(world,b,"fireball",{x:1,y:0},undefined,deaths);
   for(let i=0;i<30;i++)tickCombat(world,actors,.05,deaths);
   assert.equal(deaths.length,1);assert.equal(deaths[0].winnerId,"last");
-  assert.equal(a.game.state.money,0);assert.equal(b.game.state.money,30);
+  assert.equal(a.game.state.money,0);assert.equal(b.game.state.money,0);
+  assert.equal(a.game.state.inventory.slimeMucus ?? 0,0);
+  assert.equal(b.game.state.inventory.slimeMucus,1);
+  assert.equal(b.game.state.flags.arcana_inn_slime_kills,1);
+  assert.equal(deaths[0].slimeMucus,1);
+  assert.deepEqual(world.events.find(e=>e.kind==="enemy_down").rewards,{money:0,xp:0,slimeMucus:1});
   assert.deepEqual(rewardShares("normal","last",{first:10,last:20},30),{last:30});
   const shares=rewardShares("boss","last",{first:10,last:20},31);
   assert.equal(shares.first+shares.last,31);assert.ok(shares.last>shares.first);

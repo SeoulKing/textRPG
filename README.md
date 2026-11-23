@@ -18,6 +18,8 @@ Godot 2D 월드와 서버 판정 기반의 아르카나 프로젝트입니다. �
 
 규칙은 역할 문서에서 관리하고, 원본·승인·파츠 등록은 대상 자산의 README/JSON에서 관리합니다. 이전 가이드 경로는 연결문이며 [보존 기록](docs/archive/ART_HISTORY.md)을 현행 규칙으로 사용하지 않습니다.
 
+타격감·탐색·생활 콘텐츠·플레이테스트 사례는 [아르카나 게임 기획·제작 기법](docs/arcana-game-design-techniques.md)에서 찾아볼 수 있습니다.
+
 ## 로컬 실행
 
 ```powershell
@@ -27,6 +29,8 @@ npm run dev
 ```
 
 기존 `.env`·`.env.local`은 유지합니다. 기본 포트는 3000입니다. [아르카나](http://localhost:3000/godot/) · [계정](http://localhost:3000/account.html). `/`와 `/index.html`은 `/godot/`으로 이동합니다.
+
+`npm run dev`는 파일을 저장해도 서버 연결을 유지합니다. 서버 소스를 수정한 뒤 자동으로 재시작하려면 `npm run dev:watch`를 사용합니다. 자동 재시작할 때는 플레이 중인 연결이 끊깁니다.
 
 ```powershell
 npm run build:server  # 서버 컴파일

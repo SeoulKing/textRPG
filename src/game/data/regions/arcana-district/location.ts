@@ -43,12 +43,12 @@ export const arcanaDistrictLocations = [
   defineLocation({
     id: "arcana_restaurant", name: "아르카나 식당", risk: "low",
     mapPosition: { q: 1, r: 0 }, imagePath: "assets/scenes/arcana-restaurant.png",
-    summary: "줄무늬 차양과 야외 식탁이 놓인 광장 동쪽의 식당. 북쪽 돌길은 아카데미로 이어진다.",
+    summary: "줄무늬 차양이 보이는 광장 북서쪽의 식당. 상점가를 지나 동쪽 학교길로 이어진다.",
     tags: ["magic-city", "restaurant", "realm:magic"], traits: ["terrace", "warm food"],
     obtainableItemIds: [], neighbors: ["arcana_plaza", "arcana_academy"],
     links: {
       arcana_plaza: { note: "식당 테라스를 지나 광장으로 돌아간다." },
-      arcana_academy: { note: "식당 북쪽의 돌길을 따라 아카데미로 올라간다." },
+      arcana_academy: { note: "상점가와 동쪽 학교길을 따라 아카데미로 향한다." },
     },
   }),
   defineLocation({

@@ -1,3 +1,4 @@
+import { ARCANA_HOME_LOCATION, ARCANA_HOME_SCENE } from "./arcana-home";
 import { COOKING_MATERIAL_IDS, FOODS } from "./arcana-cooking";
 import { withAcademyContent } from "./academy-content";
 import { withSubwayStockRooms } from "./text-world/subway-stock-definitions";
@@ -122,6 +123,9 @@ export function buildRuntimeRegistry(
       item.effects={...item.effects,hp:0,mind:0,energy:0};item.useMinutes=0;
     }
   }
+  // Personal homes must resolve in old content-version saves as well as new games.
+  registry.locations.arcana_home=structuredClone(ARCANA_HOME_LOCATION);
+  registry.scenes.arcana_home_intro=structuredClone(ARCANA_HOME_SCENE);
   registry.items.fishingRod = baseItems.fishingRod;
   registry.items.slimeMucus = baseItems.slimeMucus;
   return withAcademyContent(registry);

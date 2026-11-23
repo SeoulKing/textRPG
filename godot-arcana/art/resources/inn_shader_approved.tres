@@ -1,0 +1,25 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/inn_shader_preset.gd" id="1_r710a"]
+
+[resource]
+script = ExtResource("1_r710a")
+approved_on = "2026-11-18"
+sliders = {
+"highlight_strength": 10,
+"outline_strength": 40,
+"outline_width": 1,
+"pitch": 30,
+"pixel_size": 4,
+"specular_metal": 100,
+"specular_nonmetal": 20,
+"specular_width": 30,
+"yaw": 0,
+"zoom": 142
+}
+pan = Vector3(1.5861303, 0.8030827, -1.1683661)
+
+highlights_enabled = true
+shade_bands = true
+effect_enabled = true
+directional_shadow_size = 8192

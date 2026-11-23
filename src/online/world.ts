@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { NetworkMetrics } from "./network-metrics";
-import { CAMPFIRES, FOODS, initializeLife, tickHunger, lifeSkills, beginLife, lifeActive, cancelLife, completeLife, eatFish, placeCampfire, type LifeJob } from "./life";
+import { CAMPFIRES, FOODS, initializeLife, tickHunger, lifeSkills, requireLifeReady, gatherLife, restLife, beginLife, lifeActive, cancelLife, completeLife, eatFish, placeCampfire, type LifeJob } from "./life";
 import { CheckpointWriter } from "./checkpoint-writer";
 import { protectedTrade, operation, knownOperation, reserveOperation, completeOperation, type ActionOperation, type ActionReceipt } from "./action-receipts";
 import { PresenceFrame, PresenceDelta } from "./presence";
@@ -17,16 +17,23 @@ import { GAME_HOUR_MS, REAL_DAY_MS, PHASE_DURATION_MS } from "../game/base-data"
 import { OnlineAccounts, OnlineError, type Character, type Principal } from "./accounts";
 import { OnlineStore } from "./store";
 import { ArcanaItemCatalog } from "./item-catalog";
-import { newEnemy, newWorld, cast, tickCombat, type Death } from "./combat";
-import { inField, samePlace, type Actor, type SharedWorld, type Place, type Point } from "./model";
+import { newEnemy, newWorld, cast, tickCombat, slimeActionTiming, type Death } from "./combat";
+import { inField, samePlace, type Actor, type SharedEnemy, type SharedWorld, type Place, type Point } from "./model";
 
 import { ensureFishingRod, equipFishingRod, startFishing, fishingInput, tickFishing, fishingActive, type Fishing } from "./fishing";
 type Connection = {sessionId:string;controller:string;send:(value:unknown)=>void;sendState?:(build:()=>unknown)=>void;close:(code:number,reason:string)=>void};
-type Checkpoint = {world:SharedWorld;actors:Actor[]};
+type SavedEnemy = Omit<SharedEnemy, "slimeAction" | "recoveryElapsed" | "hopCooldown" | "hasFled"> & {
+  slimeAction?: SharedEnemy["slimeAction"] | "spread";
+  recoveryElapsed?: number;
+  hopCooldown?: number;
+  hasFled?: boolean;
+};
+type Checkpoint = {world:Omit<SharedWorld, "enemy"> & {enemy:SavedEnemy};actors:Actor[]};
 type LayoutArea = {layoutId?:string;circles?:{localRadius:number;inverse:[number,number,number,number,number,number]}[];rooms?:Record<string,Point>;stairs?:Point;stairArrival?:Point;rectangles:{x:number;y:number;w:number;h:number}[];bounds:{x:number;y:number;w:number;h:number};spawn:Point;fishing?:import("./fishing").FishingGeometry;doors:{id:string;x:number;y:number;radius:number;arrival?:Point}[];walkable?:Record<string,boolean>;floorDomain?:{origin:Point;cellSize:number;cells:Record<string,boolean>}};
 type Layouts = Record<string,LayoutArea>;
 const copy=(p:Point)=>({...p});
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
+const previousPlazaHomeArrival: Point={x:2168,y:2247.67993164063};
 /** World mutations are serialized; immutable checkpoints commit on a separate ordered writer. */
 export class ArcanaWorld {
   private world:SharedWorld=newWorld();
@@ -92,7 +99,18 @@ export class ArcanaWorld {
     if(!await this.store.acquireWorld())return false;
     const saved=await this.store.transaction(tx=>tx.get<Checkpoint>("world","main"));
     if(saved) {
-      this.world=saved.world;this.world.campfires ??= {};
+      const {slimeAction, recoveryElapsed = 0, hopCooldown = 0, hasFled = false, ...storedEnemy}=saved.world.enemy;
+      const enemy:SharedEnemy={...storedEnemy,recoveryElapsed,hopCooldown,hasFled};
+      if(slimeAction==="spread") {
+        // Resume combat without replaying a removed action or restoring health.
+        if(["prepare","attack","recover"].includes(enemy.behavior))enemy.behavior="chase";
+        enemy.jumpFrom=copy(enemy.position);enemy.jumpTo=copy(enemy.position);enemy.jumpElapsed=0;
+        enemy.jumpHit=false;enemy.targetLocked=false;enemy.recoveryElapsed=0;
+        enemy.attackIn=spatialLayout().tuning.attackInterval;
+      } else {
+        enemy.slimeAction=slimeAction ?? (["prepare","attack","recover"].includes(enemy.behavior) ? "leap" : undefined);
+      }
+      this.world={...saved.world,enemy,campfires:saved.world.campfires ?? {}};
       this.world.elapsedMs+=Math.max(0,Date.now()-this.world.updatedAt);
       this.world.projectiles=[];this.world.meteors=[];this.world.barrages=[];
       if(this.layouts.outside?.layoutId==="plaza_v2" && distance(this.world.enemy.home,spatialLayout().home)>.01) {
@@ -113,7 +131,7 @@ export class ArcanaWorld {
     this.connections.clear();
     console.error("arcana world stopped:",error instanceof Error?error.message:"unknown");
   }
-  private area(place:Place) {return this.layouts[place.interior+":"+place.floor] || this.layouts[place.interior] || this.layouts["outside"];}
+  private area(place:Place) {return place.interior.startsWith("arcana_home:")?this.layouts.arcana_home:this.layouts[place.interior+":"+place.floor] || this.layouts[place.interior] || this.layouts["outside"];}
   private campfirePoint(actor:Actor,point:Point) {
     if(actor.place.interior || distance(actor.position,point)>48 || distance(actor.position,point)<12)return false;
     if(![-8,0,8].every(x=>[-8,0,8].every(y=>this.validPoint(actor.place,{x:point.x+x,y:point.y+y}))))return false;
@@ -149,8 +167,25 @@ export class ArcanaWorld {
       actor.game.state.location=actor.place.location;
       actor.placeRevision=(actor.placeRevision || 0)+1;
     }
+    // Private homes are persistent places and never share a presence bucket.
+    if(actor.game.state.arcanaLife?.atHome) {
+      actor.place={location:"arcana_home",interior:"arcana_home:"+actor.character.id,floor:0};
+      actor.game.state.location="arcana_home";
+      if(this.layouts.arcana_home && !this.validPoint(actor.place,actor.position)) {
+        actor.position=copy(this.layouts.arcana_home.spawn);
+        actor.walking=false;
+        actor.bench="";
+      }
+      actor.previous=copy(actor.position);return;
+    }
+    if(actor.place.location==="arcana_home" || actor.place.interior.startsWith("arcana_home:")) {
+      actor.place={location:"arcana_plaza",interior:"",floor:0};actor.position=copy(this.area(actor.place).spawn);actor.game.state.location="arcana_plaza";
+    }
     // Layout edits can put an older checkpoint inside new terrain or furniture.
-    if((actor.place.interior && !["arcana_shop","arcana_academy"].includes(actor.place.interior)) || this.validPoint(actor.place,actor.position))return;
+    const interior=actor.place.interior;
+    const usesTileInn=interior==="arcana_inn" && this.layouts.arcana_inn?.layoutId==="inn_tiles_v1";
+    const usesTileRestaurant=interior==="arcana_restaurant" && this.layouts.arcana_restaurant?.layoutId==="restaurant_tiles_v1";
+    if((interior && !usesTileInn && !usesTileRestaurant && !["arcana_shop","arcana_academy"].includes(interior)) || this.validPoint(actor.place,actor.position))return;
     actor.position=copy(this.area(actor.place).spawn);
     actor.previous=copy(actor.position);actor.walking=false;actor.bench="";
   }
@@ -214,7 +249,7 @@ export class ArcanaWorld {
       const job=this.lifeJobs.get(actor.character.id);
       if(lifeActive(job)) {
         const fire=job!.campfireId?this.world.campfires[job!.campfireId]:undefined;
-        if(!this.connections.has(actor.character.id) || this.fighting(actor) || actor.game.state.arcanaCombat.hp<=0 || distance(actor.position,job!.origin)>.75 || (job!.kind==="cook" && (!fire || actor.place.interior || distance(actor.position,fire.position)>26))) {
+        if(!this.connections.has(actor.character.id) || this.fighting(actor) || actor.game.state.arcanaCombat.hp<=0 || distance(actor.position,job!.origin)>.75 || (job!.kind==="cook" && (job!.homeKitchen?!(actor.game.state.arcanaLife?.atHome && actor.place.interior==="arcana_home:"+actor.character.id):(!fire || !!actor.place.interior || distance(actor.position,fire.position)>26)))) {
           cancelLife(job,"작업이 중단되었습니다. 재료는 소모하지 않았습니다.");
         } else if(now>=job!.endsAt) {
           try {completeLife(actor,job!);caughtFish=true;} catch {cancelLife(job,"재료가 부족해 작업을 마치지 못했습니다.");}
@@ -224,7 +259,7 @@ export class ArcanaWorld {
     }
     if(caughtFish || deaths.length || this.world.events.some(e=>e.id>beforeRevision && e.kind==="defeat") || now-this.lastSave>=1000)await this.persist(deaths);
     if(++this.ticks%2===0) {
-      const frame=new PresenceFrame(this.actors.values(),this.world.events);
+      const frame=new PresenceFrame(this.actors.values(),this.world.events,this.fishing);
       for(const [id,connection] of this.connections) {
         const actor=this.actors.get(id);if(!actor)continue;
         const stream=this.eventStream(connection);
@@ -269,9 +304,9 @@ export class ArcanaWorld {
       const position=saved && this.validPoint(place,saved.position)?saved.position:copy(this.area(place)?.spawn || spatialLayout().spawn);
       game.state.location=place.location;
       const actor:Actor={character,game,place,position,previous:copy(position),direction:{x:0,y:1},walking:false,bench:"",gait:0,lastMoveAt:Date.now(),disconnectedAt:Date.now(),sessionId:principal.sessionId,controller,accepted:0,version:0,lastSeen:Date.now(),sessionExpires:principal.expires};
-      this.restoreLayoutPosition(actor);
+      initializeLife(actor.game);this.restoreLayoutPosition(actor);
       actor.actionReceipts=stored.receipts || [];
-      initializeLife(actor.game);this.actors.set(character.id,actor);this.synchronize(actor);
+      this.actors.set(character.id,actor);this.synchronize(actor);
       await this.persist();
       return this.joinReply(actor);
     });
@@ -301,10 +336,11 @@ export class ArcanaWorld {
   }
   private battle(actor:Actor) {
     if(!inField(actor))return null;
-    const e=this.world.enemy;
+    const {hopCooldown: _hopCooldown, hasFled: _hasFled, ...e}=this.world.enemy;
+    const actionTiming=slimeActionTiming(e.slimeAction);
     return {id:"world-main",online:true,selfCombat:this.fighting(actor),phase:e.behavior==="neutral" || e.hp<=0?"ready" as const:"battle" as const,enemyHp:e.hp,attackIn:e.attackIn,paused:false,log:[],
-      spatial:{encounterId:"plaza_slime" as const,enemy:copy(e.position),home:copy(e.home),behavior:e.behavior,jumpFrom:e.jumpFrom,jumpTo:e.jumpTo,jumpHit:e.jumpHit,jumpElapsed:e.jumpElapsed,targetLocked:e.targetLocked,
-        enemies:[e],primaryEnemyId:e.id,player:copy(actor.position),previousPlayer:copy(actor.previous),elapsed:this.world.elapsedMs/1000,revision:this.world.revision,projectiles:this.world.projectiles,meteors:this.world.meteors,barrage:null,
+      spatial:{encounterId:"plaza_slime" as const,enemy:copy(e.position),home:copy(e.home),behavior:e.behavior,jumpFrom:e.jumpFrom,jumpTo:e.jumpTo,jumpHit:e.jumpHit,jumpElapsed:e.jumpElapsed,targetLocked:e.targetLocked,recoveryElapsed:e.recoveryElapsed,slimeAction:e.slimeAction,...actionTiming,
+        enemies:[{...e,...actionTiming}],primaryEnemyId:e.id,player:copy(actor.position),previousPlayer:copy(actor.previous),elapsed:this.world.elapsedMs/1000,revision:this.world.revision,projectiles:this.world.projectiles,meteors:this.world.meteors,barrage:null,
         events:this.eventsFor(actor)}};
   }
   full(actor:Actor) {
@@ -327,7 +363,7 @@ export class ArcanaWorld {
       onlineFighting:this.fighting(actor),fishing:this.fishing.get(actor.character.id) ?? null,lifeActivity:this.lifeJobs.get(actor.character.id) ?? null,lifeSkills:lifeSkills(actor),
       state:{arcanaLife:actor.game.state.arcanaLife,arcanaCombat:combat,activeClock:actor.game.state.activeClock,location:actor.game.state.location,money:actor.game.state.money,inventory:actor.game.state.inventory,flags:actor.game.state.flags,day:projected.day,phaseIndex:projected.phaseIndex,worldElapsedMs:projected.worldElapsedMs}};
   }
-  packet(actor:Actor,frame=new PresenceFrame(this.actors.values(),this.world.events),connection?:Connection) {
+  packet(actor:Actor,frame=new PresenceFrame(this.actors.values(),this.world.events,this.fishing),connection?:Connection) {
     const started=performance.now();
     let view=connection?this.views.get(connection):undefined;
     if(!view){view=new PresenceDelta();if(connection)this.views.set(connection,view);}
@@ -373,26 +409,47 @@ export class ArcanaWorld {
       const oldWorld=combatInput?structuredClone(this.world):null;
       const deaths:Death[]=[];
       try {
+        const atHome=actor.game.state.arcanaLife?.atHome;
+        if(atHome && input.command && input.command!=="spatial_sync"
+          && !["life_cook","life_craft","life_eat","life_rest","life_cancel","life_home_leave"].includes(input.command)) {
+          throw new OnlineError("home_action_required","집에서는 요리·제작·식사·휴식을 할 수 있습니다. 외출 후 이용해 주세요.");
+        }
         const cooldown=actor.game.state.arcanaCombat.cooldowns;
-        if(!fishingActive(this.fishing.get(id)) && input.floor && input.floor!==actor.place.floor)this.changeFloor(actor,input.floor);
-        else if(!fishingActive(this.fishing.get(id)) && input.position && cooldown.dodge<=4.8 && !(cooldown.teleport===0 && actor.game.state.arcanaCombat.evadeSeconds>.1))this.move(actor,input.position,input.developerSpeed && process.env.NODE_ENV!=="production" ? 3 : 1);
-        if(input.direction)actor.direction=copy(input.direction);
-        if(input.bench!==undefined)actor.bench=input.bench;
-        if(input.gait!==undefined)actor.gait=input.gait;
+        if(!fishingActive(this.fishing.get(id))) {
+          if(input.floor && input.floor!==actor.place.floor)this.changeFloor(actor,input.floor);
+          else if(input.position && cooldown.dodge<=4.8 && !(cooldown.teleport===0 && actor.game.state.arcanaCombat.evadeSeconds>.1))this.move(actor,input.position,input.developerSpeed && process.env.NODE_ENV!=="production" ? 3 : 1);
+          if(input.direction)actor.direction=copy(input.direction);
+          if(input.bench!==undefined)actor.bench=input.bench;
+          if(input.gait!==undefined)actor.gait=input.gait;
+        }
         if(actor.pending && input.command && input.command!=="spatial_sync")throw new OnlineError("action_pending","현재 행동을 마친 뒤 사용해 주세요.");
         if(lifeActive(this.lifeJobs.get(id)) && input.command && input.command!=="spatial_sync" && input.command!=="life_cancel")throw new OnlineError("life_active","현재 제작·요리를 마치거나 취소해 주세요.");
         if(input.command?.startsWith("life_")) {
           if(input.command==="life_cancel")cancelLife(this.lifeJobs.get(id));
           else {
             if(fishingActive(this.fishing.get(id)) || this.fighting(actor))throw new OnlineError("life_unavailable","낚시와 전투를 마친 뒤 이용해 주세요.");
-            if(input.command==="life_craft")this.lifeJobs.set(id,beginLife(actor,"craft"));
-            else if(input.command==="life_cook")this.lifeJobs.set(id,beginLife(actor,"cook",(this.world.campfires || {})[input.campfireId || ""],input.recipeId));
-            else if(input.command==="life_eat")eatFish(actor,input.itemId || "");
+            if(input.command==="life_gather")gatherLife(actor);
+            else if(input.command==="life_rest") {
+              if(atHome)this.requireHomeFeature(actor,"home_bed");
+              restLife(actor);
+            }
+            else if(input.command==="life_home_enter")this.enterHome(actor);
+            else if(input.command==="life_home_leave")this.leaveHome(actor);
+            else if(input.command==="life_craft")this.lifeJobs.set(id,beginLife(actor,"craft",undefined,input.recipeId));
+            else if(input.command==="life_cook") {
+              if(atHome)this.requireHomeFeature(actor,"home_kitchen");
+              this.lifeJobs.set(id,beginLife(actor,"cook",(this.world.campfires || {})[input.campfireId || ""],input.recipeId));
+            }
+            else if(input.command==="life_eat") {
+              const homeSeated=!!atHome && actor.bench==="seated";
+              if(homeSeated)this.requireHomeFeature(actor,"home_sofa");
+              eatFish(actor,input.itemId || "",homeSeated);
+            }
             else if(input.command==="life_place") {
               if(!input.target || !this.campfirePoint(actor,input.target))throw new OnlineError("invalid_placement","가까운 빈 땅에 설치해 주세요. 물·장애물·출입구와 겹칠 수 없습니다.");
               const fire=placeCampfire(actor,input.itemId || "",input.target);
               (this.world.campfires ??= {})[fire.id]=fire;
-            }
+            } else throw new OnlineError("invalid_life_command","이용할 생활 행동을 다시 선택해 주세요.");
           }
         } else if(input.command?.startsWith("fishing_")) {
           if(input.command==="fishing_equip" || input.command==="fishing_unequip") {
@@ -421,6 +478,66 @@ export class ArcanaWorld {
       if((input.command==="potion" || input.command?.startsWith("life_")) && "actionReceipt" in result)await this.waitForSave();
       return result;
     });
+  }
+  private requireHomeFeature(actor:Actor,id:string) {
+    if(!actor.game.state.arcanaLife?.atHome || actor.place.interior!=="arcana_home:"+actor.character.id) {
+      throw new OnlineError("home_required","내 집 안에서 이용해 주세요.");
+    }
+    const feature=this.layouts.arcana_home?.doors.find(d=>d.id===id);
+    if(!feature) {
+      throw new OnlineError("home_layout_unavailable","집의 공간 정보가 준비 중입니다. 잠시 후 다시 이용해 주세요.");
+    }
+    if(distance(actor.position,feature)>feature.radius) {
+      throw new OnlineError("home_room_required",id==="home_bed"?"침실의 침대 가까이에서 쉬어 주세요.":id==="home_sofa"?"거실의 안락의자에 앉아서 식사해 주세요.":"주방 가까이에서 요리해 주세요.");
+    }
+  }
+  private enterHome(actor:Actor) {
+    requireLifeReady(actor);
+    if(actor.place.location!=="arcana_plaza" || actor.place.interior) {
+      throw new OnlineError("home_entrance_required","광장 야외에서 내 집으로 돌아가 주세요.");
+    }
+    if(!this.layouts.arcana_home) {
+      throw new OnlineError("home_layout_unavailable","집의 공간 정보가 준비 중입니다. 잠시 후 다시 이용해 주세요.");
+    }
+    const life=actor.game.state.arcanaLife!;
+    const door=this.area(actor.place)?.doors.find(entry=>entry.id==="arcana_home");
+    life.homeReturn=door?.arrival && distance(actor.position,door)<=door.radius
+      && this.validPoint(actor.place,door.arrival)?copy(door.arrival):copy(actor.position);
+    life.atHome=true;
+    life.lastMessage="내 집에 돌아왔습니다. 주방에서 요리하고 거실에서 제작하거나 침실에서 쉬어 보세요.";
+    actor.place={location:"arcana_home",interior:"arcana_home:"+actor.character.id,floor:0};
+    actor.game.state.location="arcana_home";
+    actor.position=copy(this.layouts.arcana_home.spawn);
+    actor.previous=copy(actor.position);
+    actor.walking=false;
+    actor.bench="";
+    actor.moveCredit=0;
+    actor.lastMoveAt=Date.now();
+    actor.placeRevision=(actor.placeRevision || 0)+1;
+  }
+  private leaveHome(actor:Actor) {
+    requireLifeReady(actor);
+    const life=actor.game.state.arcanaLife!;
+    if(!life.atHome || actor.place.interior!=="arcana_home:"+actor.character.id) {
+      throw new OnlineError("home_required","지금은 집 안에 있지 않습니다.");
+    }
+    actor.place={location:"arcana_plaza",interior:"",floor:0};
+    const plaza=this.area(actor.place);
+    const movedDoor=plaza.doors.find(entry=>entry.id==="arcana_home");
+    // A player who saved inside the house can still have its former porch as their return point.
+    const returnPoint=life.homeReturn && distance(life.homeReturn,previousPlazaHomeArrival)<.05
+      ?movedDoor?.arrival || life.homeReturn:life.homeReturn;
+    actor.position=returnPoint && this.validPoint(actor.place,returnPoint)
+      ?copy(returnPoint):copy(plaza.spawn);
+    life.atHome=false;
+    life.lastMessage="집에서 나와 광장으로 돌아왔습니다.";
+    actor.game.state.location="arcana_plaza";
+    actor.previous=copy(actor.position);
+    actor.walking=false;
+    actor.bench="";
+    actor.moveCredit=0;
+    actor.lastMoveAt=Date.now();
+    actor.placeRevision=(actor.placeRevision || 0)+1;
   }
   private changeFloor(actor:Actor,floor:number) {
     if(actor.place.interior!=="arcana_academy" || ![1,2].includes(floor))throw new OnlineError("invalid_floor","이동할 수 없는 층입니다.");
@@ -482,6 +599,7 @@ export class ArcanaWorld {
       const actor=await this.actorFor(principal,gameId);
       if(op && knownOperation(actor,op))return {actor,baseline:structuredClone(actor.game),location:actor.game.state.location,duplicate:true};
       if(op)reserveOperation(actor,op);
+      if(actor.game.state.arcanaLife?.atHome)throw new OnlineError("home_action_required","집에서 외출한 뒤 이용해 주세요.");
       if(lifeActive(this.lifeJobs.get(actor.character.id)))throw new OnlineError("life_active","현재 제작·요리를 마치거나 취소해 주세요.");
       if(action.type==="use_item" && (FOODS[action.itemId] || CAMPFIRES[action.itemId]))throw new OnlineError("world_transport_required","요리와 모닥불은 세계 연결에서 사용해 주세요.");
       if(fishingActive(this.fishing.get(actor.character.id)))throw new OnlineError("fishing_active","낚시를 마친 뒤 이용해 주세요.");

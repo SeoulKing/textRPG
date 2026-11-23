@@ -1,5 +1,27 @@
 # 아르카나 도심 재구성 작업 명세
 
+## 본편 3D 광장 배치
+
+- 활성 씬은 [plaza_3d_v2.tscn](../../../godot-arcana/scenes/plaza_3d_v2.tscn)입니다. 기본 격자는 64×64칸이며 X `−24…40`, Z `−34…30`를 사용합니다. 기존 석판은 제자리에 유지하고 네 가장자리의 포장을 이어 넓힙니다. 분수와 연못, 여관과 상점의 기준 위치는 기존 배치를 사용합니다.
+- 남쪽 5칸 대로는 분수에 닿습니다. 동쪽 4칸 학교길이 아카데미 앞마당으로, 3칸 상점가가 식당·상점·여관 입구로 이어집니다. 내 집은 상점 쪽으로 옮겨 2칸 골목으로 연결합니다. 광장 앞쪽에는 낮은 화단을 두고 상점과 아카데미 사이의 자리는 비워 둡니다.
+- 길과 아카데미 앞마당에는 [도로용 포장석](../../../godot-arcana/art/resources/plaza_road_setts.gdshader)을 깝니다. 광장 석판보다 작은 회갈색 돌을 줄마다 엇갈리게 배치하고, 큰길 가장자리에는 이음새가 있는 낮은 경계석을 둡니다. 골목이 합류하거나 정문으로 이어지는 부분의 경계석은 끊어 보행로를 엽니다. [위치브룩 모스포트 지도](https://www.witchbrook.com/map-of-mossport/)
+- 식당의 남향 문턱은 XZ `(−10.5, −10.8)`, 24×10칸 [아카데미 외관](../arcana-academy-interior/brief.md#본편-광장-학교-외관)의 정문은 `(24, −15.3)`입니다. [광장 배치 스크립트](../../../godot-arcana/scripts/plaza_3d_game_layout.gd)가 씬에서 문과 발판을 읽어 본편 이동과 온라인 출입구에 같은 좌표를 사용합니다. 아카데미 2층은 내부 계단으로 이어집니다.
+
+## 2:1 아이소메트릭 광장 스터디
+
+- [PixelPen 원본](source/plaza-iso-2to1/plaza-2to1.pxpen) · [1312×900 투명 PNG](source/plaza-iso-2to1/plaza-2to1.png) · [Godot 독립 씬](../../../godot-arcana/scenes/studies/plaza-iso-2to1/plaza_iso.tscn)
+- 기존 2D 광장의 중앙 분수 구역을 기준으로 상점, 여관, 식당, 마법학교 정문을 모아 배치했습니다. 남쪽 접근로와 분수 둘레의 보행 공간을 기준으로 배치를 조정했습니다. 후보 범위는 20×19칸이며, 한 칸을 64×32px 다이아몬드로 표시합니다.
+- 상점·여관·북극성 분수는 기존 아르카나 모델을 yaw 45°, 하향각 30° 정사영에서 뽑아 픽셀 팔레트로 다듬었습니다. 식당과 마법학교 정문은 기존 외관의 돌벽·차양·첨탑을 기준으로 2:1에서 새로 그렸습니다. 청금 모자이크와 수목·가로등·벤치·화단·노점은 기존 자산을 사용합니다.
+- PixelPen에서 바닥·석판 마감·모자이크·각 사물을 40개 레이어로 편집할 수 있습니다. 64×32 확인 격자는 숨김 상태입니다. 저장한 파일을 다시 열어 출력한 PNG와 Godot 씬에 쓰는 아틀라스 합성이 일치함을 확인했습니다.
+- 독립 씬에는 v12 주인공, 바닥 점유에 따른 충돌과 발 위치에 따른 가림을 붙였습니다. 씬 재생 확인은 Godot에서 독립 씬을 열고 F6으로 실행한 뒤 방향키 또는 WASD로 분수 둘레를 돌아보면 됩니다.
+
+
+## 광장 V2 생활 연못
+
+- [광장 장면](../../../godot-arcana/scenes/plaza_3d_v2.tscn)의 `FishingPond`은 분수 남서쪽, 여관 남쪽에 있습니다. 낮은 석축에는 분수의 석재와 모자이크 가장자리를, 수면에는 기존 강의 맑은 청색 바탕과 16프레임 잔물결을 사용합니다.
+- 석축 충돌은 `FishingPond/Collision/Footprint`, 찌를 던질 수 있는 수면은 `FishingPond/Water`가 기준입니다. [광장 배치 어댑터](../../../godot-arcana/scripts/plaza_3d_game_layout.gd)가 같은 장면에서 클라이언트와 서버용 영역을 구합니다. 물가 어느 방향에서든 여럿이 각자 자리를 잡을 수 있습니다.
+- Godot 4.7.2 편집기에서 여관·분수 사이의 빈 통로와 연못 둘레를 확인했습니다. 여러 명의 동시 플레이와 낚시 손맛은 직접 확인할 항목입니다.
+
 ## 광장 V2 조명과 분수 둘레
 
 - 3D 광장에 청금 모자이크를 분수 중심에 맞춰 적용했습니다. 모자이크는 지면에 얹은 표시용 메시이며 기존 분수 충돌과 보행 범위를 따릅니다.
@@ -7,8 +29,9 @@
 
 ## 광장 V2 석판 바닥
 
-- 참고 이미지의 따뜻한 회갈색 석판과 얕은 줄눈, 살짝 닳은 모서리를 Blender 메시로 만들었습니다. [광장 V2](../../../godot-arcana/scenes/plaza_3d_v2.tscn)의 기존 22×30 보행 범위와 높이에 맞췄습니다.
-- [Blender 원본](source/plaza-stone-paving/plaza-stone-paving.blend) · [GLB](../../../godot-arcana/art/source/plaza-stone-paving/plaza-stone-paving.glb) · [미리보기](source/plaza-stone-paving/plaza-stone-paving-preview.png) · [생성 스크립트](source/plaza-stone-paving/build_plaza_stone_paving.py).
+- [승인 시안](source/plaza-stone-paving/approved-honey-limestone.png)의 꿀빛 석회암을 [광장 V2](../../../godot-arcana/scenes/plaza_3d_v2.tscn)의 22×30 바닥 전체에 깝니다. 생성기는 고정 시드 813으로 줄 깊이와 돌 너비를 고르고, 직전 줄의 세로 줄눈을 피하면서 끝돌까지 채웁니다.
+- Blender에서 다시 생성할 때 광장 씬에 저장된 여관 문, 상점 입구, 분수 중심을 읽습니다. 이 세 지점을 잇는 길에는 더 밝고 매끈한 돌이 섞이고, 출입문 양옆 벽 아래 줄눈에는 드문 이끼가 생깁니다. 분수의 기존 청금 모자이크 바깥에는 쐐기돌 한 줄을 두릅니다.
+- [Blender 원본](source/plaza-stone-paving/plaza-stone-paving.blend) · [GLB](../../../godot-arcana/art/source/plaza-stone-paving/plaza-stone-paving.glb) · [광장 화면](source/plaza-stone-paving/plaza-paving-godot.png) · [석판 근접 화면](source/plaza-stone-paving/plaza-paving-detail-godot.png) · [생성 스크립트](source/plaza-stone-paving/build_plaza_stone_paving.py).
 
 
 ## 광장 V2 북극성 분수
@@ -273,3 +296,11 @@
 - 실제 근거: `initial-pixelpen-audit.json`의852개 수정과 `pixelpen-audit.json`의 기존 네이티브 재열기 출력. 최초 user://설정 저장 오류는 작업별 APPDATA/LOCALAPPDATA로 전환해 재열기 때 해소했습니다. 원본 미술의 저장·출력은 두 실행 모두 성공했습니다.
 - 확인: 웹 export 및 별도 패키지 로딩, 최종 PCK를 마운트한 광장·시장·학교·해질녘 오프라인 GPU 출력. `source/square-floor-v2/render/`의 실제 결과를 확인했습니다. 화면 결과는 생성 비교 시안과 구별합니다.
 - 단계: 게임 연결·로컬 웹 반영. 이 변경에서 브라우저 전체 플레이를 다시 실행하지 않았으며 이전 웹 프레임 저하의 미확정 상태는 유지합니다.
+
+## 모바일 가로 기준 화면 · 광장 V2
+
+갤럭시 S24 울트라의 가로 824×384를 광장 제작 기준으로 삼습니다. 같은 화면과 줌에서는 여관 실내와 분수광장이 여관의 월드 픽셀 크기와 캐릭터 배율을 공유합니다. 문 앞에서도 카메라는 주인공을 따라갑니다. 구도 확인에는 두 장소에서 같은 자세의 주인공을 같은 화면 크기로 비교합니다. [이전 가로 구도 전후](render/plaza-inn-landscape.png) · [같은 구도에서 본 미술 전후](render/plaza-inn-materials.png)
+
+분수 모자이크를 기준으로 여관 통행로의 판석과 줄눈 대비를 낮추고, 현관의 밝은 참나무 테두리와 어두운 안쪽 문판을 구분했습니다. 연못의 석재 턱에 가로등과 낮은 화단을 놓고 입구 양끝에 작은 화분을 두었습니다. [광장 씬](../../../godot-arcana/scenes/plaza_3d_v2.tscn) · [접근로 소품](../../../godot-arcana/scenes/props/plaza/plaza_inn_approach.tscn) · [판석 재질](../../../godot-arcana/art/resources/plaza_approach_paving.gdshader)
+
+비교 이미지는 같은 두 위치에서 본편 카메라와 v12 주인공을 사용해 HUD를 숨긴 Godot 렌더입니다. 첫 비교는 기본 카메라의 변화까지 보여주고, 두 번째 비교는 새 카메라를 양쪽에 적용해 재질과 소품을 비교합니다.

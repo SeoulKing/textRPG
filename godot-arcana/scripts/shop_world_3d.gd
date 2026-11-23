@@ -4,6 +4,8 @@ extends Node3D
 const Layout = preload("res://scripts/shop_layout_2d.gd")
 const Hero = preload("res://scripts/native_2d_hero.gd")
 const WorldDisplay = preload("res://scripts/services/world_display_settings.gd")
+const InnPreset := preload("res://scripts/rendering/inn_shader_preset.gd")
+const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
 const AstraLook = preload("res://scripts/shop_astra_look.gd")
 const ASTRA_EDGE_SHADER = preload("res://art/resources/shop_astra_edges.gdshader")
 const HERO_OUTLINE_SHADER = preload("res://art/resources/shop_hero_outline.gdshader")
@@ -15,6 +17,7 @@ const CubeShader = preload("res://art/resources/shop_test_cube.gdshader")
 const MerchantTexture = preload("res://art/export/shop-2d/merchant.png")
 const CAMERA_DISTANCE = 24.0
 const REAR_WALL_HEIGHT = 3.61
+const MERCHANT_PICK_BOUNDS := AABB(Vector3(-0.44, 0.0, -0.24), Vector3(0.88, 2.65, 0.48))
 
 @export var outlined_assets: Array[StringName] = []
 
@@ -48,7 +51,16 @@ var _astra_debug_mode := AstraLook.DebugMode.BEAUTY
 var _cube_materials: Array[ShaderMaterial] = []
 var presentation_minimum := 0
 var presentation_pixel_size := 1
+var use_approved_rendering := false
 var _standalone_presentation: ShaderMaterial
+var _approved_preset: InnPreset
+var _approved_effect: Node3D
+var _projected_room_bounds := Rect2()
+
+
+func _enter_tree() -> void:
+	if use_approved_rendering:
+		get_node("Geometry").set("use_approved_lighting", true)
 
 
 func _ready() -> void:
@@ -56,15 +68,20 @@ func _ready() -> void:
 	if standalone:
 		# F6 uses the size of the game window, including the editor's embedded view.
 		get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
-	_screen_edges.visible = not Engine.is_editor_hint()
+	_screen_edges.visible = not Engine.is_editor_hint() and not use_approved_rendering
 	geometry.astra_debug_mode_changed.connect(_update_astra_edges_debug_mode)
 	if layout.is_empty():
 		layout = Layout.load_layout()
 	if not _rebuild_room(layout):
 		return
 
-	_apply_cube_palette(test_cube)
+	if use_approved_rendering:
+		test_cube.hide()
+	else:
+		_apply_cube_palette(test_cube)
 	_configure_lighting()
+	if use_approved_rendering:
+		apply_approved_rendering()
 	geometry.set_pixel_lighting(true)
 
 	_setup_sprite(merchant)
@@ -98,8 +115,36 @@ func enable_walkable_preview(snap_to_pixels: bool = false) -> void:
 
 
 func refresh_layout(next_layout: Dictionary) -> void:
-	if next_layout != layout and _rebuild_room(next_layout):
+	if next_layout == layout:
+		return
+	if is_instance_valid(_approved_effect) and next_layout.get("valid", false):
+		# Restore the original surfaces before inspecting the rebuilt geometry.
+		_approved_effect.set_effect_enabled(false)
+		camera.remove_child(_approved_effect)
+		_approved_effect.queue_free()
+		_approved_effect = null
+	if _rebuild_room(next_layout):
 		_configure_lighting()
+		if use_approved_rendering:
+			apply_approved_rendering()
+
+
+func apply_approved_rendering() -> void:
+	if is_instance_valid(_approved_effect):
+		return
+	var preset := InnPreset.load_approved() as InnPreset
+	_approved_preset = preset.tile_world_variant() as InnPreset
+	camera.rotation_degrees = TileStyle.CAMERA_ROTATION_DEGREES
+	camera.keep_aspect = Camera3D.KEEP_HEIGHT
+	var floor: Rect2 = geometry.floor_bounds.grow(0.55)
+	var bounds := AABB(Vector3(floor.position.x, -0.2, floor.position.y),
+		Vector3(floor.size.x, REAR_WALL_HEIGHT + 0.2, floor.size.y))
+	_projected_room_bounds = TileStyle.projected_bounds(camera.basis, bounds)
+	_approved_effect = _approved_preset.attach_effect(geometry, camera)
+
+
+func input_projection() -> Transform2D:
+	return _approved_preset.input_projection(camera)
 
 
 func _configure_lighting() -> void:
@@ -124,6 +169,8 @@ func _configure_lighting() -> void:
 		sun.look_at(sun.global_position + Vector3(1.0, -0.52, 0.23), Vector3.UP)
 		sun.light_color = Color("fff2da")
 		sun.light_energy = 0.58
+	if use_approved_rendering:
+		return
 	var ray_direction := -sun.global_basis.z
 	var edge_material := $Camera3D/ScreenEdges.material_override as ShaderMaterial
 	edge_material.set_shader_parameter("shadow_direction", Vector2(ray_direction.x, ray_direction.z).normalized())
@@ -185,13 +232,14 @@ func _rebuild_room(next_layout: Dictionary) -> bool:
 			asset_mask.set_active(false)
 	else:
 		_screen_edges.material_override = _legacy_edges
-		_configure_room_palette()
-		if not Engine.is_editor_hint():
-			if asset_mask == null:
-				asset_mask = ShopAssetMask.new()
-				add_child(asset_mask)
-				visibility_changed.connect(asset_mask.sync)
-			asset_mask.setup(geometry, camera, _legacy_edges, outlined_assets)
+		if not use_approved_rendering:
+			_configure_room_palette()
+			if not Engine.is_editor_hint():
+				if asset_mask == null:
+					asset_mask = ShopAssetMask.new()
+					add_child(asset_mask)
+					visibility_changed.connect(asset_mask.sync)
+				asset_mask.setup(geometry, camera, _legacy_edges, outlined_assets)
 	merchant.position = _space(layout.markers.actor)
 	return true
 
@@ -249,12 +297,14 @@ func sync(world: Node, source: Node, zoom_ratio: float, pixelated: bool = false,
 	$Sun.shadow_enabled = world.effects_enabled
 	ceiling_light.shadow_enabled = world.effects_enabled
 	crate_accent_light.shadow_enabled = world.effects_enabled
-	$Camera3D/ScreenEdges.visible = pixelated
+	_screen_edges.visible = pixelated and not use_approved_rendering
 	if asset_mask != null:
 		asset_mask.set_active(pixelated and not geometry.astra_active)
 	geometry.set_pixel_lighting(pixelated)
 	_frame(world.player_position, zoom_ratio, pixelated, visible_raster)
 	_sync_actor(avatar, source, world.player_position)
+	if is_instance_valid(_approved_effect):
+		_approved_effect.sync()
 
 
 func sync_remote(id: String, source: Node, point: Vector2) -> void:
@@ -274,9 +324,9 @@ func remove_remote(id: String) -> void:
 
 
 func _setup_sprite(sprite: Sprite3D) -> void:
-	# The actor faces the fixed shop camera from a vertical plane.
-	# An upright quad gives each pixel its own depth above the foot anchor.
+	# An upright quad faces the camera and retains depth above its foot anchor.
 	sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	sprite.rotation.y = camera.rotation.y
 	# Preserve the projected height at the camera's fixed pitch.
 	sprite.scale.y = 1.0 / cos(camera.rotation.x)
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
@@ -340,6 +390,9 @@ func _frame(point: Vector2, zoom_ratio: float, snap_to_pixels: bool = false, vis
 	var aspect := 1.6
 	var raster_size := get_viewport().get_visible_rect().size
 	var visible_size := visible_raster if visible_raster != Vector2.ZERO else raster_size
+	if use_approved_rendering:
+		_frame_approved(point, zoom_ratio, snap_to_pixels, visible_size, raster_size)
+		return
 	if not Engine.is_editor_hint():
 		aspect = visible_size.x / maxf(visible_size.y, 1.0)
 
@@ -391,14 +444,31 @@ func _frame(point: Vector2, zoom_ratio: float, snap_to_pixels: bool = false, vis
 		asset_mask.sync()
 
 
+func _frame_approved(point: Vector2, zoom_ratio: float, snap_to_pixels: bool, visible_size: Vector2, raster_size: Vector2) -> void:
+	var texel_size := TileStyle.world_texel_size(zoom_ratio)
+	var basis := camera.basis
+	var focus := TileStyle.clamp_focus(basis, _space(point, InnPreset.AVATAR_HEIGHT * 0.5),
+		_projected_room_bounds, visible_size * texel_size)
+	camera.size = texel_size * raster_size.y
+	_world_pixel_step = texel_size if snap_to_pixels else 0.0
+	var desired := focus + basis.z * CAMERA_DISTANCE
+	if snap_to_pixels and _approved_preset.effect_enabled:
+		camera_texel_offset = WorldDisplay.snap_orthographic_camera(camera, desired, texel_size, raster_size)
+	else:
+		camera.position = desired
+
+
 func _snap_ground(point: Vector3) -> Vector3:
 	if _world_pixel_step <= 0.0:
 		return point
 	var pitch_sine := sin(-camera.rotation.x)
 	if absf(pitch_sine) < 0.001:
 		return point
-	return Vector3(snappedf(point.x, _world_pixel_step), point.y,
-		snappedf(point.z * pitch_sine, _world_pixel_step) / pitch_sine)
+	var right := camera.basis.x
+	var depth := Vector3(-right.z, 0.0, right.x)
+	var snapped_right := snappedf(point.dot(right), _world_pixel_step)
+	var snapped_depth := snappedf(point.dot(depth) * pitch_sine, _world_pixel_step) / pitch_sine
+	return right * snapped_right + depth * snapped_depth + Vector3.UP * point.y
 
 
 func _clamp_view(point: float, start: float, end: float, half_view: float) -> float:
@@ -422,9 +492,7 @@ func screen_point(point: Vector2, height: float = 0.0) -> Vector2:
 func pick_interaction(point: Vector2, world: Node) -> Dictionary:
 	var origin := camera.project_ray_origin(point)
 	var direction := camera.project_ray_normal(point)
-	var bounds: Dictionary = geometry.interaction_bounds.duplicate()
-	var at := merchant.position
-	bounds["actor"] = AABB(at + Vector3(-0.44, 0.0, -0.24), Vector3(0.88, 2.65, 0.48))
+	var bounds: Dictionary = geometry.interaction_bounds
 
 	var closest_id := ""
 	var closest := INF
@@ -435,7 +503,12 @@ func pick_interaction(point: Vector2, world: Node) -> Dictionary:
 			var distance := origin.distance_squared_to(hit)
 			if distance < closest:
 				closest = distance
-				closest_id = "merchant" if id == "actor" else str(id)
+				closest_id = str(id)
+	var merchant_basis := Basis(Vector3.UP, merchant.rotation.y).transposed()
+	var merchant_origin := merchant_basis * (origin - merchant.position)
+	var merchant_hit: Variant = MERCHANT_PICK_BOUNDS.intersects_ray(merchant_origin, merchant_basis * direction)
+	if merchant_hit is Vector3 and merchant_origin.distance_squared_to(merchant_hit) < closest:
+		closest_id = "merchant"
 	for entity in world.entities:
 		if entity.id == closest_id:
 			return entity

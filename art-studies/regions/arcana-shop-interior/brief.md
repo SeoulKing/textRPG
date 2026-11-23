@@ -1,6 +1,101 @@
 # 아르카나 상점 내부
 
-현재 적용: **native-2d / v3 승인안** — 기본 TileMapLayer로 편집하는14×9 순수2D 상점입니다. 활성 원본과 확인 근거는 문서 하단의 제작·연결 완료 항목을 따릅니다.
+현재 적용: **기존 Blender 상점** (`scenes/shop_3d.tscn`). 사용자님이 이전 상점의 표현을 선호해 본편과 도트 미리보기를 복구했습니다. 아스트라 버전은 별도 씬과 원본으로 보관합니다. 14×9 바닥과 남쪽 출입구를 사용하며 카운터 1개, 약초장 2개, 포션장 1개, 여행용품장 2개를 배치합니다. 아래 제작 이력은 이전 적용 과정을 기록합니다.
+
+## 현행 상점 확정값
+
+- 상점의 나무상자와 광장 V2의 슬라임 몸통은 [아르카나 픽셀 명암 셰이더](../../../godot-arcana/art/resources/arcana_pixel_shading.gdshader)를 사용합니다. 셰이더가 받는 빛을 그림자 포함 네 단계로 계산하므로, 광원마다 명암 단계 값을 넣을 필요가 없습니다.
+- 본편은 여관과 같은 2:1 직교 카메라, 월드 단위당 32도트와 공통 윤곽·명암 처리를 사용합니다. F6 단독 실행은 상점 미리보기의 카메라와 2×2·4×4 화면 도트 설정을 사용합니다. [월드 제작 지침](../../../docs/roles/WORLD_BUILDING.md#본편-3d-타일-공간)
+- 보이는 조명 기구 없이 주황빛 천장 광원 `OverheadFill`을 씁니다. 색은 `#FFBD81`, Godot 에너지는 `1.20`입니다. 창빛과 스탠드가 남기는 국소광, 불투명 재질의 단계별 명암을 함께 사용합니다.
+- 상자 주변의 명암은 도트 미리보기에서 고른 20% 광원과 같은 에너지 `0.72`의 고정 보조광 `CrateAccentLight`로 표현합니다. 상자 재질은 기본 밝기 `0.55`, 점광원 반응 강도 `0.34`와 3단계 양자화를 적용합니다.
+- 카운터 앞뒤 가림과 Blender 나무상자는 `shop_3d.tscn`에서 확인합니다. 비교용 큐브와 드래그 광원은 미리보기 도구입니다. 큐브 배치는 `Geometry → PixelTestCube`에서 편집합니다.
+- 카운터는 기존 목재 상판과 남색 성좌 장식을 참고한 입체 모델입니다. [Blender 편집 원본](source/blender-pixel3d-v1/counter-model.blend) · [45° Blender 미리보기](source/blender-pixel3d-v1/counter-model-preview.png) · [재출력 스크립트](source/blender-pixel3d-v1/export_counter_model.py). 편집 후 원본을 저장하고 재출력 스크립트를 실행합니다. 최초 제작용 `build_counter_model.py`는 원본을 다시 만들므로 수동 편집 후 재출력에 사용하지 않습니다. `shop_3d.tscn`은 별도 `counter-model.glb`를 기존 위치에 사용하며 이동·거래 충돌은 기존 배치에 남습니다. Blender 미리보기는 실제 Godot 화면이 아닙니다.
+- Godot에서는 `shop_3d.tscn → Geometry → AuthoredRoom`을 펼쳐 바닥, 벽, 출입구, 카운터, 진열장과 스탠드를 개별 선택합니다. 진열 포션 15병은 `Furniture → PotionCabinet → DisplayPotions`에, 스탠드 점광원은 `FloorLamp → WarmLight`에 있습니다. 나무상자는 `Geometry → WoodenCrate_Test`에서 편집합니다.
+
+## 상점 앞뒤와 가림 기준
+
+- 출입구 쪽이 앞, 진열장 쪽이 뒤입니다. 인물은 발이 닿는 바닥 위치에 세우고, 가구와 겹치는 부분은 3D 깊이로 가립니다.
+- 카운터 앞 통로에서는 손님이 카운터보다 앞에 보입니다. 카운터 뒤에서는 상인과 플레이어의 몸 중 상판 위로 나온 부분이 보이고, 아래쪽은 카운터에 가려집니다. 카운터 옆을 돌아갈 때는 실제로 겹치는 부분만 가립니다.
+- 상판 위 물건과 진열품은 놓인 위치의 높이와 깊이를 따릅니다. 앞쪽 선반 턱이 뒤쪽 상품과 겹치면 턱이 앞에 보입니다. 바닥과 창빛은 인물 아래에 표시합니다.
+
+## 아스트라 버전 제작 당시의 미술 기준
+
+아스트라 버전 제작 당시의 설정과 비교 화면을 남깁니다. 비교 기준은 [Godot 기본 배율](source/shop-astra/review/full/astra-overview.png)과 [78% 축소](source/shop-astra/review/full/astra-zoom-78.png)입니다.
+
+| 항목 | 제작 기준 |
+| --- | --- |
+| 색과 공간 | 낮의 따뜻하고 부드러운 도트풍입니다. 밝은 석재, 차분한 참나무, 청색 패널을 기본으로 하고 서쪽 창빛 아래에서 카운터와 열린 이동로가 먼저 읽히게 합니다. 그늘에서도 벽과 진열품의 색과 형태가 구분되어야 합니다. |
+| 픽셀 크기 | 코드 기본값은 화면 **2×2픽셀당 렌더 도트 1칸**입니다. 월드를 저해상도에 그린 뒤 최근접 정수 배율로 표시하고 HUD는 화면 해상도에서 그립니다. 카메라 줌이 바뀌어도 화면 도트 크기를 유지합니다. **4×4는 비교 후보**로 기록합니다. |
+| 재질과 명암 | 기본색으로 재질을 정하고, 면의 밝기 차이는 조명으로 만듭니다. 넓은 밝기 단계와 단차를 먼저 잡고, 판자 이음새는 규칙적으로 엇갈리게 배치합니다. 나뭇결은 낮은 대비의 짧은 도트로 남깁니다. |
+| 모서리 | 강한 어두운 외곽선 없이 형태가 읽히는 것을 기준으로 합니다. 배경에 묻히는 형태에는 필요한 곳에만 약한 경계를 남깁니다. 하이라이트는 빛을 받는 실제 단차와 볼록 모서리에 집중하고, 걷는 동안 같은 모서리에 붙어 있어야 합니다. |
+| 제작과 확인 | Blender에서 실제 두께와 큰 색면을 먼저 만듭니다. 도트 미리보기로 게임에 보이는 크기를 맞추고, Godot에서 기본 줌과 78%로 판자·진열품·가구 형태를 확인합니다. 확대 컷은 도트 경계와 이중선을 찾는 데 쓰고, 카메라 이동 중 모서리 깜빡임도 봅니다. |
+
+아스트라 조명과 모서리 수치는 [아스트라 재질 프로파일](../../../godot-arcana/art/resources/shop_astra_profile.tres)을 따릅니다. 창의 직접광은 네 단계이며, 접촉부는 AO로 깊이를 더합니다. 모따기 강조 `0.08`과 약한 깊이 경계 `0.13`은 현재 프로파일 값입니다. 큐브·이동 광원·천장 조명에서 비교한 값은 아래 제작 이력에 남깁니다.
+
+## 상점 아스트라 버전 — 보관 (2026-11-13)
+
+- **디자인 승인:** 사용자님이 [시안](source/pixel3d-redesign-v2/concept-review.png)을 확정하고 기준 구역부터 전체 상점까지 제작을 승인했습니다. 최종 방향은 [사용자 화풍 참조](source/pixel3d-redesign-v2/user-style-reference.png)의 따뜻하고 몽실한 2D 도트 느낌입니다. 시안은 생성 이미지이며, 아래 비교 화면은 실제 Godot 출력입니다.
+- **적용 결과:** 밝은 석재와 차분한 참나무, 청색 패널, 서쪽 돌출창, 실제 두께가 있는 카운터와 다섯 진열장을 새로 제작했습니다. 두 약초장과 두 여행용품장은 서로 다른 상품 구성을 사용합니다. 이전 실험용 상자·스탠드 램프 대신 승인 시안의 열린 이동 공간을 사용합니다.
+- **보관 씬:** `scenes/shop_astra.tscn` → `art/source/shop-astra/arcana-shop-astra.glb`. `shop_2d.tscn`의 14×9 점유, 504개 반칸 셀, 기존 가구·출입·거래 좌표와 저장 ID를 그대로 읽습니다. 하이브리드 v1 캐릭터 렌더 경로를 유지했습니다.
+- **원본:** [전체 Blender](source/shop-astra/arcana-shop-astra.blend), [기준 구역 Blender](source/shop-astra/reference.blend), [초기 생성 스크립트](source/shop-astra/build_shop_astra.py), [편집 후 재출력 스크립트](source/shop-astra/export_shop_astra.py). 전체 원본은 589개 편집 객체를 보관하고, GLB는 조립 단위 10개 메시로 묶습니다. 이전 Blender·GLB도 보존했습니다.
+- **표면:** `godot-arcana/art/source/shop-astra/pixelpen/oak-grain.pxpen` → `art/export/shop-astra/oak-grain.png`. PixelPen 저장·재열기·PNG 출력의 픽셀과 알파 일치를 확인했습니다. 5색의 약한 나뭇결이며 방향성 그림자는 색 텍스처에 넣지 않았습니다.
+- **공통 표현:** `art/resources/shop_astra_profile.tres`에서 환경광·주광 단계·햇빛 방향/색/강도·AO·모서리 강도를 관리합니다. `shop_astra_look.gd`가 안정적인 `Astra*` 재질명을 연결합니다. GLB 정점 R은 주변광 가시성, G는 실제 모따기 마스크입니다. 직접광과 밝은 모서리는 실제 그림자 감쇠를 따릅니다.
+- **AO와 창빛:** Blender의 실제 메시로 반구 차폐를 계산한 `floor-ao.png`는 색 공간 변환 없는 데이터이며 환경광에만 적용합니다. 커다란 벽면은 코너 정점의 AO가 전체 벽을 어둡게 만드는 것을 피하도록 정점 베이크에서 제외했습니다. `shadow_only` 지붕·벽은 게임에서 그림자만 만들고, `no_shadow` 창밖 색면은 햇빛을 막지 않습니다.
+- **도트 미리보기:** `scenes/shop_pixel_preview.tscn`에서 1–4 물리 픽셀 배율·기본값 저장·줌을 사용합니다. 아스트라에서는 이전 큐브/램프 실험 컨트롤을 숨기고 완성 화면·고유색·직접광·모서리·AO 진단을 제공합니다. 본편/HUD 좌표 변환도 같은 정수 확대 크기를 사용하며, 홀수 화면의 나머지는 오른쪽·아래쪽을 잘라냅니다.
+- **실제 확인:** Godot **4.5.1 Compatibility / OpenGL**로 [기준 구역](source/shop-astra/review/reference/astra-overview.png), [최종 전체 화면](source/shop-astra/review/full/astra-overview.png), [78% 축소](source/shop-astra/review/full/astra-zoom-78.png), 재질 진단 패스를 출력했습니다. 같은 카메라·배율·인물 배치의 [이전 상점](source/shop-astra/review/full/legacy-overview.png)을 별도로 저장했습니다. 기준 구역 이미지는 전체 확장 전 단계 기록입니다.
+- **웹 산출물:** `scripts/build-arcana-online.ps1 -WebOutputPath godot-web`의 4.5.1 빌드와 패키지 내부 리소스 검사가 완료되었습니다. 동적 AO 텍스처도 내보내기 목록에 명시했습니다. 이 아스트라 출력은 아래 빌드 경로의 `web` 폴더에 보관합니다. 빌드 기록: `.runtime/godot/online-build-20261113-152332-0310a494`.
+- **미확인 범위:** 실제 게임 출입·거래·이동 가림, 브라우저, 고DPI 및 모바일 터치는 실행하지 않았습니다. 사용자님 확인 경로는 **상점 출입 → 카운터 앞뒤 이동 → 거래 → 줌 변경 → 모바일 터치 이동**입니다. 네이티브 미술 렌더와 웹 패키지 성공을 실제 브라우저 확인으로 간주하지 않습니다.
+
+### Blender 편집 후 재출력
+
+1. `arcana-shop-astra.blend`의 **Shop Astra Full** 씬에서 원본 가구·벽·바닥을 편집합니다. 그림자 전용 벽/지붕은 뷰포트에서 숨겨 두었습니다.
+2. Blender Scripting에서 `export_shop_astra.py`를 열어 실행합니다. 이 스크립트는 편집한 원본을 재생성하지 않고 AO와 GLB를 다시 출력하고 Blender 사본을 저장합니다. `build_shop_astra.py`는 초기 모델을 다시 만드는 용도이므로 수동 편집 뒤 재출력에는 사용하지 않습니다.
+3. Godot의 GLB/PNG 가져오기가 끝난 뒤 `shop_astra.tscn`을 직접 엽니다. 배치를 바꾸면 먼저 `shop_2d.tscn`의 기능 좌표와 서명 계약을 함께 갱신해야 합니다.
+4. 아스트라를 다시 본편에 적용할 때는 본편과 도트 미리보기의 씬 참조를 `shop_astra.tscn`으로 바꾸고 웹 패키지 검사 대상을 맞춘 뒤 웹 빌드를 수행합니다.
+
+## 이전 상점의 Blender 공간 원본과 Godot 연결
+
+- [arcana-shop.blend](source/blender-pixel3d-v1/arcana-shop.blend)를 열면 건축, 가구, 조명과 편집용 바닥 판자가 컬렉션으로 표시됩니다. 판자 180개를 24줄에 깔았습니다. 기본 길이 2를 기준으로 두 줄마다 같은 이음새가 반복되며, 엇갈린 줄의 양끝은 길이 1로 마감합니다. 판자마다 결과 색이 다르고, 각각 선택할 수 있습니다.
+- Blender에서 저장 후 `File → Export All Collections`로 `arcana-shop.glb`를 갱신합니다. 저장소 루트에서 `python scripts/blender/split_arcana_shop.py`를 실행하면 Godot가 불러오는 `shop-room-blender/parts/`의 개별 모델이 갱신됩니다. 각 모델의 배치는 `shop_3d.tscn`에 저장합니다. 웹 플레이용 변경은 별도 Godot 웹 빌드로 반영합니다.
+- `Authoring and layout guides`에서 판자·게임 카메라·상호작용 지점을 봅니다. `OakPlankFloor`의 Geometry Nodes가 편집용 판자에서 게임용 메시를 만듭니다. 지붕과 서쪽 상부 벽체에는 `shadow_only`가 지정되어 Godot에서는 그림자만 만듭니다. Blender에서 이 벽체를 보려면 해당 오브젝트의 숨김을 해제합니다.
+- Blender에서는 메시와 재질을 편집합니다. 태양, 천장광, 상자 보조광과 스탠드 광원의 세기·반경은 Godot에서 직접 조절합니다. `FloorLamp`를 이동하면 스탠드 메시와 `WarmLight`가 함께 움직입니다. `WarmLight`의 `godot_glow_radius` 메타데이터는 갓 주위의 빛 번짐 반경입니다.
+- 플레이어 이동을 막는 가구나 출입구를 옮기면 `shop_2d.tscn`의 점유·충돌·상호작용 위치도 맞춰야 합니다. Blender 원본의 레이아웃 서명까지 새 배치와 맞춘 다음, 분리 스크립트가 출력하는 서명을 `AuthoredRoom`의 `layout_signature_hash`에 적용합니다.
+- 기존 러그·바닥 테두리와 독립 소품 일곱 개를 철거했습니다. 서쪽 창에서 실제 햇빛이 들어오며, 복구한 뒷벽과 새 석재 단차를 사용합니다. 픽셀 모드에서는 상점 월드 `SubViewport`의 가로와 세로를 화면의 절반 해상도로 렌더링해 최근접 필터로 확대합니다. 확대율 전체에서 같은 렌더 픽셀 간격을 사용하며 HUD는 화면 해상도로 그립니다. 나뭇결은 판자마다 64×16 도트와 최대 다섯 가지 색 단계로 구성하고, 축소 시 밉맵을 사용합니다.
+- 상점 카메라의 `ScreenEdges`는 낮은 해상도의 깊이 차이로 바깥 윤곽을 어둡게 하고, 깊이에서 구한 표면 방향의 변화로 안쪽 모서리를 밝힙니다. 스탠드 광원 볼륨은 깊이에서 표면의 3D 좌표를 복원해 네 단계의 직접광을 더하고, 갓 주위 후광은 세 단계로 표시합니다. 창빛과 보조광은 나무 바닥에서 단계별로 보입니다. 웹용 Compatibility 렌더러에도 적용됩니다.
+- 상점은 낮 시간대의 밝기를 기준으로 합니다. 서쪽 창빛과 실내 보조광으로 벽과 진열장 안쪽의 재질을 읽을 수 있게 하고, 접촉 그림자는 가구 밑에 옅게 남깁니다. 첨부 참고 이미지에서 적용하는 요소는 조명의 밝기 단계입니다.
+- 따뜻한 천장 광원과 단계 조명을 기본으로 씁니다. 하이라이트는 광원 쪽의 에셋 경계에 1도트, 강도 75%로 적용합니다. 어두운 외곽선은 기본적으로 꺼 두며, 형태가 배경에 묻히는 가구만 `Shop3D`의 `Outlined Assets`에 노드 이름을 추가해 1도트 외곽선을 켭니다.
+- [Godot 전체 화면](source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png), [78% 축소](source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-zoom-out.png), [390% 바닥](source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-390.png), [서쪽 창 상세](source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-west-window.png).
+
+## 나무상자 도트 작업
+
+- [나무상자 Blender 원본](source/blender-pixel3d-v1/wooden-crate-pixel.blend)에서 상판·앞면·옆면의 명암과 앞면 보강목을 편집합니다. 파일을 연 뒤 `Z → Rendered`로 바꾸고 Blender 5.3의 `Properties → Compositor → Pixel Preview → Pixel Size`로 뷰포트 도트 크기를 조절합니다. [64×64 투명 렌더](source/blender-pixel3d-v1/wooden-crate-pixel-64.png)에서 상자가 게임의 기본 도트 모드와 비슷한 크기로 들어오는지 확인합니다.
+- Blender에서 상자 수정 후 `File → Export All Collections`로 [상자 GLB](../../../godot-arcana/art/source/shop-room-blender/wooden-crate-pixel.glb)를 갱신합니다. Godot의 GLB 가져오기가 상자 메시 리소스를 다시 저장하며, `Geometry → WoodenCrate_Test → CratePixelModel`은 이 메시를 직접 사용합니다. [상점 도트 미리보기](../../../godot-arcana/scenes/shop_pixel_preview.tscn)에서 기본 2px와 100%로 화면을 맞추면 상자와 주변 바닥의 명암을 함께 비교할 수 있습니다.
+
+## 상점 목재의 도트 스타일
+
+- 사용자 승인(2026-11-13). 현재 블렌더 상점의 참나무 판자를 이후 상점 목재의 시각 기준으로 삼습니다. 판자마다 조금씩 다른 갈색, 길이 방향으로 이어지는 결, 짧게 끊기는 밝고 어두운 도트, 일부 판자의 옹이와 주변에서 휘는 결을 유지합니다.
+- [판자 제작 스크립트](source/blender-pixel3d-v1/build_oak_plank_floor.py)에서 판자 한 장의 결을 64×16 도트와 최대 다섯 색 단계로 만들고, 각 판자의 UV로 아틀라스의 해당 영역을 읽습니다. 같은 스타일을 적용할 때는 재질 텍스처에 결을 담고 최근접 샘플링으로 도트 경계를 살립니다. 고도에서 검토할 때는 블렌더와 판자가 화면에 비슷한 크기로 보이도록 맞춘 뒤 결이 읽히는 정도와 명암을 비교합니다.
+- Godot의 바닥 셰이더는 Blender GLB에서 판자 텍스처와 모따기 색을 읽습니다. 최근접 필터로 도트 경계를 유지하고 원본 색을 바탕으로 창빛과 보조광을 더합니다.
+
+## 선반 상품 3D 모델
+
+- 약초장·포션장·여행용품장의 선반 상품을 블렌더 입체 메시로 교체하고, 기존 선반 배치·충돌과 상점의 픽셀 격자 표시 경로에 연결했습니다.
+- 원본·미리보기·실제 연결과 미확인 범위: [3D 상품 작업](source/blender-pixel3d-v1/README.md). Blender 저해상도 렌더는 실제 Godot 화면을 대신하지 않습니다.
+
+## 3D 전환
+
+- `godot-arcana/scenes/shop_2d.tscn`은 이동·거래·출입 배치 원본입니다. 3D 씬은 현재 배치에 맞는 Blender GLB를 표시하고, 배치가 달라지면 Godot가 조립한 기본 모델을 사용합니다.
+- 기존 도트 자산의 평평한 면을 재사용합니다. 정면 직교 카메라는 좌우 회전 0°, 바닥 기준 하향 45°이며 앞벽과 옆벽은 낮게 두었습니다.
+- 본편에서는 광장의 상점으로 입장하면 3D 씬을 표시합니다. 캐릭터 이동과 거래에 기존 출입·상호작용 좌표를 사용합니다. Godot에서 3D 씬을 F6으로 열면 방향키나 WASD로 실내 이동을 확인할 수 있습니다.
+
+## 이전 가구의 앞면·윗면 조립
+
+- `scripts/shop_room_geometry_3d.gd`는 기존 PixelPen 출력에서 가구의 정면과 윗면을 분리해 세로 면과 가로 면에 붙입니다. 그림 경계는 `shop-2d/assets.json`의 `roofBackY`, `roofFrontY`, `baseline`을 따릅니다. 작은 진열대 두 종류의 윗면에는 소품 실루엣까지 포함합니다.
+- 화분은 기존 투명 정면 그림을 사용합니다. 기존 배치 원본에서 가구와 소품 13개의 발 위치와 충돌 범위를 읽습니다.
+- [가구 디자인 시안](source/shop-props-3d/approved-concept.png)은 미술 참조로 보관합니다.
+- 새 가구의 첫 사례인 카운터는 앞쪽과 양끝 상판을 3px 모따기해 독립 씬으로 제작했습니다. 3D 상점은 기존 계산대 자리에 이 씬을 배치하고, 상판은 비워 둡니다. [카운터 면별 제작 방식](source/shop-props-3d/FACE_ART_WORKFLOW.md) · [상점 45° 렌더](../../../godot-arcana/art/reference/shop-counter-face-v1/counter-in-shop-45.png)
+- 뒷줄의 약초장 2개, 포션장 1개, 여행용품장 2개는 승인한 두 번째 시안의 정면과 윗면을 기존 자리에 붙였습니다. [승인 시안](source/shop-props-3d/cabinet-face-concept-v2.png) · [상점 45° 렌더](../../../godot-arcana/art/reference/shop-cabinet-face-v2/cabinets-in-shop-45.png)
+- 승인한 석회암 정면을 뒷벽의 크림색 면에 연결했습니다. 선반 위로 별 띠가 드러나도록 상단 몰딩을 낮췄습니다. [승인 시안](source/rear-wall-face-v1/concept.png) · [PixelPen 원본](../../../godot-arcana/art/source/shop-rear-wall-face-v1/upper-wall.pxpen) · [상점 45° 렌더](../../../godot-arcana/art/reference/shop-rear-wall-face-v1/wall-in-shop-45.png)
 
 ## 요청과 현재 단계
 - 지역 ID: arcana-shop-interior / 기존 장소 ID: `arcana_shop`.

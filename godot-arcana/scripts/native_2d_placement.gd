@@ -12,6 +12,8 @@ extends Node2D
 @export var entrance_id: String = ""
 @export var entrance_target: String = ""
 @export var entrance_enabled: bool = false
+## Walkable area in front of the facade, expressed in local map pixels.
+@export var entrance_approach := Rect2()
 @export var registered_transform=Transform3D.IDENTITY
 @export var entrance: Dictionary={}
 @export var source_path: String = ""
@@ -78,3 +80,8 @@ func map_entrance(layout: Node=null) -> Dictionary:
 		var area: Rect2=result.area
 		result.area=Rect2(area.position+_placement_offset(layout)/4.0,area.size)
 	return result
+
+func map_entrance_approach() -> Rect2:
+	if not entrance_approach.has_area():
+		return Rect2()
+	return Rect2(entrance_approach.position + _placement_offset() / 4.0, entrance_approach.size)

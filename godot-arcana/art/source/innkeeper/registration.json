@@ -8,18 +8,19 @@
     116
   ],
   "pixelsPerUnit": 64,
-  "sourceBounds": [
-    236,
-    129,
-    844,
-    1368
+  "source": "art-studies/characters/marten-pixel-v1/marten-concept-colors.png",
+  "spriteBounds": [
+    24,
+    10,
+    72,
+    116
   ],
   "silhouetteHeight": 106,
   "alpha": [
     0,
     255
   ],
-  "palette": "arcana-palette-lut.png",
+  "palette": "art-studies/characters/marten-pixel-v1/marten-concept-colors.pxpen",
   "pose": "front idle",
   "worldPosition": [
     16.7,

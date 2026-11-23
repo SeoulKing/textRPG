@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/shop_3d.tscn" id="1_shop"]
+[ext_resource type="PackedScene" path="res://art/source/shop-astra/reference.glb" id="2_reference"]
+
+[node name="ShopAstraReference" instance=ExtResource("1_shop")]
+
+[node name="Geometry" parent="." index="0"]
+authored_room = ExtResource("2_reference")

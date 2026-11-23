@@ -10,8 +10,7 @@ z_index = -25
 texture = ExtResource("1_pvejn")
 centered = false
 offset = Vector2(0, -256)
-metadata/layout_collisions = [Rect2(440, 360, 664, 140)]
-metadata/layout_entity = {"id": "counter", "name": "시설 이용하기", "kind": "scene", "pos": Vector2(768, 592)}
+metadata/layout_entity = {"id": "counter", "name": "시설 이용하기", "kind": "scene", "pos": Vector2(768, 680)}
 
 [node name="LayoutBounds" type="Node2D" parent="."]
 metadata/layout_collisions = []

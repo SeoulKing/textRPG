@@ -28,6 +28,7 @@ var attack_at = -100.0
 var spatial_behavior: String = ""
 var jump_clock: float = 0.0
 var landing_at: float = -100.0
+var _target_outlined := false
 
 var sprite: Sprite2D
 func _ready() -> void:
@@ -39,9 +40,16 @@ func _ready() -> void:
     material=ShaderMaterial.new();material.shader=preload("res://art/resources/native_actor.gdshader")
     material.set_shader_parameter("avatar_texture",LIT_ATLAS)
     material.set_shader_parameter("sheet_grid",Vector2(LIT_ATLAS.get_size())/Vector2(64,80))
+    material.set_shader_parameter("model_ink",Color.WHITE)
     sprite.material=material;add_child(sprite)
     shadow=Node2D.new();add_child(shadow)
     show_pose("idle",0)
+
+func set_target_outline(enabled: bool) -> void:
+    if _target_outlined != enabled:
+        _target_outlined = enabled
+        material.set_shader_parameter("model_outline",enabled)
+
 func show_pose(animation: String, elapsed: float, reduced: bool = false) -> void:
     if material == null: return
     var count = FRAMES.get_frame_count(animation)
@@ -61,9 +69,13 @@ func show_frame(animation: String, frame: int) -> void:
     shadow.visible = animation != "death" or f<FRAMES.get_frame_count(animation)-1
 
 # Retiming existing pixel frames preserves the hand-edited art and lighting atlas.
-func show_spatial_pose(behavior: String, attack_in: float, effects: bool) -> bool:
+func show_spatial_pose(behavior: String, attack_in: float, spatial: Dictionary, effects: bool) -> bool:
+    var action := str(spatial.get("slimeAction", "leap"))
+    var progress := spatial_action_progress(spatial)
+    if action in ["hop", "flee"] and behavior == "attack":
+        show_frame("hop", int(progress * FRAMES.get_frame_count("hop")) if effects else 0)
+        return true
     if behavior == "attack":
-        var progress = clampf(jump_clock/float(COMBAT_LAYOUT.data.tuning.jumpDuration),0,1)
         # Frames 3..16 cover lift-off to the last airborne pose; 17 is ground contact.
         show_frame("attack",mini(16,3+int(progress*14)) if effects else 0)
         var lift = roundf(sin(progress*PI)*14.0)/64.0 if effects else 0.0
@@ -84,6 +96,12 @@ func show_spatial_pose(behavior: String, attack_in: float, effects: bool) -> boo
             show_frame("attack",int(clampf((.14-attack_in)/.14,0,1)*2) if effects else 0)
         return true
     return false
+
+func _action_duration(spatial: Dictionary) -> float:
+    return maxf(0.001, float(spatial.get("actionDuration", COMBAT_LAYOUT.data.tuning.jumpDuration)))
+
+func spatial_action_progress(spatial: Dictionary) -> float:
+    return clampf(jump_clock / _action_duration(spatial), 0.0, 1.0)
 
 # Camera calls this after its own pixel alignment, including secondary enemies.
 func snap_to_pixels() -> void:
@@ -127,12 +145,13 @@ func sync(time: float, battle: Dictionary, visual_hp: float, impact_pending: boo
         if attack_in<=.72: attack_at = local_clock-(.72-attack_in)
         elif attack_in>previous_attack_in+1 and previous_attack_in<=.72: attack_at = local_clock-.72
     previous_attack_in = attack_in
-    var behavior = str(battle.get("spatial",{}).get("behavior","")) if phase == "battle" else ""
+    var spatial: Dictionary = battle.get("spatial", {})
+    var behavior = str(spatial.get("behavior","")) if phase == "battle" else ""
     if behavior == "attack":
         var reported = float(battle.spatial.get("jumpElapsed",0))
         # Continue between snapshots without replaying frames when a packet arrives.
         jump_clock = maxf(reported,jump_clock+(0.0 if battle.get("paused",true) else delta)) if spatial_behavior == "attack" else reported
-        jump_clock = minf(jump_clock,float(COMBAT_LAYOUT.data.tuning.jumpDuration))
+        jump_clock = minf(jump_clock,_action_duration(spatial))
     elif spatial_behavior == "attack" and behavior in ["chase","prepare"]:
         landing_at = local_clock
     spatial_behavior = behavior
@@ -143,13 +162,13 @@ func sync(time: float, battle: Dictionary, visual_hp: float, impact_pending: boo
         var age = local_clock-death_at
         show_pose("death",age,not effects)
         visible = effects and age < .9
-    elif show_spatial_pose(behavior,attack_in,effects):
+    elif show_spatial_pose(behavior,attack_in,spatial,effects):
         pass
     elif local_clock-hit_at < hit_duration:
         show_pose("hit",local_clock-hit_at,not effects)
     elif phase == "battle" and not battle.has("spatial") and local_clock-attack_at < 1:
         show_pose("attack",local_clock-attack_at,not effects)
-    elif phase == "battle" and attack_in<=3 and battle.get("spatial",{}).get("behavior","") != "attack":
+    elif phase == "battle" and spatial.is_empty() and attack_in<=3:
         show_pose("prepare",local_clock,not effects)
     elif battle.get("spatial",{}).get("behavior","") in ["chase","return"]:
         show_pose("hop",local_clock,not effects)

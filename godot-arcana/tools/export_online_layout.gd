@@ -1,5 +1,8 @@
 extends SceneTree
 ## Export runtime collision/door data from the same authored source as the client.
+const InnTileLayout = preload("res://scripts/inn_tile_layout.gd")
+const RestaurantTileLayout = preload("res://scripts/restaurant_tile_layout.gd")
+
 func _init() -> void:
 	call_deferred("_export")
 
@@ -8,7 +11,7 @@ func _export() -> void:
 	root.add_child(world)
 	world.set_process(false)
 	var result: Dictionary = {"outside": _area(world, true)}
-	for id in ["arcana_shop","arcana_inn","arcana_restaurant","arcana_academy"]:
+	for id in ["arcana_shop","arcana_inn","arcana_restaurant","arcana_academy","arcana_home"]:
 		world.change_interior(id)
 		if id == "arcana_academy":
 			for level in [1,2]:
@@ -40,31 +43,42 @@ func _area(world: Node, outside: bool) -> Dictionary:
 		rectangles.append({"x":rect.position.x,"y":rect.position.y,"w":rect.size.x,"h":rect.size.y})
 	var doors: Array = []
 	for entity in world.entities:
-		if entity.kind in ["building","exit","gate","city","portal","slime"]:
+		if entity.kind in ["building","exit","gate","city","portal","slime"] or world.indoor == "arcana_home":
 			var id: String = str(entity.id)
 			if entity.kind == "gate": id = "arcana_city_gate"
 			if entity.kind == "city": id = "arcana_plaza"
 			if entity.kind == "slime": id = "arcana_hunting_ground"
-			var door: Dictionary = {"id":id,"x":entity.pos.x,"y":entity.pos.y,"radius":48}
+			var door: Dictionary = {"id":id,"x":entity.pos.x,"y":entity.pos.y,"radius":float(entity.get("interaction_radius", 26.0)) if world.indoor == "arcana_home" else 48}
 			if entity.kind == "building":
 				var outside_point: Vector2 = entity.pos - entity.get("inward",Vector2.UP)*12.0
 				door.arrival = {"x":outside_point.x,"y":outside_point.y}
 			doors.append(door)
 	if outside:
-		if not plaza_v2:
+		if plaza_v2:
+			area_fishing = world.layout.fishing_geometry()
+		else:
 			var river = world.layout.get_node_or_null("Placements/RiverQuarter")
 			if river != null: area_fishing = river.fishing_geometry()
 			doors.append({"id":"arcana_plaza","x":world.CityMap.CITY_RETURN.x,"y":world.CityMap.CITY_RETURN.y,"radius":72})
 			doors.append({"id":"arcana_hunting_ground","x":world.CityMap.FIELD_ENTRY.x,"y":world.CityMap.FIELD_ENTRY.y,"radius":72})
-	var box: Rect2 = world.outside_walk_bounds() if outside else Rect2(30,30,320,296)
+	var box := Rect2(30,30,320,296)
+	if outside:
+		box = world.outside_walk_bounds()
+	elif world.indoor == "arcana_inn":
+		box = InnTileLayout.WALK_BOUNDS
+	elif world.indoor == "arcana_restaurant":
+		box = RestaurantTileLayout.WALK_BOUNDS
 	var bounds: Dictionary = {"x":box.position.x,"y":box.position.y,"w":box.size.x,"h":box.size.y}
 	var area: Dictionary = {"rectangles":rectangles,"doors":doors,"bounds":bounds,"spawn":{"x":world.player_position.x,"y":world.player_position.y}}
+	if world.indoor == "arcana_inn":
+		area.layoutId = InnTileLayout.LAYOUT_ID
+	elif world.indoor == "arcana_restaurant":
+		area.layoutId = RestaurantTileLayout.LAYOUT_ID
 	if outside:
 		if plaza_v2:
 			area.layoutId = "plaza_v2"
 			area.circles = _collision_circles(world.round_obstacles)
-		else:
-			area.fishing = area_fishing
+		area.fishing = area_fishing
 	if world.indoor == "arcana_academy":
 		var authored := preload("res://scripts/region_layout.gd").load_region(world.indoor, world.academy_floor)
 		var rooms := {}

@@ -1,0 +1,122 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/kitchen-hearth.glb" id="1_hearth"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/furniture/kitchen/service-counter.glb" id="2_counter"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/furniture/kitchen/service-hutch.glb" id="3_hutch"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/furniture/kitchen/service-sideboard.glb" id="4_sideboard"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/furniture/kitchen/service-cart.glb" id="5_cart"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/furniture/dining/dining-window.glb" id="6_window_table"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/furniture/dining/dining-four.glb" id="7_four_table"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/furniture/dining/dining-shared.glb" id="8_shared"]
+[ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/furniture/dining/dining-chair.glb" id="9_chair"]
+
+[node name="Furniture" type="Node3D"]
+
+[node name="KitchenHearth" type="Node3D" parent="."]
+position = Vector3(4.5, 0, 3)
+metadata/tile_footprint = Vector2i(3, 2)
+
+[node name="Model" parent="KitchenHearth" instance=ExtResource("1_hearth")]
+rotation = Vector3(0, -1.5707963, 0)
+scale = Vector3(1, 0.88, 1)
+
+[node name="KitchenCounter" parent="." instance=ExtResource("2_counter")]
+position = Vector3(9, 0, 3)
+metadata/tile_footprint = Vector2i(6, 2)
+
+[node name="PantryHutch" parent="." instance=ExtResource("3_hutch")]
+position = Vector3(7.5, 0, 0.5)
+metadata/tile_footprint = Vector2i(5, 1)
+
+[node name="PastrySideboard" parent="." instance=ExtResource("4_sideboard")]
+position = Vector3(2, 0, 0.5)
+metadata/tile_footprint = Vector2i(2, 1)
+
+[node name="BreadCart" parent="." instance=ExtResource("5_cart")]
+position = Vector3(12, 0, 0.5)
+scale = Vector3(0.99, 1, 1)
+metadata/tile_footprint = Vector2i(2, 1)
+
+[node name="WindowDiningNorth" parent="." instance=ExtResource("6_window_table")]
+position = Vector3(1.5, 0, 3.5)
+rotation = Vector3(0, 1.5707963, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="WindowDiningNorthChairA" parent="." instance=ExtResource("9_chair")]
+position = Vector3(1.5, 0, 2.5)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="WindowDiningNorthChairB" parent="." instance=ExtResource("9_chair")]
+position = Vector3(1.5, 0, 4.5)
+rotation = Vector3(0, 3.1415927, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="WindowDiningSouth" parent="." instance=ExtResource("6_window_table")]
+position = Vector3(1.5, 0, 8.5)
+rotation = Vector3(0, 1.5707963, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="WindowDiningSouthChairA" parent="." instance=ExtResource("9_chair")]
+position = Vector3(1.5, 0, 7.5)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="WindowDiningSouthChairB" parent="." instance=ExtResource("9_chair")]
+position = Vector3(1.5, 0, 9.5)
+rotation = Vector3(0, 3.1415927, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningFour" parent="." instance=ExtResource("7_four_table")]
+position = Vector3(12, 0, 6)
+scale = Vector3(1.08, 1, 1.08)
+metadata/tile_footprint = Vector2i(2, 2)
+
+[node name="DiningFourChairNorth" parent="." instance=ExtResource("9_chair")]
+position = Vector3(11.5, 0, 4.5)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningFourChairEast" parent="." instance=ExtResource("9_chair")]
+position = Vector3(13.5, 0, 5.5)
+rotation = Vector3(0, -1.5707963, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningFourChairSouth" parent="." instance=ExtResource("9_chair")]
+position = Vector3(12.5, 0, 7.5)
+rotation = Vector3(0, 3.1415927, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningFourChairWest" parent="." instance=ExtResource("9_chair")]
+position = Vector3(10.5, 0, 6.5)
+rotation = Vector3(0, 1.5707963, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningShared" parent="." instance=ExtResource("8_shared")]
+position = Vector3(10.5, 0, 9)
+scale = Vector3(1.12, 1, 1.03)
+metadata/tile_footprint = Vector2i(3, 2)
+
+[node name="DiningSharedChairNorthA" parent="." instance=ExtResource("9_chair")]
+position = Vector3(9.5, 0, 7.5)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningSharedChairNorthB" parent="." instance=ExtResource("9_chair")]
+position = Vector3(10.5, 0, 7.5)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningSharedChairNorthC" parent="." instance=ExtResource("9_chair")]
+position = Vector3(11.5, 0, 7.5)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningSharedChairSouthA" parent="." instance=ExtResource("9_chair")]
+position = Vector3(9.5, 0, 10.5)
+rotation = Vector3(0, 3.1415927, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningSharedChairSouthB" parent="." instance=ExtResource("9_chair")]
+position = Vector3(10.5, 0, 10.5)
+rotation = Vector3(0, 3.1415927, 0)
+metadata/tile_footprint = Vector2i(1, 1)
+
+[node name="DiningSharedChairSouthC" parent="." instance=ExtResource("9_chair")]
+position = Vector3(11.5, 0, 10.5)
+rotation = Vector3(0, 3.1415927, 0)
+metadata/tile_footprint = Vector2i(1, 1)

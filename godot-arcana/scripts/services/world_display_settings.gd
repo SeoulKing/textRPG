@@ -2,14 +2,17 @@ extends RefCounted
 
 # Keep the settings file used by the shop rendering preview and previous game builds.
 const SETTINGS_PATH = "user://shop-pixel-settings.cfg"
-const DEFAULT_PIXEL_SIZE = 2
+const ScenePreset := preload("res://scripts/rendering/inn_shader_preset.gd")
 const RASTER_BORDER := 1
 
-static func pixel_size() -> int:
+static func pixel_size(default_size: int = 0) -> int:
+	if default_size <= 0:
+		var preset := ScenePreset.load_approved() as ScenePreset
+		default_size = preset.pixel_size()
 	var settings := ConfigFile.new()
 	if settings.load(SETTINGS_PATH) != OK:
-		return DEFAULT_PIXEL_SIZE
-	return clampi(int(settings.get_value("shop", "pixel_size", DEFAULT_PIXEL_SIZE)), 1, 4)
+		return default_size
+	return clampi(int(settings.get_value("shop", "pixel_size", default_size)), 1, 4)
 
 static func save_pixel_size(value: int) -> Error:
 	var settings := ConfigFile.new()

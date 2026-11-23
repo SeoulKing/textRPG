@@ -2,9 +2,15 @@
 
 캐릭터의 확정 외형, 방향별 파츠, PixelPen 원본과 애니메이션 제작 기준을 이 문서에서 관리합니다. 공통 작업·검증 선택은 [AGENTS.md](../../AGENTS.md), 게임 연결은 [개발 담당](DEVELOPMENT.md), 공간 투영은 [월드 제작 담당](WORLD_BUILDING.md)을 따릅니다.
 
-## 확정 캐릭터 · 하이브리드 버전 1
+## 본편 주인공 · Blender v12
 
-2026-11-05 사용자 지시로 현재 조립 캐릭터의 외형을 **하이브리드 버전 1**로 확정했습니다. 가느다란 3등신, 백발에 가까운 연보라 단발, 보라색 눈, 크림색 셔츠와 갈색 가죽, 붉은 골반 장식, 크림색 커프의 부츠를 유지합니다. 과거 드레스·숄·Blender 후보·전신 시트는 현행 디자인 기준이 아닙니다.
+2026-11-13에 승인한 [Blender v12](../../art-studies/characters/arcana-hero-pixel3d/arcana-hero-pixel3d-v12.blend)를 본편 주인공에 사용합니다. [Godot 모델](../../godot-arcana/art/characters/hero-v12/hero.glb)은 [Blender 내보내기 스크립트](../../scripts/export-arcana-hero-v12.py)로 갱신합니다. [본편 표시](../../godot-arcana/scripts/native_2d_hero.gd)는 모델을 픽셀 뷰포트에 그리며, 대기·걷기·달리기는 모델의 Idle·Walk·Run을 사용합니다. 게임용 리그는 [부츠 내보내기 보정](../../scripts/blender/hero_foot_rig.py)에서 발목과 앞꿈치를 분리하고 커프를 정강이에 연결합니다. Walk와 Run은 [ACCAD의 실제 보행 캡처](../../art-studies/characters/arcana-hero-pixel3d/mocap/README.md)를 [v12에 옮긴 동작](../../scripts/blender/hero_mocap.py)입니다. 두 동작에 같은 착지 위상을 쓰고, v12 부츠의 바닥 높이와 게임 보폭에 맞춰 지지 발을 고정합니다. 걷기는 원본의 머리카락 동작을 사용합니다. 본편은 실제로 이동한 거리에 맞춰 두 동작을 같은 발 순서로 재생합니다. 아래 하이브리드 제작실에서 저장한 행동 자세는 v12 리그로 변환해 시전·회피·피격 등에 사용합니다.
+
+[MYSTIC 낚싯대](../../art-studies/props/fishing-rod-mystic/mystic_rod.blend)의 [게임용 모델](../../godot-arcana/art/props/fishing/mystic_rod.glb)은 오른손 손바닥에 손잡이를 맞춰 배치합니다. 던질 때 뒤로 휘는 `CastLag`와 앞으로 되튀거나 줄에 당겨지는 `Flex`를 적용하고, 휜 대끝을 화면에 투영해 낚싯줄의 시작점으로 사용합니다.
+
+## 하이브리드 버전 1 제작실
+
+하이브리드 버전 1은 캐릭터 제작실의 편집 원본이자 v12 행동 자세의 입력입니다. 가느다란 3등신, 백발에 가까운 연보라 단발, 보라색 눈, 크림색 셔츠와 갈색 가죽, 붉은 골반 장식, 크림색 커프의 부츠를 사용합니다.
 
 | 구분 | 현재 원본과 계약 |
 | --- | --- |
@@ -12,7 +18,7 @@
 | 확정 자산 묶음 | [hybrid-v1](../../godot-arcana/art/characters/hybrid-v1/) |
 | 파츠·조립·보정값 | [parts.json](../../godot-arcana/art/characters/hybrid-v1/assembly/parts.json), [assembly.json](../../godot-arcana/art/characters/hybrid-v1/assembly/assembly.json), [motion-polish.json](../../godot-arcana/art/characters/hybrid-v1/assembly/motion-polish.json) |
 | 공통 동작 | [run-keyframes.tres](../../godot-arcana/art/characters/hybrid-v1/run-keyframes.tres): 직접 편집하는 달리기 키. [shared-run.json](../../godot-arcana/art/characters/hybrid-v1/shared-run.json)은 중립·관절 등록 기준 |
-| 런타임 | [hybrid_v1](../../godot-arcana/scripts/characters/hybrid_v1/), 본편 진입점 [native_2d_hero.gd](../../godot-arcana/scripts/native_2d_hero.gd) |
+| 자세 제작과 샘플링 | [hybrid_v1](../../godot-arcana/scripts/characters/hybrid_v1/) |
 | 편집·비교 장면 | [이동 실험](../../godot-arcana/scenes/characters/hybrid-v1/experiment.tscn), [전신 비교](../../godot-arcana/scenes/characters/hybrid-v1/workbench.tscn), [상체](../../godot-arcana/scenes/characters/hybrid-v1/upper-body-workbench.tscn), [다리](../../godot-arcana/scenes/characters/hybrid-v1/leg-workbench.tscn) |
 
 96×136은 전신 제작 캔버스이며 파츠 자체의 불투명 영역 크기가 아닙니다. 방향은 S·SE·E·NE·N·NW·W·SW 이름으로 연결하고 입력 시트의 배열 순서를 추측하지 않습니다.
@@ -24,7 +30,7 @@
 - `boots/`: 한 이미지에 한 발만 넣습니다. **동쪽 신발은 서쪽 원본의 정확한 좌우 반전**입니다. 발목·커프·실제 밑창 기준을 등록하고 양쪽 발에 따로 붙입니다.
 - `hands/`: 현재 조립에 필요한 작은 손입니다. 연결부를 숨기려고 손·소매 전체를 키우지 않습니다.
 
-현재 디자인 확정과 동작의 체감 검수는 별개입니다. 이동은 공통 3D 동작과 조립 보정값을 사용합니다. 전용 걷기·시전·앉기·낚시 완성 클립이 모두 만들어졌다고 간주하지 않습니다. 본편의 절차 포즈 호환과 사용자 플레이 확인을 구별합니다.
+하이브리드 제작실의 이동은 공통 3D 동작과 조립 보정값을 사용합니다. 본편의 시전·앉기·낚시는 이 자세 소스를 사용해 실시간으로 그립니다.
 
 ## 달리기 키프레임 수정과 저장
 
@@ -37,11 +43,26 @@
 5. 0초 자세를 바꿨다면 **0초→끝 복사**로 0.64초 끝 자세도 맞춥니다. 이 작업도 `Ctrl+Z`를 지원합니다.
 6. **Ctrl+S** 또는 위쪽 **달리기 저장**을 누릅니다. 이 씬에서는 저장 플러그인이 외부 달리기 파일도 함께 저장합니다. 미리보기 아래에 저장 완료 문구가 표시됩니다.
 
-애니메이션 패널의 ▶로 연결을 확인하거나 **F6**으로 편집 씬만 재생할 수 있습니다. **본편을 중지하고 F5로 다시 실행**하면 저장된 달리기를 8방향이 함께 사용합니다. 웹 실행본은 수정 완료 후 `scripts/build-godot-arcana.ps1`로 다시 내보내야 바뀝니다.
+애니메이션 패널의 ▶로 연결을 확인하거나 **F6**으로 편집 씬만 재생할 수 있습니다. 저장된 달리기는 하이브리드 제작실의 8방향과 본편의 행동 자세 보간에 사용합니다. 본편 걷기는 위의 Blender v12 내보내기 과정에서 생성합니다. 웹 실행본은 수정 완료 후 `scripts/build-godot-arcana.ps1`로 다시 내보내야 바뀝니다.
 
 미리보기에는 본편과 같은 관절·소매·접지 보정을 적용합니다. 트랙 이름·등록된 21개 채널·루프 설정을 유지하고 키의 회전과 시간만 다듬으세요. 전체 상하 움직임은 `전체_이동`의 Position으로 편집하며, 접지 보정 때문에 최종 발 높이는 단순 이동값과 다를 수 있습니다. 중립 자세는 편집한 0초나 RESET에서 다시 만들지 않습니다.
 
 씬과 키 라이브러리 생성 도구는 **최초 생성 전용**입니다. 파일이 있으면 사용자 편집본을 보존합니다. Ctrl+S 저장 연결은 [편집기 플러그인의 외부 데이터 저장 API](https://docs.godotengine.org/en/4.5/classes/class_editorplugin.html#class-editorplugin-private-method-save-external-data)를 사용합니다.
+
+## 목표 자세로 단발 동작 만들기
+
+1. [캐릭터 편집 씬](../../godot-arcana/scenes/characters/hybrid-v1/run-keyframes.tscn)에서 **Pose** 아래의 관절을 돌려 목표 자세를 만듭니다. 저장된 자세를 수정하려면 먼저 루트 **RunKeyframes → 게임 동작 만들기**에서 **Action Id**를 입력하고 **저장한 자세 불러오기**를 누릅니다.
+2. 루트 인스펙터의 **Action Id**에 게임 행동 ID를 적고 **Action Duration**에 준비부터 복귀까지 걸릴 시간을 초 단위로 입력합니다. **현재 자세로 동작 미리보기**에서 대기 → 목표 → 대기를 확인합니다. 목표 자세에는 전체 시간의 40% 지점에 도달합니다.
+3. **현재 자세로 동작 저장**을 누릅니다. [action-poses.tres](../../godot-arcana/art/characters/hybrid-v1/action-poses.tres)에 해당 ID의 자세와 시간이 저장됩니다. 본편을 다시 실행하면 같은 ID의 행동에서 8방향이 공유하는 동작이 재생됩니다.
+
+| 동작 ID | 본편 재생 시점 |
+| --- | --- |
+| `dodge` | 대시 시작. 0.28초 예시가 들어 있습니다. |
+| `hurt` | 주인공 피격 |
+| `cast` | 공통 시전. 다른 플레이어의 시전에도 사용합니다. |
+| `fireball`, `flame_wave` 등 | 주인공이 기존 시전 흐름을 통해 해당 주문을 사용할 때. 주문별 자세가 있으면 공통 시전보다 먼저 선택합니다. |
+
+런타임은 현재 대기 또는 이동 자세에서 목표 자세로 보간하고, 끝나면 그 시점의 대기 또는 이동 자세로 복귀합니다. 새로운 게임 행동을 구현할 때는 그 행동의 ID를 `play_action_pose(action_id)`에 전달하면 같은 저장·재생 흐름을 사용합니다. 의자에 앉아 있거나 낚싯대를 들고 있는 동작은 각 생활 상태의 지속 시간과 접촉점에 따라 재생합니다.
 
 ## 방향별 일관성 제작 계약
 

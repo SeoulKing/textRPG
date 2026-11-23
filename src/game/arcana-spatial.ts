@@ -13,7 +13,12 @@ type Battle = NonNullable<GameState["arcanaCombat"]["battle"]>;
 type Layout = { home: Point; spawn: Point; rectangles: { x: number; y: number; w: number; h: number }[]; circles: (Point & { radius: number; localRadius: number; inverse: number[] })[]; bounds: { x: number; y: number; w: number; h: number }; tuning: { tile: number; range: number; projectileSpeed: number; projectileRadius: number; enemyRadius: number; playerRadius: number; chaseLimit: number; chaseSpeed: number; returnSpeed: number; jumpRange: number; jumpDuration: number; attackInterval: number } };
 let cachedLayout: Layout | undefined;
 export function spatialLayout(): Layout {
-  return cachedLayout ??= JSON.parse(readFileSync(resolve(process.cwd(), "godot-arcana/art/export/combat-layout.json"), "utf8"));
+  if (!cachedLayout) {
+    const layout: Layout = JSON.parse(readFileSync(resolve(process.cwd(), "godot-arcana/art/export/combat-layout.json"), "utf8"));
+    layout.home = clearEnemyHome(layout);
+    cachedLayout = layout;
+  }
+  return cachedLayout;
 }
 const copy = (p: Point): Point => ({ x: p.x, y: p.y });
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -30,8 +35,8 @@ export function sweptCircle(a: Point, b: Point, c: Point, d: Point, radius: numb
   const t = (-bb-Math.sqrt(disc))/(2*aa);
   return t >= 0 && t <= 1 ? t : null;
 }
-function blocked(p: Point, radius: number): boolean {
-  const l = spatialLayout(), bounds = l.bounds;
+function blocked(p: Point, radius: number, l = spatialLayout()): boolean {
+  const bounds = l.bounds;
   if (p.x < bounds.x+radius || p.y < bounds.y+radius || p.x > bounds.x+bounds.w-radius || p.y > bounds.y+bounds.h-radius) return true;
   return l.circles.some(c => {
     const [xx,xy,yx,yy,ox,oy] = c.inverse;
@@ -40,6 +45,28 @@ function blocked(p: Point, radius: number): boolean {
     const x = Math.max(r.x,Math.min(r.x+r.w,p.x)), y = Math.max(r.y,Math.min(r.y+r.h,p.y));
     return Math.hypot(p.x-x,p.y-y) < radius;
   });
+}
+function clearEnemyHome(layout: Layout): Point {
+  const { home, tuning } = layout;
+  if (!blocked(home, tuning.enemyRadius, layout)) return home;
+
+  // A scene marker can clear the wall at its center while the enemy's body overlaps it.
+  const searchRadius = Math.ceil(tuning.tile);
+  const centerBlocked = blocked(home, 0.1, layout);
+  let nearest = home;
+  let nearestDistanceSquared = searchRadius * searchRadius + 1;
+  for (let y = -searchRadius; y <= searchRadius; y++) {
+    for (let x = -searchRadius; x <= searchRadius; x++) {
+      const distanceSquared = x * x + y * y;
+      if (distanceSquared >= nearestDistanceSquared) continue;
+      const candidate = { x: home.x + x, y: home.y + y };
+      if (blocked(candidate, tuning.enemyRadius + 0.5, layout)
+        || (!centerBlocked && wallFraction(home, candidate, 0.1, layout) !== null)) continue;
+      nearest = candidate;
+      nearestDistanceSquared = distanceSquared;
+    }
+  }
+  return nearest;
 }
 function move(a: Point, b: Point, radius: number): Point {
   let result = copy(a);
@@ -55,9 +82,9 @@ function move(a: Point, b: Point, radius: number): Point {
   }
   return result;
 }
-function wallFraction(a: Point, b: Point, radius: number): number | null {
+function wallFraction(a: Point, b: Point, radius: number, layout = spatialLayout()): number | null {
   const steps = Math.max(1,Math.ceil(distance(a,b)/.75));
-  for (let i=0;i<=steps;i++) if (blocked(mix(a,b,i/steps),radius)) return i/steps;
+  for (let i=0;i<=steps;i++) if (blocked(mix(a,b,i/steps),radius,layout)) return i/steps;
   return null;
 }
 export function spatialEvent(b: Battle, kind: ArcanaSpatial["events"][number]["kind"], position: Point, amount = 0, projectileId?: string, direction?: Point, rewards?: { xp: number; money: number; slimeMucus?: number }, targetPosition?: Point, enemyId?: string) {
@@ -169,8 +196,9 @@ function damageEnemy(state:GameState,b:Battle,e:SpatialEnemy,amount:number,proje
   spatialEvent(b,"hit",impact ?? e.position,damage,projectileId,direction,undefined,e.position,e.id);
   if(e.behavior==="neutral") {e.behavior="chase";e.attackIn=spatialLayout().tuning.attackInterval;b.phase="battle";}
   if(e.hp<=0 && !e.rewarded) {
-    e.rewarded=true;awardSlimeLoot(state);
-    spatialEvent(b,"enemy_down",e.position,0,undefined,undefined,{xp:0,money:0,slimeMucus:1},undefined,e.id);
+    e.rewarded=true;
+    const rewards = awardSlimeLoot(state);
+    spatialEvent(b,"enemy_down",e.position,0,undefined,undefined,rewards,undefined,e.id);
   }
   return damage;
 }

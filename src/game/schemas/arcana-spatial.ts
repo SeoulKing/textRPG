@@ -1,11 +1,18 @@
 import { z } from "zod";
 export const CombatPointSchema = z.object({x:z.number().finite(),y:z.number().finite()});
-const behavior = z.enum(["neutral","chase","prepare","attack","return"]);
-export const SpatialEnemySchema = z.object({id:z.string(),position:CombatPointSchema,home:CombatPointSchema,hp:z.number().nonnegative(),maxHp:z.number().positive().default(30),attackIn:z.number().nonnegative(),behavior,jumpFrom:CombatPointSchema,jumpTo:CombatPointSchema,jumpHit:z.boolean(),jumpElapsed:z.number().nonnegative(),targetLocked:z.boolean(),rewarded:z.boolean().default(false)});
+const behavior = z.enum(["neutral","chase","prepare","attack","recover","return"]);
+const slimeActionState = {
+  slimeAction: z.enum(["leap", "hop", "flee"]).optional(),
+  windupDuration: z.number().positive().optional(),
+  actionDuration: z.number().positive().optional(),
+  recoveryElapsed: z.number().nonnegative().optional(),
+  recoveryDuration: z.number().positive().optional(),
+};
+export const SpatialEnemySchema = z.object({id:z.string(),position:CombatPointSchema,home:CombatPointSchema,hp:z.number().nonnegative(),maxHp:z.number().positive().default(30),attackIn:z.number().nonnegative(),behavior,jumpFrom:CombatPointSchema,jumpTo:CombatPointSchema,jumpHit:z.boolean(),jumpElapsed:z.number().nonnegative(),targetLocked:z.boolean(),rewarded:z.boolean().default(false),...slimeActionState});
 export const ArcanaSpatialSchema = z.object({
   encounterId:z.literal("plaza_slime"),
   // Legacy primary-enemy projection, derived from enemies for existing scene consumers.
-  enemy:CombatPointSchema,home:CombatPointSchema,behavior,jumpFrom:CombatPointSchema,jumpTo:CombatPointSchema,jumpHit:z.boolean(),jumpElapsed:z.number().nonnegative().default(0),targetLocked:z.boolean(),
+  enemy:CombatPointSchema,home:CombatPointSchema,behavior,jumpFrom:CombatPointSchema,jumpTo:CombatPointSchema,jumpHit:z.boolean(),jumpElapsed:z.number().nonnegative().default(0),targetLocked:z.boolean(),...slimeActionState,
   visibleEnemyIds:z.array(z.string()).optional(),enemies:z.array(SpatialEnemySchema).default([]),primaryEnemyId:z.string().default("slime_0"),
   player:CombatPointSchema,previousPlayer:CombatPointSchema,elapsed:z.number().nonnegative(),revision:z.number().int().nonnegative(),
   projectiles:z.array(z.object({id:z.string(),position:CombatPointSchema,direction:CombatPointSchema,remaining:z.number().nonnegative(),damage:z.number().nonnegative(),spellId:z.enum(["fireball","giant_fireball","flame_barrage"]).default("fireball"),radius:z.number().positive().optional(),hitIds:z.array(z.string()).default([]),masteryAwarded:z.boolean().default(false),pierce:z.number().int().positive().default(1),explode:z.boolean().default(false),targetId:z.string().optional(),origin:CombatPointSchema.optional()})),

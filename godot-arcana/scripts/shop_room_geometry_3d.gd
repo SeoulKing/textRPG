@@ -45,6 +45,7 @@ var interaction_bounds: Dictionary = {}
 var authored_scene_active := false
 var astra_active := false
 var authored_sun: DirectionalLight3D
+var use_approved_lighting := false
 var _lamp_lights: Array[OmniLight3D] = []
 var _pixel_lighting := false
 var _generated: Node3D
@@ -56,7 +57,8 @@ var _astra_debug_mode := AstraLook.DebugMode.BEAUTY
 
 
 func _ready() -> void:
-	_apply_crate_palette(wooden_crate, {})
+	if not use_approved_lighting:
+		_apply_crate_palette(wooden_crate, {})
 
 
 static func layout_signature(layout: Dictionary) -> String:
@@ -350,9 +352,10 @@ func lamp_foot() -> Vector3:
 
 func _apply_lamp_lighting() -> void:
 	var editing := Engine.is_editor_hint()
+	var use_legacy_volume := _pixel_lighting and not editing and not use_approved_lighting
 	for light in _lamp_lights:
-		light.light_cull_mask = 0 if _pixel_lighting and not editing else 0xffffffff
-		light.get_node("LampLightVolume").visible = _pixel_lighting and not editing
+		light.light_cull_mask = 0 if use_legacy_volume else 0xffffffff
+		light.get_node("LampLightVolume").visible = use_legacy_volume
 		var glow := light.get_node("LampGlow") as MeshInstance3D
 		glow.visible = not editing
 		glow.material_override.set_shader_parameter("pixel_bands", _pixel_lighting)
@@ -637,13 +640,15 @@ func _configure_cabinet_materials(node: Node) -> void:
 
 
 func _configure_lit_surface(node: MeshInstance3D, surface: int, source: BaseMaterial3D) -> void:
-	var stepped := _room_light_material(source)
+	var stepped := _room_light_material(source) if not use_approved_lighting else null
 	if stepped != null:
 		node.set_surface_override_material(surface, stepped)
 	elif source.albedo_texture != null or source.emission_texture != null:
 		var nearest := source.duplicate() as BaseMaterial3D
 		nearest.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 		node.set_surface_override_material(surface, nearest)
+	elif use_approved_lighting:
+		node.set_surface_override_material(surface, source)
 
 
 func _room_light_material(source: BaseMaterial3D) -> ShaderMaterial:
@@ -752,7 +757,7 @@ func _color_material(color: Color) -> Material:
 	if not _materials.has(color):
 		var material := StandardMaterial3D.new()
 		material.albedo_color = color
-		_materials[color] = _room_light_material(material)
+		_materials[color] = material if use_approved_lighting else _room_light_material(material)
 	return _materials[color]
 
 

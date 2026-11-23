@@ -1,64 +1,149 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://3np8okkl24s8"]
 
-[ext_resource type="PackedScene" path="res://art/source/inn-lobby-blender/inn-lobby.glb" id="1_lobby"]
-[ext_resource type="Texture2D" path="res://art/export/innkeeper/innkeeper.png" id="2_innkeeper"]
-[ext_resource type="Script" path="res://scripts/inn_lobby_3d.gd" id="3_runtime"]
+[ext_resource type="PackedScene" uid="uid://me7lhhsf1o3a" path="res://art/source/inn-lobby-blender/inn-lobby.glb" id="1_lobby"]
+[ext_resource type="Texture2D" uid="uid://covnn24u7y5nm" path="res://art/export/innkeeper/innkeeper.png" id="2_innkeeper"]
+[ext_resource type="Script" uid="uid://dldft4oiyfp4h" path="res://scripts/inn_lobby_3d.gd" id="3_runtime"]
 
 [sub_resource type="Environment" id="Environment_lobby"]
 background_mode = 1
-background_color = Color(0, 0, 0, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.91, 0.93, 1, 1)
 ambient_light_energy = 0.48
 
-[node name="InnLobby3D" type="Node3D"]
+[node name="InnLobby3D" type="Node3D" unique_id=2108111130]
 script = ExtResource("3_runtime")
 
-[node name="Room" parent="." instance=ExtResource("1_lobby")]
+[node name="Room" parent="." unique_id=2047120482 instance=ExtResource("1_lobby")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0055236816, -0.0043945313, 0.0025634766)
 
-[node name="Camera3D" type="Camera3D" parent="."]
-environment = SubResource("Environment_lobby")
-position = Vector3(0, 18.41, 16.68)
-rotation = Vector3(-0.78539816, 0, 0)
+[node name="01_Limestone_hearth" parent="Room" index="0" unique_id=91375298]
+metadata/_edit_group_ = true
+
+[node name="02_Oak_bookcase" parent="Room" index="1" unique_id=1526298600]
+metadata/_edit_group_ = true
+
+[node name="Architecture_cutaway_entrance" parent="Room" index="2" unique_id=1783564563]
+metadata/_edit_lock_ = true
+
+[node name="Architecture_oak_floor" parent="Room" index="3" unique_id=1167181236]
+metadata/_edit_lock_ = true
+
+[node name="Architecture_plaster_and_timber_back_wall" parent="Room" index="4" unique_id=1276520783]
+metadata/_edit_lock_ = true
+
+[node name="Back_wall_storage_bench" parent="Room" index="5" unique_id=2084264389]
+metadata/_edit_group_ = true
+
+[node name="Brass_room_key_rack" parent="Room" index="6" unique_id=1826736405]
+metadata/_edit_group_ = true
+
+[node name="Entry_lantern_left" parent="Room" index="7" unique_id=1495637412]
+metadata/_edit_group_ = true
+
+[node name="Entry_lantern_right" parent="Room" index="8" unique_id=377500127]
+metadata/_edit_group_ = true
+
+[node name="Entry_side_storage_bench" parent="Room" index="9" unique_id=695199013]
+metadata/_edit_group_ = true
+
+[node name="Lamp_table_lounge_edge" parent="Room" index="10" unique_id=479467160]
+metadata/_edit_group_ = true
+
+[node name="Lamp_table_luggage_nook" parent="Room" index="11" unique_id=1778838298]
+metadata/_edit_group_ = true
+
+[node name="Lamp_table_sofa_arm" parent="Room" index="12" unique_id=1311439486]
+metadata/_edit_group_ = true
+
+[node name="Lounge_Armchair" parent="Room" index="13" unique_id=1017936071]
+metadata/_edit_group_ = true
+
+[node name="Lounge_L_shaped_settee" parent="Room" index="14" unique_id=2038547635]
+metadata/_edit_group_ = true
+
+[node name="Lounge_Tea_table" parent="Room" index="15" unique_id=1402113318]
+metadata/_edit_group_ = true
+
+[node name="Plant_bench_end" parent="Room" index="16" unique_id=134718249]
+metadata/_edit_group_ = true
+
+[node name="Plant_front_corner" parent="Room" index="17" unique_id=1482987201]
+metadata/_edit_group_ = true
+
+[node name="Plant_hearth_end" parent="Room" index="18" unique_id=1260160361]
+metadata/_edit_group_ = true
+
+[node name="Plant_lounge_end" parent="Room" index="19" unique_id=119954394]
+metadata/_edit_group_ = true
+
+[node name="Quest_board" parent="Room" index="20" unique_id=467636221]
+metadata/_edit_group_ = true
+
+[node name="Reception_counter" parent="Room" index="21" unique_id=1026697073]
+metadata/_edit_group_ = true
+
+[node name="Rug_back_bench" parent="Room" index="22" unique_id=1061503462]
+metadata/_edit_group_ = true
+
+[node name="Rug_entry" parent="Room" index="23" unique_id=1671004657]
+metadata/_edit_group_ = true
+
+[node name="Rug_hearth_lounge" parent="Room" index="24" unique_id=1914430594]
+metadata/_edit_group_ = true
+
+[node name="Rug_reception" parent="Room" index="25" unique_id=134477785]
+metadata/_edit_group_ = true
+
+[node name="Sconce_east_post" parent="Room" index="26" unique_id=2120492669]
+metadata/_edit_group_ = true
+
+[node name="Sconce_west_post" parent="Room" index="27" unique_id=1771599693]
+metadata/_edit_group_ = true
+
+[node name="Travel_luggage" parent="Room" index="28" unique_id=1758599494]
+metadata/_edit_group_ = true
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1079882505]
+transform = Transform3D(1, 0, 0, 0, 0.70710677, 0.70710677, 0, -0.70710677, 0.70710677, 0, 18.41, 16.68)
 keep_aspect = 0
+environment = SubResource("Environment_lobby")
 projection = 1
 current = true
 size = 15.93
+far = 70.0
 
-[node name="CeilingLight" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-61, -34, 0)
+[node name="CeilingLight" type="DirectionalLight3D" parent="." unique_id=1813487866]
+transform = Transform3D(0.8290376, 0.48908114, -0.27110207, 0, 0.48480958, 0.8746197, 0.5591929, -0.72509265, 0.40192538, 0, 0, 0)
 light_color = Color(1, 0.95, 0.88, 1)
 light_energy = 0.46
 shadow_enabled = true
 
-[node name="HearthLight" type="OmniLight3D" parent="."]
-position = Vector3(-5.6, 0.85, -2.95)
+[node name="HearthLight" type="OmniLight3D" parent="." unique_id=1093809541]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.580034, 0.85, -3.8378174)
 light_color = Color(1, 0.72, 0.46, 1)
 light_energy = 1.75
 omni_range = 4.7
 omni_attenuation = 1.35
 
-[node name="ReceptionLight" type="OmniLight3D" parent="."]
-position = Vector3(2.66, 1.68, -1.64)
+[node name="ReceptionLight" type="OmniLight3D" parent="." unique_id=2068053612]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.452778, 1.68, -1.9511496)
 light_color = Color(1, 0.76, 0.44, 1)
 light_energy = 1.05
 omni_range = 3.15
 
-[node name="LoungeLight" type="OmniLight3D" parent="."]
-position = Vector3(-2.11, 1.16, 1.28)
+[node name="LoungeLight" type="OmniLight3D" parent="." unique_id=1076138314]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.124923, 1.041958, 0.5964313)
 light_color = Color(1, 0.82, 0.56, 1)
-light_energy = 1.0
 omni_range = 3.3
 
-[node name="ExitLight" type="OmniLight3D" parent="."]
-position = Vector3(0, 1.0, 4.85)
+[node name="ExitLight" type="OmniLight3D" parent="." unique_id=2064062689]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 4.85)
 light_color = Color(1, 0.72, 0.42, 1)
 light_energy = 0.8
 omni_range = 2.4
 
-[node name="Innkeeper" type="Sprite3D" parent="."]
-position = Vector3(3.8, 0, -3.03)
-scale = Vector3(1, 1.41421356, 1)
+[node name="Innkeeper" type="Sprite3D" parent="." unique_id=166515538]
+transform = Transform3D(1, 0, 0, 0, 1.4142135, 0, 0, 0, 1, 3.8, 0, -3.03)
 centered = false
 offset = Vector2(-48, -20)
 pixel_size = 0.015625
@@ -66,11 +151,12 @@ alpha_cut = 1
 texture_filter = 0
 texture = ExtResource("2_innkeeper")
 
-[node name="Avatar" type="Sprite3D" parent="."]
+[node name="Avatar" type="Sprite3D" parent="." unique_id=1057778005]
+transform = Transform3D(1, 0, 0, 0, 1.4142135, 0, 0, 0, 1, 0, 0, 0)
 visible = false
-scale = Vector3(1, 1.41421356, 1)
 centered = false
 pixel_size = 0.015625
 alpha_cut = 1
 texture_filter = 0
-cast_shadow = 1
+
+[editable path="Room"]

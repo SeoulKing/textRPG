@@ -1,7 +1,7 @@
-[gd_scene load_steps=22 format=3 uid="uid://c27s3mbuhuwo4"]
+[gd_scene format=3 uid="uid://c27s3mbuhuwo4"]
 
 [ext_resource type="PackedScene" uid="uid://di50pib2apohr" path="res://art/source/north-star-fountain-v1/north-star-fountain.glb" id="1_model"]
-[ext_resource type="PackedScene" path="res://art/source/plaza-stone-paving/plaza-stone-paving.glb" id="2_paving"]
+[ext_resource type="PackedScene" uid="uid://cf3qoumielxjq" path="res://art/source/plaza-stone-paving/plaza-stone-paving.glb" id="2_paving"]
 [ext_resource type="PackedScene" uid="uid://bqryd12jorepf" path="res://art/source/slime-mochi/arcana-slime-mochi.glb" id="3_mochi_slime"]
 [ext_resource type="Shader" uid="uid://bkv37m7tyqgu3" path="res://art/resources/shop_screen_edges.gdshader" id="4_edges"]
 [ext_resource type="Script" uid="uid://djt7umdoc1rp5" path="res://scripts/plaza_3d_v2.gd" id="5_controls"]
@@ -10,22 +10,70 @@
 [ext_resource type="PackedScene" uid="uid://cdo6b65cctqko" path="res://art/source/plaza-shop-blender/shop-exterior.glb" id="8_shop"]
 [ext_resource type="Script" uid="uid://clwji4rbounqn" path="res://scripts/north_star_fountain.gd" id="10_fountain"]
 [ext_resource type="PackedScene" uid="uid://bv48xfppnjxqq" path="res://art/source/plaza-inn-blender/inn-exterior.glb" id="11_inn"]
-[ext_resource type="Texture2D" path="res://art/export/fountain-paving/mosaic-ring.png" id="12_mosaic"]
+[ext_resource type="Texture2D" uid="uid://c5semqsirkuj1" path="res://art/export/fountain-paving/mosaic-ring.png" id="12_mosaic"]
+
+[ext_resource type="Shader" path="res://art/resources/plaza_pond_water.gdshader" id="13_pond_water"]
+[ext_resource type="Texture2D" path="res://art/export/river-pixel-v5/base.res" id="14_pond_base"]
+[ext_resource type="Texture2D" path="res://art/export/river-pixel-v5/highlights.res" id="15_pond_ripples"]
+[ext_resource type="Shader" path="res://art/resources/north_star_fountain_stone.gdshader" id="16_pond_stone"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/plaza/plaza_inn_approach.tscn" id="17_approach"]
+
+[ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/plaza-home-exterior.glb" id="18_home"]
+[ext_resource type="Texture2D" path="res://art/export/monsters/slime-landing-fx.png" id="19_slime_landing_fx"]
+[ext_resource type="Script" path="res://scripts/rendering/plaza_streets.gd" id="20_streets"]
+[ext_resource type="PackedScene" path="res://scenes/props/plaza/restaurant_exterior_3d.tscn" id="21_restaurant"]
+[ext_resource type="PackedScene" path="res://art/source/plaza-academy-blender/academy-exterior.glb" id="22_academy"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_plaza"]
-size = Vector2(22, 30)
+size = Vector2(64, 64)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial_fountain_inlay"]
 transparency = 2
 alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
 albedo_color = Color(0.84, 0.84, 0.84, 1)
 albedo_texture = ExtResource("12_mosaic")
 roughness = 0.9
-texture_filter = 2
+texture_filter = 4
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_fountain_inlay"]
 material = SubResource("StandardMaterial_fountain_inlay")
 size = Vector2(8.4, 8.4)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pond_stone"]
+shader = ExtResource("16_pond_stone")
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_pond_bank"]
+material = SubResource("ShaderMaterial_pond_stone")
+top_radius = 2.85
+bottom_radius = 2.78
+height = 0.14
+radial_segments = 64
+rings = 0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_pond_coping"]
+material = SubResource("StandardMaterial_fountain_inlay")
+size = Vector2(5.7, 5.7)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pond_water"]
+resource_local_to_scene = true
+shader = ExtResource("13_pond_water")
+shader_parameter/water_base = ExtResource("14_pond_base")
+shader_parameter/highlights = ExtResource("15_pond_ripples")
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_pond_water"]
+material = SubResource("ShaderMaterial_pond_water")
+top_radius = 2.6
+bottom_radius = 2.6
+height = 0.012
+radial_segments = 64
+rings = 0
+cap_bottom = false
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_pond"]
+height = 0.5
+radius = 2.85
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_fountain"]
 height = 1.2
@@ -37,6 +85,15 @@ size = Vector3(7.2, 1.5, 3.6)
 [sub_resource type="BoxShape3D" id="BoxShape3D_inn"]
 size = Vector3(6.2, 5.5, 4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_player_home"]
+size = Vector3(5.82, 4.64, 4.66)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_restaurant"]
+size = Vector3(6, 2.65, 5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_academy"]
+size = Vector3(24, 8, 10)
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.2
 height = 1.1
@@ -45,15 +102,15 @@ height = 1.1
 background_mode = 1
 background_color = Color(0.24, 0.3, 0.36, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.87, 0.91, 1, 1)
-ambient_light_energy = 0.52
+ambient_light_color = Color(0.83, 0.89, 1, 1)
+ambient_light_energy = 0.49
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_plaza_edges"]
 resource_local_to_scene = true
 render_priority = -100
 shader = ExtResource("4_edges")
 shader_parameter/screen_pixel_size = 2
-shader_parameter/average_2x2_color = true
+shader_parameter/average_2x2_color = false
 shader_parameter/highlight_strength = 0.08
 shader_parameter/highlight_direction = Vector3(-0.37, 0.235, 0.898)
 shader_parameter/room_accents_enabled = false
@@ -81,122 +138,251 @@ shader_parameter/asset_highlight_strength = 0.55
 [sub_resource type="QuadMesh" id="QuadMesh_plaza_edges"]
 size = Vector2(2, 2)
 
-[node name="Plaza3DV2" type="Node3D"]
+[node name="Plaza3DV2" type="Node3D" unique_id=1652749391]
 script = ExtResource("5_controls")
 
-[node name="Ground" type="MeshInstance3D" parent="."]
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=472963451]
 visible = false
 cast_shadow = 0
+position = Vector3(8, 0, -2)
 mesh = SubResource("PlaneMesh_plaza")
 
-[node name="StonePaving" parent="." instance=ExtResource("2_paving")]
+[node name="StonePaving" parent="." unique_id=17808641 instance=ExtResource("2_paving")]
 
-[node name="Fountain" type="Node3D" parent="."]
+[node name="StreetWorks" type="Node3D" parent="."]
+script = ExtResource("20_streets")
+ground_path = NodePath("../Ground")
+roads = Array[Dictionary]([{
+"centerline": PackedVector2Array(0, 30, 0, 9.65),
+"width": 5.0
+}, {
+"centerline": PackedVector2Array(3.45, 4.7, 14.2, 4.7, 18.5, 1.8, 24, -5, 24, -15.3),
+"width": 4.0
+}, {
+"centerline": PackedVector2Array(0.85, 2.27, 0.85, -7),
+"width": 3.0
+}, {
+"centerline": PackedVector2Array(-10.5, -10.8, -10.5, -7, 0.85, -7, 5.1, -7, 5.1, -8.1),
+"width": 3.0
+}, {
+"centerline": PackedVector2Array(0.85, 2.27, -6.2, 2.27, -6.2, 1.434),
+"width": 3.0
+}, {
+"centerline": PackedVector2Array(6.41, 4.7, 6.41, 2.36),
+"width": 2.0
+}, {
+"centerline": PackedVector2Array(-2.8, 8.6, -3.55, 9.36),
+"width": 2.0
+}])
+forecourt = Rect2(16, -16, 16, 9)
+terrace = Rect2(-13.5, -11.5, 1.45, 3)
+planter_footprints = Array[Rect2]([Rect2(5, 7.6, 4.5, 1.4), Rect2(6.5, 10.6, 2.7, 1.3)])
+
+[node name="InnApproach" parent="." instance=ExtResource("17_approach")]
+
+[node name="Fountain" type="Node3D" parent="." unique_id=977507906]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.925)
 script = ExtResource("10_fountain")
 
-[node name="Model" parent="Fountain" instance=ExtResource("1_model")]
+[node name="Model" parent="Fountain" unique_id=18288734 instance=ExtResource("1_model")]
 
-[node name="MosaicInlay" type="MeshInstance3D" parent="Fountain"]
-position = Vector3(0, 0.027, 0)
+[node name="MosaicInlay" type="MeshInstance3D" parent="Fountain" unique_id=1278081125]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.027, 0)
 cast_shadow = 0
 mesh = SubResource("PlaneMesh_fountain_inlay")
 
-[node name="WaterFill" type="OmniLight3D" parent="Fountain"]
-position = Vector3(0, 1, 0)
+[node name="WaterFill" type="OmniLight3D" parent="Fountain" unique_id=1676222991]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 light_color = Color(0.55, 0.85, 1, 1)
 light_energy = 0.28
 omni_range = 4.05
 omni_attenuation = 1.45
 
-[node name="Collision" type="StaticBody3D" parent="Fountain"]
+[node name="Collision" type="StaticBody3D" parent="Fountain" unique_id=591255259]
 
-[node name="Footprint" type="CollisionShape3D" parent="Fountain/Collision"]
+[node name="Footprint" type="CollisionShape3D" parent="Fountain/Collision" unique_id=558812639]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 shape = SubResource("CylinderShape3D_fountain")
 
-[node name="MochiSlime" parent="." instance=ExtResource("3_mochi_slime")]
+[node name="FishingPond" type="Node3D" parent="."]
+position = Vector3(-6.75, 0, 9.5)
+
+[node name="Bank" type="MeshInstance3D" parent="FishingPond"]
+position = Vector3(0, 0.07, 0)
+mesh = SubResource("CylinderMesh_pond_bank")
+
+[node name="StoneCoping" type="MeshInstance3D" parent="FishingPond"]
+position = Vector3(0, 0.143, 0)
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_pond_coping")
+
+[node name="Water" type="MeshInstance3D" parent="FishingPond"]
+position = Vector3(0, 0.151, 0)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_pond_water")
+
+[node name="Collision" type="StaticBody3D" parent="FishingPond"]
+
+[node name="Footprint" type="CollisionShape3D" parent="FishingPond/Collision"]
+position = Vector3(0, 0.25, 0)
+shape = SubResource("CylinderShape3D_pond")
+
+[node name="MochiSlime" parent="." unique_id=1408508183 instance=ExtResource("3_mochi_slime")]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 3.1, 0, 1.4000001)
 
-[node name="Shop" type="Node3D" parent="."]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -0.5, 0, -8.5)
+[node name="SlimeLandingFX" type="Sprite3D" parent="."]
+visible = false
+cast_shadow = 0
+offset = Vector2(0, 8)
+pixel_size = 0.042
+billboard = 1
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("19_slime_landing_fx")
+hframes = 4
 
-[node name="Exterior" parent="Shop" instance=ExtResource("8_shop")]
+[node name="Shop" type="Node3D" parent="." unique_id=765282451]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 5.1, 0, -8.6)
 
-[node name="DoorFill" type="OmniLight3D" parent="Shop"]
-position = Vector3(0, 1.55, 0.72)
+[node name="Exterior" parent="Shop" unique_id=1074800490 instance=ExtResource("8_shop")]
+
+[node name="DoorFill" type="OmniLight3D" parent="Shop" unique_id=2007577157]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0.72)
 light_color = Color(1, 0.79, 0.5, 1)
 light_energy = 0.36
 omni_range = 3.15
 
-[node name="Collision" type="StaticBody3D" parent="Shop"]
+[node name="Collision" type="StaticBody3D" parent="Shop" unique_id=2144375701]
 
-[node name="Footprint" type="CollisionShape3D" parent="Shop/Collision"]
+[node name="Footprint" type="CollisionShape3D" parent="Shop/Collision" unique_id=226445296]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, -1.8)
 shape = SubResource("BoxShape3D_shop")
 
-[node name="Inn" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, -2.5)
+[node name="Inn" type="Node3D" parent="." unique_id=124876331]
+transform = Transform3D(1.42, 0, 0, 0, 1.42, 0, 0, 0, 1.42, -6.2, 0, -2.4)
 
-[node name="Exterior" parent="Inn" instance=ExtResource("11_inn")]
+[node name="Exterior" parent="Inn" unique_id=466191278 instance=ExtResource("11_inn")]
 
-[node name="DoorFill" type="OmniLight3D" parent="Inn"]
-position = Vector3(0, 1.95, 2.66)
-light_color = Color(1, 0.71, 0.37, 1)
-light_energy = 0.46
-omni_range = 3.2
+[node name="DoorFill" type="OmniLight3D" parent="Inn" unique_id=276882681]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.95, 2.66)
+light_color = Color(1, 0.78, 0.52, 1)
+light_energy = 0.62
+omni_range = 3.35
 
-[node name="Collision" type="StaticBody3D" parent="Inn"]
+[node name="Collision" type="StaticBody3D" parent="Inn" unique_id=1826479252]
 
-[node name="Footprint" type="CollisionShape3D" parent="Inn/Collision"]
+[node name="Footprint" type="CollisionShape3D" parent="Inn/Collision" unique_id=1653068188]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.75, 0)
 shape = SubResource("BoxShape3D_inn")
 
-[node name="InteractionPoint" type="Marker3D" parent="Inn"]
+[node name="InteractionPoint" type="Marker3D" parent="Inn" unique_id=239000436]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.7)
 
-[node name="CameraFocus" type="Marker3D" parent="Inn"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.8)
+[node name="PlayerHome" type="Node3D" parent="."]
+position = Vector3(6.41, 0, -0.92)
 
-[node name="Player" type="CharacterBody3D" parent="."]
+[node name="Exterior" parent="PlayerHome" instance=ExtResource("18_home")]
+
+[node name="DoorFill" type="OmniLight3D" parent="PlayerHome"]
+position = Vector3(0.66, 1.67, 2.35)
+light_color = Color(1, 0.76, 0.48, 1)
+light_energy = 0.47
+omni_range = 2.85
+omni_attenuation = 1.4
+
+[node name="Collision" type="StaticBody3D" parent="PlayerHome"]
+
+[node name="Footprint" type="CollisionShape3D" parent="PlayerHome/Collision"]
+position = Vector3(0, 2.32, 0.25)
+shape = SubResource("BoxShape3D_player_home")
+
+[node name="InteractionPoint" type="Marker3D" parent="PlayerHome"]
+position = Vector3(0, 0, 3.28)
+
+[node name="Restaurant" type="Node3D" parent="."]
+position = Vector3(-10.5, 0, -14)
+
+[node name="Exterior" parent="Restaurant" instance=ExtResource("21_restaurant")]
+position = Vector3(0, 0, -0.36)
+scale = Vector3(1, 1, 0.82)
+
+[node name="DoorFill" type="OmniLight3D" parent="Restaurant"]
+position = Vector3(0, 1.42, 2.64)
+light_color = Color(1, 0.76, 0.47, 1)
+light_energy = 0.46
+omni_range = 3.05
+omni_attenuation = 1.4
+
+[node name="Collision" type="StaticBody3D" parent="Restaurant"]
+
+[node name="Footprint" type="CollisionShape3D" parent="Restaurant/Collision"]
+position = Vector3(0, 1.325, 0)
+shape = SubResource("BoxShape3D_restaurant")
+
+[node name="InteractionPoint" type="Marker3D" parent="Restaurant"]
+position = Vector3(0, 0, 3.2)
+
+[node name="Academy" type="Node3D" parent="."]
+position = Vector3(24, 0, -21)
+
+[node name="Exterior" parent="Academy" instance=ExtResource("22_academy")]
+
+[node name="DoorFill" type="OmniLight3D" parent="Academy"]
+position = Vector3(0, 2.75, 5.36)
+light_color = Color(1, 0.81, 0.53, 1)
+light_energy = 0.42
+omni_range = 5.6
+omni_attenuation = 1.42
+
+[node name="Collision" type="StaticBody3D" parent="Academy"]
+
+[node name="Footprint" type="CollisionShape3D" parent="Academy/Collision"]
+position = Vector3(0, 4, 0)
+shape = SubResource("BoxShape3D_academy")
+
+[node name="InteractionPoint" type="Marker3D" parent="Academy"]
+position = Vector3(0, 0, 5.7)
+
+[node name="Player" type="CharacterBody3D" parent="." unique_id=1380097839]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 3.4)
 collision_layer = 0
 motion_mode = 1
 
-[node name="Footprint" type="CollisionShape3D" parent="Player"]
+[node name="Footprint" type="CollisionShape3D" parent="Player" unique_id=1201008978]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
 shape = SubResource("CapsuleShape3D_player")
 
-[node name="Hero" type="Node3D" parent="Player"]
+[node name="Hero" type="Node3D" parent="Player" unique_id=882008342]
 script = ExtResource("6_hero")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=253841232]
 environment = SubResource("Environment_plaza")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-53, -38, 0)
-light_color = Color(1, 0.92, 0.8, 1)
-light_energy = 0.43
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=214911360]
+transform = Transform3D(0.7880108, 0.49168915, -0.37051436, 0, 0.60181504, 0.79863554, 0.6156615, -0.62933344, 0.47423673, 0, 0, 0)
+light_color = Color(1, 0.95, 0.86, 1)
+light_energy = 0.58
 shadow_enabled = true
+shadow_blur = 0.0
 directional_shadow_max_distance = 48.0
 
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=412278376]
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, -0.5, 18, 13.5)
 projection = 1
 current = true
 size = 27.0
-far = 70.0
+far = 150.0
 
-[node name="ScreenEdges" type="MeshInstance3D" parent="Camera3D"]
+[node name="ScreenEdges" type="MeshInstance3D" parent="Camera3D" unique_id=1883453386]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)
 material_override = SubResource("ShaderMaterial_plaza_edges")
 cast_shadow = 0
 extra_cull_margin = 16384.0
 mesh = SubResource("QuadMesh_plaza_edges")
 
-[node name="Controls" type="CanvasLayer" parent="."]
+[node name="Controls" type="CanvasLayer" parent="." unique_id=292915007]
 
-[node name="Joystick" type="Control" parent="Controls"]
+[node name="Joystick" type="Control" parent="Controls" unique_id=519615306]
 layout_mode = 3
 anchors_preset = 0
 mouse_filter = 2

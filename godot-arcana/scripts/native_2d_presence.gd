@@ -2,6 +2,7 @@ extends Node
 ## Render projections only. Account identity, positions, combat and rewards are server-owned.
 const Hero = preload("res://scripts/native_2d_hero.gd")
 const Blink = preload("res://scripts/native_2d_blink.gd")
+const FishingVisual = preload("res://scripts/fishing_world_vfx.gd")
 const Motion = preload("res://scripts/network_motion.gd")
 const HARD_CORRECTION_DISTANCE: float = 96.0
 var input_history: Dictionary = {}
@@ -133,7 +134,7 @@ func accept(value: Dictionary) -> void:
 		main.snapshot.onlineFighting = update.get("onlineFighting",false)
 		main.snapshot.state.merge(update.get("state",{}),true)
 		var location = str(main.snapshot.state.get("location",""))
-		var expected_interior = location if location in ["arcana_shop","arcana_inn","arcana_restaurant","arcana_academy"] else ""
+		var expected_interior = location if location in main.INDOOR_LOCATIONS else ""
 		if main.world.indoor != expected_interior:
 			main._apply(main.snapshot.duplicate(true))
 			for player in value.get("players",[]):
@@ -214,7 +215,7 @@ func accept(value: Dictionary) -> void:
 	for id in actors.keys():
 		if not retained.has(id):
 			if is_instance_valid(main.world_renderer.shop3d): main.world_renderer.shop3d.remove_remote(str(id))
-			if is_instance_valid(main.world_renderer.inn3d): main.world_renderer.inn3d.remove_remote(str(id))
+			if is_instance_valid(main.world_renderer.room3d): main.world_renderer.room3d.remove_remote(str(id))
 			actors[id].hero.queue_free()
 			actors[id].blink.queue_free()
 			actors[id].label.queue_free()
@@ -274,19 +275,36 @@ func _process(delta: float) -> void:
 			remote.blink.update_pose(float(remote.blink_age),direction,main.world_renderer.map_point(from),main.world_renderer.map_point(to),main.world.effects_enabled,main.world.reduced_motion)
 		hero.pose(main.world.time,float(sample.get("gait",0)),bool(sample.get("walking",false)),rendered_motion,main.world_renderer.pixelated,main.world.effects_enabled,false,heading)
 		hero.apply_bench_pose()
+		_present_fishing(remote, data.get("fishing"), delta)
 		var in_shop: bool = main.world.indoor == "arcana_shop"
-		var in_inn_3d := is_instance_valid(main.world_renderer.inn3d)
+		var in_room_3d := is_instance_valid(main.world_renderer.room3d)
 		remote.blink.visible = not in_shop
-		remote.blink.set_projected_height(sqrt(2.0) if in_inn_3d else 1.0)
+		main.world_renderer.update_blink_projection(remote.blink)
 		if in_shop and is_instance_valid(main.world_renderer.shop3d):
 			main.world_renderer.shop3d.sync_remote(str(data.id),hero,remote.position)
 			hero.hide()
-		elif in_inn_3d:
-			main.world_renderer.inn3d.sync_remote(str(data.id),hero,main.world,remote.position,
+		elif in_room_3d:
+			main.world_renderer.room3d.sync_remote(str(data.id),hero,main.world,remote.position,
 				seat_state,float(remote.bench_age),seat)
 			hero.hide()
 		remote.label.position = main.spatial_combat._screen(remote.position,2.1)-Vector2(remote.label.size.x*.5,0)
 		remote.label.visible = not main.ui.overlay.visible and main.get_viewport().get_visible_rect().has_point(remote.label.position)
+
+func _present_fishing(remote: Dictionary, state: Variant, delta: float) -> void:
+	var visual: FishingVisual = remote.get("fishing_visual")
+	if not state is Dictionary or not state.get("bobber") is Dictionary or not main.world.indoor.is_empty():
+		if is_instance_valid(visual):
+			visual.hide()
+			visual.queue_free()
+			remote.erase("fishing_visual")
+		return
+	if not is_instance_valid(visual):
+		visual = FishingVisual.new()
+		visual.main = main
+		remote.hero.add_child(visual)
+		visual.set_process(false)
+		remote.fishing_visual = visual
+	visual.present_session(state, remote.hero, delta)
 
 func _exit_tree() -> void:
 	for remote in actors.values():

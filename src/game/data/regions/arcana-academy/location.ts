@@ -10,6 +10,6 @@ export const arcanaAcademyLocation = defineLocation({
   neighbors: ["arcana_plaza", "arcana_restaurant"],
   links: {
     arcana_plaza: { note: "아카데미 앞뜰에서 중앙 분수가 있는 광장으로 향한다." },
-    arcana_restaurant: { note: "회랑 옆 돌길을 따라 남쪽의 식당으로 내려간다." },
+    arcana_restaurant: { note: "학교길에서 광장 북서쪽 상점가를 따라 식당으로 향한다." },
   },
 });

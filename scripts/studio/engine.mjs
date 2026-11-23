@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import { validateModelPolicy, resolveExecution } from './model-policy.mjs';
+import { recordCollaboration, validateCollaborationEvents, recordTaskCompletion, validateCompletionReports } from './collaboration.mjs';
 
 export const ORGANIZATIONS = Object.freeze([
   'director', 'design', 'narrative', 'world', 'character', 'development', 'quality',
@@ -205,6 +206,8 @@ export function validateBoard(board) {
     visited.add(id);
   }
   for (const id of tasks.keys()) visit(id);
+  validateCollaborationEvents(board);
+  validateCompletionReports(board);
   return board;
 }
 
@@ -298,10 +301,30 @@ export function transitionTask(board, taskId, status, details = {}) {
     nonempty(details.reviewResultPath, '독립 검토 결과 경로');
     stringArray(details.evidence, '완료 증거', { nonemptyArray: true });
   }
+  const previousStatus = task.status;
   const updatedAt = new Date().toISOString();
   task.runtime = { ...(task.runtime ?? {}), ...details, updatedAt };
   task.status = status;
   task.updatedAt = updatedAt;
+  const kinds = { ready: previousStatus === 'review' ? 'rejected' : 'assigned', active: 'started', review: 'submitted', done: 'completed', blocked: 'blocked' };
+  const titles = { assigned: '담당 부서 배정 · 실행 대기', started: '담당 작업 시작', submitted: '제작 결과 제출 · 독립 검토 대기',
+    rejected: '독립 검토에서 보완 요청', completed: '독립 검토 통과 · 작업 완료', blocked: '작업 차단 · 재개 조건 확인' };
+  const kind = kinds[status];
+  if (kind) {
+    const reviewing = previousStatus === 'review';
+    const from = reviewing ? 'quality' : kind === 'assigned' || kind === 'started' ? 'director' : task.organization;
+    if (status === 'blocked' && details.blockKind === 'review') recordCollaboration(board, {
+      goalId: task.goalId, kind: 'rejected', status: 'blocked', taskId: task.id, fromDepartmentId: 'quality', toDepartmentId: task.organization,
+      title: titles.rejected, summary: details.reviewSummary ?? details.blockReason, reason: '독립 검토가 통과되지 않아 작업을 완료 처리하지 않았습니다.',
+      evidence: details.reviewEvidence ?? [], at: updatedAt,
+    });
+    recordCollaboration(board, { goalId: task.goalId, kind, status, taskId: task.id, fromDepartmentId: from,
+      toDepartmentId: status === 'review' ? 'quality' : task.organization, title: titles[kind],
+      summary: details.reviewSummary ?? details.producerSummary ?? details.blockReason ?? '',
+      reason: details.blockReason ?? details.lastRetryReason ?? (kind === 'rejected' ? '검토에서 지적한 보완 사항을 제작 부서가 이어받습니다.' : ''),
+      evidence: details.reviewEvidence ?? details.producerEvidence ?? details.evidence ?? [], at: updatedAt });
+  }
+  if (status === 'done') recordTaskCompletion(board, task, { at: updatedAt });
   return task;
 }
 

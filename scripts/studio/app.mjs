@@ -6,6 +6,7 @@ import {
 } from './engine.mjs';
 import { assertGoalReady, assertTaskAuthorized, validateResult, formatTaskPrompt } from './protocol.mjs';
 import { resolveExecution } from './model-policy.mjs';
+import { recordCollaboration, recordTaskHandoffs, collaborationEvidence } from './collaboration.mjs';
 
 const RUNS_PATH = '.runtime/studio/runs';
 const now = () => new Date().toISOString();
@@ -91,19 +92,31 @@ function importRequests(board, task, result, by, importedAt) {
     let id;
     do { count += 1; id = `${task.id}-REQ-${count}`; } while (ids.has(id));
     ids.add(id);
-    board.requests.push({ ...request, id, sourceTaskId: task.id, goalId: task.goalId,
-      status: 'pending', createdAt: importedAt, importedBy: by, importedAt });
+    const imported = { ...request, id, sourceTaskId: task.id, goalId: task.goalId,
+      status: 'pending', createdAt: importedAt, importedBy: by, importedAt };
+    board.requests.push(imported);
+    const event = recordCollaboration(board, { goalId: task.goalId, kind: 'request_submitted', status: 'pending', taskId: task.id,
+      requestId: id, fromDepartmentId: task.organization, toDepartmentId: 'director', title: '앱 제작 부서의 협업 요청 · 미배정',
+      summary: request.title, reason: request.playerChange, at: importedAt });
+    imported.sourceCommandIds = event.sourceCommandIds;
   }
 }
 
 function handoff(root, board, task, by) {
   assertReady(board, task);
+  const supervision = board.goals.find((goal) => goal.id === task.goalId)?.supervision;
+  if ((board.completionReports ?? []).some((report) => report.goalId === task.goalId && ['pending', 'processing', 'blocked'].includes(report.status)) || supervision?.status === 'blocked') {
+    throw new Error('이 목표의 완료 보고를 총괄이 먼저 확인해야 합니다. 연결기가 이어받거나 해당 목표 run으로 총괄 확인을 진행해 주세요.');
+  }
+  if (supervision?.nextTaskIds?.length && !supervision.nextTaskIds.includes(task.id)) {
+    throw new Error('총괄이 이번 인계에서 지정한 다음 작업을 먼저 진행해 주세요.');
+  }
   const other = board.tasks.find((candidate) => candidate.id !== task.id && candidate.status === 'active');
   if (other) throw new Error(`다른 제작 작업이 진행 중입니다: ${other.id}`);
   if (!['backlog', 'ready', 'blocked'].includes(task.status)) {
     throw new Error(`backlog·ready 또는 앱 도구 대기 작업만 인계할 수 있습니다: ${task.id} [${task.status}]`);
   }
-  if (task.status === 'blocked' && task.runtime?.blockKind !== 'app') {
+  if (task.status === 'blocked' && !['app', 'app-handoff'].includes(task.runtime?.blockKind)) {
     throw new Error('앱 도구 대기 이외의 보류 작업은 달라진 전제를 retry에 먼저 기록해 주세요.');
   }
   const attempt = counter(task.runtime, 'attempt') + 1;
@@ -128,6 +141,7 @@ function handoff(root, board, task, by) {
   fs.writeFileSync(path.join(run.dir, 'producer.prompt.txt'),
     formatTaskPrompt(board, task, 'producer', { runRelative: runPath, baselineRelative: baselinePath }),
     { encoding: 'utf8', flag: 'wx' });
+  recordTaskHandoffs(board, task, 'producer', { status: 'prepared' });
   const producerExecution = resolveExecution(board, task, 'producer');
   const reviewerExecution = resolveExecution(board, task, 'reviewer');
   fs.writeFileSync(path.join(run.dir, 'requested-execution.json'), JSON.stringify({ producerExecution, reviewerExecution }, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
@@ -168,9 +182,12 @@ function report(root, board, task, args, by) {
     reviewPasses = counter(task.runtime, 'reviewPasses') + 1;
   }
   const importedAt = now();
-  if (!alreadyInReview) importRequests(board, task, producer, by, importedAt);
+  if (!alreadyInReview) {
+    recordTaskHandoffs(board, task, 'producer', { status: 'delivered' });
+    importRequests(board, task, producer, by, importedAt);
+  }
   const imported = { importedBy: by, importedAt, producerResultPath: producerFile.relative,
-    producerSummary: producer.summary, producerImportedBy: by, producerImportedAt: importedAt };
+    producerSummary: producer.summary, producerEvidence: collaborationEvidence(producer.evidence), producerImportedBy: by, producerImportedAt: importedAt };
 
   if (producer.outcome === 'blocked') {
     transitionTask(board, task.id, 'blocked', {
@@ -181,7 +198,8 @@ function report(root, board, task, args, by) {
   } else {
     if (!alreadyInReview) transitionTask(board, task.id, 'review', imported);
     else task.runtime = { ...task.runtime, ...imported };
-    const reviewed = { importedBy: by, importedAt, reviewPasses,
+    recordCollaboration(board, { goalId: task.goalId, kind: 'review_reported', status: 'reported', taskId: task.id, fromDepartmentId: 'quality', toDepartmentId: task.organization, title: '앱 독립 검토 보고 인수', summary: review.summary, reason: '외부 앱의 검토 결과 파일을 인수했습니다. 자동 실행·프롬프트 열람을 소급 기록하지 않습니다.', evidence: review.evidence, at: importedAt });
+    const reviewed = { importedBy: by, importedAt, reviewPasses, reviewSummary: review.summary, reviewEvidence: collaborationEvidence(review.evidence),
       reviewImportedBy: by, reviewImportedAt: importedAt };
     if (review.outcome === 'completed') {
       transitionTask(board, task.id, 'done', {
@@ -206,6 +224,8 @@ function report(root, board, task, args, by) {
     command: 'report', taskId: task.id, goalId: task.goalId, status: task.status,
     producerResultPath: producerFile.relative, reviewResultPath: reviewFile?.relative ?? null,
     importedBy: by, importedAt,
+    completionReportId: (board.completionReports ?? []).find((report) => report.taskId === task.id)?.id ?? null,
+    directorNotification: (board.completionReports ?? []).find((report) => report.taskId === task.id)?.status ?? null,
     reviewResponsibility: '독립 검토의 실제 수행 여부와 결과 JSON의 진위는 인수하시는 앱 총괄이 확인하셔야 합니다.',
   };
 }

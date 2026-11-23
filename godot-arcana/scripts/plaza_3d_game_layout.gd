@@ -4,6 +4,7 @@ extends Node2D
 const SCENE := "res://scenes/plaza_3d_v2.tscn"
 const ORIGIN := Vector2(2048.0, 2048.0)
 const UNIT := 16.0
+const FishingGeometry = preload("res://scripts/river_fishing_geometry.gd")
 
 class Placement extends Node2D:
 	var gameplay_id := ""
@@ -38,6 +39,7 @@ class Placement extends Node2D:
 var _placements: Array[Placement] = []
 var _bounds := Rect2()
 var _home := Vector2.ZERO
+var _pond_water := Rect2()
 
 
 func _init() -> void:
@@ -77,14 +79,34 @@ func _init() -> void:
 	inn.interaction_offset = to_logical(inn_door) - to_logical(inn.anchor.origin)
 	inn.rectangles.append(_building_footprint(state, "Inn", inn.anchor))
 
+	var home := _add_placement(containers, "PlayerHome", "player_home", _transform(state, "PlayerHome"))
+	home.gameplay_id = "arcana_home"
+	home.display_name = "내 집"
+	home.interaction_kind = "building"
+	var door := home.anchor * _transform(state, "PlayerHome/InteractionPoint").origin
+	home.interaction_offset = to_logical(door) - to_logical(home.anchor.origin)
+	home.rectangles.append(_building_footprint(state, "PlayerHome", home.anchor))
+
+	_add_marked_building(containers, state, "Restaurant", "arcana_restaurant", "아르카나 식당")
+	_add_marked_building(containers, state, "Academy", "arcana_academy", "아르카나 아카데미")
+
+	var planters: Variant = _property(state, "StreetWorks", &"planter_footprints")
+	if planters is Array and not planters.is_empty():
+		var street := _add_placement(containers, "StreetWorks", "planters", _transform(state, "StreetWorks"))
+		for footprint: Rect2 in planters:
+			var area := street.anchor * AABB(Vector3(footprint.position.x, 0.0, footprint.position.y),
+				Vector3(footprint.size.x, 0.0, footprint.size.y))
+			street.rectangles.append(_logical_floor_rect(area))
+
 	var fountain := _add_placement(containers, "Fountain", "fountain", _transform(state, "Fountain"))
-	var fountain_shape := _property(state, "Fountain/Collision/Footprint", &"shape") as CylinderShape3D
-	var basin := fountain.anchor * _transform(state, "Fountain/Collision") * _transform(state, "Fountain/Collision/Footprint")
-	var ground_transform := Transform2D(
-		Vector2(basin.basis.x.x, basin.basis.x.z) * UNIT,
-		Vector2(basin.basis.z.x, basin.basis.z.z) * UNIT,
-		to_logical(basin.origin))
-	fountain.round_shape = {"inverse": ground_transform.affine_inverse(), "radius": fountain_shape.radius}
+	fountain.round_shape = _round_footprint(state, "Fountain", fountain.anchor)
+
+	var pond := _add_placement(containers, "FishingPond", "pond", _transform(state, "FishingPond"))
+	pond.round_shape = _round_footprint(state, "FishingPond", pond.anchor)
+	var water_transform := pond.anchor * _transform(state, "FishingPond/Water")
+	var water := _property(state, "FishingPond/Water", &"mesh") as CylinderMesh
+	var surface_bounds := water_transform * water.get_aabb()
+	_pond_water = Rect2(to_logical(surface_bounds.position), Vector2(surface_bounds.size.x, surface_bounds.size.z) * UNIT)
 
 
 static func to_world(point: Vector2, height: float = 0.0) -> Vector3:
@@ -98,6 +120,24 @@ static func to_logical(point: Vector3) -> Vector2:
 
 func walk_bounds() -> Rect2:
 	return _bounds
+
+
+func fishing_geometry() -> Dictionary:
+	return {"mode": "pond", "water": [{"x": _pond_water.position.x, "y": _pond_water.position.y,
+		"w": _pond_water.size.x, "h": _pond_water.size.y}], "excluded": []}
+
+
+func pond_water_bounds() -> Rect2:
+	return _pond_water
+
+
+func pond_water_at(point: Vector2) -> bool:
+	var offset := (point - _pond_water.get_center()) / (_pond_water.size * 0.5)
+	return offset.length_squared() < 1.0
+
+
+func cast_target(point: Vector2, heading: Vector2) -> Dictionary:
+	return FishingGeometry.cast_over_water(point, heading, pond_water_at)
 
 
 func combat_home() -> Vector2:
@@ -124,13 +164,37 @@ func wall_collision_rects() -> Array[Rect2]:
 	return []
 
 
+func _round_footprint(state: SceneState, path: String, anchor: Transform3D) -> Dictionary:
+	var body := path + "/Collision"
+	var footprint := body + "/Footprint"
+	var shape := _property(state, footprint, &"shape") as CylinderShape3D
+	var pose := anchor * _transform(state, body) * _transform(state, footprint)
+	var ground_transform := Transform2D(Vector2(pose.basis.x.x, pose.basis.x.z) * UNIT,
+		Vector2(pose.basis.z.x, pose.basis.z.z) * UNIT, to_logical(pose.origin))
+	return {"inverse": ground_transform.affine_inverse(), "radius": shape.radius}
+
+
 func _building_footprint(state: SceneState, path: String, anchor: Transform3D) -> Rect2:
 	var body_path := path + "/Collision"
 	var footprint_path := body_path + "/Footprint"
 	var shape := _property(state, footprint_path, &"shape") as BoxShape3D
 	var collision := anchor * _transform(state, body_path) * _transform(state, footprint_path)
 	var area := collision * AABB(-shape.size / 2.0, shape.size)
+	return _logical_floor_rect(area)
+
+
+func _logical_floor_rect(area: AABB) -> Rect2:
 	return Rect2(to_logical(area.position), Vector2(area.size.x, area.size.z) * UNIT)
+
+
+func _add_marked_building(container: Node, state: SceneState, path: String, id: String, title: String) -> void:
+	var building := _add_placement(container, path, path.to_lower(), _transform(state, path))
+	building.gameplay_id = id
+	building.display_name = title
+	building.interaction_kind = "building"
+	var threshold := building.anchor * _transform(state, path + "/InteractionPoint").origin
+	building.interaction_offset = to_logical(threshold) - to_logical(building.anchor.origin)
+	building.rectangles.append(_building_footprint(state, path, building.anchor))
 
 
 func _add_placement(container: Node, label: String, kind: String, model_transform: Transform3D) -> Placement:

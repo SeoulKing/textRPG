@@ -34,6 +34,10 @@
         "planning": {
           "model": "gpt-6.1-sol",
           "reasoningEffort": "xhigh"
+        },
+        "blender-modeling": {
+          "model": "gpt-6.1-terra",
+          "reasoningEffort": "ultra"
         }
       },
       "organizations": {
@@ -44,10 +48,144 @@
         "character": "standard",
         "development": "coding",
         "quality": "complex"
+      },
+      "departmentDefaults": {
+        "narrative": {
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "medium"
+        },
+        "development": {
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "high"
+        },
+        "director": {
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "ultra"
+        },
+        "design": {
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "ultra"
+        }
       }
     }
   },
   "goals": [
+    {
+      "id": "SHOP-INN-20261115",
+      "title": "아르카나 상점·여관 마감",
+      "summary": "11월 15일 최우선 제작 목표. 승인된 두 공간의 표현과 실제 진입 동선을 완성합니다.",
+      "status": "active",
+      "dependsOnGoals": [],
+      "createdAt": "2026-11-15T03:01:39.823Z",
+      "sourceInstruction": {
+        "source": "Codex 사용자 지시",
+        "receivedAt": "2026-11-15T03:01:39.823Z",
+        "text": "제작 총괄아 내가 원하는 결과물 알지? 그렇게 보일 수있도록 열심히 상점과 여관 만들고 있어. 이걸 최우선 목표로 지정하고 오늘은 이 과제를 끝내보자."
+      },
+      "scope": {
+        "write": [
+          "godot-arcana/art/source/inn-lobby-blender",
+          "godot-arcana/scenes/inn_lobby_3d.tscn",
+          "godot-arcana/scripts/inn_lobby_3d.gd",
+          "godot-arcana/scripts/inn_lobby_3d.gd.uid",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "art-studies/regions/arcana-inn-interior/brief.md",
+          "art-studies/regions/arcana-inn-interior/source/blender-v1/export_inn.py",
+          "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "godot-arcana/tools/verify_web_pack.gd",
+          "godot-arcana/export_presets.cfg",
+          "godot-arcana/scripts/native_2d_blink.gd",
+          "godot-arcana/scripts/native_2d_presence.gd"
+        ]
+      },
+      "acceptance": [
+        "상점은 사용자님이 선택한 Blender 버전에서 서쪽 창빛, 목재, 중앙 거래대와 선반의 형태를 확인하고 기존 출입·거래 연결을 유지합니다.",
+        "여관은 푸른 지붕 외관과 승인 로비의 따뜻한 목재·크림 벽·보라 좌석·벽난로·접수대가 이어집니다.",
+        "여관 출입·접수·의뢰·휴식 지점과 기존 저장 좌표를 유지합니다. 실제 시각 검토와 참조 확인의 범위를 기록합니다."
+      ],
+      "approval": {
+        "status": "approved",
+        "approvedBy": "2026-11-15 사용자 지시와 기존 승인 시안",
+        "approvedAt": "2026-11-15T03:01:39.823Z",
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content",
+          "ui"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": false,
+        "artBriefs": [],
+        "digest": "6526d9614eae630e6221579fc46d797fe1c317675db572e2f90a995f52699951"
+      },
+      "supervision": {
+        "status": "ready_for_acceptance",
+        "reportId": "COMPLETE-SHOP-INN-20261115-INN",
+        "summary": "상점의 승인 버전과 출입·거래 연결을 검토했고, 여관의 승인 3D 로비를 본편에 연결했습니다. 실제 배치 기반 Godot 화면과 7개 클릭 경계를 확인했습니다. 실제 온라인 플레이와 웹 빌드는 미실행입니다.",
+        "nextTaskIds": [],
+        "acceptanceEvidence": [
+          {
+            "criterion": "상점은 사용자님이 선택한 Blender 버전에서 서쪽 창빛, 목재, 중앙 거래대와 선반의 형태를 확인하고 기존 출입·거래 연결을 유지합니다.",
+            "completedTaskIds": [
+              "SHOP-INN-20261115-SHOP"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scenes/shop_3d.tscn",
+                "summary": "기존 Blender 상점 조명과 승인 가구를 활성 표시합니다."
+              },
+              {
+                "path": "godot-arcana/art/export/online-layout.json",
+                "summary": "출입·복귀 및 서버 배치 확인"
+              },
+              {
+                "path": "godot-arcana/scripts/main.gd",
+                "summary": "기존 상인 거래 연결 확인"
+              }
+            ]
+          },
+          {
+            "criterion": "여관은 푸른 지붕 외관과 승인 로비의 따뜻한 목재·크림 벽·보라 좌석·벽난로·접수대가 이어집니다.",
+            "completedTaskIds": [
+              "SHOP-INN-20261115-INN"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scripts/native_2d_world.gd",
+                "summary": "기존 광장 경로에서 arcana_inn 진입 시 3D 여관을 표시합니다."
+              },
+              {
+                "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+                "summary": "따뜻한 목재·크림 벽·보라 좌석과 벽난로, 마르텐과 접수대를 실제 Godot 뷰포트에서 확인했습니다."
+              }
+            ]
+          },
+          {
+            "criterion": "여관 출입·접수·의뢰·휴식 지점과 기존 저장 좌표를 유지합니다. 실제 시각 검토와 참조 확인의 범위를 기록합니다.",
+            "completedTaskIds": [
+              "SHOP-INN-20261115-INN"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+                "summary": "출입·저장·좌석과 접수·의뢰의 기준 좌표 유지"
+              },
+              {
+                "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+                "summary": "기존 상호작용 ID와 같은 위치의 3D 클릭·좌석 연동"
+              },
+              {
+                "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+                "summary": "384×824 소파 앉기 자세 확인"
+              }
+            ]
+          }
+        ],
+        "updatedAt": "2026-11-15T03:25:04.183Z"
+      }
+    },
     {
       "id": "M0",
       "title": "제작 조직 구축과 전체 출시·시범판 계약 초안",
@@ -298,6 +436,370 @@
         "시범판 피드백과 남은 핵심 재미를 근거로 본편 범위·우선순위·완료 기준을 제안합니다.",
         "확인되지 않은 콘텐츠 수량·일정·출시 승인을 임의 확정하지 않습니다."
       ]
+    },
+    {
+      "id": "GOAL-93c7b05f16a8460c",
+      "title": "제작실 지시 목표화와 주간 잔여 사용량 게시",
+      "summary": "실제 사용자 지시를 기존 요리 목표 밖이라는 이유로 거절한 문제를 수정하고, 요청한 주간 잔여 사용량 표시를 개인 제작실에 게시합니다.",
+      "status": "active",
+      "dependsOnGoals": [],
+      "scope": {
+        "read": [
+          "scripts/studio",
+          "docs/studio",
+          "sites/arcana-studio/app"
+        ],
+        "write": [
+          "scripts/studio/bridge-runtime.mjs",
+          "scripts/studio/bridge.mjs",
+          "scripts/studio/mission-intake.mjs",
+          "scripts/studio/mission-intake.schema.json",
+          "scripts/studio/publication-intent.mjs",
+          "scripts/studio/protocol.mjs",
+          "tests/studio-mission-intake.test.mjs",
+          "docs/studio/README.md",
+          "docs/studio/WEB_CONSOLE.md",
+          "sites/arcana-studio/app/page.tsx",
+          "sites/arcana-studio/app/globals.css",
+          "sites/arcana-studio/app/lib/studio-api.ts",
+          "docs/studio/IMPLEMENTATION_REVIEW.md"
+        ]
+      },
+      "acceptance": [
+        "총괄의 명확한 변경 지시가 원문·완료 조건·부서별 선행 작업을 가진 새 목표로 등록됩니다.",
+        "진행 중 제작·검토를 보존하며 외부 잠금 중 지시를 잃지 않고 같은 명령을 중복 등록하지 않습니다.",
+        "모바일 홈에 주간 잔여 사용량·초기화 시각·조회 상태와 지시가 반영된 목표가 표시됩니다.",
+        "수정 사이트가 기존 본인 전용 주소에 게시되고 PC 연결기가 새 코드로 다시 연결됩니다."
+      ],
+      "sourceInstruction": {
+        "commandId": "93c7b05f-16a8-460c-bf0e-ddad08ae7a7a",
+        "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+        "text": "아르카나 제작실 사이트에 현재 남은 주간 사용량 표시가 없는데",
+        "departmentId": "director",
+        "receivedAt": "2026-11-05T08:28:09.372Z"
+      },
+      "followupInstructions": [
+        {
+          "commandId": "81eade86-f67a-4cf4-a372-4323a3498e7e",
+          "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+          "text": "웹푸시하라고",
+          "receivedAt": "2026-11-05T08:35:30.634Z"
+        },
+        {
+          "text": "아니 총괄이 내말을 안듣는데? 내가 하라는거 목표로 정리해서 하게해줘",
+          "source": "현재 Codex 사용자 지시"
+        }
+      ],
+      "approval": {
+        "status": "approved",
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content",
+          "ui",
+          "publish"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": true,
+        "approvedBy": "웹 사용자 BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+        "approvedAt": "2026-11-05T09:01:17.373Z",
+        "publicationIntent": {
+          "version": 1,
+          "action": "publish",
+          "targetId": "arcana-studio",
+          "siteId": "appgprj_6aec31b8ed408191954e0d6ed0fa3151",
+          "scope": "sites/arcana-studio",
+          "sourceCommandId": "81eade86-f67a-4cf4-a372-4323a3498e7e",
+          "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+          "sourceText": "웹푸시하라고",
+          "context": {
+            "commandId": "93c7b05f-16a8-460c-bf0e-ddad08ae7a7a",
+            "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+            "text": "아르카나 제작실 사이트에 현재 남은 주간 사용량 표시가 없는데"
+          }
+        },
+        "digest": "389e207b1e350dcb99c47fd84d2eaec9e666d5935121c1f094c484c07c622a6b"
+      },
+      "delivery": {
+        "id": "appgdep_6aec46148f4881919002d4a8b4ae77de",
+        "project_id": "appgprj_6aec31b8ed408191954e0d6ed0fa3151",
+        "title": "아르카나 제작실",
+        "version_id": "appgprj_6aec31b8ed408191954e0d6ed0fa3151~appgver_7533f4aba4008191b5ad36535dd90103",
+        "type": "publish",
+        "status": "succeeded",
+        "url": "https://arcana-production-desk-bang.seoulprince.chatgpt.site",
+        "has_mcp": false,
+        "screenshot_asset_pointer": null,
+        "provider_deployment_id": "site---6aec31b8ed408191954e0d6ed0fa3151",
+        "failure_message": null,
+        "env_set_revision": 0,
+        "updated_at": "2026-11-05T09:02:27.642882+00:00",
+        "commit_sha": "61057ed35554883ba30f47acd0065bb6fe78af67",
+        "completedAt": "2026-11-05T09:08:04.874Z",
+        "acceptanceStatus": "awaiting_user"
+      }
+    },
+    {
+      "id": "GOAL-08cc437c85814455",
+      "title": "스킬 탭 모바일 스크롤 개선",
+      "summary": "main.gd의 스킬 목록이 사용하는 game_ui.gd의 ScrollContainer와 선택 행을 중심으로 터치 입력 경로를 조사하고, 모바일 스와이프가 원활하게 전달되도록 개선합니다.",
+      "status": "planned",
+      "dependsOnGoals": [],
+      "scope": {
+        "read": [
+          "AGENTS.md",
+          ".agents/lessons/graphics.md",
+          "docs/studio/README.md",
+          "docs/roles/DEVELOPMENT.md",
+          "skills/godot-arcana-development/SKILL.md",
+          "godot-arcana/project.godot",
+          "godot-arcana/web-shell.html",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/scripts/game_ui.gd",
+          "godot-arcana/scripts/skill_tree_view.gd"
+        ],
+        "write": [
+          "godot-arcana/scripts/game_ui.gd"
+        ]
+      },
+      "acceptance": [
+        "스킬 목록의 행·아이콘·빈 영역에서 시작한 세로 스와이프가 스크롤로 전달되도록 입력 경로를 개선합니다.",
+        "스크롤 드래그가 의도하지 않은 항목 선택으로 이어지지 않고 짧은 탭의 기존 선택 동작은 유지됩니다.",
+        "터치 취소·패널 닫기 이후 입력 상태가 남지 않으며 공용 패널과 월드 조작의 기존 동작을 보존합니다.",
+        "변경·참조를 정적으로 검토하고 실제 모바일 체감의 미검증 항목과 사용자 직접 확인 절차를 인계합니다."
+      ],
+      "sourceInstruction": {
+        "commandId": "08cc437c-8581-4455-a62d-728e76919a34",
+        "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+        "text": "스킬 탭에서 모바일로 스크롤 할때 제대로 스크롤 잘 안되는데 확인하고 개선해줘",
+        "departmentId": "director",
+        "receivedAt": "2026-11-05T09:21:08.609Z"
+      },
+      "approval": {
+        "status": "approved",
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "content",
+          "ui"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": false,
+        "approvedBy": "웹 사용자 BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+        "approvedAt": "2026-11-05T09:23:31.534Z",
+        "digest": "ed6aeb16826bd8f69a89db242a6f33348e0de45b38e96b2a9a307e21f2efc14a"
+      }
+    },
+    {
+      "id": "ACADEMY-DETAIL-20261106",
+      "title": "마법학교 1·2층 상세 배치와 학습 조명",
+      "status": "active",
+      "dependsOnGoals": [],
+      "sourceInstruction": {
+        "text": "너가 알아서 디테일 있게 마법학교 1 2층을 만들어봐",
+        "source": "현재 Codex 사용자 목표"
+      },
+      "scope": {
+        "write": [
+          "godot-arcana/scenes/native_2d/academy_first_floor.tscn",
+          "godot-arcana/scenes/native_2d/academy_second_floor.tscn",
+          "godot-arcana/scripts/native_2d_academy_lighting.gd",
+          "godot-arcana/scripts/native_2d_academy_lighting.gd.uid",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "godot-arcana/scenes/props/academy-shared/lighting/study-light.tscn",
+          "godot-arcana/scenes/props/academy-shared/storage/reagent-cabinet.tscn",
+          "godot-arcana/scenes/props/academy-shared/tables/specimen-stand.tscn",
+          "godot-arcana/data/prop-library.json",
+          "art-studies/regions/arcana-academy-interior/brief.md",
+          "godot-arcana/scripts/world.gd",
+          "godot-arcana/tools/review_academy_interior.gd",
+          "godot-arcana/tools/review_academy_interior.gd.uid",
+          "src/online/world.ts",
+          "tests/arcana-layout-restore.test.cjs",
+          "godot-arcana/art/export/online-layout.json",
+          "godot-arcana/art/export/combat-layout.json",
+          "godot-arcana/export_presets.cfg",
+          "godot-web",
+          "art-studies/regions/arcana-academy-interior/review"
+        ]
+      },
+      "acceptance": [
+        "기존 2D 학교의 출입·층 이동·방 ID와 수동 배치를 보존합니다.",
+        "1층 도서·강의·시약 실습과 2층 집무·관측·정원 휴식 공간의 가구 배치를 보강합니다.",
+        "기존 미술 재사용, 독립 가구 씬·색인과 효과 설정에 연동한 고정 조명을 연결합니다.",
+        "정적 독립 검토로 참조·충돌 접근과 보존을 확인하고 실제 플레이·웹 내보내기 미실행을 명시합니다."
+      ],
+      "approval": {
+        "status": "approved",
+        "approvedBy": "현재 사용자 검토·개선 위임",
+        "approvedAt": "2026-11-05T15:45:35.596Z",
+        "allowedCapabilities": [
+          "static",
+          "content",
+          "code",
+          "ui",
+          "test",
+          "export"
+        ],
+        "allowedChecks": [
+          "node node_modules/typescript/bin/tsc --outDir .server-dist --rootDir src",
+          "node --test tests/arcana-layout-restore.test.cjs",
+          "Godot 4.5.1 isolated academy stage: tools/review_academy_interior.gd",
+          "Godot 4.5.1 isolated stage: export_online_layout.gd, export_combat_layout.gd, Web export and verify_web_pack.gd"
+        ],
+        "newArt": false,
+        "publish": false,
+        "artBriefs": [],
+        "digest": "9fc07baa8f8c628547ba3123c69a3ddea5d874d57b332f4ff8d266a8aed1d0dc"
+      },
+      "completion": {
+        "implementation": "complete",
+        "independentStaticReview": "passed",
+        "engineRoutes": "11/11 passed",
+        "gpuCaptures": "16/16 captured and visually reviewed",
+        "floorRoundTrip": "passed",
+        "savedPositionRegression": "3/3 passed",
+        "webExport": "verified",
+        "localServing": "health and PCK HTTP 200",
+        "acceptance": "awaiting-user-review",
+        "unverified": [
+          "실제 웹 계정의 Main UI·서버 연동 전체 플레이"
+        ],
+        "brief": "art-studies/regions/arcana-academy-interior/brief.md",
+        "recordedAt": "2026-11-05T15:50:17.309Z"
+      },
+      "followupInstructions": [
+        {
+          "text": "알아서 검토도 하고 부족하면 개선도 해줘",
+          "source": "현재 Codex 사용자 후속 지시",
+          "receivedAt": "2026-11-05T15:45:35.596Z"
+        }
+      ]
+    },
+    {
+      "id": "HOME-LIFE-20261119",
+      "title": "내 집에서 요리하고 제작하며 보내는 아르카나의 하루",
+      "status": "active",
+      "dependsOnGoals": [],
+      "scope": {
+        "write": [
+          "src/game/schemas/game-state.ts",
+          "src/online/life.ts",
+          "src/online/routes.ts",
+          "src/online/world.ts",
+          "src/game/repository.ts",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/scripts/game_ui.gd",
+          "godot-arcana/scripts/life.gd",
+          "godot-arcana/scripts/native_2d_presence.gd",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "godot-arcana/scripts/world.gd",
+          "godot-arcana/tools/export_online_layout.gd",
+          "godot-arcana/data/regions.json",
+          "godot-arcana/scenes/native_2d/player_home.tscn",
+          "art-studies/regions/arcana-player-home",
+          "godot-arcana/art/export/online-layout.json",
+          "godot-arcana/export_presets.cfg",
+          "godot-web/index.html",
+          "godot-web/index.pck",
+          "godot-web/index.pck.gz",
+          "src/game/arcana-home.ts",
+          "src/game/runtime-registry.ts"
+        ]
+      },
+      "acceptance": [
+        "광장에서 돈이나 전투 없이 하루 세 번 재료를 채집하고 나뭇가지로 목재, 목재로 모닥불을 제작할 수 있습니다.",
+        "캐릭터 소유의 집에 출입하고 거실·주방·침실을 걸어서 이용합니다.",
+        "주방에서 요리하고 거실에서 먹거나 제작하며 침실에서 다음 생활일로 넘어갑니다.",
+        "서버가 판정·저장한 재료와 생활 기록, 집 위치를 재접속 후 복원하고 기존 저장을 이어갑니다."
+      ],
+      "approval": {
+        "status": "approved",
+        "approvedBy": "사용자 · 생활 게임 제작과 내 집의 주방·침실·거실 구현 지시",
+        "approvedAt": "2026-11-19T04:53:59.419Z",
+        "allowedCapabilities": [
+          "static",
+          "code",
+          "ui",
+          "content",
+          "export"
+        ],
+        "allowedChecks": [],
+        "newArt": false,
+        "publish": false,
+        "digest": "7344a41bc458f3ac62e3b2e84cac17a2848b8c0e87757c97f90a4bc1d4f4dc84"
+      },
+      "supervision": {
+        "status": "ready_for_acceptance",
+        "reportId": "COMPLETE-HOME-LIFE-010",
+        "summary": "생활 반복과 개인 집을 통합해 서버 컴파일 및 웹 내보내기를 완료했습니다. 실제 조작과 플레이 감각은 사용자 직접 확인 대상입니다.",
+        "nextTaskIds": [],
+        "acceptanceEvidence": [
+          {
+            "criterion": "광장에서 돈이나 전투 없이 하루 세 번 재료를 채집하고 나뭇가지로 목재, 목재로 모닥불을 제작할 수 있습니다.",
+            "completedTaskIds": [
+              "HOME-LIFE-010"
+            ],
+            "evidence": [
+              {
+                "path": "src/online/life.ts",
+                "summary": "무료 하루 3회 채집 및 기존 재료를 소모하는 두 제작법을 서버가 판정합니다."
+              }
+            ]
+          },
+          {
+            "criterion": "캐릭터 소유의 집에 출입하고 거실·주방·침실을 걸어서 이용합니다.",
+            "completedTaskIds": [
+              "HOME-LIFE-010"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scenes/native_2d/player_home.tscn",
+                "summary": "주방·침실의 열린 문, 거실 가구와 현관의 상호작용 노드가 편집 가능한 씬에 있습니다."
+              },
+              {
+                "path": "src/online/world.ts",
+                "summary": "캐릭터마다 개인 실내를 분리합니다."
+              }
+            ]
+          },
+          {
+            "criterion": "주방에서 요리하고 거실에서 먹거나 제작하며 침실에서 다음 생활일로 넘어갑니다.",
+            "completedTaskIds": [
+              "HOME-LIFE-010"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scripts/life.gd",
+                "summary": "레시피 선택과 조리 결과, 식사와 휴식 결과를 표시합니다."
+              },
+              {
+                "path": "godot-arcana/art/export/online-layout.json",
+                "summary": "실제 씬에서 내보낸 주방·소파·침실 접점을 사용합니다."
+              }
+            ]
+          },
+          {
+            "criterion": "서버가 판정·저장한 재료와 생활 기록, 집 위치를 재접속 후 복원하고 기존 저장을 이어갑니다.",
+            "completedTaskIds": [
+              "HOME-LIFE-010"
+            ],
+            "evidence": [
+              {
+                "path": "src/game/repository.ts",
+                "summary": "생활 상태를 구 저장에서 정규화해 복원합니다."
+              },
+              {
+                "path": "src/online/world.ts",
+                "summary": "저장된 실내와 복귀점을 복원하고 일회성 영수증으로 중복 소모·지급을 방지합니다."
+              }
+            ]
+          }
+        ],
+        "updatedAt": "2026-11-19T05:05:49.911Z"
+      }
     }
   ],
   "tasks": [
@@ -821,6 +1323,1009 @@
         "reviewSummary": "총괄의 확대본 독립 시각 확인과 원본경로연결 완료. 게임실행미확인."
       },
       "updatedAt": "2026-11-05T08:23:50.891Z"
+    },
+    {
+      "id": "GOAL-93c7b05f16a8460c-T01",
+      "goalId": "GOAL-93c7b05f16a8460c",
+      "title": "총괄 지시를 목표·부서 작업으로 등록하고 안전하게 이어받기",
+      "organization": "development",
+      "status": "done",
+      "priority": 1,
+      "playerChange": "새 목표 등록·내구 대기열·중복 방지·안전한 실행 경계가 연결됩니다.",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "scripts/studio/bridge-runtime.mjs",
+          "scripts/studio/bridge.mjs",
+          "scripts/studio/mission-intake.mjs",
+          "scripts/studio/mission-intake.schema.json",
+          "scripts/studio/publication-intent.mjs",
+          "scripts/studio/protocol.mjs",
+          "tests/studio-mission-intake.test.mjs",
+          "docs/studio/README.md",
+          "docs/studio/WEB_CONSOLE.md",
+          "sites/arcana-studio/app/page.tsx",
+          "sites/arcana-studio/app/globals.css",
+          "sites/arcana-studio/app/lib/studio-api.ts"
+        ],
+        "write": [
+          "scripts/studio/bridge-runtime.mjs",
+          "scripts/studio/bridge.mjs",
+          "scripts/studio/mission-intake.mjs",
+          "scripts/studio/mission-intake.schema.json",
+          "scripts/studio/publication-intent.mjs",
+          "scripts/studio/protocol.mjs",
+          "tests/studio-mission-intake.test.mjs",
+          "docs/studio/README.md",
+          "docs/studio/WEB_CONSOLE.md"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "code"
+      ],
+      "checks": [],
+      "acceptance": [
+        "새 목표 등록·내구 대기열·중복 방지·안전한 실행 경계가 연결됩니다."
+      ],
+      "surface": "app",
+      "runtime": {
+        "sourceCommandId": "93c7b05f-16a8-460c-bf0e-ddad08ae7a7a",
+        "sourceInstruction": {
+          "commandId": "93c7b05f-16a8-460c-bf0e-ddad08ae7a7a",
+          "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+          "text": "아르카나 제작실 사이트에 현재 남은 주간 사용량 표시가 없는데",
+          "departmentId": "director",
+          "receivedAt": "2026-11-05T08:28:09.372Z"
+        },
+        "producerSummary": "구현 완료, 독립 정적 검토 중입니다.",
+        "reviewResultPath": "docs/studio/IMPLEMENTATION_REVIEW.md",
+        "evidence": [
+          "docs/studio/IMPLEMENTATION_REVIEW.md",
+          "scripts/studio/bridge-runtime.mjs",
+          "scripts/studio/bridge.mjs",
+          "scripts/studio/mission-intake.mjs",
+          "scripts/studio/mission-intake.schema.json",
+          "scripts/studio/publication-intent.mjs",
+          "scripts/studio/protocol.mjs",
+          "tests/studio-mission-intake.test.mjs",
+          "docs/studio/README.md",
+          "docs/studio/WEB_CONSOLE.md"
+        ],
+        "reviewSummary": "독립 정적 검토와 필요한 구문·타입·사이트 산출물 빌드 확인을 마쳤습니다. 테스트·브라우저·모델 시범 실행은 하지 않았습니다.",
+        "updatedAt": "2026-11-05T09:08:04.874Z"
+      }
+    },
+    {
+      "id": "GOAL-93c7b05f16a8460c-T02",
+      "goalId": "GOAL-93c7b05f16a8460c",
+      "title": "모바일 홈 주간 잔여량과 지시 반영 목표 표시",
+      "organization": "development",
+      "status": "done",
+      "priority": 2,
+      "playerChange": "홈에서 주간 잔여량·초기화와 요청 목표·작업을 확인합니다.",
+      "dependsOn": [
+        "GOAL-93c7b05f16a8460c-T01"
+      ],
+      "scope": {
+        "read": [
+          "scripts/studio/bridge-runtime.mjs",
+          "scripts/studio/bridge.mjs",
+          "scripts/studio/mission-intake.mjs",
+          "scripts/studio/mission-intake.schema.json",
+          "scripts/studio/publication-intent.mjs",
+          "scripts/studio/protocol.mjs",
+          "tests/studio-mission-intake.test.mjs",
+          "docs/studio/README.md",
+          "docs/studio/WEB_CONSOLE.md",
+          "sites/arcana-studio/app/page.tsx",
+          "sites/arcana-studio/app/globals.css",
+          "sites/arcana-studio/app/lib/studio-api.ts"
+        ],
+        "write": [
+          "sites/arcana-studio/app/page.tsx",
+          "sites/arcana-studio/app/globals.css",
+          "sites/arcana-studio/app/lib/studio-api.ts"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "code",
+        "ui"
+      ],
+      "checks": [],
+      "acceptance": [
+        "홈에서 주간 잔여량·초기화와 요청 목표·작업을 확인합니다."
+      ],
+      "surface": "app",
+      "runtime": {
+        "sourceCommandId": "93c7b05f-16a8-460c-bf0e-ddad08ae7a7a",
+        "sourceInstruction": {
+          "commandId": "93c7b05f-16a8-460c-bf0e-ddad08ae7a7a",
+          "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+          "text": "아르카나 제작실 사이트에 현재 남은 주간 사용량 표시가 없는데",
+          "departmentId": "director",
+          "receivedAt": "2026-11-05T08:28:09.372Z"
+        },
+        "producerSummary": "구현 완료, 독립 정적 검토 중입니다.",
+        "reviewResultPath": "docs/studio/IMPLEMENTATION_REVIEW.md",
+        "evidence": [
+          "docs/studio/IMPLEMENTATION_REVIEW.md",
+          "sites/arcana-studio/app/page.tsx",
+          "sites/arcana-studio/app/globals.css",
+          "sites/arcana-studio/app/lib/studio-api.ts"
+        ],
+        "reviewSummary": "독립 정적 검토와 필요한 구문·타입·사이트 산출물 빌드 확인을 마쳤습니다. 테스트·브라우저·모델 시범 실행은 하지 않았습니다.",
+        "updatedAt": "2026-11-05T09:08:04.874Z"
+      }
+    },
+    {
+      "id": "GOAL-93c7b05f16a8460c-T03",
+      "goalId": "GOAL-93c7b05f16a8460c",
+      "title": "목표화·잠금·출처·웹 계약 독립 정적 검토",
+      "organization": "quality",
+      "status": "done",
+      "priority": 3,
+      "playerChange": "독립 검토에서 발견한 결함을 수정하고 실행하지 않은 검증은 구분합니다.",
+      "dependsOn": [
+        "GOAL-93c7b05f16a8460c-T01",
+        "GOAL-93c7b05f16a8460c-T02"
+      ],
+      "scope": {
+        "read": [
+          "scripts/studio/bridge-runtime.mjs",
+          "scripts/studio/bridge.mjs",
+          "scripts/studio/mission-intake.mjs",
+          "scripts/studio/mission-intake.schema.json",
+          "scripts/studio/publication-intent.mjs",
+          "scripts/studio/protocol.mjs",
+          "tests/studio-mission-intake.test.mjs",
+          "docs/studio/README.md",
+          "docs/studio/WEB_CONSOLE.md",
+          "sites/arcana-studio/app/page.tsx",
+          "sites/arcana-studio/app/globals.css",
+          "sites/arcana-studio/app/lib/studio-api.ts"
+        ],
+        "write": []
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "acceptance": [
+        "독립 검토에서 발견한 결함을 수정하고 실행하지 않은 검증은 구분합니다."
+      ],
+      "surface": "app",
+      "runtime": {
+        "sourceCommandId": "93c7b05f-16a8-460c-bf0e-ddad08ae7a7a",
+        "sourceInstruction": {
+          "commandId": "93c7b05f-16a8-460c-bf0e-ddad08ae7a7a",
+          "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+          "text": "아르카나 제작실 사이트에 현재 남은 주간 사용량 표시가 없는데",
+          "departmentId": "director",
+          "receivedAt": "2026-11-05T08:28:09.372Z"
+        },
+        "reviewResultPath": "docs/studio/IMPLEMENTATION_REVIEW.md",
+        "evidence": [
+          "docs/studio/IMPLEMENTATION_REVIEW.md"
+        ],
+        "reviewSummary": "독립 정적 검토와 필요한 구문·타입·사이트 산출물 빌드 확인을 마쳤습니다. 테스트·브라우저·모델 시범 실행은 하지 않았습니다.",
+        "updatedAt": "2026-11-05T09:08:04.874Z"
+      }
+    },
+    {
+      "id": "GOAL-93c7b05f16a8460c-T04",
+      "goalId": "GOAL-93c7b05f16a8460c",
+      "title": "개인 제작실 게시와 PC 연결기 반영",
+      "organization": "director",
+      "status": "done",
+      "priority": 4,
+      "playerChange": "기존 비공개 주소에 새 버전을 게시하고 연결기를 새 코드로 기동합니다.",
+      "dependsOn": [
+        "GOAL-93c7b05f16a8460c-T03"
+      ],
+      "scope": {
+        "read": [
+          "scripts/studio/bridge-runtime.mjs",
+          "scripts/studio/bridge.mjs",
+          "scripts/studio/mission-intake.mjs",
+          "scripts/studio/mission-intake.schema.json",
+          "scripts/studio/publication-intent.mjs",
+          "scripts/studio/protocol.mjs",
+          "tests/studio-mission-intake.test.mjs",
+          "docs/studio/README.md",
+          "docs/studio/WEB_CONSOLE.md",
+          "sites/arcana-studio/app/page.tsx",
+          "sites/arcana-studio/app/globals.css",
+          "sites/arcana-studio/app/lib/studio-api.ts"
+        ],
+        "write": [
+          "sites/arcana-studio/app/page.tsx",
+          "sites/arcana-studio/app/globals.css",
+          "sites/arcana-studio/app/lib/studio-api.ts"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "publish"
+      ],
+      "checks": [],
+      "acceptance": [
+        "기존 비공개 주소에 새 버전을 게시하고 연결기를 새 코드로 기동합니다."
+      ],
+      "surface": "app",
+      "runtime": {
+        "sourceCommandId": "81eade86-f67a-4cf4-a372-4323a3498e7e",
+        "sourceInstruction": {
+          "commandId": "81eade86-f67a-4cf4-a372-4323a3498e7e",
+          "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+          "text": "웹푸시하라고",
+          "departmentId": "director",
+          "receivedAt": "2026-11-05T08:35:30.634Z"
+        },
+        "reviewResultPath": "docs/studio/IMPLEMENTATION_REVIEW.md",
+        "evidence": [
+          "docs/studio/IMPLEMENTATION_REVIEW.md",
+          "sites/arcana-studio/.openai/hosting.json"
+        ],
+        "reviewSummary": "독립 정적 검토와 필요한 구문·타입·사이트 산출물 빌드 확인을 마쳤습니다. 테스트·브라우저·모델 시범 실행은 하지 않았습니다.",
+        "updatedAt": "2026-11-05T09:08:04.874Z"
+      }
+    },
+    {
+      "id": "GOAL-08cc437c85814455-T01",
+      "goalId": "GOAL-08cc437c85814455",
+      "title": "스킬 목록의 터치 스크롤 원인 조사와 개선",
+      "organization": "development",
+      "status": "done",
+      "priority": 1,
+      "playerChange": "모바일에서 스킬 행이나 아이콘 위를 쓸어도 목록을 이동할 수 있고, 스크롤 도중 항목이 잘못 열리지 않습니다.",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/roles/DEVELOPMENT.md",
+          "skills/godot-arcana-development/SKILL.md",
+          "godot-arcana/project.godot",
+          "godot-arcana/web-shell.html",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/scripts/game_ui.gd",
+          "godot-arcana/scripts/skill_tree_view.gd"
+        ],
+        "write": [
+          "godot-arcana/scripts/game_ui.gd"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "code",
+        "ui"
+      ],
+      "checks": [],
+      "acceptance": [
+        "_build_panel·choice·_input의 터치 전달과 스크롤·버튼 선택 충돌을 확인하고 근거에 맞춰 수정합니다.",
+        "드래그와 짧은 탭을 구분하며 손가락 해제·취소·패널 전환 시 입력 상태를 정리합니다.",
+        "384×824 기준의 목록 접근성, 데스크톱 휠·클릭, 공용 패널과 기존 조작 경로를 보존합니다.",
+        "게임 규칙·저장·원본 자산을 변경하지 않고 수정 근거와 모바일 직접 확인 행동을 전달합니다."
+      ],
+      "surface": "cli",
+      "runtime": {
+        "sourceCommandId": "08cc437c-8581-4455-a62d-728e76919a34",
+        "sourceInstruction": {
+          "commandId": "08cc437c-8581-4455-a62d-728e76919a34",
+          "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+          "text": "스킬 탭에서 모바일로 스크롤 할때 제대로 스크롤 잘 안되는데 확인하고 개선해줘",
+          "departmentId": "director",
+          "receivedAt": "2026-11-05T09:21:08.609Z"
+        },
+        "attempt": 1,
+        "runId": "2026-11-05T09-23-31-750Z-a26eed09",
+        "baselinePath": ".runtime/studio/runs/2026-11-05T09-23-31-750Z-a26eed09/baselines/GOAL-08cc437c85814455-T01-af1e299c83/manifest.json",
+        "blockReason": null,
+        "executionSurface": "cli",
+        "updatedAt": "2026-11-05T09:26:19.777Z",
+        "producerResultPath": ".runtime/studio/runs/2026-11-05T09-23-31-750Z-a26eed09/GOAL-08cc437c85814455-T01-producer-1.json",
+        "producerSummary": "스킬 목록의 터치를 직접 추적하여 행·아이콘·빈 영역의 스와이프를 스크롤로 처리하고, 짧은 탭만 기존 선택 신호로 연결하도록 수정했습니다.",
+        "reviewResultPath": ".runtime/studio/runs/2026-11-05T09-23-31-750Z-a26eed09/GOAL-08cc437c85814455-T01-reviewer-1.json",
+        "reviewPasses": 1,
+        "evidence": [
+          "godot-arcana/scripts/main.gd — _skills_menu()가 open_panel(\"스킬\")과 choice()로 목록을 구성하므로 새 터치 처리 경로가 실제 스킬 목록에 적용됩니다.",
+          "godot-arcana/scripts/game_ui.gd — 작업 전 백업과 대조한 결과, 스킬 목록에서 자식 GUI보다 먼저 터치를 처리하고 10 논리 단위 이상 이동하면 스크롤을 갱신하며 선택을 취소합니다. 짧은 탭은 유효한 버튼 안에서 해제한 경우에만 기존 pressed 신호로 연결됩니다.",
+          "godot-arcana/scripts/game_ui.gd — 해제·취소·패널 닫기·패널 전환·포커스 상실·레이아웃 변경에서 터치 상태를 초기화합니다. 처리는 제목이 '스킬'인 목록으로 제한되며 실제 마우스 휠·클릭과 다른 공용 패널의 기존 입력 경로를 유지합니다.",
+          "godot-arcana/project.godot — 384×824 기준과 canvas_items·expand 설정을 확인했으며, 이번 변경은 화면 배치·게임 규칙·저장·자산을 변경하지 않습니다."
+        ],
+        "reviewSummary": "작업 전 백업과 실제 호출 경로를 독립적으로 대조했으며, 정적 검토 범위에서 완료 조건을 막는 결함은 발견하지 못했습니다."
+      },
+      "updatedAt": "2026-11-05T09:26:19.777Z"
+    },
+    {
+      "id": "GOAL-08cc437c85814455-T02",
+      "goalId": "GOAL-08cc437c85814455",
+      "title": "모바일 스크롤 변경의 독립 정적 통합 검토",
+      "organization": "quality",
+      "status": "done",
+      "priority": 2,
+      "playerChange": "스킬 목록의 스크롤 개선이 항목 선택이나 다른 공용 메뉴 조작을 방해하지 않도록 검토합니다.",
+      "dependsOn": [
+        "GOAL-08cc437c85814455-T01"
+      ],
+      "scope": {
+        "read": [
+          "AGENTS.md",
+          ".agents/lessons/graphics.md",
+          "docs/roles/DEVELOPMENT.md",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/scripts/game_ui.gd",
+          "godot-arcana/scripts/skill_tree_view.gd"
+        ],
+        "write": []
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "acceptance": [
+        "실제 변경과 호출부를 대조하여 스와이프 전달·오선택 방지·터치 상태 정리를 정적으로 검토합니다.",
+        "공용 패널의 다른 호출부와 월드 조작으로 입력이 새는 경로에 영향을 주는지 확인합니다.",
+        "실행 검사는 수행하지 않으며 모바일에서 목록 끝까지 왕복 스크롤·짧은 탭·패널 재열기를 직접 확인할 절차와 기대 결과를 인계합니다."
+      ],
+      "surface": "cli",
+      "runtime": {
+        "sourceCommandId": "08cc437c-8581-4455-a62d-728e76919a34",
+        "sourceInstruction": {
+          "commandId": "08cc437c-8581-4455-a62d-728e76919a34",
+          "actorUserId": "BMP9CEgyOfcrvt25e0kLpXXVewblqI1gyTW4L13yuInXiX996rYUNl",
+          "text": "스킬 탭에서 모바일로 스크롤 할때 제대로 스크롤 잘 안되는데 확인하고 개선해줘",
+          "departmentId": "director",
+          "receivedAt": "2026-11-05T09:21:08.609Z"
+        },
+        "attempt": 1,
+        "runId": "2026-11-05T09-23-31-750Z-a26eed09",
+        "baselinePath": ".runtime/studio/runs/2026-11-05T09-23-31-750Z-a26eed09/baselines/GOAL-08cc437c85814455-T02-17636a4f31/manifest.json",
+        "blockReason": null,
+        "executionSurface": "cli",
+        "updatedAt": "2026-11-05T09:28:21.894Z",
+        "producerResultPath": ".runtime/studio/runs/2026-11-05T09-23-31-750Z-a26eed09/GOAL-08cc437c85814455-T02-producer-2.json",
+        "producerSummary": "독립 정적 통합 검토를 완료했습니다. 스와이프 처리·오선택 방지·입력 상태 정리와 공용 메뉴의 분기에서 차단할 결함은 발견하지 못했습니다. 실행 검사는 수행하지 않았습니다.",
+        "reviewResultPath": ".runtime/studio/runs/2026-11-05T09-23-31-750Z-a26eed09/GOAL-08cc437c85814455-T02-reviewer-2.json",
+        "reviewPasses": 1,
+        "evidence": [
+          "godot-arcana/scripts/game_ui.gd — _skill_list_input과 _input에서 GUI 처리 전에 목록 영역의 원시 터치를 소비하므로 행·아이콘·빈 영역에서 시작한 스와이프가 자식 Control에 막히지 않는 구조를 확인했습니다. 이동 거리가 10 이상이면 scroll_vertical을 변경하고 선택을 억제합니다.",
+          "godot-arcana/scripts/game_ui.gd — 짧은 탭은 시작 버튼과 스크롤 영역 안에서 해제될 때 기존 pressed 신호를 호출합니다. 취소·해제·패널 열기·닫기·포커스 상실·화면 재배치에서는 터치 소유권과 눌림 상태를 정리하며, 콜백보다 먼저 상태를 초기화하는 것을 확인했습니다.",
+          "godot-arcana/scripts/main.gd — _skills_menu가 open_panel(\"스킬\")과 choice를 호출하여 전용 처리에 연결됩니다. 다른 공용 메뉴는 별도 제목을 사용하며, overlay 표시 중 월드 이동·조이스틱·확대·월드 선택을 차단하는 기존 조건이 유지됨을 확인했습니다.",
+          "godot-arcana/scripts/skill_tree_view.gd — 스킬 트리는 별도 Control과 버튼 콜백을 사용합니다. game_ui.gd의 open_skill_tree가 공용 패널을 숨기므로 panel.visible을 요구하는 목록 전용 입력 처리에서 제외됨을 확인했습니다."
+        ],
+        "reviewSummary": "실제 변경과 호출부를 독립적으로 정적 검토했으며, 완료를 차단할 결함은 발견하지 못했습니다. 실행 검사는 수행하지 않았으며 모바일 체감은 미검증입니다."
+      },
+      "updatedAt": "2026-11-05T09:28:21.894Z"
+    },
+    {
+      "id": "ACADEMY-F1",
+      "goalId": "ACADEMY-DETAIL-20261106",
+      "title": "1층 학습 공간 상세 배치",
+      "playerChange": "1층 학습 공간 상세 배치가 기존 학교 방문에 반영됩니다.",
+      "organization": "world",
+      "status": "done",
+      "priority": 40,
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/roles/WORLD_BUILDING.md",
+          "docs/roles/DEVELOPMENT.md",
+          "godot-arcana/scenes/props",
+          "godot-arcana/scenes/native_2d/academy_first_floor.tscn",
+          "godot-arcana/scenes/native_2d/academy_second_floor.tscn",
+          "godot-arcana/scripts/region_layout.gd",
+          "godot-arcana/scripts/native_2d_world.gd"
+        ],
+        "write": [
+          "godot-arcana/scenes/native_2d/academy_first_floor.tscn"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "content"
+      ],
+      "checks": [],
+      "surface": "app",
+      "acceptance": [
+        "기존 2D 학교의 출입·층 이동·방 ID와 수동 배치를 보존합니다.",
+        "1층 도서·강의·시약 실습과 2층 집무·관측·정원 휴식 공간의 가구 배치를 보강합니다.",
+        "기존 미술 재사용, 독립 가구 씬·색인과 효과 설정에 연동한 고정 조명을 연결합니다.",
+        "정적 독립 검토로 참조·충돌 접근과 보존을 확인하고 실제 플레이·웹 내보내기 미실행을 명시합니다."
+      ],
+      "modelProfile": "standard",
+      "modelReason": "기존 미술을 사용하는 1층 제작, 총괄이 동선 보완 통합",
+      "reviewModelProfile": "complex",
+      "reviewModelReason": "본편 연결·발점·충돌 및 기존 저장 배치를 독립 정적으로 확인",
+      "runtime": {
+        "producerSummary": "층별 제작자 및 총괄 통합으로 소스 배치 완료, 독립 정적 검토 완료",
+        "producerResultPath": ".runtime/studio/runs/academy-detail-20261106/ACADEMY-F1-producer.json",
+        "reviewResultPath": ".runtime/studio/runs/academy-detail-20261106/ACADEMY-F1-reviewer.json",
+        "evidence": [
+          "godot-arcana/scenes/native_2d/academy_first_floor.tscn"
+        ],
+        "completedAt": "2026-11-05T15:08:35.142Z"
+      }
+    },
+    {
+      "id": "ACADEMY-F2",
+      "goalId": "ACADEMY-DETAIL-20261106",
+      "title": "2층 연구·정원 공간 상세 배치",
+      "playerChange": "2층 연구·정원 공간 상세 배치가 기존 학교 방문에 반영됩니다.",
+      "organization": "world",
+      "status": "done",
+      "priority": 40,
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/roles/WORLD_BUILDING.md",
+          "docs/roles/DEVELOPMENT.md",
+          "godot-arcana/scenes/props",
+          "godot-arcana/scenes/native_2d/academy_first_floor.tscn",
+          "godot-arcana/scenes/native_2d/academy_second_floor.tscn",
+          "godot-arcana/scripts/region_layout.gd",
+          "godot-arcana/scripts/native_2d_world.gd"
+        ],
+        "write": [
+          "godot-arcana/scenes/native_2d/academy_second_floor.tscn"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "content"
+      ],
+      "checks": [],
+      "surface": "app",
+      "acceptance": [
+        "기존 2D 학교의 출입·층 이동·방 ID와 수동 배치를 보존합니다.",
+        "1층 도서·강의·시약 실습과 2층 집무·관측·정원 휴식 공간의 가구 배치를 보강합니다.",
+        "기존 미술 재사용, 독립 가구 씬·색인과 효과 설정에 연동한 고정 조명을 연결합니다.",
+        "정적 독립 검토로 참조·충돌 접근과 보존을 확인하고 실제 플레이·웹 내보내기 미실행을 명시합니다."
+      ],
+      "modelProfile": "standard",
+      "modelReason": "기존 미술을 사용하는 2층 제작, 총괄이 최종 추가 배치 통합",
+      "reviewModelProfile": "complex",
+      "reviewModelReason": "본편 연결·발점·충돌 및 기존 저장 배치를 독립 정적으로 확인",
+      "runtime": {
+        "producerSummary": "층별 제작자 및 총괄 통합으로 소스 배치 완료, 독립 정적 검토 완료",
+        "producerResultPath": ".runtime/studio/runs/academy-detail-20261106/ACADEMY-F2-producer.json",
+        "reviewResultPath": ".runtime/studio/runs/academy-detail-20261106/ACADEMY-F2-reviewer.json",
+        "evidence": [
+          "godot-arcana/scenes/native_2d/academy_second_floor.tscn"
+        ],
+        "completedAt": "2026-11-05T15:08:35.143Z"
+      }
+    },
+    {
+      "id": "ACADEMY-LIGHT",
+      "goalId": "ACADEMY-DETAIL-20261106",
+      "title": "고정 학습 조명과 재사용 가구 등록",
+      "playerChange": "고정 학습 조명과 재사용 가구 등록가 기존 학교 방문에 반영됩니다.",
+      "organization": "development",
+      "status": "done",
+      "priority": 40,
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/roles/WORLD_BUILDING.md",
+          "docs/roles/DEVELOPMENT.md",
+          "godot-arcana/scenes/props",
+          "godot-arcana/scenes/native_2d/academy_first_floor.tscn",
+          "godot-arcana/scenes/native_2d/academy_second_floor.tscn",
+          "godot-arcana/scripts/region_layout.gd",
+          "godot-arcana/scripts/native_2d_world.gd"
+        ],
+        "write": [
+          "godot-arcana/scripts/native_2d_academy_lighting.gd",
+          "godot-arcana/scripts/native_2d_academy_lighting.gd.uid",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "godot-arcana/scenes/props/academy-shared/lighting/study-light.tscn",
+          "godot-arcana/scenes/props/academy-shared/storage/reagent-cabinet.tscn",
+          "godot-arcana/scenes/props/academy-shared/tables/specimen-stand.tscn",
+          "godot-arcana/data/prop-library.json",
+          "art-studies/regions/arcana-academy-interior/brief.md"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "code",
+        "content"
+      ],
+      "checks": [],
+      "surface": "app",
+      "acceptance": [
+        "기존 2D 학교의 출입·층 이동·방 ID와 수동 배치를 보존합니다.",
+        "1층 도서·강의·시약 실습과 2층 집무·관측·정원 휴식 공간의 가구 배치를 보강합니다.",
+        "기존 미술 재사용, 독립 가구 씬·색인과 효과 설정에 연동한 고정 조명을 연결합니다.",
+        "정적 독립 검토로 참조·충돌 접근과 보존을 확인하고 실제 플레이·웹 내보내기 미실행을 명시합니다."
+      ],
+      "modelProfile": "coding",
+      "modelReason": "기존 여관 조명 방식의 학교 적용 및 가구 연결",
+      "reviewModelProfile": "complex",
+      "reviewModelReason": "본편 연결·발점·충돌 및 기존 저장 배치를 독립 정적으로 확인",
+      "runtime": {
+        "producerSummary": "층별 제작자 및 총괄 통합으로 소스 배치 완료, 독립 정적 검토 완료",
+        "producerResultPath": ".runtime/studio/runs/academy-detail-20261106/ACADEMY-LIGHT-producer.json",
+        "reviewResultPath": ".runtime/studio/runs/academy-detail-20261106/ACADEMY-LIGHT-reviewer.json",
+        "evidence": [
+          "godot-arcana/scripts/native_2d_academy_lighting.gd",
+          "godot-arcana/scripts/native_2d_academy_lighting.gd.uid",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "godot-arcana/scenes/props/academy-shared/lighting/study-light.tscn",
+          "godot-arcana/scenes/props/academy-shared/storage/reagent-cabinet.tscn",
+          "godot-arcana/scenes/props/academy-shared/tables/specimen-stand.tscn",
+          "godot-arcana/data/prop-library.json",
+          "art-studies/regions/arcana-academy-interior/brief.md"
+        ],
+        "completedAt": "2026-11-05T15:08:35.144Z"
+      }
+    },
+    {
+      "id": "ACADEMY-QA",
+      "goalId": "ACADEMY-DETAIL-20261106",
+      "title": "실제 학교 이동·GPU 검토와 온라인 충돌·복구 개선",
+      "playerChange": "학교 클릭 이동과 층 전환을 개선하고 새 가구 충돌·기존 저장 복구 및 로컬 웹 산출물을 일치시킵니다.",
+      "organization": "development",
+      "status": "done",
+      "priority": 50,
+      "dependsOn": [
+        "ACADEMY-F1",
+        "ACADEMY-F2",
+        "ACADEMY-LIGHT"
+      ],
+      "scope": {
+        "read": [
+          "godot-arcana/scripts",
+          "godot-arcana/scenes/native_2d",
+          "src/online/world.ts",
+          "scripts/build-arcana-online.ps1"
+        ],
+        "write": [
+          "godot-arcana/scripts/world.gd",
+          "godot-arcana/tools/review_academy_interior.gd",
+          "godot-arcana/tools/review_academy_interior.gd.uid",
+          "src/online/world.ts",
+          "tests/arcana-layout-restore.test.cjs",
+          "godot-arcana/art/export/online-layout.json",
+          "godot-arcana/art/export/combat-layout.json",
+          "godot-arcana/export_presets.cfg",
+          "godot-web",
+          "godot-arcana/scenes/native_2d/academy_first_floor.tscn",
+          "godot-arcana/scenes/native_2d/academy_second_floor.tscn",
+          "art-studies/regions/arcana-academy-interior/brief.md",
+          "art-studies/regions/arcana-academy-interior/review"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "code",
+        "content",
+        "test",
+        "export"
+      ],
+      "checks": [
+        "node node_modules/typescript/bin/tsc --outDir .server-dist --rootDir src",
+        "node --test tests/arcana-layout-restore.test.cjs",
+        "Godot 4.5.1 isolated academy stage: tools/review_academy_interior.gd",
+        "Godot 4.5.1 isolated stage: export_online_layout.gd, export_combat_layout.gd, Web export and verify_web_pack.gd"
+      ],
+      "surface": "app",
+      "acceptance": [
+        "실제 World 경로·충돌·상호작용으로 모든 방·계단·출구 접근 및 층 왕복을 확인합니다.",
+        "GPU 전체·모바일·효과 켜기/끄기를 확인하고 발견된 문제를 보완합니다.",
+        "기존 학교 저장 위치 복구 검사와 충돌·웹 산출물 갱신을 완료합니다."
+      ],
+      "modelProfile": "complex",
+      "modelReason": "실제 Godot 화면·길찾기·온라인 산출물의 통합 검토",
+      "reviewModelProfile": "complex",
+      "reviewModelReason": "Sol/high의 복구 제작 및 메모리 회귀 3개 통과 후 범위가 좁은 최종 소스·증거 대조를 독립 Sol/medium에 배정",
+      "runtime": {
+        "participants": [
+          {
+            "task": "academy_runtime_review",
+            "model": "gpt-6.1-sol",
+            "reasoning": "medium"
+          },
+          {
+            "task": "academy_saved_position",
+            "model": "gpt-6.1-sol",
+            "reasoning": "high"
+          },
+          {
+            "task": "academy_review",
+            "model": "gpt-6.1-sol",
+            "reasoning": "medium"
+          }
+        ],
+        "generatedOutputs": [
+          ".server-dist (허용된 빌드 명령의 산출물)"
+        ],
+        "producerResultPath": ".runtime/studio/runs/academy-detail-20261106/ACADEMY-QA-producer.json",
+        "reviewResultPath": ".runtime/studio/runs/academy-detail-20261106/ACADEMY-QA-reviewer.json",
+        "evidence": [
+          "godot-arcana/scripts/world.gd",
+          "src/online/world.ts",
+          "tests/arcana-layout-restore.test.cjs",
+          "godot-arcana/tools/review_academy_interior.gd",
+          "godot-arcana/art/export/online-layout.json",
+          "art-studies/regions/arcana-academy-interior/brief.md",
+          "art-studies/regions/arcana-academy-interior/review/report.json",
+          ".runtime/godot/online-build-academy-review-20261106/final-verification.json",
+          ".runtime/godot/online-build-academy-review-20261106/pack-verify.log"
+        ],
+        "completedAt": "2026-11-05T15:50:17.309Z"
+      }
+    },
+    {
+      "id": "SHOP-INN-20261115-SHOP",
+      "goalId": "SHOP-INN-20261115",
+      "title": "상점 시각 기준과 출입·거래 연결 검토",
+      "status": "done",
+      "priority": -20,
+      "organization": "quality",
+      "playerChange": "광장 상점 문에서 승인된 상점 실내와 거래 지점으로 이어집니다.",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "godot-arcana/scenes/shop_3d.tscn",
+          "godot-arcana/scenes/shop_2d.tscn",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "art-studies/regions/arcana-shop-interior/brief.md"
+        ],
+        "write": []
+      },
+      "capabilities": [
+        "static"
+      ],
+      "checks": [],
+      "acceptance": [
+        "상점은 사용자님이 선택한 Blender 버전에서 서쪽 창빛, 목재, 중앙 거래대와 선반의 형태를 확인하고 기존 출입·거래 연결을 유지합니다."
+      ],
+      "surface": "app",
+      "modelProfile": "complex",
+      "modelReason": "승인 모델·씬 참조와 플레이 연결의 독립 검토",
+      "runtime": {
+        "updatedAt": "2026-11-15T03:12:04.713Z",
+        "producerSummary": "기존 승인 상점의 활성 연결과 이전 Godot 렌더를 제출했습니다.",
+        "producerEvidence": [
+          {
+            "path": "godot-arcana/scenes/shop_3d.tscn",
+            "claim": "승인된 Blender 상점의 분리 모델과 배치 서명",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scripts/native_2d_world.gd",
+            "claim": "본편의 Blender 상점 연결",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/art/export/online-layout.json",
+            "claim": "서버 바닥 504칸과 출입·복귀 좌표",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scripts/main.gd",
+            "claim": "상인과 거래 UI 연결",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png",
+            "claim": "보관된 Godot 렌더에서 확인한 창빛·참나무·거래대·진열장",
+            "kind": "static",
+            "command": ""
+          }
+        ],
+        "reviewResultPath": ".runtime/studio/runs/2026-11-15T03-11-26-765Z-ffd5f2b4/shop-review.json",
+        "reviewSummary": "독립 검토에서 본편과 미리보기의 Blender 씬, 배치 서명과 서버 바닥 504칸, 진입·복귀 좌표와 거래 연결이 일치함을 확인했습니다. 보관 렌더를 직접 확인했으며 현재 실시간 플레이는 실행하지 않았습니다.",
+        "reviewEvidence": [
+          {
+            "path": "godot-arcana/scenes/shop_3d.tscn",
+            "claim": "승인된 Blender 상점의 분리 모델과 배치 서명",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scripts/native_2d_world.gd",
+            "claim": "본편의 Blender 상점 연결",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/art/export/online-layout.json",
+            "claim": "서버 바닥 504칸과 출입·복귀 좌표",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scripts/main.gd",
+            "claim": "상인과 거래 UI 연결",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png",
+            "claim": "보관된 Godot 렌더에서 확인한 창빛·참나무·거래대·진열장",
+            "kind": "static",
+            "command": ""
+          }
+        ],
+        "evidence": [
+          "godot-arcana/scenes/shop_3d.tscn",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "godot-arcana/art/export/online-layout.json",
+          "godot-arcana/scripts/main.gd",
+          "art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png"
+        ],
+        "completionReportId": "COMPLETE-SHOP-INN-20261115-SHOP"
+      },
+      "updatedAt": "2026-11-15T03:12:04.713Z"
+    },
+    {
+      "id": "SHOP-INN-20261115-INN",
+      "goalId": "SHOP-INN-20261115",
+      "title": "승인 여관 로비와 본편 출입·상호작용 연결",
+      "status": "done",
+      "priority": -20,
+      "organization": "world",
+      "playerChange": "푸른 지붕 여관에 들어가 접수대·의뢰판·벽난로와 휴식석을 이용할 수 있습니다.",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "art-studies/regions/arcana-inn-interior",
+          "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+          "godot-arcana/scenes/plaza_3d_v2.tscn",
+          "godot-arcana/data/regions.json",
+          "godot-arcana/scripts/native_2d_world.gd"
+        ],
+        "write": [
+          "godot-arcana/art/source/inn-lobby-blender",
+          "godot-arcana/scenes/inn_lobby_3d.tscn",
+          "godot-arcana/scripts/inn_lobby_3d.gd",
+          "godot-arcana/scripts/inn_lobby_3d.gd.uid",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "art-studies/regions/arcana-inn-interior/brief.md",
+          "art-studies/regions/arcana-inn-interior/source/blender-v1/export_inn.py",
+          "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "godot-arcana/tools/verify_web_pack.gd",
+          "godot-arcana/export_presets.cfg",
+          "godot-arcana/scripts/native_2d_blink.gd",
+          "godot-arcana/scripts/native_2d_presence.gd"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "code",
+        "ui"
+      ],
+      "checks": [],
+      "acceptance": [
+        "여관은 푸른 지붕 외관과 승인 로비의 따뜻한 목재·크림 벽·보라 좌석·벽난로·접수대가 이어집니다.",
+        "여관 출입·접수·의뢰·휴식 지점과 기존 저장 좌표를 유지합니다. 실제 시각 검토와 참조 확인의 범위를 기록합니다."
+      ],
+      "surface": "app",
+      "modelProfile": "complex",
+      "modelReason": "기존 판정과 승인된 공간 외형의 정합성",
+      "runtime": {
+        "producerSummary": "여관 3D 표시를 본편에 적용했습니다. 가구와 좌석을 기존 배치에 맞췄고 7개 클릭 ID·지면 좌표 왕복·두 뷰포트 캡처를 확인했습니다.",
+        "producerEvidence": [
+          {
+            "path": "godot-arcana/scripts/native_2d_world.gd",
+            "claim": "arcana_inn 진입에서 3D 표시와 카메라를 사용하며 2D 배치 원본을 읽습니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scenes/inn_lobby_3d.tscn",
+            "claim": "카메라의 실내 환경과 GLB, 마르텐, 광원, 캐릭터 표시가 연결됩니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/art/source/inn-lobby-blender/inn-lobby.glb",
+            "claim": "승인된 Blender 로비의 29개 그룹과 별도 화로 불꽃 피벗입니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+            "claim": "기존 충돌에 모델 접지를 맞추고 클릭·좌석·조명·로컬 및 원격 캐릭터 표시를 연결합니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+            "claim": "기존 여관의 입장·출구·접수·의뢰·좌석 ID와 배치 원본입니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+            "claim": "Godot 4.5.1에서 본편 배치에 맞춰 렌더한 로비 전체와 주인공입니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+            "claim": "384×824 세로 뷰포트에서 기존 좌석의 3D 소파 자세를 확인했습니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/tools/verify_web_pack.gd",
+            "claim": "웹 패키지에서 3D 로비를 불러와 2D 배치와 정렬하는 기존 검사에 편입했습니다.",
+            "kind": "static",
+            "command": ""
+          }
+        ],
+        "updatedAt": "2026-11-15T03:25:04.169Z",
+        "producerResultPath": ".runtime/studio/runs/2026-11-15T03-25-04-110Z-ed7b0156/inn-producer.json",
+        "reviewResultPath": ".runtime/studio/runs/2026-11-15T03-25-04-110Z-ed7b0156/inn-review.json",
+        "reviewSummary": "독립 검토에서 여관 카메라 환경, 환경 효과 설정, 캐릭터 외곽선과 nullable 피격 셰이더, 마르텐과 접수대 클릭 경계, 마커와 순간이동 높이 보정을 확인했습니다. 웹 리소스와 패키지 검사를 대조했고, Godot 출력에 상호작용 ID 7개·좌표 왕복·화로 불꽃 피벗·두 화면을 확인했습니다.",
+        "reviewEvidence": [
+          {
+            "path": "godot-arcana/scripts/native_2d_world.gd",
+            "claim": "arcana_inn 진입에서 3D 표시와 카메라를 사용하며 2D 배치 원본을 읽습니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scenes/inn_lobby_3d.tscn",
+            "claim": "카메라의 실내 환경과 GLB, 마르텐, 광원, 캐릭터 표시가 연결됩니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/art/source/inn-lobby-blender/inn-lobby.glb",
+            "claim": "승인된 Blender 로비의 29개 그룹과 별도 화로 불꽃 피벗입니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+            "claim": "기존 충돌에 모델 접지를 맞추고 클릭·좌석·조명·로컬 및 원격 캐릭터 표시를 연결합니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+            "claim": "기존 여관의 입장·출구·접수·의뢰·좌석 ID와 배치 원본입니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+            "claim": "Godot 4.5.1에서 본편 배치에 맞춰 렌더한 로비 전체와 주인공입니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+            "claim": "384×824 세로 뷰포트에서 기존 좌석의 3D 소파 자세를 확인했습니다.",
+            "kind": "static",
+            "command": ""
+          },
+          {
+            "path": "godot-arcana/tools/verify_web_pack.gd",
+            "claim": "웹 패키지에서 3D 로비를 불러와 2D 배치와 정렬하는 기존 검사에 편입했습니다.",
+            "kind": "static",
+            "command": ""
+          }
+        ],
+        "evidence": [
+          "godot-arcana/scripts/native_2d_world.gd",
+          "godot-arcana/scenes/inn_lobby_3d.tscn",
+          "godot-arcana/art/source/inn-lobby-blender/inn-lobby.glb",
+          "godot-arcana/scripts/inn_lobby_3d.gd",
+          "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+          "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "godot-arcana/tools/verify_web_pack.gd"
+        ],
+        "completionReportId": "COMPLETE-SHOP-INN-20261115-INN"
+      },
+      "updatedAt": "2026-11-15T03:25:04.169Z"
+    },
+    {
+      "id": "HOME-LIFE-010",
+      "title": "내 집과 채집·요리·제작·휴식 연결",
+      "goalId": "HOME-LIFE-20261119",
+      "organization": "development",
+      "status": "done",
+      "priority": 1,
+      "playerChange": "내 집에서 요리하고 제작하며 보내는 아르카나의 하루",
+      "dependsOn": [],
+      "scope": {
+        "read": [
+          "docs/roles/DEVELOPMENT.md",
+          "docs/roles/WORLD_BUILDING.md",
+          "src/online",
+          "godot-arcana"
+        ],
+        "write": [
+          "src/game/schemas/game-state.ts",
+          "src/online/life.ts",
+          "src/online/routes.ts",
+          "src/online/world.ts",
+          "src/game/repository.ts",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/scripts/game_ui.gd",
+          "godot-arcana/scripts/life.gd",
+          "godot-arcana/scripts/native_2d_presence.gd",
+          "godot-arcana/scripts/native_2d_world.gd",
+          "godot-arcana/scripts/world.gd",
+          "godot-arcana/tools/export_online_layout.gd",
+          "godot-arcana/data/regions.json",
+          "godot-arcana/scenes/native_2d/player_home.tscn",
+          "art-studies/regions/arcana-player-home",
+          "godot-arcana/art/export/online-layout.json",
+          "godot-arcana/export_presets.cfg",
+          "godot-web/index.html",
+          "godot-web/index.pck",
+          "godot-web/index.pck.gz",
+          "src/game/arcana-home.ts",
+          "src/game/runtime-registry.ts"
+        ]
+      },
+      "capabilities": [
+        "static",
+        "code",
+        "ui",
+        "content",
+        "export"
+      ],
+      "checks": [],
+      "surface": "app",
+      "acceptance": [
+        "광장에서 돈이나 전투 없이 하루 세 번 재료를 채집하고 나뭇가지로 목재, 목재로 모닥불을 제작할 수 있습니다.",
+        "캐릭터 소유의 집에 출입하고 거실·주방·침실을 걸어서 이용합니다.",
+        "주방에서 요리하고 거실에서 먹거나 제작하며 침실에서 다음 생활일로 넘어갑니다.",
+        "서버가 판정·저장한 재료와 생활 기록, 집 위치를 재접속 후 복원하고 기존 저장을 이어갑니다."
+      ],
+      "runtime": {
+        "updatedAt": "2026-11-19T05:05:27.055Z",
+        "producerSummary": "광장 채집과 재료 재생, 목재 가공·모닥불 제작, 집 주방 4종 요리와 식사, 침실의 생활일 전환을 캐릭터 저장에 연결했습니다. 기존 자산으로 세 공간을 조립하고 소파 착석과 현관 귀환을 연결했습니다.",
+        "producerEvidence": [
+          "src/online/life.ts",
+          "src/online/world.ts",
+          "src/online/routes.ts",
+          "src/game/arcana-home.ts",
+          "src/game/runtime-registry.ts",
+          "src/game/repository.ts",
+          "src/game/schemas/game-state.ts",
+          "godot-arcana/scenes/native_2d/player_home.tscn",
+          "godot-arcana/data/regions.json",
+          "godot-arcana/art/export/online-layout.json",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/scripts/life.gd",
+          "art-studies/regions/arcana-player-home/preview.png",
+          "godot-web/index.pck"
+        ],
+        "reviewSummary": "독립 검토자가 신규/기존 캐릭터의 저장 경계, 명령 허용 목록, 개인 공간 격리, 주방·침실 반경, 수첩과 방 안 이동 연결을 소스에서 확인했습니다. 검토에서 발견한 착석 중 식사 제한을 소파의 서버 반경 안에서만 허용하도록 보완했습니다. 좌표 검사에서 도착점과 다섯 가구 접점이 이어졌고 독립 씬 렌더에서 배치를 확인했습니다. 실제 플레이는 사용자가 확인합니다.",
+        "reviewResultPath": ".runtime/studio/runs/2026-11-19T04-53-59-420Z-99118992/review.json",
+        "evidence": [
+          "src/online/life.ts",
+          "src/online/world.ts",
+          "src/online/routes.ts",
+          "src/game/arcana-home.ts",
+          "src/game/runtime-registry.ts",
+          "src/game/repository.ts",
+          "src/game/schemas/game-state.ts",
+          "godot-arcana/scenes/native_2d/player_home.tscn",
+          "godot-arcana/data/regions.json",
+          "godot-arcana/art/export/online-layout.json",
+          "godot-arcana/scripts/main.gd",
+          "godot-arcana/scripts/life.gd",
+          "art-studies/regions/arcana-player-home/preview.png",
+          "godot-web/index.pck"
+        ],
+        "completionReportId": "COMPLETE-HOME-LIFE-010"
+      },
+      "updatedAt": "2026-11-19T05:05:27.055Z"
     }
   ],
   "decisions": [
@@ -883,5 +2388,1192 @@
       "decidedAt": "2026-11-05T08:32:09.651Z"
     }
   ],
-  "requests": []
+  "requests": [],
+  "collaborationEvents": [
+    {
+      "id": "COLLAB-4f8c7e7a-004e-467c-8f64-067328dbafaf",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "started",
+      "status": "active",
+      "at": "2026-11-15T03:12:04.711Z",
+      "fromDepartmentId": "director",
+      "toDepartmentId": "quality",
+      "taskId": "SHOP-INN-20261115-SHOP",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "담당 작업 시작",
+      "summary": "",
+      "reason": "",
+      "evidence": [],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-89fd919a-cfd8-4a1e-8355-c1879edadd31",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "submitted",
+      "status": "review",
+      "at": "2026-11-15T03:12:04.713Z",
+      "fromDepartmentId": "quality",
+      "toDepartmentId": "quality",
+      "taskId": "SHOP-INN-20261115-SHOP",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "제작 결과 제출 · 독립 검토 대기",
+      "summary": "기존 승인 상점의 활성 연결과 이전 Godot 렌더를 제출했습니다.",
+      "reason": "",
+      "evidence": [
+        {
+          "path": "godot-arcana/scenes/shop_3d.tscn",
+          "summary": "승인된 Blender 상점의 분리 모델과 배치 서명"
+        },
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "본편의 Blender 상점 연결"
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": "서버 바닥 504칸과 출입·복귀 좌표"
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": "상인과 거래 UI 연결"
+        },
+        {
+          "path": "art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png",
+          "summary": "보관된 Godot 렌더에서 확인한 창빛·참나무·거래대·진열장"
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-77107979-fb4c-4442-ba04-17a614a6c232",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "completed",
+      "status": "done",
+      "at": "2026-11-15T03:12:04.713Z",
+      "fromDepartmentId": "quality",
+      "toDepartmentId": "quality",
+      "taskId": "SHOP-INN-20261115-SHOP",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "독립 검토 통과 · 작업 완료",
+      "summary": "독립 검토에서 본편과 미리보기의 Blender 씬, 배치 서명과 서버 바닥 504칸, 진입·복귀 좌표와 거래 연결이 일치함을 확인했습니다. 보관 렌더를 직접 확인했으며 현재 실시간 플레이는 실행하지 않았습니다.",
+      "reason": "",
+      "evidence": [
+        {
+          "path": "godot-arcana/scenes/shop_3d.tscn",
+          "summary": "승인된 Blender 상점의 분리 모델과 배치 서명"
+        },
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "본편의 Blender 상점 연결"
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": "서버 바닥 504칸과 출입·복귀 좌표"
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": "상인과 거래 UI 연결"
+        },
+        {
+          "path": "art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png",
+          "summary": "보관된 Godot 렌더에서 확인한 창빛·참나무·거래대·진열장"
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-SHOP-REPORTED",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "completion_reported",
+      "status": "pending",
+      "at": "2026-11-15T03:12:04.713Z",
+      "fromDepartmentId": "quality",
+      "toDepartmentId": "director",
+      "taskId": "SHOP-INN-20261115-SHOP",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "독립 검토를 통과한 부서 완료 결과를 총괄에 보고",
+      "summary": "기존 승인 상점의 활성 연결과 이전 Godot 렌더를 제출했습니다.",
+      "reason": "독립 검토에서 본편과 미리보기의 Blender 씬, 배치 서명과 서버 바닥 504칸, 진입·복귀 좌표와 거래 연결이 일치함을 확인했습니다. 보관 렌더를 직접 확인했으며 현재 실시간 플레이는 실행하지 않았습니다.",
+      "evidence": [
+        {
+          "path": "godot-arcana/scenes/shop_3d.tscn",
+          "summary": "승인된 Blender 상점의 분리 모델과 배치 서명"
+        },
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "본편의 Blender 상점 연결"
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": "서버 바닥 504칸과 출입·복귀 좌표"
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": "상인과 거래 UI 연결"
+        },
+        {
+          "path": "art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png",
+          "summary": "보관된 Godot 렌더에서 확인한 창빛·참나무·거래대·진열장"
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-SHOP-STARTED",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "completion_review_started",
+      "status": "processing",
+      "at": "2026-11-15T03:12:04.718Z",
+      "fromDepartmentId": "quality",
+      "toDepartmentId": "director",
+      "taskId": "SHOP-INN-20261115-SHOP",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "총괄 완료 보고 검토 실행 준비",
+      "summary": "기존 승인 상점의 활성 연결과 이전 Godot 렌더를 제출했습니다.",
+      "reason": "독립 검토에서 본편과 미리보기의 Blender 씬, 배치 서명과 서버 바닥 504칸, 진입·복귀 좌표와 거래 연결이 일치함을 확인했습니다. 보관 렌더를 직접 확인했으며 현재 실시간 플레이는 실행하지 않았습니다.",
+      "evidence": [
+        {
+          "path": "godot-arcana/scenes/shop_3d.tscn",
+          "summary": "승인된 Blender 상점의 분리 모델과 배치 서명"
+        },
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "본편의 Blender 상점 연결"
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": "서버 바닥 504칸과 출입·복귀 좌표"
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": "상인과 거래 UI 연결"
+        },
+        {
+          "path": "art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png",
+          "summary": "보관된 Godot 렌더에서 확인한 창빛·참나무·거래대·진열장"
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-SHOP-ASSIGN-SHOP-INN-20261115-INN",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "director_assigned",
+      "status": "ready",
+      "at": "2026-11-15T03:12:04.728Z",
+      "fromDepartmentId": "director",
+      "toDepartmentId": "world",
+      "taskId": "SHOP-INN-20261115-INN",
+      "relatedTaskId": "SHOP-INN-20261115-SHOP",
+      "requestId": null,
+      "title": "총괄이 다음 담당 작업을 지정",
+      "summary": "푸른 지붕 여관에 들어가 접수대·의뢰판·벽난로와 휴식석을 이용할 수 있습니다.",
+      "reason": "상점 검토를 인수했습니다. 여관의 Godot 3D 검토 씬을 기존 충돌·좌석·상호작용과 정렬하고 본편에 연결하는 작업을 이어갑니다.",
+      "evidence": [],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-SHOP-REVIEWED",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "completion_reviewed",
+      "status": "continue",
+      "at": "2026-11-15T03:12:04.728Z",
+      "fromDepartmentId": "director",
+      "toDepartmentId": null,
+      "taskId": "SHOP-INN-20261115-SHOP",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "총괄 완료 보고 확인 · 후속 진행 결정",
+      "summary": "상점 검토를 인수했습니다. 여관의 Godot 3D 검토 씬을 기존 충돌·좌석·상호작용과 정렬하고 본편에 연결하는 작업을 이어갑니다.",
+      "reason": "목표 최종 인수는 사용자님께 남깁니다.",
+      "evidence": [
+        {
+          "path": ".runtime/studio/runs/2026-11-15T03-11-26-765Z-ffd5f2b4/shop-director.json",
+          "summary": "총괄 완료 조정 결과"
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-ab0acd76-e23c-4651-95e2-39ce5373e38e",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "started",
+      "status": "active",
+      "at": "2026-11-15T03:25:04.168Z",
+      "fromDepartmentId": "director",
+      "toDepartmentId": "world",
+      "taskId": "SHOP-INN-20261115-INN",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "담당 작업 시작",
+      "summary": "",
+      "reason": "",
+      "evidence": [],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-be43ad43-9003-429c-881c-984b423c199f",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "submitted",
+      "status": "review",
+      "at": "2026-11-15T03:25:04.169Z",
+      "fromDepartmentId": "world",
+      "toDepartmentId": "quality",
+      "taskId": "SHOP-INN-20261115-INN",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "제작 결과 제출 · 독립 검토 대기",
+      "summary": "여관 3D 표시를 본편에 적용했습니다. 가구와 좌석을 기존 배치에 맞췄고 7개 클릭 ID·지면 좌표 왕복·두 뷰포트 캡처를 확인했습니다.",
+      "reason": "",
+      "evidence": [
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "arcana_inn 진입에서 3D 표시와 카메라를 사용하며 2D 배치 원본을 읽습니다."
+        },
+        {
+          "path": "godot-arcana/scenes/inn_lobby_3d.tscn",
+          "summary": "카메라의 실내 환경과 GLB, 마르텐, 광원, 캐릭터 표시가 연결됩니다."
+        },
+        {
+          "path": "godot-arcana/art/source/inn-lobby-blender/inn-lobby.glb",
+          "summary": "승인된 Blender 로비의 29개 그룹과 별도 화로 불꽃 피벗입니다."
+        },
+        {
+          "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+          "summary": "기존 충돌에 모델 접지를 맞추고 클릭·좌석·조명·로컬 및 원격 캐릭터 표시를 연결합니다."
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+          "summary": "기존 여관의 입장·출구·접수·의뢰·좌석 ID와 배치 원본입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "summary": "Godot 4.5.1에서 본편 배치에 맞춰 렌더한 로비 전체와 주인공입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "summary": "384×824 세로 뷰포트에서 기존 좌석의 3D 소파 자세를 확인했습니다."
+        },
+        {
+          "path": "godot-arcana/tools/verify_web_pack.gd",
+          "summary": "웹 패키지에서 3D 로비를 불러와 2D 배치와 정렬하는 기존 검사에 편입했습니다."
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-1dbebb57-9fab-4a91-8b97-0469d14d2d0a",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "completed",
+      "status": "done",
+      "at": "2026-11-15T03:25:04.169Z",
+      "fromDepartmentId": "quality",
+      "toDepartmentId": "world",
+      "taskId": "SHOP-INN-20261115-INN",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "독립 검토 통과 · 작업 완료",
+      "summary": "독립 검토에서 여관 카메라 환경, 환경 효과 설정, 캐릭터 외곽선과 nullable 피격 셰이더, 마르텐과 접수대 클릭 경계, 마커와 순간이동 높이 보정을 확인했습니다. 웹 리소스와 패키지 검사를 대조했고, Godot 출력에 상호작용 ID 7개·좌표 왕복·화로 불꽃 피벗·두 화면을 확인했습니다.",
+      "reason": "",
+      "evidence": [
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "arcana_inn 진입에서 3D 표시와 카메라를 사용하며 2D 배치 원본을 읽습니다."
+        },
+        {
+          "path": "godot-arcana/scenes/inn_lobby_3d.tscn",
+          "summary": "카메라의 실내 환경과 GLB, 마르텐, 광원, 캐릭터 표시가 연결됩니다."
+        },
+        {
+          "path": "godot-arcana/art/source/inn-lobby-blender/inn-lobby.glb",
+          "summary": "승인된 Blender 로비의 29개 그룹과 별도 화로 불꽃 피벗입니다."
+        },
+        {
+          "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+          "summary": "기존 충돌에 모델 접지를 맞추고 클릭·좌석·조명·로컬 및 원격 캐릭터 표시를 연결합니다."
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+          "summary": "기존 여관의 입장·출구·접수·의뢰·좌석 ID와 배치 원본입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "summary": "Godot 4.5.1에서 본편 배치에 맞춰 렌더한 로비 전체와 주인공입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "summary": "384×824 세로 뷰포트에서 기존 좌석의 3D 소파 자세를 확인했습니다."
+        },
+        {
+          "path": "godot-arcana/tools/verify_web_pack.gd",
+          "summary": "웹 패키지에서 3D 로비를 불러와 2D 배치와 정렬하는 기존 검사에 편입했습니다."
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-INN-REPORTED",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "completion_reported",
+      "status": "pending",
+      "at": "2026-11-15T03:25:04.169Z",
+      "fromDepartmentId": "world",
+      "toDepartmentId": "director",
+      "taskId": "SHOP-INN-20261115-INN",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "독립 검토를 통과한 부서 완료 결과를 총괄에 보고",
+      "summary": "여관 3D 표시를 본편에 적용했습니다. 가구와 좌석을 기존 배치에 맞췄고 7개 클릭 ID·지면 좌표 왕복·두 뷰포트 캡처를 확인했습니다.",
+      "reason": "독립 검토에서 여관 카메라 환경, 환경 효과 설정, 캐릭터 외곽선과 nullable 피격 셰이더, 마르텐과 접수대 클릭 경계, 마커와 순간이동 높이 보정을 확인했습니다. 웹 리소스와 패키지 검사를 대조했고, Godot 출력에 상호작용 ID 7개·좌표 왕복·화로 불꽃 피벗·두 화면을 확인했습니다.",
+      "evidence": [
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "arcana_inn 진입에서 3D 표시와 카메라를 사용하며 2D 배치 원본을 읽습니다."
+        },
+        {
+          "path": "godot-arcana/scenes/inn_lobby_3d.tscn",
+          "summary": "카메라의 실내 환경과 GLB, 마르텐, 광원, 캐릭터 표시가 연결됩니다."
+        },
+        {
+          "path": "godot-arcana/art/source/inn-lobby-blender/inn-lobby.glb",
+          "summary": "승인된 Blender 로비의 29개 그룹과 별도 화로 불꽃 피벗입니다."
+        },
+        {
+          "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+          "summary": "기존 충돌에 모델 접지를 맞추고 클릭·좌석·조명·로컬 및 원격 캐릭터 표시를 연결합니다."
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+          "summary": "기존 여관의 입장·출구·접수·의뢰·좌석 ID와 배치 원본입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "summary": "Godot 4.5.1에서 본편 배치에 맞춰 렌더한 로비 전체와 주인공입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "summary": "384×824 세로 뷰포트에서 기존 좌석의 3D 소파 자세를 확인했습니다."
+        },
+        {
+          "path": "godot-arcana/tools/verify_web_pack.gd",
+          "summary": "웹 패키지에서 3D 로비를 불러와 2D 배치와 정렬하는 기존 검사에 편입했습니다."
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-INN-STARTED",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "completion_review_started",
+      "status": "processing",
+      "at": "2026-11-15T03:25:04.173Z",
+      "fromDepartmentId": "world",
+      "toDepartmentId": "director",
+      "taskId": "SHOP-INN-20261115-INN",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "총괄 완료 보고 검토 실행 준비",
+      "summary": "여관 3D 표시를 본편에 적용했습니다. 가구와 좌석을 기존 배치에 맞췄고 7개 클릭 ID·지면 좌표 왕복·두 뷰포트 캡처를 확인했습니다.",
+      "reason": "독립 검토에서 여관 카메라 환경, 환경 효과 설정, 캐릭터 외곽선과 nullable 피격 셰이더, 마르텐과 접수대 클릭 경계, 마커와 순간이동 높이 보정을 확인했습니다. 웹 리소스와 패키지 검사를 대조했고, Godot 출력에 상호작용 ID 7개·좌표 왕복·화로 불꽃 피벗·두 화면을 확인했습니다.",
+      "evidence": [
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "arcana_inn 진입에서 3D 표시와 카메라를 사용하며 2D 배치 원본을 읽습니다."
+        },
+        {
+          "path": "godot-arcana/scenes/inn_lobby_3d.tscn",
+          "summary": "카메라의 실내 환경과 GLB, 마르텐, 광원, 캐릭터 표시가 연결됩니다."
+        },
+        {
+          "path": "godot-arcana/art/source/inn-lobby-blender/inn-lobby.glb",
+          "summary": "승인된 Blender 로비의 29개 그룹과 별도 화로 불꽃 피벗입니다."
+        },
+        {
+          "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+          "summary": "기존 충돌에 모델 접지를 맞추고 클릭·좌석·조명·로컬 및 원격 캐릭터 표시를 연결합니다."
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+          "summary": "기존 여관의 입장·출구·접수·의뢰·좌석 ID와 배치 원본입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "summary": "Godot 4.5.1에서 본편 배치에 맞춰 렌더한 로비 전체와 주인공입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "summary": "384×824 세로 뷰포트에서 기존 좌석의 3D 소파 자세를 확인했습니다."
+        },
+        {
+          "path": "godot-arcana/tools/verify_web_pack.gd",
+          "summary": "웹 패키지에서 3D 로비를 불러와 2D 배치와 정렬하는 기존 검사에 편입했습니다."
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-INN-REVIEWED",
+      "goalId": "SHOP-INN-20261115",
+      "kind": "completion_reviewed",
+      "status": "ready_for_acceptance",
+      "at": "2026-11-15T03:25:04.183Z",
+      "fromDepartmentId": "director",
+      "toDepartmentId": null,
+      "taskId": "SHOP-INN-20261115-INN",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "총괄 목표 전체 확인 · 최종 사용자 인수 대기",
+      "summary": "상점의 승인 버전과 출입·거래 연결을 검토했고, 여관의 승인 3D 로비를 본편에 연결했습니다. 실제 배치 기반 Godot 화면과 7개 클릭 경계를 확인했습니다. 실제 온라인 플레이와 웹 빌드는 미실행입니다.",
+      "reason": "목표 최종 인수는 사용자님께 남깁니다.",
+      "evidence": [
+        {
+          "path": "godot-arcana/scenes/shop_3d.tscn",
+          "summary": "기존 Blender 상점 조명과 승인 가구를 활성 표시합니다."
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": "출입·복귀 및 서버 배치 확인"
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": "기존 상인 거래 연결 확인"
+        },
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "기존 광장 경로에서 arcana_inn 진입 시 3D 여관을 표시합니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "summary": "따뜻한 목재·크림 벽·보라 좌석과 벽난로, 마르텐과 접수대를 실제 Godot 뷰포트에서 확인했습니다."
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+          "summary": "출입·저장·좌석과 접수·의뢰의 기준 좌표 유지"
+        },
+        {
+          "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+          "summary": "기존 상호작용 ID와 같은 위치의 3D 클릭·좌석 연동"
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "summary": "384×824 소파 앉기 자세 확인"
+        },
+        {
+          "path": ".runtime/studio/runs/2026-11-15T03-25-04-110Z-ed7b0156/inn-director.json",
+          "summary": "총괄 완료 조정 결과"
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-a8c95c84-0e8d-4cdf-a9bd-13d3002ff7ef",
+      "goalId": "HOME-LIFE-20261119",
+      "kind": "assigned",
+      "status": "ready",
+      "at": "2026-11-19T04:54:01.498Z",
+      "fromDepartmentId": "director",
+      "toDepartmentId": "development",
+      "taskId": "HOME-LIFE-010",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "담당 부서 배정 · 실행 대기",
+      "summary": "",
+      "reason": "",
+      "evidence": [],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-a4f3e448-e974-4ccf-8431-cda0e1ae447a",
+      "goalId": "HOME-LIFE-20261119",
+      "kind": "started",
+      "status": "active",
+      "at": "2026-11-19T04:54:01.500Z",
+      "fromDepartmentId": "director",
+      "toDepartmentId": "development",
+      "taskId": "HOME-LIFE-010",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "담당 작업 시작",
+      "summary": "",
+      "reason": "",
+      "evidence": [],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-f182588c-a7d6-4390-92a8-1b862f61ae8f",
+      "goalId": "HOME-LIFE-20261119",
+      "kind": "submitted",
+      "status": "review",
+      "at": "2026-11-19T05:05:27.054Z",
+      "fromDepartmentId": "development",
+      "toDepartmentId": "quality",
+      "taskId": "HOME-LIFE-010",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "제작 결과 제출 · 독립 검토 대기",
+      "summary": "광장 채집과 재료 재생, 목재 가공·모닥불 제작, 집 주방 4종 요리와 식사, 침실의 생활일 전환을 캐릭터 저장에 연결했습니다. 기존 자산으로 세 공간을 조립하고 소파 착석과 현관 귀환을 연결했습니다.",
+      "reason": "",
+      "evidence": [
+        {
+          "path": "src/online/life.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/world.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/routes.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/arcana-home.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/runtime-registry.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/repository.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/schemas/game-state.ts",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/player_home.tscn",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/data/regions.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/life.gd",
+          "summary": ""
+        },
+        {
+          "path": "art-studies/regions/arcana-player-home/preview.png",
+          "summary": ""
+        },
+        {
+          "path": "godot-web/index.pck",
+          "summary": ""
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COLLAB-a234201e-4bfc-4487-bcee-ae3339f47c1f",
+      "goalId": "HOME-LIFE-20261119",
+      "kind": "completed",
+      "status": "done",
+      "at": "2026-11-19T05:05:27.055Z",
+      "fromDepartmentId": "quality",
+      "toDepartmentId": "development",
+      "taskId": "HOME-LIFE-010",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "독립 검토 통과 · 작업 완료",
+      "summary": "독립 검토자가 신규/기존 캐릭터의 저장 경계, 명령 허용 목록, 개인 공간 격리, 주방·침실 반경, 수첩과 방 안 이동 연결을 소스에서 확인했습니다. 검토에서 발견한 착석 중 식사 제한을 소파의 서버 반경 안에서만 허용하도록 보완했습니다. 좌표 검사에서 도착점과 다섯 가구 접점이 이어졌고 독립 씬 렌더에서 배치를 확인했습니다. 실제 플레이는 사용자가 확인합니다.",
+      "reason": "",
+      "evidence": [
+        {
+          "path": "src/online/life.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/world.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/routes.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/arcana-home.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/runtime-registry.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/repository.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/schemas/game-state.ts",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/player_home.tscn",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/data/regions.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/life.gd",
+          "summary": ""
+        },
+        {
+          "path": "art-studies/regions/arcana-player-home/preview.png",
+          "summary": ""
+        },
+        {
+          "path": "godot-web/index.pck",
+          "summary": ""
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-HOME-LIFE-010-REPORTED",
+      "goalId": "HOME-LIFE-20261119",
+      "kind": "completion_reported",
+      "status": "pending",
+      "at": "2026-11-19T05:05:27.055Z",
+      "fromDepartmentId": "development",
+      "toDepartmentId": "director",
+      "taskId": "HOME-LIFE-010",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "독립 검토를 통과한 부서 완료 결과를 총괄에 보고",
+      "summary": "광장 채집과 재료 재생, 목재 가공·모닥불 제작, 집 주방 4종 요리와 식사, 침실의 생활일 전환을 캐릭터 저장에 연결했습니다. 기존 자산으로 세 공간을 조립하고 소파 착석과 현관 귀환을 연결했습니다.",
+      "reason": "독립 검토자가 신규/기존 캐릭터의 저장 경계, 명령 허용 목록, 개인 공간 격리, 주방·침실 반경, 수첩과 방 안 이동 연결을 소스에서 확인했습니다. 검토에서 발견한 착석 중 식사 제한을 소파의 서버 반경 안에서만 허용하도록 보완했습니다. 좌표 검사에서 도착점과 다섯 가구 접점이 이어졌고 독립 씬 렌더에서 배치를 확인했습니다. 실제 플레이는 사용자가 확인합니다.",
+      "evidence": [
+        {
+          "path": "src/online/life.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/world.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/routes.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/arcana-home.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/runtime-registry.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/repository.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/schemas/game-state.ts",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/player_home.tscn",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/data/regions.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/life.gd",
+          "summary": ""
+        },
+        {
+          "path": "art-studies/regions/arcana-player-home/preview.png",
+          "summary": ""
+        },
+        {
+          "path": "godot-web/index.pck",
+          "summary": ""
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-HOME-LIFE-010-STARTED",
+      "goalId": "HOME-LIFE-20261119",
+      "kind": "completion_review_started",
+      "status": "processing",
+      "at": "2026-11-19T05:05:49.898Z",
+      "fromDepartmentId": "development",
+      "toDepartmentId": "director",
+      "taskId": "HOME-LIFE-010",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "총괄 완료 보고 검토 실행 준비",
+      "summary": "광장 채집과 재료 재생, 목재 가공·모닥불 제작, 집 주방 4종 요리와 식사, 침실의 생활일 전환을 캐릭터 저장에 연결했습니다. 기존 자산으로 세 공간을 조립하고 소파 착석과 현관 귀환을 연결했습니다.",
+      "reason": "독립 검토자가 신규/기존 캐릭터의 저장 경계, 명령 허용 목록, 개인 공간 격리, 주방·침실 반경, 수첩과 방 안 이동 연결을 소스에서 확인했습니다. 검토에서 발견한 착석 중 식사 제한을 소파의 서버 반경 안에서만 허용하도록 보완했습니다. 좌표 검사에서 도착점과 다섯 가구 접점이 이어졌고 독립 씬 렌더에서 배치를 확인했습니다. 실제 플레이는 사용자가 확인합니다.",
+      "evidence": [
+        {
+          "path": "src/online/life.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/world.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/routes.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/arcana-home.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/runtime-registry.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/repository.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/schemas/game-state.ts",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/player_home.tscn",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/data/regions.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/life.gd",
+          "summary": ""
+        },
+        {
+          "path": "art-studies/regions/arcana-player-home/preview.png",
+          "summary": ""
+        },
+        {
+          "path": "godot-web/index.pck",
+          "summary": ""
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    },
+    {
+      "id": "COMPLETE-HOME-LIFE-010-REVIEWED",
+      "goalId": "HOME-LIFE-20261119",
+      "kind": "completion_reviewed",
+      "status": "ready_for_acceptance",
+      "at": "2026-11-19T05:05:49.911Z",
+      "fromDepartmentId": "director",
+      "toDepartmentId": null,
+      "taskId": "HOME-LIFE-010",
+      "relatedTaskId": null,
+      "requestId": null,
+      "title": "총괄 목표 전체 확인 · 최종 사용자 인수 대기",
+      "summary": "생활 반복과 개인 집을 통합해 서버 컴파일 및 웹 내보내기를 완료했습니다. 실제 조작과 플레이 감각은 사용자 직접 확인 대상입니다.",
+      "reason": "목표 최종 인수는 사용자님께 남깁니다.",
+      "evidence": [
+        {
+          "path": "src/online/life.ts",
+          "summary": "무료 하루 3회 채집 및 기존 재료를 소모하는 두 제작법을 서버가 판정합니다."
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/player_home.tscn",
+          "summary": "주방·침실의 열린 문, 거실 가구와 현관의 상호작용 노드가 편집 가능한 씬에 있습니다."
+        },
+        {
+          "path": "src/online/world.ts",
+          "summary": "캐릭터마다 개인 실내를 분리합니다."
+        },
+        {
+          "path": "godot-arcana/scripts/life.gd",
+          "summary": "레시피 선택과 조리 결과, 식사와 휴식 결과를 표시합니다."
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": "실제 씬에서 내보낸 주방·소파·침실 접점을 사용합니다."
+        },
+        {
+          "path": "src/game/repository.ts",
+          "summary": "생활 상태를 구 저장에서 정규화해 복원합니다."
+        }
+      ],
+      "sourceCommandIds": [],
+      "provenance": "recorded"
+    }
+  ],
+  "completionReports": [
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-SHOP",
+      "goalId": "SHOP-INN-20261115",
+      "taskId": "SHOP-INN-20261115-SHOP",
+      "status": "processed",
+      "createdAt": "2026-11-15T03:12:04.713Z",
+      "startedAt": "2026-11-15T03:12:04.718Z",
+      "processedAt": "2026-11-15T03:12:04.728Z",
+      "attempts": 1,
+      "organization": "quality",
+      "taskTitle": "상점 시각 기준과 출입·거래 연결 검토",
+      "producerSummary": "기존 승인 상점의 활성 연결과 이전 Godot 렌더를 제출했습니다.",
+      "reviewSummary": "독립 검토에서 본편과 미리보기의 Blender 씬, 배치 서명과 서버 바닥 504칸, 진입·복귀 좌표와 거래 연결이 일치함을 확인했습니다. 보관 렌더를 직접 확인했으며 현재 실시간 플레이는 실행하지 않았습니다.",
+      "evidence": [
+        {
+          "path": "godot-arcana/scenes/shop_3d.tscn",
+          "summary": "승인된 Blender 상점의 분리 모델과 배치 서명"
+        },
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "본편의 Blender 상점 연결"
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": "서버 바닥 504칸과 출입·복귀 좌표"
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": "상인과 거래 UI 연결"
+        },
+        {
+          "path": "art-studies/regions/arcana-shop-interior/source/blender-pixel3d-v1/godot-review/blender-room-final/godot-shop-overview.png",
+          "summary": "보관된 Godot 렌더에서 확인한 창빛·참나무·거래대·진열장"
+        }
+      ],
+      "sourceCommandIds": [],
+      "decision": {
+        "action": "continue",
+        "summary": "상점 검토를 인수했습니다. 여관의 Godot 3D 검토 씬을 기존 충돌·좌석·상호작용과 정렬하고 본편에 연결하는 작업을 이어갑니다.",
+        "nextTaskIds": [
+          "SHOP-INN-20261115-INN"
+        ],
+        "addedTaskIds": [],
+        "acceptanceEvidence": [],
+        "blockedReason": null,
+        "digest": "e62d5f393ec68881ac521b28114e013f8976966ee536f90f21c71ec9e04b05b9"
+      },
+      "resultPath": ".runtime/studio/runs/2026-11-15T03-11-26-765Z-ffd5f2b4/shop-director.json",
+      "failure": null
+    },
+    {
+      "id": "COMPLETE-SHOP-INN-20261115-INN",
+      "goalId": "SHOP-INN-20261115",
+      "taskId": "SHOP-INN-20261115-INN",
+      "status": "processed",
+      "createdAt": "2026-11-15T03:25:04.169Z",
+      "startedAt": "2026-11-15T03:25:04.173Z",
+      "processedAt": "2026-11-15T03:25:04.183Z",
+      "attempts": 1,
+      "organization": "world",
+      "taskTitle": "승인 여관 로비와 본편 출입·상호작용 연결",
+      "producerSummary": "여관 3D 표시를 본편에 적용했습니다. 가구와 좌석을 기존 배치에 맞췄고 7개 클릭 ID·지면 좌표 왕복·두 뷰포트 캡처를 확인했습니다.",
+      "reviewSummary": "독립 검토에서 여관 카메라 환경, 환경 효과 설정, 캐릭터 외곽선과 nullable 피격 셰이더, 마르텐과 접수대 클릭 경계, 마커와 순간이동 높이 보정을 확인했습니다. 웹 리소스와 패키지 검사를 대조했고, Godot 출력에 상호작용 ID 7개·좌표 왕복·화로 불꽃 피벗·두 화면을 확인했습니다.",
+      "evidence": [
+        {
+          "path": "godot-arcana/scripts/native_2d_world.gd",
+          "summary": "arcana_inn 진입에서 3D 표시와 카메라를 사용하며 2D 배치 원본을 읽습니다."
+        },
+        {
+          "path": "godot-arcana/scenes/inn_lobby_3d.tscn",
+          "summary": "카메라의 실내 환경과 GLB, 마르텐, 광원, 캐릭터 표시가 연결됩니다."
+        },
+        {
+          "path": "godot-arcana/art/source/inn-lobby-blender/inn-lobby.glb",
+          "summary": "승인된 Blender 로비의 29개 그룹과 별도 화로 불꽃 피벗입니다."
+        },
+        {
+          "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+          "summary": "기존 충돌에 모델 접지를 맞추고 클릭·좌석·조명·로컬 및 원격 캐릭터 표시를 연결합니다."
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+          "summary": "기존 여관의 입장·출구·접수·의뢰·좌석 ID와 배치 원본입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+          "summary": "Godot 4.5.1에서 본편 배치에 맞춰 렌더한 로비 전체와 주인공입니다."
+        },
+        {
+          "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+          "summary": "384×824 세로 뷰포트에서 기존 좌석의 3D 소파 자세를 확인했습니다."
+        },
+        {
+          "path": "godot-arcana/tools/verify_web_pack.gd",
+          "summary": "웹 패키지에서 3D 로비를 불러와 2D 배치와 정렬하는 기존 검사에 편입했습니다."
+        }
+      ],
+      "sourceCommandIds": [],
+      "decision": {
+        "action": "ready_for_acceptance",
+        "summary": "상점의 승인 버전과 출입·거래 연결을 검토했고, 여관의 승인 3D 로비를 본편에 연결했습니다. 실제 배치 기반 Godot 화면과 7개 클릭 경계를 확인했습니다. 실제 온라인 플레이와 웹 빌드는 미실행입니다.",
+        "nextTaskIds": [],
+        "addedTaskIds": [],
+        "acceptanceEvidence": [
+          {
+            "criterion": "상점은 사용자님이 선택한 Blender 버전에서 서쪽 창빛, 목재, 중앙 거래대와 선반의 형태를 확인하고 기존 출입·거래 연결을 유지합니다.",
+            "completedTaskIds": [
+              "SHOP-INN-20261115-SHOP"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scenes/shop_3d.tscn",
+                "summary": "기존 Blender 상점 조명과 승인 가구를 활성 표시합니다."
+              },
+              {
+                "path": "godot-arcana/art/export/online-layout.json",
+                "summary": "출입·복귀 및 서버 배치 확인"
+              },
+              {
+                "path": "godot-arcana/scripts/main.gd",
+                "summary": "기존 상인 거래 연결 확인"
+              }
+            ]
+          },
+          {
+            "criterion": "여관은 푸른 지붕 외관과 승인 로비의 따뜻한 목재·크림 벽·보라 좌석·벽난로·접수대가 이어집니다.",
+            "completedTaskIds": [
+              "SHOP-INN-20261115-INN"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scripts/native_2d_world.gd",
+                "summary": "기존 광장 경로에서 arcana_inn 진입 시 3D 여관을 표시합니다."
+              },
+              {
+                "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-godot.png",
+                "summary": "따뜻한 목재·크림 벽·보라 좌석과 벽난로, 마르텐과 접수대를 실제 Godot 뷰포트에서 확인했습니다."
+              }
+            ]
+          },
+          {
+            "criterion": "여관 출입·접수·의뢰·휴식 지점과 기존 저장 좌표를 유지합니다. 실제 시각 검토와 참조 확인의 범위를 기록합니다.",
+            "completedTaskIds": [
+              "SHOP-INN-20261115-INN"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scenes/native_2d/inn_lobby.tscn",
+                "summary": "출입·저장·좌석과 접수·의뢰의 기준 좌표 유지"
+              },
+              {
+                "path": "godot-arcana/scripts/inn_lobby_3d.gd",
+                "summary": "기존 상호작용 ID와 같은 위치의 3D 클릭·좌석 연동"
+              },
+              {
+                "path": "art-studies/regions/arcana-inn-interior/source/blender-v1/inn-lobby-seat-godot.png",
+                "summary": "384×824 소파 앉기 자세 확인"
+              }
+            ]
+          }
+        ],
+        "blockedReason": null,
+        "digest": "63ce36c3e4c4b032675f9dda07165108b98117bd22c28d571c27405dc6c82140"
+      },
+      "resultPath": ".runtime/studio/runs/2026-11-15T03-25-04-110Z-ed7b0156/inn-director.json",
+      "failure": null
+    },
+    {
+      "id": "COMPLETE-HOME-LIFE-010",
+      "goalId": "HOME-LIFE-20261119",
+      "taskId": "HOME-LIFE-010",
+      "status": "processed",
+      "createdAt": "2026-11-19T05:05:27.055Z",
+      "startedAt": "2026-11-19T05:05:49.898Z",
+      "processedAt": "2026-11-19T05:05:49.911Z",
+      "attempts": 1,
+      "organization": "development",
+      "taskTitle": "내 집과 채집·요리·제작·휴식 연결",
+      "producerSummary": "광장 채집과 재료 재생, 목재 가공·모닥불 제작, 집 주방 4종 요리와 식사, 침실의 생활일 전환을 캐릭터 저장에 연결했습니다. 기존 자산으로 세 공간을 조립하고 소파 착석과 현관 귀환을 연결했습니다.",
+      "reviewSummary": "독립 검토자가 신규/기존 캐릭터의 저장 경계, 명령 허용 목록, 개인 공간 격리, 주방·침실 반경, 수첩과 방 안 이동 연결을 소스에서 확인했습니다. 검토에서 발견한 착석 중 식사 제한을 소파의 서버 반경 안에서만 허용하도록 보완했습니다. 좌표 검사에서 도착점과 다섯 가구 접점이 이어졌고 독립 씬 렌더에서 배치를 확인했습니다. 실제 플레이는 사용자가 확인합니다.",
+      "evidence": [
+        {
+          "path": "src/online/life.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/world.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/online/routes.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/arcana-home.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/runtime-registry.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/repository.ts",
+          "summary": ""
+        },
+        {
+          "path": "src/game/schemas/game-state.ts",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scenes/native_2d/player_home.tscn",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/data/regions.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/art/export/online-layout.json",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/main.gd",
+          "summary": ""
+        },
+        {
+          "path": "godot-arcana/scripts/life.gd",
+          "summary": ""
+        },
+        {
+          "path": "art-studies/regions/arcana-player-home/preview.png",
+          "summary": ""
+        },
+        {
+          "path": "godot-web/index.pck",
+          "summary": ""
+        }
+      ],
+      "sourceCommandIds": [],
+      "decision": {
+        "action": "ready_for_acceptance",
+        "summary": "생활 반복과 개인 집을 통합해 서버 컴파일 및 웹 내보내기를 완료했습니다. 실제 조작과 플레이 감각은 사용자 직접 확인 대상입니다.",
+        "nextTaskIds": [],
+        "addedTaskIds": [],
+        "acceptanceEvidence": [
+          {
+            "criterion": "광장에서 돈이나 전투 없이 하루 세 번 재료를 채집하고 나뭇가지로 목재, 목재로 모닥불을 제작할 수 있습니다.",
+            "completedTaskIds": [
+              "HOME-LIFE-010"
+            ],
+            "evidence": [
+              {
+                "path": "src/online/life.ts",
+                "summary": "무료 하루 3회 채집 및 기존 재료를 소모하는 두 제작법을 서버가 판정합니다."
+              }
+            ]
+          },
+          {
+            "criterion": "캐릭터 소유의 집에 출입하고 거실·주방·침실을 걸어서 이용합니다.",
+            "completedTaskIds": [
+              "HOME-LIFE-010"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scenes/native_2d/player_home.tscn",
+                "summary": "주방·침실의 열린 문, 거실 가구와 현관의 상호작용 노드가 편집 가능한 씬에 있습니다."
+              },
+              {
+                "path": "src/online/world.ts",
+                "summary": "캐릭터마다 개인 실내를 분리합니다."
+              }
+            ]
+          },
+          {
+            "criterion": "주방에서 요리하고 거실에서 먹거나 제작하며 침실에서 다음 생활일로 넘어갑니다.",
+            "completedTaskIds": [
+              "HOME-LIFE-010"
+            ],
+            "evidence": [
+              {
+                "path": "godot-arcana/scripts/life.gd",
+                "summary": "레시피 선택과 조리 결과, 식사와 휴식 결과를 표시합니다."
+              },
+              {
+                "path": "godot-arcana/art/export/online-layout.json",
+                "summary": "실제 씬에서 내보낸 주방·소파·침실 접점을 사용합니다."
+              }
+            ]
+          },
+          {
+            "criterion": "서버가 판정·저장한 재료와 생활 기록, 집 위치를 재접속 후 복원하고 기존 저장을 이어갑니다.",
+            "completedTaskIds": [
+              "HOME-LIFE-010"
+            ],
+            "evidence": [
+              {
+                "path": "src/game/repository.ts",
+                "summary": "생활 상태를 구 저장에서 정규화해 복원합니다."
+              },
+              {
+                "path": "src/online/world.ts",
+                "summary": "저장된 실내와 복귀점을 복원하고 일회성 영수증으로 중복 소모·지급을 방지합니다."
+              }
+            ]
+          }
+        ],
+        "blockedReason": null,
+        "digest": "304c68ba93993ee2e918f2496421ec5d63d7673c78ab73d0807f5d1f4057d7ce"
+      },
+      "resultPath": null,
+      "failure": null
+    }
+  ]
 }

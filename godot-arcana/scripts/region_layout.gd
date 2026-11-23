@@ -1,6 +1,9 @@
 extends RefCounted
 ## Authored geometry is in local source pixels; gameplay remains logical pixels.
 const Coordinates = preload("res://scripts/native_2d_coordinates.gd")
+const Registry = preload("res://scripts/region_registry.gd")
+const InnTileLayout = preload("res://scripts/inn_tile_layout.gd")
+const RestaurantTileLayout = preload("res://scripts/restaurant_tile_layout.gd")
 static func collect(source: Node2D) -> Dictionary:
 	var result: Dictionary = {"rectangles":[], "entities":[], "markers":{}, "errors":[], "valid":false}
 	if not source.transform.is_equal_approx(Transform2D.IDENTITY):
@@ -39,10 +42,18 @@ static func _visit(node: Node, parent_transform: Transform2D, result: Dictionary
 		result.markers[marker] = Coordinates.logical(local * Vector2.ZERO)
 	for child in node.get_children(): _visit(child, local, result)
 static func load_region(location: String, floor_number: int = 1) -> Dictionary:
-	var packed: PackedScene = preload("res://scripts/region_registry.gd").scene(location, floor_number)
+	var packed: PackedScene = Registry.scene(location, floor_number)
 	if packed == null: return {"valid":false, "errors":["Region scene is missing."]}
-	var source := packed.instantiate() as Node2D
-	if source == null: return {"valid":false, "errors":["Region root must be Node2D."]}
+	var source := packed.instantiate()
+	if source is Node3D and source.has_method("collect_layout"):
+		var layout: Dictionary = source.collect_layout()
+		source.free()
+		return layout
+	if not source is Node2D:
+		source.free()
+		return {"valid":false, "errors":["Region scene has no layout."]}
 	var result := collect(source)
 	source.free()
-	return result
+	if location == "arcana_restaurant":
+		return RestaurantTileLayout.apply(result)
+	return InnTileLayout.apply(result) if location == "arcana_inn" else result

@@ -33,8 +33,8 @@ export const arcanaPlazaLocation = defineLocation({
   links: {
     arcana_shop: { note: "광장 서쪽의 상점으로 향한다." },
     arcana_inn: { note: "광장 남서쪽의 여관으로 향한다." },
-    arcana_restaurant: { note: "광장 동쪽의 식당으로 향한다." },
-    arcana_academy: { note: "광장 북동쪽, 식당 위편의 아카데미로 향한다." },
+    arcana_restaurant: { note: "광장 북서쪽 상점가를 지나 식당으로 향한다." },
+    arcana_academy: { note: "분수에서 동쪽 학교길을 따라 아카데미로 향한다." },
     arcana_return_portal: { note: "광장 북쪽의 귀환 포탈로 향한다." },
     arcana_city_gate: {
       note: "도심의 돌길을 따라 평원로 이어지는 도시 남문으로 향한다.",

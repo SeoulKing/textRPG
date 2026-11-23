@@ -6,10 +6,10 @@
       "location": "arcana_plaza",
       "adapter": "plaza_3d_v2",
       "bounds": [
-        7488,
-        7232,
-        1408,
-        1920
+        6656,
+        6016,
+        4096,
+        4096
       ]
     },
     "arcana_shop": {
@@ -63,10 +63,21 @@
       "location": "arcana_restaurant",
       "adapter": "authored",
       "bounds": [
-        120,
-        120,
-        1280,
-        1184
+        200,
+        320,
+        1120,
+        960
+      ]
+    },
+    "arcana_home": {
+      "scene": "res://scenes/player_home_3d.tscn",
+      "location": "arcana_home",
+      "adapter": "authored",
+      "bounds": [
+        192,
+        256,
+        576,
+        400
       ]
     }
   }

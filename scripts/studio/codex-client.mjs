@@ -101,6 +101,7 @@ export class CodexClient extends EventEmitter {
         active.texts.set(params.item.id, String(params.item.text ?? ''));
         if (params.item.phase === 'final_answer' || params.item.phase == null) active.finalText = String(params.item.text ?? '');
       }
+      if (method === 'item/completed' && params.item?.type === 'webSearch') active.webSearchUsed = true;
       if (method === 'turn/completed') {
         if (!active.turnId || active.turnId === params.turn?.id) {
           this.turns.delete(params.threadId);
@@ -109,7 +110,8 @@ export class CodexClient extends EventEmitter {
             const error = new Error(safeDisplay(params.turn?.error?.message || 'Codex 작업이 실패했습니다.'));
             error.executionFailure = true; active.reject(error);
           } else active.resolve({ threadId: params.threadId, turnId: params.turn?.id,
-            text: active.finalText ?? [...active.texts.values()].at(-1) ?? '', turn: params.turn });
+            text: active.finalText ?? [...active.texts.values()].at(-1) ?? '', turn: params.turn,
+            webSearchUsed: active.webSearchUsed === true });
         }
       }
     }
@@ -177,7 +179,7 @@ export class CodexClient extends EventEmitter {
   }
 
   async runTurn({ prompt, execution, mode = 'read-only', outputSchema, threadId = null,
-    signal, deadline = Date.now() + 90 * 60000, onStarted, clientMessageId }) {
+    signal, deadline = Date.now() + 90 * 60000, onStarted, clientMessageId, liveWebSearch = false }) {
     await this.connect(); this.assertModel(execution);
     if (this.turns.size >= 4) throw new Error('동시 작업 한도 4개에 도달했습니다.');
     if (signal?.aborted || deadline <= Date.now()) throw interrupted();
@@ -186,7 +188,8 @@ export class CodexClient extends EventEmitter {
       model: execution.model, sandbox: mode, approvalPolicy: mode === 'read-only' ? 'never' : 'on-request' });
     else thread = await this.request('thread/start', { cwd: this.root, model: execution.model,
       sandbox: mode, approvalPolicy: mode === 'read-only' ? 'never' : 'on-request',
-      config: { model_reasoning_effort: execution.reasoningEffort, 'agents.max_threads': 1 }, ephemeral: false });
+      config: { model_reasoning_effort: execution.reasoningEffort, 'agents.max_threads': 1,
+        ...(liveWebSearch ? { web_search: 'live' } : {}) }, ephemeral: false });
     const id = thread.thread?.id ?? threadId;
     if (!id || this.turns.has(id)) throw new Error('대화 스레드 상태를 확인해 주세요.');
     let finish;

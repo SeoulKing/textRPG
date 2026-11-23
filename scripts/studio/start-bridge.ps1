@@ -27,6 +27,13 @@ if ($AutoStart) {
   Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Principal $taskPrincipal -Settings $taskSettings -Force | Out-Null
   Write-Output '현재 Windows 사용자 로그인 시 자동 연결하도록 설정했습니다.'
 }
+$taskStatusJson = & $taskNode $taskBridge status
+if ($LASTEXITCODE -ne 0) { throw 'PC 연결 프로그램 상태를 확인하지 못했습니다.' }
+$taskStatus = ($taskStatusJson -join [Environment]::NewLine) | ConvertFrom-Json
+if ($taskStatus.running) {
+  Write-Output 'PC 연결 프로그램이 이미 실행 중입니다.'
+  exit 0
+}
 [IO.Directory]::CreateDirectory($taskRuntime) | Out-Null
 $taskArguments = @('"' + $taskBridge + '"','start')
 $taskProcess = Start-Process -FilePath $taskNode -ArgumentList $taskArguments -WorkingDirectory $taskRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $taskRuntime 'bridge.stdout.log') -RedirectStandardError (Join-Path $taskRuntime 'bridge.stderr.log')
