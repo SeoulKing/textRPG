@@ -19,6 +19,7 @@ const Fountain = preload("res://scripts/fountain_spec.gd")
 const Shop2D = preload("res://scripts/shop_layout_2d.gd")
 const InnTileLayout = preload("res://scripts/inn_tile_layout.gd")
 const RestaurantTileLayout = preload("res://scripts/restaurant_tile_layout.gd")
+const AcademyFloorLayout = preload("res://scripts/academy_first_floor_layout.gd")
 const BenchMotion = preload("res://scripts/bench_motion.gd")
 var shop_layout: Dictionary = {}
 const TILE = 16
@@ -225,6 +226,9 @@ func _material_at(p: Vector2) -> int:
 func uses_plaza_v2() -> bool:
 	return layout is PlazaV2
 
+func uses_academy_first_floor_layout() -> bool:
+	return indoor == "arcana_academy" and academy_floor == 1
+
 func outside_walk_bounds() -> Rect2:
 	return layout.walk_bounds() if uses_plaza_v2() else CityMap.WALK_BOUNDS
 
@@ -404,7 +408,7 @@ func nearest_walkable(point: Vector2) -> Vector2:
 		# Saved positions from the older city use a separate coordinate range.
 		if _can_stand(spawn_position): return spawn_position
 	var distance = INF
-	var tiled_room: bool = indoor in ["arcana_inn", "arcana_restaurant"]
+	var tiled_room: bool = indoor in ["arcana_inn", "arcana_restaurant"] or uses_academy_first_floor_layout()
 	var sample_step: int = 4 if tiled_room else TILE
 	var cells := _navigation_region(sample_step) if indoor.is_empty() or tiled_room else Rect2i(0, 0, 24, 21)
 	for y in range(cells.position.y, cells.end.y):
@@ -417,8 +421,8 @@ func nearest_walkable(point: Vector2) -> Vector2:
 
 func _rebuild_grid() -> void:
 	# Use smaller steps in narrow aisles and around doorway and tile edges.
-	var legacy_detailed_interior: bool = indoor in ["arcana_academy", "arcana_home"]
-	var detailed_interior := legacy_detailed_interior or indoor in ["arcana_inn", "arcana_restaurant"]
+	var legacy_detailed_interior: bool = indoor == "arcana_home" or (indoor == "arcana_academy" and academy_floor == 2)
+	var detailed_interior := legacy_detailed_interior or indoor in ["arcana_inn", "arcana_restaurant"] or uses_academy_first_floor_layout()
 	var cell_step: int = 4 if detailed_interior else TILE
 	var cells := Rect2i(0, 0, 96, 88) if legacy_detailed_interior else _navigation_region(cell_step)
 	grid.region = cells
@@ -437,6 +441,8 @@ func _navigation_region(cell_step: int) -> Rect2i:
 		bounds = InnTileLayout.WALK_BOUNDS
 	elif indoor == "arcana_restaurant":
 		bounds = RestaurantTileLayout.WALK_BOUNDS
+	elif uses_academy_first_floor_layout():
+		bounds = AcademyFloorLayout.WALK_BOUNDS
 	elif indoor.is_empty() and uses_plaza_v2():
 		bounds = outside_walk_bounds()
 	else:
@@ -466,6 +472,8 @@ func _can_stand(pos: Vector2) -> bool:
 	elif indoor in ["arcana_inn", "arcana_restaurant"]:
 		var bounds := InnTileLayout.WALK_BOUNDS if indoor == "arcana_inn" else RestaurantTileLayout.WALK_BOUNDS
 		if pos.x < bounds.position.x or pos.x > bounds.end.x or pos.y < bounds.position.y or pos.y > bounds.end.y: return false
+	elif uses_academy_first_floor_layout():
+		if not AcademyFloorLayout.WALK_BOUNDS.has_point(pos): return false
 	else:
 		if pos.x < 30 or pos.x > 350 or pos.y < 30 or pos.y > 326: return false
 	for rect in obstacles:

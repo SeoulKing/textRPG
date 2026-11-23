@@ -35,15 +35,15 @@
       ]
     },
     "arcana_academy:1": {
-      "scene": "res://scenes/native_2d/academy_first_floor.tscn",
+      "scene": "res://scenes/academy_first_floor_3d.tscn",
       "location": "arcana_academy",
       "floor": 1,
       "adapter": "authored",
       "bounds": [
-        96,
-        256,
-        1344,
-        992
+        0,
+        0,
+        1600,
+        1344
       ]
     },
     "arcana_academy:2": {

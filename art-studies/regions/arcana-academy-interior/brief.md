@@ -3,7 +3,7 @@
 ## 본편 광장 학교 외관
 
 - [2D 외관 원본](../../../godot-arcana/art/export/reference/academy-2d.png)의 넓은 양날개, 푸른 쌍첨탑과 오른쪽 천문대, 중앙의 별·책 문장과 뾰족아치 정문을 입체로 제작했습니다.
-- 광장 내 점유는 24×10칸입니다. [Blender 편집 원본](../../../godot-arcana/art/source/plaza-academy-blender/academy-exterior.blend)과 [Godot으로 내보낸 GLB](../../../godot-arcana/art/source/plaza-academy-blender/academy-exterior.glb)는 월드 타일 한 칸을 Blender 1단위로 맞춥니다. Blender에서는 `−Y`, Godot에서는 `+Z` 쪽이 정면입니다.
+- 원본 모델은 24×10칸 안에 들어갑니다. 광장 인스턴스는 캐릭터 키에 맞춰 확대했고 평면 충돌 범위는 28.08×12칸입니다. [Blender 편집 원본](../../../godot-arcana/art/source/plaza-academy-blender/academy-exterior.blend)과 [Godot으로 내보낸 GLB](../../../godot-arcana/art/source/plaza-academy-blender/academy-exterior.glb)는 월드 타일 한 칸을 Blender 1단위로 맞춥니다. Blender에서는 `−Y`, Godot에서는 `+Z` 쪽이 정면입니다.
 - [본편 광장 씬](../../../godot-arcana/scenes/plaza_3d_v2.tscn)의 `Academy` 기준점은 `(24, 0, −21)`이고 정문은 4칸 폭 학교길과 연결됩니다. 기존 아카데미 ID와 1층 도착점, 내부 계단을 사용합니다.
 
 ## 요청과 현재 단계
@@ -192,3 +192,9 @@ ImageGen에는 25×21칸 평면 설계도와 해당 배치를 옮긴 2:1 직교 
 - 뒤쪽 벽의 석재 줄을 벽 전체 너비에 걸쳐 하나의 패턴으로 쌓고, 창 여섯 곳과 2층 문 개구부와 겹치는 부분만 잘라냈습니다. 창마다 생기던 세로 경계를 정리하고 창턱과 문·창 안쪽 모서리를 벽면 안에서 마감했습니다.
 - 왼쪽과 뒤쪽 외벽 상단은 같은 1타일 간격의 덮개석으로 마감했습니다. 저장한 Blender 파일에서 양쪽 덮개석의 높이 8과 돌 폭, 창과 2층 문 개구부를 확인했습니다.
 - Blender의 길이 스케일은 1.0입니다. 이 모델의 바닥 한 칸은 1×1 Blender 단위이며, 아르카나 Godot 3D의 1×1 월드 단위 타일과 대응합니다.
+
+## 1층 게임 연결
+
+- 활성 `arcana_academy:1`은 [3D 1층 씬](../../../godot-arcana/scenes/academy_first_floor_3d.tscn)을 사용합니다. 이 씬은 [Blender GLB](../../../godot-arcana/art/source/academy-first-floor-blender/academy-first-floor.glb)를 같은 1타일 스케일로 불러옵니다. [GLB 내보내기 스크립트](source/blender-v1/export_academy_first_floor.py)는 편집 원본을 유지하고 Godot에서 쓸 정적 메시를 출력합니다.
+- [1층 이동 레이아웃](../../../godot-arcana/scripts/academy_first_floor_layout.gd)의 정문·계단·방 좌표와 충돌을 클라이언트와 서버 데이터에서 함께 사용합니다. 기존 지역 ID로 광장 입장·귀환과 2층 왕복을 연결합니다. 2층은 `arcana_academy:2`에서 관리합니다.
+- Godot 4.5.1 내보내기에서 1층 씬, GLB, 계단 기준점과 렌더 설정을 패키지에서 확인했습니다. 새 이동 레이아웃을 읽도록 로컬 서버를 다시 시작했고, `localhost:3000`이 제공하는 압축 PCK를 해제해 빌드 파일과 SHA-256이 같은 것을 확인했습니다.

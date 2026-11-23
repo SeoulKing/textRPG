@@ -235,9 +235,9 @@ func _interior() -> void:
     if is_instance_valid(plaza3d):plaza3d.set_live_active(false)
     if ROOM_VISUALS.has(world.indoor) and _open_3d_room(world.indoor):
         return
-    if world.indoor=="arcana_home":
-        if not _open_3d_room("arcana_home"):
-            push_error("Could not open the Blender player home.")
+    if world.indoor=="arcana_home" or world.uses_academy_first_floor_layout():
+        if not _open_3d_room(world.indoor):
+            push_error("Could not open the 3D region: " + world.indoor)
         return
     if world.indoor=="arcana_shop":
         var shop_scene := load("res://scenes/shop_3d.tscn") as PackedScene
@@ -269,7 +269,8 @@ func _interior() -> void:
 
 func _open_3d_room(location: String) -> bool:
     var registry = preload("res://scripts/region_registry.gd")
-    var visual: PackedScene = registry.scene(location) if location == "arcana_home" else load(ROOM_VISUALS[location])
+    var floor_number: int = world.academy_floor if location == "arcana_academy" else 1
+    var visual: PackedScene = load(ROOM_VISUALS[location]) if ROOM_VISUALS.has(location) else registry.scene(location, floor_number)
     if visual == null:
         return false
     var layout_root: Node2D
@@ -288,7 +289,7 @@ func _open_3d_room(location: String) -> bool:
     get_viewport().canvas_transform=Transform2D.IDENTITY
     get_viewport().disable_3d=false
     add_child(candidate)
-    var ready: bool = candidate.configure(layout_root, registry.camera_bounds(location))
+    var ready: bool = candidate.configure(layout_root, registry.camera_bounds(location, floor_number))
     if layout_root != null: layout_root.free()
     if not ready or not candidate.apply_approved_rendering():
         candidate.free()
@@ -328,7 +329,7 @@ func _process(delta: float) -> void:
     ambience.color=Color.WHITE
     if world.effects_enabled:
         if world.indoor=="arcana_inn" and not room_3d_active:ambience.color=InnLighting.AMBIENT
-        elif world.indoor=="arcana_academy":ambience.color=AcademyLighting.AMBIENT
+        elif world.indoor=="arcana_academy" and not room_3d_active:ambience.color=AcademyLighting.AMBIENT
         elif world.indoor.is_empty():ambience.color=Color("929bb0") if world.dusk else Color("f5f1e9")
     if is_instance_valid(inn_lobby):
         inn_lobby.sync_lighting(world.time,world.effects_enabled,world.reduced_motion)

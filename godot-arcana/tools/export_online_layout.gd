@@ -2,6 +2,7 @@ extends SceneTree
 ## Export runtime collision/door data from the same authored source as the client.
 const InnTileLayout = preload("res://scripts/inn_tile_layout.gd")
 const RestaurantTileLayout = preload("res://scripts/restaurant_tile_layout.gd")
+const AcademyFloorLayout = preload("res://scripts/academy_first_floor_layout.gd")
 
 func _init() -> void:
 	call_deferred("_export")
@@ -68,6 +69,8 @@ func _area(world: Node, outside: bool) -> Dictionary:
 		box = InnTileLayout.WALK_BOUNDS
 	elif world.indoor == "arcana_restaurant":
 		box = RestaurantTileLayout.WALK_BOUNDS
+	elif world.uses_academy_first_floor_layout():
+		box = AcademyFloorLayout.WALK_BOUNDS
 	var bounds: Dictionary = {"x":box.position.x,"y":box.position.y,"w":box.size.x,"h":box.size.y}
 	var area: Dictionary = {"rectangles":rectangles,"doors":doors,"bounds":bounds,"spawn":{"x":world.player_position.x,"y":world.player_position.y}}
 	if world.indoor == "arcana_inn":

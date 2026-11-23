@@ -136,6 +136,17 @@ func verify_pack() -> void:
     if not restaurant_configured or not restaurant.apply_approved_rendering() \
             or not _verify_approved_rendering(restaurant.camera, "restaurant"):
         push_error("Packaged restaurant could not align with its authored layout");quit(1);return
+    var academy_scene: PackedScene = registry_script.scene("arcana_academy", 1)
+    var academy := academy_scene.instantiate() as Node3D if academy_scene != null else null
+    if academy == null:
+        push_error("Packaged academy did not load the 3D first floor");quit(1);return
+    stage.add_child(academy)
+    var academy_layout: Dictionary = academy.collect_layout()
+    if academy.get_node("Room").scene_file_path != "res://art/source/academy-first-floor-blender/academy-first-floor.glb" \
+            or not academy_layout.markers.has("Arrival") or not academy_layout.markers.has("StairArrival") \
+            or not academy.configure(null, registry_script.camera_bounds("arcana_academy", 1)) \
+            or not academy.apply_approved_rendering() or not _verify_approved_rendering(academy.camera, "academy"):
+        push_error("Packaged academy first floor is missing its model or layout");quit(1);return
     stage.free()
     print("ARCANA_WEB_PACK_VERIFIED")
     quit()
