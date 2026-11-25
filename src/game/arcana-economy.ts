@@ -65,7 +65,7 @@ export function fishQuestCard(state: GameState) {
       amount: 1,
       ownedAmount: status === "completed" ? 1 : ownedAmount,
       met: status === "completed" || ownedAmount >= 1,
-      sourceHints: ["분수 광장 남서쪽 연못에서 낚을 수 있습니다."],
+      sourceHints: ["광장 지도에서 낚시 자리를 찾아보세요."],
     }],
     readyToReport,
     reportTo: "여관 · 여관 주인 마르텐",
@@ -73,7 +73,7 @@ export function fishQuestCard(state: GameState) {
     nextStep: status === "completed" ? "마르텐에게 민물고기를 건넸습니다."
       : status === "inactive" ? "여관 의뢰판에서 의뢰를 받으세요."
       : readyToReport ? "여관 접수대의 마르텐에게 민물고기를 건네세요."
-      : "분수 광장 남서쪽 연못에서 민물고기 한 마리를 낚으세요.",
+      : "광장 물가에서 민물고기 한 마리를 낚으세요.",
   };
 }
 

@@ -1,5 +1,8 @@
 extends Node
 ## Input prediction and rendering only. All hits, resources and rewards come from the server.
+
+signal confirmed_combat_event(event: Dictionary)
+
 const EnemyHealthOverlay = preload("res://scripts/enemy_health_overlay.gd")
 var enemy_health_hud: Control
 const FlameVfx = preload("res://scripts/native_2d_flame.gd")
@@ -67,6 +70,7 @@ var displayed_enemy = Vector2.ZERO
 var observed_initial = false
 var additional_visuals: Node
 const UltimateVisuals = preload("res://scripts/native_2d_ultimate.gd")
+var world_visuals_enabled := true
 
 func _ready() -> void:
 	anticipation.combat = self
@@ -96,6 +100,34 @@ func _ready() -> void:
 	main.world_renderer.add_child(guard_ring)
 	jump_line = _line(Color("ad63d9"))
 	jump_line.hide()
+
+func set_world_visuals_enabled(value: bool) -> void:
+	if world_visuals_enabled == value: return
+	world_visuals_enabled = value
+	reward_effects.set_world_visuals_enabled(value)
+	if value:
+		displayed_enemy = enemy_position()
+		return
+	enemy_health_hud.hide()
+	for node in [aim_overlay, selected_ring, aim_end_ring, aim_line, aim_cone, guard_ring, jump_line]:
+		node.hide()
+	main.world_renderer.set_slime_target_outline(false)
+	main.world_renderer.hero.cancel_cast()
+	if is_instance_valid(charge_vfx): charge_vfx.hide()
+	guard_flash = 0.0
+	for flame in projectile_nodes.values():
+		flame.scale = Vector2.ONE
+		effect_pool.release_flame(flame)
+	projectile_nodes.clear()
+	for burst in flame_bursts:
+		burst.scale = Vector2.ONE
+		effect_pool.release_flame(burst)
+	flame_bursts.clear()
+	for effect in transient: effect_pool.release_label(effect.node)
+	transient.clear()
+	for wave in wave_effects: wave.node.queue_free()
+	wave_effects.clear()
+	additional_visuals.clear_visuals()
 
 func network_interrupted() -> void:
 	connection_lost = true
@@ -127,14 +159,18 @@ func available() -> bool:
 
 func _visible_targets(command: String = "fireball") -> Array:
 	var result: Array = []
-	var screen = main.get_viewport().get_visible_rect()
 	var candidates: Array = _spatial().get("enemies",[])
 	if candidates.is_empty() and _spatial().is_empty(): candidates = [{"id":"slime_0","position":layout.home,"hp":30}]
 	for enemy in candidates:
 		var point = _point(enemy.position)
-		if float(enemy.hp)>0 and screen.has_point(_screen(point,.5)) and main.world.player_position.distance_to(point)<=_spell_range(command)+float(layout.tuning.enemyRadius): result.append(enemy)
+		var in_range: bool = main.world.player_position.distance_to(point) <= _spell_range(command) + float(layout.tuning.enemyRadius)
+		if float(enemy.hp) > 0 and in_range and (not world_visuals_enabled or _in_world_view(point)):
+			result.append(enemy)
 	result.sort_custom(func(a,b): return main.world.player_position.distance_squared_to(_point(a.position))<main.world.player_position.distance_squared_to(_point(b.position)))
 	return result
+
+func _in_world_view(point: Vector2) -> bool:
+	return main.get_viewport().get_visible_rect().has_point(_screen(point, .5))
 
 func enemy_position() -> Vector2:
 	return _point(_spatial().get("enemy",layout.home))
@@ -150,8 +186,11 @@ func _world(point: Vector2) -> Vector2:
 
 func visible_enemy() -> bool:
 	if main.online_world and float(_battle().get("enemyHp",30))<=0: return false
-	var point = _screen(enemy_position(),.5)
-	return Rect2(Vector2.ZERO,main.get_viewport().get_visible_rect().size).has_point(point) and _battle().get("phase","") not in ["victory","defeat"]
+	if _battle().get("phase", "") in ["victory", "defeat"]: return false
+	if not world_visuals_enabled:
+		var range_limit := maxf(_spell_range("fireball"), _spell_range("meteor")) + float(layout.tuning.enemyRadius)
+		return main.world.player_position.distance_to(enemy_position()) <= range_limit
+	return _in_world_view(enemy_position())
 
 func select_at(point: Vector2) -> bool:
 	if not available() or not visible_enemy() or main.ui.overlay.visible: return false
@@ -189,7 +228,8 @@ func _command_pending(command: String) -> bool:
 
 func can_cast(command: String = "fireball") -> bool:
 	if main.fishing.visible or (is_instance_valid(main.life) and main.life.blocking()): return false
-	if effect_pool == null or not effect_pool.prepared or connection_lost or settling or queue.size() >= 8 or _command_pending(command): return false
+	if world_visuals_enabled and (effect_pool == null or not effect_pool.prepared): return false
+	if connection_lost or settling or queue.size() >= 8 or _command_pending(command): return false
 	var spell: Dictionary = main._spell(command)
 	return (command=="fireball" or (main.world.teleport_age<0 and main.world.dash_age<0)) and main.world.bench_state.is_empty() and not spell.is_empty() and spell.get("unlocked",false) and spell.get("equipped",false) and available() and _battle().get("phase","") not in ["victory","defeat"] and _spatial().get("behavior","") != "return" and float(main._combat().get("mp",0))-_reserved_cost()>=float(spell.cost) and float(main._combat().get("cooldowns",{}).get(command,0))<=.01
 
@@ -211,7 +251,7 @@ func _begin(owner: int, point: Vector2, key: int = 0, command: String = "firebal
 func cancel_aim() -> void:
 	aim_owner = -1
 	manual = false
-	main.world_renderer.hero.aim_facing = Vector2.ZERO
+	if world_visuals_enabled: main.world_renderer.hero.aim_facing = Vector2.ZERO
 	if is_instance_valid(aim_overlay): aim_overlay.hide()
 	predicted = {} if not request_busy else predicted
 
@@ -255,11 +295,40 @@ func cast_auto(command: String = "fireball") -> void:
 		queue_command(command,_auto_direction(command),_point(targets[0].position))
 	else: queue_command(command,_auto_direction(command))
 
+func _can_start_targeted_fireball() -> bool:
+	return main.online_world and main.combat_socket.socket_ready and main.page_active and not main.busy and not main.ui.overlay.visible and pending_cast.is_empty() and can_cast("fireball")
+
+func _targeted_fireball_enemy(life_id: String = "") -> Dictionary:
+	if _spatial().get("behavior", "") == "return": return {}
+	for enemy in _visible_targets():
+		var enemy_life_id := str(enemy.get("lifeId", ""))
+		if not enemy_life_id.is_empty() and (life_id.is_empty() or enemy_life_id == life_id):
+			return enemy
+	return {}
+
+func _fireball_direction_to(enemy: Dictionary) -> Vector2:
+	var direction: Vector2 = _point(enemy.position) - main.world.player_position
+	return direction.normalized() if not direction.is_zero_approx() else main.world.last_move_direction
+
+func can_target_fireball() -> bool:
+	return _can_start_targeted_fireball() and has_fireball_target()
+
+func has_fireball_target() -> bool:
+	return not _targeted_fireball_enemy().is_empty()
+
+func cast_targeted_fireball() -> void:
+	if not _can_start_targeted_fireball(): return
+	var enemy := _targeted_fireball_enemy()
+	if enemy.is_empty(): return
+	selected = true
+	_start_fireball(_fireball_direction_to(enemy), str(enemy.lifeId))
+
 func _auto_direction(command: String) -> Vector2:
 	var targets = _visible_targets(command)
 	if not targets.is_empty():
 		selected = true
 		return (_point(targets[0].position)-main.world.player_position).normalized()
+	if not world_visuals_enabled: return main.world.last_move_direction
 	var yaw = main.world_renderer.hero.last_yaw
 	return Vector2(sin(yaw),cos(yaw))
 
@@ -271,12 +340,27 @@ func can_dash(command: String = "dodge") -> bool:
 		return not main.snapshot.is_empty() and not main.gate_crossing and not main.ui.overlay.visible and main.world.bench_state.is_empty() and main.page_active and _battle().get("phase","") != "defeat"
 	return not connection_lost and not settling and not _command_pending(command) and queue.size() < 8 and not main.snapshot.is_empty() and main.world.enabled and not main.busy and not main.ui.overlay.visible and main.world.bench_state.is_empty() and (command=="teleport" or (not dash_pending and main.world.teleport_age<0 and main.world.dash_age<0)) and float(main.world.teleport_lock if command=="teleport" else main.world.dash_lock)<=.01 and float(main._combat().get("cooldowns",{}).get(command,0))<=.01 and _battle().get("phase","") not in ["victory","defeat"] and main.page_active
 
-func start_dash(command: String = "dodge") -> void:
+func dodge_slime() -> void:
+	if not available(): return
+	var spatial := _spatial()
+	var committed_attack: bool = spatial.get("slimeAction", "") in ["leap", "charge"] and spatial.get("behavior", "") in ["prepare", "attack"]
+	var heading: Vector2 = main.world.player_position - enemy_position()
+	if committed_attack and spatial.has("jumpFrom") and spatial.has("jumpTo"):
+		var attack_heading := _point(spatial.jumpTo) - _point(spatial.jumpFrom)
+		if not attack_heading.is_zero_approx(): heading = attack_heading
+	if heading.is_zero_approx(): heading = main.world.dash_heading()
+	var side := Vector2(-heading.y, heading.x).normalized()
+	var origin: Vector2 = main.world.player_position
+	var to_one_side: Vector2 = main.world.project_dash_endpoint(side) - origin
+	var to_other_side: Vector2 = main.world.project_dash_endpoint(-side) - origin
+	start_dash("dodge", -side if to_other_side.dot(-side) > to_one_side.dot(side) else side)
+
+func start_dash(command: String = "dodge", heading: Vector2 = Vector2.ZERO) -> void:
 	if not can_dash(command):return
-	var heading: Vector2=main.world.dash_heading()
+	if heading.is_zero_approx(): heading = main.world.dash_heading()
 	_cancel_pending_cast()
 	cancel_aim()
-	main.world_renderer.hero.cancel_cast()
+	if world_visuals_enabled: main.world_renderer.hero.cancel_cast()
 	if command=="teleport":main.world.begin_teleport(heading)
 	else:main.world.begin_dash(heading)
 	movement_sequence += 1
@@ -337,27 +421,33 @@ func queue_command(command: String, direction: Vector2 = Vector2.ZERO, target: V
 	var preview_id: String = anticipation.begin(command,direction,target) if main.online_world else ""
 	queue.append({"queuedAt":Time.get_ticks_msec(),"command":command,"direction":direction,"target":target,"shotId":preview_id})
 
-func _start_fireball(direction: Vector2) -> void:
+func _start_fireball(direction: Vector2, target_life_id: String = "") -> void:
 	anticipation.last_cast_id = ""
-	pending_cast = {"direction":direction,"elapsed":0.0}
-	main.world_renderer.hero.begin_cast(direction, "fireball")
+	pending_cast = {"direction":direction,"elapsed":0.0,"targetLifeId":target_life_id}
 	main.world.casting = true
-	charge_vfx = effect_pool.charge
+	if world_visuals_enabled:
+		main.world_renderer.hero.begin_cast(direction, "fireball")
+		charge_vfx = effect_pool.charge
 
 func _cancel_pending_cast() -> void:
 	buffered_cast.clear()
 	if pending_cast.is_empty(): return
 	pending_cast.clear()
 	main.world.casting = false
-	main.world_renderer.hero.cancel_cast()
-	if is_instance_valid(charge_vfx): charge_vfx.hide()
+	if world_visuals_enabled:
+		main.world_renderer.hero.cancel_cast()
+		if is_instance_valid(charge_vfx): charge_vfx.hide()
+
+func cancel_unreleased_cast() -> void:
+	_cancel_pending_cast()
 
 func _update_cast(delta: float, active: bool, paused: bool) -> void:
-	var hero = main.world_renderer.hero
 	if not active or (paused and not pending_cast.is_empty()): _cancel_pending_cast()
+	if not pending_cast.is_empty() and not paused: pending_cast.elapsed += delta
+	if not world_visuals_enabled: return
+	var hero = main.world_renderer.hero
 	hero.advance_cast(delta,paused)
 	if not pending_cast.is_empty():
-		if not paused: pending_cast.elapsed += delta
 		# Hold the gathering pose until the local release time.
 		hero.cast_age = minf(float(pending_cast.elapsed),hero.CAST_GATHER-.001)
 	if is_instance_valid(charge_vfx):
@@ -395,6 +485,7 @@ func _update_target_outline(active: bool, paused: bool) -> void:
 	main.world_renderer.set_slime_target_outline(outlined)
 
 func _input(event: InputEvent) -> void:
+	if not world_visuals_enabled: return
 	if not available(): return
 	if aim_owner != -1 and ((event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT)):
 		cancel_aim()
@@ -478,26 +569,30 @@ func _process(delta: float) -> void:
 	# The animation windup is local and never waits for an HTTP response.
 	if active and not pending_cast.is_empty() and float(pending_cast.elapsed)>=.32 and not paused:
 		var direction: Vector2 = pending_cast.direction
+		var target_life_id: String = pending_cast.targetLifeId
 		pending_cast.clear()
 		main.world.casting = false
 		if can_cast("fireball"):
-			main.world_renderer.hero.cast_age = .32
+			if world_visuals_enabled: main.world_renderer.hero.cast_age = .32
 			local_shot_sequence += 1
 			var shot_id: String = main._new_action_id()
 			var origin: Vector2 = main.world.player_position
 			local_shots[shot_id] = {"position":origin,"direction":direction,"elapsed":0.0}
-			queue.append({"queuedAt":Time.get_ticks_msec(),"command":"fireball","direction":direction,"origin":origin,"shotId":shot_id})
-		else:
+			queue.append({"queuedAt":Time.get_ticks_msec(),"command":"fireball","direction":direction,"origin":origin,"shotId":shot_id,"targetLifeId":target_life_id})
+		elif world_visuals_enabled:
 			main.world_renderer.hero.cancel_cast()
 		if not buffered_cast.is_empty():
 			var next_direction: Vector2 = buffered_cast.direction
 			buffered_cast.clear()
 			if can_cast("fireball"): _start_fireball(next_direction)
 	var sync_interval: float = 1.0 if _spatial().is_empty() else SYNC_INTERVAL
-	if active and main.combat_socket.socket_ready and not settling and in_flight < MAX_IN_FLIGHT and not main.clock_busy and not main.busy and Time.get_ticks_msec()/1000.0-failed_at>retry_delay:
+	var transport_ready: bool = not main.online_world or main.combat_socket.socket_ready
+	if active and transport_ready and not settling and in_flight < MAX_IN_FLIGHT and not main.clock_busy and not main.busy and Time.get_ticks_msec()/1000.0-failed_at>retry_delay:
 		if not queue.is_empty() and not paused and not connection_lost:
 			var command = queue.pop_front()
-			if Time.get_ticks_msec()-int(command.get("queuedAt",0)) > INPUT_MAX_AGE_MS:
+			var target_life_id := str(command.get("targetLifeId", ""))
+			var target_enemy: Dictionary = {} if target_life_id.is_empty() else _targeted_fireball_enemy(target_life_id)
+			if Time.get_ticks_msec()-int(command.get("queuedAt",0)) > INPUT_MAX_AGE_MS or (not target_life_id.is_empty() and target_enemy.is_empty()):
 				var expired_shot: String = str(command.get("shotId",""))
 				anticipation.cancel(expired_shot)
 				local_shots.erase(expired_shot)
@@ -505,11 +600,19 @@ func _process(delta: float) -> void:
 				_update_predicted_health()
 				if command.command in ["dodge","teleport"] and int(command.get("movementSequence",0)) == movement_sequence: dash_pending = false
 				return
-			_request(command.command,false,command.direction,command.get("origin",Vector2.INF),command.get("endpoint",Vector2.INF),command.get("shotId",""),int(command.get("movementSequence",0)),command.get("target",Vector2.INF))
+			var direction: Vector2 = command.direction
+			if not target_enemy.is_empty():
+				direction = _fireball_direction_to(target_enemy)
+				if local_shots.has(command.shotId): local_shots[command.shotId].direction = direction
+			_request(command.command,false,direction,command.get("origin",Vector2.INF),command.get("endpoint",Vector2.INF),command.get("shotId",""),int(command.get("movementSequence",0)),command.get("target",Vector2.INF))
 		elif not main.online_world and not request_busy and _battle().get("phase","") not in ["victory","defeat"] and (not _spatial().is_empty() or _battle().is_empty() or connection_lost) and ((paused != paused_sent) or (not paused and timer>=sync_interval) or connection_lost):
 			_request("spatial_sync",paused or connection_lost)
-	_update_target_outline(active, paused)
-	_render(delta,active,false if main.online_world else paused)
+	var visuals_paused: bool = paused and not main.online_world
+	if not visuals_paused:
+		for shot in local_shots.values(): shot.elapsed += delta
+	if world_visuals_enabled:
+		_update_target_outline(active, paused)
+		_render(delta, active, visuals_paused)
 
 func _restore_result_panel() -> void:
 	if _battle().get("phase","") == "defeat" and not main.busy:
@@ -550,10 +653,14 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 	var sent_sequence: int = main.sequence
 	pending_commands[sent_sequence] = command
 	var sent_position: Vector2 = dash_origin if dash_origin != Vector2.INF else main.world.player_position
-	var input = {"encounterId":"plaza_slime","clientId":main.client_id,"sequence":main.sequence,"position":_json(sent_position),"paused":paused,"developerSpeed":main.developer_tools and main.world.developer_speed_boost}
+	var input = {"encounterId":str(_spatial().get("encounterId", "plaza_slime")),"clientId":main.client_id,"sequence":main.sequence,"position":_json(sent_position),"paused":paused,"developerSpeed":main.developer_tools and main.world.developer_speed_boost}
 	input.visibleEnemyIds = []
-	for enemy in _spatial().get("enemies",[]):
-		if float(enemy.hp)>0 and main.get_viewport().get_visible_rect().has_point(_screen(_point(enemy.position),.5)): input.visibleEnemyIds.append(str(enemy.id))
+	for enemy in _spatial().get("enemies", []):
+		if float(enemy.hp) <= 0: continue
+		var point := _point(enemy.position)
+		# Flame barrage resolves targets within eight tiles on the server.
+		var visible: bool = _in_world_view(point) if world_visuals_enabled else sent_position.distance_to(point) <= 8.0 * float(layout.tuning.tile)
+		if visible: input.visibleEnemyIds.append(str(enemy.id))
 	if _spatial().is_empty(): input.visibleEnemyIds = ["slime_0"]
 	if command in ["fireball","flame_wave","giant_fireball","dodge","teleport"]:
 		input.aim = _json(direction)
@@ -563,7 +670,11 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 	var action = {"type":"arcana_combat","command":command,"spatial":input}
 	if not shot_id.is_empty(): action.actionId = shot_id
 	if not _battle().is_empty(): action.battleId = _battle().id
-	var data: Dictionary = await main.combat_socket.request(action)
+	var data: Dictionary
+	if main.online_world:
+		data = await main.combat_socket.request(action)
+	else:
+		data = await main._api("/api/games/" + main.game_id + "/actions", HTTPClient.METHOD_POST, action)
 	if main.online_world and int(data.get("transportGeneration",main.combat_socket.connection_generation))==main.combat_socket.connection_generation: anticipation.confirm(shot_id,data)
 	if command == "fireball": predicted = {}
 	pending_commands.erase(sent_sequence)
@@ -665,7 +776,7 @@ func _request(command: String, paused: bool, direction: Vector2 = Vector2.ZERO, 
 				if not _spatial().is_empty():main.world.player_position=main.world.nearest_walkable(_point(_spatial().player))
 			# A failed acknowledgement must not rewind a locally completed blink.
 			# The next position sync reconciles it with the server.
-		if command == "fireball" and pending_cast.is_empty(): main.world_renderer.hero.cancel_cast()
+		if world_visuals_enabled and command == "fireball" and pending_cast.is_empty(): main.world_renderer.hero.cancel_cast()
 		visual_outcomes.erase("predicted")
 		_update_predicted_health()
 		if data.get("error","") in ["network","invalid_response"]:
@@ -703,7 +814,18 @@ func _present_contact(id: String, kind: String, point: Vector2) -> void:
 	_event({"kind":kind,"position":_json(point),"amount":damage,"projectileId":id,"_predicted":true})
 
 func _event(event: Dictionary) -> void:
+	if event.has("id") and not event.get("_predicted", false) and not event.get("_anticipated", false):
+		confirmed_combat_event.emit(event)
 	if not event.get("_anticipated",false) and anticipation.suppress_event(event): return
+	if world_visuals_enabled: _show_event(event)
+	if event.kind=="defeat":
+		main.world.player_position = main.world.spawn_position
+		if main.online_world: main.online_presence.reset_prediction()
+		main.world.path.clear()
+		main.world.touch_direction = Vector2.ZERO
+	if event.kind=="reset": selected = false
+
+func _show_event(event: Dictionary) -> void:
 	var point = _point(event.get("targetPosition",event.position))
 	if event.kind in ["hit","miss","explosion","meteor"] and main.world.effects_enabled:
 		var burst: Node2D = effect_pool.take_flame(true,event.kind == "miss")
@@ -713,6 +835,9 @@ func _event(event: Dictionary) -> void:
 	if event.kind in ["enemy_down","victory"] and is_instance_valid(reward_effects):
 		var amounts: Dictionary = event.get("rewards",{})
 		if int(amounts.get("slimeMucus",0))>0: reward_effects.show_slime_loot(str(_battle().get("id",""))+":"+str(event.id),int(amounts.slimeMucus))
+		var meat := int(amounts.get("rawMeat", 0))
+		if meat > 0 and event.get("actorId", "") == main.online_presence.character_id:
+			main.ui.toast("+%d 고기" % meat)
 		if int(amounts.get("money",0))>0: reward_effects.show_reward(str(_battle().get("id",""))+":"+str(event.id),point,int(amounts.get("xp",0)),int(amounts.money))
 	if event.kind == "wave" and main.world.effects_enabled:
 		var wave = _line(Color(1.0,.45,.12,.65))
@@ -726,13 +851,10 @@ func _event(event: Dictionary) -> void:
 		var text = "회피" if event.kind=="evade" else "흡수 %d" % int(event.amount) if event.kind=="absorb" else "%d" % int(event.amount) if event.kind=="hit" else "−%d" % int(event.amount)
 		var value = effect_pool.take_label(text,Color("df596c") if event.kind in ["hit","hurt"] else Color("f9e7a6"))
 		transient.append({"node":value,"at":point,"age":0.0})
-		if event.kind=="hit": additional_visuals.hit_enemy(str(event.get("enemyId","")))
-	if event.kind=="defeat":
-		main.world.player_position = main.world.spawn_position
-		if main.online_world: main.online_presence.reset_prediction()
-		main.world.path.clear()
-		main.world.touch_direction = Vector2.ZERO
-	if event.kind=="reset": selected = false
+		if event.kind=="hit":
+			if event.get("enemyId", "") == "meadow-ox" and main.world.meadow_active:
+				main.world_renderer.meadow_ox.play_hit()
+			additional_visuals.hit_enemy(str(event.get("enemyId","")))
 
 func _line(color: Color) -> Polygon2D:
 	var node=Polygon2D.new();node.color=color;node.z_index=3990
@@ -793,7 +915,9 @@ func _update_enemy_health_hud() -> void:
 	var center=_screen(point,1.25)
 	var edge=_screen(point+Vector2(14.4,0),1.25)
 	var shown=renderer.enemy_meter_visible and main.world.indoor.is_empty() and not main.ui.overlay.visible and main.get_viewport().get_visible_rect().has_point(center)
-	enemy_health_hud.update_meter(center,center.distance_to(edge),float(main.world.enemy_visual_hp)/30.0,float(renderer.enemy_trail_hp)/30.0,shown)
+	var enemies: Array = _spatial().get("enemies", [])
+	var max_hp := maxf(1.0, float(enemies[0].get("maxHp", 30.0))) if not enemies.is_empty() else 30.0
+	enemy_health_hud.update_meter(center,center.distance_to(edge),float(main.world.enemy_visual_hp)/max_hp,float(renderer.enemy_trail_hp)/max_hp,shown)
 
 func _render(delta: float, active: bool, paused: bool) -> void:
 	main.world.spatial_selected = active and selected
@@ -809,14 +933,15 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 		guard_ring.scale = Vector2.ONE*size_factor
 	if not paused: guard_flash = maxf(0,guard_flash-delta)
 	if aim_cone.visible: _draw_cone(aim_cone,main.world.player_position,aim_direction,_spell_range(aim_spell),true)
-	jump_line.visible = false
+	var spatial := _spatial()
+	jump_line.visible = active and spatial.get("slimeAction", "") == "charge" and spatial.get("behavior", "") == "prepare" and spatial.has("jumpFrom") and spatial.has("jumpTo")
 	var previous_enemy_position = displayed_enemy
 	if active:
 		if main.online_world:
 			displayed_enemy = main.online_presence.enemy_position(enemy_position())
 		elif not paused:
 			displayed_enemy = displayed_enemy.lerp(enemy_position(),1.0-exp(-delta*24)) if not main.world.reduced_motion else enemy_position()
-		var monster: Node2D = main.world_renderer.plaza_slime
+		var monster: Node2D = main.world_renderer.meadow_ox if main.world.meadow_active else main.world_renderer.plaza_slime
 		monster.position = main.world_renderer.map_point(displayed_enemy)
 		selected_ring.position = main.world_renderer.map_point(displayed_enemy,.04)
 	if aim_line.visible:
@@ -834,7 +959,6 @@ func _render(delta: float, active: bool, paused: bool) -> void:
 		living[str(shot.id)] = data
 	for id in local_shots:
 		var shot: Dictionary = local_shots[id]
-		if not paused: shot.elapsed += delta
 		var spell_id: String = str(shot.get("spellId","fireball"))
 		if spell_id=="flame_barrage": shot.direction = (enemy_position()-Vector2(shot.position)).normalized()
 		var point: Vector2 = shot.position+shot.direction*minf(_spell_range(spell_id),float(shot.elapsed)*float(layout.tuning.projectileSpeed))

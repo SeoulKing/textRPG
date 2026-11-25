@@ -3,8 +3,10 @@
  */
 
 import { defineItem } from "./item-helpers";
+import { arcanaEquipmentItems } from "./arcana-equipment-items";
 
 export const baseItems = {
+  ...arcanaEquipmentItems,
   mushroom: defineItem({id:"mushroom",name:"버섯",description:"버섯구이의 재료.",kind:"material",rarity:"common",price:2,tags:["요리","재료"]}),
   potato: defineItem({id:"potato",name:"감자",description:"구운감자의 재료.",kind:"material",rarity:"common",price:2,tags:["요리","재료"]}),
   rawMeat: defineItem({id:"rawMeat",name:"고기",description:"고기꼬치의 재료.",kind:"material",rarity:"common",price:2,tags:["요리","재료"]}),

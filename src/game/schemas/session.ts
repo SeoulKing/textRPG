@@ -5,6 +5,7 @@ import { LocationCardSchema } from "./location";
 import { PersonCardSchema } from "./person";
 import { ItemCardSchema } from "./item";
 import { ArcanaItemMasterSchema } from "./arcana-item";
+import { ArcanaAbilitySummarySchema } from "../arcana-abilities";
 import { EventCardSchema } from "./event";
 import { SceneCardSchema } from "./scene";
 import { ProtagonistCardSchema } from "./person";
@@ -88,6 +89,7 @@ export const SurvivalGoalSchema = z.object({
 });
 
 export const StateSnapshotSchema = z.object({
+  arcanaAbilities: z.array(ArcanaAbilitySummarySchema).optional(),
   arcanaSpells: z.array(z.object({
     id: z.enum(["fireball", "flame_wave", "flame_guard", "meteor", "giant_fireball", "flame_barrage"]),
     parentSkill:z.string().optional(), name: z.string(), school: z.string(), schoolName: z.string(),

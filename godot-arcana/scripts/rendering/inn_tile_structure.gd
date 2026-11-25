@@ -3,6 +3,7 @@ extends RefCounted
 ## Unit-cell structure of the approved inn. The floor surface is Y=0.
 ## Parent coordinates are the room grid. Keep layout decisions in tile coordinates.
 const TOON_SURFACE := preload("res://art/resources/tutorial_toon_surface.gdshader")
+const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
 const BOUNDS := AABB(Vector3(-1, -1, -1), Vector3(15, 5, 12))
 const FLOOR_SIZE := Vector2i(14, 10)
 const WALL_HEIGHT := 4
@@ -85,18 +86,21 @@ static func build(parent: Node3D, wall_materials: Array[Material], floor_materia
 
 static func make_floor_materials() -> Array[Material]:
 	var tile_shader := Shader.new()
-	tile_shader.code = TOON_SURFACE.code.replace("filter_linear_mipmap", "filter_nearest")
+	tile_shader.code = "#define ARCANA_INN_FLOOR\n" + TOON_SURFACE.code.replace("filter_linear_mipmap", "filter_nearest")
 	var grain := _oak_pattern()
 	var materials: Array[Material] = []
 	for color: Color in FLOOR_COLORS:
 		var material := ShaderMaterial.new()
 		material.shader = tile_shader
+		material.set_meta(&"arcana_edge_cull_mode", BaseMaterial3D.CULL_BACK)
 		material.set_shader_parameter("surface_color", color)
 		material.set_shader_parameter("surface_roughness", 0.82)
 		material.set_shader_parameter("orthographic_view", true)
 		material.set_shader_parameter("specular_nonmetal", 0.05)
 		material.set_shader_parameter("use_surface_texture", true)
 		material.set_shader_parameter("surface_texture", grain)
+		material.set_shader_parameter("floor_lip_width", 1.0 / TileStyle.DOTS_PER_TILE)
+		material.set_shader_parameter("floor_lip_strength", TileStyle.HIGHLIGHT_STRENGTH)
 		materials.append(material)
 	return materials
 

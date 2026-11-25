@@ -11,10 +11,16 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["title", "summary", "scope", "acceptance"],
+          "required": ["title", "summary", "scope", "acceptance", "visualContract"],
           "properties": {
             "title": { "type": "string", "minLength": 1 },
             "summary": { "type": "string", "minLength": 1 },
+            "visualContract": { "anyOf": [
+              { "type": "null" },
+              { "type": "object", "additionalProperties": false, "required": ["direction", "mainEntry", "artScope"],
+                "properties": { "direction": { "type": "string", "minLength": 1 }, "mainEntry": { "type": "string", "minLength": 1 },
+                  "artScope": { "type": "array", "items": { "type": "string", "minLength": 1 } } } }
+            ] },
             "scope": {
               "type": "object",
               "additionalProperties": false,
@@ -36,7 +42,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["localId", "title", "organization", "playerChange", "dependsOn", "scope", "capabilities", "checks", "acceptance", "surface", "productionMethod"],
+        "required": ["localId", "title", "organization", "playerChange", "dependsOn", "scope", "capabilities", "checks", "acceptance", "surface", "productionMethod", "visualStage"],
         "properties": {
           "localId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$" },
           "title": { "type": "string", "minLength": 1 },
@@ -56,6 +62,7 @@
           "checks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
           "acceptance": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
           "surface": { "type": "string", "enum": ["cli", "app"] },
+          "visualStage": { "type": ["string", "null"], "enum": ["direction", "concept", "asset", "integration", "visual_review", "final_capture", null] },
           "productionMethod": { "type": ["string", "null"], "enum": ["blender", "pixelpen", "godot", null] }
         }
       }

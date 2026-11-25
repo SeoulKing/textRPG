@@ -45,6 +45,7 @@ import {
 import type {
   ActionDefinition,
   ChoiceDefinition,
+  ContentRegistry,
   DayEvolutionUpdate,
   Effect,
   GameAction,
@@ -157,8 +158,8 @@ const DISCOVERY_UNLOCK_FLAGS: Record<string, string[]> = {
   arcana_return_portal: ["visited_arcana_plaza", "visited_arcana_return_portal"],
 };
 
-function normalizeExplorationKnowledge(state: GameState) {
-  for (const location of Object.values(buildRuntimeRegistry(state).locations)) {
+function normalizeExplorationKnowledge(state: GameState, registry: ContentRegistry) {
+  for (const location of Object.values(registry.locations)) {
     if (location.discoveryConditions?.every(condition => evaluateCondition(condition, state))) state.flags[`known_${location.id}`] = true;
   }
   state.flags.known_convenience = true;
@@ -176,10 +177,10 @@ function normalizeExplorationKnowledge(state: GameState) {
   });
 }
 
-export function refreshLocationKnowledge(state: GameState) {
+export function refreshLocationKnowledge(state: GameState, registry = buildRuntimeRegistry(state)) {
   markLocationKnown(state, state.location);
   state.flags[`visited_${state.location}`] = true;
-  normalizeExplorationKnowledge(state);
+  normalizeExplorationKnowledge(state, registry);
 }
 
 function triggerGameOver(state: GameState, reason: string) {
@@ -947,8 +948,7 @@ export function resolveTravelPath(state: GameState, targetId: string, registry =
   return null;
 }
 
-function resolveTravelRequirement(state: GameState, targetId: string) {
-  const registry = buildRuntimeRegistry(state);
+function resolveTravelRequirement(state: GameState, targetId: string, registry: ContentRegistry) {
   const path = resolveTravelPath(state, targetId, registry);
   if (worldDeparturePlan(state) === null) return { allowed: false, reason: "지상 출구까지의 통로가 막혀 있습니다. 먼저 문과 통로를 확인해 주세요.", path: null };
   if (path && path.length > 1) {
@@ -1362,7 +1362,8 @@ export function performAction(
       break;
     }
     case "travel": {
-      const { allowed, reason, path } = resolveTravelRequirement(state, action.targetId);
+      refreshLocationKnowledge(state, registry);
+      const { allowed, reason, path } = resolveTravelRequirement(state, action.targetId, registry);
       if (!allowed || !path || path.length < 2) {
         throw new Error(reason);
       }

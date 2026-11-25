@@ -10,12 +10,13 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 
 ROOT = Path(__file__).resolve().parents[2]
 DEST = ROOT / "godot-arcana" / "art" / "source" / "restaurant-brunch" / "furniture" / "dining"
-TABLE_TOP = 0.77
+TABLE_TOP = 0.88
+CHAIR_SCALE = (1.8, 1.7, 1.25)
 
 
 def material(name, hex_color, roughness=0.77):
@@ -143,16 +144,19 @@ def chair(collection, m):
              0.006, m.weave, 4)
 
 def table(collection, width, depth, m):
+    leg_height_scale = (TABLE_TOP - 0.08) / 0.69
+    leg = [(0, 0.037), (0.047, 0.043), (0.11, 0.032), (0.43, 0.042),
+           (0.54, 0.059), (0.59, 0.049), (0.69, 0.054)]
+    collar = [(0.533, 0.055), (0.550, 0.063), (0.563, 0.052)]
+    leg = [(height * leg_height_scale, radius) for height, radius in leg]
+    collar = [(height * leg_height_scale, radius) for height, radius in collar]
     for side_x in (-1, 1):
         for side_y in (-1, 1):
             x, y = side_x * (width / 2 - 0.118), side_y * (depth / 2 - 0.113)
-            profile(collection, "Turned table leg", x, y, [
-                (0, 0.037), (0.047, 0.043), (0.11, 0.032), (0.43, 0.042),
-                (0.54, 0.059), (0.59, 0.049), (0.69, 0.054),
-            ], m.oak, 10)
-            profile(collection, "Turned leg collar", x, y, [(0.533, 0.055), (0.550, 0.063), (0.563, 0.052)], m.edge, 10)
+            profile(collection, "Turned table leg", x, y, leg, m.oak, 10)
+            profile(collection, "Turned leg collar", x, y, collar, m.edge, 10)
 
-    panel(collection, "Recessed apron", 0, 0, 0.617, width - 0.20, depth - 0.20, 0.085, m.edge)
+    panel(collection, "Recessed apron", 0, 0, TABLE_TOP - 0.153, width - 0.20, depth - 0.20, 0.085, m.edge)
     panel(collection, "Tabletop molded rim", 0, 0, TABLE_TOP - 0.071, width, depth, 0.061, m.oak, 0.034)
     panel(collection, "Tabletop light bevel", 0, 0, TABLE_TOP - 0.021,
           width - 0.027, depth - 0.027, 0.021, m.light, 0.032)
@@ -284,22 +288,25 @@ def main():
     dining_chair = bpy.data.collections.new("dining-chair")
     scene.collection.children.link(dining_chair)
     chair(dining_chair, m)
-    window = build_dining(scene, "dining-window", 0.88, 0.76,
-                          [(-0.225, -0.15, 0, 0.26, "pastry"), (0.225, 0.15, 0, -0.26, "eggs")],
+    chair_scale = Matrix.Diagonal((*CHAIR_SCALE, 1.0))
+    for part in dining_chair.objects:
+        part.data.transform(chair_scale)
+    window = build_dining(scene, "dining-window", 0.96, 0.88,
+                          [(-0.235, -0.16, 0, 0.28, "pastry"), (0.235, 0.16, 0, -0.28, "eggs")],
                           "y", (0, 0.13, 0.65), m)
-    four = build_dining(scene, "dining-four", 1.24, 1.19,
-                        [(-0.35, -0.14, 0, 0.27, "pastry"), (0.35, 0.14, 0, -0.27, "eggs"),
-                         (-0.16, 0.37, 0.32, 0, "eggs"), (0.16, -0.37, -0.32, 0, "pastry")],
+    four = build_dining(scene, "dining-four", 1.46, 1.40,
+                        [(-0.43, -0.17, 0, 0.29, "pastry"), (0.43, 0.17, 0, -0.29, "eggs"),
+                         (-0.19, 0.45, 0.35, 0, "eggs"), (0.19, -0.45, -0.35, 0, "pastry")],
                         "y", (0, 0.07, 0.8), m)
     shared_settings = []
-    for i, x in enumerate((-0.83, 0, 0.83)):
+    for i, x in enumerate((-0.86, 0, 0.86)):
         for side in (-1, 1):
-            shared_settings.append((x - 0.11 * side, 0.39 * side, 0.26 * side, -0.022 * side,
+            shared_settings.append((x - 0.11 * side, 0.48 * side, 0.26 * side, -0.022 * side,
                                     "eggs" if (i + side) % 2 else "pastry"))
-    shared = build_dining(scene, "dining-shared", 2.55, 1.28, shared_settings,
+    shared = build_dining(scene, "dining-shared", 2.61, 1.62, shared_settings,
                           "x", (0, 0, 1.05), m)
-    dish(shared, -0.97, 0, 0.148, "pastry", m)
-    dish(shared, 0.97, 0, 0.148, "eggs", m)
+    dish(shared, -1.02, 0, 0.148, "pastry", m)
+    dish(shared, 1.02, 0, 0.148, "eggs", m)
 
     # Separate the editable displays in Blender; provide no offsets in individual GLBs.
     spacing = {dining_chair: -4.25, window: -2.75, four: -0.65, shared: 2.35}

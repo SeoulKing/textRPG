@@ -3,15 +3,18 @@ render_mode ambient_light_disabled, specular_disabled;
 
 // Shared by the wooden crate and the plaza slime. The scene supplies the lights.
 uniform vec4 paint : source_color = vec4(1.0);
+uniform float rim_strength : hint_range(0.0, 1.0) = 0.0;
 uniform int shade_levels : hint_range(2, 8) = 4;
 uniform float base_fill : hint_range(0.0, 1.0) = 0.55;
 uniform float directional_strength : hint_range(0.0, 1.0) = 0.16;
 uniform float local_strength : hint_range(0.0, 1.0) = 0.34;
 
 void fragment() {
-	ALBEDO = paint.rgb;
-	// Preserve the Blender shadow ramps with a sheltered, neutral fill.
-	EMISSION = paint.rgb * base_fill;
+	// Parallel viewing rays keep the upper rim fixed during camera translation.
+	float rim = rim_strength * (1.0 - smoothstep(0.20, 0.36, abs(NORMAL.z)))
+			* smoothstep(0.10, 0.45, dot(NORMAL.xy, vec2(-0.7071, 0.7071)));
+	ALBEDO = paint.rgb * (1.0 - rim);
+	EMISSION = ALBEDO * base_fill + vec3(rim);
 }
 
 void light() {

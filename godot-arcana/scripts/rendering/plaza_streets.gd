@@ -3,6 +3,8 @@ extends Node3D
 
 const StoneShader := preload("res://art/resources/plaza_street_stone.gdshader")
 const RoadSettsShader := preload("res://art/resources/plaza_road_setts.gdshader")
+const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
+const Terraces := preload("res://data/plaza-terraces.json")
 const CORE := Rect2(-11.0, -15.0, 22.0, 30.0)
 const PLANTER_HEIGHT := 0.22
 const KERB_WIDTH := 0.23
@@ -31,8 +33,18 @@ func _build_extension(land: Rect2) -> void:
 		Rect2(land.position, Vector2(land.size.x, CORE.position.y - land.position.y)),
 		Rect2(land.position.x, CORE.position.y, CORE.position.x - land.position.x, CORE.size.y),
 		Rect2(CORE.end.x, CORE.position.y, land.end.x - CORE.end.x, CORE.size.y),
-		Rect2(land.position.x, CORE.end.y, land.size.x, land.end.y - CORE.end.y),
 	]
+	if get_parent().has_node("River"):
+		# Each river strip has its own opening through both stone and bedding.
+		for span: Array in Terraces.data["river"]["spans"]:
+			var x := float(span[0])
+			var width := float(span[1]) - x
+			var north := maxf(CORE.end.y, float(span[2]) - 0.85)
+			var south := float(span[3]) + 0.85
+			strips.append(Rect2(x, CORE.end.y, width, north - CORE.end.y))
+			strips.append(Rect2(x, south, width, land.end.y - south))
+	else:
+		strips.append(Rect2(land.position.x, CORE.end.y, land.size.x, land.end.y - CORE.end.y))
 	var pavers := SurfaceTool.new()
 	pavers.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var bedding := _solid_material(Color("927f6a"))
@@ -41,7 +53,7 @@ func _build_extension(land: Rect2) -> void:
 			continue
 		_append_polygon(pavers, _corners(strip), -0.001)
 		_box(self, "LimestoneBedding", strip, -0.115, 0.19, bedding)
-	_add_surface("LimestoneExtension", pavers, _stone(Color("b4a189"), Color("96846f")))
+	_add_surface("LimestoneExtension", pavers, _stone(Color("b4a189"), Color("96846f")), true)
 
 
 func _build_streets() -> void:
@@ -70,7 +82,8 @@ func _build_streets() -> void:
 		_append_kerbs(kerbs, road["outline"], road["centerline"], footprints)
 	var setts := ShaderMaterial.new()
 	setts.shader = RoadSettsShader
-	_add_surface("StreetSetts", paving, setts)
+	setts.set_shader_parameter("highlight_strength", TileStyle.HIGHLIGHT_STRENGTH)
+	_add_surface("StreetSetts", paving, setts, true)
 	var edging := _solid_material(Color.WHITE)
 	edging.vertex_color_use_as_albedo = true
 	edging.vertex_color_is_srgb = true
@@ -190,7 +203,8 @@ func _append_polygon(surface: SurfaceTool, points: PackedVector2Array, height: f
 		surface.add_vertex(Vector3(point.x, height, point.y))
 
 
-func _add_surface(label: String, surface: SurfaceTool, material: Material) -> void:
+func _add_surface(label: String, surface: SurfaceTool, material: Material,
+		local_highlights := false) -> void:
 	var mesh := surface.commit()
 	if mesh == null:
 		return
@@ -199,6 +213,8 @@ func _add_surface(label: String, surface: SurfaceTool, material: Material) -> vo
 	node.mesh = mesh
 	node.material_override = material
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if local_highlights:
+		node.set_meta(&"local_mesh_highlights", true)
 	add_child(node, true)
 
 
@@ -219,6 +235,7 @@ func _stone(stone: Color, mortar: Color) -> ShaderMaterial:
 	material.shader = StoneShader
 	material.set_shader_parameter("stone", stone)
 	material.set_shader_parameter("mortar", mortar)
+	material.set_shader_parameter("highlight_strength", TileStyle.HIGHLIGHT_STRENGTH)
 	return material
 
 

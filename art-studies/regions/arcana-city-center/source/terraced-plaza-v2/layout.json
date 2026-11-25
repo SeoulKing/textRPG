@@ -1,0 +1,62 @@
+{
+  "bounds": [-24, -34, 40, 30],
+  "terraces": [
+    {"id": "market_terrace", "rect": [-22, -24, 11, -17], "height": 1.2},
+    {"id": "residential_terrace", "rect": [-22, -33, 11, -24], "height": 2.4}
+  ],
+  "stairs": [
+    {"id": "west_lower", "rect": [-19, -17, -16, -12], "low": 0, "high": 1.2},
+    {"id": "west_upper", "rect": [-19, -24, -16, -20], "low": 1.2, "high": 2.4},
+    {"id": "east_lower", "rect": [8, -17, 11, -15.2], "low": 0, "high": 1.2},
+    {"id": "east_upper", "rect": [8, -24, 11, -20], "low": 1.2, "high": 2.4}
+  ],
+  "paved_areas": [
+    {"id": "Honey limestone square", "points": [[-12,3],[-3,-2],[5,-1.5],[12,3.5],[10.2,10.5],[3.4,13.8],[-4,13.8],[-11,11]], "base": 0.026, "height": 0.045},
+    {"id": "School forecourt", "points": [[16,-16],[32,-16],[32,-7],[16,-7]], "base": 0, "height": 0.031}
+  ],
+  "buildings": [
+    {"id": "inn", "rect": [-10.602, -5.24, -1.798, 0.44], "base": 0, "wall": 4.2, "roof": 2.5, "color": "#48717f", "kind": "inn"},
+    {"id": "shop", "rect": [-0.3, -14, 10.5, -8.6], "base": 0, "wall": 3.5, "roof": 2.5, "color": "#50877a", "kind": "shop"},
+    {"id": "restaurant", "rect": [-13.5, -16.5, -7.5, -11.5], "base": 0, "wall": 3.15, "roof": 2.0, "color": "#a85c4c", "kind": "restaurant"},
+    {"id": "home", "rect": [3.5, -3, 9.32, 1.66], "base": 0, "wall": 3.3, "roof": 2.2, "color": "#78876b", "kind": "home"},
+    {"id": "academy", "rect": [12, -26, 36, -16], "base": 0, "wall": 5.5, "roof": 3.2, "color": "#4c6885", "kind": "academy"},
+    {"id": "upper_west_house", "rect": [-21, -32, -15, -27], "base": 2.4, "wall": 3.0, "roof": 1.8, "color": "#8b7164", "kind": "rowhouse"},
+    {"id": "upper_green_house", "rect": [-14.5, -31.5, -8.5, -26.5], "base": 2.4, "wall": 4.1, "roof": 2.0, "color": "#687e65", "kind": "rowhouse"},
+    {"id": "upper_blue_house", "rect": [-7.5, -32.5, -1, -27], "base": 2.4, "wall": 3.5, "roof": 2.2, "color": "#557584", "kind": "rowhouse"},
+    {"id": "upper_east_house", "rect": [0, -32, 6.5, -26.5], "base": 2.4, "wall": 3.3, "roof": 1.7, "color": "#a87658", "kind": "rowhouse"},
+    {"id": "west_workshop", "rect": [-22, -7, -16, -2], "base": 0, "wall": 3.4, "roof": 1.9, "color": "#9a6c58", "kind": "rowhouse"},
+    {"id": "west_corner_house", "rect": [-22.6, 1.5, -16.1, 6.5], "base": 0, "wall": 3.7, "roof": 2.1, "color": "#5b7985", "kind": "rowhouse"},
+    {"id": "east_corner_house", "rect": [23, 1, 31, 6.5], "base": 0, "wall": 3.7, "roof": 1.9, "color": "#8a7c65", "kind": "rowhouse"},
+    {"id": "east_garden_house", "rect": [32, 3, 37, 8.5], "base": 0, "wall": 3.2, "roof": 1.75, "color": "#677f76", "kind": "rowhouse"}
+  ],
+  "roads": [
+    {"points": [[0,30], [0,9.65]], "width": 5},
+    {"points": [[3.45,4.7], [14.2,4.7], [18.5,1.8], [24,-5], [24,-15.3]], "width": 4},
+    {"points": [[0.85,2.27], [0.85,-7]], "width": 3},
+    {"points": [[-10.5,-10.8], [-10.5,-7], [5.1,-7], [5.1,-8.1]], "width": 3},
+    {"points": [[0.85,2.27], [-6.2,2.27], [-6.2,1.434]], "width": 3},
+    {"points": [[6.41,4.7], [6.41,2.36]], "width": 2},
+    {"points": [[-2.8,8.6], [-3.55,9.36]], "width": 2}
+  ],
+  "lanes": [
+    {"points": [[-17.5,-12], [-17.5,-11], [-14.5,-9], [-10.5,-7]], "width": 2.5, "height": 0},
+    {"points": [[9.5,-15.2], [11.2,-15.2], [13,-13], [16,-8], [18.5,1.8]], "width": 1.6, "height": 0},
+    {"points": [[-19,-1.6], [-19,0.1], [-14,0.1], [-13,3.6], [-10,4.2]], "width": 1.6, "height": 0},
+    {"points": [[-19.35,6.8], [-19.35,8.2], [-15,8.2], [-10.5,8.2]], "width": 1.8, "height": 0},
+    {"points": [[34.5,8.8], [34.5,10.8], [27,10.8], [22,8], [18.5,1.8]], "width": 1.8, "height": 0},
+    {"points": [[27,6.8], [27,10.8]], "width": 1.8, "height": 0},
+    {"points": [[-17.5,-17], [-17.5,-19], [9.5,-19], [9.5,-17]], "width": 3, "height": 1.2},
+    {"points": [[-17.5,-24], [-17.5,-25.5], [9.5,-25.5], [9.5,-24]], "width": 2, "height": 2.4}
+  ],
+  "water": [
+    {"id": "north_star", "center": [0, 5.925], "radius": 2.25},
+    {"id": "fishing_pond", "center": [-6.75, 9.5], "radius": 2.85}
+  ],
+  "notes": [
+    {"number": 1, "title": "북극성 분수광장", "text": "±0.0 · 남문 5칸 큰길에서 분수로", "point": [0, 5.925]},
+    {"number": 2, "title": "상점가와 연못", "text": "±0.0 · 가게 앞 3칸 길과 연못 쉼터", "point": [-7, -7]},
+    {"number": 3, "title": "시장 테라스", "text": "+1.2 · 양쪽 계단을 잇는 노점 거리", "point": [1,-19]},
+    {"number": 4, "title": "언덕 주거 골목", "text": "+2.4 · 낮은 주택과 분수 쪽 전망", "point": [-2,-25.5]},
+    {"number": 5, "title": "아카데미 앞마당", "text": "±0.0 · 4칸 학교길로 정문까지", "point": [24,-12]}
+  ]
+}

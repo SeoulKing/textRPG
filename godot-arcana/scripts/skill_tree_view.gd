@@ -5,6 +5,46 @@ signal invest_requested(node_id: String)
 signal reset_requested
 signal close_requested
 const Icon = preload("res://scripts/quickslot_icon.gd")
+const NODE_TEXTURES := {
+	"fireball": {
+		"power": preload("res://art/export/skills/fireball-power.png"),
+		"range": preload("res://art/export/skills/fireball-range.png"),
+		"haste": preload("res://art/export/skills/fireball-haste.png"),
+		"burst": preload("res://art/export/skills/fireball-burst.png"),
+		"reach": preload("res://art/export/skills/fireball-reach.png"),
+		"master": preload("res://art/export/skills/fireball-master.png"),
+	},
+	"flame_wave": {
+		"power": preload("res://art/export/skills/flame-wave-power.png"),
+		"economy": preload("res://art/export/skills/flame-wave-economy.png"),
+		"haste": preload("res://art/export/skills/flame-wave-haste.png"),
+		"focus": preload("res://art/export/skills/flame-wave-focus.png"),
+		"control": preload("res://art/export/skills/flame-wave-control.png"),
+		"burst": preload("res://art/export/skills/flame-wave-burst.png"),
+		"reach": preload("res://art/export/skills/flame-wave-reach.png"),
+		"burst_power": preload("res://art/export/skills/flame-wave-burst-power.png"),
+		"burst_haste": preload("res://art/export/skills/flame-wave-burst-haste.png"),
+		"reach_power": preload("res://art/export/skills/flame-wave-reach-power.png"),
+		"reach_economy": preload("res://art/export/skills/flame-wave-reach-economy.png"),
+		"burst_final": preload("res://art/export/skills/flame-wave-burst-final.png"),
+		"reach_final": preload("res://art/export/skills/flame-wave-reach-final.png"),
+	},
+	"flame_guard": {
+		"power": preload("res://art/export/skills/flame-guard-power.png"),
+		"economy": preload("res://art/export/skills/flame-guard-economy.png"),
+		"haste": preload("res://art/export/skills/flame-guard-haste.png"),
+		"focus": preload("res://art/export/skills/flame-guard-focus.png"),
+		"control": preload("res://art/export/skills/flame-guard-control.png"),
+		"burst": preload("res://art/export/skills/flame-guard-burst.png"),
+		"reach": preload("res://art/export/skills/flame-guard-reach.png"),
+		"burst_power": preload("res://art/export/skills/flame-guard-burst-power.png"),
+		"burst_haste": preload("res://art/export/skills/flame-guard-burst-haste.png"),
+		"reach_power": preload("res://art/export/skills/flame-guard-reach-power.png"),
+		"reach_economy": preload("res://art/export/skills/flame-guard-reach-economy.png"),
+		"burst_final": preload("res://art/export/skills/flame-guard-burst-final.png"),
+		"reach_final": preload("res://art/export/skills/flame-guard-reach-final.png"),
+	},
+}
 const INK = Color("26364d")
 const MUTED = Color("586779")
 const BLUE = Color("2789d8")
@@ -111,9 +151,14 @@ func _build_node(node: Dictionary) -> void:
 		selected_id = id
 		_update_detail()
 		_restyle_nodes())
-	# Existing spell textures are deliberately reused as temporary icons.
-	var icon = Icon.new()
-	icon.kind = str(node.id) if str(node.id) in ["meteor","giant_fireball","flame_barrage"] else str(spell.get("id","fireball"))
+	var spell_id := str(spell.get("id", "fireball"))
+	var upgrades: Dictionary = NODE_TEXTURES.get(spell_id, {})
+	var icon := TextureRect.new()
+	icon.texture = upgrades.get(id, Icon.texture_for(id if node.get("specialization") == "ultimate" else spell_id))
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	icon.offset_left = 5
 	icon.offset_top = 4

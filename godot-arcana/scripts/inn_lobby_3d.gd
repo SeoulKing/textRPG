@@ -2,7 +2,6 @@ extends Node3D
 
 const Coordinates = preload("res://scripts/native_2d_coordinates.gd")
 const WorldDisplay = preload("res://scripts/services/world_display_settings.gd")
-const ActorOutline = preload("res://art/resources/shop_hero_outline.gdshader")
 const RoomModel = preload("res://art/source/inn-lobby-blender/inn-lobby.glb")
 const InnPreset := preload("res://scripts/rendering/inn_shader_preset.gd")
 const TileLayout := preload("res://scripts/inn_tile_layout.gd")
@@ -54,9 +53,12 @@ const SEAT_HEIGHTS := {
 @onready var room: Node3D = $Room
 @onready var camera: Camera3D = $Camera3D
 @onready var innkeeper: Sprite3D = get_node_or_null("Innkeeper") as Sprite3D
-@onready var hearth_light: OmniLight3D = $HearthLight
+@onready var _key_light: DirectionalLight3D = $Lighting/KeyLight
+@onready var hearth_light: OmniLight3D = $Lighting/HearthLight
 @onready var avatar: Sprite3D = $Avatar
-@onready var _local_lights: Array[OmniLight3D] = [$HearthLight, $ReceptionLight, $LoungeLight, $ExitLight]
+@onready var _local_lights: Array[OmniLight3D] = [
+	hearth_light, $Lighting/ReceptionLight, $Lighting/LoungeLight, $Lighting/ExitLight,
+]
 var camera_texel_offset := Vector2.ZERO
 var presentation_minimum := 2
 var _floor := Rect2()
@@ -158,9 +160,9 @@ func configure(layout_root: Node2D, source_bounds: Rect2) -> bool:
 		_group(item).position += offsets[item]
 	var counter_offset: Vector3 = room.basis * offsets.get("Reception_counter", Vector3.ZERO)
 	innkeeper.position += Vector3(counter_offset.x, 0.0, counter_offset.z)
-	_adjust_light($HearthLight, "01_Limestone_hearth", hearth_before)
-	_adjust_light($ReceptionLight, "Reception_counter", reception_before)
-	_adjust_light($LoungeLight, "Lamp_table_sofa_arm", lounge_before)
+	_adjust_light(hearth_light, "01_Limestone_hearth", hearth_before)
+	_adjust_light($Lighting/ReceptionLight, "Reception_counter", reception_before)
+	_adjust_light($Lighting/LoungeLight, "Lamp_table_sofa_arm", lounge_before)
 	_hearth_energy = hearth_light.light_energy
 	_flame = _group("01_Limestone_hearth").get_node_or_null("Hearth_flame_pivot") as Node3D
 	for id: String in CLICK_TARGETS:
@@ -224,23 +226,39 @@ func apply_approved_rendering(pixel_style_experiment: bool = false) -> bool:
 	_approved_preset = InnPreset.load_approved() as InnPreset
 	var tile_style := _uses_tile_world_style()
 	camera.rotation_degrees = TileStyle.CAMERA_ROTATION_DEGREES if tile_style else _approved_preset.camera_rotation_degrees()
-	avatar.scale.y = InnPreset.AVATAR_UPRIGHT_SCALE
 	var render_preset := _approved_preset
 	_experimental_pixel_style = (tile_style or pixel_style_experiment) and _approved_preset.effect_enabled
 	if _experimental_pixel_style:
 		render_preset = _approved_preset.tile_world_variant() as InnPreset
 		if _tiled_inn or pixel_style_experiment:
 			_apply_inn_atmosphere()
+	var tile_art := TileArt.new()
+	# Fit and rebuild furniture before the renderer captures the source meshes.
+	if _tiled_inn and not tile_art.fit_layout(self):
+		return false
+	# The inn has already fitted its authored scene to the grid. Size live actors in world units.
+	if tile_style:
+		TileStyle.apply_avatar_size(avatar)
+		if is_instance_valid(innkeeper):
+			TileStyle.apply_avatar_size(innkeeper)
+	else:
+		avatar.scale.y = InnPreset.AVATAR_UPRIGHT_SCALE
+	if is_instance_valid(_flame):
+		_flame.set_meta(&"local_mesh_highlights", true)
 	_pixel_effect = render_preset.attach_effect(self, camera)
 	if tile_style:
 		avatar.rotation.y = camera.rotation.y
 		if is_instance_valid(innkeeper):
 			innkeeper.rotation.y = camera.rotation.y
+			innkeeper.material_override = TileStyle.actor_material(innkeeper.texture, false)
 		_projected_tile_bounds = TileStyle.projected_bounds(camera.basis, _world_style_bounds())
 	if not _tiled_inn:
 		return true
-	if not TileArt.new().apply(self):
+	# The tile walls reuse the toon palette from the original room materials.
+	if not tile_art.build_structure(self):
 		return false
+	# The grid and duplicated west sconces reuse the converted palette.
+	_pixel_effect.include_geometry(room)
 	for id: String in CLICK_TARGETS:
 		_click_bounds[id] = _mesh_bounds(_group(CLICK_TARGETS[id])).grow(0.07)
 	_click_bounds["exit"] = AABB(Vector3(6, 0, 9), Vector3(2, 0.8, 2))
@@ -255,9 +273,9 @@ func _apply_inn_atmosphere() -> void:
 		environment.background_color = Color("24282f")
 	camera.environment = environment
 	# Let the hearth and reception lamp carry the warm highlights.
-	$CeilingLight.light_energy *= 0.9
+	_key_light.light_energy *= 0.9
 	_hearth_energy *= 1.12
-	$ReceptionLight.light_energy *= 1.10
+	$Lighting/ReceptionLight.light_energy *= 1.10
 
 
 func presentation_pixel_size(zoom_ratio: float, viewport_height: float = 0.0) -> int:
@@ -286,7 +304,8 @@ func sync(world: Node, source: Node, zoom_ratio: float, pixelated: bool, visible
 	if tile_style:
 		texel_size = TileStyle.world_texel_size(zoom_ratio)
 	var height := texel_size * visible_size.y
-	var focus := _space(world.player_position, InnPreset.AVATAR_HEIGHT * 0.5)
+	var actor_height := TileStyle.AVATAR_HEIGHT if tile_style else InnPreset.AVATAR_HEIGHT
+	var focus := _space(world.player_position) + Vector3.UP * actor_height * 0.5
 	if tile_style:
 		focus = TileStyle.clamp_focus(camera.basis, focus, _projected_tile_bounds, visible_size * texel_size)
 	else:
@@ -300,7 +319,7 @@ func sync(world: Node, source: Node, zoom_ratio: float, pixelated: bool, visible
 		camera_texel_offset = WorldDisplay.snap_orthographic_camera(camera, desired, texel_size, raster_size)
 	else:
 		camera.position = desired
-	$CeilingLight.shadow_enabled = world.effects_enabled
+	_key_light.shadow_enabled = world.effects_enabled
 	for light in _local_lights:
 		light.visible = world.effects_enabled
 	_sync_hearth(world.time, world.effects_enabled, world.reduced_motion)
@@ -373,8 +392,7 @@ func _sync_actor_material(sprite: Sprite3D, source: Node, texture: Texture2D) ->
 		return
 	var material := sprite.material_override as ShaderMaterial
 	if material == null:
-		material = ShaderMaterial.new()
-		material.shader = ActorOutline
+		material = TileStyle.actor_material(texture, true)
 		sprite.material_override = material
 	material.set_shader_parameter("avatar_texture", texture)
 	material.set_shader_parameter("outline_screen_pixels", 1.0 if presentation_minimum > 0 else 0.0)

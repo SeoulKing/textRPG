@@ -1,5 +1,7 @@
 @tool
 extends Node2D
+const MAX_CAST_DISTANCE := 64
+
 static func _box(node: Node2D, rect: Rect2) -> Dictionary:
     var a: Vector2 = node.to_global(rect.position)/4.0
     var b: Vector2 = node.to_global(rect.end)/4.0
@@ -37,7 +39,7 @@ func cast_target(point: Vector2, heading: Vector2) -> Dictionary:
 static func cast_over_water(point: Vector2, heading: Vector2, wet: Callable) -> Dictionary:
     if heading.length_squared()<.001 or wet.call(point): return {}
     var direction: Vector2 = heading.normalized()
-    for distance in range(16,65,2):
+    for distance in range(16, MAX_CAST_DISTANCE + 1, 2):
         var target: Vector2 = point+direction*float(distance)
         if wet.call(target) and wet.call(target+direction*6.0):
             return {"x":target.x,"y":target.y}

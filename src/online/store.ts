@@ -75,7 +75,8 @@ export class OnlineStore {
         } catch (error) { await client.query("rollback").catch(() => undefined); throw error; }
         finally { client.release(); }
       }
-      const draft = structuredClone(this.disk);
+      // Transaction reads and writes clone each value at the boundary.
+      const draft: DiskState = { records: { ...this.disk.records }, games: { ...this.disk.games } };
       const changed: GameSession[] = [];
       let dirty = false;
       const key = (kind: string,id: string) => JSON.stringify([kind,id]);

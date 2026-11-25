@@ -1,6 +1,6 @@
 ---
 name: godot-arcana-development
-description: Develop and troubleshoot this repository's Godot Arcana client using its Godot 4.5.1, web export, server integration, and editor-authored scene constraints. Use for Godot implementation and planning; consult existing art and narrative guides for those disciplines.
+description: Develop and troubleshoot this repository's Godot Arcana client, including its graphics and text modes, editor-authored scenes, server integration, and pinned web export. Use for Arcana Godot implementation and planning.
 ---
 
 # Godot 아르카나 개발
@@ -10,8 +10,8 @@ description: Develop and troubleshoot this repository's Godot Arcana client usin
 ## 먼저 확인할 경계
 
 - 저장소 루트의 `AGENTS.md`, 관련 `.agents/LESSONS.md` 항목, `GAME_DEVELOPMENT_PRINCIPLES.md`를 따릅니다. 테스트 실행 여부도 기존 사용자 선호를 따릅니다.
-- `godot-arcana/project.godot`과 `scripts/build-godot-arcana.ps1`에서 실제 엔진 버전을 확인합니다. 조사 당시 엔진은 4.5.1이며, 문서 주소의 `stable`이나 외부 예제의 최신 버전을 프로젝트 버전으로 간주하지 않습니다.
-- 새 API를 쓰기 전에 아래 공식 4.5 문서나 해당 버전 클래스 문서를 확인합니다. 학습을 이유로 엔진 업그레이드·렌더러 변경·서버 상태 초기화를 수행하지 않습니다.
+- 편집기 작업 시 Godot AI `session_manage(list)`의 프로젝트 경로와 `godot_version`을 확인합니다. `project.godot`의 `config/features`에는 주·부 버전이 표시됩니다. 웹 작업 시 `scripts/build-godot-arcana.ps1`이 호출하는 `scripts/build-arcana-online.ps1`에서 내보내기 엔진과 템플릿 버전을 확인합니다.
+- 새 API를 쓰기 전에 대상 엔진 버전의 공식 클래스 문서를 확인합니다. 웹에도 쓰이는 코드라면 웹 내보내기 엔진의 지원 여부를 함께 확인합니다.
 
 ## 작업별 진입점
 
@@ -20,7 +20,10 @@ description: Develop and troubleshoot this repository's Godot Arcana client usin
 | 시작·서버 통신·저장 | `godot-arcana/scripts/main.gd`, `godot-arcana/web-shell.html` | HTTP 요청과 JavaScript 브리지, 저장 경로를 구별합니다. |
 | 배치·문·충돌·이동 | `godot-arcana/main.tscn`, `godot-arcana/scenes/plaza.tscn`, `godot-arcana/scripts/world.gd` | 사용자와 같은 편집 장면을 원본으로 삼습니다. |
 | 3D 표시·가림·도트 렌더 | `godot-arcana/scripts/pixel3d_world.gd`, `GRAPHICS_AGENT.md` | 2D 판정과 3D 표시 사이의 기존 좌표 변환을 확인합니다. |
-| HUD·터치·메뉴 | `godot-arcana/scripts/game_ui.gd`, `godot-arcana/project.godot` | UI 배율과 월드 픽셀 배율을 구별합니다. |
+| 그래픽 HUD·공용 메뉴·터치 | `godot-arcana/scripts/game_ui.gd`, `godot-arcana/project.godot` | HUD와 월드의 배율 설정을 각각 확인합니다. |
+| 텍스트 모드 상태바·본문·탐색 | `godot-arcana/scripts/simplified_view.gd`, `godot-arcana/scripts/simplified_play.gd` | 화면 구성은 `simplified_view.gd`, 모드 전환과 상태 연결은 `simplified_play.gd`에서 확인합니다. |
+| 텍스트 모드 하단 탭 창 | `godot-arcana/scripts/game_ui.gd` | `open_tab_panel()`이 배경, 제목, 닫기 버튼과 창 크기를 관리합니다. 목록은 `content`에 넣고, 지도·소지품처럼 자체 배치가 필요한 본문은 `show_tab_body()`에 전달합니다. |
+| 온라인 세계 날짜·시계 | `src/online/world.ts`, `src/game/base-data.ts`, `godot-arcana/scripts/simplified_view.gd` | 서버의 `worldElapsedMs`는 실제 경과 시간으로 누적합니다. 전투 업데이트에는 별도의 시간 상한을 적용합니다. 하루 길이를 바꿀 때는 `REAL_DAY_MS`를 사용하는 날짜 계산과 Godot 시계 표시를 함께 확인합니다. |
 | 전투·스킬 | `godot-arcana/scripts/arcana_spatial.gd`, `src/game/arcana-spatial.ts`, `src/game/arcana-spells.ts` | 서버 판정과 클라이언트 연출의 책임을 확인합니다. |
 | 웹 빌드·리소스 누락 | `godot-arcana/export_presets.cfg`, `scripts/build-godot-arcana.ps1` | 편집기 성공과 내보낸 패키지 성공을 구별합니다. |
 
@@ -56,7 +59,9 @@ description: Develop and troubleshoot this repository's Godot Arcana client usin
 
 ### UI·픽셀 월드·애니메이션
 
-현재 기준은 `384 × 824`, `canvas_items`, `expand`, nearest 텍스처 필터입니다. 기준 크기를 고정 화면비로 해석하지 않습니다. `Control`의 앵커·오프셋과 컨테이너를 사용해 가변 크기에 대응하고, 월드의 저해상도 출력·정수 확대와 HUD·한글의 읽기 좋은 해상도를 구별합니다. 컨테이너가 관리하는 자식 위치를 수동 지정하는 경우 재배치 영향을 확인합니다.
+모드별 기준 화면은 `docs/roles/DEVELOPMENT.md`를 따릅니다. 실제 화면 크기는 `project.godot`의 초기 뷰포트와 `main.gd`의 창 크기 변경 처리를 함께 확인합니다. `Control`의 앵커·오프셋과 컨테이너를 사용해 가변 크기에 대응하고, 월드의 저해상도 출력·정수 확대와 HUD의 배율을 각각 확인합니다.
+
+텍스트 모드 상태바 행의 높이는 `simplified_view.gd`의 `_build_status()`에서 정합니다. 여백을 줄일 때는 행의 최소 높이와 게이지·시계·소지금이 요구하는 높이를 함께 봅니다. 게임이 이미 열려 있으면 Godot AI `game_manage(get_ui_elements)`로 표시 중인 모드와 런타임 크기를 읽을 수 있습니다. 플레이 중 편집기 쓰기가 거부되면 사용자 세션을 유지하고 원본 스크립트를 수정한 뒤, 현재 화면에 변경을 적용하려면 다시 실행해야 한다고 안내합니다.
 
 `AnimationPlayer`는 트랙을 보관하고 `AnimationTree`는 그 애니메이션들의 전환·블렌딩을 제어합니다. 단순 동작에 불필요한 트리를 도입하지 않습니다. 시전·걷기·피격은 게임 상태와 연출 상태를 구별하고, 방향·손 위치·발 기준점·취소 시점을 함께 다룹니다. 그래픽 제작은 `GRAPHICS_AGENT.md`에서 대상 가이드로 이동합니다.
 
@@ -66,7 +71,7 @@ description: Develop and troubleshoot this repository's Godot Arcana client usin
 
 Godot 4.5 웹은 WebAssembly와 WebGL 2.0, Compatibility 렌더러를 전제로 합니다. 이 버전의 C# 프로젝트는 웹 내보내기를 지원하지 않습니다. 단일 스레드 웹과 멀티 스레드 웹의 호스팅 조건을 구별하며, 멀티 스레드의 SharedArrayBuffer·격리 헤더 조건을 단일 스레드에 그대로 적용하지 않습니다.
 
-이 프로젝트는 `variant/thread_support=false`와 동일 엔진 버전의 `web_nothreads_release.zip`을 함께 사용합니다. 템플릿과 옵션을 따로 바꾸지 않습니다. Sample 방식 웹 오디오는 효과 등 기능 제한이 있으므로 오디오 연출 추가 때 재생 방식을 확인합니다.
+웹 내보내기 스크립트는 Godot 4.5.1과 같은 버전의 `web_nothreads_release.zip`을 고정하며, `variant/thread_support=false`를 사용합니다. 웹 구문이나 API 호환성은 내보내기 엔진을 기준으로 확인합니다. Sample 방식 웹 오디오는 효과 등 기능 제한이 있으므로 오디오 연출 추가 때 재생 방식을 확인합니다.
 
 새 이미지의 가져오기가 끝나기 전에 `preload` 성공을 가정하지 않습니다. 편집기 플러그인이 웹 빌드를 막으면 `.agents/LESSONS.md`의 확인된 런타임 사본 경로를 참고합니다. `scripts/export-fixed-legs.ps1`은 고유 stage를 만들지만 출력은 공용 `godot-web/index.html`이므로 병렬 실행에 안전하다고 가정하지 않습니다.
 

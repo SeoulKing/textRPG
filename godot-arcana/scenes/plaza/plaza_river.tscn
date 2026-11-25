@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/source/plaza-south-river/south-river.glb" id="1_model"]
+[ext_resource type="Script" path="res://scenes/plaza/plaza_river.gd" id="2_river"]
+[ext_resource type="Shader" path="res://art/resources/plaza_river_water.gdshader" id="3_shader"]
+[ext_resource type="Texture2D" path="res://art/export/river-pixel-v5/base.res" id="4_base"]
+[ext_resource type="Texture2D" path="res://art/export/river-pixel-v5/highlights.res" id="5_highlights"]
+
+[sub_resource type="ShaderMaterial" id="Material_river"]
+resource_local_to_scene = true
+shader = ExtResource("3_shader")
+shader_parameter/water_base = ExtResource("4_base")
+shader_parameter/highlights = ExtResource("5_highlights")
+
+[node name="River" type="Node3D"]
+script = ExtResource("2_river")
+water_material = SubResource("Material_river")
+
+[node name="Model" parent="." instance=ExtResource("1_model")]

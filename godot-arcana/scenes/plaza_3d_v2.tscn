@@ -24,6 +24,7 @@
 [ext_resource type="Script" path="res://scripts/rendering/plaza_streets.gd" id="20_streets"]
 [ext_resource type="PackedScene" path="res://scenes/props/plaza/restaurant_exterior_3d.tscn" id="21_restaurant"]
 [ext_resource type="PackedScene" path="res://art/source/plaza-academy-blender/academy-exterior.glb" id="22_academy"]
+[ext_resource type="PackedScene" path="res://scenes/rendering/world_key_light.tscn" id="23_key_light"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_plaza"]
 size = Vector2(64, 64)
@@ -43,6 +44,7 @@ size = Vector2(8.4, 8.4)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pond_stone"]
 shader = ExtResource("16_pond_stone")
+metadata/arcana_edge_cull_mode = 0
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_pond_bank"]
 material = SubResource("ShaderMaterial_pond_stone")
@@ -86,13 +88,13 @@ size = Vector3(7.2, 1.5, 3.6)
 size = Vector3(6.2, 5.5, 4)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_player_home"]
-size = Vector3(5.82, 4.64, 4.66)
+size = Vector3(8.26, 8.12, 6.99)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_restaurant"]
-size = Vector3(6, 2.65, 5)
+size = Vector3(9.6, 5.3, 6.5)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_academy"]
-size = Vector3(24, 8, 10)
+size = Vector3(28.08, 13.44, 12)
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.2
@@ -168,7 +170,7 @@ roads = Array[Dictionary]([{
 "centerline": PackedVector2Array(0.85, 2.27, -6.2, 2.27, -6.2, 1.434),
 "width": 3.0
 }, {
-"centerline": PackedVector2Array(6.41, 4.7, 6.41, 2.36),
+"centerline": PackedVector2Array(7.63, 4.7, 7.63, 2.36),
 "width": 2.0
 }, {
 "centerline": PackedVector2Array(-2.8, 8.6, -3.55, 9.36),
@@ -282,41 +284,43 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.7)
 position = Vector3(6.41, 0, -0.92)
 
 [node name="Exterior" parent="PlayerHome" instance=ExtResource("18_home")]
+position = Vector3(1.22, 0, -1.29)
+scale = Vector3(1.42, 1.75, 1.5)
 
 [node name="DoorFill" type="OmniLight3D" parent="PlayerHome"]
-position = Vector3(0.66, 1.67, 2.35)
+position = Vector3(2.16, 2.92, 2.24)
 light_color = Color(1, 0.76, 0.48, 1)
 light_energy = 0.47
-omni_range = 2.85
+omni_range = 3.8
 omni_attenuation = 1.4
 
 [node name="Collision" type="StaticBody3D" parent="PlayerHome"]
 
 [node name="Footprint" type="CollisionShape3D" parent="PlayerHome/Collision"]
-position = Vector3(0, 2.32, 0.25)
+position = Vector3(1.22, 4.06, -0.915)
 shape = SubResource("BoxShape3D_player_home")
 
 [node name="InteractionPoint" type="Marker3D" parent="PlayerHome"]
-position = Vector3(0, 0, 3.28)
+position = Vector3(1.22, 0, 3.28)
 
 [node name="Restaurant" type="Node3D" parent="."]
 position = Vector3(-10.5, 0, -14)
 
 [node name="Exterior" parent="Restaurant" instance=ExtResource("21_restaurant")]
-position = Vector3(0, 0, -0.36)
-scale = Vector3(1, 1, 0.82)
+position = Vector3(0, 0, -1.145)
+scale = Vector3(1.6, 2, 1.18)
 
 [node name="DoorFill" type="OmniLight3D" parent="Restaurant"]
-position = Vector3(0, 1.42, 2.64)
+position = Vector3(0, 2.84, 2.64)
 light_color = Color(1, 0.76, 0.47, 1)
 light_energy = 0.46
-omni_range = 3.05
+omni_range = 4.2
 omni_attenuation = 1.4
 
 [node name="Collision" type="StaticBody3D" parent="Restaurant"]
 
 [node name="Footprint" type="CollisionShape3D" parent="Restaurant/Collision"]
-position = Vector3(0, 1.325, 0)
+position = Vector3(0, 2.65, -0.75)
 shape = SubResource("BoxShape3D_restaurant")
 
 [node name="InteractionPoint" type="Marker3D" parent="Restaurant"]
@@ -326,18 +330,20 @@ position = Vector3(0, 0, 3.2)
 position = Vector3(24, 0, -21)
 
 [node name="Exterior" parent="Academy" instance=ExtResource("22_academy")]
+position = Vector3(0, 0, -1)
+scale = Vector3(1.17, 1.68, 1.2)
 
 [node name="DoorFill" type="OmniLight3D" parent="Academy"]
-position = Vector3(0, 2.75, 5.36)
+position = Vector3(0, 4.62, 5.43)
 light_color = Color(1, 0.81, 0.53, 1)
 light_energy = 0.42
-omni_range = 5.6
+omni_range = 7
 omni_attenuation = 1.42
 
 [node name="Collision" type="StaticBody3D" parent="Academy"]
 
 [node name="Footprint" type="CollisionShape3D" parent="Academy/Collision"]
-position = Vector3(0, 4, 0)
+position = Vector3(0, 6.72, -1)
 shape = SubResource("BoxShape3D_academy")
 
 [node name="InteractionPoint" type="Marker3D" parent="Academy"]
@@ -355,16 +361,17 @@ shape = SubResource("CapsuleShape3D_player")
 [node name="Hero" type="Node3D" parent="Player" unique_id=882008342]
 script = ExtResource("6_hero")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=253841232]
+[node name="ActorShadows" type="Node3D" parent="."]
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting" unique_id=253841232]
 environment = SubResource("Environment_plaza")
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=214911360]
+[node name="KeyLight" parent="Lighting" unique_id=214911360 instance=ExtResource("23_key_light")]
 transform = Transform3D(0.7880108, 0.49168915, -0.37051436, 0, 0.60181504, 0.79863554, 0.6156615, -0.62933344, 0.47423673, 0, 0, 0)
 light_color = Color(1, 0.95, 0.86, 1)
 light_energy = 0.58
-shadow_enabled = true
-shadow_blur = 0.0
-directional_shadow_max_distance = 48.0
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=412278376]
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, -0.5, 18, 13.5)

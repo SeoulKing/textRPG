@@ -9,8 +9,8 @@ import { ARCANA_SHOP_GOODS } from "../game/arcana-shop";
 import { CAMPFIRES, FOODS } from "./life";
 import { OnlineStore } from "./store";
 
-import { ArcanaItemMasterSchema, ArcanaThumbnailSchema, ArcanaItemCategorySchema, type ArcanaItemMaster } from "../game/schemas/arcana-item";
-const AssetSchema=z.object({category:ArcanaItemCategorySchema,equipmentSlot:z.literal("lifeTool").optional(),thumbnail:ArcanaThumbnailSchema});
+import { ArcanaItemMasterSchema, ArcanaThumbnailSchema, ArcanaItemCategorySchema, ArcanaItemEquipmentSlotSchema, type ArcanaItemMaster } from "../game/schemas/arcana-item";
+const AssetSchema=z.object({category:ArcanaItemCategorySchema,equipmentSlot:ArcanaItemEquipmentSlotSchema.optional(),thumbnail:ArcanaThumbnailSchema});
 const StoredSchema=z.object({schemaVersion:z.literal(1),fingerprint:z.string(),updatedAt:z.string(),item:ArcanaItemMasterSchema});
 const KIND="arcana_item_master";
 const hash=(value:unknown)=>crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");

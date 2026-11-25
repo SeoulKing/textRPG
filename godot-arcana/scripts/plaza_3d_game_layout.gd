@@ -4,7 +4,7 @@ extends Node2D
 const SCENE := "res://scenes/plaza_3d_v2.tscn"
 const ORIGIN := Vector2(2048.0, 2048.0)
 const UNIT := 16.0
-const FishingGeometry = preload("res://scripts/river_fishing_geometry.gd")
+const Terraces = preload("res://scripts/plaza_terraces.gd")
 
 class Placement extends Node2D:
 	var gameplay_id := ""
@@ -36,19 +36,24 @@ class Placement extends Node2D:
 	func map_entrance(_layout: Node = null) -> Dictionary:
 		return {}
 
+var loaded_from_scene := false
+var terraced := false
+var pond_water := Rect2()
 var _placements: Array[Placement] = []
 var _bounds := Rect2()
 var _home := Vector2.ZERO
-var _pond_water := Rect2()
 
 
-func _init() -> void:
+func _init(scene_path: String = SCENE) -> void:
 	# Read saved properties without creating visual meshes, preview controls or lights.
-	var packed := load(SCENE) as PackedScene
+	var packed := load(scene_path) as PackedScene
+	if packed == null: return
 	var state := packed.get_state()
+	terraced = _has_node(state, ^"River") and _has_node(state, ^"TerracedMarket")
 	var ground := _transform(state, "Ground")
 	var plane := _property(state, "Ground", &"mesh") as PlaneMesh
 	var capsule := _property(state, "Player/Footprint", &"shape") as CapsuleShape3D
+	if plane == null or capsule == null: return
 	var floor_size := plane.size * UNIT
 	_bounds = Rect2(to_logical(ground.origin) - floor_size / 2.0, floor_size).grow(-capsule.radius * UNIT)
 	_home = to_logical(_transform(state, "MochiSlime").origin)
@@ -100,13 +105,16 @@ func _init() -> void:
 
 	var fountain := _add_placement(containers, "Fountain", "fountain", _transform(state, "Fountain"))
 	fountain.round_shape = _round_footprint(state, "Fountain", fountain.anchor)
+	if not terraced:
+		if not _has_node(state, ^"FishingPond/Water"): return
+		var pond := _add_placement(containers, "FishingPond", "pond", _transform(state, "FishingPond"))
+		pond.round_shape = _round_footprint(state, "FishingPond", pond.anchor)
+		var water_transform := pond.anchor * _transform(state, "FishingPond/Water")
+		var water := _property(state, "FishingPond/Water", &"mesh") as CylinderMesh
+		if water == null: return
+		pond_water = _logical_floor_rect(water_transform * water.get_aabb())
+	loaded_from_scene = true
 
-	var pond := _add_placement(containers, "FishingPond", "pond", _transform(state, "FishingPond"))
-	pond.round_shape = _round_footprint(state, "FishingPond", pond.anchor)
-	var water_transform := pond.anchor * _transform(state, "FishingPond/Water")
-	var water := _property(state, "FishingPond/Water", &"mesh") as CylinderMesh
-	var surface_bounds := water_transform * water.get_aabb()
-	_pond_water = Rect2(to_logical(surface_bounds.position), Vector2(surface_bounds.size.x, surface_bounds.size.z) * UNIT)
 
 
 static func to_world(point: Vector2, height: float = 0.0) -> Vector3:
@@ -123,21 +131,53 @@ func walk_bounds() -> Rect2:
 
 
 func fishing_geometry() -> Dictionary:
-	return {"mode": "pond", "water": [{"x": _pond_water.position.x, "y": _pond_water.position.y,
-		"w": _pond_water.size.x, "h": _pond_water.size.y}], "excluded": []}
+	if not terraced:
+		return {"mode": "pond", "water": [_export_rect(pond_water)], "excluded": []}
+	var water: Array[Dictionary] = []
+	for section: Rect2 in Terraces.water:
+		water.append(_export_box(section))
+	return {"mode": "river", "profile": "plaza", "water": water, "excluded": [_export_box(Terraces.bridge)]}
 
 
-func pond_water_bounds() -> Rect2:
-	return _pond_water
+func _export_box(section: Rect2) -> Dictionary:
+	return _export_rect(_map_rect(section))
 
 
-func pond_water_at(point: Vector2) -> bool:
-	var offset := (point - _pond_water.get_center()) / (_pond_water.size * 0.5)
+func _export_rect(r: Rect2) -> Dictionary:
+	return {"x": r.position.x, "y": r.position.y, "w": r.size.x, "h": r.size.y}
+
+
+func _map_rect(section: Rect2) -> Rect2:
+	return Rect2(ORIGIN + section.position * UNIT, section.size * UNIT)
+
+
+func river_fishing_access() -> Vector2:
+	return ORIGIN + Terraces.fishing_access * UNIT
+
+
+func water_at(point: Vector2) -> bool:
+	if terraced: return Terraces.wet((point - ORIGIN) / UNIT)
+	var offset := (point - pond_water.get_center()) / (pond_water.size * 0.5)
 	return offset.length_squared() < 1.0
 
 
 func cast_target(point: Vector2, heading: Vector2) -> Dictionary:
-	return FishingGeometry.cast_over_water(point, heading, pond_water_at)
+	if not terraced:
+		return preload("res://scripts/river_fishing_geometry.gd").cast_over_water(point, heading, water_at)
+	if heading.length_squared() < 0.001 or water_at(point) or _map_rect(Terraces.bridge).has_point(point):
+		return {}
+	var direction := heading.normalized()
+	var landing: Dictionary = {}
+	var reach := 64
+	for distance in range(16, 65, 2):
+		if distance > reach: break
+		var target := point + direction * distance
+		if not water_at(target) or not water_at(target + direction * 6.0):
+			if not landing.is_empty(): break
+			continue
+		if landing.is_empty(): reach = mini(reach, distance + 24)
+		landing = {"x": target.x, "y": target.y}
+	return landing
 
 
 func combat_home() -> Vector2:
@@ -161,7 +201,11 @@ func material_at(_point: Vector2) -> int:
 
 
 func wall_collision_rects() -> Array[Rect2]:
-	return []
+	var result: Array[Rect2] = []
+	if not terraced: return result
+	for section: Rect2 in Terraces.blockers:
+		result.append(_map_rect(section))
+	return result
 
 
 func _round_footprint(state: SceneState, path: String, anchor: Transform3D) -> Dictionary:
@@ -217,6 +261,12 @@ func _transform(state: SceneState, path: String) -> Transform3D:
 	var basis := Basis.from_euler(rotation if rotation is Vector3 else Vector3.ZERO)
 	basis = basis.scaled_local(scale_value if scale_value is Vector3 else Vector3.ONE)
 	return Transform3D(basis, position if position is Vector3 else Vector3.ZERO)
+
+
+func _has_node(state: SceneState, path: NodePath) -> bool:
+	for index in state.get_node_count():
+		if str(state.get_node_path(index)).trim_prefix("./") == str(path): return true
+	return false
 
 
 func _property(state: SceneState, path: String, key: StringName) -> Variant:

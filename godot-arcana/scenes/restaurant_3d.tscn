@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://art/source/restaurant-brunch/architecture/window-harbor-quay.glb" id="6_quay"]
 [ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/kitchen-task-lantern.glb" id="7_lantern"]
 [ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/entry-rug.glb" id="8_entry"]
+[ext_resource type="PackedScene" path="res://scenes/rendering/world_key_light.tscn" id="key_light"]
 
 [sub_resource type="Environment" id="Environment_restaurant"]
 background_mode = 1
@@ -64,35 +65,36 @@ current = true
 size = 14.4
 far = 70.0
 
-[node name="CeilingLight" type="DirectionalLight3D" parent="."]
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="KeyLight" parent="Lighting" instance=ExtResource("key_light")]
 rotation = Vector3(-0.80, -1.82, 0)
 light_color = Color(1, 0.94, 0.83, 1)
 light_energy = 0.66
-shadow_enabled = true
 directional_shadow_max_distance = 36.0
 
-[node name="HearthLight" type="OmniLight3D" parent="."]
+[node name="HearthLight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(4.5, 0.72, 3.34)
 light_color = Color(1, 0.62, 0.35, 1)
 light_energy = 0.8
 omni_range = 3.6
 omni_attenuation = 1.4
 
-[node name="ReceptionLight" type="OmniLight3D" parent="."]
+[node name="ReceptionLight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(9, 2.55, 4.45)
 light_color = Color(1, 0.86, 0.67, 1)
 light_energy = 0.58
 omni_range = 5.4
 omni_attenuation = 1.3
 
-[node name="LoungeLight" type="OmniLight3D" parent="."]
+[node name="LoungeLight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(2.1, 2.55, 6)
 light_color = Color(1, 0.90, 0.72, 1)
 light_energy = 0.45
 omni_range = 6.8
 omni_attenuation = 1.5
 
-[node name="ExitLight" type="OmniLight3D" parent="."]
+[node name="ExitLight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(7.1, 1.8, 11.35)
 light_color = Color(1, 0.88, 0.69, 1)
 light_energy = 0.34

@@ -3,6 +3,8 @@ import math
 import bpy
 from mathutils import Vector
 
+from furniture import READING_TABLE_TOP
+
 
 TAU = math.tau
 
@@ -363,12 +365,12 @@ def build_magic(api):
         _lantern(f"Rear sconce {i}", x, 1.28, 2.47, 0.80, brass, glass, flame, lanterns, 20, wall=True)
     for name, x, y, z in [
         ("Reception desk lamp", 5.12, 15.72, 1.08),
-        ("Library window table lamp", 4.95, 5.48, 0.80),
-        ("Library inner table lamp", 3.05, 9.92, 0.80),
+        ("Library window table lamp", 4.95, 5.48, READING_TABLE_TOP),
+        ("Library inner table lamp", 3.05, 9.92, READING_TABLE_TOP),
         ("Practice workbench lamp", 22.34, 3.38, 1.01),
     ]:
         _desk_lamp(name, x, y, z, brass, glass, lanterns)
-    _build_quill(api, 3.79, 5.45, 1.02, magic)
+    _build_quill(api, 3.79, 5.45, READING_TABLE_TOP + 0.22, magic)
     _build_lens(api, 20.70, 3.37, 1.70, brass, magic)
     _plant(api, 2.0, 16.29, accents)
 

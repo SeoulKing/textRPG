@@ -5,6 +5,7 @@ real-scale copy. Open player-home-real-scale.blend to export its edited layers.
 Pass the names of specific layers after Blender's `--` to export only those.
 """
 
+from math import ceil
 from pathlib import Path
 import random
 import sys
@@ -23,6 +24,8 @@ from export_inn import pack_group
 
 ORIGIN_X, ORIGIN_Z = 3.0, 4.0
 WIDTH, DEPTH = 9.0, 6.25
+BATH_WIDTH, BATH_START_Z = 2.35, 4.02
+FLOOR_TILE_SIZE = 1.0
 EXTERIOR = 0.20
 CUT = 0.57
 NEAR_CUT = 0.30
@@ -105,35 +108,42 @@ def build_floor(base, plank_materials, stone, slate, mortar):
     block(base, "Slate foundation rail", -0.215, WIDTH + 0.215, -0.215, DEPTH + 0.215,
           -0.135, -0.085, slate, 0.009)
     block(base, "Oak plank subfloor", 0.0, WIDTH, 0.0, DEPTH, -0.08, -0.031, mortar)
-    palette = [matte(f"Library Lane bath | slate tile {i}", shade) for i, shade in enumerate(
-        ("8BABA2", "75978F", "83A39C", "87A8A2", "70918F"))]
+    palette = bath_floor_materials()
     grout = matte("Library Lane bath | stone joints", "607974")
-    block(base, "Bath stone bed", 0.0, 2.35, 4.02, DEPTH, -0.031, -0.002, grout)
-
-    rng = random.Random(7065)
-    bands = (0.0, 4.02, DEPTH)
-    for first, last in zip(bands, bands[1:]):
-        rows = round((last - first) / 0.24)
-        for row in range(rows):
-            z0 = first + (last - first) * row / rows
-            z1 = first + (last - first) * (row + 1) / rows
-            x = 2.35 if first >= 4.02 else 0.0
-            while x < WIDTH:
-                end = min(WIDTH, x + rng.uniform(0.46, 1.47))
-                if end > WIDTH - 0.225:
-                    end = WIDTH
-                block(base, "Staggered oak plank", x + .002, end - .002, z0 + .002, z1 - .002,
-                      -0.035, 0.0, rng.choice(plank_materials), 0.004)
-                x = end
-
-    for row in range(7):
-        z0 = 4.02 + (DEPTH - 4.02) * row / 7
-        z1 = 4.02 + (DEPTH - 4.02) * (row + 1) / 7
-        for column in range(8):
-            x0, x1 = 2.35 * column / 8, 2.35 * (column + 1) / 8
-            block(base, "Blue-green bath flagstone", x0 + .004, x1 - .004, z0 + .004, z1 - .004,
-                  -0.025, 0.004, rng.choice(palette), 0.004)
+    block(base, "Bath stone bed", 0.0, BATH_WIDTH, BATH_START_Z, DEPTH, -0.031, -0.002, grout)
+    build_floor_tiles(base, plank_materials, palette)
     return palette
+
+
+def bath_floor_materials():
+    shades = ("8BABA2", "75978F", "83A39C", "87A8A2", "70918F")
+    names = [f"Library Lane bath | slate tile {index}" for index in range(len(shades))]
+    return [bpy.data.materials.get(name) or matte(name, shade) for name, shade in zip(names, shades)]
+
+
+def build_floor_tiles(base, oak_materials, bath_materials):
+    rng = random.Random(7065)
+
+    def oak_tile(x0, x1, z0, z1):
+        block(base, "Oak floor tile", x0 + .002, x1 - .002, z0 + .002, z1 - .002,
+              -0.035, 0.0, rng.choice(oak_materials), 0.004)
+
+    # Share the inn's unit grid. Trim edge cells where the floor or bathroom ends.
+    for row in range(ceil(DEPTH / FLOOR_TILE_SIZE)):
+        z0, z1 = row * FLOOR_TILE_SIZE, min((row + 1) * FLOOR_TILE_SIZE, DEPTH)
+        for column in range(ceil(WIDTH / FLOOR_TILE_SIZE)):
+            x0, x1 = column * FLOOR_TILE_SIZE, min((column + 1) * FLOOR_TILE_SIZE, WIDTH)
+            if x0 >= BATH_WIDTH or z1 <= BATH_START_Z:
+                oak_tile(x0, x1, z0, z1)
+                continue
+
+            bath_x1, bath_z0 = min(x1, BATH_WIDTH), max(z0, BATH_START_Z)
+            if z0 < bath_z0:
+                oak_tile(x0, x1, z0, bath_z0)
+            if bath_x1 < x1:
+                oak_tile(bath_x1, x1, bath_z0, z1)
+            block(base, "Blue-green bath flagstone", x0 + .004, bath_x1 - .004,
+                  bath_z0 + .004, z1 - .004, -0.025, 0.004, rng.choice(bath_materials), 0.004)
 
 
 def build():

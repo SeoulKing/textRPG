@@ -454,6 +454,7 @@ function pruneState(state: unknown): GameState {
     money: normalizeInt(rawState.money, 0, 0),
     skills: normalizeStringArray(rawState.skills),
     skillProgress: normalizeSkillProgress(rawState.skillProgress),
+    arcanaAbilities: GameStateSchema.shape.arcanaAbilities.parse(rawState.arcanaAbilities ?? (nextFlags.in_magic_world ? {} : undefined)),
     arcanaLife: GameStateSchema.shape.arcanaLife.parse(rawState.arcanaLife),
     arcanaCombat: normalizeArcanaCombat(rawState.arcanaCombat),
     activeClock: ActiveClockSchema.catch({ ownerId: null, heartbeatAt: 0, sequence: 0, paused: true }).parse(rawState.activeClock),

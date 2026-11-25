@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://0lpw1jk4rksl"]
+[gd_scene load_steps=27 format=3 uid="uid://0lpw1jk4rksl"]
 
 [ext_resource type="Script" uid="uid://c1gyjens0d8le" path="res://scripts/shop_world_3d.gd" id="1_8fw3c"]
 [ext_resource type="Script" uid="uid://pl70fhcfe8pe" path="res://scripts/shop_room_geometry_3d.gd" id="2_nd6qd"]
@@ -22,6 +22,7 @@
 [ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/front-right-wall.glb" id="front-right-wall"]
 [ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/entrance.glb" id="entrance"]
 [ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/sun-shadow-casters.glb" id="sun-shadow-casters"]
+[ext_resource type="PackedScene" path="res://scenes/rendering/world_key_light.tscn" id="key_light"]
 
 [sub_resource type="Environment" id="Environment_3uwl5"]
 background_mode = 1
@@ -147,32 +148,26 @@ cast_shadow = 0
 extra_cull_margin = 16384.0
 mesh = SubResource("QuadMesh_edges")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="KeyLight" parent="Lighting" instance=ExtResource("key_light")]
 transform = Transform3D(-0.22414759, 0.44053513, -0.86930245, 1.4901163e-08, 0.8919991, 0.4520371, 0.97455525, 0.10132301, -0.19993946, 0, 0, 0)
 light_color = Color(1, 0.9490196, 0.85490197, 1)
 light_energy = 0.58
-shadow_enabled = true
 directional_shadow_max_distance = 48.0
 
-[node name="OverheadFill" type="OmniLight3D" parent="."]
+[node name="OverheadFill" type="OmniLight3D" parent="Lighting"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 8.73645, 8.5)
 light_color = Color(1, 0.7411765, 0.5058824, 1)
 light_energy = 1.2
 light_specular = 0.0
-shadow_enabled = true
-shadow_bias = 0.035
-shadow_normal_bias = 0.12
-shadow_caster_mask = 4294705151
 omni_range = 18.5
 
-[node name="CrateAccentLight" type="OmniLight3D" parent="."]
+[node name="CrateAccentLight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(15.77, 1.65, 9.48)
 light_color = Color(1, 0.84, 0.59, 1)
 light_energy = 0.72
 light_specular = 0.0
-shadow_enabled = true
-shadow_bias = 0.035
-shadow_normal_bias = 0.12
 omni_range = 4.6
 
 [node name="Actors" type="Node3D" parent="."]

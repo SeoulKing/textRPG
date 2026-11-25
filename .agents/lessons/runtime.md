@@ -21,3 +21,4 @@
 
 | 독립 캐릭터 8방향 리그 | 정상 E와 다른 방향의 옛 FK·새 파츠·화면 발목 제한을 섞으면 정강이 그림 반전과 최대 약143도 발 방향 손실이 생겼습니다. | 활성 공통 인체와 재추출·보간 규칙은 godot-character-animation/AGENTS.md를 따릅니다. 실제 AnimationLibrary 참조와 런타임 텍스처를 먼저 구분하며, 이전 후보를 다시 활성화하지 않습니다. | 공통 인체·투영 컨트롤러 또는 캐릭터 제작 방식이 바뀔 때 |
 | Godot 네이티브 로컬 접속 | 같은 4.5.1 실행에서 localhost:3000은 HTTPRequest RESULT_TIMEOUT(13), 127.0.0.1:3000은 HTTP 200으로 확인됐습니다. | 네이티브 로컬 기본 주소는 IPv4 루프백을 사용하고 웹은 location.origin을 유지합니다. 서버 건강 응답과 Godot 요청을 분리해 주소 해석 문제를 코드·저장 오류로 오인하지 않습니다. | 대상 Windows 환경에서 localhost의 Godot HTTP 요청이 정상화되거나 외부 서버 주소를 설정할 때 |
+| 제작실 Sites 소스 준비 | Windows에서 일반 셸의 Git 조회는 되는데 사이트 도구가 Git metadata is unreadable로 종료된 경우, 게시 계정에서 실행한 Git이 실제로 dubious ownership을 보고했습니다. | 게시 계정에서 선택한 사이트의 최상위 경로를 확인한 뒤 해당 프로세스에만 그 경로 하나의 safe.directory를 지정해 원래 체크아웃을 엽니다. | 계정과 체크아웃 소유자가 일치하거나 진단이 다른 원인을 보일 때 |

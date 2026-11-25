@@ -39,7 +39,18 @@ uniform float specular_cutoff : hint_range(0.35, 0.98) = 0.791;
 uniform vec3 band_thresholds = vec3(0.12, 0.32, 0.57);
 uniform vec3 band_increments = vec3(0.19, 0.24, 0.35);
 
+#ifdef ARCANA_INN_FLOOR
+uniform float floor_lip_width = 0.03125;
+uniform float floor_lip_strength = 0.0;
+varying highp vec2 floor_tile_position;
+varying float floor_top_face;
+#endif
+
 void vertex() {
+#ifdef ARCANA_INN_FLOOR
+	floor_tile_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
+	floor_top_face = NORMAL.y;
+#endif
 	// Match BaseMaterial3D's vertex-color conversion in linear renderers.
 	if (use_vertex_color && vertex_color_is_srgb && !OUTPUT_IS_SRGB) {
 		COLOR.rgb = mix(pow((COLOR.rgb + vec3(0.055)) / 1.055, vec3(2.4)),
@@ -56,6 +67,14 @@ void fragment() {
 	if (use_vertex_color) {
 		color *= COLOR.rgb;
 	}
+#ifdef ARCANA_INN_FLOOR
+	// Each joint has one bright lip, independent of the tile's grain rotation.
+	highp vec2 distance_to_lip = vec2(1.0) - fract(floor_tile_position);
+	highp vec2 footprint = max(fwidth(floor_tile_position), vec2(0.0001));
+	vec2 coverage = clamp((vec2(floor_lip_width) - distance_to_lip) / footprint + 0.5, 0.0, 1.0);
+	float lip = max(coverage.x, coverage.y) * step(0.99, floor_top_face);
+	color = mix(color, vec3(1.0), floor_lip_strength * lip);
+#endif
 	ALBEDO = color;
 	// Opaque surfaces deliberately never write ALPHA.
 	ROUGHNESS = surface_roughness;

@@ -1,4 +1,6 @@
 shader_type canvas_item;
+#include "res://art/resources/world_art_highlight.gdshaderinc"
+uniform float highlight_strength : hint_range(0.0, 1.0) = 0.0;
 uniform sampler2D avatar_texture : source_color, filter_nearest, repeat_disable;
 uniform vec2 sheet_grid = vec2(1.0);
 uniform vec2 frame_cell = vec2(0.0);
@@ -20,7 +22,14 @@ void vertex() {
 void fragment() {
  vec2 uv = (frame_cell + UV) / sheet_grid;
  vec4 c = texture(avatar_texture, uv);
- vec2 texel = max(1.0 / vec2(textureSize(avatar_texture, 0)), fwidth(uv));
+ vec2 source_texel = 1.0 / vec2(textureSize(avatar_texture, 0));
+ if (highlight_strength > 0.0 && c.a > 0.5) {
+  vec2 first = frame_cell / sheet_grid + source_texel * 0.5;
+  vec4 left = texture(avatar_texture, max(first, uv - vec2(source_texel.x, 0.0)));
+  vec4 above = texture(avatar_texture, max(first, uv - vec2(0.0, source_texel.y)));
+  c.rgb = mix(c.rgb, vec3(1.0), world_art_highlight_mask(c, left, above) * highlight_strength);
+ }
+ vec2 texel = max(source_texel, fwidth(uv));
  if (model_outline && c.a < 1.0) {
   vec2 dx = vec2(texel.x, 0.0);
   vec2 dy = vec2(0.0, texel.y);

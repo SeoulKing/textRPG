@@ -5,6 +5,7 @@ import { validateBoard, selectTask } from '../scripts/studio/engine.mjs';
 import { approvalDigest, assertGoalReady, assertTaskAuthorized } from '../scripts/studio/protocol.mjs';
 import { createIntakeSchema, normalizeIntake } from '../scripts/studio/mission-intake.mjs';
 import { derivePublicationIntent, verifyPublicationIntent } from '../scripts/studio/publication-intent.mjs';
+import { resolveExecution } from '../scripts/studio/model-policy.mjs';
 
 // 실행은 사용자 요청 때만 수행합니다: node --test tests/studio-mission-intake.test.mjs
 // 이 파일은 모델·서버·브라우저를 호출하거나 실제 제작 원장을 변경하지 않습니다.
@@ -55,6 +56,68 @@ function instructionFixture(overrides = {}) {
     tasks: [taskFixture()], ...overrides,
   };
 }
+
+test('시각 지시의 좁은 미술 위임, 본편 진입점, 시안 선행과 편집기 잠금을 유지합니다', () => {
+  const scene = 'godot-arcana/scenes/town.tscn';
+  const art = 'art-studies/town';
+  const request = instructionFixture();
+  request.goal.scope = { read: [scene], write: [art, scene] };
+  request.goal.visualContract = { direction: '광장 분위기를 정리합니다.', mainEntry: scene, artScope: [art] };
+  const make = (id, stage, organization, dependsOn, write, extra = {}) => taskFixture(id, { visualStage: stage, organization, dependsOn,
+    scope: { read: [scene, art], write }, ...extra });
+  request.tasks = [
+    make('plan','direction','design',[],[]),
+    make('concept','concept','world',['plan'],[art + '/study.png'], { capabilities: ['art'] }),
+    make('model','asset','world',['plan','concept'],[art], { capabilities: ['art'], productionMethod: 'blender', surface: 'app' }),
+    make('place','integration','world',['model'],[scene,art + '/placed.png'], { productionMethod: 'godot', surface: 'app' }),
+    make('photo','final_capture','quality',['place'],[art + '/final.png']),
+  ];
+  const value = normalizeIntake(boardFixture(), request, commandFixture());
+  assert.equal(value.goal.studioWorkflow, 'autonomous-v1');
+  assert.equal(value.goal.approval.newArt, true);
+  assert.deepEqual(value.goal.approval.allowedChecks, []);
+  assert.equal(value.tasks[4].mainEntry, 'godot-arcana/project.godot');
+  assert.equal(value.tasks[4].targetScene, scene);
+  assert.deepEqual(value.tasks[2].resourceLocks, ['editor:blender']);
+  assert.deepEqual(value.tasks[3].resourceLocks, ['editor:godot-arcana']);
+  assert.equal(value.tasks[2].status,'ready');
+  request.tasks[2].dependsOn = ['plan'];
+  assert.throws(() => normalizeIntake(boardFixture(), request, commandFixture()), /시안/);
+  request.tasks[2].dependsOn.push('concept');
+  request.tasks[2].scope.write.push(scene);
+  assert.throws(() => normalizeIntake(boardFixture(), request, commandFixture()), /위임된/);
+});
+
+test('신규 양식의 독립 지시와 기존 목표 명시 보완을 구분합니다', () => {
+  const board = boardFixture();
+  const request = instructionFixture({ mode: 'existing_goal', goal: null, existingGoalId: 'COOK', tasks: [
+    taskFixture('menu', { visualStage: null, scope: { read: ['src/cooking'], write: ['src/cooking/menu.mjs'] } }),
+  ] });
+  const fresh = normalizeIntake(board, request, commandFixture({ text: '요리 메뉴를 정리해 주세요.' }));
+  assert.equal(fresh.mode, 'new_goal');
+  assert.equal(fresh.goal.studioWorkflow, 'autonomous-v1');
+  const existing = normalizeIntake(board, request, commandFixture({ text: '기존 COOK 목표에 요리 메뉴를 추가해 주세요.' }));
+  assert.equal(existing.goal.id, 'COOK');
+  assert.equal(existing.goal.studioWorkflow, undefined);
+});
+
+test('총괄과 시각 검토가 서빙 목록의 입력 지원 및 추론 강도에 따라 배정됩니다', () => {
+  const board = boardFixture(), goal = board.goals[0];
+  goal.studioWorkflow = 'autonomous-v1';
+  goal.visualContract = { direction: '시안 검토' };
+  const task = { organization: 'world', goalId: goal.id, visualStage: 'asset', productionMethod: 'blender' };
+  const entry = (model, inputModalities, efforts) => ({ model, inputModalities, supportedReasoningEfforts: efforts.map((reasoningEffort) => ({ reasoningEffort })) });
+  const models = [entry('gpt-6.2-astra',['text','image'],['high','xhigh']),entry('gpt-6.1-terra',['text','image'],['high','ultra'])];
+  assert.equal(resolveExecution(board, task, 'producer', { models }).reasoningEffort, 'ultra');
+  assert.equal(resolveExecution(board, task, 'reviewer', { models }).reasoningEffort, 'xhigh');
+  assert.equal(resolveExecution(board, null, 'director', { models, goalId: goal.id }).reasoningEffort, 'high');
+  models[0].inputModalities = ['text'];
+  assert.equal(resolveExecution(board, task, 'reviewer', { models }).model, 'gpt-6.1-terra');
+  assert.throws(() => resolveExecution(board, task, 'reviewer', { models: models.slice(0,1) }), /지원/);
+  delete goal.visualContract;
+  assert.equal(resolveExecution(board, null, 'director', { models: models.slice(1), goalId: goal.id }).model, 'gpt-6.1-terra');
+  assert.equal(resolveExecution(board, { goalId: goal.id, organization: 'design' }, 'producer').profile, 'standard');
+});
 
 function appendIntake(board, intake) {
   const candidate = structuredClone(board);

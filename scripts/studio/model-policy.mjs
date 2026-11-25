@@ -1,5 +1,5 @@
 const FALLBACK = { profile: 'standard', model: 'gpt-6.1-terra', reasoningEffort: 'medium', reason: '모델 정책이 없는 이전 원장의 호환 기본값입니다.' };
-const MODELS = new Set(['gpt-6-luna', 'gpt-6.1-terra', 'gpt-6.1-sol']);
+const MODELS = new Set(['gpt-6-luna', 'gpt-6.1-terra', 'gpt-6.1-sol', 'gpt-6.2-astra']);
 const EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'ultra']);
 const modelId = (value) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/.test(value);
 const effortId = (value) => typeof value === 'string' && /^[a-z][a-z0-9_-]{0,31}$/.test(value);
@@ -36,10 +36,39 @@ export function validateModelPolicy(settings, organizations) {
   }
 }
 
-export function resolveExecution(board, task = null, phase = 'producer') {
+export function resolveExecution(board, task = null, phase = 'producer', { models, goalId = task?.goalId } = {}) {
   if (!['producer', 'reviewer', 'director'].includes(phase)) throw new Error('모델 선택 단계가 올바르지 않습니다.');
   const role = phase === 'director' ? 'director' : phase === 'reviewer' ? 'quality' : task?.organization;
   if (!role) throw new Error('모델을 선택할 담당 조직이 필요합니다.');
+  const goal = board.goals?.find((item) => item.id === goalId);
+  if (goal?.studioWorkflow === 'autonomous-v1') {
+    const visualReview = goal.visualContract && (phase === 'reviewer' && task?.visualStage || phase === 'producer' && task?.visualStage === 'visual_review');
+    const direction = phase === 'director' || phase === 'producer' && role === 'director';
+    const modeling = phase === 'producer' && task?.productionMethod === 'blender';
+    if (visualReview || direction || modeling) {
+      const model = modeling ? 'gpt-6.1-terra' : 'gpt-6.2-astra';
+      const reasoningEffort = modeling ? 'ultra' : visualReview ? 'xhigh' : 'high';
+      const profile = modeling ? 'blender-modeling' : visualReview ? 'visual-review' : 'studio-direction';
+      const selection = { role, profile, model, reasoningEffort, reason: modeling ? 'Blender 모델링 배정입니다.' : visualReview ? '실제 이미지 독립 시각 검토입니다.' : '총괄 방향 결정 및 최종 인수 배정입니다.' };
+      const needsVision = Boolean(goal.visualContract && !modeling);
+      if (!models?.length) return selection;
+      const options = models.filter((item) => !item.hidden && (needsVision ? item.inputModalities?.includes('image') : (item.inputModalities ?? ['text']).includes('text')));
+      const supports = (item, effort) => item.supportedReasoningEfforts?.some((entry) => (entry.reasoningEffort ?? entry.effort) === effort);
+      if (options.some((item) => (item.model ?? item.id) === model && supports(item, reasoningEffort))) return selection;
+      if (modeling) throw new Error('현재 계정에서 Blender 모델링 배정인 Terra Ultra를 지원하지 않습니다.');
+      const defaultId = board.settings.modelPolicy?.departmentDefaults?.[role]?.model;
+      const policy = board.settings.modelPolicy;
+      const organizationId = policy?.profiles?.[policy.organizations?.[role]]?.model;
+      const preferred = [defaultId, organizationId, model, 'gpt-6.1-terra', 'gpt-6.1-sol'].filter(Boolean);
+      const byPreference = (item) => { const index = preferred.indexOf(item.model ?? item.id); return index === -1 ? preferred.length : index; };
+      options.sort((a, b) => byPreference(a) - byPreference(b));
+      for (const effort of [...new Set([reasoningEffort, 'high', 'medium', 'low'])]) {
+        const fallback = options.find((item) => supports(item, effort));
+        if (fallback) return { ...selection, model: fallback.model ?? fallback.id, reasoningEffort: effort, reason: '계정 목록에서 ' + (needsVision ? '이미지' : '텍스트') + ' 입력과 추론 강도를 확인한 대체 배정입니다.' };
+      }
+      throw new Error('현재 계정에서 필요한 입력과 추론 강도를 지원하는 총괄·검토 모델이 없습니다.');
+    }
+  }
   const override = phase === 'director' ? undefined : task?.[phase === 'reviewer' ? 'reviewModelProfile' : 'modelProfile'];
   let reason = phase === 'director' ? undefined : task?.[phase === 'reviewer' ? 'reviewModelReason' : 'modelReason'];
   if (override !== undefined && !nonempty(reason)) throw new Error('작업별 모델 변경 이유가 필요합니다: ' + task.id + ' / ' + phase);

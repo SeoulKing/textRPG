@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://me7lhhsf1o3a" path="res://art/source/inn-lobby-blender/inn-lobby.glb" id="1_lobby"]
 [ext_resource type="Texture2D" uid="uid://covnn24u7y5nm" path="res://art/export/innkeeper/innkeeper.png" id="2_innkeeper"]
 [ext_resource type="Script" uid="uid://dldft4oiyfp4h" path="res://scripts/inn_lobby_3d.gd" id="3_runtime"]
+[ext_resource type="PackedScene" path="res://scenes/rendering/world_key_light.tscn" id="key_light"]
 
 [sub_resource type="Environment" id="Environment_lobby"]
 background_mode = 1
@@ -112,31 +113,32 @@ current = true
 size = 15.93
 far = 70.0
 
-[node name="CeilingLight" type="DirectionalLight3D" parent="." unique_id=1813487866]
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="KeyLight" parent="Lighting" unique_id=1813487866 instance=ExtResource("key_light")]
 transform = Transform3D(0.8290376, 0.48908114, -0.27110207, 0, 0.48480958, 0.8746197, 0.5591929, -0.72509265, 0.40192538, 0, 0, 0)
 light_color = Color(1, 0.95, 0.88, 1)
 light_energy = 0.46
-shadow_enabled = true
 
-[node name="HearthLight" type="OmniLight3D" parent="." unique_id=1093809541]
+[node name="HearthLight" type="OmniLight3D" parent="Lighting" unique_id=1093809541]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.580034, 0.85, -3.8378174)
 light_color = Color(1, 0.72, 0.46, 1)
 light_energy = 1.75
 omni_range = 4.7
 omni_attenuation = 1.35
 
-[node name="ReceptionLight" type="OmniLight3D" parent="." unique_id=2068053612]
+[node name="ReceptionLight" type="OmniLight3D" parent="Lighting" unique_id=2068053612]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.452778, 1.68, -1.9511496)
 light_color = Color(1, 0.76, 0.44, 1)
 light_energy = 1.05
 omni_range = 3.15
 
-[node name="LoungeLight" type="OmniLight3D" parent="." unique_id=1076138314]
+[node name="LoungeLight" type="OmniLight3D" parent="Lighting" unique_id=1076138314]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.124923, 1.041958, 0.5964313)
 light_color = Color(1, 0.82, 0.56, 1)
 omni_range = 3.3
 
-[node name="ExitLight" type="OmniLight3D" parent="." unique_id=2064062689]
+[node name="ExitLight" type="OmniLight3D" parent="Lighting" unique_id=2064062689]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 4.85)
 light_color = Color(1, 0.72, 0.42, 1)
 light_energy = 0.8

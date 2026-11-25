@@ -32,6 +32,7 @@ import { conditionCards } from "./health-conditions";
 import { forecastShelterSleep } from "./rules";
 import { createHash, randomUUID } from "node:crypto";
 import { acceptSpatialPosition } from "./arcana-spatial";
+import { buildArcanaAbilities, initializeArcanaAbilities } from "./arcana-abilities";
 import { buildArcanaSpells } from "./arcana-spells";
 import { buildArcanaActions, buildArcanaScene, ensureArcanaEncounter, performArcanaAction } from "./arcana-combat";
 import { advanceGameMinutes, performWorldClockAction } from "./rules";
@@ -172,7 +173,7 @@ function nowIso() {
 }
 
 export function syncItemCardWithRuntimeDefinition(
-  card: ItemCard,
+  card: ItemCard | undefined,
   itemId: string,
   registry: ContentRegistry,
 ): ItemCard {
@@ -184,8 +185,8 @@ export function syncItemCardWithRuntimeDefinition(
   return ItemCardSchema.parse({
     ...runtimeItem,
     id: itemId,
-    source: card.source,
-    generatedAt: card.generatedAt,
+    source: card?.source ?? "template",
+    generatedAt: card?.generatedAt ?? "static",
   });
 }
 
@@ -1487,7 +1488,7 @@ export class GameService {
     await this.repository.saveGame(session);
     const result = {
       gameId,
-      inventoryCards: playerItemIds(session.state).map((itemId) => session.world.itemCards[itemId]),
+      inventoryCards: playerItemIds(session.state).flatMap((itemId) => session.world.itemCards[itemId] ?? []),
       inventoryLights: inventoryLightControls(session.state),
       money: session.state.money,
     };
@@ -1817,6 +1818,8 @@ export class GameService {
       }
     }
 
+    if (!registry.items[itemId]) return;
+
     const cardRaw = await this.templateGenerator.generateItemCard(itemId, {
       ...this.generatorInput(session, false, registry),
     });
@@ -1837,15 +1840,8 @@ export class GameService {
   }
 
   private buildItemCatalog(registry: ContentRegistry): ItemCard[] {
-    return Object.values(registry.items)
-      .map((item) => {
-        const staticItem = item as Omit<ItemCard, "source" | "generatedAt">;
-        return ItemCardSchema.parse({
-          ...staticItem,
-        source: "template",
-        generatedAt: "static",
-        });
-      })
+    return Object.keys(registry.items)
+      .map((itemId) => syncItemCardWithRuntimeDefinition(undefined, itemId, registry))
       .sort((left, right) => {
         const kindCompare = left.kind.localeCompare(right.kind);
         return kindCompare !== 0 ? kindCompare : left.name.localeCompare(right.name);
@@ -2193,6 +2189,9 @@ export class GameService {
       : latestEvent && latestEvent.choices.length > 0
         ? latestEvent.choices
         : locationChoices;
+    const arcanaAbilities = session.state.flags.in_magic_world
+      ? buildArcanaAbilities(initializeArcanaAbilities(session.state))
+      : undefined;
     const clientState = structuredClone(session.state);
     // The browser receives rendered observations and offered actions, never hidden entities or contents.
     delete clientState.stateWorld;
@@ -2226,6 +2225,7 @@ export class GameService {
     });
     const snapshot = {
       academyMap: buildAcademyMap(session.state, registry),
+      arcanaAbilities,
       arcanaSpells: buildArcanaSpells(session.state),
       gameId: session.id,
       state: clientState,
@@ -2237,9 +2237,11 @@ export class GameService {
       visiblePeople: this.visiblePersonIds(session, registry).map(
         (personId) => session.world.personCards[personId] as PersonCard,
       ),
-      inventoryCards: playerItemIds(session.state).map(
-        (itemId) => syncItemCardWithRuntimeDefinition(session.world.itemCards[itemId] as ItemCard, itemId, registry),
-      ),
+      inventoryCards: [...new Set([...playerItemIds(session.state), ...Object.keys(session.state.arcanaLife?.homeStorage ?? {})])].flatMap((itemId) => {
+        const savedCard = session.world.itemCards[itemId];
+        if (!savedCard && !registry.items[itemId]) return [];
+        return syncItemCardWithRuntimeDefinition(savedCard, itemId, registry);
+      }),
       inventoryLights: inventoryLightControls(session.state),
       itemCatalog: this.buildItemCatalog(registry),
       exploration: explorationInteractions(session.state, registry),

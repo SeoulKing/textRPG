@@ -31,7 +31,7 @@ function entryScene(room: Room, state: GameState) {
   return room.id === "observatory" && state.flags.academy_observatory_repaired ? "academy_observatory_quiet" : room.sceneId;
 }
 function lockedReason(room: Room, state: GameState) { return room.requirements?.find(requirement => !state.flags[requirement.flag])?.reason ?? ""; }
-function blockedReason(state: GameState) {
+export function academyMoveBlockedReason(state: GameState) {
   if (state.isGameOver || state.stageClear) return "종료된 게임에서는 이동할 수 없습니다.";
   if (state.npcDialogue.active) return "대화를 먼저 마쳐 주세요.";
   if (state.arcanaCombat.battle || state.subwayExpedition.active) return "현재 진행 중인 탐험을 먼저 마쳐 주세요.";
@@ -52,7 +52,7 @@ function routeBetween(from: string, to: string, state: GameState) {
 }
 export function buildAcademyMap(state: GameState, registry: ContentRegistry): AcademyMap | null {
   if (state.location !== "arcana_academy") return null;
-  const currentRoomId = academyRoomId(state), blocked = blockedReason(state);
+  const currentRoomId = academyRoomId(state), blocked = academyMoveBlockedReason(state);
   return { currentRoomId, blockedReason: blocked, rooms: academyRooms.map(room => {
     const reason = lockedReason(room, state), route = reason ? [] : routeBetween(currentRoomId, room.id, state);
     const canEnter = !blocked && !reason && route.length > 0 && Boolean(registry.scenes[entryScene(room, state)])

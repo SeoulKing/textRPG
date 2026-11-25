@@ -108,9 +108,17 @@ args = parser.parse_args()
 if args.stage_list:
     inputs = selected | {"project.godot", "web-shell.html"}
     for relative in tuple(inputs):
-        for suffix in (".import", ".uid"):
-            if (ROOT / (relative + suffix)).is_file():
-                inputs.add(relative + suffix)
+        import_settings = ROOT / (relative + ".import")
+        if not import_settings.is_file():
+            continue
+        inputs.add(relative + ".import")
+        # Post-import scripts run during staging and do not belong in the web pack.
+        post_import = re.search(r'^import_script/path="res://([^"]+)"$',
+                                import_settings.read_text(encoding="utf-8-sig"), re.M)
+        if post_import:
+            inputs.add(post_import[1])
+    inputs.update(relative + ".uid" for relative in tuple(inputs)
+                  if (ROOT / (relative + ".uid")).is_file())
     target = Path(args.stage_list).resolve()
     if not target.is_relative_to((ROOT.parent / ".runtime/godot").resolve()):
         raise RuntimeError("Stage list must stay inside .runtime/godot")

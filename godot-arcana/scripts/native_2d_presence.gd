@@ -4,6 +4,7 @@ const Hero = preload("res://scripts/native_2d_hero.gd")
 const Blink = preload("res://scripts/native_2d_blink.gd")
 const FishingVisual = preload("res://scripts/fishing_world_vfx.gd")
 const Motion = preload("res://scripts/network_motion.gd")
+const WorldRenderer = preload("res://scripts/native_2d_world.gd")
 const HARD_CORRECTION_DISTANCE: float = 96.0
 var input_history: Dictionary = {}
 var correction_total := Vector2.ZERO
@@ -36,6 +37,7 @@ func _label() -> Label:
 	label.add_theme_constant_override("shadow_offset_x",1)
 	label.add_theme_constant_override("shadow_offset_y",1)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.hide()
 	main.ui.root.add_child(label)
 	return label
 
@@ -117,7 +119,7 @@ func accept(value: Dictionary) -> void:
 		for player in packet.get("players",[]): merged[str(player.id)] = player
 		for id in value.get("removedPlayers",[]): merged.erase(str(id))
 		for player in value.get("players",[]): merged[str(player.id)] = player
-		value = value.duplicate(true)
+		value = value.duplicate()
 		value.players = merged.values()
 		value.playersDelta = false
 		value.removedPlayers = []
@@ -133,9 +135,12 @@ func accept(value: Dictionary) -> void:
 		main.snapshot.onlinePlaceRevision = next_place_revision
 		main.snapshot.onlineFighting = update.get("onlineFighting",false)
 		main.snapshot.state.merge(update.get("state",{}),true)
+		if update.get("arcanaEquipment") is Dictionary:
+			main._sync_equipment(update.arcanaEquipment)
 		var location = str(main.snapshot.state.get("location",""))
 		var expected_interior = location if location in main.INDOOR_LOCATIONS else ""
-		if main.world.indoor != expected_interior:
+		var meadow_active: bool = location == main.MEADOW_LOCATION
+		if main.world.indoor != expected_interior or main.world.meadow_active != meadow_active:
 			main._apply(main.snapshot.duplicate(true))
 			for player in value.get("players",[]):
 				if str(player.get("id","")) == character_id and player.get("position") is Dictionary:
@@ -175,8 +180,25 @@ func accept(value: Dictionary) -> void:
 			enemy_motion.clear()
 		main._update_hud()
 		main._refresh_controls()
+	if is_processing(): _sync_actors(value.get("players", []))
+
+func set_world_visuals_enabled(value: bool) -> void:
+	set_process(value)
+	if value:
+		render_time = maxf(0.0, server_time - interpolation_delay)
+		_sync_actors(packet.get("players", []))
+	else:
+		self_name.hide()
+		for remote in actors.values():
+			remote.label.hide()
+			remote.motion.clear()
+			remote.hero.cancel_cast()
+			remote.hero.dash_age = -1.0
+			remote.blink_age = -1.0
+
+func _sync_actors(players: Array) -> void:
 	var retained: Dictionary = {}
-	for player in value.get("players",[]):
+	for player in players:
 		var id: String = str(player.id)
 		retained[id] = true
 		if id == character_id:
@@ -191,6 +213,8 @@ func accept(value: Dictionary) -> void:
 			hero.add_child(guard)
 			actors[id] = {"hero":hero,"blink":blink,"guard":guard,"movement":int(player.get("movement",{}).get("id",0)) if player.get("movement") is Dictionary else 0,"blink_age":-1.0,"motion":Motion.new(),"label":_label(),"position":Vector2(float(player.position.x),float(player.position.y)),"data":player,"cast":int(player.get("cast",0)),"bench_age":0.0}
 		var remote: Dictionary = actors[id]
+		if player.get("equipment") is Dictionary:
+			remote.hero.set_equipment(player.equipment)
 		if str(remote.data.get("bench","")) != str(player.get("bench","")): remote.bench_age = 0.0
 		remote.data = player
 		var point := Vector2(float(player.position.x),float(player.position.y))
@@ -239,7 +263,7 @@ func _process(delta: float) -> void:
 		else: render_time = minf(target,render_time+minf(delta,.25)*clampf(1+(target-render_time)*3,.8,1.2)) if target>=render_time else render_time
 	if is_instance_valid(self_name):
 		self_name.visible = not main.ui.overlay.visible
-		self_name.position = main.spatial_combat._screen(main.world.player_position,2.1)-Vector2(self_name.size.x*.5,0)
+		self_name.position = _label_position(main.world.player_position, self_name)
 	for remote in actors.values():
 		var data: Dictionary = remote.data
 		var sample: Dictionary = remote.motion.sample(render_time)
@@ -252,8 +276,10 @@ func _process(delta: float) -> void:
 		remote.bench_age += delta
 		var seat_state: String = str(data.get("bench",""))
 		var seat: Dictionary = main.world.furniture_at(remote.position) if seat_state in ["sit","seated","stand"] else {}
-		hero.position = main.world_renderer.map_point(main.world.furniture_visual_position(remote.position,seat_state,float(remote.bench_age),seat))
+		var foot: Vector2 = main.world.furniture_visual_position(remote.position,seat_state,float(remote.bench_age),seat)
+		hero.position = main.world_renderer.map_point(foot)
 		if main.world_renderer.uses_plaza_v2():
+			hero.set_meta("plaza_foot", foot)
 			hero.position = main.world_renderer.snap_actor_position(hero.position)
 		hero.set_meta("seat_id",str(seat.get("id","")))
 		hero.set_meta("seat_sort_y",main.world_renderer.map_point(remote.position).y)
@@ -287,8 +313,13 @@ func _process(delta: float) -> void:
 			main.world_renderer.room3d.sync_remote(str(data.id),hero,main.world,remote.position,
 				seat_state,float(remote.bench_age),seat)
 			hero.hide()
-		remote.label.position = main.spatial_combat._screen(remote.position,2.1)-Vector2(remote.label.size.x*.5,0)
+		remote.label.position = _label_position(remote.position, remote.label)
 		remote.label.visible = not main.ui.overlay.visible and main.get_viewport().get_visible_rect().has_point(remote.label.position)
+
+func _label_position(point: Vector2, label: Label) -> Vector2:
+	var raster_point: Vector2 = main.world_renderer.actor_label_point(point)
+	var display_point := WorldRenderer.raster_to_display(main.viewport_host, main.viewport.size, raster_point)
+	return display_point - Vector2(label.size.x * 0.5, 0.0)
 
 func _present_fishing(remote: Dictionary, state: Variant, delta: float) -> void:
 	var visual: FishingVisual = remote.get("fishing_visual")

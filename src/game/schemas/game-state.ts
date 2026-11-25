@@ -10,6 +10,7 @@ import { SkillProgressStateSchema } from "./skill-progression";
 import { SystemNoteEntriesSchema } from "./system-note";
 import { NpcDialogueStateSchema } from "./npc-dialogue";
 import { ArcanaCombatSchema, ActiveClockSchema } from "./arcana-combat";
+import { ArcanaAbilitiesSchema } from "../arcana-abilities";
 import { HealthConditionsSchema } from "./health-condition";
 import { ChoicePreferencesSchema } from "./choice-preferences";
 import { TextWorldSchema } from "./text-world";
@@ -76,6 +77,7 @@ export const GameStateSchema = z.object({
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
   subwayExpedition: SubwayExpeditionStateSchema,
+  arcanaAbilities: ArcanaAbilitiesSchema.optional(),
   arcanaLife: z.object({
     hunger:z.number().int().min(0).max(100),
     elapsedMs:z.number().finite().min(0).max(30000),
@@ -86,6 +88,7 @@ export const GameStateSchema = z.object({
     craftedItems:z.number().int().nonnegative().default(0),
     atHome:z.boolean().default(false),
     homeReturn:z.object({x:z.number().finite(),y:z.number().finite()}).optional(),
+    homeStorage:z.record(z.string(),z.number().int().positive()).default({}),
     lastMessage:z.string().default(""),
   }).optional(),
   arcanaCombat: ArcanaCombatSchema,

@@ -27,6 +27,9 @@ func _ready() -> void:
 				model.set_surface_override_material(surface, stone_materials[source])
 		if model.name != &"FountainBody":
 			model.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if model.name != &"FountainWater":
+				# Spray and wavelets animate outside the static body and water meshes.
+				model.set_meta(&"local_mesh_highlights", true)
 
 	var player := $Model.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if player != null and player.has_animation(FLOW_ANIMATION):

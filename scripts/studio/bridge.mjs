@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { BridgeRuntime } from './bridge-runtime.mjs';
+import { createResultDelivery } from './result-inbox.mjs';
 import { safeDisplay } from './codex-client.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -22,7 +23,13 @@ const readJson = (filename, fallback) => {
 function writeJson(filename, value) {
   fs.mkdirSync(DIRECTORY, { recursive: true });
   const temporary = filename + '.' + process.pid + '.' + crypto.randomUUID() + '.tmp';
-  fs.writeFileSync(temporary, JSON.stringify(value, null, 2) + '\n', { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  const handle = fs.openSync(temporary, 'wx', 0o600);
+  try {
+    fs.writeFileSync(handle, JSON.stringify(value, null, 2) + '\n', 'utf8');
+    fs.fsyncSync(handle);
+  } finally {
+    fs.closeSync(handle);
+  }
   fs.renameSync(temporary, filename);
 }
 function alive(pid) { try { process.kill(pid, 0); return true; } catch (error) { return error.code !== 'ESRCH'; } }
@@ -121,6 +128,8 @@ async function start() {
   }
   const sendMessage = (message) => { state.messages.push(message); saveState(); };
   const runtime = new BridgeRuntime({ root: ROOT, state, saveState, sendMessage, updateCommand });
+  const deliverResult = createResultDelivery({root: ROOT, state, saveState,
+    send: card => post(config, secrets, '/api/bridge/results', {connectionId: config.connectionId, ...card})});
   const stopCommands = new Set();
   const stop = () => { closing = true; runtime.requestStop(); };
   process.once('SIGINT', stop); process.once('SIGTERM', stop);
@@ -137,11 +146,13 @@ async function start() {
         }
         await runtime.tick();
         const snapshot = runtime.snapshot();
+        snapshot.workflowVersion = 'autonomous-v1';
         const updates = Object.values(state.updates).slice(0, 20);
         const messages = state.messages.slice(0, 30);
         await post(config, secrets, '/api/bridge/update', { connectionId: config.connectionId, snapshot,
           updates: updates.map(({ revision: unused, ...entry }) => entry), messages });
         for (const entry of updates) if (state.updates[entry.id]?.revision === entry.revision) delete state.updates[entry.id];
+        state.lastSyncedAt = now();
         const sent = new Set(messages.map((message) => message.id));
         state.messages = state.messages.filter((message) => !sent.has(message.id)); saveState();
         const response = await post(config, secrets, '/api/bridge/poll', { connectionId: config.connectionId });
@@ -170,6 +181,7 @@ async function start() {
             .finally(() => inflight.delete(task));
           inflight.add(task);
         }
+        if (!closing) await deliverResult();
         lastFailure = ''; backoff = 2000;
       } catch (error) {
         const fingerprint = safeDisplay(error.message);
@@ -249,7 +261,7 @@ async function main() {
     const config = readJson(CONFIG, {}); const lock = readJson(LOCK, null);
     console.log(JSON.stringify({ configured: !!config.site, paired: !!config.connectionId, site: config.site ?? null,
       deviceName: config.deviceName ?? null, running: !!lock && lock.host === os.hostname() && alive(lock.pid),
-      pid: lock?.pid ?? null, startedAt: lock?.startedAt ?? null }, null, 2));
+      pid: lock?.pid ?? null, startedAt: lock?.startedAt ?? null, lastSyncedAt: readJson(STATE, {})?.lastSyncedAt ?? null }, null, 2));
   } else if (args.command === 'stop') {
     const lock = readJson(LOCK, null);
     if (!lock) { console.log('실행 중인 PC 연결 프로그램이 없습니다.'); return; }

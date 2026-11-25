@@ -2,8 +2,10 @@
 extends "res://scripts/characters/hybrid_v1/native_actor.gd"
 ## The gameplay actor keeps its floor anchor and drives the approved 3D model.
 
+const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
 const HERO_MODEL = preload("res://art/characters/hero-v12/hero.glb")
 const ActionRetarget = preload("res://scripts/characters/hero_v12/action_retarget.gd")
+const EquipmentAppearance = preload("res://scripts/characters/hero_v12/equipment_appearance.gd")
 const ROD_SCENE := preload("res://art/props/fishing/mystic_rod.glb")
 const ROD_LENGTH := 92.0
 const ROD_CAPTURE_SIZE := Vector2i(304, 240)
@@ -23,6 +25,7 @@ var _run: Animation
 var _walk: Animation
 var _idle: Animation
 var _action_retarget := ActionRetarget.new()
+var _equipment_appearance := EquipmentAppearance.new()
 var _hand := -1
 var _toe_rest: Dictionary[int, Quaternion] = {}
 var _rod_model: Node3D
@@ -57,10 +60,17 @@ func _ready() -> void:
 		_model = null
 		return
 	_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	_equipment_appearance.setup(_model, _model_skeleton)
 	assembler.use_mesh_presentation()
 	sprite_material.set_shader_parameter("model_outline", true)
+	if not Engine.is_editor_hint():
+		sprite_material.set_shader_parameter("highlight_strength", TileStyle.HIGHLIGHT_STRENGTH)
 	set_meta("model_outline", true)
 	_present("idle", display_direction, 0.0, 0.0)
+
+
+func set_equipment(items: Dictionary) -> void:
+	_equipment_appearance.apply(items)
 
 
 func _present(clip: String, direction: int, phase: float, movement: float, progress: float = 0.0, action: Dictionary = {}, fishing_pose: Vector3 = Vector3.ZERO, rod_carry: float = 0.0, visual_yaw: float = NAN) -> bool:

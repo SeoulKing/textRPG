@@ -3,7 +3,9 @@ import { COOKING_RECIPES, COOKING_MATERIAL_IDS, FOODS } from "../game/arcana-coo
 export { COOKING_RECIPES, FOODS } from "../game/arcana-cooking";
 import crypto from "node:crypto";
 import { OnlineError } from "./accounts";
+import { equipmentLoadout } from "./equipment";
 import { arcanaStats } from "../game/arcana-combat";
+import { initializeArcanaAbilities } from "../game/arcana-abilities";
 import { skillMastery, trainArcanaSkill } from "../game/arcana-skill-training";
 import { baseItems } from "../game/data/items";
 import type { Actor, Point } from "./model";
@@ -14,7 +16,7 @@ export const CAMPFIRES: Record<string,{quality:string;minutes:number;cookSeconds
   campfireFine:{quality:"양호",minutes:45,cookSeconds:4},
   campfireExcellent:{quality:"우수",minutes:60,cookSeconds:3},
 };
-export type Campfire = {id:string;itemId:string;ownerId:string;position:Point;expiresAt:number};
+export type Campfire = {id:string;itemId:string;ownerId:string;position:Point;expiresAt:number;area?:string};
 export type LifeJob = {id:string;kind:"craft"|"cook";phase:"active"|"success"|"cancelled";startedAt:number;endsAt:number;origin:Point;campfireId?:string;recipeId?:string;homeKitchen?:boolean;itemId?:string;message:string};
 export const DAILY_GATHER_LIMIT=3;
 export const CRAFTING_RECIPES:Record<string,{name:string;ingredients:{itemId:string;count:number}[];results:readonly [string,string,string];count:number}>={
@@ -24,9 +26,11 @@ export const CRAFTING_RECIPES:Record<string,{name:string;ingredients:{itemId:str
 export const lifeActive=(job:LifeJob|undefined)=>job?.phase==="active";
 export function initializeLife(game:GameSession) {
   const state=game.state;
-  const life=state.arcanaLife ??= {hunger:100,elapsedMs:0,woodGranted:false,day:1,gatheredToday:0,cookedMeals:0,craftedItems:0,atHome:false,lastMessage:""};
+  initializeArcanaAbilities(state);
+  const life=state.arcanaLife ??= {hunger:100,elapsedMs:0,woodGranted:false,day:1,gatheredToday:0,cookedMeals:0,craftedItems:0,atHome:false,homeStorage:{},lastMessage:""};
   // Also normalize sessions retained in memory before the schema migration.
   life.day ??= 1;life.gatheredToday ??= 0;life.cookedMeals ??= 0;life.craftedItems ??= 0;life.atHome ??= false;life.lastMessage ??= "";
+  life.homeStorage ??= {};
   if(!life.woodGranted) {state.inventory.wood=(state.inventory.wood||0)+30;life.woodGranted=true;}
   game.world.locationCards.arcana_home={...ARCANA_HOME_LOCATION,description:ARCANA_HOME_LOCATION.summary,source:"template",generatedAt:"static"};
   // Static cards must also be available for old content-version saves and WS rewards.
@@ -66,6 +70,35 @@ export function requireLifeReady(actor:Actor,allowHomeSeated=false) {
     && actor.game.state.arcanaLife?.atHome && actor.place.interior==="arcana_home:"+actor.character.id;
   if(!actor.game.state.flags.in_magic_world || actor.game.state.arcanaCombat.hp<=0 || (actor.bench && !homeSeated) || actor.game.state.npcDialogue.active || actor.game.state.subwayExpedition.active)
     throw new OnlineError("life_unavailable","현재 행동을 마친 뒤 이용해 주세요.");
+}
+export function transferHomeStorage(actor:Actor,deposit:boolean,itemId?:string,quantity?:number) {
+  if(!itemId || quantity===undefined || !Number.isSafeInteger(quantity) || quantity<=0)
+    throw new OnlineError("storage_quantity_required","옮길 아이템과 수량을 선택해 주세요.",400);
+  if(deposit && itemId==="waterBottle")
+    throw new OnlineError("storage_item_unavailable","보관할 수 없는 아이템입니다.",400);
+
+  const state=actor.game.state,life=state.arcanaLife!;
+  const source=deposit?state.inventory:life.homeStorage;
+  const destination=deposit?life.homeStorage:state.inventory;
+  const available=Object.hasOwn(source,itemId)?source[itemId]:0;
+  if(available<quantity)
+    throw new OnlineError("storage_quantity_unavailable",deposit?"소지품에 수량이 부족합니다.":"보관함에 수량이 부족합니다.");
+  if(deposit) {
+    const equipped=Object.values(equipmentLoadout(state)).filter(id=>id===itemId).length;
+    const equippedTool=Number(itemId==="fishingRod" && state.flags.arcana_life_tool===itemId);
+    if(available-equipped-equippedTool<quantity)
+      throw new OnlineError("storage_item_equipped","장착 중인 아이템을 해제한 뒤 보관해 주세요.");
+  }
+  const total=(Object.hasOwn(destination,itemId)?destination[itemId]:0)+quantity;
+  if(!Number.isSafeInteger(total))
+    throw new OnlineError("storage_quantity_overflow","옮길 수 있는 수량을 초과했습니다.");
+
+  const remaining=available-quantity;
+  const nextSource={...source};
+  if(remaining>0)nextSource[itemId]=remaining;else delete nextSource[itemId];
+  const nextDestination={...destination,[itemId]:total};
+  state.inventory=deposit?nextSource:nextDestination;
+  state.arcanaLife={...life,homeStorage:deposit?nextDestination:nextSource};
 }
 export function beginLife(actor:Actor,kind:"craft"|"cook",campfire?:Campfire,recipeId?:string):LifeJob {
   requireLifeReady(actor);

@@ -7,7 +7,7 @@ const Structure := preload("res://scripts/rendering/inn_tile_structure.gd")
 const AUTHORED_TO_GRID := 0.8
 
 
-func apply(lobby: Node3D) -> bool:
+func fit_layout(lobby: Node3D) -> bool:
 	# The main world instantiates the inn directly in its gameplay viewport at the origin.
 	if not lobby.global_transform.is_equal_approx(Transform3D.IDENTITY):
 		push_error("The tiled inn requires a world-aligned lobby root.")
@@ -15,22 +15,25 @@ func apply(lobby: Node3D) -> bool:
 	var authored_origin := Layout.tile_to_logical(Vector2.ZERO) / Coordinates.LOGICAL_UNIT
 	_normalize_coordinates(lobby, authored_origin)
 	var grid := Rect2(Vector2.ZERO, Vector2(Structure.FLOOR_SIZE))
-	return _place_furniture(lobby, grid) and _align_rugs(lobby, grid) and _set_unit_structure(lobby)
+	return _place_furniture(lobby, grid) and _align_rugs(lobby, grid)
 
 
 func _normalize_coordinates(lobby: Node3D, authored_origin: Vector2) -> void:
 	var offset := -Vector3(authored_origin.x, 0.0, authored_origin.y) * AUTHORED_TO_GRID
 	var to_grid := Transform3D(Basis.from_scale(Vector3.ONE * AUTHORED_TO_GRID), offset)
 	var camera := lobby.get_node("Camera3D")
-	for child: Node in lobby.get_children():
-		if not child is Node3D or child == camera:
+	var lighting := lobby.get_node("Lighting")
+	var nodes := lobby.get_children()
+	nodes.append_array(lighting.get_children())
+	for child: Node in nodes:
+		if not child is Node3D or child == camera or child == lighting:
 			continue
 		child.global_transform = to_grid * child.global_transform
 		if child is OmniLight3D:
 			child.omni_range *= AUTHORED_TO_GRID
 
 
-func _set_unit_structure(lobby: Node3D) -> bool:
+func build_structure(lobby: Node3D) -> bool:
 	var room := lobby.get_node("Room") as Node3D
 	var rear := room.get_node("Architecture_plaster_and_timber_back_wall") as Node3D
 	var rear_mesh := rear.get_child(0) as MeshInstance3D
@@ -40,10 +43,12 @@ func _set_unit_structure(lobby: Node3D) -> bool:
 	var grid := Structure.build(room, palette, Structure.make_floor_materials())
 	if grid == null:
 		return false
+	grid.set_meta(&"arcana_static_edge_grid", true)
 	grid.global_transform = Transform3D.IDENTITY
 	for name: String in ["Architecture_oak_floor", "Architecture_cutaway_entrance", rear.name]:
 		(room.get_node(name) as Node3D).hide()
 	var west_lamp_template := room.get_node("Sconce_west_post") as Node3D
+	var lighting := lobby.get_node("Lighting")
 	for z: float in [3.74, 8.64]:
 		var west := west_lamp_template.duplicate() as Node3D
 		west.name = "UnitWallSconce"
@@ -58,7 +63,7 @@ func _set_unit_structure(lobby: Node3D) -> bool:
 		lamp.light_energy = 1.10
 		lamp.omni_range = 4.10
 		lamp.omni_attenuation = 1.35
-		lobby.add_child(lamp, true)
+		lighting.add_child(lamp, true)
 		lamp.global_position = Vector3(0.55, 2.23, z)
 		lobby._local_lights.append(lamp)
 	for name: String in ["Quest_board", "Brass_room_key_rack", "Sconce_west_post", "Sconce_east_post"]:
@@ -251,7 +256,7 @@ func _align_counter_companions(lobby: Node3D, original: Rect2, placed: Rect2, ra
 	keeper_position.x = placed.get_center().x + (keeper_position.x - original.get_center().x) * ratio.x
 	keeper_position.z += placed.position.y - original.position.y
 	keeper.global_position = keeper_position
-	var lamp := lobby.get_node("ReceptionLight") as OmniLight3D
+	var lamp := lobby.get_node("Lighting/ReceptionLight") as OmniLight3D
 	var lamp_position := lamp.global_position
 	var old_offset := Vector2(lamp_position.x, lamp_position.z) - original.get_center()
 	var new_lamp_anchor := placed.get_center() + old_offset * ratio

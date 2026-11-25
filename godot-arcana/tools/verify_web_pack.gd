@@ -28,6 +28,22 @@ func verify_pack() -> void:
         var scene=load(path) as PackedScene
         if scene==null or not scene.can_instantiate():
             push_error("Missing or invalid packaged scene: "+path);quit(1);return
+    var meadow: Dictionary = regions.get("arcana_meadow_field", {})
+    var meadow_scene := "res://scenes/native_2d/meadow_field.tscn"
+    if meadow.get("scene", "") != meadow_scene or not ResourceLoader.exists(meadow_scene, "PackedScene"):
+        push_error("Missing registered meadow scene in the web pack");quit(1);return
+    if not ResourceLoader.exists("res://art/export/monsters/meadow-ox.png", "Texture2D"):
+        push_error("Missing meadow monster art in the web pack");quit(1);return
+    for path: String in ["res://scripts/simplified_play.gd", "res://scripts/simplified_view.gd"]:
+        if not ResourceLoader.exists(path, "Script"):
+            push_error("Missing packaged location map script: "+path);quit(1);return
+    var city_grid := load("res://scripts/simplified_city_grid.gd") as Script
+    if city_grid == null or not city_grid.can_instantiate():
+        push_error("Missing packaged location grid");quit(1);return
+    var meadow_places: Dictionary = city_grid.places_for("arcana_meadow_field")
+    if not meadow_places.has("meadow_entrance") or not meadow_places.has("meadow_ox"):
+        push_error("Packaged location grid is missing the meadow's entrance or monster");quit(1);return
+    print("ARCANA_MEADOW_MAP_PACKAGED")
     var bundle_path := "res://art/characters/hybrid-v1/assembly/parts.json"
     var character: Variant = JSON.parse_string(FileAccess.get_file_as_string(bundle_path))
     if not character is Dictionary or character.get("character_id", "") != "hybrid-v1":

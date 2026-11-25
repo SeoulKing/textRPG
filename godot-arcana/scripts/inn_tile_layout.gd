@@ -9,13 +9,13 @@ const GRID_SIZE := Vector2i(14, 10)
 const WALK_BOUNDS := Rect2(55, 67, 274, 214)
 const COUNTER_SLOT := Rect2i(10, 3, 3, 1)
 const FURNITURE := [
-	["01_Limestone_hearth", "벽난로", Rect2i(1, 0, 3, 1), "wall", ["HearthLight"]],
+	["01_Limestone_hearth", "벽난로", Rect2i(1, 0, 3, 1), "wall", ["Lighting/HearthLight"]],
 	["02_Oak_bookcase", "책장", Rect2i(4, 0, 2, 1), "wall", []],
 	["Back_wall_storage_bench", "벤치", Rect2i(6, 1, 3, 1), "floor", []],
 	["Plant_bench_end", "화분", Rect2i(9, 1, 1, 1), "pot", []],
 	["Plant_hearth_end", "화분", Rect2i(0, 1, 1, 1), "pot", []],
 	["Reception_counter", "접수대", COUNTER_SLOT, "counter", []],
-	["Lamp_table_sofa_arm", "등탁", Rect2i(5, 3, 1, 1), "floor", ["LoungeLight"]],
+	["Lamp_table_sofa_arm", "등탁", Rect2i(5, 3, 1, 1), "floor", ["Lighting/LoungeLight"]],
 	["Lounge_L_shaped_settee", "긴 소파", Rect2i(1, 4, 4, 2), "floor", []],
 	["Travel_luggage", "짐 상자", Rect2i(12, 5, 2, 1), "floor", []],
 	["Lamp_table_lounge_edge", "등탁", Rect2i(0, 6, 1, 1), "floor", []],

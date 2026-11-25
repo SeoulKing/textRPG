@@ -1,4 +1,5 @@
 import { ARCANA_HOME_LOCATION, ARCANA_HOME_SCENE } from "./arcana-home";
+import { withArcanaMeadow } from "./arcana-meadow";
 import { COOKING_MATERIAL_IDS, FOODS } from "./arcana-cooking";
 import { withAcademyContent } from "./academy-content";
 import { withSubwayStockRooms } from "./text-world/subway-stock-definitions";
@@ -9,6 +10,7 @@ import { withDefaultHospitalRooms } from "./text-world/hospital-definitions";
 import { withActivityCatalogDefaults } from "./activity-catalog-updates";
 import { withResourceCatalogDefaults } from "./resource-catalog-updates";
 import { baseItems } from "./data/items";
+import { arcanaEquipmentItems } from "./data/arcana-equipment-items";
 import { omitRetiredActions } from "./content-retirements";
 import { applySurvivalCatalogUpdates } from "./survival-catalog-updates";
 import { versionRegistry } from "./content-versions";
@@ -126,7 +128,10 @@ export function buildRuntimeRegistry(
   // Personal homes must resolve in old content-version saves as well as new games.
   registry.locations.arcana_home=structuredClone(ARCANA_HOME_LOCATION);
   registry.scenes.arcana_home_intro=structuredClone(ARCANA_HOME_SCENE);
+  withArcanaMeadow(registry);
+  registry.items.rawMeat ??= baseItems.rawMeat;
   registry.items.fishingRod = baseItems.fishingRod;
+  Object.assign(registry.items, arcanaEquipmentItems);
   registry.items.slimeMucus = baseItems.slimeMucus;
   return withAcademyContent(registry);
 }

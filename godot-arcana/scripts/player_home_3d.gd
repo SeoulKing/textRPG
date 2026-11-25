@@ -4,7 +4,7 @@ extends "res://scripts/inn_lobby_3d.gd"
 func _ready() -> void:
 	_local_lights.append($Room/KitchenTaskLantern/CounterLight)
 	_local_lights.append($Room/LivingStudyLamp/StudyLight)
-	_local_lights.append($WindowBounce)
+	_local_lights.append($Lighting/WindowBounce)
 
 
 func configure(_layout_root: Node2D, source_bounds: Rect2) -> bool:

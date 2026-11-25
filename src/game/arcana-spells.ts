@@ -6,14 +6,20 @@ export const ARCANA_SPELLS = {
   fireball: { id: "fireball", name: "파이어볼", school: "fire", schoolName: "화염", unlockLevel: 1, cost: 0, cooldown: 0, ratio: 3, targeting: "projectile", thumbnail: "fireball", rangeTiles: 6, angle: 0, duration: 0 },
   flame_wave: { id: "flame_wave", name: "화염파", school: "fire", schoolName: "화염", unlockLevel: 2, cost: 8, cooldown: 8, ratio: 1, targeting: "cone", thumbnail: "flame-wave", rangeTiles: 2, angle: 90, duration: 0 },
   flame_guard: { id: "flame_guard", name: "불꽃 장막", school: "fire", schoolName: "화염", unlockLevel: 3, cost: 6, cooldown: 12, ratio: 1, targeting: "self", thumbnail: "flame-guard", rangeTiles: 0, angle: 0, duration: 4 },
-  meteor: {id:"meteor",name:"메테오",school:"fire",schoolName:"화염",unlockLevel:7,cost:30,cooldown:60,ratio:10,targeting:"projectile",thumbnail:"fireball",rangeTiles:8,angle:0,duration:1},
-  giant_fireball: {id:"giant_fireball",name:"거대화염구",school:"fire",schoolName:"화염",unlockLevel:7,cost:30,cooldown:60,ratio:15,targeting:"projectile",thumbnail:"fireball",rangeTiles:8,angle:0,duration:0},
-  flame_barrage: {id:"flame_barrage",name:"화염난사",school:"fire",schoolName:"화염",unlockLevel:7,cost:30,cooldown:60,ratio:1,targeting:"projectile",thumbnail:"fireball",rangeTiles:8,angle:0,duration:2.4},
+  meteor: {id:"meteor",name:"메테오",school:"fire",schoolName:"화염",unlockLevel:7,cost:30,cooldown:60,ratio:10,targeting:"projectile",thumbnail:"meteor",rangeTiles:8,angle:0,duration:1},
+  giant_fireball: {id:"giant_fireball",name:"거대화염구",school:"fire",schoolName:"화염",unlockLevel:7,cost:30,cooldown:60,ratio:15,targeting:"projectile",thumbnail:"giant-fireball",rangeTiles:8,angle:0,duration:0},
+  flame_barrage: {id:"flame_barrage",name:"화염난사",school:"fire",schoolName:"화염",unlockLevel:7,cost:30,cooldown:60,ratio:1,targeting:"projectile",thumbnail:"flame-barrage",rangeTiles:8,angle:0,duration:2.4},
 } as const;
 export type ArcanaSpellId = keyof typeof ARCANA_SPELLS;
 export const ULTIMATE_IDS = ["meteor","giant_fireball","flame_barrage"] as const;
 export function isUltimate(id: string): id is typeof ULTIMATE_IDS[number] { return (ULTIMATE_IDS as readonly string[]).includes(id); }
 export const ARCANA_COOLDOWN_IDS = ["ultimate","meteor","giant_fireball","flame_barrage","fireball", "flame_wave", "flame_guard", "dodge", "teleport", "potion"] as const;
+export const DODGE_EFFECT_SECONDS = 1;
+export function tryEvadeAttack(combat: GameState["arcanaCombat"], secondsUntilImpact = 0): boolean {
+  if (combat.evadeSeconds <= secondsUntilImpact + 1e-8) return false;
+  if (combat.evadeSkill === "dodge") combat.evadeSeconds = 0;
+  return true;
+}
 export function isArcanaSpell(id: string): id is ArcanaSpellId {
   return Object.prototype.hasOwnProperty.call(ARCANA_SPELLS, id);
 }

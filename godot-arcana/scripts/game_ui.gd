@@ -5,21 +5,25 @@ signal interact_pressed
 signal quickslot_pressed(index: int)
 signal move_changed(direction: Vector2)
 signal panel_closed
+signal toast_shown(text: String)
 signal hud_size_committed(percentage: int)
 signal menu_size_committed(percentage: int)
 const FONT = preload("res://fonts/NotoSansKR-Medium.tres")
 const FONT_STRONG = preload("res://fonts/NotoSansKR-SemiBold.tres")
+const PROSE_FONT = preload("res://fonts/KoPubBatangMedium.ttf")
 const Joystick = preload("res://scripts/virtual_joystick.gd")
 const SlotIcon = preload("res://scripts/quickslot_icon.gd")
 const NavIcon = preload("res://scripts/bottom_nav_icon.gd")
 const ActionButton = preload("res://scripts/mobile_action_button.gd")
 const SkillTreeView = preload("res://scripts/skill_tree_view.gd")
+const ItemThumbnail = preload("res://scripts/item_thumbnail.gd")
 var skill_tree_view: Control
 var shop_view: Control
 var inventory_view: Control
 var quest_view: Control
+var _skill_progress_rows: Dictionary = {}
 const SkillCooldown = preload("res://scripts/skill_cooldown.gd")
-const SLOT_NAMES = {"meteor":"메테오","giant_fireball":"거대화염구","flame_barrage":"화염난사","fireball":"불꽃탄", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"대시", "teleport":"텔레포트", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
+const SLOT_NAMES = {"meteor":"메테오","giant_fireball":"거대화염구","flame_barrage":"화염난사","fireball":"파이어볼", "flame_wave":"화염파", "flame_guard":"불꽃 장막", "dodge":"대시", "teleport":"텔레포트", "potion":"포션", "dev_speed":"개발 가속", "":"등록"}
 const INK = Color("26364d")
 const MUTED = Color("586779")
 const GOLD = Color("856129")
@@ -27,6 +31,12 @@ const PAPER = Color("fffaf0")
 const EDGE = Color("c7cbd2")
 const MENU_NAVY = Color("263b51")
 const MENU_RULE = Color("ded7c8")
+const TEXT_INK := Color("1f2933")
+const TEXT_PROSE := Color("2b3640")
+const TEXT_MUTED := Color("65717d")
+const TEXT_ACCENT := Color("216892")
+const TEXT_SKY := Color("b1e1ff")
+const TEXT_RULE := Color("d6e2ea")
 const DESKTOP_MENU_DEFAULT := 70
 const DESKTOP_MENU_AREA := Vector2(780, 560)
 const DESKTOP_MENU_CSS_SCALE := 1.5
@@ -94,10 +104,21 @@ var touch_buttons: Array[Button] = []
 var action_touches: Dictionary = {}
 var panel_scroll: ScrollContainer
 var panel_body: MarginContainer
+var panel_custom_body: Control
+var _panel_tabs: HBoxContainer
+var _inventory_balance: Label
 var panel_header: PanelContainer
 var panel_dim: ColorRect
+var _sheet_backdrop: Button
+var _tab_sheet := false
+var _sheet_reveal := 1.0
+var _sheet_tween: Tween
+var _panel_sky: Control
+var _text_panel_theme: Theme
+var _text_mode := false
 var cooking_panel_on_left := false
 var fit_menu_height := false
+var _wide_panel := false
 var button_list_touch_enabled: bool = false
 var panel_touch_index: int = -1
 var panel_touch_origin: Vector2 = Vector2.ZERO
@@ -332,7 +353,7 @@ func _ready() -> void:
 	var nav = HBoxContainer.new()
 	nav.add_theme_constant_override("separation", 0)
 	bottom_stack.add_child(nav)
-	for item in [["지도", "map"], ["소지품", "inventory"], ["생활 수첩", "journal"], ["의뢰", "quests"], ["스킬", "skills"], ["메뉴", "menu"]]:
+	for item in [["지도", "map"], ["소지품", "inventory"], ["의뢰", "quests"], ["스킬", "skills"], ["메뉴", "menu"]]:
 		var nav_button = button(item[0], func(): menu_requested.emit(item[1]), Vector2(0, 64))
 		nav_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_button.text = ""
@@ -426,44 +447,32 @@ func _build_panel() -> void:
 	overlay = Control.new()
 	root.add_child(overlay)
 	panel_dim = ColorRect.new()
-	panel_dim.color = Color("112131a6")
 	panel_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(panel_dim)
+	_sheet_backdrop = Button.new()
+	_sheet_backdrop.flat = true
+	_sheet_backdrop.focus_mode = Control.FOCUS_NONE
+	_sheet_backdrop.accessibility_name = "닫기"
+	for state in ["normal", "hover", "pressed"]:
+		_sheet_backdrop.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	_sheet_backdrop.pressed.connect(close_panel)
+	panel_dim.add_child(_sheet_backdrop)
+	_sheet_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu_views = Control.new()
 	menu_views.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(menu_views)
 	panel = PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var paper := StyleBoxFlat.new()
-	paper.bg_color = PAPER
-	paper.border_color = Color("d9c8a8")
-	paper.set_border_width_all(1)
-	paper.set_corner_radius_all(14)
-	paper.shadow_color = Color("0e1b2a66")
-	paper.shadow_size = 12
-	paper.shadow_offset = Vector2(0, 4)
-	panel.add_theme_stylebox_override("panel", paper)
 	overlay.add_child(panel)
 	var stack = VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 0)
 	panel.add_child(stack)
 	panel_header = PanelContainer.new()
-	var band := style(MENU_NAVY)
-	band.set_corner_radius_all(0)
-	band.corner_radius_top_left = 13
-	band.corner_radius_top_right = 13
-	band.border_width_bottom = 2
-	band.border_color = Color("bda26b")
-	band.content_margin_left = 19
-	band.content_margin_right = 10
-	band.content_margin_top = 6
-	band.content_margin_bottom = 6
-	panel_header.add_theme_stylebox_override("panel", band)
 	panel_header.clip_contents = true
 	stack.add_child(panel_header)
-	var sky := MenuSky.new()
-	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel_header.add_child(sky)
+	_panel_sky = MenuSky.new()
+	_panel_sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel_header.add_child(_panel_sky)
 	var heading = HBoxContainer.new()
 	heading.add_theme_constant_override("separation",8)
 	panel_header.add_child(heading)
@@ -471,18 +480,16 @@ func _build_panel() -> void:
 	panel_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	heading.add_child(panel_title)
+	_inventory_balance = label("", 14, GOLD)
+	_inventory_balance.hide()
+	heading.add_child(_inventory_balance)
 	close_button = button("×", close_panel, Vector2(44, 44))
 	close_button.tooltip_text = "닫기"
 	close_button.accessibility_name = "닫기"
 	close_button.add_theme_font_size_override("font_size", 23)
-	for state in ["normal", "hover", "pressed"]:
-		var fill := Color("33495e") if state == "normal" else Color("455c71")
-		var close_style := style(fill)
-		close_style.set_content_margin_all(0)
-		close_button.add_theme_stylebox_override(state, close_style)
-	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		close_button.add_theme_color_override(state, PAPER)
 	heading.add_child(close_button)
+	_text_panel_theme = _make_text_panel_theme()
+	_apply_panel_style()
 	panel_body = MarginContainer.new()
 	panel_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel_body.add_theme_constant_override("margin_left", 16)
@@ -490,17 +497,145 @@ func _build_panel() -> void:
 	panel_body.add_theme_constant_override("margin_top", 10)
 	panel_body.add_theme_constant_override("margin_bottom", 12)
 	stack.add_child(panel_body)
+	var body_stack := VBoxContainer.new()
+	body_stack.add_theme_constant_override("separation", 8)
+	panel_body.add_child(body_stack)
+	_panel_tabs = HBoxContainer.new()
+	_panel_tabs.hide()
+	body_stack.add_child(_panel_tabs)
 	var scroll = ScrollContainer.new()
 	panel_scroll = scroll
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	panel_body.add_child(scroll)
+	body_stack.add_child(scroll)
+	panel_custom_body = Control.new()
+	panel_custom_body.clip_contents = true
+	panel_custom_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel_custom_body.hide()
+	body_stack.add_child(panel_custom_body)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 0)
 	scroll.add_child(content)
 	content.minimum_size_changed.connect(_layout_panel)
 	overlay.hide()
+
+func set_text_mode(enabled: bool) -> void:
+	if _text_mode == enabled: return
+	_text_mode = enabled
+	if not enabled: _tab_sheet = false
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.arcanaSetTextMode?.(%s)" % ("true" if enabled else "false"))
+	elif OS.has_feature("android") or OS.has_feature("ios"):
+		var orientation := DisplayServer.SCREEN_SENSOR_PORTRAIT if enabled else int(ProjectSettings.get_setting("display/window/handheld/orientation"))
+		DisplayServer.screen_set_orientation(orientation as DisplayServer.ScreenOrientation)
+	overlay.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if enabled else CanvasItem.TEXTURE_FILTER_PARENT_NODE
+	_apply_panel_style()
+	_layout_panel()
+
+func _make_text_panel_theme() -> Theme:
+	var theme := root.theme.duplicate() as Theme
+	var flat := StyleBoxFlat.new()
+	flat.bg_color = Color.TRANSPARENT
+	flat.content_margin_left = 8
+	flat.content_margin_right = 8
+	var focus := flat.duplicate() as StyleBoxFlat
+	focus.border_color = TEXT_ACCENT
+	focus.set_border_width_all(1)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		theme.set_stylebox(state, "Button", flat)
+	theme.set_stylebox("focus", "Button", focus)
+	theme.set_color("font_color", "Button", TEXT_INK)
+	theme.set_color("font_disabled_color", "Button", TEXT_MUTED)
+	for state in ["font_hover_color", "font_pressed_color", "font_focus_color"]:
+		theme.set_color(state, "Button", TEXT_ACCENT)
+	return theme
+
+func _apply_panel_style() -> void:
+	panel.theme = _text_panel_theme if _text_mode else null
+	panel_dim.color = TEXT_INK if _text_mode else Color("112131a6")
+	_panel_sky.visible = not _text_mode and not _wide_panel
+	_sheet_backdrop.visible = _tab_sheet
+	if _tab_sheet:
+		_apply_tab_sheet_style()
+		return
+	close_button.remove_theme_stylebox_override("focus")
+	var paper := StyleBoxFlat.new()
+	paper.bg_color = Color.WHITE if _text_mode else PAPER
+	paper.border_color = TEXT_RULE if _text_mode else Color("d9c8a8")
+	paper.set_border_width_all(1)
+	if not _text_mode:
+		paper.set_corner_radius_all(14)
+		paper.shadow_color = Color("0e1b2a66")
+		paper.shadow_size = 12
+		paper.shadow_offset = Vector2(0, 4)
+	panel.add_theme_stylebox_override("panel", paper)
+	var light_header := _text_mode or _wide_panel
+	var band := style(paper.bg_color if light_header else MENU_NAVY)
+	band.set_corner_radius_all(0)
+	band.corner_radius_top_left = 0 if _text_mode else 13
+	band.corner_radius_top_right = band.corner_radius_top_left
+	band.border_width_bottom = 1 if light_header else 2
+	band.border_color = EDGE if _wide_panel else TEXT_RULE if _text_mode else Color("bda26b")
+	band.content_margin_left = 19
+	band.content_margin_right = 10
+	band.content_margin_top = 3 if _wide_panel else 6
+	band.content_margin_bottom = band.content_margin_top
+	panel_header.add_theme_stylebox_override("panel", band)
+	panel_title.add_theme_color_override("font_color", INK if _wide_panel else TEXT_INK if _text_mode else PAPER)
+	close_button.text = "닫기" if _wide_panel else "×"
+	close_button.custom_minimum_size = Vector2(54, 34) if _wide_panel else Vector2(44, 44)
+	close_button.add_theme_font_size_override("font_size", 14 if _wide_panel else 23)
+	for state in ["normal", "hover", "pressed"]:
+		if _wide_panel:
+			var close_style := style(PAPER if state == "normal" else Color("e0efff"), EDGE)
+			close_style.set_content_margin_all(0)
+			close_button.add_theme_stylebox_override(state, close_style)
+		elif _text_mode:
+			close_button.remove_theme_stylebox_override(state)
+		else:
+			var fill := Color("33495e") if state == "normal" else Color("455c71")
+			var close_style := style(fill)
+			close_style.set_content_margin_all(0)
+			close_button.add_theme_stylebox_override(state, close_style)
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		if _wide_panel:
+			close_button.add_theme_color_override(state, INK)
+		elif _text_mode:
+			close_button.remove_theme_color_override(state)
+		else:
+			close_button.add_theme_color_override(state, PAPER)
+
+func _apply_tab_sheet_style() -> void:
+	var surface := StyleBoxFlat.new()
+	surface.bg_color = Color.WHITE
+	surface.corner_radius_top_left = 18
+	surface.corner_radius_top_right = 18
+	surface.border_color = TEXT_RULE
+	surface.border_width_top = 1
+	surface.shadow_color = Color(0.08, 0.15, 0.22, 0.14)
+	surface.shadow_size = 8
+	panel.add_theme_stylebox_override("panel", surface)
+
+	var heading := StyleBoxFlat.new()
+	heading.bg_color = Color.TRANSPARENT
+	heading.border_color = TEXT_RULE
+	heading.border_width_bottom = 1
+	heading.content_margin_left = 16
+	heading.content_margin_right = 12
+	heading.content_margin_top = 6
+	heading.content_margin_bottom = 6
+	panel_header.add_theme_stylebox_override("panel", heading)
+	panel_title.add_theme_color_override("font_color", TEXT_INK)
+	close_button.text = "×"
+	close_button.custom_minimum_size = Vector2(44, 44)
+	close_button.add_theme_font_size_override("font_size", 23)
+	var close_style := StyleBoxEmpty.new()
+	for state in ["normal", "hover", "pressed", "focus"]:
+		close_button.add_theme_stylebox_override(state, close_style)
+	close_button.add_theme_color_override("font_color", TEXT_INK)
+	for state in ["font_hover_color", "font_pressed_color", "font_focus_color"]:
+		close_button.add_theme_color_override(state, TEXT_ACCENT)
 
 func open_skill_tree(spell: Dictionary, selected: String, invest: Callable, reset: Callable, back: Callable) -> void:
 	open_panel(str(spell.get("name","스킬")))
@@ -513,11 +648,53 @@ func open_skill_tree(spell: Dictionary, selected: String, invest: Callable, rese
 	skill_tree_view.close_requested.connect(back)
 	menu_views.add_child(skill_tree_view)
 
-func open_panel(title: String, can_close: bool = true, dock_left: bool = false) -> void:
+func open_tab_panel(title: String, wide: bool = false) -> void:
+	var animate := _text_mode and not (overlay.visible and _tab_sheet)
+	open_panel(title, true, false, _text_mode, wide)
+	if not _tab_sheet: return
+	close_button.grab_focus()
+	if animate:
+		_set_sheet_reveal(0.0)
+		_sheet_tween = create_tween()
+		_sheet_tween.tween_method(_set_sheet_reveal, 0.0, 1.0, 0.22).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+func open_section_panel(title: String, names: Array, selected: int, callbacks: Array, wide: bool = false, icon_kinds: Array[String] = []) -> void:
+	open_tab_panel(title, wide)
+	_populate_section_tabs(_panel_tabs, names, selected, callbacks, Vector2(66, 40), true, icon_kinds)
+	_panel_tabs.show()
+
+func show_tab_body(view: Control) -> void:
+	panel_scroll.hide()
+	panel_custom_body.show()
+	panel_custom_body.add_child(view)
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+func _clear_tab_body() -> void:
+	_inventory_balance.hide()
+	_panel_tabs.hide()
+	for child in _panel_tabs.get_children():
+		_panel_tabs.remove_child(child)
+		child.queue_free()
+	for child in panel_custom_body.get_children():
+		panel_custom_body.remove_child(child)
+		child.queue_free()
+	panel_custom_body.hide()
+	panel_scroll.show()
+	if _sheet_tween:
+		_sheet_tween.kill()
+		_sheet_tween = null
+	_sheet_reveal = 1.0
+
+func open_panel(title: String, can_close: bool = true, dock_left: bool = false, tab_sheet: bool = false, wide: bool = false) -> void:
 	cooking_panel_on_left = dock_left
 	fit_menu_height = title == "모험 메뉴"
-	button_list_touch_enabled = title in ["스킬", "모험 메뉴", "화면 설정", "도움말", "모닥불 · 요리", "제작 · 모닥불", "생활 수첩", "생활 수첩 · 식사", "집 · 주방", "내 집 · 거실", "내 집 · 침실"]
+	if _wide_panel != wide or _tab_sheet != tab_sheet:
+		_wide_panel = wide
+		_tab_sheet = tab_sheet
+		_apply_panel_style()
+	button_list_touch_enabled = title in ["스킬", "상태", "모험 메뉴", "어디로 갈까요?", "화면 설정", "도움말", "모닥불 · 요리", "제작 · 모닥불", "식사", "집 · 주방", "내 집 · 거실", "내 집 · 침실"]
 	_clear_inventory()
+	_clear_tab_body()
 	_clear_shop()
 	_clear_quests()
 	if is_instance_valid(skill_tree_view):
@@ -531,6 +708,7 @@ func open_panel(title: String, can_close: bool = true, dock_left: bool = false) 
 	panel_title.text = title
 	content.get_parent().scroll_vertical = 0
 	close_button.visible = can_close
+	_skill_progress_rows.clear()
 	for child in content.get_children():
 		content.remove_child(child)
 		child.queue_free()
@@ -539,9 +717,11 @@ func open_panel(title: String, can_close: bool = true, dock_left: bool = false) 
 
 func close_panel() -> void:
 	button_list_touch_enabled = false
+	_skill_progress_rows.clear()
 	_reset_panel_touch()
 	_finish_size_drag()
 	_clear_inventory()
+	_clear_tab_body()
 	_clear_shop()
 	_clear_quests()
 	if is_instance_valid(skill_tree_view):
@@ -552,32 +732,74 @@ func close_panel() -> void:
 	panel_closed.emit()
 
 func section_tabs(names: Array, selected: int, callbacks: Array) -> void:
-	var tabs = HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 8)
+	var tabs := HBoxContainer.new()
 	content.add_child(tabs)
-	for i in range(names.size()):
-		var tab = button(str(names[i]), callbacks[i])
-		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tab.disabled = i == selected
-		tab.add_theme_stylebox_override("disabled", style(Color("e0ebf3"), Color("a7bccf")))
-		tab.add_theme_color_override("font_disabled_color", INK)
-		tabs.add_child(tab)
-	var gap = Control.new()
-	gap.custom_minimum_size.y = 16
+	var min_size := Vector2(82, 34) if _wide_panel else Vector2(46, 40)
+	_populate_section_tabs(tabs, names, selected, callbacks, min_size, not _wide_panel)
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 6 if _wide_panel else 16
 	content.add_child(gap)
 
-func character_portrait(texture: Texture2D) -> void:
-	var frame = PanelContainer.new()
-	frame.add_theme_stylebox_override("panel", style(Color("eef2f5"), EDGE))
-	content.add_child(frame)
-	var portrait = TextureRect.new()
-	portrait.texture = texture
-	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.custom_minimum_size = Vector2(0, 272)
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.add_child(portrait)
+func _populate_section_tabs(tabs: HBoxContainer, names: Array, selected: int, callbacks: Array, min_size: Vector2, expand: bool, icon_kinds: Array[String] = []) -> void:
+	tabs.add_theme_constant_override("separation", 8)
+	for i in range(names.size()):
+		var tab := button(str(names[i]), callbacks[i], min_size)
+		if expand:
+			tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tab.disabled = i == selected
+		if _text_mode:
+			var selected_style := StyleBoxFlat.new()
+			selected_style.bg_color = Color("edf8ff")
+			selected_style.border_color = TEXT_ACCENT
+			selected_style.border_width_bottom = 2
+			tab.add_theme_stylebox_override("disabled", selected_style)
+			tab.add_theme_color_override("font_disabled_color", TEXT_ACCENT)
+		else:
+			tab.add_theme_stylebox_override("disabled", style(Color("e0ebf3"), Color("a7bccf")))
+			tab.add_theme_color_override("font_disabled_color", INK)
+		tabs.add_child(tab)
+		if i < icon_kinds.size():
+			var icon := SlotIcon.texture_for(icon_kinds[i])
+			if icon != null:
+				_add_section_tab_content(tab, icon)
+
+func _add_section_tab_content(tab: Button, texture: Texture2D) -> void:
+	var caption := label(tab.text, tab.get_theme_font_size("font_size"), Color.WHITE, true)
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tab.accessibility_name = tab.text
+	tab.text = ""
+
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tab.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 6)
+	center.add_child(row)
+
+	var icon := TextureRect.new()
+	icon.texture = texture
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(26, 26)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	row.add_child(caption)
+	tab.custom_minimum_size.x = maxf(tab.custom_minimum_size.x, row.get_combined_minimum_size().x + 16.0)
+
+	const STATE_COLORS := {
+		BaseButton.DRAW_DISABLED: "font_disabled_color",
+		BaseButton.DRAW_HOVER: "font_hover_color",
+		BaseButton.DRAW_PRESSED: "font_pressed_color",
+		BaseButton.DRAW_HOVER_PRESSED: "font_pressed_color",
+	}
+	tab.draw.connect(func():
+		var normal_color := "font_focus_color" if tab.has_focus() else "font_color"
+		caption.self_modulate = tab.get_theme_color(STATE_COLORS.get(tab.get_draw_mode(), normal_color))
+	)
 
 func paragraph(text: String, color: Color = INK) -> void:
 	var p = label(text, 14, color)
@@ -585,20 +807,91 @@ func paragraph(text: String, color: Color = INK) -> void:
 	p.add_theme_constant_override("line_spacing", 7)
 	p.custom_minimum_size.y = 32
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if _text_mode:
+		var prose_color := color
+		match color:
+			INK: prose_color = TEXT_PROSE
+			MUTED: prose_color = TEXT_MUTED
+			GOLD: prose_color = TEXT_ACCENT
+		p.add_theme_color_override("font_color", prose_color)
+		if color == INK:
+			p.add_theme_font_override("font", PROSE_FONT)
+			p.add_theme_font_size_override("font_size", 16)
+		p.custom_minimum_size.y = 0
 	content.add_child(p)
 	var gap = Control.new()
-	gap.custom_minimum_size.y = 14
+	gap.custom_minimum_size.y = 12 if _text_mode else 14
 	content.add_child(gap)
 
-func choice(text: String, detail: String, callback: Callable, disabled: bool = false, icon_kind: String = "") -> void:
+func skill_choice(text: String, detail: String, callback: Callable, skill_id: String, progress: Dictionary, level_prefix: String = "") -> void:
+	if progress.is_empty():
+		choice(text, detail, callback, false, skill_id)
+		return
+	var readout := _make_skill_progress(level_prefix)
+	_set_skill_progress(readout, progress)
+	_skill_progress_rows[skill_id] = readout
+	choice(text, detail, callback, false, skill_id, null, null, readout.row)
+
+func skill_progress(progress: Dictionary) -> void:
+	var readout := _make_skill_progress("")
+	_set_skill_progress(readout, progress)
+	content.add_child(readout.row)
+
+func refresh_skill_choices(get_progress: Callable) -> void:
+	for skill_id in _skill_progress_rows:
+		_set_skill_progress(_skill_progress_rows[skill_id], get_progress.call(skill_id))
+
+func _make_skill_progress(level_prefix: String) -> Dictionary:
+	var row := HBoxContainer.new()
+	row.name = "SkillMasteryProgress"
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 8)
+	var level := label("", 12, TEXT_ACCENT if _text_mode else GOLD, true)
+	level.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(level)
+	var bar := make_bar(Color("398bda") if _text_mode else Color("b38a42"), 6)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(bar)
+	var experience := label("", 12, TEXT_MUTED if _text_mode else MUTED)
+	experience.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(experience)
+	return {"row": row, "level": level, "bar": bar, "experience": experience, "level_prefix": level_prefix}
+
+func _set_skill_progress(readout: Dictionary, progress: Dictionary) -> void:
+	var row: HBoxContainer = readout.row
+	row.visible = not progress.is_empty()
+	if progress.is_empty(): return
+	var level: Label = readout.level
+	var bar: ProgressBar = readout.bar
+	var experience: Label = readout.experience
+	var required := float(progress.xpRequired)
+	var xp := clampf(float(progress.xp), 0.0, required)
+	level.text = "%sLv. %d" % [readout.level_prefix, int(progress.level)]
+	bar.max_value = required
+	bar.value = xp
+	experience.text = "최대 레벨" if progress.get("maxed", false) else "%d / %d XP" % [int(xp), int(required)]
+
+func choice(text: String, detail: String, callback: Callable, disabled: bool = false, icon_kind: String = "", thumbnail: Texture2D = null, detail_thumbnail: Texture2D = null, footer: Control = null) -> void:
 	var line = HSeparator.new()
-	line.modulate = Color("b9c2cc")
+	if _text_mode:
+		var rule := StyleBoxLine.new()
+		rule.color = TEXT_RULE
+		rule.thickness = 1
+		line.add_theme_stylebox_override("separator", rule)
+	else:
+		line.modulate = Color("b9c2cc")
 	content.add_child(line)
 	var row = MarginContainer.new()
-	row.add_theme_constant_override("margin_left", 4)
-	row.add_theme_constant_override("margin_right", 4)
-	row.add_theme_constant_override("margin_top", 9)
-	row.add_theme_constant_override("margin_bottom", 9)
+	if _text_mode:
+		for side in ["left", "right", "top", "bottom"]:
+			row.add_theme_constant_override("margin_" + side, 0)
+	else:
+		row.add_theme_constant_override("margin_left", 4)
+		row.add_theme_constant_override("margin_right", 4)
+		row.add_theme_constant_override("margin_top", 9)
+		row.add_theme_constant_override("margin_bottom", 9)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(row)
 	var target = Button.new()
@@ -607,36 +900,88 @@ func choice(text: String, detail: String, callback: Callable, disabled: bool = f
 	target.accessibility_name = text
 	target.accessibility_description = detail
 	target.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	target.add_theme_stylebox_override("normal", style(Color.TRANSPARENT))
-	target.add_theme_stylebox_override("disabled", style(Color.TRANSPARENT))
+	if not _text_mode:
+		target.add_theme_stylebox_override("normal", style(Color.TRANSPARENT))
+		target.add_theme_stylebox_override("disabled", style(Color.TRANSPARENT))
 	target.pressed.connect(callback)
 	row.add_child(target)
 	var body = HBoxContainer.new()
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_theme_constant_override("separation",8)
-	row.add_child(body)
-	if not icon_kind.is_empty():
+	if _text_mode:
+		var inset := MarginContainer.new()
+		inset.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for side in ["left", "right", "top", "bottom"]:
+			inset.add_theme_constant_override("margin_" + side, 6)
+		row.add_child(inset)
+		inset.add_child(body)
+	else:
+		row.add_child(body)
+	if thumbnail != null:
+		var icon := ItemThumbnail.new(thumbnail)
+		icon.modulate.a = 0.65 if disabled else 1.0
+		body.add_child(icon)
+	elif not icon_kind.is_empty():
 		var icon = SlotIcon.new()
 		icon.kind = icon_kind
 		icon.custom_minimum_size = Vector2(32,32)
 		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		icon.modulate.a = .45 if disabled else 1.0
 		body.add_child(icon)
-	var stack = VBoxContainer.new()
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(stack)
-	var title = label(text, 14, MUTED if disabled else INK, true)
+	var copy: BoxContainer = HBoxContainer.new() if _text_mode else VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if footer != null:
+		var stack := VBoxContainer.new()
+		stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stack.add_theme_constant_override("separation", 2)
+		body.add_child(stack)
+		stack.add_child(copy)
+		stack.add_child(footer)
+	else:
+		body.add_child(copy)
+	var title_color := (TEXT_MUTED if disabled else TEXT_INK) if _text_mode else (MUTED if disabled else INK)
+	var title = label(text, 14, title_color, true)
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stack.add_child(title)
+	copy.add_child(title)
+	if _text_mode:
+		copy.add_theme_constant_override("separation", 14)
+		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		if not disabled:
+			target.mouse_entered.connect(func(): title.add_theme_color_override("font_color", TEXT_ACCENT))
+			target.mouse_exited.connect(func(): title.add_theme_color_override("font_color", TEXT_INK))
 	if not detail.is_empty():
-		var desc = label(detail, 12, MUTED)
+		var desc = label(detail, 12, TEXT_MUTED if _text_mode else MUTED)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		stack.add_child(desc)
+		var detail_body: BoxContainer = copy
+		if detail_thumbnail != null:
+			var detail_row := HBoxContainer.new()
+			detail_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			detail_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			detail_row.add_theme_constant_override("separation", 4)
+			detail_row.add_child(ItemThumbnail.new(detail_thumbnail, 28))
+			copy.add_child(detail_row)
+			detail_body = detail_row
+			desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			desc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		if _text_mode:
+			desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if detail_thumbnail == null:
+				desc.size_flags_stretch_ratio = 1.15
+			else:
+				detail_body.size_flags_stretch_ratio = 1.15
+			desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			desc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		detail_body.add_child(desc)
 
 func menu_entry(title: String, detail: String, callback: Callable, icon_kind: String) -> void:
+	if _text_mode:
+		choice(title, detail, callback)
+		return
 	var row := MarginContainer.new()
 	row.custom_minimum_size.y = 61
 	content.add_child(row)
@@ -692,6 +1037,7 @@ func menu_entry(title: String, detail: String, callback: Callable, icon_kind: St
 func toast(text: String) -> void:
 	toast_label.text = text
 	toast_time = 4
+	toast_shown.emit(text)
 
 func reset_touch_controls() -> void:
 	_reset_panel_touch()
@@ -848,7 +1194,10 @@ func _layout_overlay() -> void:
 
 func _layout_panel() -> void:
 	var available := overlay.size
-	var max_width := 496.0 if fit_menu_height else 660.0
+	if _tab_sheet:
+		_set_sheet_reveal(_sheet_reveal)
+		return
+	var max_width := 740.0 if _wide_panel else 496.0 if fit_menu_height else 660.0
 	var side := maxf(12.0, floorf((available.x - max_width) * 0.5))
 	var height := DESKTOP_MENU_AREA.y if _desktop_web else 680.0
 	if fit_menu_height:
@@ -863,9 +1212,21 @@ func _layout_panel() -> void:
 	else:
 		panel.offset_left = side
 		panel.offset_right = -side
-	panel_dim.color.a = 0.16 if beside_fire else 0.65
+	panel_dim.color.a = 0.16 if beside_fire else (0.32 if _wide_panel else 0.28 if _text_mode else 0.65)
 	panel.offset_top = vertical
 	panel.offset_bottom = -vertical
+
+func _set_sheet_reveal(progress: float) -> void:
+	_sheet_reveal = progress
+	var available := overlay.size
+	var side := maxf(0.0, floorf((available.x - 560.0) * 0.5))
+	var height := minf(maxf(0.0, available.y - 12.0), clampf(available.y * 0.74, 440.0, 660.0))
+	var travel := roundf(height * (1.0 - progress))
+	panel.offset_left = side
+	panel.offset_right = -side
+	panel.offset_top = available.y - height + travel
+	panel.offset_bottom = travel
+	panel_dim.color.a = 0.34 * progress
 
 func controls_orientation() -> String:
 	var available = root.get_viewport_rect().size
@@ -1016,19 +1377,27 @@ func open_quests(entries: Array, show_map: Callable) -> void:
 
 func _clear_inventory() -> void:
 	if is_instance_valid(inventory_view):
-		inventory_view.hide()
+		inventory_view.get_parent().remove_child(inventory_view)
 		inventory_view.queue_free()
 		inventory_view = null
 
-func open_inventory(entries: Array, money: int, selected_id: String, action: Callable, equipment: Callable, craft: Callable) -> void:
-	open_panel("소지품")
-	panel.hide()
+func open_inventory(entries: Array, money: int, selected_id: String, action: Callable, tabs: Array) -> void:
+	open_section_panel("소지품", ["아이템", "장비"], 0, tabs, true)
+	_inventory_balance.text = "%d G" % money
+	_inventory_balance.add_theme_color_override("font_color", TEXT_ACCENT if _text_mode else GOLD)
+	_inventory_balance.show()
+	_show_inventory_grid(entries, selected_id, action)
+
+func open_home_storage(entries: Array, selected_id: String, action: Callable, tabs: Array, selected_tab: int) -> void:
+	open_section_panel("보관함", ["소지품", "보관함"], selected_tab, tabs, true)
+	var empty_text := "소지품이 비어 있습니다." if selected_tab == 0 else "보관함이 비어 있습니다."
+	_show_inventory_grid(entries, selected_id, action, empty_text)
+
+func _show_inventory_grid(entries: Array, selected_id: String, action: Callable, transfer_empty_text: String = "") -> void:
 	inventory_view = preload("res://scripts/inventory_view.gd").new()
+	inventory_view.text_mode = _text_mode
 	inventory_view.entries = entries
-	inventory_view.money = money
 	inventory_view.selected_id = selected_id
 	inventory_view.action = action
-	inventory_view.equipment_requested.connect(equipment)
-	inventory_view.craft_requested.connect(craft)
-	inventory_view.close_requested.connect(close_panel)
-	menu_views.add_child(inventory_view)
+	inventory_view.transfer_empty_text = transfer_empty_text
+	show_tab_body(inventory_view)

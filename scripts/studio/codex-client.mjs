@@ -1,6 +1,55 @@
 import { EventEmitter } from 'node:events';
 import { spawn, execFile } from 'node:child_process';
 import readline from 'node:readline';
+import fs from 'node:fs';
+import path from 'node:path';
+import { promisify } from 'node:util';
+
+const runFile = promisify(execFile);
+const file = (name) => { try { return fs.statSync(name).isFile(); } catch { return false; } };
+function projectTool(root, task) {
+  const method = task.productionMethod;
+  const project = path.join(root, 'godot-arcana');
+  const configPath = path.join(project, 'project.godot');
+  if (!file(configPath)) throw new Error('이 작업 공간에 아르카나 project.godot이 없습니다.');
+  const config = fs.readFileSync(configPath, 'utf8');
+  const version = config.match(/config\/features=PackedStringArray\("(\d+\.\d+)"/)?.[1];
+  if (!version || !/config\/name="[^"]*아르카나/.test(config)) throw new Error('아르카나 프로젝트 이름과 Godot 버전을 확인할 수 없습니다.');
+  if (method === 'pixelpen' && (!config.includes('res://addons/net.yarvis.pixel_pen/plugin.cfg') || !file(path.join(project, 'addons/net.yarvis.pixel_pen/classes/pixel_pen_project.gd')))) throw new Error('현재 작업 프로젝트의 PixelPen 플러그인과 편집 API가 필요합니다.');
+  return { method, project, version };
+}
+
+export async function probeLocalProductionRoute(root, task) {
+  const method = task.productionMethod;
+  try {
+    if (!['blender', 'godot', 'pixelpen'].includes(method)) throw new Error('작업의 제작 도구와 지원하는 실행 방식이 지정되지 않았습니다.');
+    const { project, version } = projectTool(root, task);
+    let executable, expected;
+    if (method === 'blender') {
+      const runtime = JSON.parse(fs.readFileSync(path.join(root, '.runtime/blender/runtime.json'), 'utf8'));
+      executable = fs.realpathSync(path.resolve(root, runtime.executable));
+      const rel = path.relative(fs.realpathSync(path.join(root, '.runtime/blender')), executable);
+      if (path.isAbsolute(rel) || rel.startsWith('..') || !/^blender(?:\.exe)?$/i.test(path.basename(executable))) throw new Error('프로젝트 Blender 배포본을 찾을 수 없습니다.');
+      expected = 'Blender ' + runtime.version;
+    } else {
+      const runtime = path.join(root, '.runtime/godot');
+      const candidates = fs.readdirSync(runtime).map((name) => ({ name, match: /^Godot_v(\d+\.\d+)\.(\d+)-stable_(?:win64_console\.exe|linux\.x86_64)$/.exec(name) }))
+        .filter((item) => item.match?.[1] === version).sort((a, b) => Number(b.match[2]) - Number(a.match[2]));
+      if (!candidates.length) throw new Error('프로젝트에 맞는 Godot ' + version + ' 실행 파일이 필요합니다.');
+      executable = path.join(runtime, candidates[0].name); expected = version + '.' + candidates[0].match[2] + '.';
+    }
+    const { stdout } = await runFile(executable, ['--version'], { cwd: project, windowsHide: true, timeout: 6000, maxBuffer: 32768 });
+    if (!stdout.trimStart().startsWith(expected)) throw new Error('제작 도구의 실제 버전이 프로젝트 배포본과 다릅니다.');
+    return { available: true, method, reason: method + ' CLI와 아르카나 프로젝트를 확인했습니다.', executable, project };
+  } catch (error) {
+    return { available: false, method: method ?? null, reason: safeDisplay(error.message, 450) };
+  }
+}
+
+export function turnInput(prompt, images = []) {
+  if (!Array.isArray(images) || images.some((name) => typeof name !== 'string' || !path.isAbsolute(name) || !file(name))) throw new Error('실제 로컬 이미지 파일의 절대 경로가 필요합니다.');
+  return [{ type: 'text', text: prompt }, ...images.map((name) => ({ type: 'localImage', path: name }))];
+}
 
 export function safeDisplay(value, limit = 1200) {
   return String(value ?? '').replace(/(Bearer\s+)[^\s"']+/gi, '$1[비공개]')
@@ -178,9 +227,62 @@ export class CodexClient extends EventEmitter {
     }
   }
 
-  async runTurn({ prompt, execution, mode = 'read-only', outputSchema, threadId = null,
+  async probeProductionRoute(task) {
+    const method = task.productionMethod;
+    let detail = '등록된 도구에서 해당 프로젝트를 확인하지 못했습니다.';
+    let threadId;
+    try {
+      await this.connect();
+      const { project, version } = projectTool(this.root, task);
+      const thread = await this.request('thread/start', { cwd: this.root, ephemeral: true, sandbox: 'read-only', approvalPolicy: 'never' });
+      threadId = thread.thread?.id;
+      if (!threadId) throw new Error('도구 목록을 조회할 로컬 세션이 없습니다.');
+      let cursor;
+      do {
+        const inventory = await this.request('mcpServerStatus/list', { threadId, detail: 'toolsAndAuthOnly', limit: 100, ...(cursor ? { cursor } : {}) });
+        for (const server of inventory.data ?? []) {
+          const tools = server.tools ?? {};
+          const tool = method === 'blender' ? 'get_scene_info' : 'session_manage';
+          if (!Object.hasOwn(tools, tool) || (method === 'blender' ? !Object.hasOwn(tools, 'execute_blender_code')
+            : !['godot', 'pixelpen'].includes(method) || !Object.hasOwn(tools, 'scene_manage') || (method === 'pixelpen' && !Object.hasOwn(tools, 'script_manage')))) continue;
+          const params = { threadId, server: server.name, tool, arguments: method === 'blender' ? {} : { op: 'list' } };
+          if (server.environmentId) params.environmentId = server.environmentId;
+          const response = await this.request('mcpServer/tool/call', params);
+          if (response.isError) continue;
+          const bodies = [response.structuredContent, ...(response.content ?? []).flatMap((item) => {
+            if (item.type !== 'text') return [];
+            try { return [JSON.parse(item.text)]; } catch { return []; }
+          })].filter(Boolean);
+          for (const body of bodies) {
+            if (method === 'blender') {
+              const blend = body.filepath ?? body.scene?.filepath ?? body.result?.filepath;
+              if (typeof blend !== 'string' || !file(blend)) continue;
+              const real = fs.realpathSync(blend);
+              const rel = path.relative(fs.realpathSync(this.root), real).split(path.sep).join('/');
+              if (path.isAbsolute(rel) || rel.startsWith('..') || ![...task.scope.read, ...task.scope.write].some((name) => rel === name || rel.startsWith(name + '/'))) continue;
+              return { available: true, method, reason: '등록된 Blender MCP에서 작업 범위의 편집 원본을 확인했습니다.', project: real, server: server.name };
+            }
+            const sessions = body.sessions ?? body.result?.sessions ?? body.data?.sessions;
+            for (const session of Array.isArray(sessions) ? sessions : []) {
+              if (!session.session_id || !session.project_path || !String(session.godot_version).startsWith(version + '.')) continue;
+              let actual; try { actual = fs.realpathSync(session.project_path); } catch { continue; }
+              if (path.relative(fs.realpathSync(project), actual) === '') return { available: true, method, reason: '등록된 Godot MCP와 해당 프로젝트 편집기 세션을 확인했습니다.', project, sessionId: session.session_id, server: server.name };
+            }
+          }
+        }
+        cursor = inventory.nextCursor;
+      } while (cursor);
+    } catch (error) { detail = safeDisplay(error.message, 240); }
+    finally { if (threadId) await this.request('thread/unsubscribe', { threadId }).catch(() => {}); }
+    const local = await probeLocalProductionRoute(this.root, task);
+    return local.available ? local : { ...local, reason: detail + ' 로컬 경로: ' + local.reason };
+  }
+
+  async runTurn({ prompt, execution, mode = 'read-only', outputSchema, threadId = null, images = [],
     signal, deadline = Date.now() + 90 * 60000, onStarted, clientMessageId, liveWebSearch = false }) {
+    const input = turnInput(prompt, images);
     await this.connect(); this.assertModel(execution);
+    if (images.length && !this.models.find((item) => (item.model ?? item.id) === execution.model)?.inputModalities?.includes('image')) throw new Error('선택한 모델의 실제 이미지 입력 지원이 확인되지 않았습니다.');
     if (this.turns.size >= 4) throw new Error('동시 작업 한도 4개에 도달했습니다.');
     if (signal?.aborted || deadline <= Date.now()) throw interrupted();
     let thread;
@@ -215,7 +317,7 @@ export class CodexClient extends EventEmitter {
     const timer = setTimeout(cancel, Math.max(1, deadline - Date.now()));
     signal?.addEventListener('abort', cancel, { once: true });
     try {
-      const started = await this.request('turn/start', { threadId: id, input: [{ type: 'text', text: prompt }],
+      const started = await this.request('turn/start', { threadId: id, input,
         model: execution.model, effort: execution.reasoningEffort,
         ...(outputSchema ? { outputSchema } : {}),
         ...(clientMessageId ? { clientUserMessageId: clientMessageId } : {}) });

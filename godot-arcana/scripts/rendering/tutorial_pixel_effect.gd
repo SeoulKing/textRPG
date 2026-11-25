@@ -1,6 +1,6 @@
 extends Node3D
 
-## Shared toon material, depth outline and normal highlight rendering for a raster camera.
+## Shared toon lighting, live depth outlines and cached geometry highlights.
 const Profile := preload("res://scripts/rendering/camera_pixel_profile.gd")
 const SurfaceLighting := preload("res://scripts/rendering/tutorial_surface_lighting.gd")
 const NormalPass := preload("res://scripts/rendering/tutorial_normal_pass.gd")
@@ -21,11 +21,11 @@ func configure(root: Node3D, camera: Camera3D) -> void:
 	# Inspect the source materials before installing the toon overrides.
 	_lighting.set_orthographic(camera.projection == Camera3D.PROJECTION_ORTHOGONAL)
 	_lighting.configure(root)
-	_normals.create(self, root)
+	_normals.create(self, root, _material)
 	_material.shader = EDGE_SHADER
 	# This overlay samples opaque scenery. Draw it before transparent sprites and effects.
 	_material.render_priority = Material.RENDER_PRIORITY_MIN
-	_material.set_shader_parameter("surface_normals", _normals.get_texture())
+	_material.set_shader_parameter("highlight_cache", _normals.get_texture())
 
 	var mesh := QuadMesh.new()
 	mesh.size = Vector2(2.0, 2.0)
@@ -44,6 +44,10 @@ func apply_profile(profile: Profile) -> void:
 	_material.set_shader_parameter("outline_width", clampi(profile.outline_width, 0, 3))
 	_material.set_shader_parameter("outline_strength", clampf(profile.outline_strength / 100.0, 0.0, 1.0))
 	_lighting.set_stepped(profile.shade_bands)
+
+
+func include_geometry(root: Node3D) -> void:
+	_normals.include_geometry(root)
 
 
 func set_highlights_enabled(enabled: bool) -> void:

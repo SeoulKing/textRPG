@@ -4,6 +4,7 @@ extends Node2D
 const FRAMES = preload("res://art/export/monsters/slime.tres")
 const LIT_ATLAS = preload("res://art/export/monsters/slime-lit.res")
 const SURFACE_ATLAS = preload("res://art/export/monsters/slime-surface.res")
+const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
 const SHADER = preload("res://art/resources/slime_sprite.gdshader")
 const COMBAT_LAYOUT = preload("res://art/export/combat-layout.json")
 const LANDING_SECONDS: float = 0.24
@@ -41,6 +42,8 @@ func _ready() -> void:
     material.set_shader_parameter("avatar_texture",LIT_ATLAS)
     material.set_shader_parameter("sheet_grid",Vector2(LIT_ATLAS.get_size())/Vector2(64,80))
     material.set_shader_parameter("model_ink",Color.WHITE)
+    if not Engine.is_editor_hint():
+        material.set_shader_parameter("highlight_strength", TileStyle.HIGHLIGHT_STRENGTH)
     sprite.material=material;add_child(sprite)
     shadow=Node2D.new();add_child(shadow)
     show_pose("idle",0)

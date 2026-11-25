@@ -3,13 +3,13 @@ import { buildArcanaShopActions, tradeArcanaShop } from "./arcana-shop";
 import { investSkillTree, resetSkillTree, normalizeFireballTraining } from "./arcana-skill-tree";
 import { equipArcanaSkill, trainArcanaSkill, equippedArcanaSkill } from "./arcana-skill-training";
 import { randomUUID } from "node:crypto";
-import { moveSpatialSkill, castSpatialFireball, castSpatialUltimate, ensureSpatialEnemies, castSpatialFlameWave, createSpatialBattle, returnSpatialBattle, spatialEvent, tickSpatialCombat } from "./arcana-spatial";
+import { moveSpatialSkill, castSpatialFireball, castSpatialUltimate, ensureSpatialEnemies, castSpatialFlameWave, createSpatialBattle, engagePlazaSlime, returnSpatialBattle, spatialEvent, tickSpatialCombat } from "./arcana-spatial";
 import { GAME_HOUR_MS } from "./base-data";
 import { ArcanaCombatSchema } from "./schemas/arcana-combat";
 import type { ActionChoice, GameAction, GameState, SceneCard } from "./schemas";
 import { appendLogEntry } from "./state-utils";
 import { slimeMonster } from "./data/regions/arcana-hunting-ground/monsters";
-import { ARCANA_SPELLS, isUltimate, absorbArcanaDamage, assertSpellReady, buildArcanaSpells, castFlameGuard, clearFlameGuard, isArcanaSpell, learnArcanaSpell, spellUnlocked, spellMagnitude, spendSpell, tickSpellTimers } from "./arcana-spells";
+import { ARCANA_SPELLS, DODGE_EFFECT_SECONDS, isUltimate, absorbArcanaDamage, assertSpellReady, buildArcanaSpells, castFlameGuard, clearFlameGuard, isArcanaSpell, learnArcanaSpell, spellUnlocked, spellMagnitude, spendSpell, tickSpellTimers, tryEvadeAttack } from "./arcana-spells";
 
 type Command = Extract<GameAction, { type: "arcana_combat" }>;
 export function arcanaStats(state: GameState) {
@@ -67,7 +67,7 @@ export function tickArcanaCombat(state: GameState, seconds: number) {
     if (!fighting) break;
     b.attackIn = Math.max(0, b.attackIn - step);
     if (b.attackIn > 1e-8) continue;
-    if (c.evadeSeconds > 1e-8) { trainArcanaSkill(state, c.evadeSkill, 10); line(state, "회피 성공 · 슬라임의 도약을 피했습니다. 피해 0"); }
+    if (tryEvadeAttack(c)) { trainArcanaSkill(state, c.evadeSkill, 10); line(state, "회피 성공 · 슬라임의 도약을 피했습니다. 피해 0"); }
     else {
       const damage = absorbArcanaDamage(state,slimeMonster.attack);
       line(state, "슬라임의 도약 · " + (damage.absorbed ? "장막 흡수 " + damage.absorbed + " · " : "") + "HP −" + damage.hurt);
@@ -94,9 +94,15 @@ export function useArcanaPotion(state: GameState) {
   const text = "마나 포션 · MP +" + Number((c.mp - before).toFixed(1));
   line(state, text); appendLogEntry(state, text);
 }
+function activateMovementSkill(combat: GameState["arcanaCombat"], skill: "dodge" | "teleport") {
+  combat.evadeSkill = skill;
+  combat.evadeSeconds = skill === "dodge" ? DODGE_EFFECT_SECONDS : 0.3;
+  combat.cooldowns[skill] = skill === "dodge" ? 5 : 0;
+}
 export function performArcanaAction(state: GameState, action: Command) {
   const c = state.arcanaCombat;
   if (!usesArcanaStats(state) || state.isGameOver || state.subwayExpedition.active || state.npcDialogue.active) throw new Error("현재는 평원 전투 행동을 할 수 없습니다.");
+  if (action.command === "engage_plaza_slime") return engagePlazaSlime(state);
   if (action.command === "accept_slime_quest" || action.command === "claim_slime_quest") { performSlimeQuest(state, action.command === "claim_slime_quest"); return; }
   if (action.command === "accept_fish_quest" || action.command === "claim_fish_quest") {
     performFishQuest(state, action.command === "claim_fish_quest");
@@ -160,7 +166,8 @@ export function performArcanaAction(state: GameState, action: Command) {
   if (action.command === "flame_guard" && !b) { castFlameGuard(state); return; }
   if ((action.command === "dodge" || action.command === "teleport") && !b) {
     if (c.cooldowns[movementSkill] > 1e-8) throw new Error(`${movementName} 재사용 대기 중입니다.`);
-    c.evadeSeconds = .3; c.evadeSkill = movementSkill; c.cooldowns[movementSkill] = movementSkill === "teleport" ? 0 : 5; return;
+    activateMovementSkill(c, movementSkill);
+    return;
   }
   if (!b || action.battleId !== b.id) throw new Error("전투 상태가 바뀌었습니다. 화면을 갱신해 주세요.");
   if (action.command === "finish") {
@@ -177,7 +184,8 @@ export function performArcanaAction(state: GameState, action: Command) {
       if (c.cooldowns[movementSkill] > 1e-8) throw new Error(`${movementName} 재사용 대기 중입니다.`);
       if (!action.spatial?.aim) throw new Error("이동 방향을 선택해 주세요.");
       moveSpatialSkill(state, action.spatial.aim);
-      c.evadeSeconds = .3; c.evadeSkill = movementSkill; c.cooldowns[movementSkill] = movementSkill === "teleport" ? 0 : 5; return;
+      activateMovementSkill(c, movementSkill);
+      return;
     }
     if (action.command === "pause") { b.paused = true; return; }
     if (action.command === "resume") { b.paused = false; return; }
@@ -215,7 +223,11 @@ export function performArcanaAction(state: GameState, action: Command) {
   if (action.command === "flame_guard") { castFlameGuard(state); line(state,"불꽃 장막 · 보호막 " + c.guard.amount); return; }
   if ((action.command === "dodge" || action.command === "teleport")) {
     if (c.cooldowns[movementSkill] > 1e-8) throw new Error(`${movementName} 재사용 대기 중입니다.`);
-    c.evadeSeconds = .3; c.evadeSkill = movementSkill; c.cooldowns[movementSkill] = movementSkill === "teleport" ? 0 : 5; line(state, `${movementName} · 진행 방향으로 이동하며 0.3초 동안 공격을 피합니다.`); return;
+    activateMovementSkill(c, movementSkill);
+    line(state, movementSkill === "dodge"
+      ? `대시 · ${DODGE_EFFECT_SECONDS}초 동안 다음 공격을 한 번 피합니다.`
+      : "텔레포트 · 진행 방향으로 이동하며 0.3초 동안 공격을 피합니다.");
+    return;
   }
   if (action.command === "fireball" || action.command === "flame_wave" || isUltimate(action.command)) {
     spendSpell(state,action.command);
@@ -257,15 +269,24 @@ export function buildArcanaActions(state: GameState): ActionChoice[] {
       (spell.unlocked ? "" : "스킬 탭에서 습득 · ") + (spell.targeting === "self" ? spell.duration + "초간 보호막 " + spell.magnitude : (spell.targeting === "cone" ? "전방 90도 · 2칸 · " : "") + "피해 " + spell.magnitude) + " · MP " + spell.cost + " · 재사용 " + spell.cooldown + "초",
       spell.unlocked && equippedArcanaSkill(state, spell.id) && c.mp >= spell.cost && c.cooldowns[spell.id] <= 1e-8)),
     choice(state, "teleport", "텔레포트", "즉시 순간이동 · 0.3초 회피 · MP 0 · 재사용 0초", c.cooldowns.teleport <= 1e-8),
-    choice(state, "dodge", "대시", "즉시 전방 이동 · 0.3초 회피 · 재사용 5초", c.cooldowns.dodge <= 1e-8),
+    choice(state, "dodge", "대시", `즉시 전방 이동 · ${DODGE_EFFECT_SECONDS}초 동안 공격 1회 회피 · 재사용 5초`, c.cooldowns.dodge <= 1e-8),
     choice(state, "potion", "마나 포션", "MP +20 · 보유 " + (state.inventory.manaPotion || 0) + "개", Boolean(state.inventory.manaPotion) && c.mp < arcanaStats(state).maxMp && c.cooldowns.potion <= 1e-8),
     choice(state, "retreat", "후퇴한다", "보상 없이 전투 종료")];
 }
 export function buildArcanaScene(state: GameState): SceneCard | null {
   const b = state.arcanaCombat.battle;
   if (!b) return null;
+  if (b.spatial?.encounterId === "meadow_ox") {
+    const paragraph = b.enemyHp <= 0 ? "진흙코 뿔소가 풀밭에 쓰러져 있다."
+      : b.spatial.behavior === "return" ? "진흙코 뿔소가 풀을 뜯던 자리로 돌아간다."
+      : b.phase === "ready" ? "굽은 뿔이 풀 사이로 드러난다. 진흙코 뿔소가 고개를 숙여 풀을 뜯고 있다."
+      : b.log.at(-1) || "진흙코 뿔소가 뿔을 내리고 맞선다.";
+    return { id: "arcana-combat:" + b.id + ":" + b.phase, locationId: state.location,
+      title: "뿔소 초원의 진흙코 뿔소", paragraphs: [paragraph], choices: [],
+      materialIds: {locationIds:[state.location],personIds:[],itemIds:["manaPotion"]}, source: "template", generatedAt: new Date().toISOString() };
+  }
   return { id: "arcana-combat:" + b.id + ":" + b.phase, locationId: state.location,
     title: b.phase === "victory" ? "슬라임 처치" : b.phase === "defeat" ? "광장으로 귀환" : b.spatial ? "광장의 슬라임" : "별빛 초원의 슬라임",
-    paragraphs: [b.spatial && b.phase === "ready" ? (b.spatial.behavior === "return" ? "슬라임이 몸을 튕기며 원래 있던 자리로 돌아간다." : "초록빛 슬라임이 몸을 부풀렸다 줄인다. 아직 이쪽을 향해 달려들지는 않는다.") : b.phase === "ready" ? "초록빛 슬라임이 몸을 기울인다. 불꽃탄을 준비하고 먼저 다가갈 순간을 고른다." : b.log.at(-1) || "슬라임과 맞선다."],
+    paragraphs: [b.spatial && b.phase === "ready" ? (b.spatial.behavior === "return" ? "슬라임이 몸을 튕기며 원래 있던 자리로 돌아간다." : "초록빛 슬라임이 몸을 부풀렸다 줄인다. 아직 이쪽을 향해 달려들지는 않는다.") : b.phase === "ready" ? "초록빛 슬라임이 몸을 기울인다. 파이어볼을 준비하고 먼저 다가갈 순간을 고른다." : b.log.at(-1) || "슬라임과 맞선다."],
     choices: [], materialIds: { locationIds: [state.location], personIds: [], itemIds: ["manaPotion"] }, source: "template", generatedAt: new Date().toISOString() };
 }

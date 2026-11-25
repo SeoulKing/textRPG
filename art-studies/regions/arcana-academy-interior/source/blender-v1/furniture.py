@@ -6,6 +6,13 @@ import random
 import bpy
 
 
+READING_TABLE_TOP = 0.90
+STUDENT_DESK_TOP = 0.90
+LECTERN_TOP = 1.10
+WAITING_BENCH_Z_SCALE = 0.60 / 0.545
+CHALKBOARD_Z_SCALE = 2.25 / 1.854
+
+
 class Furniture:
     def __init__(self, api, collection, name, x, y, angle=0):
         self.api = api
@@ -166,8 +173,9 @@ def closed_book(prop, colors, x, y, z, width=0.31, depth=0.42, color=2, angle=0)
     prop.box("closed book top", x, y, z+0.042, width, depth, 0.014, material, 0.005, angle)
 
 
-def table(prop, colors, width, depth, top):
+def table(prop, colors, base_size, finished_size):
     oak, walnut, edge = colors["surface"], colors["wood"], colors["edge"]
+    width, depth, top = base_size
     xmax, ymax = width/2, depth/2
     for x in (-xmax+0.15, xmax-0.15):
         for y in (-ymax+0.14, ymax-0.14):
@@ -182,18 +190,25 @@ def table(prop, colors, width, depth, top):
     grooves = [[(-xmax+0.08, y, top+0.002), (xmax-0.08, y, top+0.002)]
                for y in (-depth/6, depth/6)]
     prop.strokes("tabletop plank joints", grooves, walnut, 0.0045)
+    # Scale the joinery from the floor pivot before adding any tabletop props.
+    scale = tuple(finished / base for finished, base in zip(finished_size, base_size))
+    for part in prop.root.children:
+        part.location = tuple(value * factor for value, factor in zip(part.location, scale))
+        part.scale = tuple(value * factor for value, factor in zip(part.scale, scale))
 
 
 def chair(prop, colors, compact=False):
     oak, walnut = colors["surface"], colors["wood"]
-    w, d, seat_h = (0.48, 0.44, 0.36) if compact else (0.55, 0.57, 0.40)
+    w, d, seat_h, finished_depth = (0.48, 0.44, 0.36, 0.62) if compact else (0.55, 0.57, 0.40, 0.64)
     for x in (-w/2+0.055, w/2-0.055):
         for y in (-d/2+0.055, d/2-0.055):
             height = seat_h-0.04 if y < 0 else seat_h+0.29
             prop.box("chair upright", x, y, 0, 0.092, 0.095, height, walnut, 0.015)
-    prop.box("rounded wooden seat", 0, 0, seat_h-0.057, w, d, 0.07, oak, 0.029)
+    seat_base, seat_thickness = seat_h - 0.057, 0.07
+    prop.box("rounded wooden seat", 0, 0, seat_base, w, d, seat_thickness, oak, 0.029)
     prop.box("seat back panel", 0, d/2-0.055, seat_h+0.125, w-0.08, 0.075, 0.17, oak, 0.023)
     prop.box("top rail", 0, d/2-0.055, seat_h+0.25, w, 0.09, 0.063, walnut, 0.019)
+    prop.root.scale = (0.68 / w, finished_depth / d, 0.55 / (seat_base + seat_thickness))
 
 
 def cabinet(prop, colors, w, d, top, panels=3):
@@ -268,6 +283,7 @@ def waiting_bench(prop, colors):
         prop.box("seat cushion", x, -0.016, 0.41, 0.80, 0.68, 0.135, colors["cloth"], 0.057)
         prop.box("back cushion", x, 0.264, 0.55, 0.79, 0.13, 0.29, colors["cloth_light"], 0.049)
     prop.box("rust cushion", 0.79, 0.14, 0.55, 0.40, 0.19, 0.28, colors["cushion"], 0.067, -9)
+    prop.root.scale.z = WAITING_BENCH_Z_SCALE
 
 
 def chalkboard(prop, colors):
@@ -292,6 +308,7 @@ def chalkboard(prop, colors):
         prop.strokes("refracted ray", [[(0.235, plane, 1.22), (1.47, plane, end)]], colors[color], 0.008)
     prop.box("chalk stub", -0.52, 0.116, 0.682, 0.13, 0.047, 0.047, colors["chalk"], 0.014)
     prop.box("felt eraser", 1.08, 0.114, 0.682, 0.20, 0.095, 0.065, walnut, 0.015)
+    prop.root.scale.z = CHALKBOARD_Z_SCALE
 
 
 def bottle(prop, colors, x, y, z, size, body):
@@ -314,14 +331,14 @@ def build_furniture(api):
         bookcase(shelves, colors, rng)
     for index, y in enumerate((5.5, 9.95), 1):
         reading = Furniture(api, library, f"Reading table {index:02}", 3.95, y)
-        table(reading, colors, 2.60, 1.18, 0.80)
-        open_book(reading, colors, 0, 0, 0.80, 0.69, 0.45)
-        closed_book(reading, colors, -0.64, -0.18, 0.801, 0.35, 0.42, color=index+1, angle=-9)
+        table(reading, colors, (2.60, 1.18, 0.80), (2.60, 1.18, READING_TABLE_TOP))
+        open_book(reading, colors, 0, 0, READING_TABLE_TOP, 0.69, 0.45)
+        closed_book(reading, colors, -0.64, -0.18, READING_TABLE_TOP+0.001, 0.35, 0.42, color=index+1, angle=-9)
         if index == 2:
-            closed_book(reading, colors, 0.65, 0.11, 0.801, 0.37, 0.46, color=5, angle=11)
-            closed_book(reading, colors, 0.68, 0.10, 0.858, 0.31, 0.38, color=3, angle=-2)
+            closed_book(reading, colors, 0.65, 0.11, READING_TABLE_TOP+0.001, 0.37, 0.46, color=5, angle=11)
+            closed_book(reading, colors, 0.68, 0.10, READING_TABLE_TOP+0.058, 0.31, 0.38, color=3, angle=-2)
         for chair_index, (dx, dy) in enumerate((
-            (-0.57, -0.88), (0.57, -0.88), (-0.57, 0.88), (0.57, 0.88),
+            (-0.57, -0.95), (0.57, -0.95), (-0.57, 0.95), (0.57, 0.95),
         ), 1):
             seat = Furniture(api, library, f"Reading chair {index}-{chair_index}", 3.95+dx, y+dy, 180 if dy<0 else 0)
             chair(seat, colors)
@@ -357,15 +374,15 @@ def build_furniture(api):
     lecture = api.collection("Furniture - Introductory Classroom")
     chalkboard(Furniture(api, lecture, "Refraction teaching slate", 21.15, 10.38), colors)
     instructor = Furniture(api, lecture, "Demonstration lectern", 21.12, 11.34)
-    table(instructor, colors, 1.66, 0.69, 0.96)
-    open_book(instructor, colors, 0.14, -0.06, 0.96, 0.53, 0.35)
+    table(instructor, colors, (1.66, 0.69, 0.96), (1.66, 0.69, LECTERN_TOP))
+    open_book(instructor, colors, 0.14, -0.06, LECTERN_TOP, 0.53, 0.35)
     for index, (x, y) in enumerate((
-        (19.77, 12.62), (22.19, 12.62), (19.77, 14.46), (22.19, 14.46),
+        (19.77, 12.62), (22.19, 12.62), (19.77, 14.80), (22.19, 14.80),
     ), 1):
         desk = Furniture(api, lecture, f"Student desk {index:02}", x, y)
-        table(desk, colors, 1.27, 0.68, 0.72)
-        chair(Furniture(api, lecture, f"Student chair {index:02}", x, y+0.57), colors, compact=True)
-        closed_book(desk, colors, 0.015, 0.019, 0.72, 0.32, 0.37, color=index, angle=(index-2)*4)
-        desk.turned("inkpot", -0.415, -0.12, 0.72,
+        table(desk, colors, (1.27, 0.68, 0.72), (1.52, 0.80, STUDENT_DESK_TOP))
+        chair(Furniture(api, lecture, f"Student chair {index:02}", x, y+0.72), colors, compact=True)
+        closed_book(desk, colors, 0.015, 0.019, STUDENT_DESK_TOP, 0.32, 0.37, color=index, angle=(index-2)*4)
+        desk.turned("inkpot", -0.415, -0.12, STUDENT_DESK_TOP,
                     [(0.071, 0), (0.064, 0.076), (0.047, 0.094), (0.061, 0.113)], colors["ink"], 8)
 

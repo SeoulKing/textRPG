@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import type { GameState } from "./schemas";
 import type { ArcanaSpatial, SpatialEnemy, CombatPoint as Point } from "./schemas/arcana-spatial";
 import { appendLogEntry } from "./state-utils";
-import { ARCANA_SPELLS, isUltimate, type ArcanaSpellId, effectiveSpell, absorbArcanaDamage, clearFlameGuard, spellMagnitude, spendSpell, tickSpellTimers } from "./arcana-spells";
+import { ARCANA_SPELLS, isUltimate, type ArcanaSpellId, effectiveSpell, absorbArcanaDamage, clearFlameGuard, spellMagnitude, spendSpell, tickSpellTimers, tryEvadeAttack } from "./arcana-spells";
 
 type Battle = NonNullable<GameState["arcanaCombat"]["battle"]>;
 type Layout = { home: Point; spawn: Point; rectangles: { x: number; y: number; w: number; h: number }[]; circles: (Point & { radius: number; localRadius: number; inverse: number[] })[]; bounds: { x: number; y: number; w: number; h: number }; tuning: { tile: number; range: number; projectileSpeed: number; projectileRadius: number; enemyRadius: number; playerRadius: number; chaseLimit: number; chaseSpeed: number; returnSpeed: number; jumpRange: number; jumpDuration: number; attackInterval: number } };
@@ -87,10 +87,25 @@ function wallFraction(a: Point, b: Point, radius: number, layout = spatialLayout
   for (let i=0;i<=steps;i++) if (blocked(mix(a,b,i/steps),radius,layout)) return i/steps;
   return null;
 }
+export function plazaEngagementPoint(enemy: Point, validPoint?: (point: Point) => boolean): Point | undefined {
+  const layout = spatialLayout();
+  const { tile, playerRadius, enemyRadius, projectileRadius } = layout.tuning;
+  const clearance = Math.max(playerRadius, enemyRadius, projectileRadius);
+  for (const tiles of [2.5, 2, 3, 1.5]) {
+    for (let direction = 0; direction < 16; direction++) {
+      const angle = Math.PI + direction * Math.PI / 8;
+      const point = { x: enemy.x + Math.cos(angle) * tiles * tile, y: enemy.y + Math.sin(angle) * tiles * tile };
+      if (wallFraction(enemy, point, clearance, layout) === null && (!validPoint || validPoint(point))) return point;
+    }
+  }
+  return undefined;
+}
 export function spatialEvent(b: Battle, kind: ArcanaSpatial["events"][number]["kind"], position: Point, amount = 0, projectileId?: string, direction?: Point, rewards?: { xp: number; money: number; slimeMucus?: number }, targetPosition?: Point, enemyId?: string) {
   const s = b.spatial!;
-  s.events.push({ id: ++s.revision, kind, position:copy(position), amount, ...(projectileId ? {projectileId} : {}), ...(direction ? {direction:copy(direction)} : {}), ...(rewards ? {rewards} : {}), ...(targetPosition ? {targetPosition:copy(targetPosition)} : {}),...(enemyId ? {enemyId}: {}) });
+  const entry: ArcanaSpatial["events"][number] = { id: ++s.revision, kind, position:copy(position), amount, ...(projectileId ? {projectileId} : {}), ...(direction ? {direction:copy(direction)} : {}), ...(rewards ? {rewards} : {}), ...(targetPosition ? {targetPosition:copy(targetPosition)} : {}),...(enemyId ? {enemyId}: {}) };
+  s.events.push(entry);
   s.events = s.events.slice(-32);
+  return entry;
 }
 export function createSpatialBattle(state: GameState, player: Point) {
   const home = spatialLayout().home;
@@ -145,6 +160,32 @@ function storeProjection(b:Battle,e:SpatialEnemy) {
   e.position=copy(s.enemy);e.hp=b.enemyHp;e.attackIn=b.attackIn;e.behavior=s.behavior;e.jumpFrom=copy(s.jumpFrom);e.jumpTo=copy(s.jumpTo);e.jumpHit=s.jumpHit;e.jumpElapsed=s.jumpElapsed;e.targetLocked=s.targetLocked;
 }
 function refreshProjection(b:Battle) {const s=b.spatial!; const e=s.enemies.find(enemy=>enemy.hp>0) ?? s.enemies[0];if(e) selectProjection(b,e);}
+export function engagePlazaSlime(state: GameState) {
+  if (state.location !== "arcana_plaza") throw new Error("분수 광장에서 슬라임을 선택해 주세요.");
+  let battle = state.arcanaCombat.battle;
+  if (battle) {
+    if (!battle.spatial || battle.phase === "defeat" || battle.phase === "victory") throw new Error("현재 전투를 먼저 마쳐 주세요.");
+    ensureSpatialEnemies(battle);
+    const enemy = battle.spatial.enemies[0];
+    if (enemy.hp <= 0 || enemy.behavior === "return") throw new Error("슬라임이 제자리로 돌아온 뒤 선택해 주세요.");
+    if (battle.phase === "battle") return;
+  }
+  const position = plazaEngagementPoint(battle?.spatial?.enemies[0].position ?? spatialLayout().home);
+  if (!position) throw new Error("슬라임 근처에 접근할 수 있는 자리가 없습니다.");
+  if (!battle) {
+    createSpatialBattle(state, position);
+    battle = state.arcanaCombat.battle!;
+  }
+  const spatial = battle.spatial!;
+  spatial.player = copy(position);
+  spatial.previousPlayer = copy(position);
+  const enemy = spatial.enemies[0];
+  enemy.behavior = "chase";
+  enemy.attackIn = spatialLayout().tuning.attackInterval;
+  battle.phase = "battle";
+  battle.paused = state.activeClock.paused;
+  selectProjection(battle, enemy);
+}
 export function returnSpatialBattle(b:Battle) {
   const s=b.spatial!;
   ensureSpatialEnemies(b);
@@ -163,7 +204,8 @@ function projectile(state:GameState, id:"fireball"|"giant_fireball"|"flame_barra
   const b=state.arcanaCombat.battle!,s=b.spatial!,t=spatialLayout().tuning;
   const length=Math.hypot(direction.x,direction.y);
   const p={id:randomUUID(),position:copy(s.player),origin:copy(s.player),direction:{x:length>.001?direction.x/length:1,y:length>.001?direction.y/length:0},remaining:effectiveSpell(state,id).rangeTiles*t.tile,damage,spellId:id,radius:t.projectileRadius*(id==="giant_fireball"?2:1),hitIds:[] as string[],masteryAwarded:false,pierce:id==="fireball" && fireballSpecialization(state,"reach")?3:1,explode:id==="fireball" && fireballSpecialization(state,"burst"),...(targetId?{targetId}:{})};
-  s.projectiles.push(p);spatialEvent(b,"cast",s.player,0,p.id,p.direction);
+  s.projectiles.push(p);
+  spatialEvent(b,"cast",s.player,0,p.id,p.direction).spellId = p.spellId;
 }
 export function castSpatialFireball(state:GameState,aim:Point) {
   const b=state.arcanaCombat.battle!,s=b.spatial!;
@@ -243,8 +285,6 @@ export function tickSpatialCombat(state: GameState, seconds: number) {
     elapsed += dt; s.elapsed += dt; s.revision++;
     const player = mix(start,end,elapsed/Math.max(seconds,1e-9));
     tickSpellTimers(state,dt);
-    const evading = c.evadeSeconds > 0;
-    c.evadeSeconds = Math.max(0,c.evadeSeconds-dt);
     const beforePositions = new Map(s.enemies.map(e=>[e.id,copy(e.position)]));
     for (const enemy of s.enemies) {
       if(enemy.hp<=0) continue;
@@ -281,9 +321,13 @@ export function tickSpatialCombat(state: GameState, seconds: number) {
       if (s.behavior === "attack") {
         s.jumpElapsed = Math.min(t.jumpDuration,s.jumpElapsed+dt);
         s.enemy = mix(s.jumpFrom,s.jumpTo,s.jumpElapsed/t.jumpDuration);
-        if (!s.jumpHit && sweptCircle(enemyBefore,s.enemy,playerBefore,player,t.enemyRadius+t.playerRadius) !== null) {
+        const impact = s.jumpHit ? null : sweptCircle(enemyBefore,s.enemy,playerBefore,player,t.enemyRadius+t.playerRadius);
+        if (impact !== null) {
           s.jumpHit = true;
-          if (evading) { trainArcanaSkill(state,c.evadeSkill,10); spatialEvent(b,"evade",player); }
+          if (tryEvadeAttack(c, c.evadeSkill === "dodge" ? impact * dt : 0)) {
+            trainArcanaSkill(state, c.evadeSkill, 10);
+            spatialEvent(b, "evade", player).evadeSkill = c.evadeSkill;
+          }
           else {
             const damage = absorbArcanaDamage(state,5);
             if (damage.absorbed) spatialEvent(b,"absorb",player,damage.absorbed);
@@ -307,6 +351,7 @@ export function tickSpatialCombat(state: GameState, seconds: number) {
     }
       storeProjection(b,enemy);
     }
+    c.evadeSeconds = Math.max(0,c.evadeSeconds-dt);
     if(b.phase === "defeat") {s.meteors=[];s.barrage=null;break;}
     refreshProjection(b);
     for(const meteor of [...s.meteors]) {

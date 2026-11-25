@@ -1,0 +1,97 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/reference/grass.png" id="1_grass"]
+[ext_resource type="Texture2D" path="res://art/export/reference/grass-clump.png" id="2_tuft"]
+[ext_resource type="Texture2D" path="res://art/export/reference/flowers.png" id="3_flowers"]
+
+[node name="MeadowField" type="Node2D"]
+texture_filter = 1
+
+[node name="Ground" type="Sprite2D" parent="."]
+z_index = -30
+texture_repeat = 2
+position = Vector2(-640, -640)
+texture = ExtResource("1_grass")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 2816, 2560)
+
+[node name="Plants" type="Node2D" parent="."]
+z_index = -20
+
+[node name="NorthwestGrass" type="Sprite2D" parent="Plants"]
+position = Vector2(124, 188)
+texture = ExtResource("2_tuft")
+
+[node name="NorthwestFlowers" type="Sprite2D" parent="Plants"]
+position = Vector2(171, 216)
+texture = ExtResource("3_flowers")
+
+[node name="NorthGrass" type="Sprite2D" parent="Plants"]
+position = Vector2(545, 199)
+texture = ExtResource("2_tuft")
+flip_h = true
+
+[node name="NorthFlowers" type="Sprite2D" parent="Plants"]
+position = Vector2(593, 228)
+texture = ExtResource("3_flowers")
+
+[node name="NortheastGrass" type="Sprite2D" parent="Plants"]
+position = Vector2(1184, 136)
+texture = ExtResource("2_tuft")
+
+[node name="NortheastFlowers" type="Sprite2D" parent="Plants"]
+position = Vector2(1240, 168)
+texture = ExtResource("3_flowers")
+flip_h = true
+
+[node name="WestGrassUpper" type="Sprite2D" parent="Plants"]
+position = Vector2(218, 474)
+texture = ExtResource("2_tuft")
+flip_h = true
+
+[node name="WestFlowers" type="Sprite2D" parent="Plants"]
+position = Vector2(299, 526)
+texture = ExtResource("3_flowers")
+flip_h = true
+
+[node name="WestGrassLower" type="Sprite2D" parent="Plants"]
+position = Vector2(153, 788)
+texture = ExtResource("2_tuft")
+
+[node name="EastGrassUpper" type="Sprite2D" parent="Plants"]
+position = Vector2(1332, 429)
+texture = ExtResource("2_tuft")
+flip_h = true
+
+[node name="EastGrassLower" type="Sprite2D" parent="Plants"]
+position = Vector2(1257, 802)
+texture = ExtResource("2_tuft")
+
+[node name="EastFlowers" type="Sprite2D" parent="Plants"]
+position = Vector2(1300, 835)
+texture = ExtResource("3_flowers")
+
+[node name="SouthwestGrass" type="Sprite2D" parent="Plants"]
+position = Vector2(389, 1119)
+texture = ExtResource("2_tuft")
+flip_h = true
+
+[node name="SouthwestFlowers" type="Sprite2D" parent="Plants"]
+position = Vector2(453, 1143)
+texture = ExtResource("3_flowers")
+
+[node name="SoutheastGrass" type="Sprite2D" parent="Plants"]
+position = Vector2(1082, 1120)
+texture = ExtResource("2_tuft")
+
+[node name="SoutheastFlowers" type="Sprite2D" parent="Plants"]
+position = Vector2(1037, 1155)
+texture = ExtResource("3_flowers")
+flip_h = true
+
+[node name="Arrival" type="Marker2D" parent="."]
+position = Vector2(768, 1088)
+
+[node name="MeadowOxSpawn" type="Marker2D" parent="."]
+position = Vector2(768, 640)

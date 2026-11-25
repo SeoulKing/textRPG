@@ -17,8 +17,10 @@ func _export_room() -> void:
 	room.name = "ArcanaShop"
 	room.set_meta("extras", {"layout_signature": shop.geometry.layout_signature(shop.layout)})
 	_copy_visuals(source, room)
-	for light_name in ["Sun", "OverheadFill"]:
-		var light := shop.get_node(light_name).duplicate() as Light3D
+	var light_paths := {"Sun": "Lighting/KeyLight", "OverheadFill": "Lighting/OverheadFill"}
+	for light_name: String in light_paths:
+		var light := shop.get_node(light_paths[light_name]).duplicate() as Light3D
+		light.name = light_name
 		light.set_meta("extras", {"shop_light": light_name, "godot_energy": light.light_energy})
 		room.add_child(light)
 	var camera := shop.get_node("Camera3D").duplicate() as Camera3D

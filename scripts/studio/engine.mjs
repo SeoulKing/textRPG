@@ -172,6 +172,7 @@ export function validateBoard(board) {
     resolveExecution(board, task, 'producer');
     resolveExecution(board, task, 'reviewer');
     if (!ORGANIZATIONS.includes(task.organization)) fail(`알 수 없는 담당 조직입니다: ${task.id}`);
+    if (task.resourceLocks !== undefined) stringArray(task.resourceLocks, `${task.id}.resourceLocks`);
     if (!TASK_STATUSES.has(task.status)) fail(`알 수 없는 작업 상태입니다: ${task.id}`);
     if (!Number.isFinite(task.priority)) fail(`작업 우선순위에 숫자가 필요합니다: ${task.id}`);
     stringArray(task.dependsOn, `${task.id}.dependsOn`);
@@ -216,7 +217,7 @@ function inside(base, candidate) {
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }
 
-function checkedPath(root, relative) {
+function checkedPath(root, relative, physical = false) {
   const workspace = path.resolve(root);
   const target = path.resolve(workspace, relativePath(relative));
   if (!inside(workspace, target)) fail('경로가 작업 공간을 벗어납니다.');
@@ -231,7 +232,7 @@ function checkedPath(root, relative) {
   if (!inside(physicalWorkspace, physicalAncestor)) fail(`링크·junction 경로가 작업 공간 밖을 가리킵니다: ${relative}`);
   const physicalRelative = path.relative(physicalWorkspace, physicalAncestor).split(path.sep).join('/');
   if (physicalRelative) safeScope(physicalRelative);
-  return target;
+  return physical ? path.resolve(physicalAncestor, path.relative(ancestor, target)) : target;
 }
 
 function ensureDirectory(root, relative) {
@@ -281,16 +282,48 @@ export function findTask(board, id) {
   return task;
 }
 
-export function selectTask(board, goalId) {
+function eligibleTasks(board, goalId) {
   const goal = findGoal(board, goalId);
-  if (goal.approval.status !== 'approved' || goal.status === 'done') return null;
+  if (goal.approval.status !== 'approved' || goal.status === 'done') return [];
   const done = new Set(board.tasks.filter((task) => task.status === 'done').map((task) => task.id));
   return board.tasks
     .filter((task) => task.goalId === goalId
       && ['review', 'ready', 'backlog'].includes(task.status)
       && task.dependsOn.every((dependency) => done.has(dependency)))
     .sort((left, right) => Number(right.status === 'review') - Number(left.status === 'review')
-      || left.priority - right.priority || left.id.localeCompare(right.id, 'en'))[0] ?? null;
+      || left.priority - right.priority || left.id.localeCompare(right.id, 'en'));
+}
+
+export function selectTask(board, goalId) {
+  return eligibleTasks(board, goalId)[0] ?? null;
+}
+
+function producerConflicts(root, left, right) {
+  // Build/export/publish commands may write a project-wide cache outside the declared deliverables.
+  if ([left, right].some((task) => task.surface === 'app' || task.checks?.length
+    || task.capabilities?.some((value) => ['publish', 'build', 'export'].includes(value)))) return true;
+  if ((left.resourceLocks ?? []).some((key) => right.resourceLocks?.includes(key))) return true;
+  const sessions = (task) => ['godot', 'godot-integration', 'pixelpen'].includes(task.productionMethod);
+  if (sessions(left) && sessions(right)) return true;
+  function paths(scope) {
+    return scope.map((item) => root ? checkedPath(root, item, true) : path.resolve(item));
+  }
+  const overlaps = (writes, all) => writes.some((a) => all.some((b) => inside(a, b) || inside(b, a)));
+  const leftWrites = paths(left.scope.write), rightWrites = paths(right.scope.write);
+  return overlaps(leftWrites, [...paths(right.scope.read), ...rightWrites]) || overlaps(rightWrites, paths(left.scope.read));
+}
+
+export function selectTaskBatch(board, goalId, { limit = 2, root = null } = {}) {
+  const goal = findGoal(board, goalId);
+  const eligible = eligibleTasks(board, goalId);
+  const requested = goal.supervision?.nextTaskIds ?? [];
+  const tasks = requested.length ? requested.map((id) => eligible.find((task) => task.id === id)).filter(Boolean) : eligible;
+  const [first, ...rest] = tasks;
+  if (!first || limit < 1) return [];
+  if (goal.studioWorkflow !== 'autonomous-v1' || limit < 2 || board.settings.maxConcurrentAgents < 3
+    || first.status === 'review' || first.surface === 'app') return [first];
+  const second = rest.find((task) => task !== first && task.status !== 'review' && !producerConflicts(root, first, task));
+  return second ? [first, second] : [first];
 }
 
 export function transitionTask(board, taskId, status, details = {}) {
@@ -397,9 +430,10 @@ export function releaseLock(lock) {
   return true;
 }
 
-export function clearStaleLock(root) {
+export function clearStaleLock(root, expectedToken) {
   const lock = lockStatus(root);
   if (!lock.locked) return false;
+  if (expectedToken !== undefined && lock.token !== expectedToken) fail('확인한 뒤 원장 잠금의 소유권이 바뀌었습니다.');
   if (!lock.sameHost || lock.alive !== false) fail('현재 호스트에서 소유 PID가 종료된 잠금만 해제할 수 있습니다.');
   return releaseLock(lock);
 }

@@ -7,6 +7,21 @@ var drops: Array[Dictionary] = []
 var texts: Array[Dictionary] = []
 var seen: Dictionary = {}
 var pending_money = 0
+var _visuals_enabled := true
+
+func set_world_visuals_enabled(value: bool) -> void:
+	_visuals_enabled = value
+	set_process(value)
+	if value: return
+	for entry in texts: entry.node.queue_free()
+	texts.clear()
+	for drop in drops:
+		for coin in drop.coins: coin.queue_free()
+	drops.clear()
+	if pending_money > 0:
+		pending_money = 0
+		main._update_hud()
+
 func _label(text: String, color: Color) -> Label:
 	var label = Label.new()
 	label.text = text
@@ -20,7 +35,7 @@ func _label(text: String, color: Color) -> Label:
 	main.ui.root.add_child(label)
 	return label
 func show_reward(key: String, at: Vector2, xp: int, money: int) -> void:
-	if seen.has(key): return
+	if not _visuals_enabled or seen.has(key): return
 	seen[key] = true
 	if xp>0: texts.append({"node":_label("+%dxp" % xp,Color("d0efad")),"age":0.0})
 	if money>0:
@@ -34,7 +49,7 @@ func show_reward(key: String, at: Vector2, xp: int, money: int) -> void:
 		drops.append({"coins":coins,"at":at,"age":0.0,"money":money})
 	main._update_hud()
 func show_slime_loot(key: String, amount: int) -> void:
-	if seen.has(key) or amount <= 0: return
+	if not _visuals_enabled or seen.has(key) or amount <= 0: return
 	seen[key] = true
 	texts.append({"node":_label("+%d 슬라임의 점액질" % amount,Color("d0efad")),"age":0.0})
 

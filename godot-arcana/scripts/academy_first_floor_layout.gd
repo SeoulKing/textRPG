@@ -65,8 +65,8 @@ static func _furniture(rectangles: Array[Rect2]) -> void:
 	for depth: float in [5.5, 9.95]:
 		_box(rectangles, Vector2(3.95, depth), Vector2(2.6, 1.18))
 		for chair_x: float in [3.38, 4.52]:
-			for offset: float in [-0.88, 0.88]:
-				_box(rectangles, Vector2(chair_x, depth + offset), Vector2(0.55, 0.57))
+			for offset: float in [-0.95, 0.95]:
+				_box(rectangles, Vector2(chair_x, depth + offset), Vector2(0.68, 0.64))
 
 	# Entrance reception and waiting benches.
 	_box(rectangles, Vector2(4, 15.8), Vector2(3.3, 1.16))
@@ -80,9 +80,9 @@ static func _furniture(rectangles: Array[Rect2]) -> void:
 	_box(rectangles, Vector2(21.15, 10.38), Vector2(3.74, 0.43))
 	_box(rectangles, Vector2(21.12, 11.34), Vector2(1.66, 0.69))
 	for desk_x: float in [19.77, 22.19]:
-		for depth: float in [12.62, 14.46]:
-			_box(rectangles, Vector2(desk_x, depth), Vector2(1.27, 0.68))
-			_box(rectangles, Vector2(desk_x, depth + 0.57), Vector2(0.48, 0.44))
+		for depth: float in [12.62, 14.80]:
+			_box(rectangles, Vector2(desk_x, depth), Vector2(1.52, 0.80))
+			_box(rectangles, Vector2(desk_x, depth + 0.72), Vector2(0.68, 0.62))
 
 
 static func _entity(id: String, title: String, kind: String, tile: Vector2, radius: float = 34.0) -> Dictionary:

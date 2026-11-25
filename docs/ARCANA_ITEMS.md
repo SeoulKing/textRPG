@@ -19,7 +19,7 @@ GET /api/arcana/items → schemaVersion, realm, count, items, missingThumbnails.
 썸네일 상태:
 - ready: 독립 PNG를 표시합니다. 승인된 기존 PNG는 재사용합니다.
 - atlas: 기존 아틀라스의 지정 영역을 표시합니다. 현재 모닥불 3등급이 해당합니다.
-- missing: 이미지가 아직 없음을 명시합니다. 현재 slimeMucus·runeCompass입니다. 새 미술 승인 없이 별도 디자인을 임의 생성하지 않습니다.
+- missing: 이미지가 아직 없음을 명시합니다. 현재 runeCompass입니다. 새 미술 승인 없이 별도 디자인을 임의 생성하지 않습니다.
 
 ## 아이템 추가/수정
 

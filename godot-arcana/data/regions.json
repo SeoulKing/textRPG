@@ -12,6 +12,17 @@
         4096
       ]
     },
+    "arcana_meadow_field": {
+      "scene": "res://scenes/native_2d/meadow_field.tscn",
+      "location": "arcana_meadow_field",
+      "adapter": "authored",
+      "bounds": [
+        0,
+        0,
+        1536,
+        1280
+      ]
+    },
     "arcana_shop": {
       "scene": "res://scenes/shop_2d.tscn",
       "location": "arcana_shop",

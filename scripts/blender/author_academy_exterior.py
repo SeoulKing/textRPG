@@ -46,12 +46,16 @@ class BuildingPart:
         self.vertices, self.faces, self.indices, self.palette = [], [], [], []
 
     def mesh(self, vertices, faces, mat):
-        if mat not in self.palette:
-            self.palette.append(mat)
+        self.mesh_surfaces(vertices, ((faces, mat),))
+
+    def mesh_surfaces(self, vertices, surfaces):
         offset = len(self.vertices)
         self.vertices.extend(vertices)
-        self.faces.extend(tuple(index + offset for index in face) for face in faces)
-        self.indices.extend([self.palette.index(mat)] * len(faces))
+        for faces, mat in surfaces:
+            if mat not in self.palette:
+                self.palette.append(mat)
+            self.faces.extend(tuple(index + offset for index in face) for face in faces)
+            self.indices.extend([self.palette.index(mat)] * len(faces))
 
     def prism(self, start, end, mat):
         count = len(start)
@@ -135,22 +139,41 @@ def north(x, d):
 
 
 def bevel_block(part,x0,x1,d0,d1,h0,h1,bevel,mat,edge):
-    part.block(x0+bevel,x1-bevel,d0+bevel,d1-bevel,h0,h1,mat)
     contour = [
         (x0+bevel,d0),(x1-bevel,d0),(x1,d0+bevel),(x1,d1-bevel),
         (x1-bevel,d1),(x0+bevel,d1),(x0,d1-bevel),(x0,d0+bevel),
     ]
-    edge_contour = [(x0+bevel*1.45 if x<x0+bevel*1.1 else
-                     x1-bevel*1.45 if x>x1-bevel*1.1 else x,
-                    d0+bevel*1.45 if d<d0+bevel*1.1 else
-                     d1-bevel*1.45 if d>d1-bevel*1.1 else d)
-                    for x,d in contour]
-    part.prism([(x,d,h0) for x,d in edge_contour],
-               [(x,d,h0+bevel*.55) for x,d in contour], edge)
-    part.prism([(x,d,h0+bevel*.55) for x,d in contour],
-               [(x,d,h1-bevel*.55) for x,d in contour], mat)
-    part.prism([(x,d,h1-bevel*.55) for x,d in contour],
-               [(x,d,h1) for x,d in edge_contour], edge)
+    inset = bevel * 1.45
+    corners = [
+        (x0 + inset, d0 + inset), (x1 - inset, d0 + inset),
+        (x1 - inset, d1 - inset), (x0 + inset, d1 - inset),
+    ]
+    bevel_height = bevel * .55
+    vertices = [
+        *((x, d, h0) for x, d in corners),
+        *((x, d, h0 + bevel_height) for x, d in contour),
+        *((x, d, h1 - bevel_height) for x, d in contour),
+        *((x, d, h1) for x, d in corners),
+    ]
+    bottom = range(4)
+    lower_rim = range(4, 12)
+    upper_rim = range(12, 20)
+    top = range(20, 24)
+    bevel_faces = [tuple(reversed(bottom)), tuple(top)]
+    side_faces = []
+    # Both rims share one shell and one cap per end.
+    corner_at_rim = (0, 1, 1, 2, 2, 3, 3, 0)
+    for i, corner in enumerate(corner_at_rim):
+        j = (i + 1) % len(contour)
+        next_corner = corner_at_rim[j]
+        side_faces.append((lower_rim[i], lower_rim[j], upper_rim[j], upper_rim[i]))
+        if corner == next_corner:
+            bevel_faces.append((bottom[corner], lower_rim[j], lower_rim[i]))
+            bevel_faces.append((upper_rim[i], upper_rim[j], top[corner]))
+        else:
+            bevel_faces.append((bottom[corner], bottom[next_corner], lower_rim[j], lower_rim[i]))
+            bevel_faces.append((upper_rim[i], upper_rim[j], top[next_corner], top[corner]))
+    part.mesh_surfaces(vertices, ((side_faces, mat), (bevel_faces, edge)))
 
 
 def pointed(width, foot, spring, head):

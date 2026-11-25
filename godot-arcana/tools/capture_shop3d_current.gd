@@ -117,14 +117,14 @@ func _capture() -> void:
 			quit(1)
 			return
 	print("SHOP_CLEARED_PROP_CELLS ", old_props.size())
-	var overhead: OmniLight3D = renderer.shop3d.get_node("OverheadFill")
+	var overhead: OmniLight3D = renderer.shop3d.get_node("Lighting/OverheadFill")
 	overhead.visible = false
 	for frame in range(4):
 		await process_frame
 	await RenderingServer.frame_post_draw
 	output.get_texture().get_image().save_png(target.path_join("godot-shop-overhead-off.png"))
 	overhead.visible = true
-	var sun: DirectionalLight3D = renderer.shop3d.get_node("Sun")
+	var sun: DirectionalLight3D = renderer.shop3d.get_node("Lighting/KeyLight")
 	sun.visible = false
 	for frame in range(4):
 		await process_frame

@@ -8,6 +8,8 @@ const InnLighting=preload("res://scripts/native_2d_inn_lighting.gd")
 const AcademyLighting=preload("res://scripts/native_2d_academy_lighting.gd")
 const Sunlight=preload("res://scripts/native_2d_sunlight.gd")
 const PlazaV2 = preload("res://scenes/plaza_3d_v2.tscn")
+const MeadowField := preload("res://scenes/native_2d/meadow_field.tscn")
+const MeadowOx := preload("res://scripts/native_2d_meadow_ox.gd")
 const WorldDisplay = preload("res://scripts/services/world_display_settings.gd")
 const ScenePreset := preload("res://scripts/rendering/inn_shader_preset.gd")
 const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
@@ -25,6 +27,8 @@ var hero: Node2D
 var plaza_slime: Node2D
 var hunting_slime: Node2D
 var slime: Node2D
+var meadow_ox: Node2D
+var meadow_field: Node2D
 var shop3d: Node3D
 var room3d: Node3D
 var show_home_upper_walls: bool = false:
@@ -33,6 +37,7 @@ var show_home_upper_walls: bool = false:
         if is_instance_valid(room3d) and room3d.has_method("set_upper_walls_visible"):
             room3d.set_upper_walls_visible(value)
 var plaza3d: Node3D
+var _plaza_area: Node
 var camera: Camera2D
 var outside: Node2D
 var inside: Node2D
@@ -52,6 +57,7 @@ var camera_texel_offset := Vector2.ZERO
 var _approved_preset := ScenePreset.load_approved() as ScenePreset
 var _approved_shadows_active := false
 var _physical_size := Vector2i.ZERO
+var _capture_zoom_ratio := 1.0
 var _visible_raster := Vector2.ZERO
 var camera_zoom=4.0
 var base_camera_zoom=4.0
@@ -59,6 +65,7 @@ var pixelated=true
 var quarter_view=false
 var last_interior="__boot__"
 var last_floor=0
+var last_meadow_active := false
 var previous_player=Vector2.ZERO
 var enemy_meter_visible=false
 var enemy_trail_hp=30.0
@@ -87,11 +94,12 @@ static func raster_to_display(presenter: TextureRect, raster_size: Vector2i, poi
 static func display_to_raster(presenter: TextureRect, raster_size: Vector2i, point: Vector2) -> Vector2:
     return (presenter.get_global_transform().affine_inverse() * point) * Vector2(raster_size) / presenter.size
 
+func maximum_zoom_ratio() -> float:
+    var hero_height: float = Hero.SPEC.SOURCE_HEIGHT * 2.0 * base_camera_zoom / CAMERA_ZOOM
+    return display_size.y * MAX_HERO_SCREEN_HEIGHT / hero_height
+
 func set_zoom_ratio(value: float) -> void:
-    # Limit only when the hero nearly fills this window; never at a fixed 200%.
-    var hero_height=Hero.SPEC.SOURCE_HEIGHT*2.0*base_camera_zoom/CAMERA_ZOOM
-    var maximum=maxf(MIN_ZOOM_RATIO,display_size.y*MAX_HERO_SCREEN_HEIGHT/hero_height)
-    camera_zoom=base_camera_zoom*clampf(value,MIN_ZOOM_RATIO,maximum)
+    camera_zoom = base_camera_zoom * clampf(value, MIN_ZOOM_RATIO, maxf(MIN_ZOOM_RATIO, maximum_zoom_ratio()))
 func get_zoom_ratio() -> float:return camera_zoom/base_camera_zoom
 func set_display_size(size: Vector2) -> void:
     var ratio=get_zoom_ratio()
@@ -107,11 +115,11 @@ func view_yaw() -> float:
         return shop3d.camera.rotation.y
     return plaza3d.camera.rotation.y if uses_plaza_v2() else 0.0
 func map_point(point: Vector2, height: float = 0.0) -> Vector2:
-    if is_zero_approx(height):
-        return Coordinates.canvas(point)
     var active_camera: Camera3D = room3d.camera if is_instance_valid(room3d) else null
-    if active_camera == null and uses_plaza_v2():
+    if uses_plaza_v2() and is_instance_valid(plaza3d.camera):
         active_camera = plaza3d.camera
+        height += plaza3d.ground_height_at(point) * absf(active_camera.basis.y.y)
+    if is_zero_approx(height): return Coordinates.canvas(point)
     if active_camera == null:
         return Coordinates.canvas(point, height)
     var basis := active_camera.basis
@@ -121,16 +129,18 @@ func map_point(point: Vector2, height: float = 0.0) -> Vector2:
     return Coordinates.canvas(point) + ground_projection.affine_inverse().basis_xform(
         Vector2.UP * height * Coordinates.SOURCE_UNIT)
 func uses_plaza_v2() -> bool:
-    return world.indoor.is_empty() and world.uses_plaza_v2() and is_instance_valid(plaza3d)
+    return world.indoor.is_empty() and not world.meadow_active and world.uses_plaza_v2() and is_instance_valid(plaza3d)
 
 func set_slime_target_outline(enabled: bool) -> void:
     var plaza_active := uses_plaza_v2()
-    plaza_slime.set_target_outline(enabled and not plaza_active)
+    plaza_slime.set_target_outline(enabled and not plaza_active and not world.meadow_active)
+    meadow_ox.set_target_outline(enabled and world.meadow_active)
     if is_instance_valid(plaza3d):
         plaza3d.set_slime_target_outline(enabled and plaza_active)
 
-func set_physical_size(size: Vector2i) -> void:
+func set_physical_size(size: Vector2i, capture_zoom_ratio: float = 1.0) -> void:
     _physical_size = size
+    _capture_zoom_ratio = capture_zoom_ratio
 
 func uses_approved_3d() -> bool:
     return uses_plaza_v2() or is_instance_valid(shop3d) or is_instance_valid(room3d)
@@ -162,7 +172,8 @@ func _prepare_raster() -> void:
     else:
         presentation_pixel_size = WorldDisplay.camera_pixel_size(presentation_minimum, render_pixel_scale)
     _visible_raster = physical / presentation_pixel_size
-    var raster_size := WorldDisplay.padded_raster_size(_visible_raster)
+    # Keep the camera's follow bounds at the normal framing and capture extra world around it.
+    var raster_size := WorldDisplay.padded_raster_size(_visible_raster / _capture_zoom_ratio)
     var viewport := get_viewport() as SubViewport
     if viewport.size != raster_size:
         viewport.size = raster_size
@@ -170,6 +181,12 @@ func _prepare_raster() -> void:
 func _ready() -> void:
     texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
     layout=world.layout;outside=layout;add_child(outside)
+    meadow_field = MeadowField.instantiate() as Node2D
+    meadow_field.hide()
+    add_child(meadow_field)
+    meadow_ox = MeadowOx.new()
+    meadow_ox.hide()
+    add_child(meadow_ox)
     ambience=CanvasModulate.new();add_child(ambience)
     inside=Node2D.new();add_child(inside)
     camera=Camera2D.new();camera.position_smoothing_enabled=false;add_child(camera);camera.make_current()
@@ -186,11 +203,31 @@ func _ready() -> void:
     city_life=outside.get_node_or_null("Placements/WalkingQuarter")
     if city_life!=null:city_life.configure(outside)
     river=outside.get_node_or_null("Placements/RiverQuarter")
+
+var _world_art_material: ShaderMaterial
+
+func _highlight_world_art(art: CanvasItem) -> void:
+    if art.material != null or art.use_parent_material:
+        return
+    if world.uses_plaza_v2() and outside.is_ancestor_of(art):
+        return
+    if _world_art_material == null:
+        _world_art_material = ShaderMaterial.new()
+        _world_art_material.shader = preload("res://art/resources/world_art_highlight.gdshader")
+        _world_art_material.set_shader_parameter("highlight_strength", TileStyle.HIGHLIGHT_STRENGTH)
+    art.material = _world_art_material
+
 func _register(source: Node) -> void:
     for node in source.get_children():
-        if node is TileMapLayer and node.has_method("prepare_runtime_visuals"):
-            node.prepare_runtime_visuals()
+        if node is TileMapLayer:
+            if node.has_method("prepare_runtime_visuals"):
+                node.prepare_runtime_visuals()
+            elif source.name == &"Ground":
+                _highlight_world_art(node)
         if node is Sprite2D and node.texture!=null:
+            var placed_visual := node.name == &"Visual" and source.has_method("map_position")
+            if placed_visual or node.has_meta("foot") or node.has_meta("native_wall") or str(node.name).begins_with("PaintedRoomFloor"):
+                _highlight_world_art(node)
             var anchor=Vector2.ZERO
             if node.has_meta("foot"):
                 anchor=to_local(node.to_global(node.get_meta("foot",Vector2.ZERO)))
@@ -207,13 +244,24 @@ func _register(source: Node) -> void:
                 entrance_approach = parent.map_entrance_approach()
             sprites.append({"sprite":node,"anchor":anchor,"kind":str(parent.get("model_kind")) if parent.get("model_kind")!=null else "","id":str(parent.get("gameplay_id")) if parent.get("gameplay_id")!=null else str(node.get_meta("interaction_id","")),"root":outside if outside.is_ancestor_of(node) else inside,"entrance_approach":entrance_approach})
         _register(node)
+func _add_region_3d(scene: Node3D) -> void:
+    if not world.uses_plaza_v2():
+        add_child(scene)
+        return
+    if not is_instance_valid(_plaza_area):
+        # The plaza owns both views, so hiding the exterior leaves interiors visible.
+        _plaza_area = Node.new()
+        _plaza_area.name = "Plaza"
+        add_child(_plaza_area)
+    _plaza_area.add_child(scene)
+
 func _interior() -> void:
     if is_instance_valid(shop3d):
-        remove_child(shop3d)
+        shop3d.get_parent().remove_child(shop3d)
         shop3d.queue_free()
         shop3d=null
     if is_instance_valid(room3d):
-        remove_child(room3d)
+        room3d.get_parent().remove_child(room3d)
         room3d.queue_free()
         room3d=null
     inn_lobby=null
@@ -222,14 +270,19 @@ func _interior() -> void:
         if child is CanvasItem:child.hide()
         child.queue_free()
     sprites=sprites.filter(func(entry):return is_instance_valid(entry.sprite) and entry.root==outside)
-    outside.visible=world.indoor.is_empty() and not world.uses_plaza_v2()
-    if world.indoor.is_empty() and world.uses_plaza_v2():
+    var in_meadow: bool = world.indoor.is_empty() and world.meadow_active
+    meadow_field.visible = in_meadow
+    meadow_ox.hide()
+    if in_meadow:
+        meadow_ox.position = (meadow_field.get_node("MeadowOxSpawn") as Marker2D).position
+    outside.visible=world.indoor.is_empty() and not in_meadow and not world.uses_plaza_v2()
+    if world.indoor.is_empty() and not in_meadow and world.uses_plaza_v2():
         camera.enabled=false
         get_viewport().disable_3d=false
         if not is_instance_valid(plaza3d):
             plaza3d=PlazaV2.instantiate()
             plaza3d.set("live_mode", true)
-            add_child(plaza3d)
+            _add_region_3d(plaza3d)
         plaza3d.set_live_active(true)
         return
     if is_instance_valid(plaza3d):plaza3d.set_live_active(false)
@@ -250,7 +303,7 @@ func _interior() -> void:
         shop3d=shop_scene.instantiate()
         shop3d.layout=world.shop_layout
         shop3d.use_approved_rendering = true
-        add_child(shop3d)
+        _add_region_3d(shop3d)
         shop3d.camera.make_current()
         return
     get_viewport().disable_3d=true
@@ -288,7 +341,7 @@ func _open_3d_room(location: String) -> bool:
     camera.enabled=false
     get_viewport().canvas_transform=Transform2D.IDENTITY
     get_viewport().disable_3d=false
-    add_child(candidate)
+    _add_region_3d(candidate)
     var ready: bool = candidate.configure(layout_root, registry.camera_bounds(location, floor_number))
     if layout_root != null: layout_root.free()
     if not ready or not candidate.apply_approved_rendering():
@@ -308,17 +361,20 @@ func _open_3d_room(location: String) -> bool:
 
 func _process(delta: float) -> void:
     if world==null:return
-    if world.indoor!=last_interior or world.academy_floor!=last_floor:
-        last_interior=world.indoor;last_floor=world.academy_floor;_interior()
+    if world.indoor!=last_interior or world.academy_floor!=last_floor or world.meadow_active!=last_meadow_active:
+        last_interior=world.indoor;last_floor=world.academy_floor
+        last_meadow_active=world.meadow_active
+        _interior()
         set_zoom_ratio(get_zoom_ratio())
         _update_directional_shadows(uses_approved_3d())
     var plaza_active := uses_plaza_v2()
     var room_3d_active := is_instance_valid(room3d)
+    var in_meadow := meadow_field.visible
     _prepare_raster()
     camera_texel_offset = Vector2.ZERO
-    if not plaza_active and is_instance_valid(city_life):city_life.sync_city_life(world,delta)
-    if not plaza_active and is_instance_valid(river):river.sync_river(world)
-    sunlight.visible=world.indoor.is_empty() and not plaza_active and world.effects_enabled
+    if not plaza_active and not in_meadow and is_instance_valid(city_life):city_life.sync_city_life(world,delta)
+    if not plaza_active and not in_meadow and is_instance_valid(river):river.sync_river(world)
+    sunlight.visible=world.indoor.is_empty() and not plaza_active and not in_meadow and world.effects_enabled
     world.input_projection = Transform2D.IDENTITY
     if plaza_active:
         world.input_projection = plaza3d.input_projection()
@@ -336,9 +392,10 @@ func _process(delta: float) -> void:
     if is_instance_valid(academy_room):
         academy_room.sync_lighting(world.time,world.effects_enabled,world.reduced_motion)
     var motion=world.player_position-previous_player;previous_player=world.player_position
-    hero.show();hero.position=map_point(world.bench_visual_position())
-    var contact_shadow_offset: Vector2 = plaza3d.contact_shadow_offset() if plaza_active else Vector2.ZERO
-    hero.set_contact_shadow_offset(contact_shadow_offset)
+    var foot: Vector2 = world.bench_visual_position()
+    hero.show();hero.position=map_point(foot)
+    if plaza_active: hero.set_meta("plaza_foot", foot)
+    hero.set_contact_shadow_enabled(not plaza_active)
     hero.set_bench_pose(world.bench_state,world.bench_age,world.reduced_motion)
     hero.set_camera_yaw(view_yaw())
     hero.dash_age=world.dash_age;hero.dash_yaw=atan2(world.dash_direction.x,world.dash_direction.y)
@@ -366,11 +423,19 @@ func _process(delta: float) -> void:
     blink.show()
     var spatial=world.battle.has("spatial")
     slime=plaza_slime if spatial or world.spatial_selected else hunting_slime
-    plaza_slime.sync(world.time,world.battle if spatial else {},world.enemy_visual_hp if spatial else 30.0,false,world.effects_enabled and not world.reduced_motion)
-    hunting_slime.sync(world.time,{} if spatial else world.battle,30.0 if spatial else world.enemy_visual_hp,world.impact_remaining>0,world.effects_enabled and not world.reduced_motion)
-    var plaza_slime_visible: bool = plaza_slime.visible and world.indoor.is_empty()
-    plaza_slime.visible=plaza_slime_visible and not plaza_active
-    hunting_slime.visible=hunting_slime.visible and world.indoor.is_empty() and not plaza_active
+    var plaza_slime_visible := false
+    if in_meadow:
+        plaza_slime.hide()
+        hunting_slime.hide()
+        meadow_ox.visible = world.battle.is_empty() or (world.enemy_visual_hp > 0.0 and world.battle.get("phase", "") not in ["victory", "defeat"])
+        if meadow_ox.visible:
+            meadow_ox.sync_combat_pose(world.battle.get("spatial", {}))
+    else:
+        plaza_slime.sync(world.time,world.battle if spatial else {},world.enemy_visual_hp if spatial else 30.0,false,world.effects_enabled and not world.reduced_motion)
+        hunting_slime.sync(world.time,{} if spatial else world.battle,30.0 if spatial else world.enemy_visual_hp,world.impact_remaining>0,world.effects_enabled and not world.reduced_motion)
+        plaza_slime_visible = plaza_slime.visible and world.indoor.is_empty()
+        plaza_slime.visible=plaza_slime_visible and not plaza_active
+        hunting_slime.visible=hunting_slime.visible and world.indoor.is_empty() and not plaza_active
     enemy_meter_visible=world.indoor.is_empty() and not world.battle.is_empty() and world.battle.get("phase","") not in ["victory","defeat"]
     if world.enemy_visual_hp>enemy_last_hp:enemy_trail_hp=world.enemy_visual_hp
     else:enemy_trail_hp=move_toward(enemy_trail_hp,world.enemy_visual_hp,delta*15)
@@ -412,9 +477,16 @@ func _process(delta: float) -> void:
     # Sort by the walkable floor anchor, not the boots lifted onto a cushion.
     draws.append({"node":hero,"y":map_point(world.player_position).y if world.bench_pose_active() else hero.position.y})
     for node in [plaza_slime,hunting_slime]:draws.append({"node":node,"y":node.position.y})
+    var actors: Array[Node2D] = [hero]
+    if in_meadow:
+        draws.append({"node":meadow_ox,"y":meadow_ox.position.y})
+    elif not plaza_active:
+        actors.append(plaza_slime)
+        actors.append(hunting_slime)
     for child in get_children():
         if child is Node2D and child.get_script()==Hero and child!=hero:
-            child.set_contact_shadow_offset(contact_shadow_offset)
+            child.set_contact_shadow_enabled(not plaza_active)
+            actors.append(child)
             draws.append({"node":child,"y":float(child.get_meta("seat_sort_y",child.position.y))})
     for child in get_children():
         if child is Node2D and child.get_meta("campfire",false) and child.visible:draws.append({"node":child,"y":child.position.y})
@@ -431,19 +503,24 @@ func _process(delta: float) -> void:
         plaza3d.sync_live(world.player_position, get_zoom_ratio(), _visible_raster, delta, world.teleport_age >= 0.0 or world.reduced_motion, world.effects_enabled and not world.reduced_motion)
         camera_texel_offset = plaza3d.camera_texel_offset
         get_viewport().canvas_transform = plaza3d.canvas_projection()
-        _sync_canvas_actor_art(_upright_canvas_basis(_approved_preset.avatar_screen_stretch()))
+        var avatar_stretch := TileStyle.AVATAR_UPRIGHT_SCALE * absf(plaza3d.camera.basis.y.y)
+        var avatar_scale := TileStyle.AVATAR_PIXEL_SIZE * Coordinates.SOURCE_UNIT
+        _sync_canvas_actor_art(_upright_canvas_basis(avatar_stretch, avatar_scale))
         update_blink_projection(blink)
         hero.position = snap_actor_position(hero.position)
+        # Online presence updates the other actors later in this frame.
+        _sync_plaza_actor_shadows.call_deferred(actors)
         camera_updated.emit()
         return
     _sync_canvas_actor_art(Transform2D.IDENTITY)
     update_blink_projection(blink)
     _camera()
-    var sun_actors: Array[Node2D]=[hero,plaza_slime,hunting_slime]
-    for child in get_children():
-        if child is Node2D and child.get_script()==Hero and child!=hero:sun_actors.append(child)
-    sunlight.sync(sprites,sun_actors,world.indoor.is_empty() and world.effects_enabled,world.dusk)
+    sunlight.sync(sprites,actors,sunlight.visible,world.dusk)
     camera_updated.emit()
+
+func _sync_plaza_actor_shadows(actors: Array[Node2D]) -> void:
+    if uses_plaza_v2():
+        plaza3d.sync_actor_shadows(actors, world.effects_enabled)
 func _sprite_covers_body(sprite: Sprite2D,body: Rect2) -> bool:
     # Transparent canvas margins must not trigger scenery fading.
     var local_body=Rect2(sprite.to_local(to_global(body.position)),Vector2.ZERO)
@@ -468,15 +545,15 @@ func _sprite_covers_body(sprite: Sprite2D,body: Rect2) -> bool:
             var pixel=Vector2i(source_origin)+Vector2i(int(rect.size.x)-1-x if sprite.flip_h else x,int(rect.size.y)-1-y if sprite.flip_v else y)
             if pixel.x>=0 and pixel.y>=0 and pixel.x<size.x and pixel.y<size.y and mask.get_bitv(pixel):return true
     return false
-func _upright_canvas_basis(height_scale: float = 1.0) -> Transform2D:
+func _upright_canvas_basis(height_scale: float = 1.0, avatar_scale: float = 1.0) -> Transform2D:
     var projection := get_viewport().canvas_transform
     var ground := Transform2D(projection.x, projection.y, Vector2.ZERO)
-    var raster_scale := Vector2(projection.x.x, projection.y.x).length()
+    var raster_scale := Vector2(projection.x.x, projection.y.x).length() * avatar_scale
     return ground.affine_inverse() * Transform2D(Vector2.RIGHT * raster_scale,
         Vector2.DOWN * raster_scale * height_scale, Vector2.ZERO)
 
 func _sync_canvas_actor_art(basis: Transform2D) -> void:
-    # Ground anchors and contact shadows still use the world projection.
+    # Keep the actor's ground anchor in world coordinates.
     for child in get_children():
         if child is Node2D and child.get_script() == Hero:
             child.art.transform = Transform2D(basis.x, basis.y, child.art.position)
@@ -499,11 +576,13 @@ func _camera() -> void:
     var target=hero.position-Vector2(0,50)
     if fishing_view:target.x+=size.x*.22/maxf(.01,zoom)
     # Camera scale comes from final presentation pixels, for every room and outdoors.
-    # Fit a room only when it already fits at the player's chosen zoom.
-    if not world.indoor.is_empty():
+    # Fit a room only when it already fits inside the camera's framing.
+    if meadow_field.visible or not world.indoor.is_empty():
+        var bounds: Rect2 = room_bounds
+        if meadow_field.visible: bounds = Rect2(Vector2.ZERO, world.MEADOW_BOUNDS.size * Coordinates.SOURCE_PER_LOGICAL)
         var half=size/(2.0*zoom)
-        target.x=room_bounds.get_center().x if room_bounds.size.x<=half.x*2 else clampf(target.x,room_bounds.position.x+half.x,room_bounds.end.x-half.x)
-        target.y=room_bounds.get_center().y if room_bounds.size.y<=half.y*2 else clampf(target.y,room_bounds.position.y+half.y,room_bounds.end.y-half.y)
+        target.x=bounds.get_center().x if bounds.size.x<=half.x*2 else clampf(target.x,bounds.position.x+half.x,bounds.end.x-half.x)
+        target.y=bounds.get_center().y if bounds.size.y<=half.y*2 else clampf(target.y,bounds.position.y+half.y,bounds.end.y-half.y)
     camera.zoom=Vector2.ONE*zoom;camera.position=target;camera.force_update_scroll()
     var canvas=viewport.canvas_transform;var stretch=viewport.get_stretch_transform()
     var origin=stretch*canvas.origin
@@ -512,6 +591,8 @@ func _camera() -> void:
     camera.force_update_scroll()
     hero.position = snap_actor_position(hero.position)
     get_tree().call_group("native_slime_pixels","snap_to_pixels")
+    if meadow_field.visible and meadow_ox.visible:
+        meadow_ox.snap_to_pixels()
 func snap_actor_position(point: Vector2) -> Vector2:
     var viewport := get_viewport()
     var to_raster := viewport.get_stretch_transform() * viewport.canvas_transform
@@ -527,6 +608,19 @@ func screen_point(point: Vector2,height: float=0.0) -> Vector2:
     if is_instance_valid(room3d):return room3d.screen_point(point,height)
     if world.indoor=="arcana_shop" and is_instance_valid(shop3d):return shop3d.screen_point(point,height)
     return get_viewport().canvas_transform*map_point(point,height)
+func actor_label_point(point: Vector2) -> Vector2:
+    var active_camera: Camera3D
+    if uses_plaza_v2():
+        active_camera = plaza3d.camera
+    elif is_instance_valid(room3d):
+        active_camera = room3d.camera
+    elif is_instance_valid(shop3d):
+        active_camera = shop3d.camera
+    else:
+        return screen_point(point, 2.1)
+    var offset := active_camera.unproject_position(Vector3.UP * TileStyle.AVATAR_HEIGHT) \
+        - active_camera.unproject_position(Vector3.ZERO)
+    return screen_point(point) + offset
 func pick_interaction(point: Vector2) -> Dictionary:
     if uses_plaza_v2():return plaza3d.pick_interaction(point,world)
     if is_instance_valid(room3d):return room3d.pick_interaction(point,world.entities)

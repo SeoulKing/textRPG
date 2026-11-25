@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import crypto from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { CodexClient, safeDisplay } from './codex-client.mjs';
 import { run, editBoard } from './studio.mjs';
-import { readBoard, writeBoard, findGoal, findTask, acquireLock, releaseLock, validateBoard, lockStatus, selectTask } from './engine.mjs';
+import { readBoard, writeBoard, findGoal, findTask, acquireLock, releaseLock, validateBoard, lockStatus, clearStaleLock, selectTask } from './engine.mjs';
 import { approvalDigest, assertGoalReady, assertTaskAuthorized } from './protocol.mjs';
 import { resolveExecution, modelCatalog, setDepartmentDefault } from './model-policy.mjs';
 import { createIntakeSchema, formatIntakePrompt, formatResearchPrompt, normalizeIntake } from './mission-intake.mjs';
@@ -19,15 +20,18 @@ const uuid = () => crypto.randomUUID();
 export class BridgeRuntime extends EventEmitter {
   constructor({ root, state, saveState, sendMessage, updateCommand }) {
     super(); Object.assign(this, { root, state, saveState, sendMessage, updateCommand });
-    this.client = new CodexClient({ root }); this.contexts = new Map(); this.active = null;
+    this.client = new CodexClient({ root }); this.contexts = new Map(); this.workers = new Set();
     this.running = false; this.paused = state.runtimePaused === true; this.boundaryStop = false; this.bridgeStopping = false; this.runPromise = null;
     this.controller = null; this.activity = Array.isArray(state.activity) ? state.activity.slice(-100) : []; this.chatTail = Promise.resolve(); this.pendingEdits = [];
     this.state.collaborationQueue ??= []; this.state.modelSettingsQueue ??= []; this.state.intakeQueue ??= []; this.state.goalQueue ??= []; this.state.departmentHistory ??= {}; this.tickPromise = null;
+    // OS uptime can be rounded to seconds. Never infer a reboot from a lock inside that margin.
+    this.bootLowerBound = Date.now() - (os.uptime() + 2) * 1000;
+    if (state.runningAutonomousGoal && !state.goalQueue.includes(state.runningAutonomousGoal)) state.goalQueue.push(state.runningAutonomousGoal);
     this.usageData = { status: 'unavailable', updatedAt: null };
     this.client.on('usage', (data) => { this.usageData = { ...data, status: 'ready', updatedAt: now() }; });
     this.client.on('notification', (event) => this.activityEvent(event));
     this.client.on('approval', (approval) => this.note(this.contexts.get(approval.threadId)?.departmentId ?? 'director',
-      'approval', approval.reason, this.active?.taskId, { approval }));
+      'approval', approval.reason, this.contexts.get(approval.threadId)?.taskId, { approval }));
     this.client.on('disconnected', (error) => {
       this.usageData = { ...this.usageData, status: 'error', error: safeDisplay(error.message) };
       this.note('director', 'error', error.message);
@@ -76,12 +80,17 @@ export class BridgeRuntime extends EventEmitter {
       this.saveState();
     }
     const connectionLock = lockStatus(this.root);
+    const activeTasks = [...this.workers].map(({ departmentId, taskId, phase, threadId, turnId, currentAction, execution }) =>
+      ({ departmentId, taskId, phase, threadId: threadId ?? null, turnId: turnId ?? null, currentAction,
+        model: execution.model, reasoningEffort: execution.reasoningEffort }));
+    const primary = activeTasks[0];
     const departments = Object.entries(NAMES).map(([id, name]) => {
-      const current = [...this.contexts.values()].find((item) => item.departmentId === id);
-      const task = board.tasks.find((item) => (item.status === 'review' ? id === 'quality' : item.organization === id && item.status === 'active'));
+      const current = [...this.workers, ...this.contexts.values()].find((item) => item.departmentId === id);
+      const task = !this.running && board.tasks.find((item) => item.goalId === connectionLock.goalId
+        && (item.status === 'review' ? id === 'quality' : item.organization === id && item.status === 'active'));
       const execution = resolveExecution(board, { organization: id }, 'producer');
       const last = [...this.activity].reverse().find((item) => item.departmentId === id);
-      return { id, name, status: current ? 'working' : task && connectionLock.alive ? 'working' : 'idle',
+      return { id, name, activeTasks: activeTasks.filter((item) => item.departmentId === id), status: current ? 'working' : task && connectionLock.alive ? 'working' : 'idle',
         currentTaskId: current?.taskId ?? task?.id ?? null,
         currentAction: current?.currentAction ?? (task && connectionLock.alive ? '외부 실행기에서 작업 중' : '다음 작업 대기'),
         phase: current?.phase ?? null, model: current?.execution?.model ?? execution.model,
@@ -105,21 +114,21 @@ export class BridgeRuntime extends EventEmitter {
         description: entry.reason, choices: entry.availableDecisions, questions: entry.questions,
         supported: entry.supported,
       })),
-      runtime: { running: this.running, goalId: this.goalId ?? null, taskId: this.active?.taskId ?? null,
-        phase: this.active?.phase ?? null, threadId: this.active?.threadId ?? null,
-        turnId: this.active?.turnId ?? null, paused: this.paused, bridgeStopping: this.bridgeStopping,
+      runtime: { running: this.running, goalId: this.goalId ?? null, activeTasks, taskId: primary?.taskId ?? null,
+        phase: primary?.phase ?? null, threadId: primary?.threadId ?? null,
+        turnId: primary?.turnId ?? null, paused: this.paused, bridgeStopping: this.bridgeStopping,
         approvals: [...this.client.approvals.values()].map(({ rpcId, ...entry }) => entry) } };
   }
 
-  async invoke({ prompt, schema, prefix, run: runInfo, deadline, signal, mode, execution, task, phase, goalId }) {
+  async invoke({ prompt, schema, prefix, run: runInfo, deadline, signal, mode, execution, task, phase, goalId, studioWorkflow, images = [] }) {
     const departmentId = phase === 'reviewer' ? 'quality' : phase === 'director' ? 'director' : task.organization;
     const context = { departmentId, taskId: task?.id ?? null, phase, execution, currentAction: phase === 'reviewer' ? '독립 품질 검토 중' : phase === 'director' ? (schema === 'completion-director.schema.json' ? '부서 완료 보고와 목표 전체 확인 중' : '부서 협업 요청 조정 중') : '작업 준비 중' };
-    this.active = context;
     fs.writeFileSync(path.join(runInfo.dir, prefix + '.prompt.txt'), prompt, 'utf8');
     fs.writeFileSync(path.join(runInfo.dir, prefix + '.execution.json'), JSON.stringify(execution, null, 2), 'utf8');
     this.note(departmentId, 'started', context.currentAction, context.taskId);
+    this.workers.add(context);
     try {
-      const result = await this.client.runTurn({ prompt, mode, execution,
+      const result = await this.client.runTurn({ prompt, mode, execution, images,
         outputSchema: JSON.parse(fs.readFileSync(path.join(this.root, 'scripts/studio', schema), 'utf8')),
         deadline, signal, onStarted: ({ threadId, turnId }) => {
           Object.assign(context, { threadId, turnId }); this.contexts.set(threadId, context);
@@ -131,13 +140,13 @@ export class BridgeRuntime extends EventEmitter {
       const value = JSON.parse(result.text.replace(/^\uFEFF/, ''));
       const filename = path.join(runInfo.dir, prefix + '.json');
       fs.writeFileSync(filename, JSON.stringify(value, null, 2) + '\n', 'utf8');
-      this.sendMessage({ id: uuid(), departmentId, role: 'assistant',
+      if (studioWorkflow !== 'autonomous-v1') this.sendMessage({ id: uuid(), departmentId, role: 'assistant',
         text: safeDisplay(value.summary ?? '작업 결과를 제출했습니다.', 12000), createdAt: now() });
       this.note(departmentId, 'submitted', value.summary ?? '작업 결과 제출', context.taskId);
       return { result: value, path: path.relative(this.root, filename).split(path.sep).join('/') };
     } finally {
       if (context.threadId) this.contexts.delete(context.threadId);
-      if (this.active === context) this.active = null;
+      this.workers.delete(context);
     }
   }
 
@@ -149,16 +158,19 @@ export class BridgeRuntime extends EventEmitter {
     if (goal.status === 'done') throw new Error('이미 인수한 목표입니다.');
     if (lockStatus(this.root).locked) throw new Error('다른 총괄이 원장을 사용 중입니다.');
     this.running = true; this.paused = false; this.state.runtimePaused = false; this.boundaryStop = false; this.goalId = goalId;
+    if (this.state.recoveryAttention?.goalId === goalId) delete this.state.recoveryAttention;
+    if (goal.studioWorkflow === 'autonomous-v1') this.state.runningAutonomousGoal = goalId;
     this.state.goalQueue = this.state.goalQueue.filter((id) => id !== goalId); this.saveState();
     this.controller = new AbortController(); this.note('director', 'run_started', goal.title + ' 목표를 시작합니다.');
     this.runPromise = run({ goal: goalId }, { owner: 'web-bridge-director', signal: this.controller.signal,
-      shouldPause: () => this.paused || this.boundaryStop,
+      shouldPause: () => this.paused || this.boundaryStop, models: this.client.models,
+      loadModels: () => this.client.connect(), probeProductionRoute: (task) => this.client.probeProductionRoute(task),
       onBoundary: async (currentBoard) => this.applyPendingTasks(currentBoard),
       invoke: (params) => this.invoke(params) })
       .then((result) => {
         const text = this.paused ? '다음 작업부터 일시정지했습니다.' : result?.message ?? '현재 가능한 작업 처리를 마쳤습니다.';
         this.note('director', this.paused ? 'paused' : 'run_finished', text);
-        this.sendMessage({ id: uuid(), departmentId: 'director', role: 'assistant', text: safeDisplay(text, 4000), createdAt: now() });
+        if (goal.studioWorkflow !== 'autonomous-v1') this.sendMessage({ id: uuid(), departmentId: 'director', role: 'assistant', text: safeDisplay(text, 4000), createdAt: now() });
       })
       .catch((error) => {
         if (!this.bridgeStopping && !this.paused && lockStatus(this.root).locked) {
@@ -168,7 +180,8 @@ export class BridgeRuntime extends EventEmitter {
       })
       .finally(async () => {
         const wasBoundaryStop = this.boundaryStop;
-        this.running = false; this.active = null;
+        this.running = false;
+        if (this.state.runningAutonomousGoal === goalId) { this.state.runningAutonomousGoal = null; this.saveState(); }
         const edits = this.pendingEdits.splice(0);
         for (const entry of edits) {
           try { this.applyEdit(entry.command); entry.resolve({ status: 'completed', result: '지시를 원장에 반영했습니다.' }); }
@@ -243,15 +256,51 @@ export class BridgeRuntime extends EventEmitter {
       const text = '목표 “' + intake.goal.title + '”을 원장에 등록했습니다. '
         + (eligible ? '부서별 선행 순서에 따라 진행합니다.' : '필요한 판단·인계 항목은 해당 작업에 표시했습니다.');
       this.updateCommand(entry.command.id, 'completed', { result: text });
-      this.sendMessage({ id: uuid(), departmentId: 'director', role: 'system', text,
+      if (intake.goal.studioWorkflow !== 'autonomous-v1') this.sendMessage({ id: uuid(), departmentId: 'director', role: 'system', text,
         commandId: entry.command.id, createdAt: now() });
       this.note('director', 'goal_registered', text);
     }
   }
+  recoverQueuedLock() {
+    const goalId = this.state.runningAutonomousGoal;
+    if (!goalId && !this.state.recoveryAttention) return;
+    const lock = lockStatus(this.root);
+    const clearAttention = () => {
+      if (this.state.recoveryAttention) { delete this.state.recoveryAttention; this.saveState(); }
+    };
+    if (!goalId || !lock.locked) { clearAttention(); return; }
+    const goal = readBoard(this.root).goals.find((item) => item.id === goalId);
+    if (goal?.studioWorkflow !== 'autonomous-v1' || goal.status === 'done') { clearAttention(); return; }
+    const sameOwner = lock.sameHost && lock.owner === 'web-bridge-director' && lock.goalId === goalId;
+    const started = Date.parse(lock.startedAt);
+    let reason;
+    if (sameOwner && lock.alive === false && typeof lock.token === 'string' && lock.token.length
+      && Number.isFinite(started) && started < this.bootLowerBound) {
+      try {
+        clearStaleLock(this.root, lock.token);
+        clearAttention();
+        this.note('director', 'recovery', '이전 PC 부팅에서 종료된 제작 실행의 잠금을 해제했습니다. 저장된 제출물부터 이어받습니다.');
+        return;
+      } catch { reason = '재연결 중 잠금 소유권이 바뀌었거나 해제할 수 없습니다.'; }
+    } else if (sameOwner && lock.alive === false) {
+      reason = '이전 제작 총괄은 종료됐지만 재부팅 여부와 남은 작업 프로세스의 종료를 확인할 수 없습니다.';
+    } else {
+      reason = '남아 있는 원장 잠금의 소유자와 모든 작업 프로세스의 종료를 확인할 수 없습니다.';
+    }
+    if (Number.isInteger(lock.pid)) reason += ' 잠금 PID ' + lock.pid + '.';
+    reason += ' PC에서 이전 작업 종료를 확인하고 종료된 원장 잠금만 해제해 주세요. 연결기가 저장된 결과부터 이어받습니다.';
+    const previous = this.state.recoveryAttention;
+    if (previous?.goalId !== goalId || previous.reason !== reason) {
+      this.state.recoveryAttention = { goalId, reason, updatedAt: now() };
+      this.saveState();
+    }
+  }
+
   async tick() {
     if (this.tickPromise) return this.tickPromise;
     if (this.bridgeStopping || this.running) return;
     this.tickPromise = (async () => {
+      this.recoverQueuedLock();
       this.flushCollaborationRecords();
       this.flushModelSettings();
       this.flushIntakes();
@@ -259,6 +308,15 @@ export class BridgeRuntime extends EventEmitter {
       const board = readBoard(this.root);
       // An external app completion has no running CLI loop to notify its director. Pick it up once here.
       let queued = false;
+      for (const task of board.tasks) {
+        if (task.status !== 'review' || !task.runtime?.manualVisualReview || task.runtime.executionSurface !== 'app'
+          || this.state.goalQueue.includes(task.goalId)) continue;
+        const goal = board.goals.find((item) => item.id === task.goalId);
+        if (goal?.studioWorkflow !== 'autonomous-v1' || goal.status === 'done' || goal.supervision?.status === 'blocked'
+          || board.tasks.some((item) => item.goalId === goal.id && item.status === 'active')) continue;
+        try { assertGoalReady(board, goal); } catch { continue; }
+        this.state.goalQueue.push(goal.id); queued = true;
+      }
       for (const report of board.completionReports ?? []) {
         if (!['pending', 'processing'].includes(report.status) || this.state.goalQueue.includes(report.goalId)) continue;
         if ((board.completionReports ?? []).some((item) => item.goalId === report.goalId && item.status === 'blocked')) continue;
@@ -271,12 +329,15 @@ export class BridgeRuntime extends EventEmitter {
       if (queued) this.saveState();
       for (const goalId of [...this.state.goalQueue]) {
         const goal = board.goals.find((item) => item.id === goalId);
-        if (!goal || goal.status === 'done' || board.tasks.some((task) => task.goalId === goalId && task.status === 'active')) {
+        const active = board.tasks.filter((item) => item.goalId === goalId && item.status === 'active');
+        const recovering = goal?.studioWorkflow === 'autonomous-v1' && this.state.runningAutonomousGoal === goalId
+          && active.every((item) => item.runtime?.executionSurface === 'cli');
+        if (!goal || goal.status === 'done' || (active.length && !recovering)) {
           this.state.goalQueue = this.state.goalQueue.filter((id) => id !== goalId); this.saveState();
-          continue; // An interrupted active writer requires a deliberate recovery, never an automatic replay.
+          continue;
         }
         const pendingCompletion = (board.completionReports ?? []).some((report) => report.goalId === goalId && ['pending', 'processing'].includes(report.status));
-        if (!selectTask(board, goalId) && !pendingCompletion) {
+        if (!selectTask(board, goalId) && !pendingCompletion && !recovering) {
           const waiting = board.tasks.some((task) => task.goalId === goalId && ['ready', 'backlog', 'review'].includes(task.status));
           if (!waiting) { this.state.goalQueue = this.state.goalQueue.filter((id) => id !== goalId); this.saveState(); }
           continue;
@@ -375,9 +436,9 @@ export class BridgeRuntime extends EventEmitter {
     else if (command.type === 'accept_goal') editBoard({ ...args, command: 'accept', reason: command.payload?.reason ?? command.text });
     else if (command.type === 'retry_task') editBoard({ ...args, command: 'retry', task: command.taskId, reason: command.payload?.reason ?? command.text });
     else if (command.type === 'resolve_decision') {
-      const completionDecision = readBoard(this.root).decisions.find((item) => item.id === command.payload?.decisionId)?.sourceCompletionReportId;
+      const decision = readBoard(this.root).decisions.find((item) => item.id === command.payload?.decisionId);
       editBoard({ ...args, command: 'resolve_decision', decisionId: command.payload?.decisionId, reason: command.payload?.resolution ?? command.text });
-      if (completionDecision) { this.queueGoal(command.goalId); this.saveState(); }
+      if (decision?.sourceCompletionReportId || ['app-handoff', 'run-interruption'].includes(decision?.type)) { this.queueGoal(command.goalId); this.saveState(); }
     }
     else throw new Error('허용하지 않은 원장 동작입니다.');
   }
@@ -413,7 +474,7 @@ export class BridgeRuntime extends EventEmitter {
       if (command.payload?.research === true && (command.target !== 'design' || command.payload.expectedTurnId)) {
         throw new Error('기술 연구는 게임 기획 부서 대화에서 요청해 주세요.');
       }
-      const current = this.active;
+      const current = [...this.workers].find((worker) => worker.departmentId === command.target && worker.turnId === command.payload?.expectedTurnId);
       if (command.target !== 'director' && command.payload?.expectedTurnId &&
         current?.departmentId === command.target && current.turnId === command.payload.expectedTurnId) {
         try {
@@ -508,7 +569,7 @@ export class BridgeRuntime extends EventEmitter {
     this.paused = false; this.state.runtimePaused = false;
     if (this.running) this.boundaryStop = true;
     this.saveState();
-    this.sendMessage({ id: uuid(), departmentId: role, role: 'assistant', text: safeDisplay(intake.reply, 16000),
+    if (intake.goal.studioWorkflow !== 'autonomous-v1') this.sendMessage({ id: uuid(), departmentId: role, role: 'assistant', text: safeDisplay(intake.reply, 16000),
       commandId: command.id, createdAt: now() });
     await this.tick();
     const pending = this.state.intakeQueue.find((entry) => entry.command.id === command.id);

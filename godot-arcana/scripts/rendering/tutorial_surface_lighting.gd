@@ -170,6 +170,7 @@ func _convert(source: BaseMaterial3D) -> ShaderMaterial:
 	material.resource_name = source.resource_name + " | tutorial lighting"
 	material.render_priority = source.render_priority
 	material.shader = _shader_for(source)
+	material.set_meta(&"arcana_edge_cull_mode", source.cull_mode)
 	var parameters := {
 		"surface_color": source.albedo_color,
 		"surface_texture": source.albedo_texture,

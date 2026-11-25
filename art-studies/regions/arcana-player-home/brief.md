@@ -69,6 +69,8 @@ The two tall joined rear wall faces occupying the UPPER LEFT and UPPER RIGHT rem
 | 거실과 현관 | `living-bookcase`, `living-planter`, `living-rug`, `living-sofa`, `living-stool`, `living-worktable`, `living-study-lamp`, `living-coffee-table`, `entry-bench`, `entry-rug` |
 | 세면·목욕실 | `bath-tub`, `bath-vanity`, `bath-toilet` |
 
+목재 바닥과 욕실 석재는 여관과 같은 1×1칸 격자에 맞추고 벽과 재질 경계에서 잘라 냅니다. 집의 외벽 안쪽은 9×6.25칸입니다. 여관의 주인공을 나란히 세우는 기준으로 주방 식탁 상판은 0.80칸, 스툴 좌판은 0.50칸, 거실 안락의자 좌판은 약 0.62칸으로 맞췄습니다.
+
 실측형 건축은 [Blender 원본](player-home-real-scale.blend)을 저장한 뒤 백그라운드에서 [건축 내보내기](author_real_scale.py)로 갱신합니다. 새 가구는 A안 Blender 원본을 열어 [가구 내보내기](author_real_scale_fixtures.py)로 생성합니다. Godot 가구 노드를 이동하면 통행 영역과 상호작용 지점도 따라갑니다. 건축 충돌 사각형은 씬의 `Room/Architecture`에서 관리합니다. 배치를 바꾼 뒤에는 [온라인 레이아웃 내보내기](../../../godot-arcana/tools/export_online_layout.gd)로 서버 좌표를 갱신합니다.
 
 분수 광장에서는 **생활 수첩 → 내 집으로**도 사용할 수 있습니다. 주방에서는 요리하고 거실에서는 제작하거나 안락의자에서 식사할 수 있습니다. 침실에서 하루를 마치고 현관으로 나가면 입장 위치에 따라 집 앞이나 광장의 원래 위치로 돌아갑니다.

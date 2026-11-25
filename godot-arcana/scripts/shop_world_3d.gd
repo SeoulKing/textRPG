@@ -8,7 +8,6 @@ const InnPreset := preload("res://scripts/rendering/inn_shader_preset.gd")
 const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
 const AstraLook = preload("res://scripts/shop_astra_look.gd")
 const ASTRA_EDGE_SHADER = preload("res://art/resources/shop_astra_edges.gdshader")
-const HERO_OUTLINE_SHADER = preload("res://art/resources/shop_hero_outline.gdshader")
 const ASTRA_SUN_DIRECTION := Vector3(1.0, -0.40, -0.22)
 const ASTRA_SUN_COLOR := Color("fff2da")
 const ASTRA_SUN_ENERGY := 0.35
@@ -26,8 +25,8 @@ const MERCHANT_PICK_BOUNDS := AABB(Vector3(-0.44, 0.0, -0.24), Vector3(0.88, 2.6
 @onready var camera: Camera3D = $Camera3D
 @onready var _screen_edges: MeshInstance3D = $Camera3D/ScreenEdges
 @onready var _legacy_edges := _screen_edges.material_override as ShaderMaterial
-@onready var ceiling_light: OmniLight3D = $OverheadFill
-@onready var crate_accent_light: OmniLight3D = $CrateAccentLight
+@onready var ceiling_light: OmniLight3D = $Lighting/OverheadFill
+@onready var crate_accent_light: OmniLight3D = $Lighting/CrateAccentLight
 @onready var actors: Node3D = $Actors
 @onready var merchant: Sprite3D = $Actors/Merchant
 @onready var avatar: Sprite3D = $Actors/Player
@@ -86,6 +85,8 @@ func _ready() -> void:
 
 	_setup_sprite(merchant)
 	merchant.texture = MerchantTexture
+	if use_approved_rendering:
+		merchant.material_override = TileStyle.actor_material(MerchantTexture, false)
 	_set_anchor(merchant, Vector2(48, 116))
 	_setup_sprite(avatar)
 	avatar.hide()
@@ -148,7 +149,7 @@ func input_projection() -> Transform2D:
 
 
 func _configure_lighting() -> void:
-	var sun: DirectionalLight3D = $Sun
+	var sun: DirectionalLight3D = $Lighting/KeyLight
 	ceiling_light.visible = not geometry.astra_active
 	crate_accent_light.visible = not geometry.astra_active
 	if geometry.astra_active:
@@ -294,9 +295,7 @@ func _physics_process(delta: float) -> void:
 
 
 func sync(world: Node, source: Node, zoom_ratio: float, pixelated: bool = false, visible_raster: Vector2 = Vector2.ZERO) -> void:
-	$Sun.shadow_enabled = world.effects_enabled
-	ceiling_light.shadow_enabled = world.effects_enabled
-	crate_accent_light.shadow_enabled = world.effects_enabled
+	$Lighting/KeyLight.shadow_enabled = world.effects_enabled
 	_screen_edges.visible = pixelated and not use_approved_rendering
 	if asset_mask != null:
 		asset_mask.set_active(pixelated and not geometry.astra_active)
@@ -327,11 +326,13 @@ func _setup_sprite(sprite: Sprite3D) -> void:
 	# An upright quad faces the camera and retains depth above its foot anchor.
 	sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	sprite.rotation.y = camera.rotation.y
-	# Preserve the projected height at the camera's fixed pitch.
-	sprite.scale.y = 1.0 / cos(camera.rotation.x)
+	if use_approved_rendering:
+		TileStyle.apply_avatar_size(sprite)
+	else:
+		sprite.scale.y = 1.0 / cos(camera.rotation.x)
+		sprite.pixel_size = 1.0 / Layout.PPU
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	sprite.pixel_size = 1.0 / Layout.PPU
 	sprite.centered = false
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
@@ -345,9 +346,8 @@ func _sync_actor(sprite: Sprite3D, source: Node, point: Vector2) -> void:
 		sprite.texture = texture
 	var hero_material := sprite.material_override as ShaderMaterial
 	if source.get_meta("model_outline", false):
-		if hero_material == null or hero_material.shader != HERO_OUTLINE_SHADER:
-			hero_material = ShaderMaterial.new()
-			hero_material.shader = HERO_OUTLINE_SHADER
+		if hero_material == null or hero_material.shader != TileStyle.ACTOR_SHADER:
+			hero_material = TileStyle.actor_material(texture, true)
 			sprite.material_override = hero_material
 		if hero_material.get_shader_parameter("avatar_texture") != texture:
 			hero_material.set_shader_parameter("avatar_texture", texture)
@@ -361,7 +361,7 @@ func _sync_actor(sprite: Sprite3D, source: Node, point: Vector2) -> void:
 			var flash := maxf(hurt if hurt is float else 0.0, hit if hit is float else 0.0)
 			if hero_material.get_shader_parameter("flash") != flash:
 				hero_material.set_shader_parameter("flash", flash)
-	elif hero_material != null and hero_material.shader == HERO_OUTLINE_SHADER:
+	elif hero_material != null and hero_material.shader == TileStyle.ACTOR_SHADER:
 		sprite.material_override = null
 	_set_anchor(sprite, source.capture_anchor())
 	sprite.position = _snap_ground(_space(point))
@@ -447,7 +447,7 @@ func _frame(point: Vector2, zoom_ratio: float, snap_to_pixels: bool = false, vis
 func _frame_approved(point: Vector2, zoom_ratio: float, snap_to_pixels: bool, visible_size: Vector2, raster_size: Vector2) -> void:
 	var texel_size := TileStyle.world_texel_size(zoom_ratio)
 	var basis := camera.basis
-	var focus := TileStyle.clamp_focus(basis, _space(point, InnPreset.AVATAR_HEIGHT * 0.5),
+	var focus := TileStyle.clamp_focus(basis, _space(point, TileStyle.AVATAR_HEIGHT * 0.5),
 		_projected_room_bounds, visible_size * texel_size)
 	camera.size = texel_size * raster_size.y
 	_world_pixel_step = texel_size if snap_to_pixels else 0.0
@@ -506,7 +506,10 @@ func pick_interaction(point: Vector2, world: Node) -> Dictionary:
 				closest_id = str(id)
 	var merchant_basis := Basis(Vector3.UP, merchant.rotation.y).transposed()
 	var merchant_origin := merchant_basis * (origin - merchant.position)
-	var merchant_hit: Variant = MERCHANT_PICK_BOUNDS.intersects_ray(merchant_origin, merchant_basis * direction)
+	var merchant_scale := merchant.pixel_size * Layout.PPU
+	var bounds_scale := Vector3(1.0, merchant.scale.y * cos(camera.rotation.x), 1.0) * merchant_scale
+	var merchant_bounds := AABB(MERCHANT_PICK_BOUNDS.position * bounds_scale, MERCHANT_PICK_BOUNDS.size * bounds_scale)
+	var merchant_hit: Variant = merchant_bounds.intersects_ray(merchant_origin, merchant_basis * direction)
 	if merchant_hit is Vector3 and merchant_origin.distance_squared_to(merchant_hit) < closest:
 		closest_id = "merchant"
 	for entity in world.entities:

@@ -2,6 +2,8 @@ extends Node
 ## One world connection carries presence, input acknowledgements and shared combat.
 const MAX_PENDING: int = 6
 const MAX_PRESENCE_PENDING: int = 2
+const PRESENCE_INTERVAL_MS: int = 100
+const IDLE_HEARTBEAT_MS: int = 2000
 var main: Node
 var peer: WebSocketPeer
 var pending: Dictionary = {}
@@ -12,7 +14,10 @@ var socket_ready: bool = false
 var retry_at: int = 0
 var failures: int = 0
 var connecting_at: int = 0
-var timer: float = 0.0
+var last_presence_at: int = -IDLE_HEARTBEAT_MS
+var next_presence_check: int = 0
+var last_presence_input: Dictionary = {}
+var confirm_position: bool = false
 var reconnecting: bool = false
 var blocked: bool = false
 var network_available: bool = true
@@ -44,11 +49,18 @@ func _ready() -> void:
 func _failure(message: String) -> Dictionary:
 	return {"error":"network","message":message,"transportGeneration":connection_generation}
 
+func _reset_presence() -> void:
+	last_presence_at = -IDLE_HEARTBEAT_MS
+	next_presence_check = 0
+	last_presence_input = {}
+	confirm_position = false
+
 func _disconnect(message: String) -> void:
 	if socket_ready or not pending.is_empty():
 		network_trace.event("disconnect",connection_status())
 		network_trace.preserve_incident(main)
 	socket_ready = false
+	_reset_presence()
 	connection_generation += 1
 	reconnecting = false
 	if peer != null: peer.close()
@@ -83,7 +95,7 @@ func resume() -> void:
 	network_trace.last_world_at = 0
 	if OS.has_feature("web"): network_changed(bool(JavaScriptBridge.eval("navigator.onLine !== false")))
 	if not network_available: return
-	timer = .1
+	_reset_presence()
 	if socket_ready and Time.get_ticks_msec()-last_received_at>_silence_timeout():
 		_disconnect("서버 상태를 다시 확인하고 있습니다.")
 	if peer==null: retry_at = 0
@@ -138,7 +150,7 @@ func _open() -> void:
 	var url: String = str(main.origin).replace("https://","wss://").replace("http://","ws://")+"/api/arcana/worlds/main/ws?controller="+main.client_id.uri_encode()+"&protocol=3"
 	if peer.connect_to_url(url) != OK: _disconnect("아르카나 세계에 연결하지 못했습니다.")
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	network_trace.tick(main)
 	if is_instance_valid(connection_label):
 		connection_label.visible = main.online_world and not blocked and not socket_ready and not main.ui.overlay.visible and (failures>0 or not network_available)
@@ -178,7 +190,7 @@ func _process(delta: float) -> void:
 		if packet.get("ready",false) and packet.get("protocol",0)==3:
 			socket_ready = true
 			failures = 0
-			timer = .1
+			_reset_presence()
 			reconnect_count += 1
 			main.spatial_combat.connection_lost = false
 			main.spatial_combat.connection_failures = 0
@@ -197,32 +209,49 @@ func _process(delta: float) -> void:
 	if socket_ready and main.page_active and Time.get_ticks_msec()-last_received_at>_silence_timeout():
 		_disconnect("서버 응답이 지연되어 다시 연결하고 있습니다.")
 		return
-	timer += minf(delta,.1)
+	var now: int = Time.get_ticks_msec()
 	var presence_pending: int = 0
 	for entry in pending.values():
 		if entry.presence: presence_pending += 1
-		if Time.get_ticks_msec()-int(entry.started)>int(clampf(rtt_ms*8+rtt_jitter_ms*4,5000,10000)):
+		if now-int(entry.started)>int(clampf(rtt_ms*8+rtt_jitter_ms*4,5000,10000)):
 			_disconnect("세계 서버의 응답을 받지 못했습니다.")
 			return
 	# Sample the latest position only when a slot is free; never queue old positions.
 	# Presence has its own cap, leaving room for combat input during a slow round trip.
-	if socket_ready and timer>=.1 and presence_pending<MAX_PRESENCE_PENDING and pending.size()<MAX_PENDING:
-		timer = 0
-		_presence()
+	if not socket_ready or presence_pending>=MAX_PRESENCE_PENDING or pending.size()>=MAX_PENDING: return
+	if now-last_presence_at<PRESENCE_INTERVAL_MS: return
+	if now<next_presence_check and (main.busy or not main.world.walking): return
+	next_presence_check = now+PRESENCE_INTERVAL_MS
+	var input: Dictionary = {} if main.busy else _input_data()
+	if input!=last_presence_input or confirm_position or now-last_presence_at>=IDLE_HEARTBEAT_MS:
+		# The server marks walking as stopped on the next unchanged position sample.
+		confirm_position = input.has("position") and input.position!=last_presence_input.get("position")
+		last_presence_input = input.duplicate()
+		last_presence_at = now
+		_presence(input)
 
 func _input_data() -> Dictionary:
 	return {"placeRevision":int(main.snapshot.get("onlinePlaceRevision",0)),"developerSpeed":main.developer_tools and main.world.developer_speed_boost,"position":{"x":main.world.player_position.x,"y":main.world.player_position.y},"direction":{"x":main.world.last_move_direction.x,"y":main.world.last_move_direction.y},"bench":main.world.bench_state,"gait":main.world.player_gait,"floor":main.world.academy_floor if main.world.indoor=="arcana_academy" else 0}
 
-func _presence() -> void:
+func _presence(input: Dictionary) -> void:
 	var generation: int = connection_generation
-	var result: Dictionary = await _send({} if main.busy else _input_data(),true)
-	if generation==connection_generation and result.get("resync",false): main._accept_online_result(result)
+	var result: Dictionary = await _send(input,true)
+	if generation!=connection_generation: return
+	if result.get("resync",false):
+		main._accept_online_result(result)
+		confirm_position = true
+	elif result.has("error"):
+		confirm_position = true
 
 func _send(input: Dictionary, presence: bool = false) -> Dictionary:
 	if not socket_ready or peer == null: return _failure("세계 서버에 연결 중입니다.")
 	if pending.size()>=MAX_PENDING: return {"error":"input_busy","transportGeneration":connection_generation}
 	next_id += 1
 	input_sequence += 1
+	if not presence and input.has("position"):
+		# Commands can move the actor too, including dashes and forced position syncs.
+		last_presence_input = {}
+		confirm_position = true
 	input.sequence = input_sequence
 	main.online_presence.record_input(input_sequence,input)
 	var id: int = next_id
@@ -251,8 +280,11 @@ func request(action: Dictionary) -> Dictionary:
 	if spatial.has("position"): input.position = spatial.position
 	if spatial.has("aim"): input.aim = spatial.aim
 	if spatial.has("target"): input.target = spatial.target
-	for key in ["itemId","campfireId","recipeId","target"]:
+	for key in ["itemId","campfireId","recipeId","target","equipmentSlot","floor","textPlace","quantity"]:
 		if action.has(key): input[key] = action[key]
+	if main.simplified_play.enabled and input.command in ["life_cook", "life_rest"]:
+		var room: String = main.simplified_play.selected_room()
+		if room in ["home_kitchen", "home_bed"]: input.textPlace = room
 	var result: Dictionary = await _send(input)
 	if result.has("spatialCombat"):
 		result.acceptedInput = result.get("sequence",-1)

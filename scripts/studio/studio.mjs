@@ -4,15 +4,16 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { spawn, execFileSync, execFile } from 'node:child_process';
 import { handleAppCommand } from './app.mjs';
+import { CodexClient, probeLocalProductionRoute } from './codex-client.mjs';
 import { recordCollaboration, recordTaskHandoffs, collaborationEvidence, buildTaskHandoff } from './collaboration.mjs';
 import { resolveExecution, codexModelArgs } from './model-policy.mjs';
 import { buildCompletionPrompt, beginCompletionReview, normalizeCompletionDecision, applyCompletionDecision, failCompletionReview, retryCompletionReview } from './completion-director.mjs';
 import {
-  readBoard, writeBoard, validateBoard, findGoal, findTask, selectTask, transitionTask,
+  readBoard, writeBoard, validateBoard, findGoal, findTask, selectTaskBatch, transitionTask,
   acquireLock, releaseLock, lockStatus, clearStaleLock, createRun, captureBaseline, isWithinScope,
 } from './engine.mjs';
 import {
-  assertTaskAuthorized, validateResult, validateDirectorResult, formatTaskPrompt, formatDirectorPrompt,
+  assertTaskAuthorized, validateResult, validateDirectorResult, formatTaskPrompt, formatDirectorPrompt, collectTaskImages, collectCompletionImages, applyEditorLock,
   approvalDigest as goalDigest, assertGoalReady as assertGoal,
 } from './protocol.mjs';
 
@@ -23,6 +24,11 @@ const now = () => new Date().toISOString();
 const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const readJson = (filename) => JSON.parse(fs.readFileSync(filename, 'utf8').replace(/^\uFEFF/, ''));
 const saveJson = (filename, value) => fs.writeFileSync(filename, JSON.stringify(value, null, 2) + '\n', 'utf8');
+
+function withImageNames(prompt, imageEvidence) {
+  if (!imageEvidence.length) return prompt;
+  return prompt + '\n\n실제 첨부 사진 순서\n' + imageEvidence.map((entry, index) => (index + 1) + '. ' + entry.path).join('\n');
+}
 
 function options(argv) {
   const [command = 'help', ...rest] = argv;
@@ -106,6 +112,21 @@ export function editBoard(args) {
       if (decision.sourceCompletionReportId) {
         Object.assign(board, retryCompletionReview(board, decision.sourceCompletionReportId, { reason, by, sourceCommandId: args.sourceCommandId ?? null }));
         decision = board.decisions.find((item) => item.id === args.decisionId);
+      } else if (decision.type === 'app-handoff') {
+        const task = findTask(board, decision.taskId);
+        if (task.status === 'blocked' && task.runtime?.blockKind === 'app-handoff') {
+          transitionTask(board, task.id, 'ready', { lastRetryReason: reason, retryAuthorizedBy: by, retryAuthorizedAt: now() });
+        }
+      } else if (decision.type === 'run-interruption') {
+        const goal = findGoal(board, decision.goalId);
+        if (goal.supervision?.blockingDecisionId === decision.id) {
+          if (decision.previousSupervision) goal.supervision = decision.previousSupervision;
+          else delete goal.supervision;
+        }
+        const task = board.tasks.find((item) => item.id === decision.taskId && item.goalId === goal.id);
+        if (task?.status === 'blocked' && ['interrupted', 'execution'].includes(task.runtime?.blockKind)) {
+          transitionTask(board, task.id, 'ready', { lastRetryReason: reason, retryAuthorizedBy: by, retryAuthorizedAt: now() });
+        }
       }
       decision.status = 'resolved';
       decision.resolution = reason;
@@ -158,7 +179,19 @@ function persistRunBoard(board) {
   catch (error) { error.fatal = true; throw error; }
 }
 
-async function invokeCodex({ prompt, schema, prefix, run, deadline, executable, mode, signal, execution }) {
+function holdRun(board, goalId, reason, taskId = null) {
+  const goal = findGoal(board, goalId);
+  if (goal.studioWorkflow !== 'autonomous-v1' || goal.status === 'done' || goal.supervision?.status === 'blocked') return;
+  const createdAt = now();
+  const decision = { id: 'RUN-' + crypto.randomUUID(), goalId, taskId, type: 'run-interruption',
+    title: '제작 실행 재개 판단', status: 'pending', blocking: true, recommendation: reason, createdAt,
+    previousSupervision: goal.supervision ?? null };
+  board.decisions.push(decision);
+  goal.supervision = { ...goal.supervision, status: 'blocked', summary: reason, updatedAt: createdAt, blockingDecisionId: decision.id };
+  persistRunBoard(board);
+}
+
+async function invokeCodex({ prompt, schema, prefix, run, deadline, executable, mode, signal, execution, images = [] }) {
   const remaining = deadline - Date.now();
   if (remaining <= 0 || signal.aborted) throw interruptionError();
   const output = path.join(run.dir, prefix + '.json');
@@ -189,7 +222,7 @@ async function invokeCodex({ prompt, schema, prefix, run, deadline, executable, 
       events.on('error', infrastructureFailure);
       errors.on('error', infrastructureFailure);
       try {
-        child = spawn(executable, ['exec', ...codexModelArgs(execution), '--cd', ROOT, '--sandbox', mode,
+        child = spawn(executable, ['exec', ...codexModelArgs(execution), ...images.flatMap((image) => ['--image', image]), '--cd', ROOT, '--sandbox', mode,
           '--config', 'approval_policy="never"', '--config', 'agents.max_threads=1',
           '--json', '--output-schema', path.join(DIRECTORY, schema), '--output-last-message', output, '-'],
         { cwd: ROOT, windowsHide: true, detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe'] });
@@ -278,7 +311,7 @@ async function direct(board, goal, context) {
     fromDepartmentId: null, toDepartmentId: 'director', title: '총괄 협업 요청 검토 준비',
     summary: `${pending.length}개 미배정 요청의 담당 부서·선행 관계를 확인합니다.` });
   persistRunBoard(board);
-  const response = await (context.invoke ?? invokeCodex)({ ...context, task: null, phase: 'director', goalId: goal.id, execution: resolveExecution(board, null, 'director'), mode: 'read-only', schema: 'director.schema.json',
+  const response = await (context.invoke ?? invokeCodex)({ ...context, task: null, phase: 'director', goalId: goal.id, studioWorkflow: goal.studioWorkflow, execution: resolveExecution(board, null, 'director', { models: context.models, goalId: goal.id }), mode: 'read-only', schema: 'director.schema.json',
     prefix: 'director-' + context.sequence, prompt: formatDirectorPrompt(board, goal.id) });
   const result = validateDirectorResult(response.result, { goalId: goal.id, requestIds: pending.map((item) => item.id) });
   for (const decision of result.decisions) {
@@ -292,6 +325,16 @@ async function direct(board, goal, context) {
         dependsOn: request.dependsOn, scope: request.scope, capabilities: request.capabilities,
         checks: request.checks, surface: request.surface, acceptance: request.acceptance, runtime: { sourceRequestId: request.id, sourceTaskId: request.sourceTaskId, sourceCommandIds: request.sourceCommandIds ?? [] },
       };
+      if (goal.studioWorkflow === 'autonomous-v1') {
+        if (request.productionMethod) task.productionMethod = request.productionMethod;
+        if (request.visualStage) task.visualStage = request.visualStage;
+        if (task.visualStage === 'final_capture' && goal.visualContract) {
+          task.mainEntry = goal.visualContract.mainEntry;
+          if (goal.visualContract.targetScene) task.targetScene = goal.visualContract.targetScene;
+          task.scope = { ...task.scope, read: [...new Set([...task.scope.read, task.mainEntry, task.targetScene].filter(Boolean))] };
+        }
+        applyEditorLock(task);
+      }
       try {
         if (candidate.tasks.length >= 200) throw new Error('작업 원장의 초기 상한 200개에 도달했습니다.');
         assertTaskAuthorized(candidate, task, { surface: request.surface });
@@ -350,10 +393,11 @@ export async function superviseCompletions(board, goalId, context) {
     let response;
     try {
       Object.assign(board, beginCompletionReview(board, report.id)); persistRunBoard(board);
-      response = await (context.invoke ?? invokeCodex)({ ...context, task: null, phase: 'director', goalId,
-        execution: resolveExecution(board, null, 'director'), mode: 'read-only', schema: 'completion-director.schema.json',
-        prefix: report.id + '-director', prompt: buildCompletionPrompt(board, report.id) });
-      const patch = normalizeCompletionDecision(board, report.id, response.result);
+      const { images, imageEvidence } = collectCompletionImages(ROOT, board, report.id);
+      response = await (context.invoke ?? invokeCodex)({ ...context, task: null, phase: 'director', goalId, images,
+        studioWorkflow: findGoal(board, goalId).studioWorkflow, execution: resolveExecution(board, null, 'director', { models: context.models, goalId }), mode: 'read-only', schema: 'completion-director.schema.json',
+        prefix: report.id + '-director', prompt: withImageNames(buildCompletionPrompt(board, report.id), imageEvidence) });
+      const patch = normalizeCompletionDecision(board, report.id, response.result, { imageEvidence });
       Object.assign(board, applyCompletionDecision(board, report.id, patch, { resultPath: response.path }));
       persistRunBoard(board);
       if (findGoal(board, goalId).supervision?.status === 'blocked') return false;
@@ -368,13 +412,173 @@ export async function superviseCompletions(board, goalId, context) {
   }
   return !hasBlocked() && unfinished().length === 0 && findGoal(board, goalId).supervision?.status !== 'blocked';
 }
+function finishProducer(board, task, response, imageEvidence) {
+  const result = validateResult(ROOT, response.result, { task, phase: 'producer', imageEvidence });
+  recordTaskHandoffs(board, task, 'producer', { status: 'delivered' });
+  const details = { pendingResultPath: null, producerResultPath: response.path,
+    producerSummary: result.summary, producerEvidence: collaborationEvidence(result.evidence), producerImageEvidence: imageEvidence };
+  importRequests(board, task, result);
+  if (result.outcome === 'completed') transitionTask(board, task.id, 'review', details);
+  else transitionTask(board, task.id, 'blocked', { ...details, failure: result.failure,
+    blockKind: result.requests.some((item) => item.blocking) ? 'dependency-request' : 'worker', blockReason: result.summary });
+  persistRunBoard(board);
+}
+
+function finishReview(board, task, response, producerResult, imageEvidence) {
+  const result = validateResult(ROOT, response.result, { task, phase: 'reviewer', imageEvidence });
+  recordTaskHandoffs(board, task, 'reviewer', { status: 'delivered', producerResult });
+  const reviewPasses = (task.runtime.reviewPasses ?? 0) + 1;
+  const reviewedImages = imageEvidence.filter((image) => result.evidence.some((item) => item.kind === 'visual' && item.path === image.path));
+  const details = { pendingResultPath: null, reviewedImages, reviewPasses, reviewSummary: result.summary, reviewEvidence: collaborationEvidence(result.evidence) };
+  if (result.outcome === 'completed') {
+    transitionTask(board, task.id, 'done', { ...details, reviewResultPath: response.path,
+      evidence: result.evidence.map((item) => item.path + ' — ' + item.claim), blockReason: null });
+  } else if (result.outcome === 'needs_changes' && reviewPasses < board.settings.maxReviewPasses) {
+    transitionTask(board, task.id, 'ready', { ...details, lastReviewPath: response.path, repairInstructions: result.issues, lastFailure: result.failure });
+  } else {
+    transitionTask(board, task.id, 'blocked', { ...details, lastReviewPath: response.path, failure: result.failure, blockKind: 'review', blockReason: result.summary });
+  }
+  persistRunBoard(board);
+}
+
+function taskFailure(board, task, error) {
+  error.taskId = task.id;
+  if (error.fatal) return;
+  if (task.status === 'review' && error.interrupted) {
+    task.runtime = { ...task.runtime, reviewInterrupted: error.message, updatedAt: now() };
+  } else {
+    const kind = error.interrupted ? 'interrupted' : task.surface === 'app' && !task.runtime?.productionRoute?.available ? 'app' : 'execution';
+    transitionTask(board, task.id, 'blocked', { blockKind: kind, blockReason: error.message,
+      failure: { fingerprint: hash(task.id + ':' + task.status + ':' + error.message),
+        conditionToRetry: '부분 변경과 실행 기록을 확인하고, 달라진 전제에서 재개해 주세요.' } });
+  }
+  persistRunBoard(board);
+  console.error(task.id + ' · 보류 · ' + error.message);
+}
+
+function submittedProducer(task) {
+  return validateResult(ROOT, readJson(resultFile(task, 'producerResultPath')),
+    { task, phase: 'producer', imageEvidence: task.runtime.producerImageEvidence ?? [] });
+}
+
+function recoverTasks(board, goal) {
+  for (const task of board.tasks.filter((item) => item.goalId === goal.id && ['active', 'review'].includes(item.status))) {
+    if (goal.studioWorkflow === 'autonomous-v1' && task.runtime?.pendingResultPath) {
+      try {
+        const result = readJson(resultFile(task, 'pendingResultPath'));
+        const response = { result, path: task.runtime.pendingResultPath };
+        if (task.status === 'active') finishProducer(board, task, response, task.runtime.pendingImageEvidence ?? []);
+        else finishReview(board, task, response, submittedProducer(task), task.runtime.pendingImageEvidence ?? []);
+        continue;
+      } catch (error) { if (error.fatal) throw error; }
+    }
+    if (task.status === 'active') transitionTask(board, task.id, 'blocked', { blockKind: 'interrupted',
+      blockReason: '이전 CLI 제작 결과를 인수하지 못했습니다. 부분 변경과 실행 기록을 확인한 뒤 재개해 주세요.' });
+  }
+  persistRunBoard(board);
+}
+
+async function prepareProducer(board, goal, task, context) {
+  if (goal.studioWorkflow === 'autonomous-v1' && task.surface === 'app') {
+    const probe = context.probeProductionRoute ?? ((item) => probeLocalProductionRoute(ROOT, item));
+    task.runtime ??= {};
+    task.runtime.productionRoute = await probe(task);
+    const handoffs = board.decisions.filter((item) => item.goalId === goal.id && item.taskId === task.id && item.type === 'app-handoff');
+    const waiting = handoffs.find((item) => item.status === 'pending');
+    if (!task.runtime.productionRoute.available) {
+      const reason = task.runtime.productionRoute.reason || '해당 편집기 세션을 사용할 수 있는지 확인해 주세요.';
+      transitionTask(board, task.id, 'blocked', { blockKind: 'app-handoff', blockReason: reason });
+      if (waiting) waiting.recommendation = reason;
+      else board.decisions.push({ id: task.id + '-APP-DECISION' + (handoffs.length ? '-' + (handoffs.length + 1) : ''),
+        type: 'app-handoff', goalId: goal.id, taskId: task.id, title: task.title + ' · 편집기 인계', status: 'pending', blocking: true, recommendation: reason });
+      persistRunBoard(board);
+      return null;
+    }
+    if (waiting) Object.assign(waiting, { status: 'resolved', decidedAt: now(), resolution: task.runtime.productionRoute.reason });
+  }
+  assertTaskAuthorized(board, task);
+  const phase = 'producer';
+  const prefix = task.id + '-producer-' + context.sequence;
+  const { images, imageEvidence } = collectTaskImages(ROOT, board, task, phase);
+  if (task.status === 'backlog') transitionTask(board, task.id, 'ready');
+  const baseline = captureBaseline(ROOT, context.run, task);
+  transitionTask(board, task.id, 'active', { attempt: (task.runtime?.attempt ?? 0) + 1, executionSurface: 'cli',
+    runId: context.run.id, baselinePath: relative(baseline.manifestPath), blockReason: null,
+    pendingResultPath: relative(path.join(context.run.dir, prefix + '.json')), pendingImageEvidence: imageEvidence });
+  const handoff = buildTaskHandoff(board, task);
+  recordTaskHandoffs(board, task, phase, { status: 'prepared' });
+  persistRunBoard(board);
+  console.log(task.id + ' · ' + task.organization + ' 제작 중');
+  return { ...context, task, phase, prefix, images, imageEvidence, goalId: goal.id, studioWorkflow: goal.studioWorkflow,
+    execution: resolveExecution(board, task, phase, { models: context.models }), schema: 'result.schema.json',
+    mode: task.scope.write.length ? 'workspace-write' : 'read-only', prompt: withImageNames(formatTaskPrompt(board, task, phase,
+      { runRelative: relative(context.run.dir), baselineRelative: relative(baseline.manifestPath), handoff }), imageEvidence) };
+}
+
+async function reviewTask(board, goal, task, context) {
+  const manualVisualReview = goal.studioWorkflow === 'autonomous-v1' && task.status === 'review'
+    && task.runtime.manualVisualReview && task.runtime.executionSurface === 'app';
+  assertTaskAuthorized(board, task, { surface: manualVisualReview ? 'app' : 'cli' });
+  const phase = 'reviewer';
+  const producerResult = submittedProducer(task);
+  const { images, imageEvidence } = collectTaskImages(ROOT, board, task, phase, producerResult);
+  const prefix = task.id + '-reviewer-' + context.sequence;
+  const handoff = buildTaskHandoff(board, task);
+  recordCollaboration(board, { goalId: goal.id, kind: 'review_started', status: 'review', taskId: task.id,
+    fromDepartmentId: task.organization, toDepartmentId: 'quality', title: '독립 품질 검토 실행 준비',
+    summary: producerResult.summary, evidence: producerResult.evidence });
+  recordTaskHandoffs(board, task, phase, { status: 'prepared', producerResult });
+  Object.assign(task.runtime, { pendingResultPath: relative(path.join(context.run.dir, prefix + '.json')), pendingImageEvidence: imageEvidence });
+  persistRunBoard(board);
+  const response = await (context.invoke ?? invokeCodex)({ ...context, task, phase, prefix, images, producerResult, goalId: goal.id,
+    studioWorkflow: goal.studioWorkflow, execution: resolveExecution(board, task, phase, { models: context.models }),
+    schema: 'result.schema.json', mode: 'read-only', prompt: withImageNames(formatTaskPrompt(board, task, phase,
+      { runRelative: relative(context.run.dir), producerResult, baselineRelative: task.runtime.baselinePath, handoff }), imageEvidence) });
+  finishReview(board, task, response, producerResult, imageEvidence);
+}
+
+// Only model calls run concurrently. The director owns every transition and persists each accepted result.
+async function runTaskBatch(board, goal, tasks, context) {
+  const jobs = [];
+  let stop;
+  function failed(task, error) {
+    taskFailure(board, task, error);
+    if (error.fatal || error.executionFailure || error.interrupted) stop ??= error;
+  }
+  for (const task of tasks) {
+    if (task.status === 'review') continue;
+    try {
+      const job = await prepareProducer(board, goal, task, context);
+      if (job) jobs.push(job);
+    } catch (error) { failed(task, error); if (stop) break; }
+  }
+  if (stop?.fatal) throw stop;
+  const answers = await Promise.allSettled(jobs.map((job) => Promise.resolve().then(() => (context.invoke ?? invokeCodex)(job))));
+  for (const [index, answer] of answers.entries()) {
+    const job = jobs[index];
+    try {
+      if (answer.status === 'rejected') throw answer.reason;
+      finishProducer(board, job.task, answer.value, job.imageEvidence);
+    } catch (error) { failed(job.task, error); }
+  }
+  if (stop) throw stop;
+  for (const task of tasks) {
+    if (task.status !== 'review') continue;
+    if (context.signal.aborted || Date.now() >= context.deadline || (goal.studioWorkflow === 'autonomous-v1' && context.shouldPause?.())) break;
+    try { await reviewTask(board, goal, task, context); }
+    catch (error) { failed(task, error); if (stop) throw stop; }
+  }
+}
+
 export async function run(args, hooks = {}) {
   const goalId = required(args.goal, '--goal');
   const lock = acquireLock(ROOT, { owner: hooks.owner ?? 'cli-director', goalId });
   let cancel;
   let runInfo;
   let board;
-  let current = null;
+  let abort;
+  let started = false;
+  let interruption;
   let selectionCount = 0;
   try {
     // 잠금을 얻기 전에 읽은 원장은 다른 총괄의 최신 상태를 덮어쓸 수 있습니다.
@@ -386,6 +590,7 @@ export async function run(args, hooks = {}) {
     if (appTask) throw new Error('앱에서 진행 중인 작업을 먼저 인수해 주세요: ' + appTask.id);
     const minutes = Number(args.minutes ?? board.settings.defaultMinutes);
     if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 90) throw new Error('--minutes는 0 초과 90 이하로 지정해 주세요.');
+    started = true;
     const executable = args.codex ?? (process.platform === 'win32' ? 'codex.exe' : 'codex');
     try {
       execFileSync(executable, ['--version'], { cwd: ROOT, windowsHide: true, encoding: 'utf8', timeout: 10000, maxBuffer: 1024 * 1024 });
@@ -394,22 +599,28 @@ export async function run(args, hooks = {}) {
       error.message = 'Codex CLI를 시작할 수 없습니다. 실행 파일·설치를 확인해 주세요: ' + error.message;
       throw error;
     }
-    const abort = new AbortController();
+    abort = new AbortController();
     cancel = () => abort.abort();
     hooks.signal?.addEventListener('abort', cancel, { once: true });
     if (hooks.signal?.aborted) cancel();
     process.once('SIGINT', cancel);
     process.once('SIGTERM', cancel);
     runInfo = createRun(ROOT, goal.id);
-    const context = { run: runInfo, deadline: Date.now() + minutes * 60000, executable, signal: abort.signal, invoke: hooks.invoke, shouldPause: hooks.shouldPause };
+    const context = { run: runInfo, deadline: Date.now() + minutes * 60000, executable, signal: abort.signal, invoke: hooks.invoke, shouldPause: hooks.shouldPause, models: hooks.models, probeProductionRoute: hooks.probeProductionRoute };
     const before = execFileSync('git', ['status', '--short'], { cwd: ROOT, windowsHide: true, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
     fs.writeFileSync(path.join(runInfo.dir, 'git-status-before.txt'), before, 'utf8');
-    for (const task of board.tasks.filter((item) => item.goalId === goal.id && item.status === 'active')) {
-      transitionTask(board, task.id, 'blocked', { blockKind: 'interrupted',
-        blockReason: '이전 CLI 제작 실행이 중단되었습니다. 변경과 실행 기록을 확인한 뒤 달라진 전제를 retry에 기록해 주세요.' });
+    recoverTasks(board, goal);
+    if (goal.studioWorkflow === 'autonomous-v1') {
+      if (hooks.loadModels) await hooks.loadModels();
+      else if (!context.models) {
+        const account = new CodexClient({ root: ROOT, executable });
+        try {
+          await account.connect();
+          context.models = account.models;
+        } finally { await account.close(); }
+      }
     }
-    persistRunBoard(board);
-    for (let sequence = 1; sequence <= 32 && Date.now() < context.deadline && !abort.signal.aborted; sequence += 1) {
+    for (let sequence = 1; selectionCount < 32 && sequence <= 32 && Date.now() < context.deadline && !abort.signal.aborted; sequence += 1) {
       if (hooks.shouldPause?.()) break;
       if (hooks.onBoundary) {
         await hooks.onBoundary(board, goal);
@@ -420,7 +631,7 @@ export async function run(args, hooks = {}) {
         await direct(board, goal, { ...context, sequence });
       } catch (error) {
         if (error.fatal) throw error;
-        if (error.interrupted) break;
+        if (error.interrupted) { interruption = error; break; }
         const fingerprint = hash('director:' + goal.id + ':' + error.message);
         for (const request of board.requests.filter((item) => item.goalId === goal.id && item.status === 'pending')) {
           request.status = 'escalated';
@@ -441,94 +652,11 @@ export async function run(args, hooks = {}) {
       persistRunBoard(board);
       if (!await superviseCompletions(board, goalId, { ...context, sequence })) break;
       goal = findGoal(board, goalId);
-      const nextTaskIds = goal.supervision?.nextTaskIds ?? [];
-      const doneIds = new Set(board.tasks.filter((item) => item.status === 'done').map((item) => item.id));
-      const task = nextTaskIds.length ? nextTaskIds.map((id) => board.tasks.find((item) => item.id === id && item.goalId === goal.id))
-        .find((item) => item && ['ready', 'backlog', 'review'].includes(item.status) && item.dependsOn.every((id) => doneIds.has(id)))
-        : selectTask(board, goal.id);
-      if (!task) break;
-      selectionCount += 1;
-      current = task;
-      try {
-        assertTaskAuthorized(board, task);
-        let phase = task.status === 'review' ? 'reviewer' : 'producer';
-        if (phase === 'producer') {
-          if (task.status === 'backlog') transitionTask(board, task.id, 'ready');
-          const baseline = captureBaseline(ROOT, runInfo, task);
-          transitionTask(board, task.id, 'active', { attempt: (task.runtime?.attempt ?? 0) + 1,
-            runId: runInfo.id, baselinePath: relative(baseline.manifestPath), blockReason: null, executionSurface: 'cli' });
-          persistRunBoard(board);
-          console.log(task.id + ' · ' + task.organization + ' 제작 중');
-          const producerHandoff = buildTaskHandoff(board, task);
-          recordTaskHandoffs(board, task, phase, { status: 'prepared' });
-          persistRunBoard(board);
-          const response = await (context.invoke ?? invokeCodex)({ ...context, task, phase, goalId: goal.id, execution: resolveExecution(board, task, phase), schema: 'result.schema.json', mode: task.scope.write.length ? 'workspace-write' : 'read-only',
-            prefix: task.id + '-producer-' + sequence,
-            prompt: formatTaskPrompt(board, task, phase, { runRelative: relative(runInfo.dir), baselineRelative: relative(baseline.manifestPath), handoff: producerHandoff }) });
-          recordTaskHandoffs(board, task, phase, { status: 'delivered' });
-          persistRunBoard(board);
-          const result = validateResult(ROOT, response.result, { task, phase });
-          task.runtime = { ...task.runtime, producerSummary: result.summary, producerEvidence: collaborationEvidence(result.evidence) };
-          importRequests(board, task, result);
-          if (result.outcome !== 'completed') {
-            transitionTask(board, task.id, 'blocked', {
-              producerResultPath: response.path, failure: result.failure,
-              blockKind: result.requests.some((item) => item.blocking) ? 'dependency-request' : 'worker', blockReason: result.summary,
-            });
-            persistRunBoard(board);
-            current = null;
-            continue;
-          }
-          transitionTask(board, task.id, 'review', { producerResultPath: response.path, producerSummary: result.summary, producerEvidence: collaborationEvidence(result.evidence) });
-          persistRunBoard(board);
-          phase = 'reviewer';
-        }
-        const producerResult = validateResult(ROOT, readJson(resultFile(task, 'producerResultPath')), { task, phase: 'producer' });
-        console.log(task.id + ' · 독립 품질 검토 중');
-        const reviewHandoff = buildTaskHandoff(board, task);
-        recordCollaboration(board, { goalId: goal.id, kind: 'review_started', status: 'review', taskId: task.id,
-          fromDepartmentId: task.organization, toDepartmentId: 'quality', title: '독립 품질 검토 실행 준비', summary: producerResult.summary,
-          evidence: producerResult.evidence });
-        recordTaskHandoffs(board, task, phase, { status: 'prepared', producerResult });
-        persistRunBoard(board);
-        const response = await (context.invoke ?? invokeCodex)({ ...context, task, phase, goalId: goal.id, execution: resolveExecution(board, task, phase), schema: 'result.schema.json', mode: 'read-only',
-          prefix: task.id + '-reviewer-' + sequence,
-          prompt: formatTaskPrompt(board, task, phase, { runRelative: relative(runInfo.dir), producerResult,
-            baselineRelative: task.runtime.baselinePath, handoff: reviewHandoff }) });
-        recordTaskHandoffs(board, task, phase, { status: 'delivered', producerResult });
-        persistRunBoard(board);
-        const result = validateResult(ROOT, response.result, { task, phase });
-        const reviewPasses = (task.runtime.reviewPasses ?? 0) + 1;
-        task.runtime = { ...task.runtime, reviewSummary: result.summary, reviewEvidence: collaborationEvidence(result.evidence) };
-        if (result.outcome === 'completed') {
-          transitionTask(board, task.id, 'done', { reviewResultPath: response.path, reviewPasses,
-            evidence: result.evidence.map((item) => item.path + ' — ' + item.claim), reviewSummary: result.summary, reviewEvidence: collaborationEvidence(result.evidence), blockReason: null });
-        } else if (result.outcome === 'needs_changes' && reviewPasses < board.settings.maxReviewPasses) {
-          transitionTask(board, task.id, 'ready', { reviewPasses, lastReviewPath: response.path, repairInstructions: result.issues,
-            lastFailure: result.failure, reviewSummary: result.summary, reviewEvidence: collaborationEvidence(result.evidence), blockReason: null });
-        } else {
-          transitionTask(board, task.id, 'blocked', { reviewPasses, lastReviewPath: response.path,
-            failure: result.failure, reviewSummary: result.summary, reviewEvidence: collaborationEvidence(result.evidence), blockKind: 'review', blockReason: result.summary });
-        }
-        persistRunBoard(board);
-        console.log(task.id + ' · ' + task.status + ' · ' + result.summary);
-      } catch (error) {
-        if (error.fatal) { error.taskId = task.id; throw error; }
-        const failure = { fingerprint: hash(task.id + ':' + task.status + ':' + error.message),
-          conditionToRetry: '실행 기록과 부분 변경을 확인하고 실패 전제가 달라진 이유를 기록해 주세요.' };
-        if (task.status === 'review' && error.interrupted) {
-          task.runtime = { ...task.runtime, reviewInterrupted: error.message, updatedAt: now() };
-        } else if (['backlog', 'ready', 'active', 'review'].includes(task.status)) {
-          transitionTask(board, task.id, 'blocked', { blockKind: error.interrupted ? 'interrupted' : task.surface === 'app' ? 'app' : 'execution',
-            blockReason: error.message, failure });
-        }
-        persistRunBoard(board);
-        console.error(task.id + ' · 보류 · ' + error.message);
-        if (error.executionFailure) { error.taskId = task.id; throw error; }
-        if (error.interrupted) break;
-      } finally {
-        current = null;
-      }
+      const batch = selectTaskBatch(board, goal.id, { root: ROOT, limit: 32 - selectionCount });
+      if (!batch.length) break;
+      selectionCount += batch.length;
+      try { await runTaskBatch(board, goal, batch, { ...context, sequence }); }
+      catch (error) { if (error.interrupted) { interruption = error; break; } throw error; }
     }
     // Account for the last task even when the task-selection cap was reached. Do not extend the run deadline.
     if (!abort.signal.aborted && Date.now() < context.deadline && !hooks.shouldPause?.()) {
@@ -537,8 +665,14 @@ export async function run(args, hooks = {}) {
     goal = findGoal(board, goalId);
     const tasks = board.tasks.filter((task) => task.goalId === goal.id);
     const pendingCompletions = (board.completionReports ?? []).filter((report) => report.goalId === goal.id && ['pending', 'processing'].includes(report.status));
+    if (goal.studioWorkflow === 'autonomous-v1' && goal.status !== 'done' && !abort.signal.aborted && !hooks.shouldPause?.()) {
+      const limits = Date.now() >= context.deadline ? '승인된 실행 시간 한도에 도달했습니다.'
+        : selectionCount >= 32 && (tasks.some((task) => task.status !== 'done') || pendingCompletions.length) ? '한 실행의 작업 32개 한도에 도달했습니다.' : null;
+      if (limits || interruption) holdRun(board, goalId, (limits ?? interruption.message) + ' 저장된 결과와 남은 작업을 확인한 후 다음 실행을 지시해 주세요.', interruption?.taskId);
+    }
     let message;
-    if (goal.supervision?.status === 'ready_for_acceptance' && tasks.length && tasks.every((task) => task.status === 'done') && !pendingCompletions.length) message = '총괄이 목표 전체의 완료 조건과 제출 근거를 확인했습니다. 최종 사용자 인수를 기다립니다.';
+    if (goal.status === 'done' && goal.studioWorkflow === 'autonomous-v1') message = '총괄이 목표를 최종 인수했습니다.';
+    else if (goal.supervision?.status === 'ready_for_acceptance' && tasks.length && tasks.every((task) => task.status === 'done') && !pendingCompletions.length) message = '총괄이 목표 전체의 완료 조건과 제출 근거를 확인했습니다. 최종 사용자 인수를 기다립니다.';
     else if (goal.supervision?.status === 'blocked' || (board.completionReports ?? []).some((report) => report.goalId === goal.id && report.status === 'blocked')) message = '총괄 완료 확인이 보류됐습니다. 사유와 필요한 후속 판단을 처리 흐름에서 확인해 주세요.';
     else if (abort.signal.aborted || Date.now() >= context.deadline) message = '실행 한도에서 상태를 저장했습니다. 완료 보고와 남은 작업은 다음 run에서 이어받습니다.';
     else if (selectionCount >= 32 && tasks.some((task) => task.status !== 'done')) message = '이번 실행의 작업 선택 한도에서 상태를 저장했습니다. 총괄이 배정한 후속 작업은 다음 run에서 이어받습니다.';
@@ -552,8 +686,13 @@ export async function run(args, hooks = {}) {
     console.log('실행 기록: ' + relative(runInfo.dir));
     return summary;
   } catch (error) {
+    if (started && !abort?.signal.aborted && !hooks.shouldPause?.() && board?.goals.some((goal) => goal.id === goalId && goal.studioWorkflow === 'autonomous-v1')) {
+      try {
+        holdRun(readBoard(ROOT), goalId, '제작 실행이 중단되었습니다. ' + error.message + ' 실행 환경과 저장된 결과를 확인한 뒤 재개해 주세요.', error.taskId);
+      } catch (recordError) { console.error('실행 중단 상태를 원장에 저장하지 못했습니다: ' + recordError.message); }
+    }
     if (runInfo) {
-      try { saveJson(path.join(runInfo.dir, 'failure.json'), { failedAt: now(), taskId: error.taskId ?? current?.id ?? null, error: error.message }); }
+      try { saveJson(path.join(runInfo.dir, 'failure.json'), { failedAt: now(), taskId: error.taskId ?? null, error: error.message }); }
       catch { /* 저장 기반의 원래 오류를 유지합니다. */ }
     }
     throw error;

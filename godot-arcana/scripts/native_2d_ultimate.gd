@@ -88,3 +88,15 @@ func render(delta: float, active: bool, paused: bool) -> void:
 			meteors[id].flame.scale = Vector2.ONE
 			combat.effect_pool.release_flame(meteors[id].flame)
 			meteors.erase(id)
+
+func clear_visuals() -> void:
+	for enemy in enemies.values(): enemy.queue_free()
+	enemies.clear()
+	for meter in meters.values(): meter.queue_free()
+	meters.clear()
+	for effect in meteors.values():
+		effect.ring.queue_free()
+		effect.flame.scale = Vector2.ONE
+		combat.effect_pool.release_flame(effect.flame)
+	meteors.clear()
+	if is_instance_valid(aim_ring): aim_ring.hide()

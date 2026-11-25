@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import {
-  readBoard, validateBoard, writeBoard, findGoal, findTask, selectTask, transitionTask,
+  readBoard, validateBoard, writeBoard, findGoal, findTask, selectTask, selectTaskBatch, transitionTask,
   acquireLock, releaseLock, lockStatus, clearStaleLock, createRun, captureBaseline, isWithinScope,
 } from '../scripts/studio/engine.mjs';
 
 import { approvalDigest, assertGoalReady, assertTaskAuthorized, validateResult, validateDirectorResult } from '../scripts/studio/protocol.mjs';
+import { BridgeRuntime } from '../scripts/studio/bridge-runtime.mjs';
 
 // 실행은 사용자 요청 때만 수행합니다: node --test tests/studio-organization.test.mjs
 function fixture(t) {
@@ -349,6 +352,247 @@ function resultFixture(task, phase = 'producer') {
     issues: [], requests: [], failure: null,
   };
 }
+
+function pairedBoard() {
+  const board = boardFixture();
+  const left = board.tasks[0];
+  left.scope = { read: ['src/feature/common.mjs'], write: ['src/feature/a'] };
+  board.tasks.push({ ...structuredClone(left), id: 'WORK-002', organization: 'design',
+    scope: { read: ['src/feature/common.mjs'], write: ['src/feature/b'] } });
+  return board;
+}
+
+test('신규 목표의 독립 제작만 병렬화하고 읽기·쓰기·편집 세션·검토 충돌은 직렬화합니다.', () => {
+  const board = pairedBoard();
+  const count = (b) => selectTaskBatch(b, 'M1').length;
+  assert.equal(count(board), 1);
+  board.goals[0].studioWorkflow = 'autonomous-v1';
+  assert.equal(count(board), 2);
+  assert.equal(selectTaskBatch(board, 'M1', { limit: 1 }).length, 1);
+  for (const change of [
+    (b) => { b.settings.maxConcurrentAgents = 2; },
+    (b) => { b.tasks[1].dependsOn.push('WORK-001'); },
+    (b) => { b.tasks[1].scope.write = ['src/feature/a/model']; },
+    (b) => { b.tasks[1].scope.read.push('src/feature/a/source'); },
+    (b) => { b.tasks[0].scope.read.push('src/feature/b/source'); },
+    (b) => { b.tasks.forEach((t) => { t.resourceLocks = ['editor:blender']; }); },
+    (b) => { b.tasks[0].productionMethod = 'godot'; b.tasks[1].productionMethod = 'pixelpen'; },
+    (b) => { b.tasks[1].surface = 'app'; },
+    (b) => { b.tasks[1].status = 'review'; },
+    (b) => { b.goals[0].supervision = { nextTaskIds: ['WORK-002'] }; },
+  ]) {
+    const changed = structuredClone(board);
+    change(changed);
+    assert.equal(count(changed), 1);
+  }
+});
+
+async function isolatedRun(t, board) {
+  const { root } = fixture(t);
+  const modules = path.join(root, 'scripts', 'studio');
+  fs.cpSync(new URL('../scripts/studio/', import.meta.url), modules, { recursive: true });
+  execFileSync('git', ['init', '-q'], { cwd: root, windowsHide: true });
+  board.goals[0].studioWorkflow = 'autonomous-v1';
+  board.goals[0].approval.digest = approvalDigest(board.goals[0]);
+  writeBoard(root, board);
+  const { run } = await import(pathToFileURL(path.join(modules, 'studio.mjs')).href);
+  function submit(job) {
+    const result = resultFixture(job.task, job.phase);
+    const filename = job.task.scope.write[0] + '/result.mjs';
+    if (job.phase === 'producer') {
+      result.artifacts[0].path = filename;
+      writeFixture(root, filename, 'export default true;');
+    }
+    result.evidence[0].path = filename;
+    const absolute = path.join(job.run.dir, job.prefix + '.json');
+    fs.writeFileSync(absolute, JSON.stringify(result));
+    return { result, path: path.relative(root, absolute).split(path.sep).join('/') };
+  }
+  return { root, submit, execute: (hooks, args = {}) => run({ goal: 'M1', codex: process.execPath, ...args }, { models: [], ...hooks }) };
+}
+
+test('동일 실행에서 두 건을 병렬 제작한 뒤 순차 독립 검토와 총괄의 최종 인수 한 번으로 마칩니다.', async (t) => {
+  const { root, submit, execute } = await isolatedRun(t, pairedBoard());
+  let workers = 0;
+  let maxWorkers = 0;
+  let reviews = 0;
+  let directors = 0;
+  await execute({ invoke: async (job) => {
+    if (job.phase === 'producer') {
+      workers++;
+      maxWorkers = Math.max(maxWorkers, workers);
+      assert.deepEqual(readBoard(root).tasks.map((item) => item.status), ['active', 'active']);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      workers--;
+    } else if (job.phase === 'director') {
+      assert.equal(workers, 0);
+      assert.equal(reviews, 2);
+      directors++;
+      const board = readBoard(root);
+      const report = board.completionReports.find((entry) => entry.status === 'processing');
+      const result = { reportId: report.id, goalId: 'M1', action: 'ready_for_acceptance', summary: '두 제작물을 인수했습니다.',
+        nextTaskIds: [], tasks: [], blockedReason: null, previews: [], unverified: [],
+        acceptanceEvidence: [{ criterion: board.goals[0].acceptance[0], completedTaskIds: board.tasks.map((item) => item.id),
+          evidence: board.tasks.map((item) => ({ path: item.scope.write[0] + '/result.mjs', summary: '대상 원본을 확인했습니다.' })) }] };
+      const absolute = path.join(job.run.dir, job.prefix + '.json');
+      fs.writeFileSync(absolute, JSON.stringify(result));
+      return { result, path: path.relative(root, absolute).split(path.sep).join('/') };
+    } else {
+      assert.equal(job.phase, 'reviewer');
+      assert.equal(workers, 0);
+      reviews++;
+    }
+    return submit(job);
+  } });
+  assert.equal(maxWorkers, 2);
+  assert.equal(reviews, 2);
+  assert.equal(directors, 1);
+  const state = readBoard(root);
+  assert.deepEqual(state.tasks.map((item) => item.status), ['done', 'done']);
+  assert.equal(state.goals[0].status, 'done');
+  assert.deepEqual(state.completionReports.map((item) => item.status), ['processed', 'processed']);
+});
+
+test('중단된 실행의 유효한 제출을 복구하고 미제출 부분 변경은 자동 재제작하지 않습니다.', async (t) => {
+  const board = pairedBoard();
+  for (const task of board.tasks) {
+    task.status = 'active';
+    task.runtime = { executionSurface: 'cli', pendingResultPath: '.runtime/studio/runs/previous/' + task.id + '.json', pendingImageEvidence: [] };
+  }
+  const { root, submit, execute } = await isolatedRun(t, board);
+  const first = board.tasks[0];
+  const prior = resultFixture(first);
+  prior.evidence[0].path = first.scope.write[0] + '/result.mjs';
+  prior.artifacts[0].path = prior.evidence[0].path;
+  writeFixture(root, prior.evidence[0].path, 'export default true;');
+  writeFixture(root, first.runtime.pendingResultPath, JSON.stringify(prior));
+  let reviews = 0;
+  await execute({ shouldPause: () => reviews > 0, invoke: async (job) => {
+    assert.equal(job.phase, 'reviewer');
+    assert.equal(job.task.id, first.id);
+    reviews++;
+    return submit(job);
+  } });
+  assert.equal(reviews, 1);
+  const [accepted, incomplete] = readBoard(root).tasks;
+  assert.equal(accepted.status, 'done');
+  assert.equal(incomplete.status, 'blocked');
+  assert.equal(incomplete.runtime.blockKind, 'interrupted');
+});
+
+test('브리지는 두 부서의 실행을 식별하고 선택한 turn으로 지시를 전달하며 중간 제출은 상세 기록에 남깁니다.', async (t) => {
+  const { root } = fixture(t);
+  const board = pairedBoard();
+  writeBoard(root, board);
+  writeFixture(root, 'scripts/studio/result.schema.json', '{}');
+  const messages = [];
+  const bridge = new BridgeRuntime({ root, state: {}, saveState() {}, updateCommand() {}, sendMessage: (message) => messages.push(message) });
+  let steered;
+  bridge.client.steer = async (threadId, turnId) => { steered = [threadId, turnId]; };
+  const finish = [];
+  bridge.client.runTurn = async ({ onStarted, images }) => {
+    const index = finish.length;
+    onStarted({ threadId: 'thread-' + index, turnId: 'turn-' + index });
+    assert.deepEqual(images, []);
+    return new Promise((resolve) => finish.push(() => resolve({ text: '{"summary":"submitted"}' })));
+  };
+  const jobs = board.tasks.map((task) => bridge.invoke({ task, phase: 'producer', execution: { model: 'fixture', reasoningEffort: 'high' },
+    prompt: 'fixture', prefix: task.id, schema: 'result.schema.json', run: { dir: root }, goalId: task.goalId, studioWorkflow: 'autonomous-v1' }));
+  assert.deepEqual(bridge.snapshot().runtime.activeTasks.map((task) => [task.taskId, task.turnId]), [['WORK-001','turn-0'], ['WORK-002','turn-1']]);
+  await bridge.handleCommand({ id: 'STEER-1', type: 'message', target: 'design', text: '등록된 범위를 유지해 주세요.', payload: { expectedTurnId: 'turn-1' } });
+  assert.deepEqual(steered, ['thread-1', 'turn-1']);
+  finish.forEach((complete) => complete());
+  await Promise.all(jobs);
+  assert.equal(bridge.snapshot().runtime.activeTasks.length, 0);
+  assert.equal(bridge.activity.filter((event) => event.type === 'submitted').length, 2);
+  assert.deepEqual(messages, []);
+});
+
+test('재연결 tick은 이전 부팅의 일치하는 원장만 해제하고 불명 잠금은 같은 안내 한 건으로 보존합니다.', async (t) => {
+  const pid = unusedPid();
+  if (!pid) return t.skip('종료 PID를 확인할 수 없습니다.');
+  const older = new Date(Date.now() - (os.uptime() + 3600) * 1000).toISOString();
+  const stale = { owner: 'web-bridge-director', goalId: 'M1', pid, host: os.hostname(), token: 'previous-owner', startedAt: older };
+  for (const [name, settings, automatic] of [
+    ['이전 부팅', {}, true],
+    ['현재 부팅', { startedAt: new Date().toISOString() }, false],
+    ['다른 소유자', { owner: 'cli-director' }, false],
+    ['다른 목표', { goalId: 'M2' }, false],
+    ['다른 호스트', { host: os.hostname() + '-other' }, false],
+    ['사용 중인 PID', { pid: process.pid }, false],
+  ]) {
+    await t.test(name, async (sub) => {
+      const { root } = fixture(sub);
+      const board = boardFixture();
+      board.goals[0].studioWorkflow = 'autonomous-v1';
+      board.goals[0].approval.digest = approvalDigest(board.goals[0]);
+      Object.assign(board.tasks[0], { status: 'active', runtime: { executionSurface: 'cli' } });
+      writeBoard(root, board);
+      const stored = { ...stale, ...settings };
+      const lockPath = writeFixture(root, '.runtime/studio/lock.json', JSON.stringify(stored));
+      const before = fs.readFileSync(path.join(root, 'docs/studio/board.json'));
+      const state = { runningAutonomousGoal: 'M1' };
+      const bridge = new BridgeRuntime({ root, state, saveState() {}, updateCommand() {}, sendMessage() {} });
+      const launches = [];
+      bridge.startRun = async (goalId) => { launches.push(goalId); assert.equal(lockStatus(root).locked, false); };
+      await bridge.tick();
+      if (automatic) {
+        assert.deepEqual(launches, ['M1']);
+        assert.equal(state.recoveryAttention, undefined);
+      } else {
+        assert.deepEqual(launches, []);
+        assert.deepEqual(JSON.parse(fs.readFileSync(lockPath, 'utf8')), stored);
+        assert.deepEqual(fs.readFileSync(path.join(root, 'docs/studio/board.json')), before);
+        assert.deepEqual(Object.keys(state.recoveryAttention).sort(), ['goalId', 'reason', 'updatedAt']);
+        const attention = state.recoveryAttention;
+        await bridge.tick();
+        assert.equal(state.recoveryAttention, attention);
+        fs.unlinkSync(lockPath);
+        await bridge.tick();
+        assert.equal(state.recoveryAttention, undefined);
+        assert.deepEqual(launches, ['M1']);
+      }
+    });
+  }
+});
+
+test('검증한 편집기 경로가 없으면 제작을 시작하지 않고 다음 조치가 있는 단일 보류를 남깁니다.', async (t) => {
+  const board = pairedBoard();
+  board.tasks = board.tasks.slice(0, 1);
+  Object.assign(board.tasks[0], { surface: 'app', productionMethod: 'blender' });
+  const { root, execute } = await isolatedRun(t, board);
+  await execute({ probeProductionRoute: async () => ({ available: false, method: 'blender', reason: '해당 작업 공간의 Blender 연결을 복구해 주세요.' }),
+    invoke: async () => assert.fail('도구 검증 실패 후 모델이 실행되었습니다.') });
+  const state = readBoard(root);
+  assert.equal(state.tasks[0].status, 'blocked');
+  assert.equal(state.tasks[0].runtime.blockKind, 'app-handoff');
+  assert.equal(state.decisions.length, 1);
+  assert.match(state.decisions[0].recommendation, /Blender/);
+});
+
+test('시간 한도와 실행 기반 오류는 재개할 판단으로 남기고 사용자 일시정지는 그대로 보존합니다.', async (t) => {
+  await t.test('시간 한도', async (sub) => {
+    const { root, execute } = await isolatedRun(sub, pairedBoard());
+    await execute({ invoke: async () => assert.fail('시간 한도가 지난 모델을 호출했습니다.') }, { minutes: 0.000001 });
+    const state = readBoard(root);
+    assert.equal(state.goals[0].supervision.status, 'blocked');
+    assert.match(state.decisions[0].recommendation, /시간 한도/);
+    assert.equal(state.decisions[0].type, 'run-interruption');
+  });
+  await t.test('계정 연결 실패', async (sub) => {
+    const { root, execute } = await isolatedRun(sub, pairedBoard());
+    await assert.rejects(execute({ loadModels: async () => { throw new Error('연결 불가'); } }), /연결 불가/);
+    assert.equal(readBoard(root).goals[0].supervision.status, 'blocked');
+    assert.match(readBoard(root).decisions[0].recommendation, /연결 불가/);
+  });
+  await t.test('사용자 일시정지', async (sub) => {
+    const { root, execute } = await isolatedRun(sub, pairedBoard());
+    await execute({ shouldPause: () => true, invoke: async () => assert.fail('일시정지 중 모델을 호출했습니다.') });
+    const state = readBoard(root);
+    assert.deepEqual(state.decisions, []);
+    assert.equal(state.goals[0].supervision, undefined);
+  });
+});
 
 test('결과는 작업·목표·단계와 실제 증거를 확인하며 제작자의 자체 인수를 거부합니다.', (t) => {
   const { root } = fixture(t);

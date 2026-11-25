@@ -1,7 +1,25 @@
 extends Control
 
-const SPELL_TEXTURES = {"potion":"res://art/export/items/mana-potion.png","manaPotion":"res://art/export/items/mana-potion.png","meteor":"res://art/export/spells/fireball.png","giant_fireball":"res://art/export/spells/fireball.png","flame_barrage":"res://art/export/spells/flame-wave.png","teleport":"res://art/export/spells/teleport.png", "dodge":"res://art/export/spells/dash.png", "fireball":"res://art/export/spells/fireball.png", "flame_wave":"res://art/export/spells/flame-wave.png", "flame_guard":"res://art/export/spells/flame-guard.png"}
-static var spell_textures: Dictionary = {}
+const SPELL_TEXTURES := {
+	"potion": preload("res://art/export/items/mana-potion.png"),
+	"manaPotion": preload("res://art/export/items/mana-potion.png"),
+	"meteor": preload("res://art/export/spells/meteor.png"),
+	"giant_fireball": preload("res://art/export/spells/giant-fireball.png"),
+	"flame_barrage": preload("res://art/export/spells/flame-barrage.png"),
+	"teleport": preload("res://art/export/spells/teleport.png"),
+	"dodge": preload("res://art/export/spells/dash.png"),
+	"fireball": preload("res://art/export/spells/fireball.png"),
+	"flame_wave": preload("res://art/export/spells/flame-wave.png"),
+	"flame_guard": preload("res://art/export/spells/flame-guard.png"),
+}
+const MENU_TEXTURES := {
+	"skills_tab": preload("res://art/export/skills/skills-tab.png"),
+	"crafting": preload("res://art/export/skills/crafting.png"),
+	"cooking": preload("res://art/export/skills/cooking.png"),
+	"fishing": preload("res://art/export/skills/fishing.png"),
+	"loadout": preload("res://art/export/skills/loadout.png"),
+	"quickslots": preload("res://art/export/skills/quickslots.png"),
+}
 
 var kind = "":
 	set(value):
@@ -11,11 +29,14 @@ var kind = "":
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+static func texture_for(icon_kind: String) -> Texture2D:
+	return SPELL_TEXTURES.get(icon_kind, MENU_TEXTURES.get(icon_kind))
+
 func _draw() -> void:
-	if SPELL_TEXTURES.has(kind):
-		if not spell_textures.has(kind): spell_textures[kind] = load(SPELL_TEXTURES[kind])
+	var icon_texture := texture_for(kind)
+	if icon_texture != null:
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		draw_texture_rect(spell_textures[kind], Rect2(Vector2.ZERO,size), false)
+		draw_texture_rect(icon_texture, Rect2(Vector2.ZERO, size), false)
 		return
 	draw_set_transform(Vector2.ZERO,0,size/24.0)
 	match kind:

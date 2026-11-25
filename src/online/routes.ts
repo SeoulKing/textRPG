@@ -5,8 +5,16 @@ import { z } from "zod";
 import { AuthController } from "../auth";
 import { OnlineAccounts, OnlineError, nativeDevelopment } from "./accounts";
 import { ArcanaWorld } from "./world";
+import { ArcanaWearableSlotSchema } from "../game/schemas/arcana-item";
 const PointSchema=z.object({x:z.number().finite().min(-10000).max(10000),y:z.number().finite().min(-10000).max(10000)});
-const InputSchema=z.object({actionId:z.string().regex(/^[a-zA-Z0-9-]{16,100}$/).optional(),placeRevision:z.number().int().nonnegative().optional(),developerSpeed:z.boolean().optional(),sequence:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),position:PointSchema.optional(),direction:PointSchema.optional(),bench:z.enum(["","approach","sit","seated","stand"]).optional(),gait:z.number().finite().min(0).max(1e9).optional(),floor:z.number().int().min(0).max(2).optional(),command:z.enum(["life_gather","life_rest","life_home_enter","life_home_leave","life_craft","life_place","life_cook","life_eat","life_cancel","fishing_equip","fishing_unequip","fishing_cast","fishing_press","fishing_release","fishing_cancel","spatial_sync","fireball","flame_wave","flame_guard","meteor","giant_fireball","flame_barrage","dodge","teleport","potion"]).optional(),aim:PointSchema.optional(),target:PointSchema.optional(),itemId:z.string().min(1).max(60).optional(),recipeId:z.string().min(1).max(60).optional(),campfireId:z.string().uuid().optional()});
+const InputSchema=z.object({
+  actionId:z.string().regex(/^[a-zA-Z0-9-]{16,100}$/).optional(),placeRevision:z.number().int().nonnegative().optional(),developerSpeed:z.boolean().optional(),sequence:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  position:PointSchema.optional(),direction:PointSchema.optional(),bench:z.enum(["","approach","sit","seated","stand"]).optional(),gait:z.number().finite().min(0).max(1e9).optional(),floor:z.number().int().min(0).max(2).optional(),
+  textPlace:z.enum(["home_bed","home_kitchen","home_storage","academy_stairs"]).optional(),
+  command:z.enum(["equipment_set","life_gather","life_rest","life_home_enter","life_home_leave","life_craft","life_place","life_cook","life_eat","life_cancel","life_storage_open","life_storage_deposit","life_storage_withdraw","fishing_equip","fishing_unequip","fishing_cast","fishing_cast_text_pond","fishing_press","fishing_release","fishing_cancel","spatial_sync","engage_plaza_slime","engage_meadow_ox","fireball","flame_wave","flame_guard","meteor","giant_fireball","flame_barrage","dodge","teleport","potion","retreat"]).optional(),
+  aim:PointSchema.optional(),target:PointSchema.optional(),itemId:z.string().min(1).max(60).optional(),quantity:z.number().int().positive().optional(),recipeId:z.string().min(1).max(60).optional(),campfireId:z.string().uuid().optional(),equipmentSlot:ArcanaWearableSlotSchema.optional(),
+});
+const WorldInputPacketSchema=z.object({id:z.number().int().positive(),input:InputSchema});
 export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts,auth:AuthController,world:ArcanaWorld) {
   const limits=new Map<string,{start:number;count:number}>();
   const configuredOrigins=(process.env.ALLOWED_ORIGINS || process.env.PUBLIC_BASE_URL || "").split(",").map(v=>v.trim()).filter(Boolean);
@@ -85,7 +93,7 @@ export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts
       if(Date.now()-window>=1000){window=Date.now();messages=0;}
       if(binary || ++messages>40 || outstanding>=8){socket.close(1008,"Input limit");return;}
       let packet:unknown;try{packet=JSON.parse(raw.toString());}catch{socket.close(1008,"Invalid JSON");return;}
-      const parsed=z.object({id:z.number().int().positive(),input:InputSchema}).safeParse(packet);
+      const parsed=WorldInputPacketSchema.safeParse(packet);
       if(!parsed.success){socket.close(1008,"Invalid input");return;}
       outstanding++;
       const receivedAt=performance.now();

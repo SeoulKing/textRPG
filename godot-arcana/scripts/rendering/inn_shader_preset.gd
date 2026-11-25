@@ -12,7 +12,8 @@ const Regions := preload("res://scripts/region_registry.gd")
 const HeroSpec := preload("res://art/resources/heroine_reference_spec.gd")
 const LOBBY_MODEL_WIDTH := 15.0
 # The reference lobby displays the captured actor on an upright, vertically scaled sprite.
-const AVATAR_UPRIGHT_SCALE := 1.4142135
+const TileStyle := preload("res://scripts/rendering/tile_world_style.gd")
+const AVATAR_UPRIGHT_SCALE := TileStyle.AVATAR_UPRIGHT_SCALE
 const AVATAR_HEIGHT := HeroSpec.SOURCE_HEIGHT / HeroSpec.PIXELS_PER_UNIT * AVATAR_UPRIGHT_SCALE
 const PixelProfile := preload("res://scripts/rendering/camera_pixel_profile.gd")
 const PixelEffect := preload("res://scripts/rendering/tutorial_pixel_effect.gd")
@@ -42,7 +43,7 @@ func tile_world_variant() -> Resource:
 	var preset: Resource = duplicate(true)
 	preset.sliders.merge({
 		"outline_strength": 52,
-		"highlight_strength": 14,
+		"highlight_strength": roundi(100.0 * TileStyle.HIGHLIGHT_STRENGTH),
 		"specular_nonmetal": 8,
 		"specular_metal": 60,
 		"specular_width": 18,

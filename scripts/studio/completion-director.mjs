@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { ORGANIZATIONS, validateBoard, isWithinScope } from './engine.mjs';
-import { assertGoalReady, assertTaskAuthorized } from './protocol.mjs';
+import { assertGoalReady, assertTaskAuthorized, VISUAL_STAGES, applyEditorLock } from './protocol.mjs';
 import { recordCollaboration, collaborationEvidence, buildTaskHandoff } from './collaboration.mjs';
 
 const SCHEMA = JSON.parse(fs.readFileSync(new URL('./completion-director.schema.json', import.meta.url), 'utf8'));
@@ -108,6 +108,8 @@ export function buildCompletionPrompt(board, reportOrId) {
     'action:blocked는 범위·도구·의존성·사용자 판단 때문에 더 진행할 수 없는 구체적 이유를 blockedReason에 적습니다. nextTaskIds/tasks/acceptanceEvidence는 []입니다. 기존 scope, allowedChecks, allowedCapabilities, newArt, publish를 확대하거나 승인받았다고 가정하지 마세요. 앱 전용 도구가 필요하면 surface:app으로 정확히 표시하세요.',
     '후속 작업은 실제 파일·작은 하위 디렉터리 범위로 좁히세요. docs/studio/board.json·상위 원장 디렉터리, .git/.aws/.codex/.env, 캐시·운영 비밀·개인 저장은 수정하거나 읽지 마세요. .runtime/studio/runs의 제출 결과만 필요한 근거로 참조하세요. 기존 수동 변경·확정 캐릭터·저장 ID를 보존하세요.',
     '실제 완료 보고:\n' + JSON.stringify(report),
+    '함께 제출되어 같은 최종 검토에 포함할 현재 목표의 미처리 부서 보고:\n' + JSON.stringify((board.completionReports ?? []).filter((item) => item.goalId === goal.id && item.id !== report.id && item.status === 'pending')),
+    goal.studioWorkflow === 'autonomous-v1' ? '이 신규 목표는 총괄이 최종 인수합니다. 시각 목표에서는 첨부 사진을 실제로 열어 시안·도구 원본과 본편 연결의 차이, 인물/구도/판독성을 판단하세요. 최종 previews에 실제로 본 완료 조건 근거 사진을 최대 3장, role(before/after/result), path, caption으로 제출하세요. after/result는 독립 검토를 통과한 final_capture의 본편 사진이어야 합니다. 부족하면 승인 범위 내 후속 작업을 지정하세요. unverified에는 직접 확인하지 않은 플레이·조작·빌드 등 이번 지시에 관련된 범위만 명시하세요. 중간 보고는 previews:[]입니다. 후속 시각 작업에 visualStage와 productionMethod를 유지하세요.' : '기존 목표는 원래 인수 절차를 유지합니다. previews와 unverified는 []입니다.',
     '변경할 수 없는 목표 계약과 전체 acceptance:\n' + JSON.stringify(goal),
     '현재 목표의 실제 작업과 제출 근거:\n' + JSON.stringify(tasks),
     '현재 목표의 부서 요청:\n' + JSON.stringify(board.requests.filter((item) => item.goalId === goal.id)),
@@ -132,12 +134,16 @@ export function beginCompletionReview(board, reportId) {
   return candidate;
 }
 
-export function normalizeCompletionDecision(board, reportId, result) {
+export function normalizeCompletionDecision(board, reportId, result, { imageEvidence = [] } = {}) {
   validateBoard(board);
   const report = findReport(board, reportId);
   const goal = approvedGoal(board, report);
   if (report.status !== 'processing' || report.attempts !== 1) fail('실행 중인 한 번의 완료 보고만 인수할 수 있습니다.');
-  object(result, FIELDS, '응답');
+  object(result, [...FIELDS, ...['previews', 'unverified'].filter((key) => Object.hasOwn(result ?? {}, key))], '응답');
+  const autonomous = goal.studioWorkflow === 'autonomous-v1';
+  const previews = result.previews ?? [];
+  const unverified = strings(result.unverified ?? [], '미확인 범위');
+  if (!Array.isArray(previews) || previews.length > 3 || unverified.length > 8 || (result.action !== 'ready_for_acceptance' && previews.length)) fail('대표 사진은 최종 인수 시 최대 3장이며 미확인 항목은 최대 8개입니다.');
   if (result.reportId !== report.id || result.goalId !== goal.id) fail('응답의 실제 보고·목표 ID가 다릅니다.');
   if (!['continue', 'follow_up', 'ready_for_acceptance', 'blocked'].includes(result.action)) fail('알 수 없는 완료 조정 방식입니다.');
   text(result.summary, '응답.summary');
@@ -145,7 +151,7 @@ export function normalizeCompletionDecision(board, reportId, result) {
   if (result.nextTaskIds.length > 12 || !Array.isArray(result.tasks) || result.tasks.length > 4 || !Array.isArray(result.acceptanceEvidence)) fail('후속 작업·배정·조건 근거의 수량을 확인해 주세요.');
   if (result.blockedReason !== null) text(result.blockedReason, '응답.blockedReason');
   const patch = { reportId, goalId: goal.id, action: result.action, summary: result.summary, nextTaskIds: [], tasks: [],
-    acceptanceEvidence: [], blockedReason: result.blockedReason, sourceCommandIds: [...report.sourceCommandIds], rawResult: structuredClone(result) };
+    acceptanceEvidence: [], previews: [], unverified, imageEvidence: structuredClone(imageEvidence), blockedReason: result.blockedReason, sourceCommandIds: [...report.sourceCommandIds], rawResult: structuredClone(result) };
   const done = new Set(board.tasks.filter((task) => task.status === 'done').map((task) => task.id));
   if (result.action === 'continue') {
     if (!result.nextTaskIds.length || result.tasks.length || result.acceptanceEvidence.length || result.blockedReason !== null) fail('continue는 실제 다음 작업 ID만 지정해야 합니다.');
@@ -164,7 +170,7 @@ export function normalizeCompletionDecision(board, reportId, result) {
     if (board.tasks.length + result.tasks.length > 200) fail('원장 작업 상한 200개를 넘을 수 없습니다.');
     const aliases = new Map();
     for (const [index, item] of result.tasks.entries()) {
-      object(item, TASK_FIELDS, `tasks[${index}]`);
+      object(item, [...TASK_FIELDS, ...['productionMethod', 'visualStage'].filter((key) => Object.hasOwn(item ?? {}, key))], `tasks[${index}]`);
       text(item.localId, '작업 별칭');
       if (!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(item.localId) || aliases.has(item.localId) || board.tasks.some((task) => task.id === item.localId)) fail('중복되거나 모호한 후속 작업 별칭입니다.');
       aliases.set(item.localId, report.id + '-F' + String(index + 1).padStart(2, '0'));
@@ -181,7 +187,22 @@ export function normalizeCompletionDecision(board, reportId, result) {
         dependsOn: [...new Set([report.taskId, ...item.dependsOn.map((id) => aliases.get(id) ?? (board.tasks.some((task) => task.id === id) ? id : fail('없는 후속 선행 작업입니다: ' + id)))])],
         scope: scope(item.scope, '후속 작업.scope'), capabilities: [...item.capabilities], checks: [...item.checks], acceptance: [...item.acceptance], surface: item.surface,
         runtime: { createdByCompletionReportId: report.id, sourceTaskId: report.taskId, sourceCommandIds: [...report.sourceCommandIds] } };
-      if (item.surface === 'app') Object.assign(task.runtime, { blockKind: 'app-handoff', blockReason: '총괄이 배정한 후속 작업에는 앱 도구 인계가 필요합니다.' });
+      if (item.productionMethod != null) {
+        if (!['blender', 'pixelpen', 'godot'].includes(item.productionMethod) || item.organization !== 'world') fail('후속 제작 도구와 부서를 확인해 주세요.');
+        task.productionMethod = item.productionMethod;
+      }
+      if (item.visualStage != null) {
+        if (!goal.visualContract || !VISUAL_STAGES.includes(item.visualStage)) fail('후속 시각 단계가 목표 계약에 없습니다.');
+        task.visualStage = item.visualStage;
+        if (item.visualStage === 'final_capture') {
+          task.mainEntry = goal.visualContract.mainEntry;
+          if (goal.visualContract.targetScene) task.targetScene = goal.visualContract.targetScene;
+          for (const name of [task.mainEntry, task.targetScene].filter(Boolean)) if (!isWithinScope(name, task.scope.read)) task.scope.read.push(name);
+        }
+      }
+      if (autonomous) applyEditorLock(task);
+      if (item.surface === 'app' && autonomous && item.productionMethod) task.status = 'ready';
+      else if (item.surface === 'app') Object.assign(task.runtime, { blockKind: 'app-handoff', blockReason: '총괄이 배정한 후속 작업에는 앱 도구 인계가 필요합니다.' });
       if (goal.approval.publicationIntent && task.capabilities.includes('publish')) {
         const intent = goal.approval.publicationIntent;
         if (!task.scope.write.every((entry) => isWithinScope(entry, [intent.scope]))) fail('후속 게시가 승인된 사이트 대상을 벗어납니다.');
@@ -237,11 +258,26 @@ export function normalizeCompletionDecision(board, reportId, result) {
       patch.acceptanceEvidence.push({ criterion: entry.criterion, completedTaskIds: [...entry.completedTaskIds], evidence });
     }
     if (criteria.size !== goal.acceptance.length) fail('모든 목표 완료 조건에 실제 제출 근거가 필요합니다.');
+    const cited = new Set(patch.acceptanceEvidence.flatMap((entry) => entry.evidence.map((item) => item.path)));
+    const finalCuts = tasks.filter((item) => item.visualStage === 'final_capture').flatMap((item) =>
+      (item.runtime?.reviewedImages ?? []).filter((image) => isWithinScope(image.path, item.scope.write)
+        && item.runtime?.producerEvidence?.some((entry) => entry.path === image.path)));
+    for (const preview of previews) {
+      object(preview, ['role','path','caption'], '최종 대표 사진');
+      text(preview.caption, '사진 설명');
+      const record = imageEvidence.find((item) => item.path === preview.path);
+      if (!autonomous || !['before','after','result'].includes(preview.role) || preview.caption.length > 220 || !cited.has(preview.path)
+        || !record || !/^[a-f0-9]{64}$/.test(record.sha256) || !/\.(png|jpe?g|webp)$/i.test(preview.path)
+        || patch.previews.some((item) => item.path === preview.path)) fail('실제 입력하고 조건 근거에 인용한 고유 대표 사진이어야 합니다.');
+      if (preview.role !== 'before' && !finalCuts.some((cut) => cut.path === preview.path && cut.sha256 === record.sha256)) fail('최종 결과 사진은 독립 검토한 본편 컷이어야 합니다.');
+      patch.previews.push({ ...preview, sha256: record.sha256 });
+    }
+    if (autonomous && goal.visualContract && !patch.previews.some((item) => item.role !== 'before')) fail('실제 본편 최종 화면을 확인하고 대표 결과 사진을 선택해 주세요.');
   } else if (result.nextTaskIds.length || result.tasks.length || result.acceptanceEvidence.length || result.blockedReason === null) {
     fail('blocked에는 구체적 보류 이유만 남겨 주세요.');
   }
   patch.digest = hash({ reportId: patch.reportId, goalId: patch.goalId, action: patch.action, summary: patch.summary,
-    nextTaskIds: patch.nextTaskIds, tasks: patch.tasks, acceptanceEvidence: patch.acceptanceEvidence, blockedReason: patch.blockedReason });
+    nextTaskIds: patch.nextTaskIds, tasks: patch.tasks, acceptanceEvidence: patch.acceptanceEvidence, previews: patch.previews, unverified: patch.unverified, blockedReason: patch.blockedReason });
   return patch;
 }
 
@@ -251,7 +287,7 @@ export function applyCompletionDecision(board, reportId, patch, { resultPath = n
     if (report.decision?.digest === patch?.digest) return structuredClone(board);
     fail('같은 완료 보고의 결정을 다시 적용할 수 없습니다.');
   }
-  const normalized = normalizeCompletionDecision(board, reportId, patch?.rawResult);
+  const normalized = normalizeCompletionDecision(board, reportId, patch?.rawResult, { imageEvidence: patch?.imageEvidence });
   if (normalized.digest !== patch?.digest) fail('검증 이후 완료 조정 내용이 바뀌었습니다.');
   const candidate = structuredClone(board);
   const stored = findReport(candidate, reportId);
@@ -260,10 +296,18 @@ export function applyCompletionDecision(board, reportId, patch, { resultPath = n
   candidate.tasks.push(...structuredClone(normalized.tasks));
   stored.status = normalized.action === 'blocked' ? 'blocked' : 'processed'; stored.processedAt = now(); stored.resultPath = resultPath;
   stored.decision = { action: normalized.action, summary: normalized.summary, nextTaskIds: [...normalized.nextTaskIds],
-    addedTaskIds: normalized.tasks.map((task) => task.id), acceptanceEvidence: structuredClone(normalized.acceptanceEvidence), blockedReason: normalized.blockedReason, digest: normalized.digest };
+    addedTaskIds: normalized.tasks.map((task) => task.id), acceptanceEvidence: structuredClone(normalized.acceptanceEvidence), previews: normalized.previews, unverified: normalized.unverified, blockedReason: normalized.blockedReason, digest: normalized.digest };
   if (normalized.action === 'blocked') blockingDecision(candidate, stored, normalized.blockedReason);
   const state = { continue: 'continuing', follow_up: 'follow_up', ready_for_acceptance: 'ready_for_acceptance', blocked: 'blocked' }[normalized.action];
   setSupervision(candidate, stored, state, normalized.blockedReason ?? normalized.summary, normalized);
+  const autoAccepted = goal.studioWorkflow === 'autonomous-v1' && normalized.action === 'ready_for_acceptance';
+  if (autoAccepted) {
+    goal.status = 'done';
+    for (const other of candidate.completionReports.filter((item) => item.goalId === goal.id && item.id !== reportId && item.status === 'pending')) {
+      Object.assign(other, { status: 'processed', attempts: 1, startedAt: stored.startedAt, processedAt: stored.processedAt,
+        reviewedWith: stored.id, resultPath, decision: { action: 'covered_by_final_review', summary: normalized.summary } });
+    }
+  }
   const firstPriority = Math.min(0, ...candidate.tasks.filter((task) => task.goalId === goal.id && task.status !== 'done').map((task) => task.priority)) - normalized.nextTaskIds.length;
   for (const [index, id] of normalized.nextTaskIds.entries()) {
     const task = candidate.tasks.find((item) => item.id === id);
@@ -276,8 +320,8 @@ export function applyCompletionDecision(board, reportId, patch, { resultPath = n
   }
   recordCollaboration(candidate, { id: eventKey(report) + '-REVIEWED', goalId: goal.id, taskId: report.taskId, kind: 'completion_reviewed', status: normalized.action,
     fromDepartmentId: 'director', toDepartmentId: normalized.action === 'blocked' ? 'director' : null,
-    title: normalized.action === 'ready_for_acceptance' ? '총괄 목표 전체 확인 · 최종 사용자 인수 대기' : normalized.action === 'blocked' ? '총괄 완료 조정 보류' : '총괄 완료 보고 확인 · 후속 진행 결정',
-    summary: normalized.summary, reason: normalized.blockedReason ?? '목표 최종 인수는 사용자님께 남깁니다.',
+    title: autoAccepted ? '총괄 최종 인수 완료' : normalized.action === 'ready_for_acceptance' ? '총괄 목표 전체 확인 · 최종 사용자 인수 대기' : normalized.action === 'blocked' ? '총괄 완료 조정 보류' : '총괄 완료 보고 확인 · 후속 진행 결정',
+    summary: normalized.summary, reason: normalized.blockedReason ?? (autoAccepted ? '계약의 완료 조건과 제출 근거를 확인했습니다.' : '목표 최종 인수는 사용자님께 남깁니다.'),
     evidence: normalized.acceptanceEvidence.flatMap((entry) => entry.evidence).concat(resultPath ? [{ path: resultPath, summary: '총괄 완료 조정 결과' }] : []), sourceCommandIds: report.sourceCommandIds });
   validateBoard(candidate);
   return candidate;

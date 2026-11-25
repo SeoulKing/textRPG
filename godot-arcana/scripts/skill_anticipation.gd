@@ -9,9 +9,10 @@ func begin(command: String, direction: Vector2, target: Vector2) -> String:
 	last_cast_id = id
 	var heading: Vector2 = direction.normalized() if direction.length_squared()>.00001 else combat._auto_direction(command)
 	entries[id] = {"command":command,"direction":heading,"position":combat.main.world.player_position,"target":target,"age":0.0,"accepted":false,"shots":0}
-	combat.main.world_renderer.hero.begin_cast(heading, command)
-	combat.main.world_renderer.hero.cast_age = combat.main.world_renderer.hero.CAST_GATHER
-	combat.charge_vfx = combat.effect_pool.charge
+	if combat.world_visuals_enabled:
+		combat.main.world_renderer.hero.begin_cast(heading, command)
+		combat.main.world_renderer.hero.cast_age = combat.main.world_renderer.hero.CAST_GATHER
+		combat.charge_vfx = combat.effect_pool.charge
 	if command=="flame_wave": combat._event({"kind":"wave","position":combat._json(combat.main.world.player_position),"direction":combat._json(heading),"clientActionId":id,"_anticipated":true})
 	elif command=="giant_fireball": _shot(id,entries[id],command)
 	elif command=="flame_barrage":
@@ -95,7 +96,7 @@ func confirm(id: String, result: Dictionary) -> void:
 	if battle is Dictionary and battle.get("spatial") is Dictionary: observe(battle.spatial)
 
 func cancel(id: String) -> void:
-	if id==last_cast_id: combat.main.world_renderer.hero.cancel_cast()
+	if combat.world_visuals_enabled and id == last_cast_id: combat.main.world_renderer.hero.cancel_cast()
 	entries.erase(id)
 	for shot_id in combat.local_shots.keys():
 		if str(shot_id)==id or str(shot_id).begins_with(id+"-"): combat.local_shots.erase(shot_id)

@@ -159,7 +159,7 @@ function report(root, board, task, args, by) {
   if (!['active', 'review'].includes(task.status) || task.runtime?.executionSurface !== 'app') {
     throw new Error('Codex 앱에 인계된 active·review 작업의 결과만 가져올 수 있습니다.');
   }
-  assertReady(board, task);
+  const goal = assertReady(board, task);
   const producerFile = resultFile(root, args.producer, '--producer', task.runtime.runId);
   const producer = readResult(root, producerFile, task, 'producer');
   const alreadyInReview = task.status === 'review';
@@ -173,7 +173,8 @@ function report(root, board, task, args, by) {
   let reviewFile;
   let review;
   let reviewPasses;
-  if (producer.outcome === 'completed') {
+  const automaticReview = goal.studioWorkflow === 'autonomous-v1' && Boolean(task.visualStage);
+  if (producer.outcome === 'completed' && !automaticReview) {
     reviewFile = resultFile(root, args.review, '--review', task.runtime.runId);
     if (pathKey(producerFile.relative) === pathKey(reviewFile.relative) || sameFile(producerFile, reviewFile)) {
       throw new Error('제작 결과와 독립 검토 결과는 서로 다른 실제 파일이어야 합니다.');
@@ -198,6 +199,18 @@ function report(root, board, task, args, by) {
   } else {
     if (!alreadyInReview) transitionTask(board, task.id, 'review', imported);
     else task.runtime = { ...task.runtime, ...imported };
+    if (goal.studioWorkflow === 'autonomous-v1') {
+      for (const decision of board.decisions.filter((item) => item.goalId === goal.id && item.taskId === task.id && item.status === 'pending'
+        && (item.type === 'app-handoff' || item.id === task.id + '-APP-DECISION'))) {
+        Object.assign(decision, { status: 'resolved', decidedAt: importedAt, resolution: '앱에서 ' + by + '님이 실제 제작 결과를 인계했습니다.' });
+      }
+    }
+    if (automaticReview) {
+      task.runtime.manualVisualReview = true;
+      writeBoard(root, board);
+      return { command: 'report', taskId: task.id, goalId: goal.id, status: task.status, producerResultPath: producerFile.relative,
+        reviewResultPath: null, importedBy: by, importedAt, reviewResponsibility: '연결기가 실제 제출 이미지를 독립 검토자에게 전달합니다.' };
+    }
     recordCollaboration(board, { goalId: task.goalId, kind: 'review_reported', status: 'reported', taskId: task.id, fromDepartmentId: 'quality', toDepartmentId: task.organization, title: '앱 독립 검토 보고 인수', summary: review.summary, reason: '외부 앱의 검토 결과 파일을 인수했습니다. 자동 실행·프롬프트 열람을 소급 기록하지 않습니다.', evidence: review.evidence, at: importedAt });
     const reviewed = { importedBy: by, importedAt, reviewPasses, reviewSummary: review.summary, reviewEvidence: collaborationEvidence(review.evidence),
       reviewImportedBy: by, reviewImportedAt: importedAt };

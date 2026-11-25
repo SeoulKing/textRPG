@@ -1,7 +1,8 @@
 shader_type spatial;
 
 uniform vec4 stone : source_color = vec4(0.59, 0.55, 0.50, 1.0);
-uniform vec4 joint : source_color = vec4(0.48, 0.45, 0.41, 1.0);
+uniform vec4 joint : source_color = vec4(0.52, 0.49, 0.44, 1.0);
+uniform float highlight_strength = 0.0;
 
 varying vec2 ground_position;
 
@@ -28,9 +29,13 @@ void fragment() {
 	float bevel = 1.0 - step(seam + 0.032, distance_to_joint);
 	float top_edge = step(tile_position.y, 0.5) + 0.35 * step(tile_position.x, 0.5);
 	float grain = variation(floor(pixel * 13.0));
-	float tone = mix(0.87, 1.10, tile) + mix(-0.025, 0.033, grain);
-	vec3 surface = stone.rgb * (tone + bevel * (0.125 * top_edge - 0.095));
+	float tone = mix(0.94, 1.06, tile) + mix(-0.012, 0.016, grain);
+	float bevel_tone = 0.125 * top_edge - 0.095;
+	float lip = face * bevel * max(bevel_tone, 0.0) / 0.07375;
+	vec3 surface = stone.rgb * (tone + bevel * min(bevel_tone, 0.0));
 	ALBEDO = mix(joint.rgb, surface, face);
+	// The selected stone lip stays visible in shadow without brightening mortar.
+	EMISSION = vec3(highlight_strength * lip);
 	ROUGHNESS = 0.96;
 	SPECULAR = 0.11;
 }

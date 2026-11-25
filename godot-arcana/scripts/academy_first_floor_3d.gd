@@ -4,6 +4,8 @@ const FloorLayout := preload("res://scripts/academy_first_floor_layout.gd")
 
 
 func _ready() -> void:
+	for light in $Lighting/FixtureLights.get_children():
+		_local_lights.append(light as OmniLight3D)
 	# The amber panes are visible but light can pass through them and the masonry openings.
 	var glass := room.find_child("WindowGlass", true, false) as MeshInstance3D
 	if glass != null:

@@ -71,8 +71,7 @@ var _authored_cast := false
 var _action_from_cast := false
 var _previous_dash_age := -1.0
 var _contact_shadow: Polygon2D
-var _contact_shadow_base: PackedVector2Array
-var _contact_shadow_offset := Vector2.ZERO
+var _contact_shadow_enabled := true
 var _capture_anchor := Vector2(160,164)
 
 func _ready() -> void:
@@ -102,27 +101,15 @@ func _ready() -> void:
 	_contact_shadow=Polygon2D.new();_contact_shadow.name="ContactShadow"
 	var shadow_points := PackedVector2Array()
 	for i in range(24):shadow_points.append(Vector2(cos(i*TAU/24)*17,sin(i*TAU/24)*7))
-	_contact_shadow_base = shadow_points
 	_contact_shadow.polygon=shadow_points;_contact_shadow.color=Color(0,0,0,0.18);_contact_shadow.z_index=-1
 	add_child(_contact_shadow)
 	pose(0,0,false,Vector2.ZERO,true,false)
 
-func set_contact_shadow_offset(offset: Vector2) -> void:
-	if _contact_shadow_offset.is_equal_approx(offset):
+func set_contact_shadow_enabled(enabled: bool) -> void:
+	if _contact_shadow_enabled == enabled:
 		return
-	_contact_shadow_offset = offset
-	if offset.is_zero_approx():
-		_contact_shadow.polygon = _contact_shadow_base
-		_contact_shadow.color = Color(0, 0, 0, 0.18)
-		return
-	# Keep the ground silhouette independent of the animated model's alpha.
-	var points := _contact_shadow_base.duplicate()
-	for point in _contact_shadow_base:
-		points.append(offset + point * 0.65)
-	var outline := Geometry2D.convex_hull(points)
-	outline.remove_at(outline.size() - 1)
-	_contact_shadow.polygon = outline
-	_contact_shadow.color = Color(0.13, 0.15, 0.21, 0.34)
+	_contact_shadow_enabled = enabled
+	_contact_shadow.visible = enabled and bench_state.is_empty()
 
 static func direction_for_yaw(world_yaw: float,view_yaw: float) -> int:
 	return posmod(roundi((world_yaw-view_yaw)/TAU*8.0),8)
@@ -237,7 +224,7 @@ func apply_bench_pose() -> void:
 	display_direction = 0
 	last_yaw = camera_yaw
 	_present("bench", 0, 0.0, 0.0, amount)
-	_contact_shadow.visible = amount < 0.5
+	_contact_shadow.visible = _contact_shadow_enabled and amount < 0.5
 
 func face_attack(direction: Vector2) -> void:
 	if direction.length_squared()>0.00001:last_yaw=atan2(direction.x,direction.y)
@@ -304,7 +291,7 @@ func update_hurt(delta: float,effects: bool) -> void:
 		strength=maxf(0.0,1.0-hurt_age/0.30);hurt_age+=delta
 		if hurt_age>=0.30:hurt_age=-1.0
 	sprite_material.set_shader_parameter("hurt_flash",strength if effects else 0.0)
-	_contact_shadow.visible=bench_state.is_empty()
+	_contact_shadow.visible = _contact_shadow_enabled and bench_state.is_empty()
 func set_outfit(items: PackedStringArray) -> bool:
 	if items.size()!=DEFAULT_OUTFIT.size():return false
 	for item: String in DEFAULT_OUTFIT:

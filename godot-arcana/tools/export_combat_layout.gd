@@ -4,6 +4,16 @@ func _initialize() -> void:call_deferred("export_layout")
 func export_layout() -> void:
 	# Use the same logical geometry as player movement and the online exporter.
 	var world = load("res://scripts/world.gd").new()
+	var source := OS.get_environment("ARCANA_PLAZA_LAYOUT_SCENE")
+	if not source.is_empty():
+		var layout_source := preload("res://scripts/plaza_3d_game_layout.gd").new(source)
+		if not layout_source.loaded_from_scene:
+			push_error("Could not read plaza layout from " + source)
+			layout_source.free()
+			world.free()
+			quit(1)
+			return
+		world.layout = layout_source
 	root.add_child(world)
 	world.set_process(false)
 	var home: Vector2 = world.layout.combat_home()

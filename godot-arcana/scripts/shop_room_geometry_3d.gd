@@ -9,6 +9,7 @@ const CounterScene = preload("res://scenes/props/shop/furniture/counter_face_3d.
 const WINDOW_FRAME_ASSET = preload("res://art/source/shop-oak-planks-v2/west-window-frame.glb")
 const OAK_PLANKS = preload("res://art/source/shop-oak-planks-v2/oak-plank-floor.glb")
 const OAK_PLANK_SHADER = preload("res://art/resources/shop_oak_planks.gdshader")
+const EDGE_CUTOUT_NORMALS = preload("res://art/resources/tutorial_cutout_normals.gdshader")
 const PIXEL_SHADING = preload("res://art/resources/arcana_pixel_shading.gdshader")
 const LAMP_GLOW_SHADER = preload("res://art/resources/shop_lamp_glow.gdshader")
 const LIGHT_VOLUME_SHADER = preload("res://art/resources/shop_light_volume.gdshader")
@@ -52,6 +53,8 @@ var _generated: Node3D
 var _body: StaticBody3D
 var _materials: Dictionary = {}
 var _room_light_materials: Dictionary = {}
+var _floor_edge_proxy: ShaderMaterial
+var _face_edge_proxies: Dictionary[Texture2D, ShaderMaterial] = {}
 var _astra_look: AstraLook
 var _astra_debug_mode := AstraLook.DebugMode.BEAUTY
 
@@ -79,6 +82,8 @@ func rebuild(layout: Dictionary) -> void:
 	interaction_bounds.clear()
 	_materials.clear()
 	_room_light_materials.clear()
+	_floor_edge_proxy = null
+	_face_edge_proxies.clear()
 	authored_scene_active = false
 	astra_active = false
 	_astra_look = null
@@ -248,9 +253,7 @@ func _configure_authored_room(node: Node3D, floor_mask: Texture2D) -> void:
 			if metadata.get("oak_floor", false):
 				node.set_surface_override_material(surface, _oak_material(floor_mask, imported))
 			elif metadata.has("counter_silhouette") and art != null:
-				var material := ShaderMaterial.new()
-				material.shader = OUTLINE_SHADER
-				material.set_shader_parameter("face_art", art)
+				var material := _cutout_face_material(art)
 				material.set_shader_parameter("ink_enabled", false)
 				var silhouette: Array = metadata.counter_silhouette
 				material.set_shader_parameter("counter_silhouette", Vector4(
@@ -434,6 +437,15 @@ func _oak_material(floor_mask: Texture2D, source: BaseMaterial3D) -> ShaderMater
 	material.set_shader_parameter("floor_cells", floor_mask)
 	material.set_shader_parameter("floor_origin", floor_bounds.position)
 	material.set_shader_parameter("floor_size", floor_bounds.size)
+	if use_approved_lighting:
+		if _floor_edge_proxy == null:
+			_floor_edge_proxy = ShaderMaterial.new()
+			_floor_edge_proxy.shader = EDGE_CUTOUT_NORMALS
+			_floor_edge_proxy.set_shader_parameter("use_floor_mask", true)
+			_floor_edge_proxy.set_shader_parameter("coverage_mask", floor_mask)
+			_floor_edge_proxy.set_shader_parameter("floor_origin", floor_bounds.position)
+			_floor_edge_proxy.set_shader_parameter("floor_size", floor_bounds.size)
+		material.set_meta("arcana_edge_proxy_material", _floor_edge_proxy)
 	material.set_shader_parameter("use_grain", source != null and source.albedo_texture != null)
 	if source != null:
 		material.set_shader_parameter("base_color", source.albedo_color)
@@ -675,10 +687,22 @@ func _room_light_material(source: BaseMaterial3D) -> ShaderMaterial:
 	return material
 
 
-func _outline_material(art: Texture2D, region: Rect2, outer_edges: Vector4) -> ShaderMaterial:
+func _cutout_face_material(art: Texture2D) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = OUTLINE_SHADER
 	material.set_shader_parameter("face_art", art)
+	if use_approved_lighting:
+		if not _face_edge_proxies.has(art):
+			var proxy := ShaderMaterial.new()
+			proxy.shader = EDGE_CUTOUT_NORMALS
+			proxy.set_shader_parameter("coverage_mask", art)
+			_face_edge_proxies[art] = proxy
+		material.set_meta("arcana_edge_proxy_material", _face_edge_proxies[art])
+	return material
+
+
+func _outline_material(art: Texture2D, region: Rect2, outer_edges: Vector4) -> ShaderMaterial:
+	var material := _cutout_face_material(art)
 	material.set_shader_parameter("art_region", Vector4(region.position.x, region.position.y,
 		region.end.x - 1.0, region.end.y - 1.0))
 	material.set_shader_parameter("outer_edges", outer_edges)

@@ -26,9 +26,12 @@ const TILE = 16
 
 const CityMap = preload("res://scripts/city_map.gd")
 const PlazaV2 = preload("res://scripts/plaza_3d_game_layout.gd")
+const RiverFishing = preload("res://scripts/river_fishing_geometry.gd")
 const CELLS = CityMap.CITY_CELLS
 const OUTDOOR_CELLS = CityMap.OUTDOOR_CELLS
 const SPAWN = Vector2(576, 500)
+const MEADOW_BOUNDS := Rect2(0, 0, 384, 320)
+const MEADOW_ENTRY := Vector2(192, 272)
 # Full input moves three navigation tiles per second.
 const WALK_SPEED = TILE * 3.0
 var developer_speed_boost = false
@@ -77,14 +80,22 @@ func cancel_teleport() -> void:
 
 
 func dash_heading() -> Vector2:
-	var input = touch_direction
+	var input := _direct_movement_input()
+	if input.length_squared()>.0001:return (input_projection*input).normalized()
+	if not path.is_empty() and player_position.distance_squared_to(path[0])>.0001:return (path[0]-player_position).normalized()
+	return last_move_direction
+
+func project_dash_endpoint(heading: Vector2) -> Vector2:
+	return _movement_endpoint(player_position, heading.normalized() * DASH_DISTANCE)
+
+func _direct_movement_input() -> Vector2:
+	var input: Vector2 = touch_direction
+	if not keyboard_movement_enabled: return input
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP): input.y -= 1
 	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN): input.y += 1
 	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT): input.x -= 1
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT): input.x += 1
-	if input.length_squared()>.0001:return (input_projection*input).normalized()
-	if not path.is_empty() and player_position.distance_squared_to(path[0])>.0001:return (path[0]-player_position).normalized()
-	return last_move_direction
+	return input
 
 func begin_dash(heading: Vector2) -> void:
 	dash_direction=heading.normalized()
@@ -126,7 +137,9 @@ var touch_direction = Vector2.ZERO
 # Identity keeps the preserved 2D world unchanged; the 3D camera supplies its axes.
 var input_projection = Transform2D.IDENTITY
 var enabled = true
+var keyboard_movement_enabled := true
 var indoor = ""
+var meadow_active := false
 var academy_floor: int = 1
 const Academy = preload("res://scripts/academy_interior.gd")
 var outside_position = SPAWN
@@ -166,6 +179,7 @@ var _indoor_sprites: Array[Node] = []
 var _click_marker = Vector2.ZERO
 var reduced_motion = false
 var motion_materials: Array[ShaderMaterial] = []
+var _world_visuals_enabled := true
 var effects_layer: Node2D
 var camera_follow = SPAWN
 var camera_player_position = SPAWN
@@ -226,11 +240,46 @@ func _material_at(p: Vector2) -> int:
 func uses_plaza_v2() -> bool:
 	return layout is PlazaV2
 
+func has_terraced_plaza() -> bool:
+	return layout is PlazaV2 and layout.terraced
+
 func uses_academy_first_floor_layout() -> bool:
 	return indoor == "arcana_academy" and academy_floor == 1
 
 func outside_walk_bounds() -> Rect2:
+	if meadow_active: return MEADOW_BOUNDS
 	return layout.walk_bounds() if uses_plaza_v2() else CityMap.WALK_BOUNDS
+
+func set_meadow_active(value: bool) -> void:
+	if meadow_active == value: return
+	if value and indoor.is_empty(): outside_position = player_position
+	meadow_active = value
+	if not indoor.is_empty(): return
+	clear_bench()
+	cancel_dash()
+	cancel_teleport()
+	input_projection = Transform2D.IDENTITY
+	touch_direction = Vector2.ZERO
+	walking = false
+	path.clear()
+	nearest = {}
+	current_entrance = {}
+	click_door_id = ""
+	clicked_interaction_id = ""
+	life_campfires.clear()
+	_restore_outdoor_area()
+	player_position = nearest_walkable(MEADOW_ENTRY if meadow_active else outside_position)
+	_update_camera(true)
+	_rebuild_grid()
+
+func _restore_outdoor_area() -> void:
+	entities.clear()
+	obstacles.clear()
+	round_obstacles.clear()
+	if meadow_active: return
+	entities.assign(_outdoor_entities.duplicate(true))
+	obstacles.assign(outside_obstacles)
+	round_obstacles.assign(outside_round_obstacles.duplicate(true))
 
 func _make_tiles() -> void:
 	ground.tile_set = Art.TERRAIN
@@ -376,7 +425,7 @@ func apply_layout(value: Node, initial: bool = false) -> void:
 	_outdoor_entities = next_entities.duplicate(true)
 	outside_obstacles = next_obstacles.duplicate()
 	outside_round_obstacles = next_round_obstacles.duplicate(true)
-	if indoor.is_empty():
+	if indoor.is_empty() and not meadow_active:
 		entities = next_entities
 		obstacles = next_obstacles
 		round_obstacles = next_round_obstacles
@@ -390,9 +439,22 @@ func apply_layout(value: Node, initial: bool = false) -> void:
 		if indoor.is_empty() and not uses_plaza_v2(): _make_tiles()
 		_rebuild_grid()
 
+func set_world_visuals_enabled(value: bool) -> void:
+	_world_visuals_enabled = value
+	if value:
+		set_art_state(dusk, effects_enabled)
+	else:
+		player.pause()
+		if is_instance_valid(traveler): traveler.pause()
+		footstep_distance = 0.0
+		footsteps.clear()
+		particles.clear()
+		impact_remaining = 0.0
+
 func set_art_state(evening: bool, effects: bool = true) -> void:
 	dusk = evening
 	effects_enabled = effects
+	if not _world_visuals_enabled: return
 	if is_instance_valid(ambient): ambient.color = Color("9eabc0") if evening and effects and indoor == "" else Color.WHITE
 	for lamp in lanterns: lamp.visible = evening and effects and indoor == ""
 	for node in objects.get_children():
@@ -403,10 +465,11 @@ func set_art_state(evening: bool, effects: bool = true) -> void:
 func nearest_walkable(point: Vector2) -> Vector2:
 	if _can_stand(point): return point
 	# Same-place correction; search nearest by actual distance, not loop order.
-	var best = spawn_position if indoor == "" else Vector2(192,200)
-	if indoor.is_empty() and uses_plaza_v2() and not outside_walk_bounds().grow(TILE).has_point(point):
-		# Saved positions from the older city use a separate coordinate range.
-		if _can_stand(spawn_position): return spawn_position
+	var outside_spawn: Vector2 = MEADOW_ENTRY if meadow_active else spawn_position
+	var best := outside_spawn if indoor.is_empty() else Vector2(192, 200)
+	if indoor.is_empty() and (meadow_active or uses_plaza_v2()) and not outside_walk_bounds().grow(TILE).has_point(point):
+		# A saved position can belong to a different outdoor coordinate range.
+		if _can_stand(outside_spawn): return outside_spawn
 	var distance = INF
 	var tiled_room: bool = indoor in ["arcana_inn", "arcana_restaurant"] or uses_academy_first_floor_layout()
 	var sample_step: int = 4 if tiled_room else TILE
@@ -424,6 +487,9 @@ func _rebuild_grid() -> void:
 	var legacy_detailed_interior: bool = indoor == "arcana_home" or (indoor == "arcana_academy" and academy_floor == 2)
 	var detailed_interior := legacy_detailed_interior or indoor in ["arcana_inn", "arcana_restaurant"] or uses_academy_first_floor_layout()
 	var cell_step: int = 4 if detailed_interior else TILE
+	if indoor.is_empty() and not meadow_active and has_terraced_plaza():
+		# Half-tile cells sample the padded retaining walls without sealing stair mouths.
+		cell_step = 8
 	var cells := Rect2i(0, 0, 96, 88) if legacy_detailed_interior else _navigation_region(cell_step)
 	grid.region = cells
 	grid.cell_size = Vector2(cell_step, cell_step)
@@ -443,7 +509,7 @@ func _navigation_region(cell_step: int) -> Rect2i:
 		bounds = RestaurantTileLayout.WALK_BOUNDS
 	elif uses_academy_first_floor_layout():
 		bounds = AcademyFloorLayout.WALK_BOUNDS
-	elif indoor.is_empty() and uses_plaza_v2():
+	elif indoor.is_empty() and (meadow_active or uses_plaza_v2()):
 		bounds = outside_walk_bounds()
 	else:
 		return Rect2i(Vector2i.ZERO, OUTDOOR_CELLS)
@@ -453,7 +519,7 @@ func _navigation_region(cell_step: int) -> Rect2i:
 
 func _update_entrance_contact() -> void:
 	var contact: Dictionary = {}
-	if indoor.is_empty():
+	if indoor.is_empty() and not meadow_active:
 		for entrance in entrances:
 			if entrance.area.has_point(player_position):
 				contact = entrance
@@ -532,7 +598,7 @@ func walk_to(pos: Vector2) -> void:
 	if uses_plaza_v2() and indoor.is_empty() and not click_door_id.is_empty():
 		# The authored doorway is not on the navigation-cell center.
 		var approach: Vector2 = player_position if path.is_empty() else path[path.size() - 1]
-		if approach.distance_to(pos) <= TILE * 1.5 and _seat_segment_clear(approach, pos):
+		if approach.distance_to(pos) <= TILE * 1.5 and _walk_segment_clear(approach, pos):
 			path.append(pos)
 	_click_marker = pos
 
@@ -547,7 +613,8 @@ func _process(delta: float) -> void:
 	if teleport_age>=0:
 		teleport_age+=minf(delta,.05)
 		if teleport_age>=TELEPORT_DURATION:teleport_age=-1.0
-	for material in motion_materials: material.set_shader_parameter("motion_time",time if effects_enabled and not reduced_motion else 0.0)
+	if _world_visuals_enabled:
+		for material in motion_materials: material.set_shader_parameter("motion_time",time if effects_enabled and not reduced_motion else 0.0)
 	var battle_id = str(battle.get("id",""))
 	if battle_id != visual_battle_id:
 		visual_battle_id = battle_id
@@ -556,11 +623,7 @@ func _process(delta: float) -> void:
 	impact_remaining = maxf(0,impact_remaining-delta)
 	if impact_remaining <= 0: enemy_visual_hp = maxf(0.0,float(battle.get("enemyHp",30))-predicted_enemy_damage)
 	var before_motion = player_position
-	var motion = touch_direction
-	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP): motion.y -= 1
-	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN): motion.y += 1
-	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT): motion.x -= 1
-	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT): motion.x += 1
+	var motion := _direct_movement_input()
 	# Project direct input once, after combining touch and keyboard. Path points
 	# already use map coordinates and must never pass through this transform.
 	var input_strength = minf(motion.length(),1.0)
@@ -628,18 +691,22 @@ func _process(delta: float) -> void:
 	_update_door_intent(Vector2.ZERO if bench_pose_active() else motion,delta)
 	_update_exit_intent(Vector2.ZERO if bench_pose_active() or casting else motion, delta)
 	_update_entrance_contact()
-	player.position = (player_position * 2).round() / 2
-	var facing = ["south","north","west","east"][direction]
 	var traveled = player_position.distance_to(before_motion)
 	player_move_strength = clampf(traveled / full_step, 0.0, 1.0) if full_step > 0.0 else 0.0
-	player_gait = _animate_actor(player,walking,facing,traveled,player_gait)
-	if walking and effects_enabled and not reduced_motion:
-		footstep_distance += traveled
-		if footstep_distance >= 8:
-			footstep_distance = fmod(footstep_distance,8)
-			footsteps.append({"pos":player_position,"life":.38})
-	elif not walking: footstep_distance = 0
-	if indoor == "" and traveler_index >= 0 and is_instance_valid(traveler):
+	if _world_visuals_enabled:
+		player.position = (player_position * 2).round() / 2
+		var facing = ["south","north","west","east"][direction]
+		player_gait = _animate_actor(player,walking,facing,traveled,player_gait)
+		if walking and effects_enabled and not reduced_motion:
+			footstep_distance += traveled
+			if footstep_distance >= 8:
+				footstep_distance = fmod(footstep_distance,8)
+				footsteps.append({"pos":player_position,"life":.38})
+		elif not walking: footstep_distance = 0
+	elif walking:
+		# Send the gait phase so players in graphics mode can still see us walk.
+		player_gait += traveled * .20
+	if indoor == "" and not meadow_active and traveler_index >= 0 and is_instance_valid(traveler):
 		var phase = fmod(time, 20.0)
 		var target = traveler_home + Vector2(20,0) if phase > 9 and phase < 18 else traveler_home
 		var before = traveler_position
@@ -648,8 +715,9 @@ func _process(delta: float) -> void:
 			if _can_stand(next) and next.distance_to(player_position) > 14: traveler_position = next
 		var moving = traveler_position.distance_to(before) > .01
 		if moving: traveler_facing = "east" if target.x > before.x else "west"
-		traveler_gait = _animate_actor(traveler,moving,traveler_facing,traveler_position.distance_to(before),traveler_gait)
-		traveler.position = (traveler_position * 2).round() / 2
+		if _world_visuals_enabled:
+			traveler_gait = _animate_actor(traveler,moving,traveler_facing,traveler_position.distance_to(before),traveler_gait)
+			traveler.position = (traveler_position * 2).round() / 2
 		if traveler_index >= 0: entities[traveler_index].pos = traveler_position
 	_update_camera()
 	nearest = {}
@@ -677,6 +745,7 @@ func _process(delta: float) -> void:
 			clicked_interaction_id = ""
 			path.clear()
 	if bench_pose_active(): nearest = bench_entity
+	if not _world_visuals_enabled: return
 	for p in footsteps: p.life -= delta if enabled else 0.0
 	footsteps = footsteps.filter(func(p): return p.life > 0)
 	for p in particles: p.life -= delta
@@ -748,16 +817,22 @@ func _update_exit_intent(motion: Vector2, delta: float) -> void:
 	exit_intent_time = 0.0
 
 func _move_player(offset: Vector2) -> void:
+	player_position = _movement_endpoint(player_position, offset)
+
+func _movement_endpoint(origin: Vector2, offset: Vector2) -> Vector2:
 	# Keep boosted movement from skipping narrow collision boundaries.
 	var steps = maxi(1,int(ceil(offset.length()/3.0)))
 	var step = offset/float(steps)
+	var endpoint := origin
 	for i in range(steps):
-		var next = player_position + Vector2(step.x,0)
-		if _can_stand(next): player_position.x = next.x
-		next = player_position + Vector2(0,step.y)
-		if _can_stand(next): player_position.y = next.y
+		var next := endpoint + Vector2(step.x, 0)
+		if _can_stand(next): endpoint.x = next.x
+		next = endpoint + Vector2(0, step.y)
+		if _can_stand(next): endpoint.y = next.y
+	return endpoint
 
 func _update_camera(reset: bool = false) -> void:
+	if not _world_visuals_enabled: return
 	var visible_size = get_viewport_rect().size / camera.zoom
 	# A small central resting area absorbs short steps and direction changes.
 	# Outside it, track displacement directly: no catch-up drift after stopping.
@@ -772,7 +847,7 @@ func _update_camera(reset: bool = false) -> void:
 		camera_follow.y = clampf(camera_follow.y, player_position.y - margin.y, player_position.y + margin.y)
 	camera_player_position = player_position
 	var half = visible_size / 2
-	var bounds = Vector2(OUTDOOR_CELLS * TILE) if indoor == "" else Vector2(384, 344)
+	var bounds = MEADOW_BOUNDS.size if meadow_active else (Vector2(OUTDOOR_CELLS * TILE) if indoor == "" else Vector2(384, 344))
 	camera_follow.x = clampf(camera_follow.x, minf(half.x, bounds.x / 2), maxf(bounds.x / 2, bounds.x - half.x))
 	camera_follow.y = clampf(camera_follow.y, minf(half.y, bounds.y / 2), maxf(bounds.y / 2, bounds.y - half.y))
 	# Snap the final canvas translation, including the viewport center. Odd
@@ -820,14 +895,14 @@ func sit_on_bench(entity: Dictionary) -> bool:
 
 # Seat fronts may sit between two solid grid-cell centers (bench and flowerbed).
 # Connect a collision-checked final segment instead of routing through either prop.
-func _seat_segment_clear(from: Vector2,to: Vector2) -> bool:
+func _walk_segment_clear(from: Vector2,to: Vector2) -> bool:
 	var steps = maxi(1,int(ceil(from.distance_to(to)/2.0)))
 	for i in range(steps+1):
 		if not _can_stand(from.lerp(to,float(i)/float(steps))): return false
 	return true
 
 func _seat_route(to: Vector2) -> PackedVector2Array:
-	if _seat_segment_clear(player_position,to): return PackedVector2Array([to])
+	if _walk_segment_clear(player_position,to): return PackedVector2Array([to])
 	var result = PackedVector2Array()
 	var best = INF
 	var target_cell = Vector2i(to/grid.cell_size.x)
@@ -837,9 +912,9 @@ func _seat_route(to: Vector2) -> PackedVector2Array:
 			var cell = target_cell+Vector2i(dx,dy)
 			if not grid.is_in_boundsv(cell) or grid.is_point_solid(cell): continue
 			var at = grid.get_point_position(cell)
-			if not _seat_segment_clear(at,to): continue
+			if not _walk_segment_clear(at,to): continue
 			var route = grid.get_point_path(from_cell,cell)
-			if route.is_empty() or not _seat_segment_clear(player_position,route[0]): continue
+			if route.is_empty() or not _walk_segment_clear(player_position,route[0]): continue
 			var distance = player_position.distance_to(route[0])+at.distance_to(to)
 			for i in range(1,route.size()): distance += route[i-1].distance_to(route[i])
 			if distance>=best: continue
@@ -941,33 +1016,64 @@ func _campfire_approach(entity: Dictionary) -> PackedVector2Array:
 	return PackedVector2Array()
 
 func _fishing_interaction() -> Dictionary:
+	if has_terraced_plaza():
+		return {"id":"plaza_river", "name":"남쪽 강 낚시", "kind":"fishing", "pos":player_position}
 	var pond := uses_plaza_v2()
 	return {"id":"plaza_pond" if pond else "river_fishing", "name":"광장 연못 낚시" if pond else "강 낚시", "kind":"fishing", "pos":player_position}
 
-func pond_fishing_spot() -> Vector2:
-	if not indoor.is_empty() or not uses_plaza_v2(): return Vector2.INF
-	var water: Rect2 = layout.pond_water_bounds()
-	var shore := water.grow(TILE * 2.0)
-	var first := Vector2i((shore.position / grid.cell_size).floor())
-	var end := Vector2i((shore.end / grid.cell_size).ceil())
-	var cells := Rect2i(first, end - first).intersection(grid.region)
-	var closest := Vector2.INF
-	var best_distance := INF
-	for y in range(cells.position.y, cells.end.y):
-		for x in range(cells.position.x, cells.end.x):
-			var cell := Vector2i(x, y)
-			var feet: Vector2 = grid.get_point_position(cell)
-			var distance := feet.distance_squared_to(player_position)
-			if distance >= best_distance or grid.is_point_solid(cell) or not _can_stand(feet): continue
-			var cast: Dictionary = layout.cast_target(feet, feet.direction_to(water.get_center()))
-			if cast.is_empty() or feet.distance_to(Vector2(cast.x, cast.y)) > TILE * 2.0: continue
-			closest = feet
-			best_distance = distance
-	return closest
+func walk_to_plaza_water() -> Vector2:
+	if not enabled or meadow_active or not indoor.is_empty() or not uses_plaza_v2(): return Vector2.INF
+	if has_terraced_plaza():
+		var bank: Vector2 = layout.river_fishing_access()
+		walk_to(bank)
+		return bank
+	clicked_interaction_id = ""
+	click_door_id = ""
+	path = _pond_bank_route()
+	if path.is_empty(): return Vector2.INF
+	_click_marker = path[-1]
+	return _click_marker
 
-func face_pond_from_bank(water_point: Vector2) -> bool:
-	if not enabled or not indoor.is_empty() or not uses_plaza_v2() or not bench_state.is_empty(): return false
-	if not layout.pond_water_at(water_point): return false
+func _pond_bank_route() -> PackedVector2Array:
+	var water: Rect2 = layout.pond_water
+	var bank_area := water.grow(TILE * 2.0)
+	var start := Vector2i((player_position / grid.cell_size).floor())
+	var cells: Array[Vector2i] = []
+	var previous: Dictionary[Vector2i, Vector2i] = {}
+	# Saved feet can sit off-center or beside a blocked cell center.
+	for y in range(start.y - 1, start.y + 2):
+		for x in range(start.x - 1, start.x + 2):
+			var cell := Vector2i(x, y)
+			if not grid.is_in_boundsv(cell) or grid.is_point_solid(cell): continue
+			if not _walk_segment_clear(player_position, grid.get_point_position(cell)): continue
+			previous[cell] = cell
+			cells.append(cell)
+	var index := 0
+	while index < cells.size():
+		var cell := cells[index]
+		index += 1
+		var feet: Vector2 = grid.get_point_position(cell)
+		if bank_area.has_point(feet):
+			var cast: Dictionary = layout.cast_target(feet, feet.direction_to(water.get_center()))
+			if not cast.is_empty() and feet.distance_to(Vector2(cast.x, cast.y)) <= TILE * 2.0:
+				var route := PackedVector2Array([feet])
+				while previous[cell] != cell:
+					cell = previous[cell]
+					route.append(grid.get_point_position(cell))
+				route.reverse()
+				return route
+		# Two clear cells can have a fountain rim or a campfire between them.
+		for step: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var next := cell + step
+			if previous.has(next) or not grid.is_in_boundsv(next) or grid.is_point_solid(next): continue
+			if not _walk_segment_clear(feet, grid.get_point_position(next)): continue
+			previous[next] = cell
+			cells.append(next)
+	return PackedVector2Array()
+
+func face_plaza_water_from_bank(water_point: Vector2) -> bool:
+	if not enabled or meadow_active or not indoor.is_empty() or not uses_plaza_v2() or not bench_state.is_empty(): return false
+	if not layout.water_at(water_point): return false
 	var heading: Vector2 = player_position.direction_to(water_point)
 	if layout.cast_target(player_position, heading).is_empty(): return false
 	last_move_direction = heading
@@ -975,8 +1081,17 @@ func face_pond_from_bank(water_point: Vector2) -> bool:
 	return true
 
 func water_cast_target() -> Dictionary:
-	if not indoor.is_empty() or layout == null: return {}
-	if uses_plaza_v2(): return layout.cast_target(player_position, last_move_direction)
+	if meadow_active or not indoor.is_empty() or layout == null: return {}
+	if uses_plaza_v2():
+		var heading: Vector2 = last_move_direction
+		if not layout.terraced:
+			var water: Rect2 = layout.pond_water
+			if not water.grow(RiverFishing.MAX_CAST_DISTANCE).has_point(player_position): return {}
+			var aimed: Dictionary = layout.cast_target(player_position, heading)
+			if not aimed.is_empty(): return aimed
+			# The last step onto the bank can leave the player facing away.
+			heading = player_position.direction_to(water.get_center())
+		return layout.cast_target(player_position, heading)
 	var river = layout.get_node_or_null("Placements/RiverQuarter")
 	return river.cast_target(player_position,last_move_direction) if river != null else {}
 
@@ -992,7 +1107,7 @@ func change_interior(id: String) -> void:
 	click_door_id = ""
 	clicked_interaction_id = ""
 	clear_bench()
-	if indoor == "": outside_position = player_position
+	if indoor == "" and not meadow_active: outside_position = player_position
 	if id == "arcana_academy" and indoor != id: academy_floor = 1
 	indoor = id
 	nearest = {}
@@ -1008,15 +1123,13 @@ func change_interior(id: String) -> void:
 		if child != player: child.visible = id == ""
 	ground.visible = id == ""
 	decals.visible = id == ""
-	entities.clear()
-	obstacles.clear()
-	round_obstacles.clear()
 	if id == "":
-		entities = _outdoor_entities.duplicate(true)
-		obstacles = outside_obstacles.duplicate()
-		round_obstacles = outside_round_obstacles.duplicate(true)
-		player_position = outside_position
+		_restore_outdoor_area()
+		player_position = MEADOW_ENTRY if meadow_active else outside_position
 	else:
+		entities.clear()
+		obstacles.clear()
+		round_obstacles.clear()
 		player_position = Vector2(192, 200)
 		entities.append({"id":"exit", "name":"밖으로 나가기", "kind":"exit", "pos":Vector2(192, 308)})
 		if id == "arcana_shop":
@@ -1053,6 +1166,7 @@ func change_academy_floor(level: int) -> void:
 
 
 func effect(kind: String, amount: String = "") -> void:
+	if not _world_visuals_enabled: return
 	if kind == "fireball":
 		visual_battle_id = str(battle.get("id",""))
 		impact_remaining = 0.0 if reduced_motion or not effects_enabled else .30
@@ -1061,8 +1175,9 @@ func effect(kind: String, amount: String = "") -> void:
 
 func _draw() -> void:
 	if not is_instance_valid(player): return
-	if indoor == "": _draw_outdoors()
-	else: _draw_indoors()
+	if not meadow_active:
+		if indoor == "": _draw_outdoors()
+		else: _draw_indoors()
 	# Soft ground shadow and a tiny wayfinding ring.
 	_draw_pixel_ellipse(player_position + Vector2(0, 1), Vector2(8, 3), Color(0.10, .20, .19, .35))
 	if not path.is_empty():

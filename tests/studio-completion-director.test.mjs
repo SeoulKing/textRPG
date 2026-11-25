@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { transitionTask, validateBoard } from '../scripts/studio/engine.mjs';
-import { approvalDigest } from '../scripts/studio/protocol.mjs';
+import { approvalDigest, collectCompletionImages, collectTaskImages, validateResult } from '../scripts/studio/protocol.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { CodexClient, turnInput } from '../scripts/studio/codex-client.mjs';
 import { recordTaskCompletion, buildCollaborationSnapshot } from '../scripts/studio/collaboration.mjs';
 import {
   createCompletionSchema, buildCompletionPrompt, beginCompletionReview, normalizeCompletionDecision,
@@ -64,6 +68,79 @@ function readyDecision() {
     criterion, completedTaskIds: ['WORLD-1'], evidence: [{ path: 'src/school/scene.mjs', summary: criterion }],
   })) });
 }
+
+test('격리 PNG를 검토 입력에 첨부하고 같은 해시를 본편 결과 카드에 보관합니다', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-visual-fixture-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const board = fixture({ withNext: false });
+  const task = board.tasks[0], goal = board.goals[0];
+  const name = 'src/school/result.png', entry = 'src/school/scene.mjs';
+  fs.mkdirSync(path.join(root, 'src/school'), { recursive: true });
+  fs.writeFileSync(path.join(root, entry), '// fixture');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XKxkAAAAASUVORK5CYII=', 'base64');
+  fs.writeFileSync(path.join(root, name), png);
+  Object.assign(goal, { studioWorkflow: 'autonomous-v1', visualContract: { direction: 'fixture', mainEntry: entry, artScope: [] } });
+  goal.approval.digest = approvalDigest(goal);
+  Object.assign(task, { visualStage: 'final_capture', mainEntry: entry });
+  task.scope.write.push(name);
+  const producer = { taskId: task.id, goalId: goal.id, phase:'producer', outcome:'completed', summary:'fixture',
+    artifacts:[{ path:name, description:'fixture PNG' }], evidence:[
+      { path:name, claim:'프레임 오른쪽에 밝은 배경이 보입니다.', kind:'visual', command:'' },
+      { path:entry, claim:'본편 진입 fixture', kind:'source', command:'' }], issues:[], requests:[], failure:null };
+  validateResult(root, producer, { task, phase:'producer' });
+  const review = { ...producer, phase:'reviewer', artifacts:[] };
+  assert.throws(() => validateResult(root, review, {task, phase:'reviewer'}), /실제로 입력/);
+  const received = collectTaskImages(root, board, task, 'reviewer', producer);
+  assert.deepEqual(turnInput('fixture', received.images)[1], {type:'localImage',path:path.resolve(root, name)});
+  validateResult(root, review, {task, phase:'reviewer', imageEvidence: received.imageEvidence});
+  task.runtime.reviewedImages = received.imageEvidence;
+  task.runtime.producerEvidence.push({path:name, summary:'검토한 fixture 컷'});
+  const processBoard = beginCompletionReview(board, REPORT);
+  const {imageEvidence} = collectCompletionImages(root, processBoard, REPORT);
+  const accepted = readyDecision();
+  accepted.acceptanceEvidence[0].evidence.push({path:name,summary:'fixture 컷'});
+  accepted.previews = [{role:'result',path:name,caption:'본편 촬영 fixture'}];
+  accepted.unverified = ['실제 플레이'];
+  assert.throws(() => normalizeCompletionDecision(processBoard, REPORT, accepted), /실제 입력/);
+  const normalized = normalizeCompletionDecision(processBoard, REPORT, accepted, {imageEvidence});
+  const applied = applyCompletionDecision(processBoard, REPORT, normalized);
+  assert.equal(applied.goals[0].status, 'done');
+  assert.equal(applied.completionReports[0].decision.previews[0].sha256, received.imageEvidence[0].sha256);
+  assert.deepEqual(applied.completionReports[0].decision.unverified, ['실제 플레이']);
+  // Keep a valid PNG container while changing one content byte to model a file replaced after review.
+  const replacement = Buffer.from(png); replacement[45] ^= 1;
+  fs.writeFileSync(path.join(root, name), replacement);
+  assert.throws(() => collectCompletionImages(root, processBoard, REPORT), /사진 내용/);
+  fs.writeFileSync(path.join(root, name), 'fixture path without image data');
+  assert.throws(() => collectTaskImages(root, board, task, 'reviewer', producer), /실제 PNG/);
+});
+
+test('가짜 도구 목록의 이름만으로 라우팅하지 않고 프로젝트·엔진 세션을 대조합니다', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-route-fixture-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const project = path.join(root, 'godot-arcana');
+  fs.mkdirSync(project);
+  fs.writeFileSync(path.join(project,'project.godot'), 'config/name="아르카나 fixture"\nconfig/features=PackedStringArray("4.7")');
+  const client = new CodexClient({root});
+  client.connect = async () => {};
+  let activePath = root;
+  client.request = async (method, params) => {
+    if (method === 'thread/start') return {thread:{id:'fixture'}};
+    if (method === 'mcpServerStatus/list') return {data:[{name:'godot_ai', tools:{session_manage:{},scene_manage:{}}}],nextCursor:null};
+    if (method === 'mcpServer/tool/call') {
+      assert.equal(params.tool, 'session_manage');
+      return {structuredContent:{sessions:[{session_id:'test-session',godot_version:'4.7.2',project_path:activePath}]}};
+    }
+    assert.equal(method,'thread/unsubscribe');
+    return {};
+  };
+  const task = {productionMethod:'godot',scope:{read:[],write:[]}};
+  assert.equal((await client.probeProductionRoute(task)).available,false);
+  activePath = project;
+  const matched = await client.probeProductionRoute(task);
+  assert.equal(matched.available,true);
+  assert.equal(matched.sessionId,'test-session');
+});
 
 test('새 독립 검토 통과만 내구 완료 보고를 만들며 과거 done을 소급 보고하지 않습니다.', () => {
   const board = fixture();
