@@ -21,16 +21,23 @@ func _same(left: Dictionary, right: Dictionary) -> bool:
 	return JSON.stringify(left)==JSON.stringify(right)
 
 func _resolved(result: Dictionary, id: String) -> bool:
-	return result.get("actionReceipt",{}).get("id","")==id
+	var receipt: Variant = result.get("actionReceipt")
+	return receipt is Dictionary and receipt.get("id","")==id
 
 func _rejected(result: Dictionary) -> bool:
 	return int(result.get("httpStatus",0)) in [400,404,409] or result.get("error","") in ["potion_unavailable","action_id_required","action_id_conflict","transaction_rejected"]
 
-func _finish(key: String, entry: Dictionary, result: Dictionary) -> void:
+func _forget(key: String, entry: Dictionary) -> void:
 	if not pending.has(key) or pending[key].id!=entry.id: return
+	pending.erase(key)
+	_save()
+
+func _finish(key: String, entry: Dictionary, result: Dictionary) -> void:
 	if _resolved(result,str(entry.id)) or _rejected(result):
-		pending.erase(key)
-		_save()
+		_forget(key,entry)
+
+func _current(entry: Dictionary, generation: int) -> bool:
+	return str(entry.gameId)==main.game_id and generation==main.combat_socket.connection_generation
 
 func submit(action: Dictionary) -> Dictionary:
 	var key: String = "potion" if action.get("command","")=="potion" else "trade"
@@ -50,8 +57,12 @@ func submit(action: Dictionary) -> Dictionary:
 	in_flight[key] = true
 	var result: Dictionary = await _send(entry)
 	in_flight.erase(key)
-	if generation!=main.combat_socket.connection_generation: return {"error":"network","quiet":true}
-	_finish(key,entry,result)
+	var accepted := _resolved(result,str(entry.id))
+	if accepted or _current(entry,generation): _finish(key,entry,result)
+	if str(entry.gameId)!=main.game_id or (generation!=main.combat_socket.connection_generation and (not accepted or key=="potion")):
+		return {"error":"network","quiet":true}
+	if key=="trade" and result.has("state") and not accepted:
+		return {"error":"invalid_response","message":"거래 영수증을 확인하지 못했습니다."}
 	return result
 
 func _send(entry: Dictionary) -> Dictionary:
@@ -78,25 +89,24 @@ func _recover(key: String) -> void:
 	in_flight[key] = true
 	var generation: int = main.combat_socket.connection_generation
 	var result: Dictionary = await main._api("/api/games/"+str(entry.gameId)+"/actions/"+str(entry.id).uri_encode(),HTTPClient.METHOD_GET,{},8.0)
-	if generation!=main.combat_socket.connection_generation:
-		in_flight.erase(key)
-		return
-	if result.get("status","")=="unknown":
+	if _current(entry,generation) and result.get("status","")=="unknown":
 		var age: int = int(Time.get_unix_time_from_system()*1000)-int(entry.createdAt)
 		if age<RETRY_WINDOW_MS and age>=0 and main.combat_socket.socket_ready:
 			result = await _send(entry)
 		else:
-			pending.erase(key)
-			_save()
+			_forget(key,entry)
 			main.ui.toast("처리되지 않은 요청을 취소했습니다. 다시 이용해 주세요.")
 	in_flight.erase(key)
-	if str(entry.gameId)!=main.game_id or generation!=main.combat_socket.connection_generation: return
-	_finish(key,entry,result)
-	if _resolved(result,str(entry.id)):
-		if result.get("snapshot") is Dictionary: main._apply(result.snapshot)
-		elif result.has("state"):
-			if result.get("spatialCombat",false): main._accept_online_result(result)
-			else: main._apply(result)
-		if key=="trade" and main.world.indoor=="arcana_shop" and main.panel_mode=="shop": main._shop_menu(entry.action.get("command","")=="sell_item")
+	var accepted := _resolved(result,str(entry.id))
+	var current := _current(entry,generation)
+	if accepted or current: _finish(key,entry,result)
+	if str(entry.gameId)!=main.game_id: return
+	if accepted:
+		if result.get("spatialCombat",false):
+			if current: main._accept_online_result(result)
+		else:
+			main._apply_trade_snapshot(result.get("snapshot",result),result.get("worldRevision"),str(entry.gameId),generation)
+		if current and key=="trade" and main.world.indoor=="arcana_shop" and main.panel_mode=="shop" and main.ui.overlay.visible:
+			main._shop_menu(entry.action.get("command","")=="sell_item")
 		main.ui.toast("거래 결과를 확인했습니다." if key=="trade" else "포션 사용을 확인했습니다.")
-	elif _rejected(result): main.ui.toast(str(result.get("message","요청을 처리하지 못했습니다.")))
+	elif current and _rejected(result): main.ui.toast(str(result.get("message","요청을 처리하지 못했습니다.")))

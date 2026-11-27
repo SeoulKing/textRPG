@@ -166,7 +166,7 @@ func accept(value: Dictionary) -> void:
 	revision = int(value.get("revision",0))
 	packet = value
 	_observe_time(float(value.get("elapsedMs",0))/1000.0)
-	if value.get("self") is Dictionary:
+	if value.get("self") is Dictionary and revision > main._http_trade_self_revision():
 		var update: Dictionary = value.self
 		character_id = str(update.get("characterId",character_id))
 		var old_place_revision: int = int(main.snapshot.get("onlinePlaceRevision",0))
@@ -208,17 +208,39 @@ func accept(value: Dictionary) -> void:
 		main.world.enemy_visual_hp = float(main._battle().get("enemyHp",30))
 		var combat = main.spatial_combat
 		combat.anticipation.observe(main._battle().get("spatial",{}))
-		for entry in main._battle().get("spatial",{}).get("events",[]):
-			if initial: combat.last_event = maxi(combat.last_event,int(entry.id))
-			if int(entry.id)>combat.last_event:
-				combat.last_event = int(entry.id)
-				combat._event(entry)
-				if entry.get("kind","")=="defeat": reset_prediction()
+		_accept_combat_events(main._battle().get("spatial",{}).get("events",[]), initial)
 		reconcile_self(update)
 		_observe_enemy(main.world.battle)
 		main._update_hud()
 		main._refresh_controls()
+	elif value.get("self") is Dictionary:
+		_accept_shared_frame(value, initial)
 	if is_processing(): _sync_actors(value.get("players", []))
+
+func _accept_shared_frame(value: Dictionary, initial: bool) -> void:
+	# Keep world deltas in stream order while an HTTP receipt holds the newer player state.
+	var shared := value.duplicate()
+	shared.erase("self")
+	main.life.accept_world(shared)
+	var update: Dictionary = value.self
+	var state: Dictionary = update.get("state", {})
+	if int(update.get("placeRevision", -1)) != int(main.snapshot.get("onlinePlaceRevision", 0)) \
+		or state.get("location", "") != main._state().get("location", ""):
+		return
+	if update.get("homeFurniture") is Dictionary:
+		main._apply_home_furniture(update.homeFurniture)
+	var battle: Variant = state.get("arcanaCombat", {}).get("battle")
+	if battle is Dictionary:
+		_accept_combat_events(battle.get("spatial", {}).get("events", []), initial)
+
+func _accept_combat_events(events: Array, initial: bool) -> void:
+	var combat = main.spatial_combat
+	for entry: Dictionary in events:
+		if initial: combat.last_event = maxi(combat.last_event,int(entry.id))
+		if int(entry.id)>combat.last_event:
+			combat.last_event = int(entry.id)
+			combat._event(entry)
+			if entry.get("kind","")=="defeat": reset_prediction()
 
 func set_world_visuals_enabled(value: bool) -> void:
 	set_process(value)

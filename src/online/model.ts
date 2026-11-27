@@ -6,6 +6,9 @@ import type { SpatialEnemy, CombatPoint } from "../game/schemas/arcana-spatial";
 import { FOREST_LOCATION } from "../game/arcana-forest";
 import { MEADOW_LOCATION } from "../game/arcana-meadow";
 import type { InnSupply } from "./inn-supply";
+import type { InnTable } from "./inn-table";
+import type { PlazaBuyOrders } from "./plaza-buy-orders";
+import type { PlazaMarket } from "./plaza-market";
 export type Point = CombatPoint;
 export type Place = {location:string;interior:string;floor:number};
 export type SavedPosition = {place:Place;position:Point;positionLayoutId?:string};
@@ -18,7 +21,7 @@ export type Meteor = ArcanaSpatial["meteors"][number] & {ownerId:string;clientAc
 export type Barrage = {clientActionId?:string;ownerId:string;remaining:number;nextIn:number;damage:number};
 export type CombatArena = {enemy:SharedEnemy;projectiles:Shot[];meteors:Meteor[];barrages:Barrage[]};
 export type ForestTree = {health:number;respawnAt:number;revision:number;lastHitBy:string|null;lastHitAt:number|null};
-export type SharedWorld = CombatArena & {campfires?:Record<string,import("./life").Campfire>;forestTrees?:Record<string,ForestTree>;innSupply?:InnSupply;id:string;revision:number;elapsedMs:number;updatedAt:number;meadowCombat?:CombatArena;events:WorldEvent[]};
+export type SharedWorld = CombatArena & {campfires?:Record<string,import("./life").Campfire>;forestTrees?:Record<string,ForestTree>;innSupply?:InnSupply;innTable?:InnTable;plazaBuyOrders?:PlazaBuyOrders;plazaMarket?:PlazaMarket;id:string;revision:number;elapsedMs:number;updatedAt:number;meadowCombat?:CombatArena;events:WorldEvent[]};
 export function combatArea(actor: Actor): CombatArea | undefined {
   if (!actor.game.state.flags.in_magic_world || actor.place.interior !== "") return undefined;
   if (actor.place.location === MEADOW_LOCATION) return "meadow";

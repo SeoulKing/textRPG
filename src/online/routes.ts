@@ -8,7 +8,11 @@ import { ArcanaWorld } from "./world";
 import { ArcanaWearableSlotSchema } from "../game/schemas/arcana-item";
 import { HomeFurnitureCellSchema, HomeFurnitureRotationSchema } from "../game/schemas/game-state";
 import { SIMPLE_HOMESTEAD_ACTIONS } from "./simple-homestead";
-import { INN_SUPPLY_ACTIONS } from "./inn-supply";
+import { innSupplyActionSchema } from "./inn-supply";
+import { plazaBuyOrderActionSchema } from "./plaza-buy-orders";
+import { plazaArchivedRecoverySchema } from "./plaza-market-recovery";
+import { plazaMarketActionSchema } from "./plaza-market";
+import { LIVELIHOOD_FOCI } from "./livelihood";
 const PointSchema=z.object({x:z.number().finite().min(-10000).max(10000),y:z.number().finite().min(-10000).max(10000)});
 const InputSchema=z.object({
   actionId:z.string().regex(/^[a-zA-Z0-9-]{16,100}$/).optional(),placeRevision:z.number().int().nonnegative().optional(),developerSpeed:z.boolean().optional(),sequence:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
@@ -25,11 +29,15 @@ const InputSchema=z.object({
 });
 const WorldInputPacketSchema=z.object({id:z.number().int().positive(),input:InputSchema});
 const ControllerSchema = z.object({ controller: z.string().min(8).max(100) });
-const InnSupplyActionSchema = ControllerSchema.extend({
-  action: z.enum(INN_SUPPLY_ACTIONS),
+const TradeRequestSchema = ControllerSchema.extend({
   actionId: z.string(),
   day: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
 });
+const InnSupplyRequestSchema = TradeRequestSchema.and(innSupplyActionSchema);
+const PlazaMarketRequestSchema = TradeRequestSchema.and(z.union([
+  plazaMarketActionSchema, plazaBuyOrderActionSchema, plazaArchivedRecoverySchema,
+]));
+const LivelihoodRequestSchema = ControllerSchema.extend({ focus: z.enum(LIVELIHOOD_FOCI) });
 const HomesteadActionSchema = ControllerSchema.extend({
   action: z.enum(SIMPLE_HOMESTEAD_ACTIONS),
   revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
@@ -93,8 +101,36 @@ export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts
     return world.innSupply(await accounts.require(request), request.params.gameId, controller);
   });
   app.post<{ Params: { gameId: string } }>("/api/games/:gameId/inn-supply", async request => {
-    const { controller, ...action } = InnSupplyActionSchema.parse(request.body);
+    const { controller, ...action } = InnSupplyRequestSchema.parse(request.body);
     return world.innSupply(await accounts.require(request), request.params.gameId, controller, action);
+  });
+  app.get<{ Params: { gameId: string } }>("/api/games/:gameId/plaza-market", async (request, reply) => {
+    reply.header("cache-control", "no-store");
+    const { controller } = ControllerSchema.parse(request.query);
+    return world.plazaMarket(await accounts.require(request), request.params.gameId, controller);
+  });
+  app.get<{ Params: { gameId: string } }>("/api/games/:gameId/plaza-market/archived", async (request, reply) => {
+    reply.header("cache-control", "no-store");
+    const { controller } = ControllerSchema.parse(request.query);
+    return world.plazaMarketArchived(await accounts.require(request), request.params.gameId, controller);
+  });
+  app.get<{ Params: { gameId: string } }>("/api/games/:gameId/plaza-market/history", async (request, reply) => {
+    reply.header("cache-control", "no-store");
+    const { controller } = ControllerSchema.parse(request.query);
+    return world.plazaMarketHistory(await accounts.require(request), request.params.gameId, controller);
+  });
+  app.post<{ Params: { gameId: string } }>("/api/games/:gameId/plaza-market", async request => {
+    const { controller, actionId, day, ...action } = PlazaMarketRequestSchema.parse(request.body);
+    return world.plazaMarket(await accounts.require(request), request.params.gameId, controller, { actionId, day, action });
+  });
+  app.get<{ Params: { gameId: string } }>("/api/games/:gameId/livelihood", async (request, reply) => {
+    reply.header("cache-control", "no-store");
+    const { controller } = ControllerSchema.parse(request.query);
+    return world.livelihood(await accounts.require(request), request.params.gameId, controller);
+  });
+  app.post<{ Params: { gameId: string } }>("/api/games/:gameId/livelihood", async request => {
+    const { controller, focus } = LivelihoodRequestSchema.parse(request.body);
+    return world.livelihood(await accounts.require(request), request.params.gameId, controller, focus);
   });
   app.get<{ Params: { gameId: string } }>("/api/games/:gameId/simple-homestead", async request => {
     const { controller } = ControllerSchema.parse(request.query);

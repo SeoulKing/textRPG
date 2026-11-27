@@ -607,6 +607,7 @@ func _local_actions(life_state: Dictionary, tile: String, slime_nearby: bool) ->
 	if tile != "meadow" and not slime_on_map and slime_nearby and not _slime_approach.is_finite():
 		actions.append(_action("slime", "슬라임 상대하기", "", _select_slime, not ready))
 	if main.online_world and tile == "plaza" and main.world.indoor.is_empty() and _place_detail in ["", "plaza_fountain"]:
+		actions.append(_action("plaza_market", "광장 장터", "물품 구매 · 위탁", main.plaza_market.open, not ready))
 		var gathered := int(life_state.get("gatheredToday", 0))
 		actions.append(_action("gather", "주변 재료 모으기", "오늘 채집 %d / 3회" % gathered, main.life._gather, not ready or gathered >= 3 or main.life.sending))
 	if main.world.indoor == "arcana_shop" and not main._visible_actions().is_empty():
@@ -1688,6 +1689,7 @@ func open_destinations() -> void:
 		main.ui.choice("내 집", "주방 · 침실 · 거실", _select_city_place.bind("home"))
 		added = true
 	if main.online_world and _current_tile() in ["plaza", "river"]:
+		main.ui.choice("광장 장터", "물품 구매 · 위탁", main.plaza_market.open)
 		main.ui.choice(MapGrid.PLAZA_PLACES.plaza_village_board[1], "마을의 납품 의뢰 보기", _select_local_place.bind("plaza_village_board"))
 		main.ui.choice(MapGrid.PLACES.forest[1], "월드맵 (2, 5) · 벌목", _select_city_place.bind("forest"))
 		main.ui.choice(TILE_LABELS.meadow, "월드맵 (5, 5)", _select_city_place.bind("meadow"))

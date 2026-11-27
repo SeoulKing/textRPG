@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { NetworkMetrics } from "./network-metrics";
-import { CAMPFIRES, FOODS, initializeLife, tickHunger, lifeSkills, requireLifeReady, transferHomeStorage, gatherLife, chopForestWood, forestTreeState, regrowForestTree, restLife, beginLife, lifeActive, cancelLife, completeLife, eatFish, placeCampfire, type Campfire, type ForestTreeGeometry, type LifeJob } from "./life";
+import { CAMPFIRES, FOODS, LIFE_CATALOG, initializeLife, tickHunger, lifeSkills, requireLifeReady, transferHomeStorage, gatherLife, chopForestWood, forestTreeState, regrowForestTree, restLife, beginLife, lifeActive, cancelLife, completeLife, eatFish, placeCampfire, type Campfire, type ForestTreeGeometry, type LifeJob } from "./life";
 import { CheckpointWriter } from "./checkpoint-writer";
 import { protectedTrade, operation, knownOperation, reserveOperation, completeOperation, type ActionOperation, type ActionReceipt } from "./action-receipts";
 import { PresenceFrame, PresenceDelta } from "./presence";
@@ -16,8 +16,9 @@ import { FOREST_LOCATION } from "../game/arcana-forest";
 import { MEADOW_ARRIVAL, MEADOW_BOUNDS, MEADOW_LOCATION } from "../game/arcana-meadow";
 import { plazaEngagementPoint, spatialLayout, spatialMove, sweptCircle } from "../game/arcana-spatial";
 import { REAL_DAY_MS, PHASE_DURATION_MS, PHASES } from "../game/base-data";
-import { OnlineAccounts, OnlineError, type Character, type Principal } from "./accounts";
-import { OnlineStore } from "./store";
+import { appendLogEntry } from "../game/game-log";
+import { OnlineAccounts, OnlineError, type Account, type Character, type Principal } from "./accounts";
+import { OnlineStore, type OnlineTransaction } from "./store";
 import { ArcanaItemCatalog } from "./item-catalog";
 import { ArcanaWearableSlotSchema } from "../game/schemas/arcana-item";
 import type { HomeFurnitureCell, HomeFurnitureLayout, HomeFurnitureRotation } from "../game/schemas/game-state";
@@ -28,7 +29,13 @@ import { combatArea, isWorldMapField, placeArea, samePlace, type Actor, type Com
 
 import { ensureFishingRod, equipFishingRod, startFishing, fishingInput, tickFishing, fishingActive, type Fishing } from "./fishing";
 import { applySimpleHomesteadAction, simpleHomesteadView, type SimpleHomesteadAction } from "./simple-homestead";
-import { advanceInnSupply, innMenuOpen, innSupplyView, tradeInnSupply, type InnSupplyRequest } from "./inn-supply";
+import { advanceInnSupply, innMenuOpen, innSupplyFingerprint, innSupplyView, tradeInnSupply, type InnSupplyRequest } from "./inn-supply";
+import { contributeInnTable, emptyInnTable, innTableBonuses, innTableView } from "./inn-table";
+import { emptyPlazaBuyOrders, plazaBuyOrderView, transactPlazaBuyOrder, type PlazaBuyOrderAction } from "./plaza-buy-orders";
+import { plazaArchivedAssets, plazaAssetOwners, recoverPlazaArchivedAssets, type PlazaArchivedRecovery } from "./plaza-market-recovery";
+import { plazaHistoryWrites, plazaMarketHistoryKind, type PlazaHistoryEntry, type PlazaHistoryWrite, type PlazaTradeResult } from "./plaza-market-history";
+import { emptyPlazaMarket, plazaMarketView, transactPlazaMarket, type PlazaMarketAction } from "./plaza-market";
+import { chooseLivelihood, livelihoodFocus, livelihoodView, type LivelihoodFocus } from "./livelihood";
 import { furnitureFixture, homeFurnitureValidator, homeFurnitureView, migrateHomeFurniture, previewHomeFurniture, resolveHomeGeometry, type HomeFurnitureCatalog, type HomeFurnitureRect } from "./home-furniture";
 type Connection = {sessionId:string;controller:string;send:(value:unknown)=>void;sendState?:(build:()=>unknown)=>void;close:(code:number,reason:string)=>void};
 type CombatEventStream = {area:CombatArea;sent:number;pending:Map<number,SharedWorld["events"][number]>};
@@ -39,6 +46,8 @@ type SavedEnemy = Omit<SharedEnemy, "slimeAction" | "recoveryElapsed" | "hopCool
   hasFled?: boolean;
 };
 type Checkpoint = {world:Omit<SharedWorld, "enemy"> & {enemy:SavedEnemy};actors:Actor[]};
+type PlazaMarketRequest = { actionId: string; day: number; action: PlazaMarketAction | PlazaBuyOrderAction | PlazaArchivedRecovery };
+type ArchivedTradeView = NonNullable<ReturnType<typeof plazaArchivedAssets>> & { characterId: string; name: string; unavailable?: true };
 type TextPlace = "home_bed"|"home_kitchen"|"home_storage"|"academy_stairs"|"forest_trees";
 type ForestTreeLayout = ForestTreeGeometry & {rectangles:HomeFurnitureRect[]};
 type LayoutArea = {layoutId?:string;circles?:{localRadius:number;inverse:[number,number,number,number,number,number]}[];rooms?:Record<string,Point>;stairs?:Point;stairArrival?:Point;rectangles:HomeFurnitureRect[];bounds:HomeFurnitureRect;spawn:Point;fishing?:import("./fishing").FishingGeometry;doors:{id:string;x:number;y:number;radius:number;arrival?:Point}[];walkable?:Record<string,boolean>;floorDomain?:{origin:Point;cellSize:number;cells:Record<string,boolean>};furniture?:HomeFurnitureCatalog;forestTrees?:Record<string,ForestTreeLayout>};
@@ -59,6 +68,7 @@ const copy=(p:Point)=>({...p});
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
 const inForest=(place:Place)=>place.location===FOREST_LOCATION && !place.interior;
 const atInn = (place: Place) => place.location === "arcana_inn" && place.interior === "arcana_inn";
+const atPlaza = (place: Place) => place.location === "arcana_plaza" && !place.interior;
 const hitsRect=(point:Point,rect:HomeFurnitureRect)=>point.x>=rect.x-3 && point.x<=rect.x+rect.w+3 && point.y>=rect.y-3 && point.y<=rect.y+rect.h+3;
 const FOREST_TIMBER_OAK = "forest_trees";
 const meadowArea:LayoutArea={bounds:MEADOW_BOUNDS,spawn:MEADOW_ARRIVAL,rectangles:[],doors:[]};
@@ -117,6 +127,8 @@ export class ArcanaWorld {
   private homeGeometry = new WeakMap<Actor, { saved?: HomeFurnitureLayout; area: LayoutArea }>();
   private pendingHomeFurniture = new WeakMap<Actor, { previous?: HomeFurnitureLayout }>();
   private writer:CheckpointWriter;
+  private receiptTickets = new WeakMap<ActionReceipt, number | null>();
+  private retirementTickets = new Map<string, number>();
   private retired=new Map<string,Actor>();
   private views=new WeakMap<Connection,PresenceDelta>();
   private metrics=new NetworkMetrics();
@@ -140,18 +152,21 @@ export class ArcanaWorld {
     try {if(this.stopped || this.failed || !this.store.healthy || (!allowSaveDelay && this.writer.lagMs>5000))throw new OnlineError("world_unavailable","세계 서버가 복구 중입니다. 잠시 후 다시 연결해 주세요.",503);return await operation();}
     finally {this.metrics.record("operationMs",performance.now()-started);release();}
   }
-  private async waitForSave() {
+  private async waitForSave(ticket?: number) {
     const started=performance.now();
-    try {await this.writer.flush();}finally{this.metrics.record("durableReplyWaitMs",performance.now()-started);}
-  }
-  private async waitForTradeSave() {
     try {
-      await this.waitForSave();
+      if (ticket === undefined) await this.writer.flush();
+      else await this.writer.waitThrough(ticket);
+    } finally {this.metrics.record("durableReplyWaitMs",performance.now()-started);}
+  }
+  private async waitForTradeSave(ticket: number) {
+    try {
+      await this.waitForSave(ticket);
     } catch {
       throw new OnlineError("world_unavailable", "거래 결과를 아직 확인할 수 없습니다. 다시 연결한 뒤 확인해 주세요.", 503);
     }
   }
-  private requireTradePersistence() {
+  private requireCheckpointAvailable() {
     if (!this.health().ok) {
       throw new OnlineError("world_unavailable", "세계 서버가 복구 중입니다. 잠시 후 다시 연결해 주세요.", 503);
     }
@@ -371,10 +386,12 @@ export class ArcanaWorld {
     state.phaseIndex=phaseIndex;state.lastRealTimestamp=Date.now();
     actor.game.updatedAt=new Date().toISOString();
   }
+  private worldElapsedAt(now: number) {
+    return this.world.elapsedMs + Math.max(0, now - this.world.updatedAt);
+  }
   private advanceWorldClock(now:number) {
-    const clockAt=Math.max(now,this.world.updatedAt);
-    this.world.elapsedMs+=clockAt-this.world.updatedAt;
-    this.world.updatedAt=clockAt;
+    this.world.elapsedMs=this.worldElapsedAt(now);
+    this.world.updatedAt=Math.max(now,this.world.updatedAt);
     const {day,phaseIndex}=worldCalendar(this.world.elapsedMs);
     const menuOpen=innMenuOpen(this.world.elapsedMs);
     const supply=advanceInnSupply(this.world.innSupply,day,menuOpen);
@@ -426,7 +443,8 @@ export class ArcanaWorld {
         if(!this.connections.has(actor.character.id) || this.fighting(actor) || actor.game.state.arcanaCombat.hp<=0 || distance(actor.position,job!.origin)>.75 || (job!.kind==="cook" && (job!.homeKitchen?!(actor.game.state.arcanaLife?.atHome && actor.place.interior==="arcana_home:"+actor.character.id):(!fire || !this.campfireInPlace(fire,actor.place) || distance(actor.position,fire.position)>26)))) {
           cancelLife(job,"작업이 중단되었습니다.");
         } else if(now>=job!.endsAt) {
-          try {completeLife(actor,job!);lifeRewardGranted=true;} catch {cancelLife(job,"재료가 부족해 작업을 마치지 못했습니다.");}
+          try {completeLife(actor,job!);lifeRewardGranted=true;}
+          catch(error) {cancelLife(job,error instanceof OnlineError?error.message:"작업을 마치지 못했습니다.");}
         }
       }
       this.synchronize(actor);actor.version++;
@@ -448,12 +466,45 @@ export class ArcanaWorld {
       }
     }
   }
-  private async persist(deaths:Death[]=[]) {
+  private persist(deaths:Death[]=[],history:readonly PlazaHistoryWrite[]=[]) {
     const actors=[...this.actors.values()],retired=[...this.retired.values()];
     for(const actor of actors)this.synchronize(actor);
-    this.writer.enqueue({world:this.world,actors},[...retired,...actors].map(actor=>actor.game),deaths,retired);
+    const ticket=this.writer.enqueue({world:this.world,actors},[...retired,...actors].map(actor=>actor.game),deaths,retired,history);
+    if (retired.length) {
+      const ids = retired.map(actor => actor.character.id);
+      for (const id of ids) this.retirementTickets.set(id, ticket);
+      void this.writer.waitThrough(ticket).then(() => {
+        for (const id of ids) {
+          if (this.retirementTickets.get(id) === ticket) this.retirementTickets.delete(id);
+        }
+      }, () => undefined);
+    }
     this.retired.clear();
     this.lastSave=Date.now();
+    return ticket;
+  }
+  private persistOperation(actor: Actor, op: ActionOperation, deaths: Death[] = [], history: readonly PlazaHistoryWrite[] = []) {
+    completeOperation(actor, op);
+    const receipt = actor.actionReceipts?.find(entry => entry.id === op.id);
+    if (!receipt) throw new Error("Completed operation is missing its receipt");
+    this.receiptTickets.set(receipt, null);
+    this.world.revision++;
+    const ticket = this.persist(deaths, history);
+    this.receiptTickets.set(receipt, ticket);
+    return ticket;
+  }
+  private operationTicket(actor: Actor, id: string) {
+    const receipt = actor.actionReceipts?.find(entry => entry.id === id);
+    if (!receipt) return undefined;
+    const ticket = this.receiptTickets.get(receipt);
+    if (ticket === null) {
+      throw new OnlineError("world_unavailable", "거래 결과를 아직 확인할 수 없습니다. 다시 연결한 뒤 확인해 주세요.", 503);
+    }
+    // A receipt loaded from storage is already durable in this process.
+    return ticket ?? 0;
+  }
+  private receiptSnapshot(actor: Actor) {
+    return { snapshot: structuredClone(this.full(actor)), worldRevision: this.world.revision };
   }
   async join(principal:Principal,controller:string,takeover=false) {
     if(!await this.start())throw new OnlineError("world_starting","세계 서버가 재시작 중입니다. 잠시 후 다시 입장해 주세요.",503);
@@ -471,6 +522,13 @@ export class ArcanaWorld {
         return this.joinReply(existing);
       }
       if(this.capacity!==null && this.actors.size>=this.capacity)throw new OnlineError("world_full","개발 중 임시 동시 접속 제한("+this.capacity+"명)에 도달했습니다. 잠시 후 다시 입장해 주세요.");
+      // A quick rejoin must read the game and its receipts after this character's retirement commit.
+      if (this.retired.has(character.id)) this.persist();
+      const retirementTicket = this.retirementTickets.get(character.id);
+      if (retirementTicket !== undefined) {
+        try { await this.waitForSave(retirementTicket); }
+        catch { throw new OnlineError("world_unavailable", "이전 접속의 저장을 확인할 수 없습니다. 잠시 후 다시 입장해 주세요.", 503); }
+      }
       const game=await this.repository.loadGame(character.gameId);
       game.state.arcanaCombat.battle=null;game.state.location="arcana_plaza";game.state.flags.in_magic_world=true;
       const stored=await this.store.transaction(async tx=>({position:await tx.get<SavedPosition>("position",character.id),receipts:await tx.get<ActionReceipt[]>("action_receipts",character.id)}));
@@ -615,7 +673,7 @@ export class ArcanaWorld {
     this.synchronize(actor);const projected=structuredClone(actor.game);projected.state.arcanaCombat.battle=this.battle(actor);
     if (projected.state.arcanaLife) delete projected.state.arcanaLife.homeFurniture;
     const personal={...projected.state,arcanaCombat:{...projected.state.arcanaCombat,battle:this.fighting(actor)?projected.state.arcanaCombat.battle:null}};
-    return {...this.games.snapshotForOnline(projected),...this.forestProjection(actor),arcanaItemCatalog:this.itemCatalog?.list() ?? [],arcanaEquipment:equipmentLoadout(personal),arcanaSpells:buildArcanaSpells(personal),online:true,onlineFighting:this.fighting(actor),fishing:this.fishing.get(actor.character.id) ?? null,lifeActivity:this.lifeJobs.get(actor.character.id) ?? null,lifeSkills:lifeSkills(actor),characterId:actor.character.id,place:actor.place,position:actor.position,placeRevision:actor.placeRevision || 0,homeFurniture:this.homeFurnitureProjection(actor)};
+    return {...this.games.snapshotForOnline(projected),...this.forestProjection(actor),arcanaItemCatalog:this.itemCatalog?.list() ?? [],arcanaEquipment:equipmentLoadout(personal),arcanaSpells:buildArcanaSpells(personal),online:true,onlineFighting:this.fighting(actor),fishing:this.fishing.get(actor.character.id) ?? null,lifeActivity:this.lifeJobs.get(actor.character.id) ?? null,lifeCatalog:LIFE_CATALOG,lifeSkills:lifeSkills(actor),characterId:actor.character.id,place:actor.place,position:actor.position,placeRevision:actor.placeRevision || 0,homeFurniture:this.homeFurnitureProjection(actor)};
   }
   private spells(actor:Actor) {
     const c=actor.game.state.arcanaCombat,fighting=this.fighting(actor);
@@ -776,8 +834,8 @@ export class ArcanaWorld {
           else cast(this.world,actor,input.command,input.aim,input.target,deaths,(from,to)=>this.resolveMove(actor.place,from,to),input.actionId,input.targetLifeId);
         }
         actor.accepted=input.sequence;
-        if(op)completeOperation(actor,op);
-        if(deaths.length || op || (lifeCommand && !storageOpen))await this.persist(deaths);
+        if(op)this.persistOperation(actor,op,deaths);
+        else if(deaths.length || (lifeCommand && !storageOpen))await this.persist(deaths);
         if(!input.command)return {accepted:input.sequence,worldRevision:this.world.revision};
         return {...this.compact(actor,connection),actionId:input.actionId,homeFurniture:input.command==="life_home_enter"?this.homeFurnitureProjection(actor,true):undefined,...(op?{actionReceipt:{id:op.id,duplicate:false}}:{})};
       } catch(error) {Object.assign(actor,old);if(oldWorld)this.world=oldWorld;throw error;}
@@ -878,9 +936,8 @@ export class ArcanaWorld {
       proposed.actionReceipts = actor.actionReceipts;
       Object.assign(actor, proposed);
       actor.game.state.arcanaLife = { ...life, homeFurniture: next };
-      completeOperation(actor, op);
       this.pendingHomeFurniture.set(actor, pending);
-      await this.persist();
+      this.persistOperation(actor, op);
     } catch (error) {
       this.pendingHomeFurniture.delete(actor);
       actor.game.state.arcanaLife = life;
@@ -984,32 +1041,42 @@ export class ArcanaWorld {
     if(!actor || actor.sessionId!==principal.sessionId || !this.connections.has(actor.character.id))throw new OnlineError("join_required","아르카나 세계에 연결한 뒤 이용해 주세요.",401);
     return actor;
   }
-  private canTradeAtInn(actor: Actor) {
+  private async controlledActorFor(principal: Principal, gameId: string, controller: string) {
+    const actor = await this.actorFor(principal, gameId);
+    if (actor.controller !== controller) {
+      throw new OnlineError("connection_replaced", "접속이 다른 창으로 이전되었습니다.", 401);
+    }
+    return actor;
+  }
+  private readyToTrade(actor: Actor) {
     const state = actor.game.state;
-    return atInn(actor.place) && state.flags.in_magic_world === true && state.arcanaCombat.hp > 0
+    return state.flags.in_magic_world === true && state.arcanaCombat.hp > 0
       && !state.npcDialogue.active && !state.subwayExpedition.active && !actor.bench && !actor.pending
       && !lifeActive(this.lifeJobs.get(actor.character.id)) && !fishingActive(this.fishing.get(actor.character.id));
   }
   async innSupply(principal: Principal, gameId: string, controller: string, request?: InnSupplyRequest) {
-    const result = await this.serial(async () => {
-      const actor = await this.actorFor(principal, gameId);
-      if (actor.controller !== controller) {
-        throw new OnlineError("connection_replaced", "접속이 다른 창으로 이전되었습니다.", 401);
-      }
+    const { ticket, ...result } = await this.serial(async () => {
+      const actor = await this.controlledActorFor(principal, gameId, controller);
       const { day, phaseIndex, menuOpen, supply } = this.advanceWorldClock(Date.now());
-      const canTrade = this.canTradeAtInn(actor);
+      const canTrade = atInn(actor.place) && this.readyToTrade(actor);
+      const table = this.world.innTable ?? emptyInnTable();
+      const view = () => {
+        const state = actor.game.state;
+        const tableView = innTableView(table, state, actor.character.id, day, canTrade);
+        return { ...innSupplyView(supply, state, phaseIndex, menuOpen, canTrade, tableView), table: tableView };
+      };
       if (!request) {
-        const atPlaza = actor.place.location === "arcana_plaza" && !actor.place.interior;
-        if (!atInn(actor.place) && !atPlaza) {
+        if (!atInn(actor.place) && !atPlaza(actor.place)) {
           throw new OnlineError("inn_supply_location", "분수 광장이나 여관에서 식재료 주문을 확인해 주세요.");
         }
-        return { innSupply: innSupplyView(supply, actor.game.state, phaseIndex, menuOpen, canTrade) };
+        return { ticket: undefined, innSupply: view() };
       }
 
-      const op = operation(request.actionId, { type: "inn_supply", action: request.action, day: request.day });
+      const op = operation(request.actionId, innSupplyFingerprint(request));
       const duplicate = knownOperation(actor, op);
+      let ticket = duplicate ? this.operationTicket(actor, op.id) : undefined;
       if (!duplicate) {
-        this.requireTradePersistence();
+        this.requireCheckpointAvailable();
         if (!atInn(actor.place)) {
           throw new OnlineError("inn_supply_location", "여관으로 들어가 마르텐에게 거래해 주세요.");
         }
@@ -1021,22 +1088,218 @@ export class ArcanaWorld {
         }
         reserveOperation(actor, op);
         this.synchronize(actor);
-        tradeInnSupply(supply, actor.game.state, menuOpen, request.action);
-        completeOperation(actor, op);
-        this.world.revision++;
-        // Shared stock, the character's game, and its receipt enter the same checkpoint transaction.
-        await this.persist();
+        if (request.action === "donateWood") {
+          contributeInnTable(table, actor.game.state, actor.character.id, day);
+          this.world.innTable = table;
+        } else {
+          tradeInnSupply(supply, actor.game.state, menuOpen, request, innTableBonuses(table));
+        }
+        // Shared stock and table progress are checkpointed with the character's game and receipt.
+        ticket = this.persistOperation(actor, op);
       }
 
       return {
+        ticket,
         actionReceipt: { id: op.id, duplicate },
-        innSupply: innSupplyView(supply, actor.game.state, phaseIndex, menuOpen, canTrade),
-        snapshot: this.full(actor),
-        worldRevision: this.world.revision,
+        innSupply: view(),
+        ...this.receiptSnapshot(actor),
       };
     });
     // The accepted response survives a disconnect or controller handover while its write is outstanding.
-    if (result.actionReceipt) await this.waitForTradeSave();
+    if (ticket !== undefined) await this.waitForTradeSave(ticket);
+    return result;
+  }
+  private async archivedTradeOwner(tx: OnlineTransaction, principal: Principal, actor: Actor) {
+    const accountId = principal.accountId;
+    if (!accountId) return undefined;
+    const account = await tx.get<Account>("account", accountId);
+    if (!account || account.id !== accountId || account.mergedInto || account.characterId !== actor.character.id) return undefined;
+    const character = await tx.get<Character>("character", actor.character.id);
+    if (!character || character.ownerId !== accountId || character.archived || character.gameId !== actor.game.id ||
+        (character.blockedUntil ?? 0) > Date.now()) return undefined;
+    return accountId;
+  }
+  async plazaMarketArchived(principal: Principal, gameId: string, controller: string) {
+    return this.serial(async () => {
+      const actor = await this.controlledActorFor(principal, gameId, controller);
+      if (!atPlaza(actor.place)) {
+        throw new OnlineError("plaza_market_location", "분수 광장에서 위탁 장터를 확인해 주세요.");
+      }
+      const archives: ArchivedTradeView[] = [];
+      if (!principal.accountId) return { archives };
+      const market = this.world.plazaMarket ?? emptyPlazaMarket();
+      const book = this.world.plazaBuyOrders ?? emptyPlazaBuyOrders();
+      const owners = plazaAssetOwners(market, book);
+      owners.delete(actor.character.id);
+      if (!owners.size) return { archives };
+
+      await this.store.transaction(async tx => {
+        const accountId = await this.archivedTradeOwner(tx, principal, actor);
+        if (!accountId) return;
+        for (const character of await tx.list<Character>("character")) {
+          if (character.ownerId !== accountId || character.archived !== true || !owners.has(character.id)) continue;
+          const identity = { characterId: character.id, name: character.name || "모험가" };
+          try {
+            const assets = plazaArchivedAssets(market, book, character.id);
+            if (!assets) continue;
+            const { money, inventory } = actor.game.state;
+            const unavailable = !Number.isSafeInteger(money + assets.gold)
+              || assets.items.some(item => !Number.isSafeInteger((inventory[item.itemId] ?? 0) + item.quantity));
+            archives.push({ ...identity, ...assets, ...(unavailable ? { unavailable: true as const } : {}) });
+          } catch (error) {
+            if (!(error instanceof OnlineError) || !["plaza_market_balance_limit", "plaza_market_inventory_limit"].includes(error.code)) throw error;
+            archives.push({
+              ...identity, unavailable: true, gold: 0, items: [],
+              listings: market.listings.filter(listing => listing.sellerId === character.id).length,
+              orders: book.orders.filter(order => order.buyerId === character.id).length,
+            });
+          }
+        }
+      });
+      return { archives };
+    });
+  }
+  async plazaMarketHistory(principal: Principal, gameId: string, controller: string) {
+    return this.serial(async () => {
+      const actor = await this.controlledActorFor(principal, gameId, controller);
+      if (!atPlaza(actor.place)) {
+        throw new OnlineError("plaza_market_location", "분수 광장에서 위탁 장터를 확인해 주세요.");
+      }
+      const history = await this.store.transaction(async tx => {
+        const character = await tx.get<Character>("character", actor.character.id);
+        if (!character || character.ownerId !== principal.id || character.archived || character.gameId !== gameId) {
+          throw new OnlineError("game_not_found", "접근할 수 있는 저장을 찾지 못했습니다.", 404);
+        }
+        if ((character.blockedUntil ?? 0) > Date.now()) {
+          throw new OnlineError("access_restricted", "접속이 제한된 캐릭터입니다.", 403);
+        }
+        return tx.get<PlazaHistoryEntry[]>(plazaMarketHistoryKind, actor.character.id);
+      });
+      return { history: history ? [...history].reverse() : [] };
+    });
+  }
+  async plazaMarket(principal: Principal, gameId: string, controller: string, request?: PlazaMarketRequest) {
+    const { ticket, ...result } = await this.serial(async () => {
+      const actor = await this.controlledActorFor(principal, gameId, controller);
+      const inPlaza = atPlaza(actor.place);
+      const canTrade = inPlaza && this.readyToTrade(actor) && !this.fighting(actor);
+      const now = Date.now();
+      let { day } = request ? this.advanceWorldClock(now) : worldCalendar(this.worldElapsedAt(now));
+      const market = this.world.plazaMarket ?? emptyPlazaMarket();
+      const book = this.world.plazaBuyOrders ?? emptyPlazaBuyOrders();
+      const view = () => {
+        const current = plazaMarketView(market, actor, day);
+        const buyOrders = plazaBuyOrderView(book, actor, day);
+        return {
+          ...current, canTrade, canList: canTrade && current.canList,
+          buyOrders: { ...buyOrders, canOrder: canTrade && buyOrders.canOrder },
+        };
+      };
+      if (!request) {
+        if (!inPlaza) {
+          throw new OnlineError("plaza_market_location", "분수 광장에서 위탁 장터를 확인해 주세요.");
+        }
+        return { ticket: undefined, plazaMarket: view() };
+      }
+
+      const op = operation(request.actionId, { type: "plaza_market", action: request.action, day: request.day });
+      const duplicate = knownOperation(actor, op);
+      let ticket = duplicate ? this.operationTicket(actor, op.id) : undefined;
+      let message = "처리된 장터 거래를 확인했습니다.";
+      if (!duplicate) {
+        const action = request.action;
+        const commit = () => {
+          this.requireCheckpointAvailable();
+          if (!inPlaza) {
+            throw new OnlineError("plaza_market_location", "분수 광장으로 돌아온 뒤 위탁 장터를 이용해 주세요.");
+          }
+          if (request.day !== day) {
+            throw new OnlineError("plaza_market_day", "장터 날짜가 바뀌었습니다. 오늘 거래 목록을 확인해 주세요.");
+          }
+          if (!canTrade) {
+            throw new OnlineError("plaza_market_unavailable", "진행 중인 행동을 마친 뒤 위탁 장터를 이용해 주세요.");
+          }
+          reserveOperation(actor, op);
+          this.synchronize(actor);
+          let trade: PlazaTradeResult;
+          switch (action.action) {
+            case "list":
+            case "buy":
+            case "withdraw":
+            case "collect":
+              trade = transactPlazaMarket(market, actor, day, action);
+              break;
+            case "recoverArchivedTrade":
+              trade = { message: recoverPlazaArchivedAssets(market, book, actor, action.sourceCharacterId) };
+              this.world.plazaBuyOrders = book;
+              break;
+            default:
+              trade = transactPlazaBuyOrder(book, market, actor, day, action);
+              this.world.plazaBuyOrders = book;
+          }
+          this.world.plazaMarket = market;
+          message = trade.message;
+          appendLogEntry(actor.game.state, message);
+          const history = trade.sale ? plazaHistoryWrites(trade.sale, actor.character.id, op.id, day, Date.now()) : [];
+          // Escrow, offline claims, seller progress, and history share the active character's receipt transaction.
+          return this.persistOperation(actor, op, [], history);
+        };
+        if (action.action === "recoverArchivedTrade") {
+          try {
+            ticket = await this.store.transaction(async tx => {
+              const accountId = await this.archivedTradeOwner(tx, principal, actor);
+              const source = accountId ? await tx.get<Character>("character", action.sourceCharacterId) : null;
+              if (!source || source.id !== action.sourceCharacterId || source.id === actor.character.id ||
+                  source.ownerId !== accountId || source.archived !== true) {
+                throw new OnlineError("plaza_recovery_unavailable", "회수할 수 있는 보관 캐릭터가 아닙니다.");
+              }
+              day = this.advanceWorldClock(Date.now()).day;
+              // Enqueue under the ownership lock; the checkpoint wait happens after the lock is released.
+              return commit();
+            });
+          } catch (error) {
+            if (!this.store.healthy) {
+              throw new OnlineError("world_unavailable", "거래 결과를 아직 확인할 수 없습니다. 다시 연결한 뒤 확인해 주세요.", 503);
+            }
+            throw error;
+          }
+        } else {
+          ticket = commit();
+        }
+      }
+
+      return {
+        ticket,
+        plazaMarket: view(),
+        actionReceipt: { id: op.id, duplicate },
+        message,
+        ...this.receiptSnapshot(actor),
+      };
+    });
+    if (ticket !== undefined) await this.waitForTradeSave(ticket);
+    return result;
+  }
+  async livelihood(principal: Principal, gameId: string, controller: string, focus?: LivelihoodFocus) {
+    const result = await this.serial(async () => {
+      const actor = await this.controlledActorFor(principal, gameId, controller);
+      const { state } = actor.game;
+      if (focus !== undefined && focus !== livelihoodFocus(state)) {
+        if (actor.pending) {
+          throw new OnlineError("action_pending", "현재 행동을 마친 뒤 생활 목표를 바꿔 주세요.");
+        }
+        this.requireCheckpointAvailable();
+        chooseLivelihood(state, focus);
+        await this.persist();
+      }
+      return { livelihood: livelihoodView(actor, this.world.plazaMarket) };
+    });
+    if (focus !== undefined) {
+      try {
+        await this.waitForSave();
+      } catch {
+        throw new OnlineError("world_unavailable", "생활 목표 저장 결과를 아직 확인할 수 없습니다. 다시 연결한 뒤 확인해 주세요.", 503);
+      }
+    }
     return result;
   }
   async simpleHomestead(principal: Principal, gameId: string, controller: string, action?: SimpleHomesteadAction) {
@@ -1066,15 +1329,16 @@ export class ArcanaWorld {
     return { homestead };
   }
   async recoverOperation(principal:Principal,gameId:string,id:string) {
-    const found=await this.serial(async()=>{
+    const { ticket, ...result } = await this.serial(async()=>{
       const actor=await this.actorFor(principal,gameId);
-      return {actor,receipt:actor.actionReceipts?.some(v=>v.id===id),pending:this.operations.has(actor.character.id+":"+id)};
+      const ticket = this.operationTicket(actor, id);
+      if (ticket === undefined) {
+        return { ticket: undefined, status: this.operations.has(actor.character.id + ":" + id) ? "pending" : "unknown" };
+      }
+      return { ticket, status: "completed", actionReceipt: { id, duplicate: true }, ...this.receiptSnapshot(actor) };
     });
-    if(found.receipt) {
-      await this.waitForSave();
-      return this.serial(async()=>({status:"completed",actionReceipt:{id,duplicate:true},snapshot:this.full(found.actor)}));
-    }
-    return {status:found.pending?"pending":"unknown"};
+    if (ticket !== undefined) await this.waitForTradeSave(ticket);
+    return result;
   }
   async personal(principal:Principal,gameId:string,action:GameAction,actionId?:string):Promise<unknown> {
     if(!protectedTrade(action))return this.personalOnce(principal,gameId,action);
@@ -1086,10 +1350,7 @@ export class ArcanaWorld {
       if(pending.fingerprint!==op.fingerprint)throw new OnlineError("action_id_conflict","다른 행동에 사용된 요청 번호입니다.",409);
       return pending.promise;
     }
-    const promise=this.personalOnce(principal,gameId,action,op).then(async result=>{
-      await this.waitForSave();
-      return this.serial(async()=>({...this.full(await this.actorFor(principal,gameId)),actionReceipt:{id:op.id,duplicate:result!==null && "actionReceipt" in result && result.actionReceipt.duplicate}}));
-    });
+    const promise=this.personalOnce(principal,gameId,action,op);
     this.operations.set(key,{fingerprint:op.fingerprint,promise});
     try{return await promise;}finally{this.operations.delete(key);}
   }
@@ -1097,7 +1358,12 @@ export class ArcanaWorld {
     if(action.type==="world_clock")return this.state(principal,gameId);
     const prepared=await this.serial(async()=>{
       const actor=await this.actorFor(principal,gameId);
-      if(op && knownOperation(actor,op))return {actor,baseline:structuredClone(actor.game),location:actor.game.state.location,duplicate:true};
+      if(op && knownOperation(actor,op)) {
+        const ticket = this.operationTicket(actor, op.id);
+        if (ticket === undefined) throw new Error("Known operation is missing its receipt");
+        const { snapshot, worldRevision } = this.receiptSnapshot(actor);
+        return { duplicate: true as const, ticket, response: { ...snapshot, worldRevision, actionReceipt: { id: op.id, duplicate: true } } };
+      }
       if(op)reserveOperation(actor,op);
       if(actor.game.state.arcanaLife?.atHome)throw new OnlineError("home_action_required","집에서 외출한 뒤 이용해 주세요.");
       if(lifeActive(this.lifeJobs.get(actor.character.id)))throw new OnlineError("life_active","현재 제작·요리를 마치거나 취소해 주세요.");
@@ -1112,10 +1378,19 @@ export class ArcanaWorld {
         const room=this.area(actor.place)?.rooms?.[action.roomId];
         if(actor.place.interior!=="arcana_academy" || !room || (!action.textMode && distance(actor.position,room)>40))throw new OnlineError("room_required","해당 층의 방 가까이에서 이용해 주세요.");
       }
-      actor.pending=true;this.synchronize(actor);
-      return {actor,baseline:structuredClone(actor.game),location:actor.game.state.location};
+      this.synchronize(actor);
+      const baseline=structuredClone(actor.game);
+      actor.pending=true;
+      return {duplicate:false as const,actor,baseline,location:baseline.state.location};
     });
-    if("duplicate" in prepared)return {...this.full(prepared.actor),actionReceipt:{id:op!.id,duplicate:true}};
+    if (prepared.duplicate) {
+      await this.waitForTradeSave(prepared.ticket);
+      return prepared.response;
+    }
+    let committed: {
+      response: ReturnType<ArcanaWorld["full"]> & { actionReceipt?: { id: string; duplicate: boolean }; worldRevision?: number };
+      ticket?: number;
+    };
     try {
       // LLM/network waits never hold the world's simulation queue.
       let result:GameSession;
@@ -1123,7 +1398,7 @@ export class ArcanaWorld {
       try {result=await this.games.detachedOnlineAction(prepared.baseline,action);}
       catch(error) {if(op)throw new OnlineError("transaction_rejected",error instanceof Error?error.message:"거래를 처리하지 못했습니다.",400);throw error;}
       finally {this.metrics.record("personalActionMs",performance.now()-actionStarted);}
-      return await this.serial(async()=>{
+      committed = await this.serial(async()=>{
         const actor=this.actors.get(prepared.actor.character.id);
         if(actor!==prepared.actor)throw new OnlineError("connection_changed","세계에 다시 입장한 뒤 진행을 확인해 주세요.");
         if(!result.state.flags.in_magic_world)throw new OnlineError("online_realm_only","온라인 캐릭터는 현재 아르카나에서만 활동할 수 있습니다.");
@@ -1131,15 +1406,24 @@ export class ArcanaWorld {
         next.hp=Math.max(0,Math.min(100,live.hp+next.hp-base.hp));
         next.mp=Math.max(0,Math.min(30,live.mp+next.mp-base.mp));
         next.cooldowns=live.cooldowns;next.guard=live.guard;next.evadeSkill=live.evadeSkill;next.evadeSeconds=live.evadeSeconds;
-        result.state.arcanaLife=actor.game.state.arcanaLife;actor.game=result;actor.pending=false;
+        result.state.arcanaLife=actor.game.state.arcanaLife;actor.game=result;
         if(prepared.location!==result.state.location)this.arrive(actor,result.state.location);
-        if(op)completeOperation(actor,op);
-        this.synchronize(actor);await this.persist();
-        return {...this.full(actor),...(op?{actionReceipt:{id:op.id,duplicate:false}}:{})};
+        this.synchronize(actor);
+        if (!op) {
+          this.world.revision++;
+          this.persist();
+          return { response: this.full(actor) };
+        }
+        const ticket = this.persistOperation(actor, op);
+        const { snapshot, worldRevision } = this.receiptSnapshot(actor);
+        return { ticket, response: { ...snapshot, worldRevision, actionReceipt: { id: op.id, duplicate: false } } };
       });
     } finally {
-      await this.serial(async()=>{if(this.actors.get(prepared.actor.character.id)===prepared.actor)prepared.actor.pending=false;}).catch(()=>undefined);
+      // Only this action releases its lock, even if checkpoint writes are temporarily delayed.
+      await this.serial(async()=>{if(this.actors.get(prepared.actor.character.id)===prepared.actor)prepared.actor.pending=false;},true).catch(()=>undefined);
     }
+    if (committed.ticket !== undefined) await this.waitForTradeSave(committed.ticket);
+    return committed.response;
   }
   private validateTravel(actor:Actor,target:string,textMode=false) {
     if(target==="magic_city_entrance" || target==="shelter" || target==="arcana_return_portal")throw new OnlineError("online_realm_only","온라인 모험은 아르카나 안에서 계속됩니다.");

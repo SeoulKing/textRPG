@@ -1,6 +1,6 @@
 import { FOREST_LOCATION, WOODCUTTING_AXE } from "../game/arcana-forest";
 import { ARCANA_HOME_LOCATION } from "../game/arcana-home";
-import { COOKING_RECIPES, COOKING_MATERIAL_IDS, FOODS } from "../game/arcana-cooking";
+import { COOKING_RECIPES, FOODS, type CookingRecipe } from "../game/arcana-cooking";
 export { COOKING_RECIPES, FOODS } from "../game/arcana-cooking";
 import crypto from "node:crypto";
 import { OnlineError } from "./accounts";
@@ -36,10 +36,49 @@ export type LifeJob = {
 };
 export const DAILY_GATHER_LIMIT=3;
 export const MAX_LIFE_QUANTITY=20;
-export const CRAFTING_RECIPES:Record<string,{name:string;ingredients:{itemId:string;count:number}[];results:readonly [string,string,string];count:number}>={
-  campfire:{name:"모닥불",ingredients:[{itemId:"wood",count:5}],results:["campfire","campfireFine","campfireExcellent"],count:1},
+const CRAFT_SECONDS = 3;
+const HOME_COOK_SECONDS = 4;
+export const CRAFTING_RECIPES: Record<string, CookingRecipe & { count: number }> = {
   lumber:{name:"목재",ingredients:[{itemId:"treeBranch",count:2}],results:["wood","wood","wood"],count:3},
+  campfire:{name:"모닥불",ingredients:[{itemId:"wood",count:5}],results:["campfire","campfireFine","campfireExcellent"],count:1},
 };
+
+function recipeIngredientTotals(recipe: CookingRecipe) {
+  const totals: Record<string, number> = {};
+  for (const { itemId, count } of recipe.ingredients) totals[itemId] = (totals[itemId] ?? 0) + count;
+  return totals;
+}
+
+function recipeCatalog(recipes: Record<string, CookingRecipe & { count?: number }>) {
+  return Object.entries(recipes).map(([id, recipe]) => ({
+    id,
+    name: recipe.name,
+    ingredients: recipeIngredientTotals(recipe),
+    results: recipe.results,
+    count: recipe.count ?? 1,
+    qualityRoll: recipe.results.some(itemId => itemId !== recipe.results[0]),
+  }));
+}
+
+const craftingCatalog = recipeCatalog(CRAFTING_RECIPES);
+const cookingCatalog = recipeCatalog(COOKING_RECIPES);
+const productionRecipes = [...craftingCatalog, ...cookingCatalog];
+const materialIds = new Set(productionRecipes.flatMap(recipe => Object.keys(recipe.ingredients)));
+const lifeItemIds = new Set([
+  WOODCUTTING_AXE, ...materialIds, ...Object.keys(CAMPFIRES), ...Object.keys(FOODS),
+  ...productionRecipes.flatMap(recipe => recipe.results),
+]);
+export const LIFE_CATALOG = {
+  crafting: craftingCatalog,
+  cooking: cookingCatalog,
+  campfires: CAMPFIRES,
+  foods: FOODS,
+  materials: Object.fromEntries([...materialIds].map(id => [id, baseItems[id as keyof typeof baseItems].name] as const)),
+  maxQuantity: MAX_LIFE_QUANTITY,
+  craftSeconds: CRAFT_SECONDS,
+  homeCookSeconds: HOME_COOK_SECONDS,
+} as const;
+
 export const lifeActive=(job:LifeJob|undefined)=>job?.phase==="active";
 export function initializeLife(game:GameSession) {
   const state=game.state;
@@ -51,7 +90,7 @@ export function initializeLife(game:GameSession) {
   if(!life.woodGranted) {state.inventory.wood=(state.inventory.wood||0)+30;life.woodGranted=true;}
   game.world.locationCards.arcana_home={...ARCANA_HOME_LOCATION,description:ARCANA_HOME_LOCATION.summary,source:"template",generatedAt:"static"};
   // Static cards must also be available for old content-version saves and WS rewards.
-  for(const id of ["wood","riverFish",WOODCUTTING_AXE,...COOKING_MATERIAL_IDS,...Object.keys(CAMPFIRES),...Object.keys(FOODS)]) {
+  for(const id of lifeItemIds) {
     const definition=baseItems[id as keyof typeof baseItems];
     game.world.itemCards[id]={...definition,source:"template",generatedAt:"static"};
     if(FOODS[id]) {
@@ -123,11 +162,11 @@ export function beginLife(actor:Actor,kind:"craft"|"cook",campfire?:Campfire,rec
     throw new OnlineError("life_quantity_required","작업 횟수는 1~"+MAX_LIFE_QUANTITY+"회로 선택해 주세요.",400);
   const selectedId=recipeId || (kind==="cook"?"grilledFish":"campfire");
   const recipe=kind==="cook"?cookingRecipe(selectedId):craftingRecipe(selectedId);
-  for(const input of recipe.ingredients)requireCount(actor,input.itemId,input.count*quantity);
+  for(const [itemId,count] of Object.entries(recipeIngredientTotals(recipe)))requireCount(actor,itemId,count*quantity);
   const homeKitchen=kind==="cook" && actor.game.state.arcanaLife!.atHome && actor.place.interior==="arcana_home:"+actor.character.id;
   if(kind==="cook" && !homeKitchen && (!campfire || campfire.expiresAt<=Date.now() || actor.place.interior || Math.hypot(actor.position.x-campfire.position.x,actor.position.y-campfire.position.y)>26))
     throw new OnlineError("campfire_required","불이 켜진 모닥불 가까이에서 구워 주세요.");
-  const duration=kind==="craft"?3:homeKitchen?4:CAMPFIRES[campfire!.itemId].cookSeconds;
+  const duration=kind==="craft"?CRAFT_SECONDS:homeKitchen?HOME_COOK_SECONDS:CAMPFIRES[campfire!.itemId].cookSeconds;
   const now=Date.now();
   return {
     id:crypto.randomUUID(),kind,recipeId:selectedId,phase:"active",origin:{...actor.position},
@@ -158,16 +197,27 @@ export function completeLife(actor:Actor,job:LifeJob,random=Math.random) {
   const skill=job.kind==="craft"?"crafting":"cooking";
   const t=skillMastery(actor.game.state,skill)/100,roll=random()*100;
   const tier=roll<85-75*t?0:roll<99-49*t?1:2;
-  const recipe=job.kind==="cook"?cookingRecipe(job.recipeId || "grilledFish"):craftingRecipe(job.recipeId || "campfire");
-  // Validate every ingredient before mutating inventory, including multi-material recipes.
-  for(const input of recipe.ingredients)requireCount(actor,input.itemId,input.count);
-  const itemId=recipe.results[tier],count=job.kind==="craft"?craftingRecipe(job.recipeId || "campfire").count:1;
-  for(const input of recipe.ingredients)consume(actor,input.itemId,input.count);
-  actor.game.state.inventory[itemId]=(actor.game.state.inventory[itemId]||0)+count;
+  const craft=job.kind==="craft"?craftingRecipe(job.recipeId || "campfire"):null;
+  const recipe=craft??cookingRecipe(job.recipeId || "grilledFish");
+  const state=actor.game.state;
+  const itemId=recipe.results[tier],count=craft?.count??1;
+  // Stage the entire serving on a copy, including when a recipe returns one of its inputs.
+  const inventory={...state.inventory};
+  for(const [ingredient,needed] of Object.entries(recipeIngredientTotals(recipe))) {
+    requireCount(actor,ingredient,needed);
+    const remaining=inventory[ingredient]-needed;
+    if(remaining)inventory[ingredient]=remaining;
+    else delete inventory[ingredient];
+  }
+  const produced=(inventory[itemId] ?? 0)+count;
+  if(!Number.isSafeInteger(produced))throw new OnlineError("life_result_capacity","완성한 물품을 소지품에 더 담을 수 없습니다.");
+  inventory[itemId]=produced;
+  state.inventory=inventory;
   const xp=Math.min(100,Math.max(0,10000-(actor.game.state.arcanaCombat.skillTraining[skill]?.xp||0)));
   trainArcanaSkill(actor.game.state,skill,xp);
   const life=actor.game.state.arcanaLife!;
-  if(job.kind==="cook")life.cookedMeals++;else life.craftedItems+=count;
+  if(job.kind==="cook")life.cookedMeals=Math.min(Number.MAX_SAFE_INTEGER,life.cookedMeals+1);
+  else life.craftedItems=Math.min(Number.MAX_SAFE_INTEGER,life.craftedItems+count);
   job.completed=(job.completed ?? 0)+1;
   job.resultCounts ??= {};
   job.resultCounts[itemId]=(job.resultCounts[itemId] || 0)+count;

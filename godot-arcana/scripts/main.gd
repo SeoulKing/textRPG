@@ -3,8 +3,10 @@ extends Node
 const MEADOW_LOCATION := "arcana_meadow_field"
 const INDOOR_LOCATIONS := ["arcana_shop", "arcana_inn", "arcana_restaurant", "arcana_academy", "arcana_home"]
 const INN_FISH_QUEST := "arcana_inn_supper"
-const INN_SUPPLY_PENDING_KEY := "arcana-inn-supply-pending-v1-"
+const INN_MEAL_IDS := ["grilledFish", "grilledFishFine", "grilledFishExcellent"]
+const INN_SUPPLY_TITLE := "마르텐의 생선 매입"
 const INN_SUPPLY_RETRY_MS := 60_000
+enum InnSupplySection { RAW, MEALS, TABLE }
 const World = preload("res://scripts/world.gd")
 const HeroSpec = preload("res://art/resources/heroine_reference_spec.gd")
 const NativeWorld = preload("res://scripts/native_2d_world.gd")
@@ -12,6 +14,9 @@ const UI = preload("res://scripts/game_ui.gd")
 const EquipmentView := preload("res://scripts/equipment_view.gd")
 const ItemThumbnail := preload("res://scripts/item_thumbnail.gd")
 const SimplifiedPlay = preload("res://scripts/simplified_play.gd")
+const PlazaMarketView = preload("res://scripts/plaza_market_view.gd")
+const LivelihoodView = preload("res://scripts/livelihood_view.gd")
+const TownTradeIntents = preload("res://scripts/services/town_trade_intents.gd")
 const HomeFurnitureEditor = preload("res://scripts/home_furniture_editor.gd")
 const CityGrid = preload("res://scripts/simplified_city_grid.gd")
 const SpatialCombat = preload("res://scripts/native_2d_spatial.gd")
@@ -38,6 +43,9 @@ var world: World
 var world_renderer
 var ui
 var simplified_play: SimplifiedPlay
+var plaza_market: PlazaMarketView
+var livelihood: LivelihoodView
+var town_trade_intents := TownTradeIntents.new()
 var home_furniture: HomeFurnitureEditor
 var _home_furniture_game := ""
 var _home_furniture_revision := -1
@@ -80,8 +88,10 @@ var page_active = true
 var panel_mode = ""
 var _inn_supply_request := 0
 var _inn_supply_location := ""
-var _inn_supply_pending_game := ""
 var _inn_supply_pending: Dictionary = {}
+var _trade_snapshot_game := ""
+var _trade_snapshot_connection := -1
+var _trade_snapshot_revision := -1
 var _status_vitals: Dictionary = {}
 var _status_readout: Label
 var inventory_selected_id: String = ""
@@ -205,10 +215,14 @@ func _ready() -> void:
 	simplified_play.main = self
 	add_child(simplified_play)
 	home_furniture = HomeFurnitureEditor.new(self)
+	plaza_market = PlazaMarketView.new(self)
+	livelihood = LivelihoodView.new(self)
 	ui.move_changed.connect(_joystick_move)
 	ui.panel_closed.connect(func():
 		panel_mode = ""
 		_inn_supply_request += 1
+		plaza_market.panel_closed()
+		livelihood.panel_closed()
 		world.touch_direction = Vector2.ZERO
 		_sync_world_input())
 	if OS.has_feature("web"):
@@ -372,6 +386,7 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 	var previous_spells = _unlocked_spell_ids()
 	var notify_unlocks = not initial and snapshot.get("gameId","") == value.get("gameId","") and not snapshot.is_empty()
 	snapshot = value
+	life.accept_catalog(str(game_id), value)
 	_sync_equipment(value.get("arcanaEquipment", EquipmentView.Appearance.DEFAULTS))
 	if notify_unlocks: _notify_spell_unlocks(previous_spells)
 	var location = str(_state().get("location", "arcana_plaza"))
@@ -501,7 +516,9 @@ func _process(delta: float) -> void:
 	_sync_world_input()
 	if world.enabled and ui.joystick.is_active(): _joystick_move(ui.joystick.direction)
 	if snapshot.is_empty(): return
-	if panel_mode == "inn_supply" and ui.overlay.visible and _state().get("location", "") != _inn_supply_location:
+	plaza_market.sync()
+	livelihood.sync()
+	if _inn_supply_panel_visible() and _state().get("location", "") != _inn_supply_location:
 		ui.close_panel()
 	# Resolve the local position before the world, camera, and HUD sample it.
 	online_presence.apply_local_correction(delta)
@@ -698,13 +715,22 @@ func perform(action: Dictionary, show_result: bool = true) -> bool:
 	if not gate_crossing:
 		world.touch_direction = Vector2.ZERO
 		if not travel_pending: ui.toast("진행 중…")
-	var data: Dictionary = await action_delivery.submit(action) if action_delivery.handles(action) else await _api("/api/games/" + game_id + "/actions", HTTPClient.METHOD_POST, action)
+	var protected_trade: bool = action_delivery.handles(action)
+	var active_game := str(game_id)
+	var connection: int = combat_socket.connection_generation
+	var data: Dictionary = await action_delivery.submit(action) if protected_trade else await _api("/api/games/" + game_id + "/actions", HTTPClient.METHOD_POST, action)
 	busy = false
 	travel_pending = false
 	if not data.has("state"):
 		if not data.get("quiet",false): ui.toast(data.get("message", "행동을 마치지 못했습니다. 진행을 확인해 주세요."))
 		return false
-	_apply(data)
+	if protected_trade:
+		if not _apply_trade_snapshot(data, data.get("worldRevision"), active_game, connection):
+			if game_id != active_game: return false
+			if show_result: ui.toast("거래 결과를 확인했습니다.")
+			return true
+	else:
+		_apply(data)
 	if _battle().get("phase","")=="victory" and not _battle().has("spatial") and previous_battle_phase!="victory" and is_instance_valid(spatial_combat.reward_effects):
 		spatial_combat.reward_effects.show_slime_loot(str(_battle().id)+":classic",maxi(0,int(_state().get("inventory",{}).get("slimeMucus",0))-previous_mucus))
 	_remember_position()
@@ -954,7 +980,7 @@ func _innkeeper_dialogue(topic: String = "welcome") -> void:
 	var fish_quest := _inn_fish_card()
 	var fish_status := str(fish_quest.get("status", ""))
 	if online_world:
-		ui.choice("여관 생선 매입 · 식사", "민물고기 납품 · 생선구이 주문", _open_inn_supply)
+		ui.choice("여관 생선 매입 · 식사", "민물고기와 생선구이 납품 · 저녁 메뉴 주문", _open_inn_supply)
 	if quest_status == "inactive" or fish_status == "inactive":
 		ui.paragraph("마르텐이 접수대 옆 게시판을 가리킵니다. “맡으실 일이 있다면 저쪽에서 의뢰를 확인해 주세요.”")
 		_local_map_choice("quest_board", "의뢰판을 보러 간다", "여관 의뢰 확인")
@@ -983,88 +1009,211 @@ func _innkeeper_dialogue(topic: String = "welcome") -> void:
 func _inn_supply_route() -> String:
 	return "/api/games/%s/inn-supply" % game_id.uri_encode()
 
+func _inn_supply_panel_visible() -> bool:
+	return panel_mode == "inn_supply" and ui.overlay.visible and ui.panel_title.text == INN_SUPPLY_TITLE
+
 func _inn_supply_panel_current(request: int, active_game: String, location: String, simple: bool) -> bool:
 	return _inn_supply_request == request and game_id == active_game and simplified_play.enabled == simple \
-		and _state().get("location", "") == location and panel_mode == "inn_supply" and ui.overlay.visible
+		and _state().get("location", "") == location and _inn_supply_panel_visible()
 
-func _open_inn_supply() -> void:
+func _open_inn_supply(show_meals: bool = false) -> void:
+	_open_inn_supply_section(InnSupplySection.MEALS if show_meals else InnSupplySection.RAW)
+
+func _oldest_inn_supply_intent(active_game: String) -> Dictionary:
+	for intent: Dictionary in town_trade_intents.pending("inn", active_game):
+		if _inn_supply_valid_offer(str(intent.action), str(intent.get("itemId", ""))):
+			return intent
+	return {}
+
+func _open_inn_supply_section(section: InnSupplySection) -> void:
 	var location := str(_state().get("location", ""))
 	if not online_world or busy or location not in ["arcana_plaza", "arcana_inn"]: return
 	var active_game := str(game_id)
 	var simple: bool = simplified_play.enabled
-	if _inn_supply_pending_game != active_game: _inn_supply_pending = {}
-	_inn_supply_pending_game = active_game
-	if _inn_supply_pending.is_empty():
-		var saved: Variant = _stored_json(INN_SUPPLY_PENDING_KEY + active_game)
-		if saved is Dictionary:
-			var day: Variant = saved.get("day")
-			var created_at: Variant = saved.get("createdAt")
-			var action_id: Variant = saved.get("actionId")
-			if saved.get("action", "") in ["deliver", "buyMeal"] and action_id is String and action_id.length() >= 16 \
-				and (day is int or day is float) and day > 0 and (created_at is int or created_at is float) and created_at > 0:
-				_inn_supply_pending = saved
 	_inn_supply_request += 1
 	var request := _inn_supply_request
 	panel_mode = "inn_supply"
 	_inn_supply_location = location
-	_render_inn_supply({}, "여관의 기록을 불러오고 있습니다…", true)
+	_render_inn_supply({}, "여관의 기록을 불러오고 있습니다…", true, section)
 	var route := "%s?controller=%s" % [_inn_supply_route(), client_id.uri_encode()]
 	var reply := await _api(route, HTTPClient.METHOD_GET, {}, 8.0)
 	if not _inn_supply_panel_current(request, active_game, location, simple): return
+	_inn_supply_pending = _oldest_inn_supply_intent(active_game)
 	if reply.get("innSupply") is Dictionary:
-		_render_inn_supply(reply.innSupply)
+		_render_inn_supply(reply.innSupply, "", false, section)
 	else:
-		_render_inn_supply({}, str(reply.get("message", "여관의 기록을 불러오지 못했습니다.")))
+		_render_inn_supply({}, str(reply.get("message", "여관의 기록을 불러오지 못했습니다.")), false, section)
 
-func _render_inn_supply(supply: Dictionary, message: String = "", loading: bool = false) -> void:
+func _inn_supply_valid_offer(action: String, item_id: String) -> bool:
+	match action:
+		"deliver", "donateWood": return item_id.is_empty()
+		"buyMeal": return item_id.is_empty() or item_id in INN_MEAL_IDS
+		"sellMeal": return item_id in INN_MEAL_IDS
+	return false
+
+func _inn_supply_meal_name(item_id: String) -> String:
+	return str(_item_master(item_id).get("name", "생선구이"))
+
+func _inn_supply_offer_label(action: String, item_id: String) -> String:
+	match action:
+		"buyMeal": return "%s 1인분 주문" % _inn_supply_meal_name(item_id)
+		"sellMeal": return "%s 1인분 납품" % _inn_supply_meal_name(item_id)
+		"donateWood": return "공동 식탁에 목재 보태기"
+	return "민물고기 1마리 납품"
+
+func _render_inn_supply(supply: Dictionary, message: String = "", loading: bool = false, section: InnSupplySection = InnSupplySection.RAW) -> void:
 	var in_inn: bool = _state().get("location", "") == "arcana_inn"
-	ui.open_panel("마르텐의 생선 매입")
+	ui.open_panel(INN_SUPPLY_TITLE)
 	ui.button_list_touch_enabled = true
 	if not message.is_empty(): ui.paragraph(message, ui.MUTED)
 	if not supply.is_empty():
-		var day := int(supply.get("day", 0))
-		var remaining := int(supply.get("remaining", 0))
-		var fish_price := int(supply.get("unitPrice", 0))
-		var daily_limit := int(supply.get("dailyLimit", 0))
-		ui.paragraph("%d일차 · 공동 매입 잔여 %d/%d마리" % [day, remaining, daily_limit], ui.GOLD)
-		ui.paragraph("민물고기 1마리당 %d골드 · 내 가방 %d마리\n여관의 민물고기 재고 %d마리" % [
-			fish_price, int(supply.get("owned", 0)), int(supply.get("fishStock", 0))])
-		var servings := int(supply.get("menuServings", 0))
-		var meal_price := int(supply.get("mealPrice", 0))
-		ui.paragraph("생선구이 %d인분 · 1인분 %d골드" % [servings, meal_price])
-		if not bool(supply.get("menuOpen", false)):
-			ui.paragraph("18:00부터 오늘 들어온 생선을 구워 메뉴에 올립니다.", ui.MUTED)
-		if in_inn and _inn_supply_pending.is_empty() and not loading:
-			ui.choice("민물고기 1마리 납품", "%d골드 받기" % fish_price,
-				_inn_supply_trade.bind("deliver", day), not bool(supply.get("canDeliver", false)))
-			ui.choice("생선구이 1인분 주문", "%d골드 · 가방에 담기" % meal_price,
-				_inn_supply_trade.bind("buyMeal", day), not bool(supply.get("canBuyMeal", false)))
+		var meals: Array = supply.get("meals") if supply.get("meals") is Array else []
+		var table: Dictionary = supply.get("table") if supply.get("table") is Dictionary else {}
+		var can_trade := in_inn and _inn_supply_pending.is_empty() and not loading
+		if (section == InnSupplySection.MEALS and meals.is_empty()) or (section == InnSupplySection.TABLE and table.is_empty()):
+			section = InnSupplySection.RAW
+		match section:
+			InnSupplySection.MEALS: _render_inn_meals(supply, meals, can_trade)
+			InnSupplySection.TABLE: _render_inn_table(supply, table, can_trade, in_inn)
+			_:
+				_render_inn_raw_fish(supply, can_trade)
+				if meals.is_empty(): _render_inn_legacy_meal(supply, can_trade)
+		if section != InnSupplySection.RAW:
+			ui.choice("민물고기 납품 보기", "", _render_inn_supply.bind(supply, "", false, InnSupplySection.RAW))
+		if section != InnSupplySection.MEALS and not meals.is_empty():
+			var meal_detail := "오늘 매입 잔여 %d/%d인분 · 18:00부터 주문" % [
+				int(supply.get("mealDeliveryRemaining", 0)), int(supply.get("mealDeliveryLimit", 0)),
+			]
+			ui.choice("생선구이 매입 · 주문", meal_detail, _render_inn_supply.bind(supply, "", false, InnSupplySection.MEALS))
+		if section != InnSupplySection.TABLE and not table.is_empty():
+			var table_detail := "운영 중 · 여관 매입 한도 확대" if bool(table.get("open", false)) \
+				else "목재 %d/%d개 모음" % [int(table.get("woodCollected", 0)), int(table.get("woodGoal", 0))]
+			ui.choice("공동 식탁", table_detail, _render_inn_supply.bind(supply, "", false, InnSupplySection.TABLE))
 	if not in_inn:
-		ui.paragraph("%s에서 민물고기를 낚아 여관 접수대의 마르텐에게 가져가세요." % _plaza_fishing_place())
-		if simplified_play.enabled:
-			if world.uses_plaza_v2():
-				ui.choice("낚시터로 이동", _plaza_fishing_place(), simplified_play._select_city_place.bind("river"), loading)
-			ui.choice("여관으로 이동", "접수대의 마르텐에게 납품", simplified_play._select_city_place.bind("inn"), loading)
-		else:
-			if world.uses_plaza_v2(): ui.choice("낚시 자리로 이동", _plaza_fishing_place(), _walk_to_plaza_water, loading)
-			for entity in world.entities:
-				if entity.kind == "building" and entity.id == "arcana_inn":
-					ui.choice("여관으로 이동", "접수대의 마르텐에게 납품", func():
-						ui.close_panel()
-						world.interact_with(entity), loading)
-					break
+		_inn_supply_plaza_directions(loading, section)
 	if not loading:
 		if not _inn_supply_pending.is_empty():
 			var title := "이전 거래 확인 · 재시도" if in_inn else "이전 거래 확인"
-			var previous := "생선구이 1인분 주문" if _inn_supply_pending.action == "buyMeal" else "민물고기 1마리 납품"
-			ui.choice(title, previous,
-				_inn_supply_trade.bind(str(_inn_supply_pending.action), int(_inn_supply_pending.day)))
-		ui.choice("재고 새로고침", "", _open_inn_supply)
+			var action := str(_inn_supply_pending.action)
+			var item_id := str(_inn_supply_pending.get("itemId", ""))
+			var previous := str(_inn_supply_pending.get("label", _inn_supply_offer_label(action, item_id)))
+			ui.choice(title, previous, _inn_supply_trade.bind(
+				action, int(_inn_supply_pending.day), item_id, previous, str(_inn_supply_pending.actionId)))
+		ui.choice("여관 기록 새로고침" if section == InnSupplySection.TABLE else "재고 새로고침",
+			"", _open_inn_supply_section.bind(section))
 		if in_inn: ui.choice("마르텐과 대화", "", _innkeeper_dialogue)
 	ui.choice("닫기", "", ui.close_panel)
 
-func _inn_supply_trade(action: String, day: int) -> void:
-	if busy or panel_mode != "inn_supply" or not ui.overlay.visible: return
+func _render_inn_raw_fish(supply: Dictionary, can_trade: bool) -> void:
+	var day := int(supply.get("day", 0))
+	var remaining := int(supply.get("remaining", 0))
+	var fish_price := int(supply.get("unitPrice", 0))
+	var daily_limit := int(supply.get("dailyLimit", 0))
+	ui.paragraph("%d일차 · 민물고기 매입 잔여 %d/%d마리" % [day, remaining, daily_limit], ui.GOLD)
+	ui.paragraph("민물고기 1마리당 %d골드 · 내 가방 %d마리\n여관의 민물고기 재고 %d마리" % [
+		fish_price, int(supply.get("owned", 0)), int(supply.get("fishStock", 0)),
+	])
+	if can_trade:
+		var label := "민물고기 1마리 납품"
+		ui.choice(label, "%d골드 받기" % fish_price,
+			_inn_supply_trade.bind("deliver", day, "", "%s · %d골드 받기" % [label, fish_price]),
+			not bool(supply.get("canDeliver", false)))
+
+func _render_inn_meals(supply: Dictionary, meals: Array, can_trade: bool) -> void:
+	var day := int(supply.get("day", 0))
+	var menu_open := bool(supply.get("menuOpen", false))
+	ui.paragraph("생선구이 매입 잔여 %d/%d인분" % [
+		int(supply.get("mealDeliveryRemaining", 0)), int(supply.get("mealDeliveryLimit", 0)),
+	], ui.GOLD)
+	ui.paragraph("내 집 주방이나 야외 모닥불에서 민물고기를 구워 납품할 수 있습니다.", ui.MUTED)
+	if not menu_open: ui.paragraph("여관의 생선구이는 18:00부터 주문할 수 있습니다.", ui.MUTED)
+	for value: Variant in meals:
+		if not value is Dictionary or value.get("itemId", "") not in INN_MEAL_IDS: continue
+		var item_id := str(value.itemId)
+		var meal_name := str(value.get("name", "생선구이"))
+		var owned := int(value.get("owned", 0))
+		var servings := int(value.get("servings", 0))
+		var sell_price := int(value.get("sellPrice", 0))
+		var buy_price := int(value.get("buyPrice", 0))
+		if can_trade:
+			var sell_label := "%s 1인분 납품" % meal_name
+			var buy_label := "%s 1인분 주문" % meal_name
+			ui.choice(sell_label, "%d골드 받기 · 가방 %d인분" % [sell_price, owned],
+				_inn_supply_trade.bind("sellMeal", day, item_id, "%s · %d골드 받기" % [sell_label, sell_price]),
+				not bool(value.get("canSell", false)))
+			ui.choice(buy_label, "%d골드 · 여관 재고 %d인분" % [buy_price, servings],
+				_inn_supply_trade.bind("buyMeal", day, item_id, "%s · %d골드" % [buy_label, buy_price]),
+				not menu_open or not bool(value.get("canBuy", false)))
+		else:
+			ui.paragraph("%s · 여관 재고 %d인분\n납품 %d골드 받기 · 주문 %d골드" % [meal_name, servings, sell_price, buy_price])
+
+func _render_inn_legacy_meal(supply: Dictionary, can_trade: bool) -> void:
+	var meal_price := int(supply.get("mealPrice", 0))
+	ui.paragraph("생선구이 %d인분 · 1인분 %d골드" % [int(supply.get("menuServings", 0)), meal_price])
+	if not bool(supply.get("menuOpen", false)):
+		ui.paragraph("18:00부터 오늘 들어온 생선을 구워 메뉴에 올립니다.", ui.MUTED)
+	if can_trade:
+		var label := "생선구이 1인분 주문"
+		ui.choice(label, "%d골드 · 가방에 담기" % meal_price,
+			_inn_supply_trade.bind("buyMeal", int(supply.get("day", 0)), "", "%s · %d골드" % [label, meal_price]),
+			not bool(supply.get("canBuyMeal", false)))
+
+func _render_inn_table(supply: Dictionary, table: Dictionary, can_trade: bool, in_inn: bool) -> void:
+	var wood_collected := int(table.get("woodCollected", 0))
+	var wood_goal := int(table.get("woodGoal", 0))
+	var owned := int(table.get("ownedWood", 0))
+	var contributed := int(table.get("contributedWood", 0))
+	ui.paragraph("공동 식탁 · 목재 %d/%d개 모음" % [wood_collected, wood_goal], ui.GOLD)
+	ui.paragraph("내가 보탠 목재 %d개 · 가방 %d개" % [contributed, owned])
+	if bool(table.get("open", false)):
+		var fish_limit := int(supply.get("dailyLimit", 0))
+		var meal_limit := int(supply.get("mealDeliveryLimit", 0))
+		ui.paragraph("공동 식탁 운영 중 · 여관의 하루 매입 한도가 늘었습니다.\n민물고기 %d → %d마리 · 생선구이 %d → %d인분" % [
+			fish_limit - int(table.get("fishLimitBonus", 0)), fish_limit,
+			meal_limit - int(table.get("mealLimitBonus", 0)), meal_limit,
+		])
+		return
+	ui.paragraph("목재가 모두 모이면 여관이 하루에 사들이는 민물고기와 생선구이가 늘어납니다.", ui.MUTED)
+	var size := int(table.get("contributionSize", 0))
+	var contributed_today := bool(table.get("contributedToday", false))
+	if contributed_today:
+		ui.paragraph("오늘은 이미 공동 식탁에 목재를 보탰습니다.", ui.MUTED)
+	elif owned < size:
+		ui.paragraph("벌목 도끼를 장착하고 %s의 벌목지에서 목재를 얻을 수 있습니다." % CityGrid.PLACES.forest[1], ui.MUTED)
+		if not in_inn:
+			var forest: Callable = simplified_play._select_city_place.bind("forest") if simplified_play.enabled \
+				else _travel_from_map.bind(CityGrid.FOREST_AREA)
+			ui.choice("%s으로 이동" % CityGrid.PLACES.forest[1], "벌목지", forest, _online_fighting())
+	if can_trade and size > 0:
+		var label := "공동 식탁에 목재 %d개 보태기" % size
+		ui.choice("목재 %d개 보태기" % size, "하루에 한 번",
+			_inn_supply_trade.bind("donateWood", int(supply.get("day", 0)), "", label),
+			not bool(table.get("canContribute", false)))
+
+func _inn_supply_plaza_directions(loading: bool, section: InnSupplySection) -> void:
+	var detail := "접수대의 마르텐에게 납품"
+	if section == InnSupplySection.MEALS:
+		detail = "접수대의 마르텐에게 주문 또는 납품"
+	elif section == InnSupplySection.TABLE:
+		detail = "접수대의 마르텐 · 공동 식탁"
+	if section == InnSupplySection.RAW:
+		ui.paragraph("%s에서 민물고기를 낚아 여관 접수대의 마르텐에게 가져가세요." % _plaza_fishing_place())
+	if simplified_play.enabled:
+		if section != InnSupplySection.TABLE and world.uses_plaza_v2():
+			ui.choice("낚시터로 이동", _plaza_fishing_place(), simplified_play._select_city_place.bind("river"), loading)
+		ui.choice("여관으로 이동", detail, simplified_play._select_city_place.bind("inn"), loading)
+	else:
+		if section != InnSupplySection.TABLE and world.uses_plaza_v2():
+			ui.choice("낚시 자리로 이동", _plaza_fishing_place(), _walk_to_plaza_water, loading)
+		for entity in world.entities:
+			if entity.kind == "building" and entity.id == "arcana_inn":
+				ui.choice("여관으로 이동", detail, func():
+					ui.close_panel()
+					world.interact_with(entity), loading)
+				break
+
+func _inn_supply_trade(action: String, day: int, item_id: String = "", intent_label: String = "", expected_id: String = "") -> void:
+	if busy or not _inn_supply_panel_visible() or not _inn_supply_valid_offer(action, item_id): return
 	if not combat_socket.socket_ready:
 		ui.toast("세계에 다시 연결한 뒤 거래해 주세요.")
 		return
@@ -1072,29 +1221,47 @@ func _inn_supply_trade(action: String, day: int) -> void:
 	var location := str(_state().get("location", ""))
 	var simple: bool = simplified_play.enabled
 	var connection: int = combat_socket.connection_generation
-	var recovering := not _inn_supply_pending.is_empty()
-	var key := INN_SUPPLY_PENDING_KEY + active_game
-	var now := int(Time.get_unix_time_from_system() * 1000)
+	var recovering := not expected_id.is_empty()
+	var section: InnSupplySection = InnSupplySection.RAW
+	if action in ["buyMeal", "sellMeal"]: section = InnSupplySection.MEALS
+	elif action == "donateWood": section = InnSupplySection.TABLE
+	_inn_supply_pending = _oldest_inn_supply_intent(active_game)
 	if not recovering:
+		if not _inn_supply_pending.is_empty():
+			ui.toast("이전 거래를 먼저 확인해 주세요.")
+			_open_inn_supply_section(section)
+			return
 		if location != "arcana_inn" or life.blocking() or life.sending or _online_fighting(): return
-		_inn_supply_pending = {"action": action, "day": day, "actionId": _new_action_id(), "createdAt": now}
-		_store(key, JSON.stringify(_inn_supply_pending))
-	elif _inn_supply_pending.action != action or int(_inn_supply_pending.day) != day:
+		_inn_supply_pending = {
+			"action": action, "day": day, "actionId": _new_action_id(),
+			"createdAt": int(Time.get_unix_time_from_system() * 1000),
+		}
+		if not item_id.is_empty(): _inn_supply_pending.itemId = item_id
+		if not intent_label.is_empty(): _inn_supply_pending.label = intent_label
+		if not town_trade_intents.remember("inn", active_game, _inn_supply_pending):
+			ui.toast("거래 정보를 저장하지 못했습니다. 여관 기록을 다시 불러와 주세요.")
+			_open_inn_supply_section(section)
+			return
+	elif _inn_supply_pending.get("actionId", "") != expected_id or _inn_supply_pending.get("action", "") != action \
+		or int(_inn_supply_pending.get("day", 0)) != day or _inn_supply_pending.get("itemId", "") != item_id:
+		_open_inn_supply_section(section)
 		return
 	var request := _inn_supply_request
-	var action_id := str(_inn_supply_pending.actionId)
+	var intent := _inn_supply_pending
+	var action_id := str(intent.actionId)
+	var created_at := int(intent.createdAt)
 	var body := {"controller": client_id, "action": action, "day": day, "actionId": action_id}
+	if not item_id.is_empty(): body.itemId = item_id
 	var route := _inn_supply_route()
-	var world_revision: int = online_presence.revision
 	busy = true
-	_render_inn_supply({}, "여관에서 거래를 확인하고 있습니다…", true)
+	_render_inn_supply({}, "여관에서 거래를 확인하고 있습니다…", true, section)
 	var reply: Dictionary = {}
 	if recovering:
 		var receipt_route := "/api/games/%s/actions/%s" % [active_game.uri_encode(), action_id.uri_encode()]
 		reply = await _api(receipt_route, HTTPClient.METHOD_GET, {}, 8.0)
 		# An old request can still have a receipt. Only resend recent, unrecorded intents at the counter.
 		if reply.get("status", "") == "unknown":
-			var since := int(Time.get_unix_time_from_system() * 1000) - int(_inn_supply_pending.createdAt)
+			var since := int(Time.get_unix_time_from_system() * 1000) - created_at
 			if since < 0 or since >= INN_SUPPLY_RETRY_MS:
 				reply = {"error": "inn_supply_intent_expired", "message": "처리되지 않은 이전 주문을 취소했습니다."}
 			elif _inn_supply_panel_current(request, active_game, "arcana_inn", simple) \
@@ -1105,40 +1272,36 @@ func _inn_supply_trade(action: String, day: int) -> void:
 	else:
 		reply = await _api(route, HTTPClient.METHOD_POST, body, 12.0)
 	busy = false
-	if game_id != active_game: return
 	var receipt: Variant = reply.get("actionReceipt")
 	var accepted: bool = receipt is Dictionary and receipt.get("id", "") == action_id
 	var supply: Variant = reply.get("innSupply")
 	var error := str(reply.get("error", ""))
 	var http_status := int(reply.get("httpStatus", 0))
-	var reconnect: bool = recovering and (http_status in [401, 403] or error in ["join_required", "connection_replaced"])
+	var reconnect: bool = http_status in [401, 403] or error in ["join_required", "connection_replaced"]
 	var uncertain: bool = not accepted and (bool(reply.get("retryable", false)) \
 		or http_status >= 500 or error in ["", "invalid_response"] or reconnect)
 	if not uncertain:
-		_inn_supply_pending = {}
-		var saved: Variant = _stored_json(key)
-		if saved is Dictionary and saved.get("actionId", "") == action_id:
-			_store(key, "")
-	var value: Variant = reply.get("snapshot")
-	if accepted and value is Dictionary and value.get("state") is Dictionary \
-		and combat_socket.connection_generation == connection \
-		and str(value.state.get("location", "")) == str(_state().get("location", "")) \
-		and int(value.get("placeRevision", -1)) == int(snapshot.get("onlinePlaceRevision", 0)) \
-		and int(reply.get("worldRevision", world_revision)) >= online_presence.revision:
-		_apply(value)
+		town_trade_intents.resolve("inn", active_game, intent)
+	if game_id != active_game: return
+	_inn_supply_pending = _oldest_inn_supply_intent(active_game)
+	var applied := accepted and _apply_trade_snapshot(reply.get("snapshot"), reply.get("worldRevision"), active_game, connection)
 	if not _inn_supply_panel_current(request, active_game, location, simple): return
 	if accepted:
-		var label := "생선구이 1인분을 가방에 담았습니다." if action == "buyMeal" else "민물고기 1마리를 납품했습니다."
-		if supply is Dictionary:
-			_render_inn_supply(supply, label)
+		var label := "민물고기 1마리를 납품했습니다."
+		match action:
+			"buyMeal": label = "%s 1인분을 가방에 담았습니다." % _inn_supply_meal_name(item_id)
+			"sellMeal": label = "%s 1인분을 납품했습니다." % _inn_supply_meal_name(item_id)
+			"donateWood": label = "공동 식탁에 목재를 보탰습니다."
+		if applied and supply is Dictionary:
+			_render_inn_supply(supply, label, false, section)
 		else:
 			ui.toast(label)
-			_open_inn_supply()
+			_open_inn_supply_section(section)
 	elif uncertain:
-		_render_inn_supply({}, str(reply.get("message", "거래 결과를 확인하지 못했습니다. 잠시 후 이전 거래를 확인해 주세요.")))
+		_render_inn_supply({}, str(reply.get("message", "거래 결과를 확인하지 못했습니다. 잠시 후 이전 거래를 확인해 주세요.")), false, section)
 	else:
 		ui.toast(str(reply.get("message", "거래할 수 없습니다.")))
-		_open_inn_supply()
+		_open_inn_supply_section(section)
 
 func _inn_quest_board() -> void:
 	if world.indoor != "arcana_inn": return
@@ -1224,12 +1387,13 @@ func _shop_menu(selling: bool = false) -> void:
 
 func _shop_trade(template: Dictionary, quantity: int, selling: bool) -> void:
 	if busy or world.indoor != "arcana_shop": return
+	var active_game := str(game_id)
 	var action = template.duplicate(true)
 	action.quantity = quantity
 	var success = await perform(action,false)
-	if world.indoor == "arcana_shop":
-		_shop_menu(selling)
-		if success: ui.toast("거래를 마쳤습니다.")
+	if game_id != active_game: return
+	if world.indoor == "arcana_shop" and panel_mode == "shop" and ui.overlay.visible: _shop_menu(selling)
+	if success: ui.toast("거래를 마쳤습니다.")
 
 func _scene(page: int = 0) -> void:
 	if world.indoor == "arcana_shop":
@@ -1308,6 +1472,33 @@ func _online_instant(command: String) -> bool:
 		return false
 	if int(result.get("transportGeneration",combat_socket.connection_generation))!=combat_socket.connection_generation: return false
 	_accept_online_result(result)
+	return true
+
+func _http_trade_self_revision() -> int:
+	if _trade_snapshot_game == game_id and _trade_snapshot_connection == combat_socket.connection_generation:
+		return _trade_snapshot_revision
+	return -1
+
+func _apply_trade_snapshot(value: Variant, revision: Variant, active_game: String, connection: int) -> bool:
+	if not online_world or game_id != active_game or not combat_socket.socket_ready \
+		or combat_socket.connection_generation != connection:
+		return false
+	if not value is Dictionary or value.get("gameId", "") != active_game or not value.get("state") is Dictionary:
+		return false
+	var location := str(_state().get("location", ""))
+	var place_revision: Variant = value.get("placeRevision")
+	if location.is_empty() or str(value.state.get("location", "")) != location \
+		or not (place_revision is int or place_revision is float) or place_revision < 0 \
+		or place_revision != int(snapshot.get("onlinePlaceRevision", -1)):
+		return false
+	var newest := maxi(online_presence.revision, _http_trade_self_revision())
+	# A tied full response cannot replace state already projected by the live stream.
+	if not (revision is int or revision is float) or revision < 0 or revision <= newest:
+		return false
+	_trade_snapshot_game = active_game
+	_trade_snapshot_connection = connection
+	_trade_snapshot_revision = int(revision)
+	_apply(value)
 	return true
 
 func _accept_online_result(result: Dictionary) -> void:
@@ -1578,6 +1769,7 @@ func _menu(kind: String) -> void:
 		"map": _map()
 		"inventory": _inventory()
 		"status": _status_menu()
+		"livelihood": livelihood.open()
 		"quests":
 			var quests: Array = []
 			for quest in snapshot.get("quests", []):
@@ -1589,6 +1781,8 @@ func _menu(kind: String) -> void:
 		"menu":
 			ui.open_tab_panel("모험 메뉴")
 			ui.menu_entry("상태", "기본 능력치 · 현재 상태 · 스킬 성장", _menu.bind("status"), "journal")
+			if online_world:
+				ui.menu_entry("생활 수첩", "어부 · 요리사 · 상인 · 제작자", _menu.bind("livelihood"), "journal")
 			if simplified_play.enabled:
 				ui.menu_entry("의뢰", "진행 중인 의뢰와 보상", _menu.bind("quests"), "quests")
 				ui.menu_entry("그래픽 모드", "지금 위치에서 지도로 돌아가기", simplified_play.set_enabled.bind(false), "display")
@@ -1706,6 +1900,7 @@ func _city_map() -> void:
 		return
 	if online_world and _state().get("location", "") == "arcana_plaza":
 		ui.choice("마을 게시판", "마르텐의 생선 매입 확인", _open_inn_supply, _online_fighting())
+		ui.choice("광장 장터", "물품 구매 · 위탁", plaza_market.open)
 		ui.choice("%s (2, 5)" % CityGrid.PLACES.forest[1], "벌목지로 이동", _travel_from_map.bind(CityGrid.FOREST_AREA), _online_fighting())
 		ui.choice("뿔소 초원 (5, 5)", "진흙코 뿔소 사냥터로 이동", _travel_from_map.bind(MEADOW_LOCATION), _online_fighting())
 		var gathered := int(_state().get("arcanaLife", {}).get("gatheredToday", 0))
@@ -1903,18 +2098,20 @@ func _inventory() -> void:
 		var master := _item_master(item_id)
 		entry.thumbnail = master.get("thumbnail", {})
 		var wearable := str(master.get("equipmentSlot", ""))
-		if online_world and life.CAMPFIRES.has(item_id):
+		var production: Dictionary = life.inventory_recipe(item_id) if online_world else {}
+		var recovery: int = life.food_hunger(item_id) if online_world else -1
+		if online_world and life.is_campfire(item_id):
 			entry.action_label = "설치"
-		elif online_world and item_id in ["treeBranch", "wood"]:
-			entry.action_label = "제작"
-			entry.hint = "나뭇가지 2개로 목재 3개를 만듭니다." if item_id == "treeBranch" else "목재 5개로 모닥불 1개를 만듭니다."
-		elif online_world and life.MATERIAL_NAMES.has(item_id):
-			entry.action_label = "요리"
-			entry.hint = "이 재료로 만들 요리를 집 주방이나 야외 모닥불에서 준비합니다."
-		elif online_world and life.FOODS.has(item_id):
+			entry.description = "야외에 설치해 요리할 수 있는 모닥불입니다."
+			entry.hint = life.campfire_hint(item_id)
+		elif not production.is_empty():
+			entry.action_label = "제작" if production.crafting else "요리"
+			entry.hint = life.recipe_hint(production.recipe)
+			if not production.crafting: entry.hint += " · 집 주방 또는 야외 모닥불"
+		elif recovery >= 0:
 			entry.action_label = "먹기"
 			entry.disabled = int(_state().get("arcanaLife",{}).get("hunger",100)) >= 100
-			entry.hint = "허기가 가득 차 있습니다." if entry.disabled else "허기 %d 회복" % int(life.FOODS[item_id])
+			entry.hint = "허기가 가득 차 있습니다." if entry.disabled else "허기 %d 회복" % recovery
 		elif item_id == "fishingRod":
 			entry.equipped = str(_state().get("flags",{}).get("arcana_life_tool","")) == "fishingRod"
 			entry.action_label = "해제" if entry.equipped else "장착"
@@ -1932,18 +2129,18 @@ func _inventory() -> void:
 
 func _inventory_item_action(item_id: String) -> void:
 	if busy or int(_state().get("inventory",{}).get(item_id,0)) <= 0: return
-	if online_world and life.CAMPFIRES.has(item_id):
-		life.begin_placement(item_id)
-		return
-	if online_world and item_id in ["treeBranch", "wood"]:
-		life.craft_menu(false, "lumber" if item_id == "treeBranch" else "campfire")
-		return
-	if online_world and life.MATERIAL_NAMES.has(item_id):
-		prepare_cooking(item_id)
-		return
-	if online_world and life.FOODS.has(item_id):
-		await life.eat(item_id)
-		return
+	if online_world:
+		if life.is_campfire(item_id):
+			life.begin_placement(item_id)
+			return
+		var production: Dictionary = life.inventory_recipe(item_id)
+		if not production.is_empty():
+			if production.crafting: life.craft_menu(false, str(production.recipe.id))
+			else: prepare_cooking(item_id)
+			return
+		if life.food_hunger(item_id) >= 0:
+			await life.eat(item_id)
+			return
 	if item_id == "fishingRod":
 		await _set_life_tool(str(_state().get("flags",{}).get("arcana_life_tool","")) != "fishingRod", true)
 		return
@@ -1966,20 +2163,21 @@ func prepare_fish() -> void:
 
 func prepare_cooking(ingredient_id: String) -> void:
 	if busy or not online_world or life.blocking() or fishing.visible: return
+	if world.indoor != "arcana_home" and (not world.indoor.is_empty() or _online_fighting()):
+		ui.toast("전투를 마친 뒤 요리할 수 있습니다." if _online_fighting() else "집 주방이나 야외 모닥불로 가 주세요.")
+		return
+	if not life.prefer_cooking_ingredient(ingredient_id):
+		ui.toast("이 재료를 사용하는 조리법이 없습니다.")
+		return
 	if world.indoor == "arcana_home":
-		life.prefer_cooking_ingredient(ingredient_id)
 		home_walk_to("home_kitchen")
 		return
 	var bag: Dictionary = _state().get("inventory", {})
-	if not world.indoor.is_empty() or _online_fighting():
-		ui.toast("전투를 마친 뒤 요리할 수 있습니다." if _online_fighting() else "집 주방이나 야외 모닥불로 가 주세요.")
-		return
 	if ui.overlay.visible: ui.close_panel()
 	_sync_world_input()
 	if not world.enabled:
 		ui.toast("세계 서버에 연결한 뒤 다시 시도해 주세요.")
 		return
-	life.prefer_cooking_ingredient(ingredient_id)
 	var fires: Array = world.entities.filter(func(entity): return entity.kind == "campfire")
 	fires.sort_custom(func(a, b): return world.player_position.distance_squared_to(a.pos) < world.player_position.distance_squared_to(b.pos))
 	for fire in fires:
@@ -1988,7 +2186,7 @@ func prepare_cooking(ingredient_id: String) -> void:
 		if world.clicked_interaction_id == str(fire.id):
 			ui.toast("모닥불로 이동합니다.")
 			return
-	for item_id: String in life.CAMPFIRES:
+	for item_id: String in life.campfire_items():
 		if int(bag.get(item_id, 0)) > 0:
 			life.begin_placement(item_id, true)
 			return
