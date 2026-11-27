@@ -1,12 +1,13 @@
 import type { ActionChoice, GameState } from "./schemas";
 import { appendLogEntry } from "./state-utils";
+import { WOODCUTTING_AXE } from "./arcana-forest";
 
 export const ARCANA_SHOP_GOODS = [
   { itemId: "mushroom", name: "버섯", buy: 2, sell: 1, detail: "요리 재료" },
   { itemId: "potato", name: "감자", buy: 2, sell: 1, detail: "요리 재료" },
   { itemId: "rawMeat", name: "고기", buy: 2, sell: 1, detail: "요리 재료" },
   { itemId: "treeBranch", name: "나뭇가지", buy: 2, sell: 1, detail: "요리 재료" },
-
+  { itemId: WOODCUTTING_AXE, name: "벌목 도끼", buy: 5, sell: 2, detail: "주무기에 장착하는 벌목 도구" },
   { itemId: "manaPotion", name: "마나 포션", buy: 10, sell: 4, detail: "MP 20 회복" },
   { itemId: "moonHerb", name: "달빛 약초", buy: 30, sell: 10, detail: "연금 재료" },
   { itemId: "arcaneDust", name: "비전 가루", buy: 60, sell: 20, detail: "마도구 제작 재료" },
@@ -28,7 +29,12 @@ export function tradeArcanaShop(state: GameState, side: "buy_item" | "sell_item"
   state.money += buying ? -total : total;
   const remaining = count + (buying ? quantity : -quantity);
   if (remaining > 0) state.inventory[itemId] = remaining;
-  else delete state.inventory[itemId];
+  else {
+    delete state.inventory[itemId];
+    if (itemId === WOODCUTTING_AXE && state.flags.arcana_equipped_mainHand === itemId) {
+      delete state.flags.arcana_equipped_mainHand;
+    }
+  }
   appendLogEntry(state, `${good.name} ${quantity}개를 ${total}골드에 ${buying ? "구입했다" : "판매했다"}.`);
 }
 

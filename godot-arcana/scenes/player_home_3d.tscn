@@ -14,7 +14,7 @@
 [ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/living-bookcase.glb" id="LivingBookcase"]
 [ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/living-worktable.glb" id="LivingWorktable"]
 [ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/living-stool.glb" id="LivingStool"]
-[ext_resource type="ArrayMesh" path="res://art/source/shop-room-blender/wooden-crate-pixel-mesh.res" id="StorageChestMesh"]
+[ext_resource type="PackedScene" path="res://art/source/player-home-real-scale/home-storage-chest.glb" id="StorageChestModel"]
 [ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/living-planter.glb" id="LivingPlanter"]
 [ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/living-rug.glb" id="LivingRug"]
 [ext_resource type="PackedScene" path="res://art/source/player-home-campus-a/entry-rug.glb" id="EntryRug"]
@@ -42,11 +42,16 @@ ambient_light_energy = 0.45
 
 [node name="PlayerHome3D" type="Node3D"]
 script = ExtResource("runtime")
+metadata/home_grid = {"version": 3, "origin": Vector2(48, 64), "cell_size": 16, "rooms": PackedStringArray("KKKKKBBBB", "KKKKKBBBB", "KKKKKBBBB", "KKLLLLLLL", "WWLLLLLLL", "WWLLLLLLL"), "reserved": PackedStringArray("5:2", "5:3", "1:4", "2:4", "4:5")}
 
 [node name="Room" type="Node3D" parent="."]
 
 [node name="Architecture" parent="Room" instance=ExtResource("Architecture")]
-metadata/layout_collisions = [Rect2(0, 0, 24, 4), Rect2(0, 4, 3, 6.25), Rect2(12, 4, 12, 6.25), Rect2(0, 10.25, 24, 10.25), Rect2(7.53, 4, 0.12, 3), Rect2(7.53, 7, 0.33, 0.12), Rect2(8.71, 7, 3.29, 0.12), Rect2(3, 7.9, 2.47, 0.12), Rect2(5.35, 8.02, 0.12, 0.13), Rect2(5.35, 8.95, 0.12, 1.3)]
+metadata/layout_collisions = [Rect2(0, 0, 24, 4), Rect2(0, 4, 3, 6.25), Rect2(12, 4, 12, 6.25), Rect2(0, 10.25, 24, 10.25)]
+
+[node name="PartitionEdges" type="Node3D" parent="Room"]
+metadata/layout_edge_walls = true
+metadata/layout_collisions = [Rect2(7.88, 4, 0.12, 3), Rect2(7.88, 7, 0.12, 0.12), Rect2(9, 7, 3, 0.12), Rect2(3, 7.88, 2.12, 0.12), Rect2(5, 9, 0.12, 1.25)]
 
 [node name="RearWalls" parent="Room" instance=ExtResource("RearWalls")]
 
@@ -66,7 +71,7 @@ scale = Vector3(0.36, 0.8, 0.386)
 metadata/layout_collisions = [Rect2(-0.785, -2.945, 1.684, 5.89)]
 
 [node name="KitchenShelf" parent="Room" instance=ExtResource("KitchenShelf")]
-position = Vector3(7.302, 0, 4.91)
+position = Vector3(7.633, 0, 4.91)
 rotation = Vector3(0, -1.5707963, 0)
 scale = Vector3(0.45, 0.6, 0.48)
 metadata/layout_collisions = [Rect2(-1.435, -0.465, 2.87, 0.93)]
@@ -76,78 +81,91 @@ position = Vector3(3.3, 0, 5.18)
 metadata/layout_collisions = [Rect2(-0.3, -0.9, 0.6, 1.8)]
 
 [node name="KitchenDiningTable" parent="Room" instance=ExtResource("DiningTable")]
-position = Vector3(5.4, 0, 5.7)
+position = Vector3(4.5, 0, 6)
+rotation = Vector3(0, -1.5707963, 0)
 scale = Vector3(1, 1.08, 1)
 metadata/layout_collisions = [Rect2(-0.6, -0.35, 1.2, 0.7)]
+metadata/home_furniture = {"id": "kitchen-dining-table", "asset": "dining-table", "name": "식탁", "footprint": Vector2i(2, 1), "pivot": Vector2(0, 0)}
 
 [node name="KitchenDiningStoolRear" parent="Room" instance=ExtResource("LivingStool")]
-position = Vector3(5.4, 0, 5.11)
+position = Vector3(5.5, 0, 4.5)
 scale = Vector3(0.65, 0.84, 0.65)
 metadata/layout_collisions = [Rect2(-0.335, -0.335, 0.67, 0.67)]
+metadata/home_furniture = {"id": "kitchen-stool-rear", "asset": "stool", "name": "주방 스툴 1", "footprint": Vector2i(1, 1), "pivot": Vector2(0, 0)}
 
 [node name="KitchenDiningStoolFront" parent="Room" instance=ExtResource("LivingStool")]
-position = Vector3(5.4, 0, 6.29)
+position = Vector3(5.5, 0, 6.5)
 scale = Vector3(0.65, 0.84, 0.65)
 metadata/layout_collisions = [Rect2(-0.335, -0.335, 0.67, 0.67)]
+metadata/home_furniture = {"id": "kitchen-stool-front", "asset": "stool", "name": "주방 스툴 2", "footprint": Vector2i(1, 1), "pivot": Vector2(0, 0)}
 
 [node name="BedroomBed" parent="Room" instance=ExtResource("BedroomBed")]
-position = Vector3(10.65, 0, 5.1)
-scale = Vector3(0.82, 0.82, 0.695)
+position = Vector3(10, 0, 5.003472)
+scale = Vector3(0.82, 0.82, 0.6944)
 metadata/layout_collisions = [Rect2(-0.915, -1.445, 1.83, 2.88)]
 metadata/layout_entity = {"id": "home_bed", "kind": "home_bed", "name": "잠자기", "pos": Vector2(0, 2.08), "interaction_radius": 14.0}
+metadata/home_furniture = {"id": "bedroom-bed", "asset": "bed", "name": "침대", "footprint": Vector2i(2, 2), "pivot": Vector2(0, -0.005), "can_store": false}
 
 [node name="BedroomWardrobe" parent="Room" instance=ExtResource("BedroomWardrobe")]
-position = Vector3(7.94, 0, 5.22)
+position = Vector3(8.294, 0, 5)
 rotation = Vector3(0, 1.5707963, 0)
 scale = Vector3(0.98, 0.68, 0.33)
 metadata/layout_collisions = [Rect2(-0.925, -0.815, 1.85, 1.761)]
+metadata/home_furniture = {"id": "bedroom-wardrobe", "asset": "wardrobe", "name": "옷장", "footprint": Vector2i(2, 1), "pivot": Vector2(0, 0.0655)}
 
 [node name="BedroomLamp" parent="Room" instance=ExtResource("BedroomLamp")]
-position = Vector3(11.7, 0, 4.46)
+position = Vector3(11.7009, 0, 4.24285)
 scale = Vector3(0.46, 0.57, 0.43)
 metadata/layout_collisions = [Rect2(-0.585, -0.495, 1.17, 1.05)]
+metadata/home_furniture = {"id": "bedroom-lamp", "asset": "floor-lamp", "name": "스탠드 조명", "footprint": Vector2i(1, 1), "pivot": Vector2(0, 0.03), "attachments": ["Lighting/ReceptionLight"]}
 
 [node name="LivingSofa" parent="Room" instance=ExtResource("LivingSofa")]
-position = Vector3(10.98, 0.008, 7.75)
+position = Vector3(11, 0.008, 8.4945)
+rotation = Vector3(0, 3.1415927, 0)
 scale = Vector3(1, 0.96, 0.55)
 metadata/layout_collisions = [Rect2(-0.88, -0.84, 1.76, 1.66)]
 metadata/layout_entity = {"id": "home_sofa", "kind": "home_sofa", "name": "쉬거나 식사하기", "pos": Vector2(0, 1.59), "interaction_radius": 13.0, "seat_room": "arcana_home", "seat_name": "안락의자", "seat_visual": Vector2(0, 0.13)}
+metadata/home_furniture = {"id": "living-seat", "asset": "armchair", "name": "안락의자", "footprint": Vector2i(2, 1), "pivot": Vector2(0, -0.01), "can_store": false}
 
 [node name="LivingBookcase" parent="Room" instance=ExtResource("LivingBookcase")]
-position = Vector3(11.04, 0.008, 10.02)
-rotation = Vector3(0, 3.1415927, 0)
+position = Vector3(6.5063, 0.008, 4.9944)
+rotation = Vector3(0, -1.5707963, 0)
 scale = Vector3(0.56, 0.96, 0.42)
 metadata/layout_collisions = [Rect2(-1.03, -0.53, 2.08, 1.09)]
+metadata/home_furniture = {"id": "living-bookcase", "asset": "bookcase", "name": "책장", "footprint": Vector2i(2, 1), "pivot": Vector2(0.01, 0.015)}
 
 [node name="LivingWorktable" parent="Room" instance=ExtResource("LivingWorktable")]
-position = Vector3(9.26, 0, 7.73)
+position = Vector3(8, 0, 8.498)
 scale = Vector3(0.46, 0.8, 0.4)
 metadata/layout_collisions = [Rect2(-1.3, -0.74, 2.6, 1.49)]
 metadata/layout_entity = {"id": "home_table", "kind": "home_table", "name": "제작하기", "pos": Vector2(-1.95, 0.35), "interaction_radius": 14.0}
+metadata/home_furniture = {"id": "living-worktable", "asset": "worktable", "name": "작업대", "footprint": Vector2i(2, 1), "pivot": Vector2(0, 0.005), "can_store": false, "attachments": ["Room/LivingStudyLamp"]}
 
 [node name="LivingStool" parent="Room" instance=ExtResource("LivingStool")]
-position = Vector3(9.3, 0, 8.35)
+position = Vector3(6.5, 0, 8.5)
 scale = Vector3(0.67, 0.84, 0.67)
 metadata/layout_collisions = [Rect2(-0.34, -0.34, 0.68, 0.68)]
+metadata/home_furniture = {"id": "living-stool", "asset": "stool", "name": "거실 스툴", "footprint": Vector2i(1, 1), "pivot": Vector2(0, 0)}
 
 [node name="StorageChest" type="Node3D" parent="Room"]
-position = Vector3(10.25, 0, 8.5625)
+position = Vector3(9.5, 0, 8.484375)
 metadata/layout_collisions = [Rect2(-0.3125, -0.25, 0.625, 0.53125)]
 metadata/layout_entity = {"id": "home_storage", "kind": "home_storage", "name": "보관함", "pos": Vector2(-0.25, 0.6875), "interaction_radius": 14.0}
+metadata/home_furniture = {"id": "storage-chest", "asset": "storage-chest", "name": "보관함", "footprint": Vector2i(1, 1), "pivot": Vector2(0, 0.015625), "can_store": false}
 
-[node name="ChestMesh" type="MeshInstance3D" parent="Room/StorageChest"]
-scale = Vector3(0.52, 0.72, 0.42)
-mesh = ExtResource("StorageChestMesh")
+[node name="ChestModel" parent="Room/StorageChest" instance=ExtResource("StorageChestModel")]
 
 [node name="LivingCoffeeTable" parent="Room" instance=ExtResource("CoffeeTable")]
-position = Vector3(10.96, 0.01, 9.24)
+position = Vector3(10.5, 0.01, 9.5)
 scale = Vector3(1, 1.23, 1)
 metadata/layout_collisions = [Rect2(-0.475, -0.25, 0.95, 0.5)]
+metadata/home_furniture = {"id": "living-coffee-table", "asset": "coffee-table", "name": "낮은 탁자", "footprint": Vector2i(1, 1), "pivot": Vector2(0, 0)}
 
 [node name="LivingPlanter" parent="Room" instance=ExtResource("LivingPlanter")]
-position = Vector3(11.73, 0, 9.52)
+position = Vector3(11.5, 0, 9.5)
 scale = Vector3(0.52, 0.66, 0.52)
 metadata/layout_collisions = [Rect2(-0.3, -0.29, 0.6, 0.58)]
+metadata/home_furniture = {"id": "living-planter", "asset": "planter", "name": "화분", "footprint": Vector2i(1, 1), "pivot": Vector2(0, 0)}
 
 [node name="BathTub" parent="Room" instance=ExtResource("BathTub")]
 position = Vector3(3.9, 0, 9.875)
@@ -162,26 +180,31 @@ position = Vector3(3.37, 0, 8.345)
 metadata/layout_collisions = [Rect2(-0.19, -0.325, 0.38, 0.65)]
 
 [node name="EntryBench" parent="Room" instance=ExtResource("EntryBench")]
-position = Vector3(8.9, 0, 10.05)
+position = Vector3(9, 0, 9.775)
 rotation = Vector3(0, 3.1415927, 0)
 scale = Vector3(1, 1.25, 1)
 metadata/layout_collisions = [Rect2(-0.65, -0.2, 1.3, 0.4)]
+metadata/home_furniture = {"id": "entry-bench", "asset": "entry-bench", "name": "현관 벤치", "footprint": Vector2i(2, 1), "pivot": Vector2(0, 0)}
 
 [node name="LivingRug" parent="Room" instance=ExtResource("LivingRug")]
-position = Vector3(10.42, 0.012, 8.98)
+position = Vector3(10.5, 0.012, 8.5)
 scale = Vector3(0.38, 0.75, 0.52)
+metadata/home_furniture = {"id": "living-rug", "asset": "living-rug", "name": "거실 러그", "footprint": Vector2i(3, 3), "pivot": Vector2(0, 0), "layer": "rug", "occupancy": Rect2(-3.15, -2.27, 6.3, 4.54)}
 
 [node name="EntryRug" parent="Room" instance=ExtResource("EntryRug")]
-position = Vector3(7.475, 0.012, 9.91)
+position = Vector3(6.5, 0.012, 9.5)
 scale = Vector3(0.41, 0.75, 0.43)
+metadata/home_furniture = {"id": "entry-rug", "asset": "entry-rug", "name": "현관 매트", "footprint": Vector2i(1, 1), "pivot": Vector2(0, 0), "layer": "rug", "occupancy": Rect2(-1.105, -0.54, 2.21, 1.08)}
 
 [node name="KitchenRunner" parent="Room" instance=ExtResource("KitchenRunner")]
-position = Vector3(4.14, 0.012, 5.85)
+position = Vector3(4.5, 0.012, 5.5)
 scale = Vector3(0.36, 0.75, 0.35)
+metadata/home_furniture = {"id": "kitchen-runner", "asset": "kitchen-runner", "name": "주방 러너", "footprint": Vector2i(1, 3), "pivot": Vector2(0, 0), "layer": "rug", "occupancy": Rect2(-0.765, -2.918, 1.53, 5.836)}
 
 [node name="BedroomRug" parent="Room" instance=ExtResource("BedroomRug")]
-position = Vector3(10.18, 0.012, 5.9)
+position = Vector3(10, 0.012, 6)
 scale = Vector3(0.8, 0.75, 0.52)
+metadata/home_furniture = {"id": "bedroom-rug", "asset": "bedroom-rug", "name": "침실 러그", "footprint": Vector2i(2, 2), "pivot": Vector2(0, 0), "layer": "rug", "occupancy": Rect2(-1.005, -1.853, 2.01, 3.706)}
 
 [node name="KitchenTaskLantern" parent="Room" instance=ExtResource("KitchenTaskLantern")]
 position = Vector3(3.3, 0.88, 4.75)
@@ -195,7 +218,7 @@ omni_range = 2.75
 omni_attenuation = 1.48
 
 [node name="LivingStudyLamp" parent="Room" instance=ExtResource("LivingStudyLamp")]
-position = Vector3(9.62, 0.8733, 7.59)
+position = Vector3(8.36, 0.8733, 8.358)
 scale = Vector3(0.68, 0.68, 0.68)
 
 [node name="StudyLight" type="OmniLight3D" parent="Room/LivingStudyLamp"]
@@ -236,7 +259,7 @@ omni_range = 2.1
 omni_attenuation = 1.3
 
 [node name="ReceptionLight" type="OmniLight3D" parent="Lighting"]
-position = Vector3(11.7, 0.97, 4.46)
+position = Vector3(11.7009, 0.97, 4.24285)
 light_color = Color(1, 0.72, 0.47, 1)
 light_energy = 0.82
 omni_range = 2.2

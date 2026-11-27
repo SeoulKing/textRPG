@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ItemCardSchema } from "./item";
 export const ArcanaItemCategorySchema=z.enum(["life_tool","ingredient","food","material","placeable","potion","tool","apparel","accessory"]);
-export const ArcanaWearableSlotSchema=z.enum(["head","top","gloves","ringLeft","bottom","earrings","necklace","outerwear","ringRight","feet"]);
+export const ArcanaWearableSlotSchema=z.enum(["head","top","gloves","ringLeft","bottom","earrings","necklace","outerwear","ringRight","feet","mainHand"]);
 export const ArcanaItemEquipmentSlotSchema=z.union([
   ArcanaWearableSlotSchema.exclude(["ringLeft","ringRight"]),z.enum(["ring","lifeTool"]),
 ]);

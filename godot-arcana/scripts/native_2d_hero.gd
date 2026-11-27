@@ -9,6 +9,8 @@ const EquipmentAppearance = preload("res://scripts/characters/hero_v12/equipment
 const ROD_SCENE := preload("res://art/props/fishing/mystic_rod.glb")
 const ROD_LENGTH := 92.0
 const ROD_CAPTURE_SIZE := Vector2i(304, 240)
+const AXE_SCENE := preload("res://scenes/props/shared/tools/woodcutting_axe.tscn")
+const AXE_SWING_MS := 430
 
 var _model: Node3D
 var _model_skeleton: Skeleton3D
@@ -17,10 +19,11 @@ var _player: AnimationPlayer
 const WALK_STRIDE := 18.0
 const RUN_STRIDE := 30.0
 const TURN_RESPONSE := 0.045
+const COMBAT_TURN_RESPONSE := 0.026
 
 var move_strength := -1.0 # Local simulation supplies actual travel / maximum step.
 var _run_weight := 0.0
-var _locomotion_visual_yaw := NAN
+var _presented_yaw := NAN
 var _run: Animation
 var _walk: Animation
 var _idle: Animation
@@ -32,6 +35,9 @@ var _rod_model: Node3D
 var _rod_mesh: MeshInstance3D
 var _rod_flex := -1
 var _rod_cast_lag := -1
+var _axe_model: Node3D
+var _axe_equipped := false
+var _axe_swing_start := -1
 
 
 func _ready() -> void:
@@ -71,6 +77,22 @@ func _ready() -> void:
 
 func set_equipment(items: Dictionary) -> void:
 	_equipment_appearance.apply(items)
+	_axe_equipped = items.get("mainHand", "") == "woodcutting_axe"
+	if not _axe_equipped and is_instance_valid(_axe_model):
+		_axe_model.hide()
+
+
+func play_woodcutting_swing(heading: Vector2) -> void:
+	if not _axe_equipped:
+		return
+	face_attack(heading)
+	_axe_swing_start = Time.get_ticks_msec()
+
+
+func present_cooking_pose(heading: Vector2, progress: float) -> void:
+	face_attack(heading)
+	display_direction = direction_for_yaw(last_yaw, camera_yaw)
+	_present("cook", display_direction, 0.0, 0.0, progress, {}, Vector3.ZERO, 0.0, last_yaw - camera_yaw)
 
 
 func _present(clip: String, direction: int, phase: float, movement: float, progress: float = 0.0, action: Dictionary = {}, fishing_pose: Vector3 = Vector3.ZERO, rod_carry: float = 0.0, visual_yaw: float = NAN) -> bool:
@@ -78,17 +100,26 @@ func _present(clip: String, direction: int, phase: float, movement: float, progr
 		_rod_model.hide()
 	var model_ready := is_instance_valid(_model)
 	var yaw := float(direction) * TAU / 8.0 if is_nan(visual_yaw) else visual_yaw
-	# The mesh can follow the actual travel angle between its eight authored views.
-	var locomotion := clip in ["idle", "walk", "run"] and is_nan(visual_yaw)
-	var free_facing := preview_clip.is_empty() and action.is_empty() and aim_facing.is_zero_approx() \
-		and cast_age < 0.0 and dash_age < 0.0 and bench_state.is_empty()
-	if model_ready and locomotion and free_facing:
+	if _axe_equipped and clip == "idle" and _axe_swing_start >= 0 and bench_state.is_empty():
+		var swing := float(Time.get_ticks_msec() - _axe_swing_start) / AXE_SWING_MS
+		if swing < 1.0:
+			clip = "chop"
+			progress = swing
+			yaw = last_yaw - camera_yaw
+			direction = direction_for_yaw(last_yaw, camera_yaw)
+			visual_yaw = yaw
+		else:
+			_axe_swing_start = -1
+	# The 3D mesh can face the actual aim, dodge and travel vectors between
+	# the eight sprite directions. Keep explicit preview and activity angles.
+	if model_ready and is_nan(visual_yaw) and preview_clip.is_empty():
 		yaw = last_yaw - camera_yaw
-		if not bench_reduced and not is_nan(_locomotion_visual_yaw):
-			var difference := angle_difference(_locomotion_visual_yaw, yaw)
+		if not bench_reduced and not is_nan(_presented_yaw):
+			var difference := angle_difference(_presented_yaw, yaw)
 			if absf(difference) > 0.001:
-				yaw -= difference * exp(-gameplay_pose_delta / TURN_RESPONSE)
-	_locomotion_visual_yaw = yaw
+				var response := COMBAT_TURN_RESPONSE if cast_age >= 0.0 or dash_age >= 0.0 or not aim_facing.is_zero_approx() else TURN_RESPONSE
+				yaw -= difference * exp(-gameplay_pose_delta / response)
+	_presented_yaw = yaw
 	visual_yaw = yaw
 	# Plain locomotion poses come entirely from the mesh animations. Only build
 	# reference joints when another pose or its fading arms can affect the mesh.
@@ -102,29 +133,45 @@ func _present(clip: String, direction: int, phase: float, movement: float, progr
 	if not model_ready:
 		return true
 	_model.rotation.y = yaw
-	var stride := clampf(movement, 0.0, 1.0) if clip in ["run", "walk", "rod_carry"] else 0.0
+	var stride := clampf(movement, 0.0, 1.0) if clip in ["run", "walk", "rod_carry", "cast"] else 0.0
 	if not preview_clip.is_empty() and clip in ["run", "walk"]:
 		stride = 1.0
 	_sample_locomotion(phase, stride)
 
+	if clip == "cook":
+		var reach := smoothstep(0.0, 0.16, progress) * (1.0 - smoothstep(0.86, 1.0, progress))
+		_action_retarget.apply(assembler.points, yaw, reach)
+		_update_axe(clip, yaw, progress)
+		return true
+
 	var action_blend := maxf(float(action.get("weight", 0.0)), float(action.get("from_weight", 0.0)))
 	# The shared source points have already blended in action weight and casting arms.
-	if clip in ["bench", "fishing", "rod_carry", "cast"] or action_blend > 0.0 or _arm_pose.length_squared() > .0001:
+	# Ease in and out of the Blender locomotion layer as the authored pose fades.
+	var retarget_blend := smoothstep(0.0, 0.32, action_blend)
+	if clip in ["bench", "fishing", "rod_carry", "cast", "chop"] or action_blend > 0.0 or _arm_pose.length_squared() > .0001:
 		var points: Dictionary = assembler.points.duplicate()
 		if action_blend > 0.0:
 			points["end_pitch"] = assembler.source.last_end_pitch
 			# Authored full-body actions drive the boot as a whole. Fade out its walking flex.
 			for toe: int in _toe_rest:
 				var gait_rotation := _model_skeleton.get_bone_pose_rotation(toe)
-				_model_skeleton.set_bone_pose_rotation(toe, gait_rotation.slerp(_toe_rest[toe], action_blend))
+				_model_skeleton.set_bone_pose_rotation(toe, gait_rotation.slerp(_toe_rest[toe], action_blend * retarget_blend))
 		if clip == "rod_carry":
 			_action_retarget.apply_upper_body(points, yaw)
 		elif clip == "fishing":
 			_action_retarget.apply_fishing(points, yaw, _fishing_cast_drive)
-		else:
+		elif clip in ["bench", "chop"]:
 			_action_retarget.apply(points, yaw, 1.0)
+		elif action_blend > 0.0:
+			_action_retarget.apply(points, yaw, retarget_blend)
+		else:
+			_action_retarget.apply_spell_upper_body(points, yaw, smoothstep(0.0, 0.30, _arm_pose.length()))
 	else:
 		_model_skeleton.force_update_all_bone_transforms()
+	if preview_clip.is_empty() and clip in ["idle", "walk", "run", "cast"]:
+		var recoil := recoil_direction().rotated(yaw + camera_yaw)
+		_action_retarget.apply_hurt_recoil(recoil)
+	_update_axe(clip, yaw, progress)
 	return true
 
 
@@ -189,6 +236,20 @@ func _grip_position() -> Vector3:
 	# The hand bone starts at the wrist. Seat the handle in the palm.
 	var palm := _model_skeleton.get_bone_global_pose(_hand) * Vector3(0.0, 0.042, 0.0)
 	return _model_skeleton.to_global(palm)
+
+
+func _update_axe(clip: String, yaw: float, progress: float) -> void:
+	if not _axe_equipped or clip not in ["idle", "walk", "run", "chop"]:
+		if is_instance_valid(_axe_model): _axe_model.hide()
+		return
+	if not is_instance_valid(_axe_model):
+		_axe_model = AXE_SCENE.instantiate() as Node3D
+		fixed_camera.get_parent().add_child(_axe_model)
+	var motion := Assembler.woodcutting_motion(progress) if clip == "chop" else Vector2.ZERO
+	var pitch := 0.19 - 0.89 * motion.x + 1.44 * motion.y
+	var hold := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch) * Basis(Vector3.UP, PI * 0.5)
+	_axe_model.global_transform = Transform3D(hold.scaled(Vector3.ONE * ActionRetarget.MODEL_SCALE), _grip_position())
+	_axe_model.show()
 
 
 func _rod_grip() -> Variant:

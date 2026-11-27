@@ -18,7 +18,7 @@
 
 ## 벽 표시 설정
 
-게임 카메라에서 화면 왼쪽 위와 오른쪽 위의 뒤 벽면과 창은 항상 표시합니다. 기본 화면에서 카메라 쪽 외벽은 0.30m, 실내 칸막이는 0.57m 높이에서 절개합니다. **모험 메뉴 → 화면 설정 → 내 집 앞벽과 칸막이**를 켜면 윗부분도 나타납니다. 이 설정은 기기에 저장되며 통행과 상호작용 좌표는 두 모드에서 같습니다.
+게임 카메라에서 화면 왼쪽 위와 오른쪽 위의 뒤 벽면과 창은 항상 표시합니다. 기본 화면에서 카메라 쪽 외벽과 동쪽 외벽에 닿는 침실 남쪽 칸막이는 0.30m에서 절개하며, 이 연결부에는 하나로 이어지는 상단 덮개를 씁니다. 다른 실내 칸막이는 0.57m에서 절개합니다. **모험 메뉴 → 화면 설정 → 내 집 앞벽과 칸막이**를 켜면 윗부분도 나타납니다. 이 설정은 기기에 저장되며 통행과 상호작용 좌표는 두 모드에서 같습니다.
 
 ## 실내 개선 제안 · 세면·목욕실과 현관 수납
 
@@ -49,8 +49,8 @@ The two tall joined rear wall faces occupying the UPPER LEFT and UPPER RIGHT rem
 
 [실측형 평면도](home-real-scale-floor-plan.png)를 본편 ‘내 집’의 실내에 적용했습니다. 외곽은 `9,400 × 6,650mm`, 외벽 안쪽은 `9,000 × 6,250mm`입니다. 외벽 안쪽 면적 `56.25㎡`에는 실내 칸막이가 포함됩니다. 외벽 두께는 `200mm`, 칸막이는 `120mm`입니다.
 
-- 침실은 `4,350 × 3,000mm`로 잡고, 옷장과 침대 사이 및 침대 발치에 이동 공간을 뒀습니다. 현관에서 연결되는 주 통로는 너비 `1,100mm`를 확보했습니다.
-- 세면·목욕실은 `2,350 × 2,230mm`에 욕조·세면대·변기·고창을 배치했습니다. 폭 `800mm` 미닫이문 자리는 열린 출입구로 모델링했습니다. 주방 싱크와 욕실 세면대는 같은 설비벽을 사용합니다.
+- 침실은 실내 면 기준 `4,000 × 3,000mm`입니다. 서쪽과 남쪽 칸막이를 1m 격자 경계에 맞췄으며, 남쪽에 폭 1칸의 출입구와 접근 칸을 확보했습니다.
+- 세면·목욕실은 실내 면 기준 `2,000 × 2,250mm`입니다. 동쪽과 북쪽 칸막이와 욕실 바닥 경계를 1m 격자에 맞췄습니다. 동쪽의 폭 1칸 출입구를 통해 현관 쪽 통로로 이어집니다.
 - 도면 위쪽과 왼쪽 외벽을 게임 화면에서 뒤 벽으로 표시합니다. 현관 도착점에서 욕실과 요리·제작·잠자리·휴식·외출 지점으로 이어지는 이동 데이터를 새 배치에서 내보냅니다.
 
 소형 주택의 방 크기, 가구·위생기구 배치, 문·창 기호는 [Uniplan Group의 Abbott 도면](https://www.uniplangroup.com.au/wp-content/uploads/2024/03/Residential-Floorplan-Download-Abbott.pdf)과 [Flat Grannys의 The Edna 도면](https://www.flatgrannys.com.au/pdf/FlatGrannys_TheEdna_one-sheet.pdf)을 참고했습니다. 침실과 집 전체의 면적은 [잉글랜드 주거 면적 기준](https://www.gov.uk/government/publications/technical-housing-standards-nationally-described-space-standard/technical-housing-standards-nationally-described-space-standard)의 침실 1개 단층 주택 수치와 비교했습니다.
@@ -64,13 +64,14 @@ The two tall joined rear wall faces occupying the UPPER LEFT and UPPER RIGHT rem
 | 기본 건축 | `architecture`의 바닥, 하부 벽, 문턱, 현관 계단 |
 | 뒤 벽면 | `rear-walls`의 화면 왼쪽 위·오른쪽 위 벽과 창틀 |
 | 표시 설정 | `upper-walls`의 화면 앞쪽 외벽과 칸막이 윗부분 |
-| 주방 | `kitchen-hearth`, `kitchen-counter`, `kitchen-prep`, `kitchen-dining-table`, `kitchen-shelf`, `kitchen-runner`, `kitchen-task-lantern` |
+| 주방 | `kitchen-hearth`, `kitchen-counter`, `kitchen-prep`, `kitchen-dining-table`, `kitchen-shelf`, `kitchen-runner`, `kitchen-task-lantern`, `living-bookcase`(식탁 뒤 벽에서 실내를 향함) |
 | 침실 | `bedroom-bed`, `bedroom-wardrobe`, `bedroom-lamp`, `bedroom-rug` |
-| 거실과 현관 | `living-bookcase`, `living-planter`, `living-rug`, `living-sofa`, `living-stool`, `living-worktable`, `living-study-lamp`, `living-coffee-table`, `entry-bench`, `entry-rug` |
+| 거실과 현관 | `living-planter`, `living-rug`, `living-sofa`, `living-stool`, `living-worktable`, `living-study-lamp`, `living-coffee-table`, `entry-bench`, `entry-rug` |
+| 보관함 | [Blender 편집 원본](home-storage-chest.blend)과 [게임용 GLB](../../../godot-arcana/art/source/player-home-real-scale/home-storage-chest.glb). 몸통과 힌지 뚜껑을 분리한 1×1칸 밤나무 상자입니다. 모델은 가로 약 0.62m, 깊이 0.51m, 높이 0.49m이며 황동 잠금쇠가 있는 면이 사용 방향입니다. |
 | 세면·목욕실 | `bath-tub`, `bath-vanity`, `bath-toilet` |
 
 목재 바닥과 욕실 석재는 여관과 같은 1×1칸 격자에 맞추고 벽과 재질 경계에서 잘라 냅니다. 집의 외벽 안쪽은 9×6.25칸입니다. 여관의 주인공을 나란히 세우는 기준으로 주방 식탁 상판은 0.80칸, 스툴 좌판은 0.50칸, 거실 안락의자 좌판은 약 0.62칸으로 맞췄습니다.
 
-실측형 건축은 [Blender 원본](player-home-real-scale.blend)을 저장한 뒤 백그라운드에서 [건축 내보내기](author_real_scale.py)로 갱신합니다. 새 가구는 A안 Blender 원본을 열어 [가구 내보내기](author_real_scale_fixtures.py)로 생성합니다. Godot 가구 노드를 이동하면 통행 영역과 상호작용 지점도 따라갑니다. 건축 충돌 사각형은 씬의 `Room/Architecture`에서 관리합니다. 배치를 바꾼 뒤에는 [온라인 레이아웃 내보내기](../../../godot-arcana/tools/export_online_layout.gd)로 서버 좌표를 갱신합니다.
+실측형 건축은 [Blender 원본](player-home-real-scale.blend)과 [건축 내보내기](author_real_scale.py)로 갱신합니다. 다른 실측형 가구는 A안 Blender 원본과 [가구 내보내기](author_real_scale_fixtures.py)를 사용합니다. Godot 가구 노드를 이동하면 통행 영역과 상호작용 지점도 따라갑니다. 외벽 충돌은 `Room/Architecture`, 내부 칸막이 충돌은 `Room/PartitionEdges`에서 관리합니다. 배치를 바꾼 뒤에는 [온라인 레이아웃 내보내기](../../../godot-arcana/tools/export_online_layout.gd)로 서버 좌표를 갱신합니다.
 
 분수 광장에서는 **생활 수첩 → 내 집으로**도 사용할 수 있습니다. 주방에서는 요리하고 거실에서는 제작하거나 안락의자에서 식사할 수 있습니다. 침실에서 하루를 마치고 현관으로 나가면 입장 위치에 따라 집 앞이나 광장의 원래 위치로 돌아갑니다.

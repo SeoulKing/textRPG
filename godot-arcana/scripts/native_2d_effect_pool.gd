@@ -11,7 +11,15 @@ var gpu_warmup_completed=false
 var free_flames: Array[Node2D]=[]
 var free_labels: Array[Label]=[]
 func prepare(target: Node2D,_caster: Node2D=null) -> void:
-    renderer=target;charge=Charge.new();renderer.add_child(charge);charge.hide();prepared=true
+    renderer=target;charge=Charge.new();renderer.add_child(charge);charge.hide()
+    var flames: Array[Node2D] = []
+    var labels: Array[Label] = []
+    for slot in range(4):
+        flames.append(take_flame())
+        labels.append(take_label("", Color.WHITE))
+    for flame in flames: release_flame(flame)
+    for label in labels: release_label(label)
+    prepared=true
 func take_flame(burst: bool=false,dissipate: bool=false) -> Node2D:
     var node=free_flames.pop_back() if not free_flames.is_empty() else Flame.new()
     if node.get_parent()==null:renderer.add_child(node);created_flames+=1
@@ -24,6 +32,8 @@ func take_label(text: String,color: Color) -> Label:
         renderer.add_child(node);created_labels+=1;node.z_index=4001
         node.add_theme_font_override("font",preload("res://fonts/NotoSansKR-SemiBold.tres"))
         node.add_theme_font_size_override("font_size",22)
+        node.add_theme_color_override("font_outline_color", Color("33243a"))
+        node.add_theme_constant_override("outline_size", 4)
     node.text=text;node.modulate=color;node.show()
     return node
 func release_flame(node: Node2D) -> void:

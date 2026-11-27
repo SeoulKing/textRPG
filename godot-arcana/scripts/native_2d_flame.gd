@@ -19,8 +19,13 @@ func _ready() -> void:
     sprite.scale=Vector2(64.0/(ATLAS.get_width()/4.0),64.0/(ATLAS.get_height()/2.0))
     fire_light=PointLight2D.new();fire_light.texture=preload("res://art/resources/fireball_light.tres");fire_light.color=Color("ffac48");fire_light.energy=0.8;add_child(fire_light)
 func advance_flight(reported_distance: float,speed: float,reach: float,delta: float,paused: bool) -> float:
-    if not flight_started:flight_started=true;flight_distance=clampf(reported_distance,0,reach)
-    elif not paused:flight_distance=minf(reach,maxf(flight_distance+speed*delta,reported_distance))
+    var target := clampf(reported_distance, 0.0, reach)
+    if not flight_started:
+        flight_started = true
+        flight_distance = target
+    elif not paused and target > flight_distance:
+        # Blend forward into the confirmed projectile without outrunning its last sample.
+        flight_distance = move_toward(flight_distance, target, speed * delta * 1.65)
     return flight_distance
 func update_pose(_camera: Camera2D,delta: float,paused: bool,reduced: bool) -> void:
     if not paused:elapsed+=delta

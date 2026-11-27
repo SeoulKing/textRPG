@@ -24,13 +24,26 @@ from export_inn import pack_group
 
 ORIGIN_X, ORIGIN_Z = 3.0, 4.0
 WIDTH, DEPTH = 9.0, 6.25
-BATH_WIDTH, BATH_START_Z = 2.35, 4.02
+BATH_WIDTH, BATH_START_Z, BATH_DOOR_END = 2.0, 4.0, 5.0
+BEDROOM_WEST, BEDROOM_SOUTH, BEDROOM_DOOR_END = 5.0, 3.0, 6.0
+PARTITION_THICKNESS = 0.12
 FLOOR_TILE_SIZE = 1.0
 EXTERIOR = 0.20
 CUT = 0.57
 NEAR_CUT = 0.30
 WALL_TOP = 2.62
 LAYERS = ("architecture", "rear-walls", "upper-walls")
+BEDROOM_EAST_PARTITION = (
+    "Bedroom south right", "x", (BEDROOM_DOOR_END, WIDTH + EXTERIOR * 0.5),
+    (BEDROOM_SOUTH, BEDROOM_SOUTH + PARTITION_THICKNESS),
+)
+INTERIOR_WALLS = (
+    ("Bedroom west", "z", (0.0, BEDROOM_SOUTH), (BEDROOM_WEST - PARTITION_THICKNESS, BEDROOM_WEST)),
+    ("Bedroom south left", "x", (BEDROOM_WEST - PARTITION_THICKNESS, BEDROOM_WEST),
+     (BEDROOM_SOUTH, BEDROOM_SOUTH + PARTITION_THICKNESS)),
+    ("Bath wet wall", "x", (0.0, BATH_WIDTH + PARTITION_THICKNESS), (BATH_START_Z - PARTITION_THICKNESS, BATH_START_Z)),
+    ("Bath door pocket jamb", "z", (BATH_DOOR_END, DEPTH), (BATH_WIDTH, BATH_WIDTH + PARTITION_THICKNESS)),
+)
 
 
 def matte(name, hex_color):
@@ -58,15 +71,43 @@ def block(group, name, x0, x1, z0, z1, y0, y1, material, bevel=0.0):
     group.objects.link(obj)
     obj.location = (ORIGIN_X + (x0 + x1) / 2, -ORIGIN_Z - (z0 + z1) / 2, (y0 + y1) / 2)
     if bevel:
-        corners = obj.modifiers.new("Soft edges", "BEVEL")
-        corners.width = bevel
-        corners.segments = 2
-        obj.modifiers.new("Corner normals", "WEIGHTED_NORMAL")
+        bevel_edges(obj, bevel)
+
+
+def bevel_edges(obj, width):
+    corners = obj.modifiers.new("Soft edges", "BEVEL")
+    corners.width = width
+    corners.segments = 2
+    obj.modifiers.new("Corner normals", "WEIGHTED_NORMAL")
 
 
 def strip(group, name, axis, span, edge, height, material, bevel=0.0):
     x0, x1, z0, z1 = (*span, *edge) if axis == "x" else (*edge, *span)
     block(group, name, x0, x1, z0, z1, *height, material, bevel)
+
+
+def east_wall_joined_coping(group, name, edge, overhang, height, material, bevel):
+    # Trace the exterior and partition as one piece so the bevel is continuous at the junction.
+    inside, outside = edge
+    near, far = BEDROOM_SOUTH - overhang, BEDROOM_SOUTH + PARTITION_THICKNESS + overhang
+    outline = ((inside, 0.0), (outside, 0.0), (outside, DEPTH), (inside, DEPTH),
+               (inside, far), (BEDROOM_DOOR_END, far), (BEDROOM_DOOR_END, near), (inside, near))
+    bm = bmesh.new()
+    bottom, top = ([bm.verts.new((x, -z, level)) for x, z in outline] for level in height)
+    bm.faces.new(bottom)
+    bm.faces.new(top)
+    for i in range(len(outline)):
+        j = (i + 1) % len(outline)
+        bm.faces.new((bottom[i], bottom[j], top[j], top[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.materials.append(material)
+    obj = bpy.data.objects.new(name, mesh)
+    group.objects.link(obj)
+    obj.location = (ORIGIN_X, -ORIGIN_Z, 0.0)
+    bevel_edges(obj, bevel)
 
 
 def window_wall(group, name, axis, start, end, edge, windows, inside, plaster, slate, frame, glass):
@@ -185,53 +226,48 @@ def build():
     window_wall(rear, "West exterior", "z", 0.0, DEPTH, (-EXTERIOR, 0.0),
                 ((4.71, 5.31, 1.61, 2.08),), 1, plaster, slate, indigo, glass)
     strip(rear, "North oak skirting", "x", (0.0, WIDTH), (0.0, 0.032), (0.0, 0.087), oak)
-    strip(rear, "West oak skirting", "z", (0.0, 4.02), (0.0, 0.032), (0.0, 0.087), oak)
+    strip(rear, "West oak skirting", "z", (0.0, BATH_START_Z), (0.0, 0.032), (0.0, 0.087), oak)
     block(rear, "Rear corner timber upright", 0.0, 0.075, 0.0, 0.075, 0.08, WALL_TOP, oak, 0.009)
 
     for row in range(4):
         y0 = .28 * row
         for n in range(7):
-            z0, z1 = 4.02 + (DEPTH - 4.02) * n / 7, 4.02 + (DEPTH - 4.02) * (n + 1) / 7
+            z0, z1 = [BATH_START_Z + (DEPTH - BATH_START_Z) * step / 7 for step in (n, n + 1)]
             block(rear, "Bath west tile wainscot", 0.001, 0.024, z0 + .002, z1 - .002,
                   y0 + .002, y0 + .277, tiles[(n + 2 * row) % len(tiles)], 0.003)
-    strip(rear, "Bath slate dado cap", "z", (4.02, DEPTH), (0.0, 0.042), (1.118, 1.157), slate, 0.008)
-
-    # Plan dimensions at the inside faces of the bedroom and bath partitions.
-    interior = [
-        ("Bedroom west", "z", (0.0, 3.0), (4.53, 4.65)),
-        ("Bedroom south left", "x", (4.53, 4.86), (3.0, 3.12)),
-        ("Bedroom south right", "x", (5.71, WIDTH), (3.0, 3.12)),
-        ("Bath wet wall", "x", (0.0, 2.47), (3.90, 4.02)),
-        ("Bath door north jamb", "z", (4.02, 4.15), (2.35, 2.47)),
-        ("Bath door pocket jamb", "z", (4.95, DEPTH), (2.35, 2.47)),
-    ]
+    strip(rear, "Bath slate dado cap", "z", (BATH_START_Z, DEPTH), (0.0, 0.042), (1.118, 1.157), slate, 0.008)
     front = [
         ("Front west wall", "x", (-EXTERIOR, 4.0), (DEPTH, DEPTH + EXTERIOR)),
         ("Front east wall", "x", (4.95, WIDTH + EXTERIOR), (DEPTH, DEPTH + EXTERIOR)),
     ]
-    east_wall = ("East wall", "z", (0.0, DEPTH), (WIDTH, WIDTH + EXTERIOR))
-    for height, walls in ((CUT, interior), (NEAR_CUT, [*front, east_wall])):
+    east_edge = (WIDTH, WIDTH + EXTERIOR)
+    east_wall = ("East wall", "z", (0.0, DEPTH), east_edge)
+    for height, walls in ((CUT, INTERIOR_WALLS), (NEAR_CUT, [*front, east_wall, BEDROOM_EAST_PARTITION])):
         for name, axis, span, edge in walls:
             strip(base, f"{name} cut body", axis, span, edge, (0.0, height), plaster)
-            strip(base, f"{name} cutoff coping", axis, span, (edge[0] - .022, edge[1] + .022),
-                  (height - .031, height + .028), slate, 0.009)
             strip(base, f"{name} oak skirting", axis, span, (edge[0] - .021, edge[1] + .021), (0.0, .078), oak, 0.005)
 
-    for height, walls in ((CUT, interior), (NEAR_CUT, front)):
+    for height, walls in ((CUT, INTERIOR_WALLS), (NEAR_CUT, front)):
         for name, axis, span, edge in walls:
+            strip(base, f"{name} cutoff coping", axis, span, (edge[0] - .022, edge[1] + .022),
+                  (height - .031, height + .028), slate, 0.009)
             strip(optional, f"{name} raised plaster", axis, span, edge, (height, WALL_TOP), plaster)
             strip(optional, f"{name} upper coping", axis, span, (edge[0] - .02, edge[1] + .02),
                   (WALL_TOP, WALL_TOP + .08), slate, .008)
 
+    name, axis, span, edge = BEDROOM_EAST_PARTITION
+    strip(optional, f"{name} raised plaster", axis, span, edge, (NEAR_CUT, WALL_TOP), plaster)
+    east_wall_joined_coping(base, "East wall cutoff coping", (WIDTH - .022, WIDTH + EXTERIOR + .022),
+                            .022, (NEAR_CUT - .031, NEAR_CUT + .028), slate, .009)
+
     # The near wall has the real-plan living window at full wall height only.
     north_living, south_living, sill, head = 4.4, 5.75, 1.00, 2.06
-    east_edge = (WIDTH, WIDTH + EXTERIOR)
     for span in ((0.0, north_living), (south_living, DEPTH)):
         strip(optional, "East plaster pier", "z", span, east_edge, (NEAR_CUT, WALL_TOP), plaster)
     strip(optional, "East plaster sill", "z", (north_living, south_living), east_edge, (NEAR_CUT, sill), plaster)
     strip(optional, "East plaster lintel", "z", (north_living, south_living), east_edge, (head, WALL_TOP), plaster)
-    strip(optional, "East upper slate coping", "z", (0.0, DEPTH), (WIDTH - .023, WIDTH + .223),
-          (WALL_TOP, WALL_TOP + .08), slate, .008)
+    east_wall_joined_coping(optional, "East upper slate coping", (WIDTH - .023, WIDTH + EXTERIOR + .023),
+                            .02, (WALL_TOP, WALL_TOP + .08), slate, .008)
     for left, right in ((north_living, north_living + .045), (south_living - .045, south_living), (5.052, 5.098)):
         strip(optional, "Living window indigo mullion", "z", (left, right), (WIDTH - .015, WIDTH + .1),
               (sill, head), indigo, .007)
@@ -243,8 +279,10 @@ def build():
     strip(optional, "Living window sill", "z", (north_living - .045, south_living + .045),
           (WIDTH - .062, WIDTH + .2), (sill - .051, sill), pale_stone, .008)
 
-    block(base, "Bedroom oak threshold", 4.86, 5.71, 2.988, 3.132, -.023, .017, warm_oak, .006)
-    block(base, "Bath stone threshold", 2.34, 2.48, 4.15, 4.95, -.018, .017, pale_stone, .008)
+    block(base, "Bedroom oak threshold", BEDROOM_WEST, BEDROOM_DOOR_END, BEDROOM_SOUTH - .012,
+          BEDROOM_SOUTH + PARTITION_THICKNESS + .012, -.023, .017, warm_oak, .006)
+    block(base, "Bath stone threshold", BATH_WIDTH - .012, BATH_WIDTH + PARTITION_THICKNESS + .012,
+          BATH_START_Z, BATH_DOOR_END, -.018, .017, pale_stone, .008)
     block(base, "Entrance indigo threshold", 4.0, 4.95, DEPTH - .036, DEPTH + .22, -.042, .027, indigo, .008)
     block(base, "Entrance limestone top step", 3.89, 5.06, DEPTH + .18, DEPTH + .49, -.245, -.076, pale_stone, .02)
     block(base, "Entrance limestone bottom step", 3.84, 5.11, DEPTH + .47, DEPTH + .76, -.29, -.175, stone, .02)

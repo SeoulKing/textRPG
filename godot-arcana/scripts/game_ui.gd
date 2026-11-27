@@ -37,6 +37,7 @@ const TEXT_MUTED := Color("65717d")
 const TEXT_ACCENT := Color("216892")
 const TEXT_SKY := Color("b1e1ff")
 const TEXT_RULE := Color("d6e2ea")
+const VITAL_COLORS := {"HP": Color("df596c"), "MP": Color("398bda"), "허기": Color("b38a42")}
 const DESKTOP_MENU_DEFAULT := 70
 const DESKTOP_MENU_AREA := Vector2(780, 560)
 const DESKTOP_MENU_CSS_SCALE := 1.5
@@ -79,7 +80,8 @@ var mp_label: Label
 var hp_bar: ProgressBar
 var mp_bar: ProgressBar
 var hunger_bar: ProgressBar
-var hunger_label: Label
+var _hunger_target := -1
+var _hunger_tween: Tween
 var hint_label: Label
 var toast_label: Label
 var overlay: Control
@@ -117,6 +119,7 @@ var _panel_sky: Control
 var _text_panel_theme: Theme
 var _text_mode := false
 var cooking_panel_on_left := false
+var _world_panel_focus: Callable
 var fit_menu_height := false
 var _wide_panel := false
 var button_list_touch_enabled: bool = false
@@ -229,21 +232,11 @@ func _ready() -> void:
 	var stats = VBoxContainer.new()
 	stats.add_theme_constant_override("separation", 4)
 	stack.add_child(stats)
-	for id in ["HP", "MP", "허기"]:
-		var bar = make_bar(Color("df596c") if id == "HP" else Color("398bda") if id == "MP" else Color("b38a42"), 28)
-		stats.add_child(bar)
-		var stat = label(id, 16, Color.WHITE, true)
-		stat.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		stat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		stat.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		stat.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		stat.add_theme_color_override("font_outline_color", Color("26364d"))
-		stat.add_theme_constant_override("outline_size", 3)
-		stat.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		bar.add_child(stat)
-		if id == "HP": hp_label = stat; hp_bar = bar
-		elif id == "MP": mp_label = stat; mp_bar = bar
-		else: hunger_label = stat; hunger_bar = bar
+	for id: String in VITAL_COLORS:
+		var vital := add_vital_bar(stats, id)
+		if id == "HP": hp_label = vital.label; hp_bar = vital.bar
+		elif id == "MP": mp_label = vital.label; mp_bar = vital.bar
+		else: hunger_bar = vital.bar
 	stack.add_child(heading)
 	var bottom = PanelContainer.new()
 	navigation = bottom
@@ -442,6 +435,44 @@ func make_bar(color: Color, height: int) -> ProgressBar:
 	bar.add_theme_stylebox_override("background", background)
 	bar.add_theme_stylebox_override("fill", fill)
 	return bar
+
+func add_vital_bar(parent: Container, title: String) -> Dictionary:
+	var bar := make_bar(VITAL_COLORS[title], 28)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.accessibility_name = title
+	parent.add_child(bar)
+	var caption := label(title, 16, Color.WHITE, true)
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	caption.add_theme_color_override("font_outline_color", INK)
+	caption.add_theme_constant_override("outline_size", 3)
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(caption)
+	caption.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if title == "허기":
+		bar.step = 0.0
+		if hunger_bar != null:
+			hunger_bar.value_changed.connect(bar.set_value)
+			bar.value = hunger_bar.value
+		var update_caption := func(value: float): caption.text = "허기  %d / 100" % roundi(value)
+		bar.value_changed.connect(update_caption)
+		update_caption.call(bar.value)
+	return {"bar": bar, "label": caption}
+
+func set_hunger(amount: int, initial: bool) -> void:
+	var target := clampi(amount, 0, 100)
+	if not initial and target == _hunger_target: return
+	var recovering := not initial and _hunger_target >= 0 and target > _hunger_target
+	_hunger_target = target
+	if _hunger_tween:
+		_hunger_tween.kill()
+		_hunger_tween = null
+	if recovering:
+		_hunger_tween = hunger_bar.create_tween()
+		_hunger_tween.tween_property(hunger_bar, "value", float(target), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	else:
+		hunger_bar.value = target
 
 func _build_panel() -> void:
 	overlay = Control.new()
@@ -685,14 +716,15 @@ func _clear_tab_body() -> void:
 		_sheet_tween = null
 	_sheet_reveal = 1.0
 
-func open_panel(title: String, can_close: bool = true, dock_left: bool = false, tab_sheet: bool = false, wide: bool = false) -> void:
+func open_panel(title: String, can_close: bool = true, dock_left: bool = false, tab_sheet: bool = false, wide: bool = false, world_focus: Callable = Callable()) -> void:
 	cooking_panel_on_left = dock_left
+	_world_panel_focus = world_focus
 	fit_menu_height = title == "모험 메뉴"
 	if _wide_panel != wide or _tab_sheet != tab_sheet:
 		_wide_panel = wide
 		_tab_sheet = tab_sheet
 		_apply_panel_style()
-	button_list_touch_enabled = title in ["스킬", "상태", "모험 메뉴", "어디로 갈까요?", "화면 설정", "도움말", "모닥불 · 요리", "제작 · 모닥불", "식사", "집 · 주방", "내 집 · 거실", "내 집 · 침실"]
+	button_list_touch_enabled = title in ["스킬", "상태", "모험 메뉴", "어디로 갈까요?", "화면 설정", "도움말", "모닥불 · 요리", "제작 · 모닥불", "식사", "집 · 주방", "내 집", "내 집 · 안락의자", "내 집 · 침대"]
 	_clear_inventory()
 	_clear_tab_body()
 	_clear_shop()
@@ -717,6 +749,7 @@ func open_panel(title: String, can_close: bool = true, dock_left: bool = false, 
 
 func close_panel() -> void:
 	button_list_touch_enabled = false
+	_world_panel_focus = Callable()
 	_skill_progress_rows.clear()
 	_reset_panel_touch()
 	_finish_size_drag()
@@ -1197,6 +1230,9 @@ func _layout_panel() -> void:
 	if _tab_sheet:
 		_set_sheet_reveal(_sheet_reveal)
 		return
+	if _world_panel_focus.is_valid() and not _text_mode:
+		_layout_world_panel(available)
+		return
 	var max_width := 740.0 if _wide_panel else 496.0 if fit_menu_height else 660.0
 	var side := maxf(12.0, floorf((available.x - max_width) * 0.5))
 	var height := DESKTOP_MENU_AREA.y if _desktop_web else 680.0
@@ -1215,6 +1251,33 @@ func _layout_panel() -> void:
 	panel_dim.color.a = 0.16 if beside_fire else (0.32 if _wide_panel else 0.28 if _text_mode else 0.65)
 	panel.offset_top = vertical
 	panel.offset_bottom = -vertical
+
+func _layout_world_panel(available: Vector2) -> void:
+	var actor: Rect2 = _world_panel_focus.call()
+	var to_overlay := overlay.get_global_transform().affine_inverse()
+	var head := to_overlay * actor.position
+	var feet := to_overlay * actor.end
+	var height := panel_header.get_combined_minimum_size().y + content.get_combined_minimum_size().y
+	height += panel_body.get_theme_constant("margin_top") + panel_body.get_theme_constant("margin_bottom") + 2.0
+	var width := minf(320.0, available.x - 24.0)
+	var left := (available.x - width) * 0.5
+	var top := 12.0
+	if available.x > available.y and available.x >= 540.0:
+		width = clampf(available.x * 0.34, 220.0, 320.0)
+		left = 12.0 if feet.x >= available.x * 0.5 else available.x - width - 12.0
+		height = minf(height, available.y - 24.0)
+		top = (available.y - height) * 0.5
+	else:
+		var space_above := head.y - 24.0
+		var space_below := available.y - feet.y - 24.0
+		height = minf(height, maxf(panel.get_combined_minimum_size().y, maxf(space_above, space_below)))
+		if space_below >= space_above:
+			top = available.y - height - 12.0
+	panel.offset_left = left
+	panel.offset_right = left + width - available.x
+	panel.offset_top = top
+	panel.offset_bottom = top + height - available.y
+	panel_dim.color.a = 0.16
 
 func _set_sheet_reveal(progress: float) -> void:
 	_sheet_reveal = progress
@@ -1348,7 +1411,7 @@ func _clear_shop() -> void:
 		shop_view.queue_free()
 		shop_view = null
 
-func open_shop(entries: Array, inventory: Dictionary, money: int, selling: bool, trade: Callable) -> void:
+func open_shop(entries: Array, inventory: Dictionary, money: int, selling: bool, trade: Callable, thumbnail_for: Callable) -> void:
 	open_panel("아르카나 잡화점")
 	panel.hide()
 	shop_view = preload("res://scripts/shop_view.gd").new()
@@ -1356,6 +1419,7 @@ func open_shop(entries: Array, inventory: Dictionary, money: int, selling: bool,
 	shop_view.inventory = inventory
 	shop_view.money = money
 	shop_view.selling = selling
+	shop_view.thumbnail_for = thumbnail_for
 	shop_view.trade_requested.connect(func(action: Dictionary, quantity: int): trade.call(action, quantity, shop_view.selling))
 	shop_view.close_requested.connect(close_panel)
 	menu_views.add_child(shop_view)

@@ -24,10 +24,14 @@ const SLIME_CROUCH := Vector3(1.23, 0.64, 1.23)
 const SLIME_STRETCH := Vector3(0.88, 1.19, 0.88)
 const SLIME_LANDING := Vector3(1.32, 0.54, 1.32)
 const SLIME_REBOUND := Vector3(0.97, 1.06, 0.97)
+const SLIME_RECOVER := Vector3(1.10, 0.86, 1.10)
+const SLIME_PAINT := Color("659646")
+const SLIME_HIT_PAINT := Color("b5cf7a")
 const SLIME_JUMP_HEIGHT := 0.48
 const SLIME_HOP_HEIGHT := 0.20
 const SLIME_FLEE_HEIGHT := 0.12
 const SLIME_LANDING_FX_FRAME_SECONDS := 0.04
+const SLIME_DEFEAT_SECONDS := 0.34
 
 var live_mode := false
 var camera_texel_offset := Vector2.ZERO
@@ -76,6 +80,11 @@ var _pixel_effect: Node3D
 var _standalone_presentation: ShaderMaterial
 var _presentation_minimum := 2
 var _slime_airborne := false
+var _slime_grounded_age := 0.3
+var _slime_defeat_age := 0.0
+var _slime_defeat_ghost: Node3D
+var _slime_confirmed_defeat_age := 0.0
+var _slime_hit_tint := 0.0
 var _slime_landing_fx_age := 0.0
 var _slime_body_material: ShaderMaterial
 var _slime_outline_material: ShaderMaterial
@@ -170,6 +179,8 @@ func set_live_active(active: bool) -> void:
 		sync_actor_shadows([], false)
 		_slime_airborne = false
 		_slime_landing_fx.hide()
+		if is_instance_valid(_slime_defeat_ghost):
+			_slime_defeat_ghost.hide()
 	if _pixel_effect != null:
 		_pixel_effect.set_effect_enabled(active and _approved_preset.effect_enabled)
 	elif _asset_mask != null:
@@ -200,15 +211,57 @@ func set_slime_target_outline(enabled: bool) -> void:
 		_slime_body_material.next_pass = outline
 
 
+func play_slime_defeat(world_position: Vector2, animate: bool = true) -> void:
+	if not animate or not is_visible_in_tree():
+		return
+	if not is_instance_valid(_slime_defeat_ghost):
+		_slime_defeat_ghost = _slime.duplicate(0) as Node3D
+		_slime_defeat_ghost.name = "MochiSlimeDefeat"
+		var ghost_skin := _slime_body_material.duplicate() as ShaderMaterial
+		ghost_skin.next_pass = null
+		ghost_skin.set_shader_parameter("paint", SLIME_PAINT)
+		for mesh: MeshInstance3D in _slime_defeat_ghost.find_children("*", "MeshInstance3D", true, false):
+			if mesh.mesh == null:
+				continue
+			for surface in mesh.mesh.get_surface_count():
+				if mesh.get_surface_override_material(surface) == _slime_body_material:
+					mesh.set_surface_override_material(surface, ghost_skin)
+		add_child(_slime_defeat_ghost)
+	_slime_confirmed_defeat_age = 0.0
+	_slime_defeat_ghost.transform = Transform3D(_slime_rest.basis.scaled_local(SLIME_LANDING),
+		_surface_position(world_position, _slime_rest.origin.y))
+	_slime_defeat_ghost.show()
+
+
+func _defeat_scale(progress: float) -> Vector3:
+	return SLIME_LANDING.lerp(Vector3(0.49, 0.04, 0.49), progress)
+
+
+func _update_slime_defeat_ghost(animate: bool, delta: float) -> void:
+	if not is_instance_valid(_slime_defeat_ghost) or not _slime_defeat_ghost.visible:
+		return
+	_slime_confirmed_defeat_age += delta
+	if not animate or _slime_confirmed_defeat_age >= SLIME_DEFEAT_SECONDS:
+		_slime_defeat_ghost.hide()
+		return
+	var collapse := smoothstep(0.0, SLIME_DEFEAT_SECONDS, _slime_confirmed_defeat_age)
+	_slime_defeat_ghost.basis = _slime_rest.basis.scaled_local(_defeat_scale(collapse))
+
+
 func sync_live_slime(world_position: Vector2, shown: bool, battle: Dictionary,
-		jump_progress: float, animate: bool, delta: float) -> void:
+		jump_progress: float, animate: bool, delta: float, hit: float = 0.0) -> void:
+	_update_slime_defeat_ghost(animate, delta)
 	_slime.visible = shown
 	if not shown:
 		_slime_airborne = false
+		_slime_grounded_age = 0.3
+		_slime_defeat_age = 0.0
 		_slime_landing_fx.hide()
 		return
 	var spatial: Dictionary = battle.get("spatial", {})
-	var behavior := str(spatial.get("behavior", "")) if battle.get("phase") == "battle" else ""
+	var phase := str(battle.get("phase", ""))
+	var behavior := str(spatial.get("behavior", "")) if phase == "battle" else ""
+	var step := 0.0 if battle.get("paused", false) else delta
 	var action := str(spatial.get("slimeAction", "leap"))
 	var jump_from: Dictionary = spatial.get("jumpFrom", {})
 	var jump_to: Dictionary = spatial.get("jumpTo", {})
@@ -226,10 +279,11 @@ func sync_live_slime(world_position: Vector2, shown: bool, battle: Dictionary,
 	if behavior == "prepare":
 		var windup := maxf(0.001, float(spatial.get("windupDuration", 3.0)))
 		var remaining := float(battle.get("attackIn", windup))
-		var crouch := 1.0 - smoothstep(windup * (0.35 / 3.0), windup, remaining) if animate else 1.0
+		var windup_progress := 1.0 - clampf(remaining / windup, 0.0, 1.0)
+		var crouch := smoothstep(0.0, 0.68, windup_progress) if animate else 1.0
 		pose_scale = Vector3.ONE.lerp(SLIME_CROUCH, crouch)
 		if animate and spatial.get("targetLocked", false):
-			lean = 0.22 * (1.0 - smoothstep(0.0, 1.0, remaining))
+			lean = 0.22 * smoothstep(0.6, 1.0, windup_progress)
 	elif behavior in ["attack", "recover"]:
 		var progress := jump_progress if behavior == "attack" else 1.0
 		# The height arc shares the ground position's network interpolation.
@@ -245,29 +299,49 @@ func sync_live_slime(world_position: Vector2, shown: bool, battle: Dictionary,
 				else:
 					lift = SLIME_HOP_HEIGHT * arc
 					pose_scale = Vector3.ONE.lerp(SLIME_STRETCH, 0.4 * arc)
-		elif behavior == "attack" or progress < 0.995:
+		elif progress < 0.995:
 			airborne = true
+			_slime_grounded_age = 0.0
 			if animate:
-				pose_scale = SLIME_CROUCH.lerp(SLIME_STRETCH, smoothstep(0.0, 0.26, progress))
-				pose_scale = pose_scale.lerp(SLIME_LANDING, smoothstep(0.64, 1.0, progress))
+				pose_scale = SLIME_CROUCH.lerp(SLIME_STRETCH, smoothstep(0.0, 0.18, progress))
+				pose_scale = pose_scale.lerp(SLIME_LANDING, smoothstep(0.78, 1.0, progress))
 				lift = SLIME_JUMP_HEIGHT * 4.0 * progress * (1.0 - progress)
 				lean = 0.22 * (1.0 - smoothstep(0.6, 1.0, progress))
 			else:
 				pose_scale = SLIME_STRETCH
 		else:
 			landed = _slime_airborne
+			# Use displayed contact time so a delayed packet doesn't skip the squash.
+			_slime_grounded_age = 0.0 if landed else _slime_grounded_age + step
 			if animate:
-				pose_scale = SLIME_LANDING.lerp(SLIME_REBOUND, smoothstep(0.18, 0.62, recovery))
-				pose_scale = pose_scale.lerp(Vector3.ONE, smoothstep(0.62, 1.0, recovery))
+				var rebound := smoothstep(0.07, 0.17, _slime_grounded_age)
+				pose_scale = SLIME_LANDING.lerp(SLIME_REBOUND, rebound)
+				pose_scale = pose_scale.lerp(SLIME_RECOVER, smoothstep(0.17, 0.32, _slime_grounded_age))
+				pose_scale = pose_scale.lerp(Vector3.ONE, rebound * smoothstep(0.60, 1.0, recovery))
 			else:
 				pose_scale = SLIME_LANDING.lerp(Vector3.ONE, recovery)
+	if phase == "victory" and battle.get("online", false):
+		# The confirmed event owns the old body's pose, independent of the next spawn.
+		_slime.hide()
+	elif phase == "victory" and animate:
+		_slime_defeat_age += step
+		var collapse := smoothstep(0.0, SLIME_DEFEAT_SECONDS, _slime_defeat_age)
+		pose_scale = _defeat_scale(collapse)
+		_slime.visible = collapse < 1.0
+	else:
+		_slime_defeat_age = 0.0
+	var hit_tint := hit if animate and phase != "victory" else 0.0
+	if not is_equal_approx(_slime_hit_tint, hit_tint):
+		_slime_hit_tint = hit_tint
+		_slime_body_material.set_shader_parameter("paint", SLIME_PAINT.lerp(SLIME_HIT_PAINT, hit_tint))
+	pose_scale *= Vector3(1.0 + hit_tint * 0.06, 1.0 - hit_tint * 0.11, 1.0 + hit_tint * 0.06)
 	var basis := _slime_rest.basis.scaled_local(pose_scale)
 	var heading := travel.normalized()
 	basis.y += Vector3(heading.x, 0.0, heading.y) * lean * basis.y.length()
 	var pose := Transform3D(basis, _surface_position(world_position, _slime_rest.origin.y + lift))
 	if _slime.transform != pose: _slime.transform = pose
 	_slime_airborne = airborne
-	if not animate:
+	if not animate or phase == "victory":
 		_slime_landing_fx.hide()
 	elif landed:
 		# Start on the same rendered frame as the squash. The burst stays at the contact point.
@@ -276,7 +350,7 @@ func sync_live_slime(world_position: Vector2, shown: bool, battle: Dictionary,
 		_slime_landing_fx.frame = 0
 		_slime_landing_fx.show()
 	elif _slime_landing_fx.visible:
-		_slime_landing_fx_age += delta
+		_slime_landing_fx_age += step
 		var frame := int(_slime_landing_fx_age / SLIME_LANDING_FX_FRAME_SECONDS)
 		if frame < _slime_landing_fx.hframes:
 			_slime_landing_fx.frame = frame
@@ -480,7 +554,7 @@ func _apply_slime_shading() -> void:
 	# The exported vertex colors bake a continuous gradient over the source green.
 	_slime_body_material = ShaderMaterial.new()
 	_slime_body_material.shader = PIXEL_SHADING
-	_slime_body_material.set_shader_parameter("paint", Color("659646"))
+	_slime_body_material.set_shader_parameter("paint", SLIME_PAINT)
 	if live_mode:
 		# The moving slime shades its own rim and does not invalidate the scenery cache.
 		_slime.set_meta(&"local_mesh_highlights", true)

@@ -182,10 +182,18 @@ func _retarget(sampled: Dictionary,neutral_registration: bool=false,action_weigh
 	for joint: String in source.joint_order:result[joint]=yaw*(local[joint] as Vector3)+floor_position
 	return result
 
-static func action_arm_angles(clip: String, progress: float) -> Vector2:
-	if clip == "cast":
-		return Vector2(-1.05, -0.35) * sin(clampf(progress, 0.0, 1.0) * PI)
-	return Vector2.ZERO
+static func cast_arm_angles(elapsed: float, gather: float, duration: float) -> Vector2:
+	var charge := smoothstep(0.0, gather * 0.74, elapsed)
+	var release := smoothstep(gather * 0.86, gather + 0.025, elapsed)
+	var recovery := smoothstep(gather + 0.055, duration, elapsed)
+	var arms := Vector2(-0.90, -0.72).lerp(Vector2(-1.32, -0.05), release)
+	return arms * charge * (1.0 - recovery)
+
+static func woodcutting_motion(progress: float) -> Vector2:
+	var release := smoothstep(0.24, 0.48, progress)
+	var windup := smoothstep(0.0, 0.24, progress) * (1.0 - release)
+	var strike := release * (1.0 - smoothstep(0.56, 1.0, progress))
+	return Vector2(windup, strike)
 
 func _apply_presentation(local: Dictionary) -> void:
 	if presentation_clip=="bench":
@@ -195,11 +203,18 @@ func _apply_presentation(local: Dictionary) -> void:
 			_rotate_chain(local,"hip_"+side,["knee_"+side,"ankle_"+side],-1.25*seated)
 			_rotate_chain(local,"knee_"+side,["ankle_"+side],1.25*seated)
 		return
+	if presentation_clip == "cook":
+		_apply_cooking(local)
+		return
+	if presentation_clip == "chop":
+		_apply_woodcutting(local)
+		return
 	var arms := presentation_arms * (1.0 - presentation_rod_carry)
 	if arms != Vector2.ZERO:
 		for side: String in ["l","r"]:
-			_rotate_chain(local, "shoulder_" + side, ["elbow_" + side, "wrist_" + side], arms.x)
-			_rotate_chain(local, "elbow_" + side, ["wrist_" + side], arms.y)
+			var supporting := side == "l" and presentation_clip != "fishing"
+			_rotate_chain(local, "shoulder_" + side, ["elbow_" + side, "wrist_" + side], arms.x * (0.60 if supporting else 1.0))
+			_rotate_chain(local, "elbow_" + side, ["wrist_" + side], arms.y * (0.90 if supporting else 1.0))
 	if presentation_clip == "fishing":
 		# The right hand bears the rod. The left reaches under it and winds the reel.
 		var grip := 1.0 - presentation_rod_carry
@@ -209,6 +224,28 @@ func _apply_presentation(local: Dictionary) -> void:
 		_rotate_chain(local, "shoulder_r", ["elbow_r", "wrist_r"], -0.31 * grip, Vector3.UP)
 	if presentation_rod_carry > 0.0:
 		_apply_rod_carry(local)
+
+func _apply_cooking(local: Dictionary) -> void:
+	# Two turns per serving. The left hand holds steady as the right lifts and sweeps.
+	var cycle := clampf((presentation_progress - 0.16) / 0.70, 0.0, 1.0) * TAU * 2.0
+	var sweep := sin(cycle)
+	var lift := 0.5 - 0.5 * cos(cycle)
+	_rotate_chain(local, "spine", ["neck", "head", "shoulder_l", "elbow_l", "wrist_l", "shoulder_r", "elbow_r", "wrist_r"], 0.15)
+	_rotate_chain(local, "neck", ["head"], 0.14)
+	_rotate_chain(local, "shoulder_l", ["elbow_l", "wrist_l"], -0.72)
+	_rotate_chain(local, "elbow_l", ["wrist_l"], -0.52)
+	_rotate_chain(local, "shoulder_l", ["elbow_l", "wrist_l"], 0.23, Vector3.UP)
+	_rotate_chain(local, "shoulder_r", ["elbow_r", "wrist_r"], -0.81 - 0.20 * lift)
+	_rotate_chain(local, "elbow_r", ["wrist_r"], -0.65 - 0.43 * lift)
+	_rotate_chain(local, "shoulder_r", ["elbow_r", "wrist_r"], -0.28 + 0.22 * sweep, Vector3.UP)
+
+func _apply_woodcutting(local: Dictionary) -> void:
+	var motion := woodcutting_motion(presentation_progress)
+	_rotate_chain(local, "spine", ["neck", "head", "shoulder_l", "elbow_l", "wrist_l", "shoulder_r", "elbow_r", "wrist_r"], 0.22 * motion.y - 0.15 * motion.x)
+	_rotate_chain(local, "shoulder_r", ["elbow_r", "wrist_r"], -1.96 * motion.x - 1.04 * motion.y)
+	_rotate_chain(local, "elbow_r", ["wrist_r"], -0.94 * motion.x - 0.18 * motion.y)
+	_rotate_chain(local, "shoulder_r", ["elbow_r", "wrist_r"], 0.23 * motion.x - 0.20 * motion.y, Vector3.UP)
+	_rotate_chain(local, "shoulder_l", ["elbow_l", "wrist_l"], -0.27 * motion.y)
 
 func _apply_rod_carry(local: Dictionary) -> void:
 	# Keep the grip relative to the shoulder while the torso and free arm run.

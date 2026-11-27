@@ -3,6 +3,8 @@ extends PanelContainer
 signal trade_requested(action: Dictionary, quantity: int)
 signal close_requested
 const Icon = preload("res://scripts/quickslot_icon.gd")
+const ItemThumbnail = preload("res://scripts/item_thumbnail.gd")
+const ITEM_CATEGORIES := ["전체", "소모품", "재료", "장비"]
 const CREAM = Color("f5ead5")
 const PURPLE = Color("302637")
 const BRASS = Color("80613d")
@@ -14,6 +16,7 @@ var entries: Array = []
 var inventory: Dictionary = {}
 var money: int = 0
 var selling: bool = false
+var thumbnail_for: Callable
 var selected: Dictionary = {}
 var category: int = 0
 var amount: int = 1
@@ -71,13 +74,21 @@ func item_name(entry: Dictionary) -> String:
 func price(entry: Dictionary) -> int:
 	return str(entry.get("outcomeHint", "0")).get_slice("골드", 0).to_int()
 
-func icon_for(id: String, side: float) -> Control:
+func item_category(id: String) -> int:
+	match id:
+		"manaPotion": return 1
+		"woodcutting_axe": return 3
+		_: return 2
+
+func icon_for(id: String, side: int) -> Control:
+	var texture: Texture2D = thumbnail_for.call(id)
+	if texture != null:
+		return ItemThumbnail.new(texture, side)
 	if id == "manaPotion":
 		var icon = Icon.new()
 		icon.kind = id
 		icon.custom_minimum_size = Vector2(side, side)
 		return icon
-	# Materials without approved thumbnails use a quiet initial tile.
 	var tile = text("풀" if id == "moonHerb" else "◇", 22, BRASS)
 	tile.custom_minimum_size = Vector2(side, side)
 	tile.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -108,8 +119,8 @@ func _ready() -> void:
 		tabs.append(tab)
 	var filter_row = HBoxContainer.new()
 	stack.add_child(filter_row)
-	for i in range(3):
-		var filter = btn(["전체", "소모품", "재료"][i], func(): category = i; _list(), i == 0)
+	for i in range(ITEM_CATEGORIES.size()):
+		var filter = btn(ITEM_CATEGORIES[i], func(): category = i; _list(), i == 0)
 		filter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		filter_row.add_child(filter)
 		filters.append(filter)
@@ -189,8 +200,7 @@ func _list() -> void:
 		var action: Dictionary = entry.get("action", {})
 		if str(action.get("command", "")) != ("sell_item" if selling else "buy_item"): continue
 		var id = str(action.get("itemId", ""))
-		if category == 1 and id != "manaPotion": continue
-		if category == 2 and id == "manaPotion": continue
+		if category != 0 and category != item_category(id): continue
 		visible_entries.append(entry)
 	if not visible_entries.has(selected):
 		selected = visible_entries[0] if not visible_entries.is_empty() else {}
@@ -234,7 +244,7 @@ func _refresh() -> void:
 	maximum = mini(99, int(inventory.get(id, 0)) if selling else (floori(float(money) / unit) if unit > 0 else 0))
 	amount = clampi(amount, 1, maxi(1, maximum))
 	selected_name.text = item_name(selected) if not selected.is_empty() else "선택 없음"
-	effect.text = "MP +20" if id == "manaPotion" else ("재료" if not selected.is_empty() else "")
+	effect.text = "MP +20" if id == "manaPotion" else (ITEM_CATEGORIES[item_category(id)] if not selected.is_empty() else "")
 	for child in selected_icon.get_children():
 		selected_icon.remove_child(child)
 		child.queue_free()

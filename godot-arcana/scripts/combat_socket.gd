@@ -280,7 +280,9 @@ func request(action: Dictionary) -> Dictionary:
 	if spatial.has("position"): input.position = spatial.position
 	if spatial.has("aim"): input.aim = spatial.aim
 	if spatial.has("target"): input.target = spatial.target
-	for key in ["itemId","campfireId","recipeId","target","equipmentSlot","floor","textPlace","quantity"]:
+	if spatial.has("targetLifeId"): input.targetLifeId = spatial.targetLifeId
+	for key in ["itemId","campfireId","recipeId","target","equipmentSlot","floor","textPlace","quantity","treeId",
+			"furnitureId","layoutRevision","furnitureOperation","furnitureCell","furnitureRotation"]:
 		if action.has(key): input[key] = action[key]
 	if main.simplified_play.enabled and input.command in ["life_cook", "life_rest"]:
 		var room: String = main.simplified_play.selected_room()

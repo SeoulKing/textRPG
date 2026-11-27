@@ -19,20 +19,28 @@ const ACADEMY_ICONS := {
 	"observatory": preload("res://art/export/academy-interior/telescope.png"),
 }
 const MEADOW_ICON = preload("res://art/export/outdoor-unified-v1/grass-clump.png")
+const FOREST_ICON = preload("res://art/export/outdoor-unified-v1/oak.png")
 const MeadowOx = preload("res://scripts/native_2d_meadow_ox.gd")
 const SLIME_FRAMES = preload("res://art/export/monsters/slime.tres")
 const GRID_SIZE := 5
 const PLAZA_AREA := "arcana_plaza"
 const MEADOW_AREA := "arcana_meadow_field"
+const FOREST_AREA := "arcana_forest"
 const ACADEMY_FIRST_AREA := "arcana_academy:1"
 const ACADEMY_SECOND_AREA := "arcana_academy:2"
 const MEADOW_PLACES := {
-	"meadow_ox": [Vector2i(1, 1), MeadowOx.DISPLAY_NAME],
-	"meadow_entrance": [Vector2i(1, 2), "초원 입구", 4],
+	"meadow_ox": [Vector2i(2, 2), MeadowOx.DISPLAY_NAME],
+	"meadow_entrance": [Vector2i(2, 4), "초원 입구", 4],
+}
+const FOREST_PLACES := {
+	"forest_trees": [Vector2i(2, 2), "벌목지"],
+	"forest_spirits": [Vector2i(3, 3), "정령 터"],
+	"forest_entrance": [Vector2i(2, 4), "숲 입구", 4],
 }
 const PLAZA_PLACES := {
-	"plaza_fountain": [Vector2i(1, 1), "분수"],
-	"plaza_slime": [Vector2i(1, 2), "슬라임"],
+	"plaza_fountain": [Vector2i(2, 2), "분수"],
+	"plaza_village_board": [Vector2i(3, 2), "마을 게시판"],
+	"plaza_slime": [Vector2i(2, 4), "슬라임"],
 }
 const FONT = preload("res://fonts/NotoSansKR-SemiBold.tres")
 const PLACES := {
@@ -43,13 +51,15 @@ const PLACES := {
 	"restaurant": [Vector2i(0, 2), "식당", 3],
 	"shop": [Vector2i(1, 2), "상점"],
 	"river": [Vector2i(2, GRID_SIZE - 1), "남쪽 강", 4],
+	"forest": [Vector2i(1, GRID_SIZE - 1), "연못가 숲"],
 	"meadow": [Vector2i(4, 4), "뿔소 초원"],
 }
 const HOME_PLACES := {
 	"home_kitchen": [Vector2i(0, 1), "주방", 0],
-	"home_bed": [Vector2i(4, 0), "침실"],
+	"home_plot": [Vector2i(2, 0), "텃밭"],
+	"home_bed": [Vector2i(4, 0), "침대"],
 	"home_bathroom": [Vector2i(0, 3), "욕실", 1],
-	"home_sofa": [Vector2i(4, 3), "거실", 2],
+	"home_sofa": [Vector2i(4, 3), "안락의자", 2],
 	"home_table": [Vector2i(3, 2), "작업대", 3],
 	"home_storage": [Vector2i(4, 2), "보관함"],
 	"home_door": [Vector2i(2, 4), "현관", 4],
@@ -89,6 +99,7 @@ const ACADEMY_SECOND_PLACES := {
 const INTERIOR_PLACES := {
 	PLAZA_AREA: PLAZA_PLACES,
 	MEADOW_AREA: MEADOW_PLACES,
+	FOREST_AREA: FOREST_PLACES,
 	"arcana_home": HOME_PLACES,
 	"arcana_inn": INN_PLACES,
 	"arcana_restaurant": RESTAURANT_PLACES,
@@ -110,11 +121,12 @@ const HOME_FLOORS := [
 ]
 const INTERIOR_FLOORS := {
 	PLAZA_AREA: [
-		[Rect2(0, 0, 3, 3), Color("f7faf8")],
-		[Rect2(1, 0, 1, 3), Color("f4f0e8")],
-		[Rect2(0, 1, 3, 1), Color("f4f0e8")],
+		[Rect2(0, 0, GRID_SIZE, GRID_SIZE), Color("f7faf8")],
+		[Rect2(2, 0, 1, GRID_SIZE), Color("f4f0e8")],
+		[Rect2(0, 2, GRID_SIZE, 1), Color("f4f0e8")],
 	],
-	MEADOW_AREA: [[Rect2(0, 0, 3, 3), Color("e7f2d7")], [Rect2(1, 2, 1, 1), Color("f3ecd9")]],
+	MEADOW_AREA: [[Rect2(0, 0, GRID_SIZE, GRID_SIZE), Color("e7f2d7")], [Rect2(2, 4, 1, 1), Color("f3ecd9")]],
+	FOREST_AREA: [[Rect2(0, 0, GRID_SIZE, GRID_SIZE), Color("deebd8")], [Rect2(2, 2, 1, 3), Color("f2e9d5")]],
 	"arcana_home": HOME_FLOORS,
 	"arcana_inn": [
 		[Rect2(0, 0, 5, 5), Color("fbf7ee"), {"name": "여관 로비", "border": ROOM_VIOLET}],
@@ -166,6 +178,7 @@ const ROADS := [
 	[Vector2i(2, 0), Vector2i(2, GRID_SIZE - 1)], [Vector2i(0, 2), Vector2i(2, 2)],
 	[Vector2i(4, 0), Vector2i(4, 1)], [Vector2i(2, 1), Vector2i(4, 1)],
 	[Vector2i(2, 2), Vector2i(4, 2)], [Vector2i(4, 2), Vector2i(4, 4)],
+	[PLACES.forest[0], PLACES.river[0]],
 ]
 const WALK_DIRECTIONS := [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]
 const PORTRAIT_SIZE := Vector2(32, 32)
@@ -176,6 +189,14 @@ const INK := Color("192f43")
 const SKY := Color("e5f5ff")
 const BLUE := Color("247caf")
 const GRID := Color("d3dfe7")
+const WALK_STEP_SECONDS := 0.16
+const MAX_WALK_SECONDS := 1.05
+const WALK_CORNER_RADIUS := 0.22
+const TRAVEL_TILE_SECONDS := 1.0
+const TRAVEL_RAMP_SECONDS := 0.14
+const TRAVEL_APPROACH_SECONDS := 0.12
+const TRAVEL_WAIT_REMAINING_SECONDS := 0.04
+const TRAVEL_RESUME_SECONDS := 0.18
 var _area := ""
 var _current := ""
 var _moving_to := ""
@@ -185,9 +206,14 @@ var _buttons: Dictionary = {}
 var _button_contents: Dictionary = {}
 var _labels: Dictionary = {}
 var _pictures: Dictionary = {}
-var _avatar: TextureRect
+var _avatar: Sprite2D
 var _avatar_cell := Vector2.ZERO
-var _walk_tween: Tween
+var _walk_path: Array[Vector2i] = []
+var _walk_duration := 0.0
+var _walk_elapsed := 0.0
+var _walk_pace := 1.0
+var _region_walk := false
+var _waiting_for_travel := false
 var _arrived := false
 
 static func icon(index: int) -> AtlasTexture:
@@ -206,7 +232,15 @@ static func meadow_destinations(monster_available: bool) -> Dictionary:
 		destinations["meadow_ox"] = MEADOW_PLACES.meadow_ox[1]
 	return destinations
 
+static func forest_destinations(include_spirits: bool = false) -> Dictionary:
+	var destinations := {}
+	for id: String in FOREST_PLACES:
+		if id == "forest_spirits" and not include_spirits: continue
+		destinations[id] = FOREST_PLACES[id][1]
+	return destinations
+
 func _ready() -> void:
+	set_process(false)
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var focus := StyleBoxFlat.new()
@@ -251,12 +285,10 @@ func _ready() -> void:
 		_button_contents[id] = center
 		_labels[id] = label
 		_pictures[id] = picture
-	_avatar = TextureRect.new()
+	_avatar = Sprite2D.new()
 	_avatar.texture = PLAYER_PORTRAIT
 	_avatar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_avatar.size = PORTRAIT_SIZE
-	_avatar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_avatar.scale = PORTRAIT_SIZE / PLAYER_PORTRAIT.get_size()
 	_avatar.z_index = 1
 	add_child(_avatar)
 	resized.connect(_layout_cells)
@@ -268,13 +300,16 @@ func _place_icon(id: String, place: Array) -> Texture2D:
 	if id == "plaza_fountain": return icon(PLACES.plaza[2])
 	if id == "plaza_slime": return SLIME_FRAMES.get_frame_texture(&"idle", 0)
 	if id == "meadow": return MEADOW_ICON
+	if id in ["forest", "forest_trees"]: return FOREST_ICON
+	if id == "forest_spirits": return MEADOW_ICON
 	if id == "meadow_ox": return MeadowOx.pose_texture()
-	if id == "meadow_entrance": return icon(4)
+	if id in ["meadow_entrance", "forest_entrance"]: return icon(4)
 	if id == "home": return HOME_ICON
+	if id == "home_plot": return ACADEMY_ICONS.garden
 	if id == "home_storage": return STORAGE_ICON
 	if id == "shop": return SHOP_ICON
 	if id == "home_bed": return icon(0)
-	if id == "inn_quest_board": return icon(1)
+	if id in ["inn_quest_board", "plaza_village_board"]: return icon(1)
 	if id == "library": return icon(1)
 	if id == "academy_stairs": return ACADEMY_STAIRS_DOWN if _area == ACADEMY_SECOND_AREA else ACADEMY_STAIRS_UP
 	if ACADEMY_ICONS.has(id): return ACADEMY_ICONS[id]
@@ -329,31 +364,87 @@ func _update_buttons() -> void:
 			label.self_modulate.a = 0.0
 	queue_redraw()
 
-## Returns the preview duration, or a negative value when the tile cannot be chosen.
-func start_move(target: String) -> float:
+func is_current_place(id: String) -> bool:
+	return _current == id
+
+func start_move(target: String, wait_for_travel: bool) -> bool:
 	if not _destinations.has(target) or _locked.has(target) or not _moving_to.is_empty():
-		return -1.0
-	var places := places_for(_area)
-	if target == _current or not places.has(_current) or not places.has(target):
-		return 0.0
-	var path := _route(places[_current][0], places[target][0])
-	if path.size() < 2:
-		return 0.0
+		return false
 	_moving_to = target
 	_arrived = false
-	var step_seconds := minf(0.16, 1.05 / (path.size() - 1))
-	_walk_tween = create_tween()
-	for i in range(1, path.size()):
-		_walk_tween.tween_method(_set_avatar_cell, _tile_center(path[i - 1]), _tile_center(path[i]), step_seconds)
+	_region_walk = wait_for_travel
+	_waiting_for_travel = wait_for_travel
+	_walk_elapsed = 0.0
+	_walk_pace = 1.0
+	var places := places_for(_area)
+	if target != _current and places.has(_current) and places.has(target):
+		_walk_path = _route(places[_current][0], places[target][0])
+	if _walk_path.size() >= 2:
+		var steps := _walk_path.size() - 1
+		if wait_for_travel:
+			_walk_duration = TRAVEL_TILE_SECONDS * steps
+		else:
+			_walk_duration = minf(MAX_WALK_SECONDS, WALK_STEP_SECONDS * steps)
+		_avatar.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		set_process(true)
 	_update_buttons()
-	return step_seconds * (path.size() - 1)
+	return true
+
+func _process(delta: float) -> void:
+	if _waiting_for_travel:
+		_advance_pending_travel(delta)
+	else:
+		_walk_pace = move_toward(_walk_pace, 1.0, delta / TRAVEL_RESUME_SECONDS)
+		_walk_elapsed = minf(_walk_duration, _walk_elapsed + delta * _walk_pace)
+	var progress := _travel_progress() if _region_walk else _walk_elapsed / _walk_duration
+	_set_avatar_cell(_walk_point(progress * (_walk_path.size() - 1)))
+	if _walk_elapsed >= _walk_duration:
+		set_process(false)
+
+func _advance_pending_travel(delta: float) -> void:
+	var approach_start := _walk_duration - TRAVEL_APPROACH_SECONDS
+	var normal_step := clampf(approach_start - _walk_elapsed, 0.0, delta)
+	_walk_elapsed += normal_step
+	if normal_step >= delta: return
+	# Slow the animation clock only on the final approach and reserve the last bit for confirmation.
+	var wait_at := _walk_duration - TRAVEL_WAIT_REMAINING_SECONDS
+	var approach_span := wait_at - approach_start
+	var remaining := (wait_at - _walk_elapsed) * exp(-(delta - normal_step) / approach_span)
+	_walk_elapsed = wait_at - remaining
+	_walk_pace = remaining / approach_span
+
+func _travel_progress() -> float:
+	var steady_rate := 1.0 / (_walk_duration - TRAVEL_RAMP_SECONDS)
+	var ramp_factor := steady_rate / (2.0 * TRAVEL_RAMP_SECONDS)
+	if _walk_elapsed < TRAVEL_RAMP_SECONDS:
+		return _walk_elapsed * _walk_elapsed * ramp_factor
+	var time_left := _walk_duration - _walk_elapsed
+	if time_left < TRAVEL_RAMP_SECONDS:
+		return 1.0 - time_left * time_left * ramp_factor
+	return (_walk_elapsed - TRAVEL_RAMP_SECONDS * 0.5) * steady_rate
+
+func _walk_point(route_position: float) -> Vector2:
+	var last_cell := _walk_path.size() - 1
+	var corner := roundi(route_position)
+	var offset := route_position - corner
+	if corner > 0 and corner < last_cell and absf(offset) < WALK_CORNER_RADIUS:
+		# Round each turn inside its tile and keep the tangents aligned with the route.
+		var center := _tile_center(_walk_path[corner])
+		var entry := center.lerp(_tile_center(_walk_path[corner - 1]), WALK_CORNER_RADIUS)
+		var exit := center.lerp(_tile_center(_walk_path[corner + 1]), WALK_CORNER_RADIUS)
+		var weight := inverse_lerp(-WALK_CORNER_RADIUS, WALK_CORNER_RADIUS, offset)
+		return entry.lerp(center, weight).lerp(center.lerp(exit, weight), weight)
+	var segment := mini(floori(route_position), last_cell - 1)
+	var start := _tile_center(_walk_path[segment])
+	var end := _tile_center(_walk_path[segment + 1])
+	return start.lerp(end, route_position - segment)
+
+func confirm_move() -> void:
+	_waiting_for_travel = false
 
 func arrive_preview(target: String) -> bool:
 	if _moving_to != target:
 		return false
-	if _walk_tween:
-		_walk_tween.kill()
-		_walk_tween = null
 	_arrived = true
 	_sync_avatar()
 	_update_buttons()
@@ -361,9 +452,9 @@ func arrive_preview(target: String) -> bool:
 
 func finish_move() -> void:
 	var was_moving := not _moving_to.is_empty()
-	if _walk_tween:
-		_walk_tween.kill()
-		_walk_tween = null
+	set_process(false)
+	_walk_path.clear()
+	_waiting_for_travel = false
 	_moving_to = ""
 	_arrived = false
 	_sync_avatar()
@@ -373,6 +464,7 @@ func finish_move() -> void:
 func _sync_avatar() -> void:
 	var places := places_for(_area)
 	var marker := _moving_to if _arrived else _current
+	_avatar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_avatar.visible = places.has(marker)
 	if _avatar.visible:
 		_set_avatar_cell(_tile_center(places[marker][0]))
@@ -383,14 +475,14 @@ func _set_avatar_cell(point: Vector2) -> void:
 
 func _position_avatar() -> void:
 	if _avatar.visible:
-		var center := _avatar_cell * (size.x / _grid_size())
+		var center := _avatar_cell * (size.x / GRID_SIZE)
 		center.y += _room_title_shift(_avatar_cell) - PORTRAIT_Y_OFFSET
-		_avatar.position = (center - PORTRAIT_SIZE * 0.5).round()
+		_avatar.position = center if is_processing() else center.round()
 
 func _route(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var frontier: Array[Vector2i] = [from]
 	var previous: Dictionary = {from: from}
-	var limits := Rect2i(Vector2i.ZERO, Vector2i.ONE * _grid_size())
+	var limits := Rect2i(Vector2i.ZERO, Vector2i.ONE * GRID_SIZE)
 	while not frontier.is_empty() and not previous.has(to):
 		var cell: Vector2i = frontier.pop_front()
 		for direction: Vector2i in WALK_DIRECTIONS:
@@ -425,14 +517,11 @@ func _can_step(from: Vector2i, to: Vector2i) -> bool:
 			return false
 	return true
 
-func _grid_size() -> int:
-	return 3 if _area in [PLAZA_AREA, MEADOW_AREA] else GRID_SIZE
-
 func _tile_center(cell: Vector2i) -> Vector2:
 	return Vector2(cell) + Vector2(0.5, 0.5)
 
 func _layout_cells() -> void:
-	var side := size.x / _grid_size()
+	var side := size.x / GRID_SIZE
 	custom_minimum_size.y = roundf(size.x)
 	var places := places_for(_area)
 	for id: String in places:
@@ -469,14 +558,13 @@ func _center(cell: Vector2i, side: float) -> Vector2:
 	return (_tile_center(cell) * side).round()
 
 func _draw() -> void:
-	var cells := _grid_size()
-	var side := size.x / cells
+	var side := size.x / GRID_SIZE
 	if side < 1: return
 	var extent := roundf(size.x)
 	var floors: Array = INTERIOR_FLOORS.get(_area, [])
 	for floor: Array in floors:
 		draw_rect(_grid_rect(floor[0], side), floor[1])
-	for i in range(cells + 1):
+	for i in range(GRID_SIZE + 1):
 		var edge := clampf(roundf(i * side), 0, extent - 1)
 		draw_rect(Rect2(edge, 0, 1, extent), GRID)
 		draw_rect(Rect2(0, edge, extent, 1), GRID)
@@ -520,7 +608,7 @@ func _draw_city_paths(side: float) -> void:
 		var b := _center(ends[1], side)
 		draw_dashed_line(a, b, Color("a9bdca"), 1.0, 3.0)
 	for col in range(GRID_SIZE):
-		if col in [PLACES.river[0].x, PLACES.meadow[0].x]: continue
+		if col in [PLACES.forest[0].x, PLACES.river[0].x, PLACES.meadow[0].x]: continue
 		var center := _center(Vector2i(col, GRID_SIZE - 1), side)
 		for offset in [Vector2(-7, -2), Vector2(7, 3)]:
 			var wave: Vector2 = center + offset

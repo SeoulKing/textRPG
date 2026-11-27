@@ -3,6 +3,7 @@ extends SceneTree
 const InnTileLayout = preload("res://scripts/inn_tile_layout.gd")
 const RestaurantTileLayout = preload("res://scripts/restaurant_tile_layout.gd")
 const AcademyFloorLayout = preload("res://scripts/academy_first_floor_layout.gd")
+const RegionRegistry = preload("res://scripts/region_registry.gd")
 
 func _init() -> void:
 	call_deferred("_export")
@@ -22,6 +23,15 @@ func _export() -> void:
 	root.add_child(world)
 	world.set_process(false)
 	var result: Dictionary = {"outside": _area(world, true)}
+	world.set_outdoor_field(world.FOREST_LOCATION)
+	var forest := _area(world, true)
+	if not forest.get("forestTrees", {}).has("forest_trees"):
+		push_error("Could not export the registered 3D pondside forest and its timber oak.")
+		world.free()
+		quit(1)
+		return
+	result[world.FOREST_LOCATION] = forest
+	world.set_outdoor_field("")
 	for id in ["arcana_shop","arcana_inn","arcana_restaurant","arcana_academy","arcana_home"]:
 		world.change_interior(id)
 		if id == "arcana_academy":
@@ -30,6 +40,12 @@ func _export() -> void:
 				result[id+":"+str(level)] = _area(world, false)
 		else:
 			result[id] = _area(world, false)
+	var home_furniture := _home_furniture()
+	if home_furniture.is_empty():
+		push_error("Could not export the player home's furniture grid and fixtures.")
+		quit(1)
+		return
+	result.arcana_home.furniture = home_furniture
 	var output: String = OS.get_environment("ARCANA_LAYOUT_OUTPUT")
 	if output.is_empty(): output = "res://art/export/online-layout.json"
 	var file = FileAccess.open(output, FileAccess.WRITE)
@@ -47,24 +63,35 @@ func _export() -> void:
 	quit()
 
 func _area(world: Node, outside: bool) -> Dictionary:
-	var plaza_v2: bool = outside and world.uses_plaza_v2()
+	var city: bool = outside and world.outdoor_field.is_empty()
+	var plaza_v2: bool = city and world.uses_plaza_v2()
 	var area_fishing: Dictionary = {}
-	var rectangles: Array = []
-	for rect in world.obstacles:
-		rectangles.append({"x":rect.position.x,"y":rect.position.y,"w":rect.size.x,"h":rect.size.y})
+	var static_obstacles: Array = world.obstacles.duplicate()
+	var forest_trees: Dictionary = {}
 	var doors: Array = []
 	for entity in world.entities:
-		if entity.kind in ["building","exit","gate","city","portal","slime"] or world.indoor == "arcana_home":
+		if entity.kind == "forest_trees":
+			var collision: Array = []
+			for rect: Rect2 in entity.collision_parts:
+				static_obstacles.erase(rect)
+				collision.append(_rect(rect))
+			forest_trees[entity.id] = {"position": _point(entity.pos), "radius": float(entity.get("interaction_radius", 34.0)), "rectangles": collision}
+		if entity.kind in ["building","exit","gate","city","portal","slime","forest_entrance"] or world.indoor == "arcana_home":
 			var id: String = str(entity.id)
 			if entity.kind == "gate": id = "arcana_city_gate"
-			if entity.kind == "city": id = "arcana_plaza"
+			if entity.kind in ["city", "forest_entrance"]: id = "arcana_plaza"
 			if entity.kind == "slime": id = "arcana_hunting_ground"
-			var door: Dictionary = {"id":id,"x":entity.pos.x,"y":entity.pos.y,"radius":float(entity.get("interaction_radius", 26.0)) if world.indoor == "arcana_home" else 48}
+			var radius := 48.0
+			if world.indoor == "arcana_home":
+				radius = float(entity.get("interaction_radius", 26.0))
+			elif entity.kind == "forest_entrance":
+				radius = float(entity.get("interaction_radius", radius))
+			var door: Dictionary = {"id":id,"x":entity.pos.x,"y":entity.pos.y,"radius":radius}
 			if entity.kind == "building":
 				var outside_point: Vector2 = entity.pos - entity.get("inward",Vector2.UP)*12.0
 				door.arrival = {"x":outside_point.x,"y":outside_point.y}
 			doors.append(door)
-	if outside:
+	if city:
 		if plaza_v2:
 			area_fishing = world.layout.fishing_geometry()
 		else:
@@ -82,12 +109,19 @@ func _area(world: Node, outside: bool) -> Dictionary:
 	elif world.uses_academy_first_floor_layout():
 		box = AcademyFloorLayout.WALK_BOUNDS
 	var bounds: Dictionary = {"x":box.position.x,"y":box.position.y,"w":box.size.x,"h":box.size.y}
+	var rectangles: Array = []
+	for rect: Rect2 in static_obstacles:
+		rectangles.append(_rect(rect))
 	var area: Dictionary = {"rectangles":rectangles,"doors":doors,"bounds":bounds,"spawn":{"x":world.player_position.x,"y":world.player_position.y}}
+	if not forest_trees.is_empty():
+		area.forestTrees = forest_trees
+	if outside and world.forest_active:
+		area.layoutId = "pondside_forest_3d"
 	if world.indoor == "arcana_inn":
 		area.layoutId = InnTileLayout.LAYOUT_ID
 	elif world.indoor == "arcana_restaurant":
 		area.layoutId = RestaurantTileLayout.LAYOUT_ID
-	if outside:
+	if city:
 		if plaza_v2:
 			area.layoutId = "plaza_v2"
 			area.circles = _collision_circles(world.round_obstacles)
@@ -106,6 +140,9 @@ func _area(world: Node, outside: bool) -> Dictionary:
 		area.floorDomain = {"origin":{"x":80,"y":64},"cellSize":8,"cells":world.shop_layout.floor.duplicate()}
 	return area
 
+func _rect(box: Rect2) -> Dictionary:
+	return {"x": box.position.x, "y": box.position.y, "w": box.size.x, "h": box.size.y}
+
 func _collision_circles(obstacles: Array) -> Array[Dictionary]:
 	var circles: Array[Dictionary] = []
 	for obstacle: Dictionary in obstacles:
@@ -113,6 +150,31 @@ func _collision_circles(obstacles: Array) -> Array[Dictionary]:
 		circles.append({"localRadius": obstacle.radius,
 			"inverse": [inverse.x.x, inverse.x.y, inverse.y.x, inverse.y.y, inverse.origin.x, inverse.origin.y]})
 	return circles
+
+func _home_furniture() -> Dictionary:
+	var packed := RegionRegistry.scene("arcana_home", 1)
+	if packed == null: return {}
+	var home := packed.instantiate()
+	var grid: Dictionary = home.get_meta("home_grid", {})
+	var layout: Dictionary = home.collect_layout()
+	var fixtures: Dictionary = home.collect_home_catalog()
+	home.free()
+	if grid.is_empty() or fixtures.is_empty() or not layout.has("fixed_rectangles"): return {}
+	var rooms: PackedStringArray = grid.rooms
+	var names := {"K":"kitchen", "B":"bedroom", "L":"living", "W":"bathroom"}
+	var cells := {}
+	for z in range(rooms.size()):
+		for x in range(rooms[z].length()):
+			cells["%d:%d" % [x, z]] = names.get(rooms[z][x], "")
+	return {"gridVersion":grid.version, "origin":_point(grid.origin), "cellSize":grid.cell_size,
+		"cells":cells, "reservedCells":Array(grid.reserved), "fixedRectangles":_rectangles(layout.fixed_rectangles),
+		"edgeWalls":_rectangles(layout.edge_walls), "fixtures":fixtures}
+
+func _rectangles(boxes: Array) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for box: Rect2 in boxes:
+		result.append({"x":box.position.x, "y":box.position.y, "w":box.size.x, "h":box.size.y})
+	return result
 
 func _point(position: Vector2) -> Dictionary:
 	return {"x": position.x, "y": position.y}

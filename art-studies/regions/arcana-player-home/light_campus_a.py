@@ -30,7 +30,6 @@ def finish(name, color, roughness, emission=0.0):
 
 
 green_glass = finish("Library Lane | deep green desk shade", (.084, .253, .157), .28, .12)
-opal = finish("Library Lane | task-lamp opal glass", (1.0, .615, .290), .51, 1.35)
 warm_white = finish("Library Lane | warm lamp diffuser", (1, .834, .615), .47, 1.10)
 
 
@@ -70,6 +69,7 @@ def primitive(group, name, x, z, y, size, material, round_shape=False):
     bevel.width = .012
     bevel.segments = 2
     obj.modifiers.new("Corner normals", "WEIGHTED_NORMAL")
+    return obj
 
 
 def rod(group, name, points, material, radius):
@@ -126,14 +126,19 @@ x, z, y = 3.82, 6.15, 1.165
 kitchen_lamp = asset("kitchen-task-lantern", x, z, y)
 primitive(kitchen_lamp,"Kitchen lantern heavy base",x,z,y+.035,(.30,.30,.069),iron)
 primitive(kitchen_lamp,"Kitchen lantern brass ring",x,z,y+.084,(.26,.26,.033),brass,True)
-primitive(kitchen_lamp,"Kitchen lantern amber enclosure",x,z,y+.211,(.209,.209,.236),opal,True)
+amber = finish("Library Lane | lantern honey glass", (.56, .23, .056), .46, .46)
+shaded_amber = finish("Library Lane | lantern shaded amber glass", (.34, .135, .028), .46, .30)
+panes = primitive(kitchen_lamp,"Kitchen lantern amber enclosure",x,z,y+.211,(.186,.186,.236),amber)
+panes.data.materials.append(shaded_amber)
+for face in panes.data.polygons:
+    face.material_index = int(abs(face.normal.y) < .5)
 for dx in (-.099,.099):
     for dz in (-.099,.099):
-        rod(kitchen_lamp,"Lantern protective upright",[(x+dx,z+dz,y+.084),(x+dx,z+dz,y+.335)],iron,.010)
+        rod(kitchen_lamp,"Lantern protective upright",[(x+dx,z+dz,y+.084),(x+dx,z+dz,y+.335)],iron,.023)
 primitive(kitchen_lamp,"Kitchen lantern cap",x,z,y+.345,(.26,.26,.060),iron,True)
 primitive(kitchen_lamp,"Kitchen lantern chimney",x,z,y+.397,(.114,.114,.075),brass,True)
-rod(kitchen_lamp,"Kitchen lantern carry handle",[(x-.069,z,y+.396),(x-.05,z,y+.456),
-    (x,z,y+.483),(x+.052,z,y+.453),(x+.071,z,y+.396)],brass,.012)
+rod(kitchen_lamp,"Kitchen lantern carry handle",[(x-.069,z,y+.396),(x-.05,z,y+.445),
+    (x,z,y+.472),(x+.052,z,y+.442),(x+.071,z,y+.396)],brass,.023)
 practical(kitchen_lamp,"Amber light on the counter",(x+.10,z+.11,y+.274),(1.0,.69,.39),27,.18)
 
 lighting = bpy.data.collections.new("Library Lane | practical lights")

@@ -7,6 +7,7 @@ const os=require("node:os");
 const {OnlineStore}=require("../.server-dist/online/store");
 const {OnlineAccounts}=require("../.server-dist/online/accounts");
 const {ArcanaWorld}=require("../.server-dist/online/world");
+const {beginLife,completeLife,cancelLife,initializeLife}=require("../.server-dist/online/life");
 const {newWorld,cast,tickCombat,rewardShares}=require("../.server-dist/online/combat");
 const {createInitialGameState}=require("../.server-dist/game/rules");
 const {spatialLayout}=require("../.server-dist/game/arcana-spatial");
@@ -109,6 +110,38 @@ test("parallel admissions reserve exactly four slots and leaving returns a slot"
     assert.equal((await f.world.join(guests[denied],"controller-retry")).worldId,"main");
   } finally {await f.dispose();}
 });
+test("cancelling a cooking batch preserves finished portions, their XP and all unused ingredients",()=>{
+  const state=createInitialGameState("arcana");
+  const game={state,world:{locationCards:{},itemCards:{}}};
+  initializeLife(game);
+  state.arcanaLife.atHome=true;
+  state.inventory={rawMeat:3,treeBranch:2};
+  const actor={game,character:{id:"cook"},place:{interior:"arcana_home:cook"},position:{x:0,y:0},bench:""};
+
+  assert.throws(()=>beginLife(actor,"cook",undefined,"meatSkewer",3),error=>error.code==="materials_required");
+  assert.deepEqual(state.inventory,{rawMeat:3,treeBranch:2});
+  state.inventory.treeBranch=3;
+  const job=beginLife(actor,"cook",undefined,"meatSkewer",3);
+  assert.deepEqual(state.inventory,{rawMeat:3,treeBranch:3});
+  completeLife(actor,job,()=>0);
+  completeLife(actor,job,()=>0.999);
+  assert.equal(job.phase,"active");
+  assert.equal(job.completed,2);
+
+  cancelLife(job);
+  completeLife(actor,job,()=>0);
+  assert.equal(job.phase,"cancelled");
+  assert.deepEqual(job.resultCounts,{meatSkewer:1,meatSkewerExcellent:1});
+  assert.deepEqual(state.inventory,{rawMeat:1,treeBranch:1,meatSkewer:1,meatSkewerExcellent:1});
+  assert.equal(state.arcanaLife.cookedMeals,2);
+  assert.equal(state.arcanaCombat.skillTraining.cooking.xp,200);
+
+  const lastServing=beginLife(actor,"cook",undefined,"meatSkewer");
+  completeLife(actor,lastServing,()=>0);
+  assert.equal(lastServing.phase,"success");
+  assert.equal(state.inventory.meatSkewer,2);
+});
+
 test("normal monster rewards go to last hit once, boss strategy conserves total",()=>{
   const world=newWorld(),home=spatialLayout().home;
   function actor(id) {
@@ -191,4 +224,57 @@ test("buildings are locations in the same world and reject stale outdoor movemen
   assert.equal(outside.place.interior,"");assert.equal(outside.placeRevision,2);
   assert.equal(f.world.connections.get(id),connection);
  } finally {await f.dispose();}
+});
+
+test("home furniture previews all rotations, saves once and restores stored and placed furniture", async () => {
+  const f = await fixture();
+  try {
+    const principal = f.guest();
+    const controller = "furniture-controller";
+    await f.world.join(principal, controller);
+    const connection = { sessionId: principal.sessionId, controller, send: () => {}, close: () => {} };
+    const id = await f.world.attach(principal, controller, connection);
+    let sequence = 0;
+    const command = (input) => f.world.command(id, connection, { ...input, sequence: ++sequence });
+    const fixtureId = "kitchen-dining-table";
+    const row = (snapshot) => snapshot.placements.find(item => item.instanceId === fixtureId);
+
+    const entry = await command({ command: "life_home_enter", actionId: crypto.randomUUID() });
+    assert.equal(entry.homeFurniture.layoutRevision, 0);
+    assert.equal(row(entry.homeFurniture).state, "default");
+
+    const preview = await command({ command: "home_furniture_preview", furnitureId: fixtureId, layoutRevision: 0 });
+    assert.deepEqual(preview.homeFurniturePreview.rotations.map(option => option.rotation), [0, 1, 2, 3]);
+    const quarterTurn = preview.homeFurniturePreview.rotations[1];
+    assert.equal(Object.keys(quarterTurn.cells).length, Object.keys(entry.homeFurniture.cells).length);
+    assert.ok(quarterTurn.cells["4:5"]);
+    const anchor = Object.keys(quarterTurn.cells).find(cell => quarterTurn.cells[cell] === "");
+    assert.ok(anchor, "the default home needs a valid rotated destination for its dining table");
+
+    const store = { command: "home_furniture_update", furnitureId: fixtureId, furnitureOperation: "store",
+      layoutRevision: 0, actionId: crypto.randomUUID() };
+    const stored = await command(store);
+    assert.equal(row(stored.homeFurniture).state, "stored");
+    assert.equal(stored.homeFurniture.layoutRevision, 1);
+    const duplicate = await command(store);
+    assert.equal(duplicate.actionReceipt.duplicate, true);
+    assert.equal(duplicate.homeFurniture.layoutRevision, 1);
+    const stale = await command({ command: "home_furniture_preview", furnitureId: fixtureId, layoutRevision: 0 });
+    assert.equal(stale.error, "home_furniture_revision");
+    assert.equal(stale.homeFurniture.layoutRevision, 1);
+
+    const [x, z] = anchor.split(":").map(Number);
+    const placed = await command({ command: "home_furniture_update", furnitureId: fixtureId, furnitureOperation: "place",
+      furnitureCell: { x, z }, furnitureRotation: 1, layoutRevision: 1, actionId: crypto.randomUUID() });
+    assert.equal(row(placed.homeFurniture).rotation, 1);
+    assert.deepEqual(row(placed.homeFurniture).cell, { x, z });
+    const checkpoint = await f.store.transaction(tx => tx.get("world", "main"));
+    const durable = checkpoint.actors.find(actor => actor.character.id === id).game.state.arcanaLife.homeFurniture;
+    assert.equal(durable.layoutRevision, 2);
+    assert.deepEqual(durable.overrides[fixtureId].cell, { x, z });
+    const rejoined = await f.world.join(principal, controller, true);
+    assert.deepEqual(row(rejoined.snapshot.homeFurniture), row(placed.homeFurniture));
+  } finally {
+    await f.dispose();
+  }
 });

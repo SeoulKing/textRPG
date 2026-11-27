@@ -12,6 +12,12 @@
         4096
       ]
     },
+    "arcana_forest": {
+      "scene": "res://scenes/pondside_forest_3d.tscn",
+      "location": "arcana_forest",
+      "adapter": "pondside_forest_3d",
+      "bounds": [0, 0, 2048, 2048]
+    },
     "arcana_meadow_field": {
       "scene": "res://scenes/native_2d/meadow_field.tscn",
       "location": "arcana_meadow_field",

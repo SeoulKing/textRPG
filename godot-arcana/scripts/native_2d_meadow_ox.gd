@@ -9,11 +9,16 @@ const FRAME_SIZE := Vector2(64, 64)
 const FOOT_PIVOT := Vector2(32, 56)
 const HORN_COLOR := Color("f3db9c")
 const INK_COLOR := Color("392522")
+const HIT_SECONDS := 0.18
+const OX_HIT_TINT := Color("ffd2a8")
 
 static var _frames: Array[AtlasTexture] = []
 var _target_outlined := false
 var _sprite: Sprite2D
-var _hit_flash: Tween
+var _phase: StringName = &""
+var _phase_elapsed := 0.0
+var _hit_age := HIT_SECONDS
+var _pose_offset := Vector2.ZERO
 
 static func pose_texture(pose: StringName = &"idle") -> Texture2D:
     if _frames.is_empty():
@@ -47,23 +52,67 @@ func _ready() -> void:
     caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
     add_child(caption)
 
-func sync_combat_pose(spatial: Dictionary) -> void:
+func sync_combat_pose(spatial: Dictionary, attack_in: float = 0.0, delta: float = 0.0,
+        animate: bool = true, paused: bool = false) -> void:
+    var phase := StringName(spatial.get("behavior", "")) if spatial.get("slimeAction", "") == "charge" else &""
+    var elapsed := 0.0
+    var duration := 1.0
+    match phase:
+        &"prepare":
+            duration = maxf(0.001, float(spatial.get("windupDuration", 1.6)))
+            elapsed = duration - attack_in
+        &"attack":
+            duration = maxf(0.001, float(spatial.get("actionDuration", 0.55)))
+            elapsed = float(spatial.get("jumpElapsed", 0.0))
+        &"recover":
+            duration = maxf(0.001, float(spatial.get("recoveryDuration", 1.2)))
+            elapsed = float(spatial.get("recoveryElapsed", 0.0))
+    var step := 0.0 if paused else delta
+    if phase == _phase and not spatial.get("sampled_motion", false):
+        elapsed = maxf(elapsed, _phase_elapsed + step)
+    _phase = phase
+    _phase_elapsed = clampf(elapsed, 0.0, duration)
+    var progress := _phase_elapsed / duration
+
+    if phase in [&"prepare", &"attack"] and spatial.has("jumpFrom") and spatial.has("jumpTo"):
+        var horizontal := float(spatial.jumpTo.x) - float(spatial.jumpFrom.x)
+        if absf(horizontal) > 1.0:
+            _sprite.flip_h = horizontal > 0.0
+    var travel_sign := 1.0 if _sprite.flip_h else -1.0
     var pose: StringName = &"idle"
-    if spatial.get("slimeAction", "") == "charge":
-        match spatial.get("behavior", ""):
-            "prepare": pose = &"prepare"
-            "attack": pose = &"charge"
-        if pose != &"idle" and spatial.has("jumpFrom") and spatial.has("jumpTo"):
-            var horizontal := float(spatial.jumpTo.x) - float(spatial.jumpFrom.x)
-            if absf(horizontal) > 1.0:
-                _sprite.flip_h = horizontal > 0.0
+    var squash := Vector2.ONE
+    var shift := 0.0
+    match phase:
+        &"prepare":
+            pose = &"prepare"
+            var brace := smoothstep(0.0, 0.48, progress)
+            squash = Vector2.ONE.lerp(Vector2(1.06, 0.92), brace)
+            shift = -3.0 * brace
+        &"attack":
+            pose = &"charge"
+            var drive := smoothstep(0.0, 0.22, progress)
+            var brake := smoothstep(0.76, 1.0, progress)
+            squash = Vector2(1.06, 0.92).lerp(Vector2(1.14, 0.96), drive).lerp(Vector2(1.08, 0.88), brake)
+            shift = lerpf(-3.0, 2.0, drive) * (1.0 - brake)
+        &"recover":
+            # Hooves stay at the ground pivot as the horns rise after the stop.
+            pose = &"prepare" if progress < 0.35 else &"idle"
+            squash = Vector2(1.08, 0.88).lerp(Vector2.ONE, smoothstep(0.05, 0.68, progress))
     var texture := pose_texture(pose)
     if texture != _sprite.texture:
         _sprite.texture = texture
+    if spatial.get("behavior", "neutral") == "neutral":
+        _hit_age = HIT_SECONDS
+    else:
+        _hit_age = minf(HIT_SECONDS, _hit_age + step)
+    var hit := 1.0 - smoothstep(0.0, HIT_SECONDS, _hit_age) if animate else 0.0
+    _sprite.modulate = Color.WHITE.lerp(OX_HIT_TINT, hit)
+    _sprite.scale = squash.lerp(Vector2(1.03, 0.92), hit * 0.4) if animate else Vector2.ONE
+    _pose_offset.x = roundf((shift - 2.0 * hit) * travel_sign) if animate else 0.0
 
 func snap_to_pixels() -> void:
     var to_raster := get_viewport().get_stretch_transform() * get_global_transform_with_canvas()
-    _sprite.position = Coordinates.screen_snap(Vector2.ZERO, to_raster)
+    _sprite.position = Coordinates.screen_snap(_pose_offset, to_raster)
 
 func set_target_outline(enabled: bool) -> void:
     if _target_outlined == enabled: return
@@ -71,11 +120,7 @@ func set_target_outline(enabled: bool) -> void:
     queue_redraw()
 
 func play_hit() -> void:
-    if not is_instance_valid(_sprite): return
-    if _hit_flash != null: _hit_flash.kill()
-    _sprite.modulate = Color("ffd2a8")
-    _hit_flash = create_tween()
-    _hit_flash.tween_property(_sprite, "modulate", Color.WHITE, 0.18)
+    _hit_age = 0.0
 
 func _draw() -> void:
     draw_set_transform(Vector2(0, 2), 0.0, Vector2(1, 0.32))

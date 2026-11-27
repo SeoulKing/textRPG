@@ -100,6 +100,15 @@
         "source": "godot-arcana/art/source/items/fishing-rod-mystic-v1/fishing-rod.pxpen"
       }
     },
+    "woodcutting_axe": {
+      "category": "life_tool",
+      "equipmentSlot": "mainHand",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/woodcutting-axe.png",
+        "source": "godot-arcana/art/source/items/woodcutting-axe-v1/woodcutting-axe.pxpen"
+      }
+    },
     "riverFish": {
       "category": "ingredient",
       "thumbnail": {

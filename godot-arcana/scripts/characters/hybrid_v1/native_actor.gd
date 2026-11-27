@@ -13,6 +13,10 @@ const DIRECTIONS := ["s","se","e","ne","n","nw","w","sw"]
 const DEFAULT_OUTFIT := ["travel-top","travel-trousers","boots-taupe"]
 const CAST_GATHER := 0.32
 const CAST_DURATION := 0.68
+const DODGE_TRAVEL_TIME := 0.18
+const DODGE_PEAK_PHASE := 0.24
+const HURT_RECOIL_PEAK := 0.045
+const HURT_RECOIL_END := 0.25
 const RUN_CYCLE_DISTANCE := 24.0
 const RUN_BLEND_IN := 0.12
 const RUN_BLEND_OUT := 0.16
@@ -52,6 +56,7 @@ var hurt_direction := Vector2.ZERO
 var bench_state := ""
 var bench_age := 0.0
 var bench_reduced := false
+var _bench_facing := Vector2.ZERO
 var preview_clip := ""
 var preview_direction := 0
 var preview_frame := 0
@@ -68,7 +73,9 @@ var _action_age := 0.0
 var _outgoing_pose: Dictionary = {}
 var _outgoing_age := 0.0
 var _authored_cast := false
+var _authored_hurt := false
 var _action_from_cast := false
+var _dodge_pose_active := false
 var _previous_dash_age := -1.0
 var _contact_shadow: Polygon2D
 var _contact_shadow_enabled := true
@@ -125,10 +132,18 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,_pixelated: bool
 	# Each request blends from the last pose displayed, without advancing twice.
 	_previous_frame_arms = _arm_pose
 	# The movement clock pauses while the fishing panel is open.
-	var frame_delta := minf(get_process_delta_time(), 0.1)
+	var frame_delta := delta
 	_arm_blend_weight = 1.0 - exp(-frame_delta / ARM_BLEND_RESPONSE)
 	if dash_age >= 0.0 and (_previous_dash_age < 0.0 or dash_age < _previous_dash_age):
+		if cast_age >= 0.0: cancel_cast()
 		play_action_pose("dodge")
+	if _dodge_pose_active:
+		if dash_age >= 0.0:
+			_action_age = minf(dash_age, _action_duration)
+		else:
+			_capture_outgoing_pose()
+			_action_target = {}
+			_dodge_pose_active = false
 	_previous_dash_age = dash_age
 	var facing := locomotion_heading if locomotion_heading.length_squared()>0.00001 else motion
 	if walking and facing.length_squared()>0.00001:last_yaw=atan2(facing.x,facing.y)
@@ -136,17 +151,20 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,_pixelated: bool
 	if cast_age>=0:last_yaw=cast_yaw
 	if dash_age>=0:last_yaw=dash_yaw
 	display_direction=direction_for_yaw(last_yaw,camera_yaw)
-	if walking:
+	# Dodge displacement is not a stride. Resume the last foot phase when the
+	# control layer gives movement back during the dodge recovery.
+	var gait_walking := walking and not (dash_age >= 0.0 and dash_age < DODGE_TRAVEL_TIME)
+	if gait_walking:
 		# World.player_gait advances by map distance * 0.20.
 		var distance := maxf(0.0,gait-previous_gait)*5.0 if use_gait_distance and was_walking else motion.length()
 		_advance_gait(distance, frame_delta)
 	# Keep breathing continuous across the idle/movement blend.
 	idle_age += delta
-	previous_gait=gait;was_walking=walking
-	var blend_duration := RUN_BLEND_IN if walking else RUN_BLEND_OUT
-	_movement_progress = move_toward(_movement_progress, 1.0 if walking else 0.0, delta / blend_duration)
+	previous_gait=gait;was_walking=gait_walking
+	var blend_duration := RUN_BLEND_IN if gait_walking else RUN_BLEND_OUT
+	_movement_progress = move_toward(_movement_progress, 1.0 if gait_walking else 0.0, delta / blend_duration)
 	_movement_weight = smoothstep(0.0, 1.0, _movement_progress)
-	var clip := "run" if walking or _movement_weight>0.001 else "idle"
+	var clip := "run" if gait_walking or _movement_weight>0.001 else "idle"
 	var progress := 0.0
 	if cast_age>=0:clip="cast";progress=cast_age/CAST_DURATION
 	if not preview_clip.is_empty():
@@ -158,7 +176,7 @@ func pose(time: float,gait: float,walking: bool,motion: Vector2,_pixelated: bool
 	if not _action_target.is_empty():
 		if _action_age >= _action_duration:
 			_action_target = {}
-		else:
+		elif not _dodge_pose_active:
 			_action_age = minf(_action_duration, _action_age + frame_delta)
 	if not _outgoing_pose.is_empty():
 		if _outgoing_age >= ACTION_INTERRUPTION_BLEND:
@@ -174,7 +192,9 @@ func _present(clip: String,direction: int,phase: float,movement: float,progress:
 	if not skeleton_ready:return false
 	assembler.presentation_clip=clip
 	assembler.presentation_progress=progress
-	var target_arms := Vector2.ZERO if clip == "cast" and _authored_cast else Assembler.action_arm_angles(clip, progress)
+	var target_arms := Vector2.ZERO
+	if clip == "cast" and not _authored_cast:
+		target_arms = Assembler.cast_arm_angles(progress * CAST_DURATION, CAST_GATHER, CAST_DURATION)
 	var arms := target_arms
 	if clip == "fishing":
 		arms = Vector2(fishing_pose.x, fishing_pose.y)
@@ -212,18 +232,19 @@ func _rod_grip() -> Variant:
 	return wrist - _capture_anchor if wrist is Vector2 else null
 
 func supports_bench_pose() -> bool:return skeleton_ready
-func set_bench_pose(state: String, age: float, reduced: bool) -> void:
+func set_bench_pose(state: String, age: float, reduced: bool, facing: Vector2 = Vector2.ZERO) -> void:
 	bench_state = state if BenchMotion.has_pose(state) else ""
 	bench_age = age
 	bench_reduced = reduced
+	_bench_facing = facing
 
 func apply_bench_pose() -> void:
 	if bench_state.is_empty():
 		return
 	var amount := BenchMotion.seated_weight(bench_state, bench_age, bench_reduced)
-	display_direction = 0
-	last_yaw = camera_yaw
-	_present("bench", 0, 0.0, 0.0, amount)
+	last_yaw = camera_yaw if _bench_facing.is_zero_approx() else atan2(_bench_facing.x, _bench_facing.y)
+	display_direction = direction_for_yaw(last_yaw, camera_yaw)
+	_present("bench", display_direction, 0.0, 0.0, amount, {}, Vector3.ZERO, 0.0, last_yaw - camera_yaw)
 	_contact_shadow.visible = _contact_shadow_enabled and amount < 0.5
 
 func face_attack(direction: Vector2) -> void:
@@ -259,6 +280,7 @@ func play_action_pose(action_id: String, fallback_id: String = "") -> bool:
 	_action_duration = float(entry.duration)
 	_action_age = 0.0
 	_action_from_cast = false
+	_dodge_pose_active = action_id == "dodge"
 	return true
 
 func _capture_outgoing_pose() -> void:
@@ -271,7 +293,14 @@ func _sample_action_pose() -> Dictionary:
 	var mix := {}
 	if not _action_target.is_empty():
 		mix.target = _action_target
-		mix.weight = ActionLibrary.weight_at(_action_age, _action_duration)
+		var elapsed := _action_age
+		if _dodge_pose_active:
+			var phase := clampf(elapsed / _action_duration, 0.0, 1.0)
+			var authored_peak: float = ActionLibrary.PEAK_PHASE
+			var timing := lerpf(0.0, authored_peak, phase / DODGE_PEAK_PHASE) if phase < DODGE_PEAK_PHASE \
+				else lerpf(authored_peak, 1.0, inverse_lerp(DODGE_PEAK_PHASE, 1.0, phase))
+			elapsed = timing * _action_duration
+		mix.weight = ActionLibrary.weight_at(elapsed, _action_duration)
 	if not _outgoing_pose.is_empty():
 		mix.from = _outgoing_pose
 		mix.from_weight = 1.0 - smoothstep(0.0, ACTION_INTERRUPTION_BLEND, _outgoing_age)
@@ -282,8 +311,19 @@ func advance_cast(delta: float,paused: bool) -> void:
 	cast_age+=delta
 	if cast_age>=CAST_DURATION:cast_age=-1.0
 func play_hurt(direction: Vector2) -> void:
-	hurt_age=0.0;hurt_direction=direction.normalized()
-	play_action_pose("hurt")
+	hurt_age = 0.0
+	hurt_direction = direction.normalized()
+	if hurt_direction.is_zero_approx():
+		# A landing can share our floor anchor. Recoil away from our forward side.
+		hurt_direction = Vector2(-sin(last_yaw), -cos(last_yaw))
+	_authored_hurt = play_action_pose("hurt")
+
+func recoil_direction() -> Vector2:
+	if _authored_hurt or bench_reduced or hurt_age < 0.0 or hurt_age >= HURT_RECOIL_END:
+		return Vector2.ZERO
+	var sway := smoothstep(0.0, HURT_RECOIL_PEAK, hurt_age) * (1.0 - smoothstep(HURT_RECOIL_PEAK, HURT_RECOIL_END, hurt_age))
+	return hurt_direction * sway
+
 func update_hurt(delta: float,effects: bool) -> void:
 	if sprite_material==null:return
 	var strength := 0.0

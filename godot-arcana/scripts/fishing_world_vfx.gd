@@ -61,7 +61,7 @@ func _process(delta: float) -> void:
 		present_session(state, hero, delta)
 		_carrying = false
 		return
-	elif can_carry and (hero.visible or indoor_avatar):
+	elif can_carry and not main.life.axe_equipped() and (hero.visible or indoor_avatar):
 		_sync_carry(hero, delta)
 	else:
 		session_id = ""

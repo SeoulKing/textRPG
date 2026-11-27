@@ -17,6 +17,7 @@ var interpolation_delay: float = .12
 var jitter: float = 0.0
 var enemy_motion = Motion.new()
 var enemy_hp: float = -1.0
+var enemy_life_id := ""
 var correction_count: int = 0
 var hard_correction_count: int = 0
 var main: Node
@@ -57,6 +58,7 @@ func reset_stream() -> void:
 	jitter = 0.0
 	enemy_motion.clear()
 	enemy_hp = -1.0
+	enemy_life_id = ""
 	for remote in actors.values(): remote.motion.clear()
 
 func record_input(sequence: int, input: Dictionary) -> void:
@@ -105,9 +107,46 @@ func _observe_time(at: float) -> void:
 	server_time = at
 	received_at = now
 
-func enemy_position(fallback: Vector2) -> Vector2:
+func _observe_enemy(battle: Dictionary) -> void:
+	var spatial: Variant = battle.get("spatial")
+	if not spatial is Dictionary:
+		enemy_motion.clear()
+		enemy_hp = -1.0
+		enemy_life_id = ""
+		return
+	var life_id := ""
+	for enemy: Dictionary in spatial.get("enemies", []):
+		if enemy.get("id") == spatial.get("primaryEnemyId"):
+			life_id = str(enemy.get("lifeId", ""))
+			break
+	var hp := float(battle.get("enemyHp", 0))
+	var discontinuity := life_id != enemy_life_id if not life_id.is_empty() else enemy_hp >= 0.0 and hp > enemy_hp
+	enemy_hp = hp
+	enemy_life_id = life_id
+	var pose := {}
+	for key: String in ["behavior", "slimeAction", "targetLocked", "jumpFrom", "jumpTo", "jumpElapsed",
+			"windupDuration", "actionDuration", "recoveryDuration", "recoveryElapsed"]:
+		if spatial.has(key): pose[key] = spatial[key]
+	enemy_motion.push(float(spatial.get("elapsed", server_time)), {
+		"position": spatial.enemy,
+		"enemy_pose": {"id": battle.get("id", ""), "phase": battle.get("phase", ""),
+			"paused": battle.get("paused", false), "attackIn": battle.get("attackIn", 0.0), "spatial": pose},
+	}, discontinuity)
+
+func enemy_render_sample() -> Dictionary:
+	if not main.online_world or not main.world.indoor.is_empty(): return {}
 	var sample: Dictionary = enemy_motion.sample(render_time)
-	return sample.get("position",fallback)
+	if sample.is_empty(): return {}
+	var battle: Dictionary = sample.enemy_pose.duplicate()
+	var pose: Dictionary = battle.spatial.duplicate()
+	pose.sampled_motion = true
+	var passed := 0.0 if battle.paused else clampf(render_time - float(sample.time), -.22, .22)
+	match pose.get("behavior", ""):
+		"prepare": battle.attackIn = maxf(0.0, float(battle.attackIn) - passed)
+		"attack": pose.jumpElapsed = clampf(float(pose.get("jumpElapsed", 0.0)) + passed, 0.0, float(pose.get("actionDuration", INF)))
+		"recover": pose.recoveryElapsed = clampf(float(pose.get("recoveryElapsed", 0.0)) + passed, 0.0, float(pose.get("recoveryDuration", INF)))
+	battle.spatial = pose
+	return {"position": sample.position, "battle": battle}
 
 func diagnostics() -> Dictionary:
 	return {"bufferMs":roundi(interpolation_delay*1000),"jitterMs":roundi(jitter*1000),"corrections":correction_count,"hardCorrections":hard_correction_count,"pendingInputs":input_history.size()}
@@ -135,12 +174,14 @@ func accept(value: Dictionary) -> void:
 		main.snapshot.onlinePlaceRevision = next_place_revision
 		main.snapshot.onlineFighting = update.get("onlineFighting",false)
 		main.snapshot.state.merge(update.get("state",{}),true)
+		if update.get("homeFurniture") is Dictionary:
+			main._apply_home_furniture(update.homeFurniture)
 		if update.get("arcanaEquipment") is Dictionary:
 			main._sync_equipment(update.arcanaEquipment)
 		var location = str(main.snapshot.state.get("location",""))
 		var expected_interior = location if location in main.INDOOR_LOCATIONS else ""
-		var meadow_active: bool = location == main.MEADOW_LOCATION
-		if main.world.indoor != expected_interior or main.world.meadow_active != meadow_active:
+		var expected_field: String = main.world.field_for_location(location)
+		if main.world.indoor != expected_interior or main.world.outdoor_field != expected_field:
 			main._apply(main.snapshot.duplicate(true))
 			for player in value.get("players",[]):
 				if str(player.get("id","")) == character_id and player.get("position") is Dictionary:
@@ -152,6 +193,8 @@ func accept(value: Dictionary) -> void:
 		if next_place_revision!=old_place_revision:
 			reset_prediction()
 			enemy_motion.clear()
+			enemy_hp = -1.0
+			enemy_life_id = ""
 		if next_place_revision!=old_place_revision and update.get("position") is Dictionary:
 			main.world.player_position = main.world.nearest_walkable(Vector2(float(update.position.x),float(update.position.y)))
 			main.world.path.clear()
@@ -172,12 +215,7 @@ func accept(value: Dictionary) -> void:
 				combat._event(entry)
 				if entry.get("kind","")=="defeat": reset_prediction()
 		reconcile_self(update)
-		if main._battle().get("spatial") is Dictionary:
-			var hp: float = float(main._battle().get("enemyHp",0))
-			enemy_motion.push(server_time,{"position":main._battle().spatial.enemy},enemy_hp>=0 and hp>enemy_hp)
-			enemy_hp = hp
-		else:
-			enemy_motion.clear()
+		_observe_enemy(main.world.battle)
 		main._update_hud()
 		main._refresh_controls()
 	if is_processing(): _sync_actors(value.get("players", []))
@@ -240,6 +278,7 @@ func _sync_actors(players: Array) -> void:
 		if not retained.has(id):
 			if is_instance_valid(main.world_renderer.shop3d): main.world_renderer.shop3d.remove_remote(str(id))
 			if is_instance_valid(main.world_renderer.room3d): main.world_renderer.room3d.remove_remote(str(id))
+			if main.world_renderer.uses_forest_3d(): main.world_renderer.forest3d.remove_remote(str(id))
 			actors[id].hero.queue_free()
 			actors[id].blink.queue_free()
 			actors[id].label.queue_free()
@@ -304,6 +343,7 @@ func _process(delta: float) -> void:
 		_present_fishing(remote, data.get("fishing"), delta)
 		var in_shop: bool = main.world.indoor == "arcana_shop"
 		var in_room_3d := is_instance_valid(main.world_renderer.room3d)
+		var in_forest_3d: bool = main.world_renderer.uses_forest_3d()
 		remote.blink.visible = not in_shop
 		main.world_renderer.update_blink_projection(remote.blink)
 		if in_shop and is_instance_valid(main.world_renderer.shop3d):
@@ -312,6 +352,9 @@ func _process(delta: float) -> void:
 		elif in_room_3d:
 			main.world_renderer.room3d.sync_remote(str(data.id),hero,main.world,remote.position,
 				seat_state,float(remote.bench_age),seat)
+			hero.hide()
+		elif in_forest_3d:
+			main.world_renderer.forest3d.sync_remote(str(data.id), hero, foot)
 			hero.hide()
 		remote.label.position = _label_position(remote.position, remote.label)
 		remote.label.visible = not main.ui.overlay.visible and main.get_viewport().get_visible_rect().has_point(remote.label.position)

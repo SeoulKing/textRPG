@@ -1,4 +1,5 @@
 import { ARCANA_HOME_LOCATION, ARCANA_HOME_SCENE } from "./arcana-home";
+import { withArcanaForest, WOODCUTTING_AXE } from "./arcana-forest";
 import { withArcanaMeadow } from "./arcana-meadow";
 import { COOKING_MATERIAL_IDS, FOODS } from "./arcana-cooking";
 import { withAcademyContent } from "./academy-content";
@@ -115,7 +116,7 @@ export function buildRuntimeRegistry(
     scenes: { ...base.scenes, ...dynamicContent.scenes },
   }, worldRegistry), worldRegistry), worldRegistry)), worldRegistry)))));
   if(stateOrDynamic && "flags" in stateOrDynamic && stateOrDynamic.flags?.arcana_online) {
-    for(const id of ["wood","riverFish","campfire","campfireFine","campfireExcellent",...COOKING_MATERIAL_IDS,...Object.keys(FOODS)]) {
+    for(const id of ["wood","riverFish","campfire","campfireFine","campfireExcellent",WOODCUTTING_AXE,...COOKING_MATERIAL_IDS,...Object.keys(FOODS)]) {
       registry.items[id]=structuredClone(baseItems[id as keyof typeof baseItems]);
     }
     for(const [id,food] of Object.entries(FOODS)) {
@@ -129,6 +130,7 @@ export function buildRuntimeRegistry(
   registry.locations.arcana_home=structuredClone(ARCANA_HOME_LOCATION);
   registry.scenes.arcana_home_intro=structuredClone(ARCANA_HOME_SCENE);
   withArcanaMeadow(registry);
+  withArcanaForest(registry);
   registry.items.rawMeat ??= baseItems.rawMeat;
   registry.items.fishingRod = baseItems.fishingRod;
   Object.assign(registry.items, arcanaEquipmentItems);

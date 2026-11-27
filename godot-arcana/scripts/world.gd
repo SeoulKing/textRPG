@@ -17,11 +17,13 @@ const Pixels = preload("res://scripts/pixel_art.gd")
 const Art = preload("res://scripts/art_library.gd")
 const Fountain = preload("res://scripts/fountain_spec.gd")
 const Shop2D = preload("res://scripts/shop_layout_2d.gd")
+const RegionRegistry = preload("res://scripts/region_registry.gd")
 const InnTileLayout = preload("res://scripts/inn_tile_layout.gd")
 const RestaurantTileLayout = preload("res://scripts/restaurant_tile_layout.gd")
 const AcademyFloorLayout = preload("res://scripts/academy_first_floor_layout.gd")
 const BenchMotion = preload("res://scripts/bench_motion.gd")
 var shop_layout: Dictionary = {}
+var home_placements: Array = []
 const TILE = 16
 
 const CityMap = preload("res://scripts/city_map.gd")
@@ -30,8 +32,11 @@ const RiverFishing = preload("res://scripts/river_fishing_geometry.gd")
 const CELLS = CityMap.CITY_CELLS
 const OUTDOOR_CELLS = CityMap.OUTDOOR_CELLS
 const SPAWN = Vector2(576, 500)
-const MEADOW_BOUNDS := Rect2(0, 0, 384, 320)
-const MEADOW_ENTRY := Vector2(192, 272)
+const FOREST_LOCATION := "arcana_forest"
+const MEADOW_LOCATION := "arcana_meadow_field"
+const Forest3DLayout = preload("res://scripts/forest_3d_layout.gd")
+const FIELD_BOUNDS := Rect2(0, 0, 384, 320)
+const FIELD_ENTRY := Vector2(192, 272)
 # Full input moves three navigation tiles per second.
 const WALK_SPEED = TILE * 3.0
 var developer_speed_boost = false
@@ -139,7 +144,15 @@ var input_projection = Transform2D.IDENTITY
 var enabled = true
 var keyboard_movement_enabled := true
 var indoor = ""
-var meadow_active := false
+var outdoor_field := ""
+var field_spawn := FIELD_ENTRY
+var _field_bounds := FIELD_BOUNDS
+var meadow_active: bool:
+	get: return outdoor_field == MEADOW_LOCATION
+var forest_active: bool:
+	get: return outdoor_field == FOREST_LOCATION
+var _forest_felled: Dictionary = {}
+var _forest_tree_entities: Dictionary[String, Dictionary] = {}
 var academy_floor: int = 1
 const Academy = preload("res://scripts/academy_interior.gd")
 var outside_position = SPAWN
@@ -152,7 +165,12 @@ var life_campfires: Array[Vector2] = []
 var round_obstacles: Array[Dictionary] = []
 var outside_round_obstacles: Array[Dictionary] = []
 var path: PackedVector2Array = []
-var grid = AStarGrid2D.new()
+var _navigation_grid := AStarGrid2D.new()
+var _navigation_dirty := false
+var grid: AStarGrid2D:
+	get:
+		if _navigation_dirty: _build_navigation_grid()
+		return _navigation_grid
 var ground: TileMapLayer
 var objects: Node2D
 var player: AnimatedSprite2D
@@ -180,6 +198,8 @@ var _click_marker = Vector2.ZERO
 var reduced_motion = false
 var motion_materials: Array[ShaderMaterial] = []
 var _world_visuals_enabled := true
+var _text_region_id := ""
+var _text_region_scene: PackedScene
 var effects_layer: Node2D
 var camera_follow = SPAWN
 var camera_player_position = SPAWN
@@ -247,13 +267,17 @@ func uses_academy_first_floor_layout() -> bool:
 	return indoor == "arcana_academy" and academy_floor == 1
 
 func outside_walk_bounds() -> Rect2:
-	if meadow_active: return MEADOW_BOUNDS
+	if not outdoor_field.is_empty(): return _field_bounds
 	return layout.walk_bounds() if uses_plaza_v2() else CityMap.WALK_BOUNDS
 
-func set_meadow_active(value: bool) -> void:
-	if meadow_active == value: return
-	if value and indoor.is_empty(): outside_position = player_position
-	meadow_active = value
+static func field_for_location(location: String) -> String:
+	return location if location in [MEADOW_LOCATION, FOREST_LOCATION] else ""
+
+func set_outdoor_field(location: String) -> void:
+	var next := field_for_location(location)
+	if outdoor_field == next: return
+	if outdoor_field.is_empty() and indoor.is_empty(): outside_position = player_position
+	outdoor_field = next
 	if not indoor.is_empty(): return
 	clear_bench()
 	cancel_dash()
@@ -268,7 +292,7 @@ func set_meadow_active(value: bool) -> void:
 	clicked_interaction_id = ""
 	life_campfires.clear()
 	_restore_outdoor_area()
-	player_position = nearest_walkable(MEADOW_ENTRY if meadow_active else outside_position)
+	player_position = nearest_walkable(field_spawn if not outdoor_field.is_empty() else outside_position)
 	_update_camera(true)
 	_rebuild_grid()
 
@@ -276,10 +300,62 @@ func _restore_outdoor_area() -> void:
 	entities.clear()
 	obstacles.clear()
 	round_obstacles.clear()
-	if meadow_active: return
+	_forest_tree_entities.clear()
+	field_spawn = FIELD_ENTRY
+	_field_bounds = FIELD_BOUNDS
+	if forest_active:
+		_field_bounds = Rect2()
+		var packed := RegionRegistry.scene(FOREST_LOCATION)
+		var forest := packed.instantiate() if packed != null else null
+		if not forest is Node3D:
+			if is_instance_valid(forest): forest.free()
+			push_error("Could not load the registered 3D pondside forest layout.")
+			return
+		var authored := Forest3DLayout.collect(forest as Node3D)
+		forest.free()
+		_field_bounds = authored.bounds
+		field_spawn = authored.spawn
+		obstacles.assign(authored.rectangles)
+		for entity: Dictionary in authored.entities:
+			if entity.kind == "forest_trees":
+				var tree_id: String = entity.id
+				_forest_tree_entities[tree_id] = entity
+				if forest_tree_available(tree_id):
+					entities.append(entity)
+					obstacles.append_array(entity.collision_parts)
+			else:
+				entities.append(entity)
+	if not outdoor_field.is_empty(): return
 	entities.assign(_outdoor_entities.duplicate(true))
 	obstacles.assign(outside_obstacles)
 	round_obstacles.assign(outside_round_obstacles.duplicate(true))
+
+func forest_tree_available(tree_id: String) -> bool:
+	return not _forest_felled.has(tree_id)
+
+func set_forest_trees_felled(felled: Dictionary) -> void:
+	if _forest_felled == felled: return
+	var previous: Dictionary = _forest_felled
+	_forest_felled = felled
+	if not forest_active or not indoor.is_empty() or _forest_tree_entities.is_empty(): return
+	for tree_id in _forest_tree_entities:
+		if previous.has(tree_id) == felled.has(tree_id): continue
+		var tree: Dictionary = _forest_tree_entities[tree_id]
+		if forest_tree_available(tree_id):
+			entities.append(tree)
+			obstacles.append_array(tree.collision_parts)
+		else:
+			entities.erase(tree)
+			for part: Rect2 in tree.collision_parts:
+				obstacles.erase(part)
+			if nearest.get("id", "") == tree_id: nearest = {}
+			if clicked_interaction_id == tree_id:
+				clicked_interaction_id = ""
+				path.clear()
+	if not _can_stand(player_position):
+		player_position = nearest_walkable(player_position)
+		path.clear()
+	_rebuild_grid()
 
 func _make_tiles() -> void:
 	ground.tile_set = Art.TERRAIN
@@ -425,7 +501,7 @@ func apply_layout(value: Node, initial: bool = false) -> void:
 	_outdoor_entities = next_entities.duplicate(true)
 	outside_obstacles = next_obstacles.duplicate()
 	outside_round_obstacles = next_round_obstacles.duplicate(true)
-	if indoor.is_empty() and not meadow_active:
+	if indoor.is_empty() and outdoor_field.is_empty():
 		entities = next_entities
 		obstacles = next_obstacles
 		round_obstacles = next_round_obstacles
@@ -442,6 +518,8 @@ func apply_layout(value: Node, initial: bool = false) -> void:
 func set_world_visuals_enabled(value: bool) -> void:
 	_world_visuals_enabled = value
 	if value:
+		_text_region_id = ""
+		_text_region_scene = null
 		set_art_state(dusk, effects_enabled)
 	else:
 		player.pause()
@@ -465,9 +543,9 @@ func set_art_state(evening: bool, effects: bool = true) -> void:
 func nearest_walkable(point: Vector2) -> Vector2:
 	if _can_stand(point): return point
 	# Same-place correction; search nearest by actual distance, not loop order.
-	var outside_spawn: Vector2 = MEADOW_ENTRY if meadow_active else spawn_position
+	var outside_spawn: Vector2 = field_spawn if not outdoor_field.is_empty() else spawn_position
 	var best := outside_spawn if indoor.is_empty() else Vector2(192, 200)
-	if indoor.is_empty() and (meadow_active or uses_plaza_v2()) and not outside_walk_bounds().grow(TILE).has_point(point):
+	if indoor.is_empty() and (not outdoor_field.is_empty() or uses_plaza_v2()) and not outside_walk_bounds().grow(TILE).has_point(point):
 		# A saved position can belong to a different outdoor coordinate range.
 		if _can_stand(outside_spawn): return outside_spawn
 	var distance = INF
@@ -483,23 +561,29 @@ func nearest_walkable(point: Vector2) -> Vector2:
 	return best
 
 func _rebuild_grid() -> void:
+	# Text-map travel uses the city grid. Build world paths when a caller needs one.
+	_navigation_dirty = true
+	if _world_visuals_enabled: _build_navigation_grid()
+
+func _build_navigation_grid() -> void:
+	_navigation_dirty = false
 	# Use smaller steps in narrow aisles and around doorway and tile edges.
 	var legacy_detailed_interior: bool = indoor == "arcana_home" or (indoor == "arcana_academy" and academy_floor == 2)
 	var detailed_interior := legacy_detailed_interior or indoor in ["arcana_inn", "arcana_restaurant"] or uses_academy_first_floor_layout()
 	var cell_step: int = 4 if detailed_interior else TILE
-	if indoor.is_empty() and not meadow_active and has_terraced_plaza():
+	if indoor.is_empty() and outdoor_field.is_empty() and has_terraced_plaza():
 		# Half-tile cells sample the padded retaining walls without sealing stair mouths.
 		cell_step = 8
 	var cells := Rect2i(0, 0, 96, 88) if legacy_detailed_interior else _navigation_region(cell_step)
-	grid.region = cells
-	grid.cell_size = Vector2(cell_step, cell_step)
-	grid.offset = grid.cell_size * .5
-	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
-	grid.update()
+	_navigation_grid.region = cells
+	_navigation_grid.cell_size = Vector2(cell_step, cell_step)
+	_navigation_grid.offset = _navigation_grid.cell_size * .5
+	_navigation_grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	_navigation_grid.update()
 	for y in range(cells.position.y, cells.end.y):
 		for x in range(cells.position.x, cells.end.x):
 			var point: Vector2i = Vector2i(x, y)
-			grid.set_point_solid(point, not _can_stand(grid.get_point_position(point)))
+			_navigation_grid.set_point_solid(point, not _can_stand(_navigation_grid.get_point_position(point)))
 
 func _navigation_region(cell_step: int) -> Rect2i:
 	var bounds: Rect2
@@ -509,7 +593,7 @@ func _navigation_region(cell_step: int) -> Rect2i:
 		bounds = RestaurantTileLayout.WALK_BOUNDS
 	elif uses_academy_first_floor_layout():
 		bounds = AcademyFloorLayout.WALK_BOUNDS
-	elif indoor.is_empty() and (meadow_active or uses_plaza_v2()):
+	elif indoor.is_empty() and (not outdoor_field.is_empty() or uses_plaza_v2()):
 		bounds = outside_walk_bounds()
 	else:
 		return Rect2i(Vector2i.ZERO, OUTDOOR_CELLS)
@@ -519,7 +603,7 @@ func _navigation_region(cell_step: int) -> Rect2i:
 
 func _update_entrance_contact() -> void:
 	var contact: Dictionary = {}
-	if indoor.is_empty() and not meadow_active:
+	if indoor.is_empty() and outdoor_field.is_empty():
 		for entrance in entrances:
 			if entrance.area.has_point(player_position):
 				contact = entrance
@@ -601,6 +685,16 @@ func walk_to(pos: Vector2) -> void:
 		if approach.distance_to(pos) <= TILE * 1.5 and _walk_segment_clear(approach, pos):
 			path.append(pos)
 	_click_marker = pos
+
+func try_walk_segment(destination: Vector2) -> bool:
+	if not enabled or not bench_state.is_empty() or dash_age >= 0.0 or teleport_age >= 0.0:
+		return false
+	if not destination.is_finite() or destination.is_equal_approx(player_position) or not _walk_segment_clear(player_position, destination):
+		return false
+	clicked_interaction_id = ""
+	click_door_id = ""
+	path = PackedVector2Array([destination])
+	return true
 
 # Movement uses manual collision checks, so update it with the rendered frame.
 # This keeps the actor, ground effects and camera on the same clock at 60/120 Hz.
@@ -706,7 +800,7 @@ func _process(delta: float) -> void:
 	elif walking:
 		# Send the gait phase so players in graphics mode can still see us walk.
 		player_gait += traveled * .20
-	if indoor == "" and not meadow_active and traveler_index >= 0 and is_instance_valid(traveler):
+	if indoor == "" and outdoor_field.is_empty() and traveler_index >= 0 and is_instance_valid(traveler):
 		var phase = fmod(time, 20.0)
 		var target = traveler_home + Vector2(20,0) if phase > 9 and phase < 18 else traveler_home
 		var before = traveler_position
@@ -847,7 +941,7 @@ func _update_camera(reset: bool = false) -> void:
 		camera_follow.y = clampf(camera_follow.y, player_position.y - margin.y, player_position.y + margin.y)
 	camera_player_position = player_position
 	var half = visible_size / 2
-	var bounds = MEADOW_BOUNDS.size if meadow_active else (Vector2(OUTDOOR_CELLS * TILE) if indoor == "" else Vector2(384, 344))
+	var bounds = outside_walk_bounds().size if not outdoor_field.is_empty() else (Vector2(OUTDOOR_CELLS * TILE) if indoor == "" else Vector2(384, 344))
 	camera_follow.x = clampf(camera_follow.x, minf(half.x, bounds.x / 2), maxf(bounds.x / 2, bounds.x - half.x))
 	camera_follow.y = clampf(camera_follow.y, minf(half.y, bounds.y / 2), maxf(bounds.y / 2, bounds.y - half.y))
 	# Snap the final canvas translation, including the viewport center. Odd
@@ -907,20 +1001,24 @@ func _seat_route(to: Vector2) -> PackedVector2Array:
 	var best = INF
 	var target_cell = Vector2i(to/grid.cell_size.x)
 	var from_cell = Vector2i(player_position/grid.cell_size.x)
+	var starts: Array[Vector2i] = [from_cell]
+	if indoor == "arcana_home": starts = _home_interaction_start_cells(from_cell)
 	for dx in range(-2,3):
 		for dy in range(-2,3):
 			var cell = target_cell+Vector2i(dx,dy)
 			if not grid.is_in_boundsv(cell) or grid.is_point_solid(cell): continue
 			var at = grid.get_point_position(cell)
 			if not _walk_segment_clear(at,to): continue
-			var route = grid.get_point_path(from_cell,cell)
-			if route.is_empty() or not _walk_segment_clear(player_position,route[0]): continue
-			var distance = player_position.distance_to(route[0])+at.distance_to(to)
-			for i in range(1,route.size()): distance += route[i-1].distance_to(route[i])
-			if distance>=best: continue
-			best = distance
-			result = route
-			result.append(to)
+			for start in starts:
+				var route = grid.get_point_path(start,cell)
+				if route.is_empty() or not _walk_segment_clear(player_position,route[0]): continue
+				var distance = player_position.distance_to(route[0])+at.distance_to(to)
+				for i in range(1,route.size()): distance += route[i-1].distance_to(route[i])
+				if distance < best:
+					best = distance
+					result = route
+					result.append(to)
+				break
 	return result
 
 func stand_from_bench() -> void:
@@ -943,6 +1041,11 @@ func advance_bench(delta: float) -> void:
 		var interaction_after_stand = clicked_interaction_id
 		clear_bench()
 		if resume:
+			if indoor == "arcana_home" and not interaction_after_stand.is_empty():
+				for entity in entities:
+					if entity.id != interaction_after_stand: continue
+					interact_with(entity)
+					return
 			walk_to(destination_after_stand)
 			clicked_interaction_id = interaction_after_stand
 
@@ -984,19 +1087,19 @@ func interact_with(entity: Dictionary) -> void:
 		path.clear()
 		nearest = entity
 		interacted.emit(entity)
-	elif entity.kind == "campfire":
-		# The logs occupy a blocked cell. Walk to a reachable cooking spot beside them.
+	elif entity.kind in ["campfire", "forest_trees"] or indoor == "arcana_home":
+		# The usable spot can be beside the marker when furniture blocks its cell.
 		click_door_id = ""
-		path = _campfire_approach(entity)
+		path = _interaction_approach(entity)
 		clicked_interaction_id = "" if path.is_empty() else str(entity.id)
 		if not path.is_empty(): _click_marker = path[-1]
 	else:
 		walk_to(entity.pos)
 		if not path.is_empty(): clicked_interaction_id = str(entity.id)
 
-func _campfire_approach(entity: Dictionary) -> PackedVector2Array:
+func _interaction_approach(entity: Dictionary) -> PackedVector2Array:
 	var center: Vector2 = entity.pos
-	var radius := float(entity.interaction_radius)
+	var radius := float(entity.get("interaction_radius", 34.0))
 	var first := Vector2i(((center - Vector2.ONE * radius) / grid.cell_size).floor())
 	var last := Vector2i(((center + Vector2.ONE * radius) / grid.cell_size).floor())
 	var cells: Array[Vector2i] = []
@@ -1007,13 +1110,28 @@ func _campfire_approach(entity: Dictionary) -> PackedVector2Array:
 			if grid.get_point_position(cell).distance_to(center) < radius: cells.append(cell)
 	cells.sort_custom(func(a, b): return player_position.distance_squared_to(grid.get_point_position(a)) < player_position.distance_squared_to(grid.get_point_position(b)))
 	var from_cell := Vector2i((player_position / grid.cell_size).floor())
-	if grid.is_in_boundsv(from_cell):
-		for cell in cells:
-			var route: PackedVector2Array = grid.get_point_path(from_cell, cell)
+	var in_home: bool = indoor == "arcana_home"
+	var starts: Array[Vector2i] = [from_cell]
+	if in_home: starts = _home_interaction_start_cells(from_cell)
+	for cell in cells:
+		for start in starts:
+			if not grid.is_in_boundsv(start): continue
+			var route: PackedVector2Array = grid.get_point_path(start, cell)
 			if route.is_empty(): continue
-			if route.size() > 1: route.remove_at(0)
+			if route.size() > 1 and (not in_home or player_position.is_equal_approx(route[0])): route.remove_at(0)
 			return route
 	return PackedVector2Array()
+
+func _home_interaction_start_cells(from_cell: Vector2i) -> Array[Vector2i]:
+	# Feet beside a furnishing can be clear even when their grid center is blocked.
+	var starts: Array[Vector2i] = []
+	for y in range(from_cell.y - 2, from_cell.y + 3):
+		for x in range(from_cell.x - 2, from_cell.x + 3):
+			var cell := Vector2i(x, y)
+			if not grid.is_in_boundsv(cell) or grid.is_point_solid(cell): continue
+			if _walk_segment_clear(player_position, grid.get_point_position(cell)): starts.append(cell)
+	starts.sort_custom(func(a, b): return player_position.distance_squared_to(grid.get_point_position(a)) < player_position.distance_squared_to(grid.get_point_position(b)))
+	return starts
 
 func _fishing_interaction() -> Dictionary:
 	if has_terraced_plaza():
@@ -1022,7 +1140,7 @@ func _fishing_interaction() -> Dictionary:
 	return {"id":"plaza_pond" if pond else "river_fishing", "name":"광장 연못 낚시" if pond else "강 낚시", "kind":"fishing", "pos":player_position}
 
 func walk_to_plaza_water() -> Vector2:
-	if not enabled or meadow_active or not indoor.is_empty() or not uses_plaza_v2(): return Vector2.INF
+	if not enabled or not outdoor_field.is_empty() or not indoor.is_empty() or not uses_plaza_v2(): return Vector2.INF
 	if has_terraced_plaza():
 		var bank: Vector2 = layout.river_fishing_access()
 		walk_to(bank)
@@ -1072,7 +1190,7 @@ func _pond_bank_route() -> PackedVector2Array:
 	return PackedVector2Array()
 
 func face_plaza_water_from_bank(water_point: Vector2) -> bool:
-	if not enabled or meadow_active or not indoor.is_empty() or not uses_plaza_v2() or not bench_state.is_empty(): return false
+	if not enabled or not outdoor_field.is_empty() or not indoor.is_empty() or not uses_plaza_v2() or not bench_state.is_empty(): return false
 	if not layout.water_at(water_point): return false
 	var heading: Vector2 = player_position.direction_to(water_point)
 	if layout.cast_target(player_position, heading).is_empty(): return false
@@ -1081,7 +1199,7 @@ func face_plaza_water_from_bank(water_point: Vector2) -> bool:
 	return true
 
 func water_cast_target() -> Dictionary:
-	if meadow_active or not indoor.is_empty() or layout == null: return {}
+	if not outdoor_field.is_empty() or not indoor.is_empty() or layout == null: return {}
 	if uses_plaza_v2():
 		var heading: Vector2 = last_move_direction
 		if not layout.terraced:
@@ -1101,13 +1219,33 @@ func interact() -> void:
 		stand_from_bench()
 	elif not nearest.is_empty(): interacted.emit(nearest)
 
+func prepare_text_region(id: String) -> void:
+	if _world_visuals_enabled or id not in ["arcana_home", "arcana_academy", "arcana_inn", "arcana_restaurant", "arcana_shop"]: return
+	if id == _text_region_id:
+		while id == _text_region_id and _text_region_scene == null:
+			await get_tree().process_frame
+		return
+	var scene_path := str(RegionRegistry.definition(id).get("scene", ""))
+	if scene_path.is_empty(): return
+	# The shop's editable layout is reloaded on each entry.
+	var cache_mode := ResourceLoader.CACHE_MODE_REPLACE if id == "arcana_shop" else ResourceLoader.CACHE_MODE_REUSE
+	if ResourceLoader.load_threaded_request(scene_path, "PackedScene", false, cache_mode) != OK: return
+	_text_region_id = id
+	_text_region_scene = null
+	while ResourceLoader.load_threaded_get_status(scene_path) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		await get_tree().process_frame
+	var scene := ResourceLoader.load_threaded_get(scene_path) as PackedScene
+	if _text_region_id == id:
+		_text_region_scene = scene
+		if scene == null: _text_region_id = ""
+
 func change_interior(id: String) -> void:
 	exit_pending = false
 	exit_intent_time = 0.0
 	click_door_id = ""
 	clicked_interaction_id = ""
 	clear_bench()
-	if indoor == "" and not meadow_active: outside_position = player_position
+	if indoor == "" and outdoor_field.is_empty(): outside_position = player_position
 	if id == "arcana_academy" and indoor != id: academy_floor = 1
 	indoor = id
 	nearest = {}
@@ -1125,7 +1263,7 @@ func change_interior(id: String) -> void:
 	decals.visible = id == ""
 	if id == "":
 		_restore_outdoor_area()
-		player_position = MEADOW_ENTRY if meadow_active else outside_position
+		player_position = field_spawn if not outdoor_field.is_empty() else outside_position
 	else:
 		entities.clear()
 		obstacles.clear()
@@ -1133,7 +1271,14 @@ func change_interior(id: String) -> void:
 		player_position = Vector2(192, 200)
 		entities.append({"id":"exit", "name":"밖으로 나가기", "kind":"exit", "pos":Vector2(192, 308)})
 		if id == "arcana_shop":
-			shop_layout = Shop2D.load_layout()
+			if _text_region_id == id and _text_region_scene != null:
+				var source := _text_region_scene.instantiate() as Node2D
+				shop_layout = Shop2D.collect(source)
+				source.free()
+				_text_region_scene = null
+				_text_region_id = ""
+			else:
+				shop_layout = Shop2D.load_layout()
 			if not shop_layout.get("valid",false):
 				push_error("Shop layout is invalid: " + str(shop_layout.get("errors", [])))
 				return
@@ -1142,7 +1287,7 @@ func change_interior(id: String) -> void:
 			obstacles.append_array(shop_layout.rectangles)
 			player_position = shop_layout.markers.arrival
 		else:
-			var authored: Dictionary = preload("res://scripts/region_layout.gd").load_region(id, academy_floor)
+			var authored: Dictionary = _collect_home_layout() if id == "arcana_home" else preload("res://scripts/region_layout.gd").load_region(id, academy_floor)
 			if not authored.get("valid", false):
 				push_error("Invalid authored region: " + str(authored.get("errors", [])))
 				return
@@ -1154,6 +1299,38 @@ func change_interior(id: String) -> void:
 	_update_camera(true)
 	set_art_state(dusk, effects_enabled)
 	_rebuild_grid()
+
+
+func apply_home_layout(placements: Array) -> void:
+	if home_placements == placements:
+		return
+	home_placements = placements.duplicate(true)
+	if indoor != "arcana_home":
+		return
+	var layout_data := _collect_home_layout()
+	if not layout_data.get("valid", false):
+		return
+	entities.assign(layout_data.entities)
+	obstacles.assign(layout_data.rectangles)
+	clear_bench()
+	nearest = {}
+	path.clear()
+	click_door_id = ""
+	exit_pending = false
+	exit_intent_time = 0.0
+	if not _can_stand(player_position):
+		player_position = layout_data.markers.Arrival
+	_rebuild_grid()
+
+
+func _collect_home_layout() -> Dictionary:
+	var source_scene := RegionRegistry.scene("arcana_home")
+	if source_scene == null:
+		return {"valid": false, "errors": ["Home scene is missing."]}
+	var source := source_scene.instantiate() as Node3D
+	var result: Dictionary = source.collect_layout(home_placements)
+	source.free()
+	return result
 
 func change_academy_floor(level: int) -> void:
 	if indoor != "arcana_academy": return
@@ -1175,7 +1352,7 @@ func effect(kind: String, amount: String = "") -> void:
 
 func _draw() -> void:
 	if not is_instance_valid(player): return
-	if not meadow_active:
+	if outdoor_field.is_empty():
 		if indoor == "": _draw_outdoors()
 		else: _draw_indoors()
 	# Soft ground shadow and a tiny wayfinding ring.

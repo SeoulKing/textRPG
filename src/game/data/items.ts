@@ -276,6 +276,15 @@ export const baseItems = {
     id:"fishingRod", name:"나무 낚싯대", description:"짙은 목재에 남색 손잡이, 청금색 보석과 파랑·상아색 찌를 단 낚싯대. 생활 도구에 장착하고 강물을 향해 사용한다.",
     kind:"tool", rarity:"common", price:0, tags:["생활 도구","낚시","장착"],
   }),
+  woodcutting_axe: defineItem({
+    id: "woodcutting_axe",
+    name: "벌목 도끼",
+    description: "나무 손잡이에 강철 날을 끼운 도끼. 주 손에 장착해 연못가 숲에서 나무를 벨 수 있다.",
+    kind: "tool",
+    rarity: "common",
+    price: 5,
+    tags: ["생활 도구", "벌목", "장착"],
+  }),
   riverFish: defineItem({
     id: "riverFish",
     name: "민물고기",

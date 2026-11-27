@@ -1,5 +1,5 @@
 extends "res://scripts/native_2d_flame.gd"
-## Projects one confirmed shot between the two portraits in the combat panel.
+## Projects one confirmed shot toward the enemy portrait in the combat panel.
 
 var caster: Control
 var target: Control

@@ -1,12 +1,12 @@
 import { performance } from "node:perf_hooks";
 import { NetworkMetrics } from "./network-metrics";
 import type { GameSession } from "../game/schemas";
-import type { Actor, SharedWorld } from "./model";
+import type { Actor, SavedPosition, SharedWorld } from "./model";
 import type { Death } from "./combat";
 import type { OnlineStore } from "./store";
 import type { ActionReceipt } from "./action-receipts";
 export type WorldCheckpoint = {world:SharedWorld;actors:Actor[]};
-type Batch = {receipts:Map<string,ActionReceipt[]>;checkpoint:WorldCheckpoint;games:Map<string,GameSession>;deaths:Map<string,Death>;positions:Map<string,{place:Actor["place"];position:Actor["position"]}>;since:number};
+type Batch = {receipts:Map<string,ActionReceipt[]>;checkpoint:WorldCheckpoint;games:Map<string,GameSession>;deaths:Map<string,Death>;positions:Map<string,SavedPosition>;since:number};
 /** A single in-flight commit plus one coalesced pending checkpoint; never writes live objects. */
 export class CheckpointWriter {
   private pending:Batch|null=null;
@@ -33,7 +33,7 @@ export class CheckpointWriter {
     this.pending.checkpoint=captured.checkpoint;
     for(const game of captured.games)this.pending.games.set(game.id,game);
     for(const death of captured.deaths)this.pending.deaths.set(death.lifeId,death);
-    for(const actor of [...captured.retired,...captured.checkpoint.actors])this.pending.positions.set(actor.character.id,{place:actor.place,position:actor.position});
+    for(const actor of [...captured.retired,...captured.checkpoint.actors])this.pending.positions.set(actor.character.id,{place:actor.place,position:actor.position,positionLayoutId:actor.positionLayoutId});
     for(const actor of [...captured.retired,...captured.checkpoint.actors])if(actor.actionReceipts)this.pending.receipts.set(actor.character.id,actor.actionReceipts);
     if(!this.running) {
       this.started=this.pending.since;

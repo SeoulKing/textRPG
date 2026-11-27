@@ -19,6 +19,7 @@ const END_PITCH := {
 	"Foot.L": "ankle_l",
 	"Foot.R": "ankle_r",
 }
+enum Scope { FULL, ROD_ARM, UPPER_BODY }
 
 var _model: Skeleton3D
 var _hips := -1
@@ -30,6 +31,7 @@ var _neutral_hip := Vector3.ZERO
 var _parents := PackedInt32Array()
 var _rest_rotations: Array[Quaternion] = []
 var _segments: Dictionary = {}
+var _upper_body_bones := PackedInt32Array()
 var _end_pitch_bones: Dictionary[int, String] = {}
 var _rest_hips_position := Vector3.ZERO
 var _global_poses: Array[Transform3D] = []
@@ -69,6 +71,8 @@ func setup(model: Skeleton3D, neutral_points: Dictionary) -> bool:
 		_parents[index] = model.get_bone_parent(index)
 		_rest_rotations[index] = model.get_bone_global_rest(index).basis.get_rotation_quaternion()
 	_chest = model.find_bone("Chest")
+	_upper_body_bones = PackedInt32Array([_chest, model.find_bone("Head"), _rod_upper_arm, _rod_forearm,
+		model.find_bone("Upper arm.L"), model.find_bone("Forearm.L")])
 	_cast_legs.clear()
 	for side: String in ["L", "R"]:
 		_cast_legs.append(Vector3i(model.find_bone("Thigh." + side), model.find_bone("Shin." + side), model.find_bone("Foot." + side)))
@@ -78,15 +82,18 @@ func setup(model: Skeleton3D, neutral_points: Dictionary) -> bool:
 	return true
 
 func apply_upper_body(points: Dictionary, yaw: float) -> void:
-	_apply(points, yaw, 1.0, 1.0, 1.0, true)
+	_apply(points, yaw, 1.0, 1.0, 1.0, Scope.ROD_ARM)
+
+func apply_spell_upper_body(points: Dictionary, yaw: float, blend: float) -> void:
+	_apply(points, yaw, blend, 1.0, 1.0, Scope.UPPER_BODY)
 
 func apply(points: Dictionary, yaw: float, blend: float, root_y: float = 1.0, root_z: float = 1.0) -> void:
-	_apply(points, yaw, blend, root_y, root_z, false)
+	_apply(points, yaw, blend, root_y, root_z, Scope.FULL)
 
 func apply_fishing(points: Dictionary, yaw: float, cast_drive: float) -> void:
-	_apply(points, yaw, 1.0, 1.0, 1.0, false, cast_drive)
+	_apply(points, yaw, 1.0, 1.0, 1.0, Scope.FULL, cast_drive)
 
-func _apply(points: Dictionary, yaw: float, blend: float, root_y: float, root_z: float, rod_arm_only: bool, cast_drive: float = 0.0) -> void:
+func _apply(points: Dictionary, yaw: float, blend: float, root_y: float, root_z: float, scope: Scope, cast_drive: float = 0.0) -> void:
 	if not is_instance_valid(_model) or blend <= 0.0 or not points.get("hip") is Vector3:
 		return
 	var weight := clampf(blend, 0.0, 1.0)
@@ -102,13 +109,15 @@ func _apply(points: Dictionary, yaw: float, blend: float, root_y: float, root_z:
 		var parent := _parents[index]
 		var parent_pose := _global_poses[parent] if parent >= 0 else Transform3D.IDENTITY
 		var pose := _model.get_bone_pose(index)
-		if index == _hips and not rod_arm_only:
+		if index == _hips and scope == Scope.FULL:
 			var local_motion := parent_pose.basis.inverse() * root_motion
 			pose.origin = pose.origin.lerp(_rest_hips_position + local_motion, weight)
 			_model.set_bone_pose_position(index, pose.origin)
-		var retarget_rotation := (index == _rod_upper_arm or index == _rod_forearm) if rod_arm_only else (
-			_segments.has(index) or _end_pitch_bones.has(index)
-		)
+		var retarget_rotation := _segments.has(index) or _end_pitch_bones.has(index)
+		if scope == Scope.ROD_ARM:
+			retarget_rotation = index == _rod_upper_arm or index == _rod_forearm
+		elif scope == Scope.UPPER_BODY:
+			retarget_rotation = _upper_body_bones.has(index)
 		if retarget_rotation:
 			var target := _rest_rotations[index]
 			if _segments.has(index):
@@ -129,6 +138,17 @@ func _apply(points: Dictionary, yaw: float, blend: float, root_y: float, root_z:
 		_global_poses[index] = parent_pose * pose
 	if not is_zero_approx(cast_drive):
 		_shift_cast_weight(cast_drive)
+	_model.force_update_all_bone_transforms()
+
+func apply_hurt_recoil(direction: Vector2) -> void:
+	if direction.is_zero_approx():
+		return
+	# Rotate the chest in skeleton space above the locomotion support foot.
+	var parent := _parents[_chest]
+	var parent_orientation := _model.get_bone_global_pose(parent).basis.get_rotation_quaternion()
+	var chest_orientation := _model.get_bone_global_pose(_chest).basis.get_rotation_quaternion()
+	var tilt := Quaternion(Vector3.RIGHT, 0.22 * direction.y) * Quaternion(Vector3.BACK, -0.17 * direction.x)
+	_model.set_bone_pose_rotation(_chest, (parent_orientation.inverse() * tilt * chest_orientation).normalized())
 	_model.force_update_all_bone_transforms()
 
 func _shift_cast_weight(drive: float) -> void:

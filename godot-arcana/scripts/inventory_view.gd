@@ -72,6 +72,7 @@ func _ready() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.custom_minimum_size.y = 64
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE
 	scroll.follow_focus = true
 	stack.add_child(scroll)
 	grid = GridContainer.new()
@@ -79,7 +80,6 @@ func _ready() -> void:
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 6)
-	grid.resized.connect(_fit_slots)
 	scroll.add_child(grid)
 	scroll.resized.connect(_fit_slots)
 	# Keep empty cells visible, including the final partial row.
@@ -186,7 +186,8 @@ func _fit_slots() -> void:
 	var max_slot_height := maxf(56.0, list.size.y)
 	var needed_columns := ceili((available_width + gap) / (max_slot_height + gap))
 	grid.columns = clampi(maxi(4, needed_columns), 1, max_columns)
-	var side := maxf(56.0, floorf((grid.size.x - gap * (grid.columns - 1)) / grid.columns))
+	# Size slots from the viewport so scrollbar visibility cannot trigger another layout.
+	var side := maxf(56.0, floorf((available_width - gap * (grid.columns - 1)) / grid.columns))
 	for slot in grid.get_children():
 		slot.custom_minimum_size.y = side
 

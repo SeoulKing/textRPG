@@ -11,12 +11,15 @@ import { combatArea, type Actor, type CombatArea, type CombatArena, type Point, 
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
 const copy=(p:Point)=>({...p});
 const mix=(a:Point,b:Point,t:number)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
+const PLAZA_FIREBALL_COOLDOWN_MS = 1800;
 const SLIME_RECOVERY_SECONDS = 1.2;
+const SLIME_COUNTER_DAMAGE_FRACTION = 0.5;
 const SLIME_LEAP_WINDUP = 3;
 const SLIME_LEAP_MIN_RANGE = 18;
 const SLIME_HIT_WALL_PROBE = 0.1;
 const SLIME_HOP_DURATION = 0.32;
 const SLIME_HOP_REST = 0.45;
+const SLIME_CHASE_HOP_DISTANCE = 28;
 const SLIME_FLEE_HEALTH_FRACTION = 1 / 3;
 const SLIME_FLEE_DISTANCE = 24;
 const SLIME_FLEE_DURATION = 0.44;
@@ -30,12 +33,23 @@ const MEADOW_OX_CHARGE_RANGE = 60;
 const MEADOW_OX_RESPAWN_MS = 8000;
 type SlimeAction = Exclude<NonNullable<SharedEnemy["slimeAction"]>, "charge">;
 
+export function plazaFireballCooldown(world: SharedWorld, actor: Actor) {
+  if (actor.place.location !== "arcana_plaza" || combatArea(actor) !== "plaza") return undefined;
+  return {
+    durationSeconds: PLAZA_FIREBALL_COOLDOWN_MS / 1000,
+    remainingSeconds: Math.max(0, (actor.plazaFireballReadyAtMs ?? 0) - world.elapsedMs) / 1000,
+  };
+}
+
 export function enemyActionTiming(action: SharedEnemy["slimeAction"]) {
+  const tuning = spatialLayout().tuning;
   switch (action) {
-    case "leap": return { windupDuration: SLIME_LEAP_WINDUP, actionDuration: spatialLayout().tuning.jumpDuration, recoveryDuration: SLIME_RECOVERY_SECONDS };
+    case "leap": return { windupDuration: SLIME_LEAP_WINDUP, actionDuration: tuning.jumpDuration,
+      recoveryDuration: SLIME_RECOVERY_SECONDS, dangerRadius: tuning.enemyRadius + tuning.playerRadius };
     case "hop": return { actionDuration: SLIME_HOP_DURATION };
     case "flee": return { actionDuration: SLIME_FLEE_DURATION };
-    case "charge": return { windupDuration: MEADOW_OX_WINDUP, actionDuration: MEADOW_OX_CHARGE_SECONDS, recoveryDuration: MEADOW_OX_RECOVERY };
+    case "charge": return { windupDuration: MEADOW_OX_WINDUP, actionDuration: MEADOW_OX_CHARGE_SECONDS,
+      recoveryDuration: MEADOW_OX_RECOVERY, dangerRadius: MEADOW_OX_RADIUS + tuning.playerRadius };
     default: return {};
   }
 }
@@ -45,6 +59,12 @@ export function newEnemy(area: CombatArea = "plaza"): SharedEnemy {
   const home = copy(meadow ? MEADOW_ENEMY_HOME : spatialLayout().home);
   const maxHp = meadow ? 42 : 30;
   return {id:meadow ? "meadow-ox" : "slime_0",lifeId:crypto.randomUUID(),position:copy(home),home,hp:maxHp,maxHp,attackIn:6,behavior:"neutral",jumpFrom:copy(home),jumpTo:copy(home),jumpHit:false,jumpElapsed:0,recoveryElapsed:0,hopCooldown:0,hasFled:false,targetLocked:false,rewarded:false,respawnAt:0,contribution:{},targetId:null};
+}
+
+export function beginEnemyChase(enemy: SharedEnemy, area: CombatArea) {
+  if (enemy.hp <= 0 || enemy.behavior !== "neutral") return;
+  enemy.behavior = "chase";
+  enemy.attackIn = area === "plaza" ? SLIME_LEAP_WINDUP : spatialLayout().tuning.attackInterval;
 }
 export function combatArena(world: SharedWorld, area: CombatArea): CombatArena {
   if (area === "plaza") return world;
@@ -75,8 +95,12 @@ function enemyRadius(area: CombatArea) {
 function projectile(world:SharedWorld,area:CombatArea,actor:Actor,id:"fireball"|"giant_fireball"|"flame_barrage",aim:Point,damage:number,targetId?:string,clientActionId?:string) {
   const t=spatialLayout().tuning, length=Math.hypot(aim.x,aim.y);
   if (length<.001) throw new OnlineError("invalid_aim","발사 방향을 선택해 주세요.",400);
+  const arena = combatArena(world, area);
   const shot:Shot={clientActionId,id:crypto.randomUUID(),ownerId:actor.character.id,position:copy(actor.position),origin:copy(actor.position),direction:{x:aim.x/length,y:aim.y/length},remaining:effectiveSpell(actor.game.state,id).rangeTiles*t.tile,damage,spellId:id,radius:t.projectileRadius*(id==="giant_fireball"?2:1),hitIds:[],masteryAwarded:false,pierce:id==="fireball" && fireballSpecialization(actor.game.state,"reach")?3:1,explode:id==="fireball" && fireballSpecialization(actor.game.state,"burst"),targetId};
-  combatArena(world,area).projectiles.push(shot);
+  if (area === "plaza" && actor.place.location === "arcana_plaza" && id === "fireball" && arena.enemy.hp > 0) {
+    shot.plazaFireballEnemyLifeId = arena.enemy.lifeId;
+  }
+  arena.projectiles.push(shot);
   event(world,"cast",actor.position,{actorId:actor.character.id,projectileId:shot.id,spellId:shot.spellId,direction:shot.direction,clientActionId},area);
 }
 export type Death = {lifeId:string;winnerId:string} & NonNullable<WorldEvent["rewards"]>;
@@ -90,24 +114,35 @@ export function rewardShares(kind:"normal"|"boss",lastHit:string,contribution:Re
   for(let i=0;used<total && entries.length;i++,used++) result[entries[i%entries.length][0]]++;
   return result;
 }
-function damage(world:SharedWorld,area:CombatArea,actor:Actor,amount:number,deaths:Death[],extra:Partial<WorldEvent>={}) {
+function slimeRecovering(enemy: SharedEnemy, area: CombatArea) {
+  return area === "plaza" && enemy.behavior === "recover" && (enemy.slimeAction ?? "leap") === "leap";
+}
+
+function damage(world:SharedWorld,area:CombatArea,actor:Actor,amount:number,deaths:Death[],extra:Partial<WorldEvent>={},recoveringAtImpact?:boolean) {
   const e=combatArena(world,area).enemy;
   if(e.hp<=0 || e.behavior==="return") return 0;
-  const dealt=Math.min(e.hp,amount);
+  const isSlimeCounter = recoveringAtImpact ?? slimeRecovering(e, area);
+  const baseDealt = Math.min(e.hp, amount);
+  const dealt = isSlimeCounter
+    ? Math.min(e.hp, amount + Math.floor(amount * SLIME_COUNTER_DAMAGE_FRACTION))
+    : baseDealt;
   e.hp-=dealt; e.contribution[actor.character.id]=(e.contribution[actor.character.id] || 0)+dealt;
-  event(world,"hit",e.position,{amount:dealt,actorId:actor.character.id,enemyId:e.id,targetPosition:copy(e.position),...extra},area);
-  if(e.behavior==="neutral") {e.behavior="chase";e.attackIn=spatialLayout().tuning.attackInterval;}
+  event(world,"hit",e.position,{
+    amount:dealt,actorId:actor.character.id,enemyId:e.id,enemyLifeId:e.lifeId,targetPosition:copy(e.position),...extra,
+    ...(isSlimeCounter ? { slimeCounterBonus: dealt - baseDealt } : {}),
+  },area);
+  beginEnemyChase(e, area);
   if(e.hp===0 && !e.rewarded) {
     e.rewarded=true;e.respawnAt=Date.now()+(area==="meadow"?MEADOW_OX_RESPAWN_MS:0);
     const state = actor.game.state;
     const rewards: NonNullable<WorldEvent["rewards"]> = area === "meadow" ? { rawMeat: 1, money: 0, xp: 0 } : awardSlimeLoot(state);
     if (rewards.rawMeat) state.inventory.rawMeat = (state.inventory.rawMeat ?? 0) + rewards.rawMeat;
     deaths.push({lifeId:e.lifeId,winnerId:actor.character.id,...rewards});
-    event(world,"enemy_down",e.position,{actorId:actor.character.id,enemyId:e.id,rewards},area);
+    event(world,"enemy_down",extra.targetPosition ?? e.position,{actorId:actor.character.id,enemyId:e.id,rewards},area);
   }
   return dealt;
 }
-export function cast(world:SharedWorld,actor:Actor,command:string,aim:Point|undefined,target:Point|undefined,deaths:Death[],resolveMove:(from:Point,to:Point)=>Point=(from,to)=>spatialMove(from,to,3),clientActionId?:string) {
+export function cast(world:SharedWorld,actor:Actor,command:string,aim:Point|undefined,target:Point|undefined,deaths:Death[],resolveMove:(from:Point,to:Point)=>Point=(from,to)=>spatialMove(from,to,3),clientActionId?:string,targetLifeId?:string) {
   const state=actor.game.state,c=state.arcanaCombat,t=spatialLayout().tuning;
   const area= combatArea(actor);
   if (command==="spatial_sync") return;
@@ -130,6 +165,10 @@ export function cast(world:SharedWorld,actor:Actor,command:string,aim:Point|unde
   if(!area || actor.bench || state.npcDialogue.active) throw new OnlineError("combat_unavailable","현재 위치에서는 공격할 수 없습니다.");
   const arena=combatArena(world,area),e=arena.enemy;
   if(command==="flame_guard") {castFlameGuard(state);event(world,"guard",actor.position,{actorId:actor.character.id,clientActionId},area);return;}
+  const plazaSlime = area === "plaza" && actor.place.location === "arcana_plaza";
+  if (command === "flame_wave" && plazaSlime && targetLifeId !== undefined && (e.hp <= 0 || e.lifeId !== targetLifeId)) {
+    throw new OnlineError("slime_unavailable", "슬라임의 상태가 바뀌었습니다. 다시 선택해 주세요.");
+  }
   const spell=effectiveSpell(state,command),range=spell.rangeTiles*t.tile;
   if(e.behavior==="return") throw new OnlineError("enemy_returning",area==="meadow"?"진흙코 뿔소가 원래 자리로 돌아가고 있습니다.":"슬라임이 원래 자리로 돌아가고 있습니다.");
   if(command==="meteor") {
@@ -142,11 +181,26 @@ export function cast(world:SharedWorld,actor:Actor,command:string,aim:Point|unde
     spendSpell(state,command);arena.barrages.push({clientActionId,ownerId:actor.character.id,remaining:12,nextIn:0,damage:spellMagnitude(state,command)});
   } else {
     if(!aim || Math.hypot(aim.x,aim.y)<.001) throw new OnlineError("invalid_aim","발사 방향을 선택해 주세요.",400);
+    const fireballCooldown = command === "fireball" ? plazaFireballCooldown(world, actor) : undefined;
+    if (fireballCooldown && fireballCooldown.remainingSeconds > 0) {
+      throw new OnlineError("skill_unavailable", "파이어볼 재사용 대기 중입니다.");
+    }
     spendSpell(state,command);
     if(command==="flame_wave") {
-      event(world,"wave",actor.position,{actorId:actor.character.id,direction:aim,clientActionId},area);
-      if(circleIntersectsCone(actor.position,aim,e.position,enemyRadius(area),range,ARCANA_SPELLS.flame_wave.angle) && combatWall(area,actor.position,e.position,0)===null) trainArcanaSkill(state,command,damage(world,area,actor,spellMagnitude(state,command),deaths));
-    } else projectile(world,area,actor,command,aim,spellMagnitude(state,command),undefined,clientActionId);
+      const wallProbe = plazaSlime ? SLIME_HIT_WALL_PROBE : 0;
+      const inCone = circleIntersectsCone(actor.position, aim, e.position, enemyRadius(area), range, ARCANA_SPELLS.flame_wave.angle);
+      const hitsEnemy = inCone && combatWall(area, actor.position, e.position, wallProbe) === null;
+      event(world, "wave", actor.position, {
+        actorId: actor.character.id, direction: aim, clientActionId,
+        ...(plazaSlime && e.hp > 0 && !hitsEnemy ? {
+          enemyLifeId: e.lifeId, missReason: inCone ? "obstacle" : "outside_cone",
+        } : {}),
+      }, area);
+      if (hitsEnemy) trainArcanaSkill(state, command, damage(world, area, actor, spellMagnitude(state, command), deaths));
+    } else {
+      projectile(world,area,actor,command,aim,spellMagnitude(state,command),undefined,clientActionId);
+      if (fireballCooldown) actor.plazaFireballReadyAtMs = world.elapsedMs + PLAZA_FIREBALL_COOLDOWN_MS;
+    }
   }
 }
 function chooseSlimeAction(enemy: SharedEnemy, target: Actor) {
@@ -183,8 +237,10 @@ function landingEndpoint(position: Point, end: Point): Point {
 function hopEndpoint(position: Point, target: Point): Point {
   const { jumpRange, enemyRadius } = spatialLayout().tuning;
   const gap = distance(position, target);
-  if (gap > jumpRange || spatialWall(position, target, enemyRadius) !== null) {
-    return landingEndpoint(position, spatialRoute(position, target, 16, enemyRadius));
+  const blocked = spatialWall(position, target, enemyRadius) !== null;
+  if (gap > jumpRange || blocked) {
+    const step = blocked ? 16 : SLIME_CHASE_HOP_DISTANCE;
+    return landingEndpoint(position, spatialRoute(position, target, step, enemyRadius));
   }
   const heading = gap > .001 ? { x: (target.x - position.x) / gap, y: (target.y - position.y) / gap } : { x: 0, y: 1 };
   const inward = gap < SLIME_LEAP_MIN_RANGE ? -4 : 4;
@@ -218,25 +274,44 @@ function canReceiveCombatHit(actor: Actor, area: CombatArea) {
   return actor.disconnectedAt === null && combatArea(actor) === area && actor.game.state.arcanaCombat.hp > 0;
 }
 
-function touchesTarget(from: Point, to: Point, actor: Actor, radius: number, area: CombatArea = "plaza") {
-  const at = sweptCircle(from, to, actor.previous, actor.position, radius);
-  return at !== null
-    && combatWall(area, mix(from, to, at), mix(actor.previous, actor.position, at), SLIME_HIT_WALL_PROBE) === null;
+function isSlimeCombatParticipant(enemy: SharedEnemy, actor: Actor) {
+  return canReceiveCombatHit(actor, "plaza") && enemy.contribution[actor.character.id] !== undefined;
 }
 
-function hitPlayer(world: SharedWorld, target: Actor, amount: number, awardEvadeTraining = true, area: CombatArea = "plaza") {
+function targetContact(from: Point, to: Point, actor: Actor, radius: number, area: CombatArea = "plaza") {
+  const at = sweptCircle(from, to, actor.previous, actor.position, radius);
+  if (at === null) return null;
+  const sourcePosition = mix(from, to, at);
+  const position = mix(actor.previous, actor.position, at);
+  return combatWall(area, sourcePosition, position, SLIME_HIT_WALL_PROBE) === null
+    ? { fraction: at, sourcePosition, position } : null;
+}
+
+type PlayerContact = NonNullable<ReturnType<typeof targetContact>>;
+
+function hitPlayer(
+  world: SharedWorld,
+  target: Actor,
+  amount: number,
+  contact: PlayerContact,
+  tickSeconds: number,
+  { area, awardEvadeTraining, hitSource }: { area: CombatArea; awardEvadeTraining: boolean; hitSource?: WorldEvent["hitSource"] },
+) {
   const state = target.game.state;
+  const secondsUntilImpact = contact.fraction * tickSeconds;
+  const hitEvent = { targetPlayerId: target.character.id, sourcePosition: contact.sourcePosition, ...(hitSource ? { hitSource } : {}) };
   // A resolved attack takes priority over body contact in the same tick.
   target.slimeContactReadyAtMs = world.elapsedMs + SLIME_CONTACT_INTERVAL_MS;
-  if (tryEvadeAttack(state.arcanaCombat)) {
+  if (tryEvadeAttack(state.arcanaCombat, secondsUntilImpact)) {
     const skill = state.arcanaCombat.evadeSkill;
     if (awardEvadeTraining) trainArcanaSkill(state, skill, 10);
-    event(world, "evade", target.position, { targetPlayerId: target.character.id, evadeSkill: skill }, area);
+    event(world, "evade", contact.position, { ...hitEvent, evadeSkill: skill }, area);
     return;
   }
+  if (state.arcanaCombat.guard.seconds <= secondsUntilImpact + 1e-8) clearFlameGuard(state);
   const result = absorbArcanaDamage(state, amount);
-  if (result.absorbed) event(world, "absorb", target.position, { amount: result.absorbed, targetPlayerId: target.character.id }, area);
-  if (result.hurt) event(world, "hurt", target.position, { amount: result.hurt, targetPlayerId: target.character.id }, area);
+  if (result.absorbed) event(world, "absorb", contact.position, { ...hitEvent, amount: result.absorbed }, area);
+  if (result.hurt) event(world, "hurt", contact.position, { ...hitEvent, amount: result.hurt }, area);
   if (state.arcanaCombat.hp <= 0) {
     state.arcanaCombat.hp = 30;
     clearFlameGuard(state);
@@ -252,18 +327,18 @@ function hitPlayer(world: SharedWorld, target: Actor, amount: number, awardEvade
     }
     delete combatArena(world, area).enemy.contribution[target.character.id];
     // A defeat is displayed at the destination after the server moves the actor.
-    event(world, "defeat", target.position, { targetPlayerId: target.character.id });
+    event(world, "defeat", target.position, hitEvent);
   }
 }
 
-function tickSlimeContact(world: SharedWorld, actors: Map<string, Actor>, before: Point, radius: number) {
+function tickSlimeContact(world: SharedWorld, actors: Map<string, Actor>, before: Point, radius: number, seconds: number) {
   const enemy = world.enemy;
-  if (enemy.hp <= 0 || enemy.behavior === "return") return;
+  if (enemy.hp <= 0 || enemy.behavior === "neutral" || enemy.behavior === "return") return;
   for (const actor of actors.values()) {
-    if (canReceiveCombatHit(actor, "plaza") && world.elapsedMs >= (actor.slimeContactReadyAtMs ?? 0)
-      && touchesTarget(before, enemy.position, actor, radius)) {
-      hitPlayer(world, actor, SLIME_CONTACT_DAMAGE, false);
-    }
+    if (!isSlimeCombatParticipant(enemy, actor) || world.elapsedMs < (actor.slimeContactReadyAtMs ?? 0)) continue;
+    const contact = targetContact(before, enemy.position, actor, radius);
+    if (contact !== null) hitPlayer(world, actor, SLIME_CONTACT_DAMAGE, contact, seconds,
+      { area: "plaza", awardEvadeTraining: false, hitSource: "slime_contact" });
   }
 }
 
@@ -280,10 +355,13 @@ function tickSlime(world: SharedWorld, actors: Map<string, Actor>, seconds: numb
   if (enemy.hp <= 0 || enemy.behavior === "neutral") return;
   const tuning = spatialLayout().tuning;
   const candidates = [...actors.values()]
-    .filter(actor => canReceiveCombatHit(actor, "plaza")
-      && distance(actor.position, enemy.position) <= tuning.chaseLimit && enemy.contribution[actor.character.id] !== undefined)
+    .filter(actor => isSlimeCombatParticipant(enemy, actor) && distance(actor.position, enemy.position) <= tuning.chaseLimit)
     .sort((a, b) => enemy.contribution[b.character.id] - enemy.contribution[a.character.id] || a.character.id.localeCompare(b.character.id));
-  const target = enemy.targetLocked ? candidates.find(actor => actor.character.id === enemy.targetId) : candidates[0];
+  // The chase limit governs target selection. A locked leap keeps the same target until it resolves.
+  const lockedTarget = enemy.targetLocked && enemy.targetId ? actors.get(enemy.targetId) : undefined;
+  const target = enemy.targetLocked
+    ? (lockedTarget && isSlimeCombatParticipant(enemy, lockedTarget) ? lockedTarget : undefined)
+    : candidates[0];
   if (!enemy.targetLocked) enemy.targetId = target?.character.id ?? null;
   enemy.hopCooldown = Math.max(0, enemy.hopCooldown - seconds);
   if (!target && !enemy.targetLocked && (enemy.behavior === "chase" || enemy.behavior === "prepare")) {
@@ -295,6 +373,7 @@ function tickSlime(world: SharedWorld, actors: Map<string, Actor>, seconds: numb
     if (distance(enemy.position, enemy.home) < .5) {
       enemy.position = copy(enemy.home);
       enemy.hp = enemy.maxHp;
+      enemy.lifeId = crypto.randomUUID();
       enemy.behavior = "neutral";
       enemy.contribution = {};
       enemy.attackIn = tuning.attackInterval;
@@ -329,16 +408,23 @@ function tickSlime(world: SharedWorld, actors: Map<string, Actor>, seconds: numb
     const before = enemy.position;
     enemy.jumpElapsed = Math.min(duration, enemy.jumpElapsed + seconds);
     enemy.position = mix(enemy.jumpFrom, enemy.jumpTo, enemy.jumpElapsed / duration);
-    if (action === "leap" && target && !enemy.jumpHit
-      && touchesTarget(before, enemy.position, target, tuning.enemyRadius + tuning.playerRadius)) {
-      enemy.jumpHit = true;
-      hitPlayer(world, target, 5);
+    if (action === "leap" && target && !enemy.jumpHit) {
+      const contact = targetContact(before, enemy.position, target, tuning.enemyRadius + tuning.playerRadius);
+      if (contact !== null) {
+        enemy.jumpHit = true;
+        hitPlayer(world, target, 5, contact, seconds, { area: "plaza", awardEvadeTraining: true, hitSource: "slime_leap" });
+      }
     }
     if (enemy.jumpElapsed >= duration) {
       if (action !== "leap") {
         enemy.hopCooldown = SLIME_HOP_REST;
         finishSlimeAction(enemy, target);
       } else {
+        if (enemy.targetLocked && target?.place.location === "arcana_plaza" && !enemy.jumpHit) {
+          event(world, "slime_leap_miss", enemy.position, {
+            targetPlayerId: target.character.id, enemyId: enemy.id, enemyLifeId: enemy.lifeId,
+          });
+        }
         enemy.behavior = "recover";
         enemy.recoveryElapsed = 0;
         enemy.attackIn = tuning.attackInterval - duration;
@@ -391,20 +477,26 @@ function tickMeadowOx(world: SharedWorld, enemy: SharedEnemy, actors: Map<string
     }
     return;
   }
-  const candidates = [...actors.values()].filter(actor => canReceiveCombatHit(actor, "meadow")
-    && enemy.contribution[actor.character.id] !== undefined
-    && distance(actor.position, enemy.position) <= chaseLimit
-    && distance(actor.position, enemy.home) <= chaseLimit)
+  const participants = [...actors.values()].filter(actor => canReceiveCombatHit(actor, "meadow")
+    && enemy.contribution[actor.character.id] !== undefined)
     .sort((a, b) => enemy.contribution[b.character.id] - enemy.contribution[a.character.id]
       || a.character.id.localeCompare(b.character.id));
   if (enemy.behavior === "attack") {
     const previous = enemy.position;
     enemy.jumpElapsed = Math.min(MEADOW_OX_CHARGE_SECONDS, enemy.jumpElapsed + seconds);
     enemy.position = mix(enemy.jumpFrom, enemy.jumpTo, enemy.jumpElapsed / MEADOW_OX_CHARGE_SECONDS);
-    const victim = !enemy.jumpHit && candidates.find(actor => touchesTarget(previous, enemy.position, actor, playerRadius + MEADOW_OX_RADIUS, "meadow"));
-    if (victim) {
-      enemy.jumpHit = true;
-      hitPlayer(world, victim, 8, true, "meadow");
+    if (!enemy.jumpHit) {
+      let firstContact: { actor: Actor; contact: PlayerContact } | undefined;
+      for (const actor of participants) {
+        const contact = targetContact(previous, enemy.position, actor, playerRadius + MEADOW_OX_RADIUS, "meadow");
+        if (contact !== null && (!firstContact || contact.fraction < firstContact.contact.fraction)) {
+          firstContact = { actor, contact };
+        }
+      }
+      if (firstContact) {
+        enemy.jumpHit = true;
+        hitPlayer(world, firstContact.actor, 8, firstContact.contact, seconds, { area: "meadow", awardEvadeTraining: true });
+      }
     }
     if (enemy.jumpElapsed >= MEADOW_OX_CHARGE_SECONDS) {
       enemy.behavior = "recover";
@@ -412,15 +504,18 @@ function tickMeadowOx(world: SharedWorld, enemy: SharedEnemy, actors: Map<string
     }
     return;
   }
+  // Chase range limits new targets. The charge path is already set during its windup.
+  const chaseTarget = participants.find(actor => distance(actor.position, enemy.position) <= chaseLimit
+    && distance(actor.position, enemy.home) <= chaseLimit);
   if (enemy.behavior === "recover") {
     enemy.recoveryElapsed = Math.min(MEADOW_OX_RECOVERY, enemy.recoveryElapsed + seconds);
     if (enemy.recoveryElapsed >= MEADOW_OX_RECOVERY) {
-      finishSlimeAction(enemy, candidates[0]);
+      finishSlimeAction(enemy, chaseTarget);
       enemy.attackIn = attackInterval - MEADOW_OX_CHARGE_SECONDS - MEADOW_OX_RECOVERY;
     }
     return;
   }
-  const target = enemy.targetLocked ? candidates.find(actor => actor.character.id === enemy.targetId) : candidates[0];
+  const target = enemy.targetLocked ? participants.find(actor => actor.character.id === enemy.targetId) : chaseTarget;
   if (!target) {
     finishSlimeAction(enemy, undefined);
     enemy.targetId = null;
@@ -452,18 +547,23 @@ function tickArena(world:SharedWorld,area:CombatArea,actors:Map<string,Actor>,se
   const arena=combatArena(world,area),t=spatialLayout().tuning,e=arena.enemy,radius=enemyRadius(area);
   if(e.hp<=0 && Date.now()>=e.respawnAt) {arena.enemy=newEnemy(area);event(world,"reset",arena.enemy.position,{},area);return;}
   const before=copy(e.position);
+  const slimeWasReturning = area === "plaza" && e.behavior === "return";
+  // Enemy motion is swept over the tick. Recovery begins at the end of the landing tick.
+  const recoveryRemaining = slimeRecovering(e, area) ? SLIME_RECOVERY_SECONDS - e.recoveryElapsed : 0;
   if (area === "meadow") tickMeadowOx(world, e, actors, seconds);
   else {
-    const wasReturning = e.behavior === "return";
     tickSlime(world, actors, seconds);
-    if (!wasReturning) tickSlimeContact(world, actors, before, radius + t.playerRadius);
+    if (!slimeWasReturning) tickSlimeContact(world, actors, before, radius + t.playerRadius, seconds);
   }
   for(const meteor of [...arena.meteors]) {
+    const impactSeconds=Math.max(0,meteor.remaining);
     meteor.remaining-=seconds;
     if(meteor.remaining<=0) {
       const owner=actors.get(meteor.ownerId);
+      const atImpact=mix(before,e.position,seconds>0 ? impactSeconds/seconds : 0);
       event(world,"meteor",meteor.position,{actorId:meteor.ownerId,projectileId:meteor.id},area);
-      if(owner && combatArea(owner)===area && distance(e.position,meteor.position)<=2*t.tile+radius && combatWall(area,meteor.position,e.position,0)===null)damage(world,area,owner,meteor.damage,deaths);
+      if(owner && combatArea(owner)===area && distance(atImpact,meteor.position)<=2*t.tile+radius && combatWall(area,meteor.position,atImpact,0)===null)
+        damage(world,area,owner,meteor.damage,deaths,{targetPosition:atImpact},impactSeconds<recoveryRemaining);
       arena.meteors=arena.meteors.filter(m=>m.id!==meteor.id);
     }
   }
@@ -477,27 +577,51 @@ function tickArena(world:SharedWorld,area:CombatArea,actors:Map<string,Actor>,se
     const owner=actors.get(shot.ownerId);
     if(!owner || combatArea(owner)!==area) {arena.projectiles=arena.projectiles.filter(p=>p.id!==shot.id);continue;}
     if(shot.spellId==="flame_barrage" && e.hp>0) {const length=distance(shot.position,e.position);if(length>.001)shot.direction={x:(e.position.x-shot.position.x)/length,y:(e.position.y-shot.position.y)/length};}
-    const travel=Math.min(shot.remaining,t.projectileSpeed*seconds),next={x:shot.position.x+shot.direction.x*travel,y:shot.position.y+shot.direction.y*travel};
-    const wall=combatWall(area,shot.position,next,shot.radius || t.projectileRadius),hit=e.hp>0 && !shot.hitIds.includes(e.id)?sweptCircle(shot.position,next,before,e.position,(shot.radius || t.projectileRadius)+radius):null;
+    const start = shot.position;
+    const travel=Math.min(shot.remaining,t.projectileSpeed*seconds),next={x:start.x+shot.direction.x*travel,y:start.y+shot.direction.y*travel};
+    const shotRadius = shot.radius || t.projectileRadius;
+    const wall = combatWall(area, start, next, shotRadius);
+    const shotEnemyLifeId = shot.plazaFireballEnemyLifeId;
+    const sameEnemyLife = shotEnemyLifeId === undefined || shotEnemyLifeId === e.lifeId;
+    const canHit = e.hp > 0 && sameEnemyLife && !slimeWasReturning
+      && !(area === "plaza" && e.behavior === "return") && !shot.hitIds.includes(e.id);
+    const travelSeconds = travel / t.projectileSpeed;
+    const enemyAtTravelEnd = mix(before, e.position, seconds > 0 ? Math.min(1, travelSeconds / seconds) : 0);
+    const hit = canHit ? sweptCircle(start, next, before, enemyAtTravelEnd, shotRadius + radius) : null;
     let spent=false;
     if(hit!==null && (wall===null || hit<wall)) {
-      const dealt=damage(world,area,owner,shot.damage,deaths,{projectileId:shot.id,direction:shot.direction});
+      const targetPosition = mix(before, enemyAtTravelEnd, hit);
+      const position = mix(mix(start, next, hit), targetPosition, shotRadius / (shotRadius + radius));
+      const dealt=damage(world,area,owner,shot.damage,deaths,{projectileId:shot.id,direction:shot.direction,
+        position,targetPosition},hit*travelSeconds<recoveryRemaining);
       if(dealt>0 && shot.spellId==="fireball" && !shot.masteryAwarded) {trainArcanaSkill(owner.game.state,"fireball",10);shot.masteryAwarded=true;}
-      if(shot.explode)event(world,"explosion",e.position,{actorId:shot.ownerId,projectileId:shot.id},area);
+      if(shot.explode)event(world,"explosion",position,{actorId:shot.ownerId,projectileId:shot.id},area);
       shot.hitIds.push(e.id);spent=shot.hitIds.length>=shot.pierce;
     }
     shot.position=next;shot.remaining-=travel;
-    if(spent || wall!==null || shot.remaining<=0) {if(!spent)event(world,"miss",shot.position,{projectileId:shot.id},area);arena.projectiles=arena.projectiles.filter(p=>p.id!==shot.id);}
+    if (spent || wall !== null || shot.remaining <= 0) {
+      if (!spent) {
+        const reportMiss = shotEnemyLifeId !== undefined && sameEnemyLife && e.hp > 0 && shot.hitIds.length === 0;
+        event(world, "miss", wall !== null ? mix(start, next, wall) : next, {
+          projectileId: shot.id,
+          ...(reportMiss ? {
+            actorId: shot.ownerId, spellId: shot.spellId, enemyLifeId: shotEnemyLifeId,
+            missReason: wall === null ? "range_exhausted" : "obstacle",
+          } : {}),
+        }, area);
+      }
+      arena.projectiles = arena.projectiles.filter(p => p.id !== shot.id);
+    }
   }
 }
 
 export function tickCombat(world:SharedWorld,actors:Map<string,Actor>,seconds:number,deaths:Death[]) {
+  tickArena(world,"plaza",actors,seconds,deaths);
+  if (world.meadowCombat) tickArena(world,"meadow",actors,seconds,deaths);
   for(const actor of actors.values()) {
     const c=actor.game.state.arcanaCombat;
     tickSpellTimers(actor.game.state,seconds);c.evadeSeconds=Math.max(0,c.evadeSeconds-seconds);
     c.mp=Math.min(30,c.mp+seconds*1000/GAME_HOUR_MS*12);
+    actor.previous=copy(actor.position);
   }
-  tickArena(world,"plaza",actors,seconds,deaths);
-  if (world.meadowCombat) tickArena(world,"meadow",actors,seconds,deaths);
-  for(const actor of actors.values())actor.previous=copy(actor.position);
 }

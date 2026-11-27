@@ -6,15 +6,38 @@ import { AuthController } from "../auth";
 import { OnlineAccounts, OnlineError, nativeDevelopment } from "./accounts";
 import { ArcanaWorld } from "./world";
 import { ArcanaWearableSlotSchema } from "../game/schemas/arcana-item";
+import { HomeFurnitureCellSchema, HomeFurnitureRotationSchema } from "../game/schemas/game-state";
+import { SIMPLE_HOMESTEAD_ACTIONS } from "./simple-homestead";
+import { INN_SUPPLY_ACTIONS } from "./inn-supply";
 const PointSchema=z.object({x:z.number().finite().min(-10000).max(10000),y:z.number().finite().min(-10000).max(10000)});
 const InputSchema=z.object({
   actionId:z.string().regex(/^[a-zA-Z0-9-]{16,100}$/).optional(),placeRevision:z.number().int().nonnegative().optional(),developerSpeed:z.boolean().optional(),sequence:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   position:PointSchema.optional(),direction:PointSchema.optional(),bench:z.enum(["","approach","sit","seated","stand"]).optional(),gait:z.number().finite().min(0).max(1e9).optional(),floor:z.number().int().min(0).max(2).optional(),
-  textPlace:z.enum(["home_bed","home_kitchen","home_storage","academy_stairs"]).optional(),
-  command:z.enum(["equipment_set","life_gather","life_rest","life_home_enter","life_home_leave","life_craft","life_place","life_cook","life_eat","life_cancel","life_storage_open","life_storage_deposit","life_storage_withdraw","fishing_equip","fishing_unequip","fishing_cast","fishing_cast_text_pond","fishing_press","fishing_release","fishing_cancel","spatial_sync","engage_plaza_slime","engage_meadow_ox","fireball","flame_wave","flame_guard","meteor","giant_fireball","flame_barrage","dodge","teleport","potion","retreat"]).optional(),
-  aim:PointSchema.optional(),target:PointSchema.optional(),itemId:z.string().min(1).max(60).optional(),quantity:z.number().int().positive().optional(),recipeId:z.string().min(1).max(60).optional(),campfireId:z.string().uuid().optional(),equipmentSlot:ArcanaWearableSlotSchema.optional(),
+  textPlace:z.enum(["home_bed","home_kitchen","home_storage","academy_stairs","forest_trees"]).optional(),
+  command:z.enum(["equipment_set","life_gather","life_chop_wood","life_rest","life_home_enter","life_home_leave","life_craft","life_place","life_cook","life_eat","life_cancel","life_storage_open","life_storage_deposit","life_storage_withdraw","home_furniture_state","home_furniture_preview","home_furniture_update","fishing_equip","fishing_unequip","fishing_cast","fishing_cast_text_pond","fishing_press","fishing_release","fishing_cancel","spatial_sync","engage_plaza_slime","engage_meadow_ox","fireball","flame_wave","flame_guard","meteor","giant_fireball","flame_barrage","dodge","teleport","potion","retreat"]).optional(),
+  aim:PointSchema.optional(),target:PointSchema.optional(),targetLifeId:z.string().min(1).optional(),itemId:z.string().min(1).max(60).optional(),quantity:z.number().int().positive().optional(),recipeId:z.string().min(1).max(60).optional(),campfireId:z.string().uuid().optional(),equipmentSlot:ArcanaWearableSlotSchema.optional(),
+  treeId:z.string().regex(/^forest_[a-z0-9_]{1,48}$/).optional(),
+  furnitureId:z.string().min(1).max(80).optional(),
+  layoutRevision:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+  furnitureOperation:z.enum(["place","store"]).optional(),
+  furnitureCell:HomeFurnitureCellSchema.optional(),
+  furnitureRotation:HomeFurnitureRotationSchema.optional(),
 });
 const WorldInputPacketSchema=z.object({id:z.number().int().positive(),input:InputSchema});
+const ControllerSchema = z.object({ controller: z.string().min(8).max(100) });
+const InnSupplyActionSchema = ControllerSchema.extend({
+  action: z.enum(INN_SUPPLY_ACTIONS),
+  actionId: z.string(),
+  day: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+});
+const HomesteadActionSchema = ControllerSchema.extend({
+  action: z.enum(SIMPLE_HOMESTEAD_ACTIONS),
+  revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  plot: z.number().int().min(0).max(2).optional(),
+  spiritId: z.string().min(1).max(60).optional(),
+  encounter: z.string().min(1).max(60).optional(),
+  requestId: z.string().min(1).max(60).optional(),
+});
 export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts,auth:AuthController,world:ArcanaWorld) {
   const limits=new Map<string,{start:number;count:number}>();
   const configuredOrigins=(process.env.ALLOWED_ORIGINS || process.env.PUBLIC_BASE_URL || "").split(",").map(v=>v.trim()).filter(Boolean);
@@ -64,6 +87,23 @@ export function registerOnlineRoutes(app:FastifyInstance,accounts:OnlineAccounts
     return world.join(await accounts.require(request),body.controller,body.takeover);
   });
   app.post("/api/arcana/leave",async request=>world.leave(await accounts.require(request)));
+  app.get<{ Params: { gameId: string } }>("/api/games/:gameId/inn-supply", async (request, reply) => {
+    reply.header("cache-control", "no-store");
+    const { controller } = ControllerSchema.parse(request.query);
+    return world.innSupply(await accounts.require(request), request.params.gameId, controller);
+  });
+  app.post<{ Params: { gameId: string } }>("/api/games/:gameId/inn-supply", async request => {
+    const { controller, ...action } = InnSupplyActionSchema.parse(request.body);
+    return world.innSupply(await accounts.require(request), request.params.gameId, controller, action);
+  });
+  app.get<{ Params: { gameId: string } }>("/api/games/:gameId/simple-homestead", async request => {
+    const { controller } = ControllerSchema.parse(request.query);
+    return world.simpleHomestead(await accounts.require(request), request.params.gameId, controller);
+  });
+  app.post<{ Params: { gameId: string } }>("/api/games/:gameId/simple-homestead", async request => {
+    const { controller, ...action } = HomesteadActionSchema.parse(request.body);
+    return world.simpleHomestead(await accounts.require(request), request.params.gameId, controller, action);
+  });
   app.post("/api/arcana/admin",async request=>{
     const principal=await accounts.require(request);
     if(!principal.accountId || !(process.env.ARCANA_ADMIN_ACCOUNT_IDS || "").split(",").includes(principal.accountId))throw new OnlineError("forbidden","운영자 권한이 필요합니다.",403);

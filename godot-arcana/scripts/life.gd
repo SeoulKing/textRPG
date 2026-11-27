@@ -4,6 +4,9 @@ const Fire = preload("res://scripts/native_2d_campfire.gd")
 const WorldRenderer = preload("res://scripts/native_2d_world.gd")
 const PlacementButton = preload("res://scripts/placement_action_button.gd")
 const ItemThumbnail = preload("res://scripts/item_thumbnail.gd")
+const CookingAnimation := preload("res://scripts/cooking_animation.gd")
+const WOODCUTTING_AXE := "woodcutting_axe"
+const FOREST_TIMBER_ID := "forest_trees"
 const CAMPFIRES = {"campfire":[30,6],"campfireFine":[45,4],"campfireExcellent":[60,3]}
 const FOODS = {"grilledFish":40,"grilledFishFine":50,"grilledFishExcellent":60,"grilledMushroom":40,"grilledMushroomFine":50,"grilledMushroomExcellent":60,"roastedPotato":40,"roastedPotatoFine":50,"roastedPotatoExcellent":60,"meatSkewer":40,"meatSkewerFine":50,"meatSkewerExcellent":60}
 const CRAFT_RESULTS := {"lumber": "wood", "campfire": "campfire"}
@@ -13,10 +16,19 @@ const RECIPES = [
 	{"id":"roastedPotato","name":"구운감자","ingredients":{"potato":1}},
 	{"id":"meatSkewer","name":"고기꼬치","ingredients":{"rawMeat":1,"treeBranch":1}},
 ]
-const MATERIAL_NAMES = {"riverFish":"민물고기","mushroom":"버섯","potato":"감자","rawMeat":"고기","treeBranch":"나뭇가지"}
+const CRAFT_RECIPES = [
+	{"id":"lumber","name":"목재","ingredients":{"treeBranch":2},"count":3},
+	{"id":"campfire","name":"모닥불","ingredients":{"wood":5},"count":1},
+]
+const MAX_QUANTITY := 20
+const MATERIAL_NAMES = {"riverFish":"민물고기","mushroom":"버섯","potato":"감자","rawMeat":"고기","treeBranch":"나뭇가지","wood":"목재"}
 var main: Node
 var job: Dictionary = {}
 var skills: Array = []
+var _forest_trees: Dictionary = {}
+var _forest_hits_required := 0
+var _forest_revisions: Dictionary = {}
+var _forest_observed := false
 var fires: Dictionary = {}
 var fire_nodes: Dictionary = {}
 var server_now: float = 0.0
@@ -29,6 +41,7 @@ var dismissed_job: String = ""
 var hunger_at_result: int = -1
 var progress: ProgressBar
 var progress_label: Label
+var cooking_animation: CookingAnimation
 var fire_label: Label
 var sending: bool = false
 var placing: bool = false
@@ -48,11 +61,14 @@ var interaction_key: String = ""
 var meals_key: String = ""
 var socket_connected: bool = false
 var _selected_recipe_id := ""
+var _selected_craft_id := ""
+var _selected_quantity: int = 1
+var _displayed_bag: Dictionary = {}
 
 func _ready() -> void:
 	main.ui.panel_closed.connect(func():
 		if active(): send({"command":"life_cancel"})
-		elif job.get("phase") == "success": dismissed_job = str(job.id))
+		elif job.get("phase") in ["success", "cancelled"]: dismissed_job = str(job.id))
 
 func active() -> bool:
 	return job.get("phase","")=="active"
@@ -62,6 +78,15 @@ func blocking() -> bool:
 
 func now() -> float:
 	return server_now+float(Time.get_ticks_msec()-observed_at) if observed_at>0 else Time.get_unix_time_from_system()*1000.0
+
+func kitchen_cook_progress() -> float:
+	if not active() or job.get("kind") != "cook" or not job.get("homeKitchen", false) or not main.combat_socket.socket_ready:
+		return -1.0
+	return _job_fraction(now())
+
+func _job_fraction(current_time: float) -> float:
+	var started_at := float(job.startedAt)
+	return clampf((current_time - started_at) / maxf(1.0, float(job.endsAt) - started_at), 0.0, 1.0)
 
 func accept_world(value: Dictionary) -> void:
 	if value.has("serverNow"):
@@ -76,17 +101,22 @@ func accept_world(value: Dictionary) -> void:
 	if value.get("self") is Dictionary:
 		var update: Dictionary = value.self
 		skills = update.get("lifeSkills",skills)
+		if update.has("forestTrees") or update.has("forestTree"):
+			accept_forest_trees(update)
+		else:
+			accept_forest_trees(value)
 		if update.has("lifeActivity"):
 			var was_active: bool = active()
-			var old_key: String = str(job.get("id",""))+str(job.get("phase",""))
+			var previous_id: String = str(job.get("id", ""))
+			var previous_phase: String = str(job.get("phase", ""))
 			job = update.lifeActivity if update.lifeActivity is Dictionary else {}
-			if old_key != str(job.get("id","")) + str(job.get("phase","")):
+			if previous_id != str(job.get("id", "")) or previous_phase != str(job.get("phase", "")):
 				redraw = true
 				if was_active and not active() and not job.is_empty():
 					main.ui.toast(str(job.get("message","")))
 	_sync_fires()
 	if main.panel_mode == "life" and main.ui.overlay.visible:
-		if redraw or (_has_result() and mode == "cook" and hunger_at_result != _hunger()):
+		if redraw or (not active() and _displayed_bag != main._state().get("inventory", {})) or (_has_result() and mode == "cook" and hunger_at_result != _hunger()):
 			_show()
 	_refresh_meals()
 	_try_placed_fire()
@@ -114,6 +144,62 @@ func _gather() -> void:
 	if not await send({"command":"life_gather"}): return
 	main.ui.toast(str(_life_state().get("lastMessage","재료를 모았습니다.")))
 
+func accept_forest_trees(update: Dictionary) -> void:
+	if main._state().get("location", "") != main.CityGrid.FOREST_AREA:
+		_forest_observed = false
+		_forest_trees.clear()
+		_forest_revisions.clear()
+		main.world.set_forest_trees_felled({})
+		return
+	var primary: Variant = update.get("forestTree")
+	var projected: Variant = update.get("forestTrees")
+	if not primary is Dictionary and not projected is Dictionary: return
+	_forest_hits_required = int(update.get("forestHitsRequired", 0))
+	_forest_trees = projected.duplicate() if projected is Dictionary else {}
+	if primary is Dictionary: _forest_trees[FOREST_TIMBER_ID] = primary
+	var felled := {}
+	for tree_id: String in _forest_trees:
+		var tree: Dictionary = _forest_trees[tree_id]
+		if tree.get("felled", false): felled[tree_id] = true
+	main.world.set_forest_trees_felled(felled)
+	main.world_renderer.sync_forest_trees()
+	for tree_id: String in _forest_trees:
+		var tree: Dictionary = _forest_trees[tree_id]
+		var revision := int(tree.get("revision", 0))
+		var hit_at: Variant = tree.get("lastHitAt")
+		var recent_hit := (hit_at is float or hit_at is int) and now() - float(hit_at) < 1800.0
+		if _forest_observed and recent_hit and revision > int(_forest_revisions.get(tree_id, 0)) and not main.simplified_play.enabled:
+			var local_hit: bool = str(tree.get("lastHitBy", "")) == main.online_presence.character_id
+			main.world_renderer.play_forest_tree_hit(tree_id, local_hit, tree.get("felled", false))
+		_forest_revisions[tree_id] = revision
+	_forest_observed = true
+
+func axe_equipped() -> bool:
+	return main.snapshot.get("arcanaEquipment", {}).get("mainHand", "") == WOODCUTTING_AXE
+
+func forest_chop_caption(tree_id: String = FOREST_TIMBER_ID) -> String:
+	var tree: Dictionary = _forest_trees.get(tree_id, {})
+	if tree.get("felled", false): return "나무가 자라는 중"
+	if not axe_equipped(): return "도끼 장착 필요"
+	var remaining := int(tree.get("hitsRemaining", _forest_hits_required))
+	return "벌목 · %d회 남음" % remaining if remaining > 0 else "벌목하기"
+
+func can_chop_wood(tree_id: String = FOREST_TIMBER_ID) -> bool:
+	return axe_equipped() and _forest_observed and main.world.forest_tree_available(tree_id) \
+		and not sending and _peaceful() and main.combat_socket.socket_ready
+
+func chop_wood(tree_id: String = FOREST_TIMBER_ID, text_selection: bool = false) -> void:
+	if main._state().get("location", "") != main.CityGrid.FOREST_AREA or not _peaceful() or main.busy: return
+	if not axe_equipped():
+		main.ui.toast("장비 창에서 벌목 도끼를 장착해 주세요.")
+		return
+	if not can_chop_wood(tree_id): return
+	var action := {"command": "life_chop_wood", "treeId": tree_id}
+	if text_selection: action.textPlace = "forest_trees"
+	if not await send(action): return
+	var fallback := "목재 1개를 얻었습니다." if not main.world.forest_tree_available(tree_id) else forest_chop_caption(tree_id)
+	main.ui.toast(str(_life_state().get("lastMessage", fallback)))
+
 func meal_menu() -> void:
 	main.panel_mode = "life_meals"
 	main.ui.open_panel("식사")
@@ -132,11 +218,20 @@ func meal_menu() -> void:
 		main.ui.choice(name+" 먹기",hint,eat.bind(item_id),hunger >= 100 or sending or not _peaceful() or not main.combat_socket.socket_ready,"",main._item_thumbnail(item_id))
 	if available == 0: main.ui.paragraph("가방에 완성한 요리가 없습니다. 광장에서 재료를 모아 집 주방이나 모닥불에서 구워 보세요.",main.ui.MUTED)
 
+func prefer_cooking_ingredient(item_id: String) -> void:
+	for recipe: Dictionary in RECIPES:
+		if recipe.ingredients.has(item_id):
+			dismissed_job = str(job.get("id", ""))
+			_selected_recipe_id = str(recipe.id)
+			_selected_quantity = 1
+			return
+
 func home_kitchen() -> void:
 	if not _at_home():
 		main.ui.toast("집으로 돌아와 주방을 이용해 주세요.")
 		return
 	selected_fire = "home_kitchen"
+	_selected_quantity = 1
 	mode = "cook"
 	_show()
 
@@ -206,23 +301,43 @@ func show_skill(id: String) -> void:
 	main.ui.paragraph("좋은 모닥불은 더 오래 타며 요리를 빨리 완성합니다." if id=="crafting" else "좋은 요리는 허기를 더 많이 회복합니다.")
 	if id=="crafting": main.ui.choice("목재·모닥불 제작","나뭇가지로 목재 만들기 · 모닥불 만들기",craft_menu,false,"crafting")
 
-func craft_menu(for_cooking: bool = false) -> void:
+func craft_menu(for_cooking: bool = false, recipe_id: String = "") -> void:
 	continue_to_cooking = for_cooking
+	_selected_quantity = 1
+	if for_cooking: _selected_craft_id = "campfire"
+	elif not recipe_id.is_empty():
+		dismissed_job = str(job.get("id", ""))
+		_selected_craft_id = recipe_id
 	mode = "craft"
 	_show()
 
 func cook_menu(id: String) -> void:
 	selected_fire = id
+	_selected_quantity = 1
 	mode = "cook"
 	_show()
 
 func _hunger() -> int:
 	return int(_life_state().get("hunger",100))
 
+func _result_counts() -> Dictionary:
+	var counts: Variant = job.get("resultCounts", {})
+	if counts is Dictionary and not counts.is_empty(): return counts
+	var item_id := str(job.get("itemId", ""))
+	return {item_id: 3 if job.get("recipeId") == "lumber" else 1} if not item_id.is_empty() else {}
+
+func _result_item() -> String:
+	var bag: Dictionary = main._state().get("inventory", {})
+	var recent := str(job.get("itemId", ""))
+	if int(bag.get(recent, 0)) > 0: return recent
+	for item_id: String in _result_counts():
+		if int(bag.get(item_id, 0)) > 0: return item_id
+	return ""
+
 func _has_result() -> bool:
-	if job.get("phase") != "success" or job.get("kind") != mode or str(job.id) == dismissed_job: return false
+	if job.get("phase") not in ["success", "cancelled"] or job.get("kind") != mode or str(job.id) == dismissed_job: return false
 	if mode == "cook" and (not job.get("homeKitchen",false) or selected_fire != "home_kitchen") and job.get("campfireId","") != selected_fire: return false
-	return int(main._state().get("inventory",{}).get(job.get("itemId",""),0)) > 0
+	return not _result_item().is_empty()
 
 func _show_product(item_id: String, caption: String) -> void:
 	var row := HBoxContainer.new()
@@ -237,6 +352,9 @@ func _show_product(item_id: String, caption: String) -> void:
 	row.add_child(title)
 
 func _show() -> void:
+	if active():
+		mode = str(job.get("kind", mode))
+		if mode == "cook": selected_fire = "home_kitchen" if job.get("homeKitchen", false) else str(job.get("campfireId", selected_fire))
 	main.panel_mode = "life"
 	var dock_left: bool = false
 	if mode == "cook" and fires.has(selected_fire):
@@ -245,58 +363,79 @@ func _show() -> void:
 		var fire_screen := WorldRenderer.raster_to_display(main.viewport_host, main.viewport.size, fire_raster)
 		dock_left = fire_screen.x > get_viewport().get_visible_rect().get_center().x
 	var working := active()
+	var show_world_cook: bool = working and mode == "cook" and job.get("homeKitchen", false) \
+		and not main.simplified_play.enabled and main.world.indoor == "arcana_home" \
+		and is_instance_valid(main.world_renderer.room3d)
 	var has_result := not working and _has_result()
 	if mode == "craft":
 		if working or has_result:
 			main.ui.open_tab_panel("제작 · 모닥불")
 		else:
 			main._open_skills_tab(1)
+	elif show_world_cook:
+		var focus := func() -> Rect2:
+			var player_point: Vector2 = main.world.player_position
+			var feet_raster: Vector2 = main.world_renderer.screen_point(player_point)
+			var head_raster: Vector2 = main.world_renderer.actor_label_point(player_point)
+			var feet := WorldRenderer.raster_to_display(main.viewport_host, main.viewport.size, feet_raster)
+			var head := WorldRenderer.raster_to_display(main.viewport_host, main.viewport.size, head_raster)
+			return Rect2(head, feet - head)
+		main.ui.open_panel("집 · 주방", true, false, false, false, focus)
 	else:
 		main.ui.open_panel("집 · 주방" if selected_fire == "home_kitchen" else "모닥불 · 요리", true, dock_left)
+	_displayed_bag = main._state().get("inventory", {}).duplicate()
 	progress = null
 	progress_label = null
+	cooking_animation = null
 	fire_label = null
 	if working:
 		var recipe_id := str(job.get("recipeId", "campfire" if mode == "craft" else "grilledFish"))
-		if recipe_id == "grilledFish":
-			_show_product("riverFish","주방에서 생선을 굽고 있습니다." if job.get("homeKitchen",false) else "모닥불에 생선을 굽고 있습니다.")
+		if mode == "cook":
+			var using_kitchen: bool = job.get("homeKitchen", false)
+			if not show_world_cook:
+				cooking_animation = CookingAnimation.new()
+				main.ui.content.add_child(cooking_animation)
+				cooking_animation.setup(recipe_id, using_kitchen)
+			var caption := str(job.message)
+			if recipe_id == "grilledFish":
+				caption = "주방에서 생선을 굽고 있습니다." if using_kitchen else "모닥불에 생선을 굽고 있습니다."
+			main.ui.paragraph(caption, main.ui.GOLD)
 		else:
 			var product_id := str(CRAFT_RESULTS.get(recipe_id, recipe_id))
 			_show_product(product_id, str(job.message))
 		progress = main.ui.make_bar(Color("d49b45"),24)
 		main.ui.content.add_child(progress)
 		progress_label = main.ui.label("",14,main.ui.MUTED)
+		if show_world_cook: progress_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		main.ui.content.add_child(progress_label)
-		main.ui.choice("작업 취소","재료는 소모하지 않습니다.",func(): send({"command":"life_cancel"}),sending)
+		main.ui.choice("작업 취소","완료한 결과·숙련도는 유지됩니다. 남은 재료는 소모하지 않습니다.",func(): send({"command":"life_cancel"}),sending or not main.combat_socket.socket_ready)
 		return
 	if has_result:
-		var item_id := str(job.itemId)
-		var product_name: String = str(main._item_master(item_id).get("definition",{}).get("name","모닥불" if mode == "craft" else "요리"))
-		_show_product(item_id,product_name + (" 3개 완성" if job.get("recipeId","") == "lumber" else " 완성"))
+		var item_id := _result_item()
+		var completed := int(job.get("completed", 1 if job.get("phase") == "success" else 0))
+		var quantity := int(job.get("quantity", 1))
+		main.ui.paragraph("%d / %d회 완료%s" % [completed, quantity, " · 작업 취소" if job.get("phase") == "cancelled" else ""], main.ui.GOLD)
+		var counts := _result_counts()
+		for result_id: String in counts:
+			var product_name: String = str(main._item_master(result_id).get("definition",{}).get("name",result_id))
+			_show_product(result_id, "%s %d개" % [product_name, int(counts[result_id])])
 		if mode == "craft" and job.get("recipeId","") != "lumber":
 			var indoors: bool = not main.world.indoor.is_empty()
-			main.ui.choice("이 모닥불 설치","실내에서는 설치할 수 없습니다. 가방에 보관한 뒤 야외에서 설치해 주세요." if indoors else "빈 땅에 놓고 요리합니다.",begin_placement.bind(item_id,continue_to_cooking),indoors or sending or not main.combat_socket.socket_ready)
+			main.ui.choice("이 모닥불 설치","실내에서는 설치할 수 없습니다. 가방에 보관한 뒤 야외에서 설치해 주세요." if indoors else str(main._item_master(item_id).get("definition",{}).get("name","모닥불"))+" 1개 · 빈 땅에 놓고 요리합니다.",begin_placement.bind(item_id,continue_to_cooking),indoors or sending or not main.combat_socket.socket_ready)
 		elif mode == "cook":
 			hunger_at_result = _hunger()
 			var full_at_result := hunger_at_result >= 100
 			var meal_hint := "배가 부릅니다. 가방에 보관했다가 드실 수 있습니다." if full_at_result else "허기 %d / 100 → %d / 100" % [_hunger(),mini(100,_hunger()+int(FOODS[item_id]))]
-			main.ui.choice("바로 먹기",meal_hint,eat.bind(item_id,true),full_at_result or sending)
+			main.ui.choice("바로 먹기",str(main._item_master(item_id).get("definition",{}).get("name","요리"))+" 1개 · "+meal_hint,eat.bind(item_id,true),full_at_result or sending or not main.combat_socket.socket_ready)
 		main.ui.choice("가방에 보관","소지품에서 언제든 사용할 수 있습니다.",main.ui.close_panel)
 		main.ui.choice("계속 만들기" if mode == "craft" else "계속 요리하기","",func():
 			dismissed_job = str(job.id)
+			_selected_quantity = 1
 			_show())
 		return
 	var bag: Dictionary = main._state().get("inventory",{})
 	if mode == "craft":
-		var branches := int(bag.get("treeBranch", 0))
-		var wood := int(bag.get("wood", 0))
-		var locked: bool = sending or not main.combat_socket.socket_ready
-		main.ui.choice("나뭇가지로 목재 만들기", "나뭇가지 %d / 2개 → 목재 3개 · 3초" % branches,
-			_start.bind("life_craft", "lumber"), branches < 2 or locked, "",
-			main._item_thumbnail(CRAFT_RESULTS.lumber), main._item_thumbnail("treeBranch"))
-		main.ui.choice("모닥불 만들기", "목재 %d / 5개 · 3초" % wood,
-			_start.bind("life_craft", "campfire"), wood < 5 or locked, "",
-			main._item_thumbnail(CRAFT_RESULTS.campfire), main._item_thumbnail("wood"))
+		_show_recipes(CRAFT_RECIPES, bag, 3, "life_craft")
 		main.ui.paragraph("나뭇가지는 광장에서 모을 수 있습니다. 목재는 품질 구분 없이 3개씩 만듭니다. 모닥불은 야외 빈 땅에 설치하며 30~60분 동안 타오릅니다.",main.ui.MUTED)
 		_growth("crafting")
 	else:
@@ -309,50 +448,102 @@ func _show() -> void:
 		if not at_kitchen:
 			var fire: Dictionary = fires[selected_fire]
 			cook_seconds = int(CAMPFIRES[str(fire.itemId)][1])
-		_show_cook_recipes(bag, cook_seconds)
+		_show_recipes(RECIPES, bag, cook_seconds, "life_cook")
 		if at_kitchen:
 			main.ui.paragraph("집 주방에서는 모닥불 없이 요리할 수 있습니다.", main.ui.MUTED)
 		else:
 			fire_label = main.ui.label("",14,main.ui.MUTED)
+			fire_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			main.ui.content.add_child(fire_label)
 		main.ui.paragraph("완성한 요리는 품질에 따라 허기 40~60을 회복합니다.", main.ui.MUTED)
 
-func _show_cook_recipes(bag: Dictionary, cook_seconds: int) -> void:
+func _max_quantity(ingredients: Dictionary, bag: Dictionary) -> int:
+	var available := MAX_QUANTITY
+	for item_id: String in ingredients:
+		available = mini(available, int(int(bag.get(item_id, 0)) / maxi(1, int(ingredients[item_id]))))
+	return maxi(0, available)
+
+func _quantity_button(caption: String, accessible_name: String, width: int = 44) -> Button:
+	var button := Button.new()
+	button.text = caption
+	button.accessibility_name = accessible_name
+	button.custom_minimum_size = Vector2(width, 44)
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	return button
+
+func _show_recipes(definitions: Array, bag: Dictionary, seconds: int, command: String) -> void:
+	var crafting := command == "life_craft"
+	var selected_id: String = _selected_craft_id if crafting else _selected_recipe_id
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 8)
 	main.ui.content.add_child(grid)
-	var detail := HFlowContainer.new()
-	detail.add_theme_constant_override("h_separation", 10)
+	var quantity_row := HBoxContainer.new()
+	quantity_row.add_theme_constant_override("separation", 8)
+	main.ui.content.add_child(quantity_row)
+	var minus := _quantity_button("−", "작업 횟수 줄이기")
+	quantity_row.add_child(minus)
+	var quantity_label: Label = main.ui.label("1회", 16, main.ui.INK)
+	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	quantity_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quantity_row.add_child(quantity_label)
+	var plus := _quantity_button("+", "작업 횟수 늘리기")
+	quantity_row.add_child(plus)
+	var maximum := _quantity_button("최대", "가능한 최대 횟수 선택", 56)
+	quantity_row.add_child(maximum)
+	var detail := VBoxContainer.new()
+	detail.add_theme_constant_override("separation", 6)
 	main.ui.content.add_child(detail)
-	var cook_button: Button = main.ui.button("요리하기", func(): _start("life_cook", _selected_recipe_id), Vector2(0, 44))
-	main.ui.content.add_child(cook_button)
-
+	var start_button: Button = main.ui.button("제작하기" if crafting else "요리하기", func():
+		_start(command, _selected_craft_id if crafting else _selected_recipe_id), Vector2(0, 44))
+	main.ui.content.add_child(start_button)
 	var idle_style: StyleBoxFlat = main.ui.style(Color.TRANSPARENT, main.ui.TEXT_RULE)
 	var selected_style: StyleBoxFlat = main.ui.style(main.ui.TEXT_SKY, main.ui.TEXT_ACCENT)
 	var recipes: Dictionary[String, Dictionary] = {}
+	var refresh := func() -> void:
+		var current_id: String = _selected_craft_id if crafting else _selected_recipe_id
+		if not recipes.has(current_id): return
+		var recipe: Dictionary = recipes[current_id]
+		var available := _max_quantity(recipe.ingredients, bag)
+		_selected_quantity = clampi(_selected_quantity, 1, maxi(1, available))
+		var locked: bool = sending or not main.combat_socket.socket_ready
+		minus.disabled = locked or _selected_quantity <= 1
+		plus.disabled = locked or _selected_quantity >= available
+		maximum.disabled = locked or available <= _selected_quantity
+		quantity_label.text = "%d회" % _selected_quantity
+		start_button.disabled = locked or available < 1
+		start_button.text = ("제작하기" if crafting else "요리하기") + (" · %d회" % _selected_quantity if _selected_quantity > 1 else "")
+		_show_ingredients(detail, recipe, bag, seconds, _selected_quantity, available)
+	minus.pressed.connect(func():
+		_selected_quantity -= 1
+		refresh.call())
+	plus.pressed.connect(func():
+		_selected_quantity += 1
+		refresh.call())
+	maximum.pressed.connect(func():
+		var current_id: String = _selected_craft_id if crafting else _selected_recipe_id
+		_selected_quantity = _max_quantity(recipes[current_id].ingredients, bag)
+		refresh.call())
 	var select_recipe := func(recipe_id: String) -> void:
-		if recipes.has(_selected_recipe_id):
-			var previous: Button = recipes[_selected_recipe_id].button
+		var previous_id: String = _selected_craft_id if crafting else _selected_recipe_id
+		if recipes.has(previous_id):
+			var previous: Button = recipes[previous_id].button
 			previous.add_theme_stylebox_override("normal", idle_style)
-		_selected_recipe_id = recipe_id
-		var recipe: Dictionary = recipes[recipe_id]
-		var selected: Button = recipe.button
+		if previous_id != recipe_id: _selected_quantity = 1
+		if crafting: _selected_craft_id = recipe_id
+		else: _selected_recipe_id = recipe_id
+		var selected: Button = recipes[recipe_id].button
 		selected.add_theme_stylebox_override("normal", selected_style)
-		_show_ingredients(detail, recipe.ingredients, bag, cook_seconds)
-		cook_button.disabled = not recipe.enough or sending or not main.combat_socket.socket_ready
-
+		refresh.call()
 	var first_available := ""
-	for recipe: Dictionary in RECIPES:
-		var recipe_id := str(recipe.id)
-		var enough := true
-		for ingredient: String in recipe.ingredients:
-			if int(bag.get(ingredient, 0)) < int(recipe.ingredients[ingredient]): enough = false
-		if enough and first_available.is_empty(): first_available = recipe_id
-		var button: Button = main.ui.button(str(recipe.name), select_recipe.bind(recipe_id), Vector2(0, 56))
+	for definition: Dictionary in definitions:
+		var recipe_id := str(definition.id)
+		if _max_quantity(definition.ingredients, bag) > 0 and first_available.is_empty(): first_available = recipe_id
+		var button: Button = main.ui.button(str(definition.name), select_recipe.bind(recipe_id), Vector2(0, 56))
+		button.disabled = sending or not main.combat_socket.socket_ready
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.icon = main._item_thumbnail(recipe_id)
+		button.icon = main._item_thumbnail(str(CRAFT_RESULTS.get(recipe_id, recipe_id)))
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		button.add_theme_constant_override("icon_max_width", ItemThumbnail.SIDE)
 		button.add_theme_stylebox_override("normal", idle_style)
@@ -361,39 +552,41 @@ func _show_cook_recipes(bag: Dictionary, cook_seconds: int) -> void:
 		for font_state: String in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 			button.add_theme_color_override(font_state, main.ui.INK)
 		grid.add_child(button)
-		recipes[recipe_id] = {
-			"button": button,
-			"ingredients": recipe.ingredients,
-			"enough": enough,
-		}
-	var selected_id := _selected_recipe_id
+		var recipe: Dictionary = definition.duplicate()
+		recipe.button = button
+		recipes[recipe_id] = recipe
 	if not recipes.has(selected_id):
-		selected_id = first_available if not first_available.is_empty() else str(RECIPES[0].id)
+		selected_id = first_available if not first_available.is_empty() else str(definitions[0].id)
 	select_recipe.call(selected_id)
 	if first_available.is_empty():
-		main.ui.paragraph("요리할 재료가 부족합니다. 광장에서 버섯·감자를 모으거나 물가에서 민물고기를 낚아 보세요.", main.ui.MUTED)
+		main.ui.paragraph("재료가 부족합니다. 광장에서 재료를 모으거나 소지품을 확인해 주세요.", main.ui.MUTED)
 
-func _show_ingredients(detail: HFlowContainer, ingredients: Dictionary, bag: Dictionary, cook_seconds: int) -> void:
+func _show_ingredients(detail: VBoxContainer, recipe: Dictionary, bag: Dictionary, seconds: int, quantity: int, available: int) -> void:
 	for child in detail.get_children():
 		detail.remove_child(child)
 		child.queue_free()
-	for item_id: String in ingredients:
+	for item_id: String in recipe.ingredients:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
 		var texture: Texture2D = main._item_thumbnail(item_id)
-		if texture != null:
-			row.add_child(ItemThumbnail.new(texture, 28))
-		var caption := "%s %d/%d" % [MATERIAL_NAMES[item_id], int(bag.get(item_id, 0)), int(ingredients[item_id])]
-		row.add_child(main.ui.label(caption, 14, main.ui.MUTED))
+		if texture != null: row.add_child(ItemThumbnail.new(texture, 28))
+		var caption := "%s %d개 소요 / 보유 %d개" % [MATERIAL_NAMES.get(item_id, item_id), int(recipe.ingredients[item_id]) * quantity, int(bag.get(item_id, 0))]
+		var material: Label = main.ui.label(caption, 14, main.ui.MUTED)
+		material.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		material.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(material)
 		detail.add_child(row)
-	detail.add_child(main.ui.label("%d초" % cook_seconds, 14, main.ui.MUTED))
+	var summary: Label = main.ui.label("1회 %d초 · 전체 %d초 · 최대 %d회\n%s %d개 완성 예정%s" % [seconds, seconds * quantity, available, recipe.name, quantity * int(recipe.get("count", 1)), " · 매회 품질 판정" if recipe.id != "lumber" else ""], 14, main.ui.MUTED)
+	summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail.add_child(summary)
 
 func _start(command: String, recipe_id: String = "campfire") -> void:
 	if sending: return
 	main.world.path.clear()
 	main.world.touch_direction = Vector2.ZERO
 	main.ui.reset_touch_controls()
-	var action: Dictionary = {"command":command,"recipeId":recipe_id}
+	var action: Dictionary = {"command":command,"recipeId":recipe_id,"quantity":_selected_quantity}
 	if command == "life_cook" and selected_fire != "home_kitchen": action.campfireId = selected_fire
 	var started: bool = await send(action)
 	if started and active() and (not main.ui.overlay.visible or main.panel_mode != "life"):
@@ -427,8 +620,6 @@ func send(action: Dictionary) -> bool:
 	var confirmed: bool = result.get("actionReceipt", {}).get("id", "") == action_id
 	if action.command == "life_cancel":
 		confirmed = not active()
-	elif action.command == "life_storage_open":
-		confirmed = result.get("actionId", "") == action_id
 	if result.get("resync", false) or not confirmed:
 		main.ui.toast("작업 상태를 갱신했습니다. 다시 시도해 주세요.")
 		return false
@@ -568,11 +759,13 @@ func _initial_placement() -> Vector2:
 func _valid_placement(point: Vector2) -> bool:
 	var player: Vector2 = main.world.player_position
 	if player.distance_to(point) > 48 or player.distance_to(point) < 12: return false
+	if main.world.forest_active and point.distance_to(main.world.field_spawn) < 20: return false
 	for x in [-8,0,8]:
 		for y in [-8,0,8]:
 			if not main.world._can_stand(point+Vector2(x,y)): return false
 	# Match the outdoor door circles exported for the world server.
 	for entity in main.world.entities:
+		if entity.kind == "forest_entrance" and point.distance_to(entity.pos) < float(entity.interaction_radius) + 12.0: return false
 		if entity.kind in ["building","exit","gate","city","portal","slime"] and point.distance_to(entity.pos) < 60: return false
 	if not main.world.uses_plaza_v2():
 		for gate: Vector2 in [main.world.CityMap.CITY_RETURN,main.world.CityMap.FIELD_ENTRY]:
@@ -644,14 +837,28 @@ func _process(_delta: float) -> void:
 		var current_time := now()
 		var started_at := float(job.startedAt)
 		var ends_at := float(job.endsAt)
-		fraction = clampf((current_time - started_at) / maxf(1.0, ends_at - started_at), 0.0, 1.0)
+		fraction = _job_fraction(current_time)
+		if is_instance_valid(cooking_animation) and cooking_animation.is_visible_in_tree():
+			var still: bool = main.world.reduced_motion or not main.world.effects_enabled
+			var elapsed_seconds := fraction * (ends_at - started_at) / 1000.0
+			cooking_animation.present(fraction, elapsed_seconds, still)
 		if is_instance_valid(progress):
-			progress.value = fraction * 100.0
+			progress.value = (int(job.get("completed", 0)) + fraction) / maxi(1, int(job.get("quantity", 1))) * 100.0
 			if is_instance_valid(progress_label):
-				progress_label.text = "완료까지 %.1f초" % maxf(0.0, (ends_at - current_time) / 1000.0)
+				var completed := int(job.get("completed", 0))
+				var quantity := maxi(1, int(job.get("quantity", 1)))
+				var cycle_left := maxf(0.0, (ends_at - current_time) / 1000.0)
+				var total_left := cycle_left + maxi(0, quantity - completed - 1) * maxf(0.0, (ends_at - started_at) / 1000.0)
+				progress_label.text = "%d / %d회 완료 · 이번 %.1f초\n전체 남은 시간 약 %.1f초" % [completed, quantity, cycle_left, total_left]
 	if is_instance_valid(fire_label) and fires.has(selected_fire):
-		var left: int = maxi(0,int((float(fires[selected_fire].expiresAt)-now())/1000))
+		var fire: Dictionary = fires[selected_fire]
+		var left_ms := maxf(0.0, float(fire.expiresAt) - now())
+		var left := floori(left_ms / 1000.0)
 		fire_label.text = "불이 꺼지기까지 %d분 %d초" % [left/60,left%60]
+		var seconds_per_serving := int(CAMPFIRES[str(fire.itemId)][1])
+		var servings_left := maxi(0, floori((left_ms - 1.0) / (seconds_per_serving * 1000.0)))
+		if _selected_quantity > servings_left:
+			fire_label.text += "\n불이 꺼지기 전까지 약 %d회 완성할 수 있습니다." % servings_left
 
 	if main.simplified_play.enabled: return
 	if placing and (not main.world.indoor.is_empty() or main._online_fighting()): cancel_placement()
@@ -665,8 +872,8 @@ func _process(_delta: float) -> void:
 	for id in fire_nodes:
 		var node = fire_nodes[id]
 		node.sprite.scale.y = height_scale
-		var roasting: bool = working and job.get("recipeId") == "grilledFish" and job.get("campfireId") == id
-		node.set_cooking_progress(fraction if roasting else -1.0)
 		node.visible = main.world.indoor.is_empty()
 		node.effects = main.world.effects_enabled
 		node.reduced = main.world.reduced_motion
+		var roasting: bool = working and job.get("kind") == "cook" and job.get("campfireId") == id
+		node.set_cooking_progress(str(job.get("recipeId", "grilledFish")) if roasting else "", fraction)

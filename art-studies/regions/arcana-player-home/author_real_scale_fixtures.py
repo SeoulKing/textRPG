@@ -39,15 +39,16 @@ def box(group, name, center, size, material, radius=0.008):
     obj.modifiers.new("Corner normals", "WEIGHTED_NORMAL")
 
 
-def profile(group, name, origin, section, materials, segments=32, bands=None):
-    """Loft a closed elliptical section with one material per band or stave."""
+def profile(group, name, origin, section, materials, segments=32, bands=None, *, smooth=None):
+    """Loft a closed elliptical section, with an optional depth offset per ring."""
     vertices = []
     faces = []
-    for radius_x, radius_y, height in section:
+    for radius_x, radius_y, height, *offset in section:
+        center_y = origin[1] + (offset[0] if offset else 0)
         for index in range(segments):
             angle = index * tau / segments
             vertices.append((origin[0] + radius_x * cos(angle),
-                origin[1] + radius_y * sin(angle), origin[2] + height))
+                center_y + radius_y * sin(angle), origin[2] + height))
     for row in range(len(section)):
         current = row * segments
         next_row = ((row + 1) % len(section)) * segments
@@ -59,8 +60,10 @@ def profile(group, name, origin, section, materials, segments=32, bands=None):
     mesh.update()
     for material in materials:
         mesh.materials.append(material)
+    if smooth is None:
+        smooth = bands is None
     for index, face in enumerate(mesh.polygons):
-        face.use_smooth = bands is None
+        face.use_smooth = smooth
         if bands is not None:
             face.material_index = bands(index // segments, index % segments)
     obj = bpy.data.objects.new(name, mesh)
@@ -141,24 +144,36 @@ def vanity(group, palette):
 
 
 def toilet(group, palette):
-    ivory, wood = palette["ivory"], palette["dark"]
-    box(group, "Glazed earthenware cistern", (0, .238, .480), (.358, .174, .287), ivory, .024)
-    box(group, "Cistern timber cap", (0, .236, .629), (.380, .178, .032), palette["trim"], .011)
-    box(group, "Small brass flush fitting", (.111, .154, .574), (.066, .027, .021), palette["brass"], .006)
-    profile(group, "Earthenware floor pedestal", (0, -.089, 0), (
-        (.115, .126, 0), (.117, .123, .026), (.078, .087, .21),
-        (.121, .138, .267), (.001, .001, .267), (.001, .001, 0),
+    ivory, trim, dark, brass = (palette[key] for key in ("ivory", "trim", "dark", "brass"))
+    box(group, "Glazed earthenware cistern", (0, .238, .480), (.354, .174, .276), ivory, .028)
+    box(group, "Recessed timber cap lip", (0, .236, .614), (.362, .171, .018), dark, .006)
+    box(group, "Beveled timber cistern lid", (0, .236, .629), (.380, .178, .032), trim, .011)
+    box(group, "Ceramic cistern connection", (0, .148, .370), (.242, .174, .086), ivory, .028)
+    box(group, "Brass flush lever mount", (.104, .149, .552), (.039, .020, .040), brass, .007)
+    box(group, "Brass flush lever", (.126, .134, .552), (.071, .025, .018), brass, .007)
+
+    # The lower rings sit farther back under the bowl, forming one ceramic body.
+    bowl_origin = (0, -.120, 0)
+    profile(group, "Glazed bowl and floor pedestal", bowl_origin, (
+        (.101, .114, .000, .043), (.114, .126, .010, .043), (.115, .125, .025, .043),
+        (.106, .118, .042, .045), (.084, .098, .100, .058), (.080, .101, .164, .060),
+        (.095, .117, .214, .049), (.119, .144, .254, .032), (.151, .175, .302, .013),
+        (.179, .198, .368, .001), (.187, .205, .391), (.185, .203, .401),
+        (.178, .195, .409), (.149, .169, .409), (.140, .161, .400),
+        (.134, .154, .374, .003), (.117, .134, .342, .012), (.094, .108, .314, .022),
+        (.072, .083, .292, .027), (.039, .044, .275, .030), (.002, .002, .275, .030),
+        (.002, .002, .000, .043),
     ), [ivory])
-    profile(group, "Rounded earthenware bowl", (0, -.122, 0), (
-        (.084, .110, .217), (.132, .153, .263), (.183, .203, .365),
-        (.184, .202, .406), (.144, .165, .407), (.118, .126, .323),
-        (.061, .064, .281), (.001, .001, .281), (.001, .001, .217),
-    ), [ivory])
-    profile(group, "Oiled timber seat ring", (0, -.122, 0), (
-        (.183, .202, .405), (.184, .201, .421), (.144, .166, .424), (.141, .165, .407),
-    ), [wood])
-    profile(group, "Small water seal", (0, -.122, 0), (
-        (.001, .001, .293), (.080, .086, .293), (.080, .086, .297), (.001, .001, .297),
+    profile(group, "Oiled timber seat ring", bowl_origin, (
+        (.172, .191, .407), (.183, .201, .413), (.183, .201, .421), (.178, .195, .429),
+        (.155, .174, .429), (.146, .164, .424), (.143, .162, .415), (.147, .166, .408),
+    ), [trim, dark], bands=lambda row, _: 1 if row in (0, 6, 7) else 0, smooth=True)
+    for x in (-.094, .094):
+        box(group, "Brass seat hinge plate", (x, .075, .419), (.055, .074, .023), brass, .007)
+        tube(group, "Brass seat hinge pin", ((x - .028, .066, .434), (x + .028, .066, .434)),
+            .009, brass)
+    profile(group, "Recessed water seal", (0, -.098, 0), (
+        (.002, .002, .309), (.097, .111, .309), (.097, .111, .315), (.002, .002, .315),
     ), [palette["water"]])
 
 

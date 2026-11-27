@@ -3,6 +3,8 @@ extends Node
 const MEADOW_LOCATION := "arcana_meadow_field"
 const INDOOR_LOCATIONS := ["arcana_shop", "arcana_inn", "arcana_restaurant", "arcana_academy", "arcana_home"]
 const INN_FISH_QUEST := "arcana_inn_supper"
+const INN_SUPPLY_PENDING_KEY := "arcana-inn-supply-pending-v1-"
+const INN_SUPPLY_RETRY_MS := 60_000
 const World = preload("res://scripts/world.gd")
 const HeroSpec = preload("res://art/resources/heroine_reference_spec.gd")
 const NativeWorld = preload("res://scripts/native_2d_world.gd")
@@ -10,6 +12,7 @@ const UI = preload("res://scripts/game_ui.gd")
 const EquipmentView := preload("res://scripts/equipment_view.gd")
 const ItemThumbnail := preload("res://scripts/item_thumbnail.gd")
 const SimplifiedPlay = preload("res://scripts/simplified_play.gd")
+const HomeFurnitureEditor = preload("res://scripts/home_furniture_editor.gd")
 const CityGrid = preload("res://scripts/simplified_city_grid.gd")
 const SpatialCombat = preload("res://scripts/native_2d_spatial.gd")
 const WorldDisplaySettings = preload("res://scripts/services/world_display_settings.gd")
@@ -31,11 +34,14 @@ const MENU_SIZE_MIN := 30
 const UI_SIZE_MAX := 115
 const WORLD_MIN_ZOOM_RATIO := 0.5
 var authored_layout: Node
-var world
+var world: World
 var world_renderer
 var ui
 var simplified_play: SimplifiedPlay
-var _native_meadow_map: CityGrid
+var home_furniture: HomeFurnitureEditor
+var _home_furniture_game := ""
+var _home_furniture_revision := -1
+var _native_field_map: CityGrid
 var viewport: SubViewport
 var viewport_host: TextureRect
 var _world_display: Node2D
@@ -58,6 +64,7 @@ var online_world: bool = false
 var online_presence: Node
 var session_token: String = ""
 var busy = false
+var travel_pending := false
 # Gate travel serializes server actions, but never pauses outdoor locomotion.
 var gate_crossing = false
 var clock_busy = false
@@ -71,6 +78,11 @@ var clock_retry_at: int = 0
 var last_clock_paused = true
 var page_active = true
 var panel_mode = ""
+var _inn_supply_request := 0
+var _inn_supply_location := ""
+var _inn_supply_pending_game := ""
+var _inn_supply_pending: Dictionary = {}
+var _status_vitals: Dictionary = {}
 var _status_readout: Label
 var inventory_selected_id: String = ""
 var _home_storage_tab := 0
@@ -178,6 +190,7 @@ func _ready() -> void:
 	online_presence = preload("res://scripts/native_2d_presence.gd").new()
 	online_presence.main = self
 	add_child(online_presence)
+	world_renderer.enemy_render_sample = online_presence.enemy_render_sample
 	action_delivery = preload("res://scripts/services/action_delivery.gd").new()
 	action_delivery.main = self
 	add_child(action_delivery)
@@ -187,11 +200,17 @@ func _ready() -> void:
 	life = preload("res://scripts/life.gd").new()
 	life.main = self
 	add_child(life)
+	world_renderer.kitchen_cook_progress = life.kitchen_cook_progress
 	simplified_play = SimplifiedPlay.new()
 	simplified_play.main = self
 	add_child(simplified_play)
+	home_furniture = HomeFurnitureEditor.new(self)
 	ui.move_changed.connect(_joystick_move)
-	ui.panel_closed.connect(func(): panel_mode = ""; world.touch_direction = Vector2.ZERO; world.enabled = (not busy or gate_crossing) and page_active)
+	ui.panel_closed.connect(func():
+		panel_mode = ""
+		_inn_supply_request += 1
+		world.touch_direction = Vector2.ZERO
+		_sync_world_input())
 	if OS.has_feature("web"):
 		origin = str(JavaScriptBridge.eval("location.origin"))
 		bridge_callback = JavaScriptBridge.create_callback(_bridge_command)
@@ -209,6 +228,7 @@ func _ready() -> void:
 	await _boot()
 
 func _joystick_move(value: Vector2) -> void:
+	if home_furniture.active: return
 	# world.gd projects touch and keyboard together using the active view.
 	world.touch_direction = value
 	# Taking direct control cancels any click/map destination, including at center.
@@ -355,9 +375,18 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 	_sync_equipment(value.get("arcanaEquipment", EquipmentView.Appearance.DEFAULTS))
 	if notify_unlocks: _notify_spell_unlocks(previous_spells)
 	var location = str(_state().get("location", "arcana_plaza"))
+	if _home_furniture_game != game_id:
+		_home_furniture_game = game_id
+		_home_furniture_revision = -1
+		home_furniture.close()
+		world.apply_home_layout([])
+		world_renderer.apply_home_layout([])
+	if location != "arcana_home": home_furniture.close()
+	if value.get("homeFurniture") is Dictionary: _apply_home_furniture(value.homeFurniture)
 	# Online position packets may update snapshot.location before the HTTP reply.
 	var expected_interior = location if location in INDOOR_LOCATIONS else ""
-	world.set_meadow_active(online_world and location == MEADOW_LOCATION)
+	world.set_outdoor_field(location if online_world else "")
+	life.accept_forest_trees(value)
 	if initial or location != old_location or world.indoor != expected_interior:
 		if location in INDOOR_LOCATIONS:
 			world.change_interior(location)
@@ -411,9 +440,19 @@ func _apply(value: Dictionary, initial: bool = false) -> void:
 	var enemy_hp = float(_battle().get("enemyHp", 30))
 	if enemy_hp < previous_enemy_hp and not _battle().has("spatial"): world.effect("fireball", str(int(previous_enemy_hp - enemy_hp)))
 	previous_enemy_hp = enemy_hp
-	_update_hud()
+	_update_hud(initial)
 
-func _update_hud() -> void:
+func _apply_home_furniture(value: Dictionary) -> void:
+	if _state().get("location", "") != "arcana_home" or not value.get("placements") is Array: return
+	var revision := int(value.get("layoutRevision", -1))
+	if revision < 0 or revision < _home_furniture_revision: return
+	if revision > _home_furniture_revision:
+		_home_furniture_revision = revision
+		world.apply_home_layout(value.placements)
+		world_renderer.apply_home_layout(value.placements)
+	home_furniture.accept_state(value)
+
+func _update_hud(initial: bool = false) -> void:
 	var c = _combat()
 	var hp = float(c.get("hp", 100))
 	var mp = float(c.get("mp", 30))
@@ -439,8 +478,7 @@ func _update_hud() -> void:
 	ui.hp_bar.value = hp / max_hp * 100
 	ui.mp_bar.value = mp / max_mp * 100
 	var hunger: int = int(_state().get("arcanaLife",{}).get("hunger",100))
-	ui.hunger_label.text = "허기  %d / 100" % hunger
-	ui.hunger_bar.value = hunger
+	ui.set_hunger(hunger, initial)
 	ui.hunger_bar.visible = online_world
 	ui.refresh_skill_choices(_skill_mastery_progress)
 	if panel_mode == "status" and is_instance_valid(_status_readout):
@@ -450,17 +488,21 @@ func _update_hud() -> void:
 
 func _sync_world_input() -> void:
 	var ready: bool = (not online_world or combat_socket.socket_ready) and page_active and not snapshot.is_empty()
+	if online_world and world.indoor == "arcana_home" and _home_furniture_revision < 0: ready = false
 	var allows_travel: bool = not ui.overlay.visible or simplified_play.is_map_open()
-	var can_move: bool = ready and allows_travel and not fishing.visible and not life.blocking()
+	var can_move: bool = ready and allows_travel and not fishing.visible and not life.blocking() and not home_furniture.active
 	world.enabled = can_move and (not busy or gate_crossing)
 	ui.joystick.set_enabled(can_move and not simplified_play.enabled)
 
 func _process(delta: float) -> void:
 	_record_frame(delta)
 	if not is_instance_valid(ui): return
+	home_furniture.sync()
 	_sync_world_input()
 	if world.enabled and ui.joystick.is_active(): _joystick_move(ui.joystick.direction)
 	if snapshot.is_empty(): return
+	if panel_mode == "inn_supply" and ui.overlay.visible and _state().get("location", "") != _inn_supply_location:
+		ui.close_panel()
 	# Resolve the local position before the world, camera, and HUD sample it.
 	online_presence.apply_local_correction(delta)
 	heartbeat += delta
@@ -513,21 +555,27 @@ func _record_frame(_delta: float) -> void:
 	frame_window = 0.0
 
 func _refresh_controls() -> void:
-	_refresh_native_meadow_map()
+	_refresh_native_field_map()
 	var b = _battle()
 	var fighting = b.get("phase", "") == "battle"
-	var available = not busy and not ui.overlay.visible and not life.blocking()
+	var available = not busy and not ui.overlay.visible and not life.blocking() and not home_furniture.active
 	ui.interaction.disabled = not available or (world.nearest.is_empty() and world.bench_state.is_empty())
 	var interaction_name = str(world.nearest.get("name","주변 사물과 상호작용"))
 	var at_plaza_water: bool = world.uses_plaza_v2() and world.nearest.get("kind","") == "fishing"
 	var at_fire: bool = world.nearest.get("kind","") == "campfire"
+	var at_trees: bool = world.nearest.get("kind", "") == "forest_trees"
 	var home_actions := {"home_kitchen":"요리", "home_table":"제작", "home_storage":"보관함", "home_bed":"잠자리", "home_sofa":"쉬기", "home_door":"외출"}
 	var home_action: String = home_actions.get(world.nearest.get("kind", ""), "") if world.indoor == "arcana_home" else ""
-	ui.interaction_caption.visible = at_plaza_water or at_fire or not home_action.is_empty()
+	ui.interaction_caption.visible = at_plaza_water or at_fire or at_trees or not home_action.is_empty()
 	if not home_action.is_empty(): ui.interaction_caption.text = home_action
 	if at_fire:
 		ui.interaction_caption.text = "요리"
 		interaction_name = "모닥불에서 요리하기"
+	elif at_trees:
+		var tree_id := str(world.nearest.id)
+		ui.interaction_caption.text = life.forest_chop_caption(tree_id)
+		interaction_name = ui.interaction_caption.text
+		ui.interaction.disabled = not available or not life.can_chop_wood(tree_id)
 	elif at_plaza_water:
 		ui.interaction_caption.text = "낚시하기"
 		interaction_name = ui.interaction_caption.text
@@ -543,19 +591,24 @@ func _refresh_controls() -> void:
 	for i in range(ui.quickslot_buttons.size()):
 		var slot: Button = ui.quickslot_buttons[i]
 		var command: String = ui.quickslot_bindings[i]
+		var spell := _spell(command)
 		var remaining = 0.0 if command == "teleport" else float(cooldowns.get(command, 0))
+		var cooldown_duration := float(spell.get("cooldown", 5.0))
+		if command == "fireball":
+			remaining = spatial_combat.fireball_cooldown_remaining()
+			cooldown_duration = spatial_combat.fireball_cooldown_duration()
 		var count = int(_state().get("inventory", {}).get("manaPotion", 0))
 		slot.disabled = not available
 		if not command.is_empty():
 			slot.disabled = not available or remaining > .01 or (not fighting and command != "potion")
-			var spell = _spell(command)
 			if not spell.is_empty():
 				slot.disabled = not available or not spell.get("unlocked",false) or not spell.get("equipped",false) or remaining > .01 or float(_combat().get("mp",0)) < float(spell.cost)
-				if spatial_combat.available(): slot.disabled = not available or not spatial_combat.can_cast(command)
+				if spatial_combat.available(): slot.disabled = not available or not spatial_combat.can_accept_cast_input(command)
 				elif command != "flame_guard" and not fighting: slot.disabled = true
 				elif b.get("paused",false) and fighting: slot.disabled = true
 				elif b.get("phase","") in ["victory","defeat"]: slot.disabled = true
-			if command in ["dodge","teleport"]: slot.disabled = not spatial_combat.can_dash(command)
+			if command == "dodge": slot.disabled = not spatial_combat.can_accept_dodge_input()
+			if command == "teleport": slot.disabled = not spatial_combat.can_dash(command)
 			if command == "potion" and count <= 0: slot.disabled = true
 		if not world.bench_state.is_empty() and command!="dev_speed": slot.disabled = true
 		if command == "dev_speed":
@@ -569,20 +622,25 @@ func _refresh_controls() -> void:
 		ui.quickslot_labels[i].modulate.a = .70 if slot.disabled else 1.0
 		ui.quickslot_counts[i].text = "×3" if command=="dev_speed" and world.developer_speed_boost else str(count) if command == "potion" else ""
 		# A shrinking outer ring conveys cooldown without a numeric countdown.
-		ui.cooldown_bars[slot].visible = remaining > .01
-		ui.cooldown_bars[slot].value = remaining / float(_spell(command).get("cooldown",5.0)) * 100
-		if command != "dev_speed": slot.tooltip_text = "%d · %s" % [i + 1, _spell_hint(_spell(command)) if not _spell(command).is_empty() else ("재사용 대기 중" if remaining > .01 else ui.SLOT_NAMES[command])]
+		var cooldown_visible := cooldown_duration > 0.0 and float(remaining) > .01
+		ui.cooldown_bars[slot].visible = cooldown_visible
+		ui.cooldown_bars[slot].value = clampf(float(remaining) / cooldown_duration, 0.0, 1.0) * 100.0 if cooldown_visible else 0.0
+		if command != "dev_speed":
+			var cooldown_override := cooldown_duration if command == "fireball" and cooldown_duration > 0.0 else -1.0
+			var hint: String = _spell_hint(spell, cooldown_override) if not spell.is_empty() else ("재사용 대기 중" if remaining > .01 else ui.SLOT_NAMES[command])
+			slot.tooltip_text = "%d · %s" % [i + 1, hint]
 
 func _spell(command: String) -> Dictionary:
 	for spell in snapshot.get("arcanaSpells",[]):
 		if spell.id == command: return spell
 	return {}
 
-func _spell_hint(spell: Dictionary) -> String:
+func _spell_hint(spell: Dictionary, cooldown_override: float = -1.0) -> String:
 	if spell.get("parentSkill","")=="fireball": return "%s · 피해 %d · MP 30 · 재사용 60초" % [spell.name,int(spell.magnitude)]
 	var effect = "4초간 보호막 %d" % int(spell.magnitude) if spell.targeting == "self" else "피해 %d" % int(spell.magnitude)
 	if spell.targeting == "cone": effect = "전방 90도 · 2칸 · " + effect
-	return "%s · %s · MP %d · 재사용 %d초%s" % [spell.name,effect,int(spell.cost),int(spell.cooldown),"" if spell.get("unlocked",false) else " · 스킬 탭에서 습득"]
+	var shown_cooldown := str(cooldown_override) if cooldown_override >= 0.0 else str(int(spell.cooldown))
+	return "%s · %s · MP %d · 재사용 %s초%s" % [spell.name,effect,int(spell.cost),shown_cooldown,"" if spell.get("unlocked",false) else " · 스킬 탭에서 습득"]
 
 func _unlocked_spell_ids() -> Array:
 	var result: Array = []
@@ -619,7 +677,8 @@ func _clock() -> void:
 	clock_busy = false
 
 func perform(action: Dictionary, show_result: bool = true) -> bool:
-	if online_world and simplified_play.enabled and action.get("type", "") in ["travel", "academy_move"]:
+	var action_type := str(action.get("type", ""))
+	if online_world and simplified_play.enabled and action_type in ["travel", "academy_move"]:
 		action = action.duplicate()
 		action.textMode = true
 	if online_world and action.get("type","") == "arcana_combat" and action.get("command","") in ["potion","flame_guard"]:
@@ -629,16 +688,19 @@ func perform(action: Dictionary, show_result: bool = true) -> bool:
 	var previous_battle_phase = previous_combat.battle.get("phase","") if previous_combat.get("battle") is Dictionary else ""
 	var previous_mucus = int(_state().get("inventory",{}).get("slimeMucus",0))
 	busy = true
+	travel_pending = action_type == "travel"
 	while clock_busy: await get_tree().process_frame
 	if not await spatial_combat.before_action():
 		busy = false
+		travel_pending = false
 		ui.toast("서버에 다시 연결하고 있습니다. 잠시 후 이용해 주세요.")
 		return false
 	if not gate_crossing:
 		world.touch_direction = Vector2.ZERO
-		ui.toast("진행 중…")
+		if not travel_pending: ui.toast("진행 중…")
 	var data: Dictionary = await action_delivery.submit(action) if action_delivery.handles(action) else await _api("/api/games/" + game_id + "/actions", HTTPClient.METHOD_POST, action)
 	busy = false
+	travel_pending = false
 	if not data.has("state"):
 		if not data.get("quiet",false): ui.toast(data.get("message", "행동을 마치지 못했습니다. 진행을 확인해 주세요."))
 		return false
@@ -658,7 +720,7 @@ func _travel(target: String) -> bool:
 		_apply(snapshot)
 		return true
 	var action := {"type":"travel", "targetId":target}
-	if online_world and (target == MEADOW_LOCATION or _state().get("location", "") == MEADOW_LOCATION):
+	if online_world and (target in [MEADOW_LOCATION, CityGrid.FOREST_AREA] or _state().get("location", "") in [MEADOW_LOCATION, CityGrid.FOREST_AREA]):
 		action.textMode = true
 	return await perform(action, false)
 
@@ -677,7 +739,7 @@ func _cross_gate(outbound: bool) -> void:
 		world.path.clear()
 
 func _activate() -> void:
-	if busy or fishing.visible or life.blocking(): return
+	if busy or fishing.visible or life.blocking() or home_furniture.active: return
 	if not world.nearest.is_empty() or not world.bench_state.is_empty(): world.interact()
 
 func _auto_enter_building(entity: Dictionary) -> void:
@@ -693,7 +755,7 @@ func _auto_enter_building(entity: Dictionary) -> void:
 	world.enabled = not busy and page_active and not ui.overlay.visible
 
 func _auto_exit_building(entity: Dictionary) -> void:
-	if busy or not page_active or ui.overlay.visible or world.indoor.is_empty() or (_online_fighting() if online_world else _battle().get("phase", "") == "battle") or spatial_combat.request_busy or spatial_combat.aim_owner != -1:
+	if busy or not page_active or ui.overlay.visible or home_furniture.active or world.indoor.is_empty() or (_online_fighting() if online_world else _battle().get("phase", "") == "battle") or spatial_combat.request_busy or spatial_combat.aim_owner != -1:
 		world.exit_pending = false
 		return
 	world.enabled = false
@@ -713,15 +775,17 @@ func _sit_furniture(entity: Dictionary) -> bool:
 	return true
 
 func _interact(entity: Dictionary) -> void:
-	if busy or fishing.visible or life.blocking(): return
+	if busy or fishing.visible or life.blocking() or home_furniture.active: return
 	world.path.clear()
 	match entity.kind:
 		"home_kitchen": life.home_kitchen()
 		"home_bed": _home_bedroom()
 		"home_table": life.craft_menu()
-		"home_storage": await _open_home_storage()
+		"home_storage": _open_home_storage()
 		"home_sofa": _home_lounge(entity)
 		"home_door": await _leave_player_home()
+		"forest_trees": await life.chop_wood(str(entity.id))
+		"forest_entrance": await _travel("arcana_plaza")
 		"fishing":
 			await _start_water_fishing()
 		"campfire":
@@ -805,22 +869,22 @@ func _interact(entity: Dictionary) -> void:
 		_:
 			_scene()
 
-func open_home() -> void:
+func open_home(close_panel: bool = true) -> void:
 	if busy or life.blocking() or life.sending: return
 	if world.indoor == "arcana_home":
-		ui.close_panel()
+		if close_panel: ui.close_panel()
 		return
 	if not online_world or str(_state().get("location", "")) != "arcana_plaza" or not world.indoor.is_empty():
 		ui.toast("분수 광장으로 나온 뒤 집에 들어갈 수 있습니다.")
 		return
 	if await life.send({"command":"life_home_enter"}):
-		ui.close_panel()
-		ui.toast("집에 돌아왔습니다. 지도에서 방을 고르거나 가구를 눌러 보세요.")
+		if close_panel: ui.close_panel()
+		ui.toast("집에 돌아왔습니다. 지도에서 가구를 찾을 수 있습니다.")
 
-func _leave_player_home() -> void:
+func _leave_player_home(close_panel: bool = true) -> void:
 	if await life.send({"command":"life_home_leave"}):
 		world.entered_door_id = ""
-		ui.close_panel()
+		if close_panel: ui.close_panel()
 		ui.toast("분수 광장으로 나왔습니다.")
 
 func home_walk_to(kind: String) -> void:
@@ -837,7 +901,7 @@ func home_walk_to(kind: String) -> void:
 
 func _home_bedroom() -> void:
 	panel_mode = "home"
-	ui.open_panel("내 집 · 침실")
+	ui.open_panel("내 집 · 침대")
 	var gathered := int(_state().get("arcanaLife", {}).get("gatheredToday", 0))
 	if gathered > 0:
 		var hunger_cost := mini(25, int(_state().get("arcanaLife", {}).get("hunger", 100)))
@@ -848,7 +912,7 @@ func _home_bedroom() -> void:
 
 func _home_lounge(entity: Dictionary) -> void:
 	panel_mode = "home"
-	ui.open_panel("내 집 · 거실")
+	ui.open_panel("내 집 · 안락의자")
 	ui.choice("만든 요리 먹기", "가방에서 요리를 골라 식사합니다", life.meal_menu)
 	if not simplified_play.enabled:
 		ui.choice("안락의자에 앉기", "일어나려면 상호작용 버튼을 누르세요", func():
@@ -889,6 +953,8 @@ func _innkeeper_dialogue(topic: String = "welcome") -> void:
 	var kills = mini(10,int(_state().get("flags",{}).get("arcana_inn_slime_kills",0)))
 	var fish_quest := _inn_fish_card()
 	var fish_status := str(fish_quest.get("status", ""))
+	if online_world:
+		ui.choice("여관 생선 매입 · 식사", "민물고기 납품 · 생선구이 주문", _open_inn_supply)
 	if quest_status == "inactive" or fish_status == "inactive":
 		ui.paragraph("마르텐이 접수대 옆 게시판을 가리킵니다. “맡으실 일이 있다면 저쪽에서 의뢰를 확인해 주세요.”")
 		_local_map_choice("quest_board", "의뢰판을 보러 간다", "여관 의뢰 확인")
@@ -913,6 +979,166 @@ func _innkeeper_dialogue(topic: String = "welcome") -> void:
 	else:
 		ui.choice("여관 서비스를 이용한다", "", func(): _scene())
 	ui.choice("대화를 마친다", "", ui.close_panel)
+
+func _inn_supply_route() -> String:
+	return "/api/games/%s/inn-supply" % game_id.uri_encode()
+
+func _inn_supply_panel_current(request: int, active_game: String, location: String, simple: bool) -> bool:
+	return _inn_supply_request == request and game_id == active_game and simplified_play.enabled == simple \
+		and _state().get("location", "") == location and panel_mode == "inn_supply" and ui.overlay.visible
+
+func _open_inn_supply() -> void:
+	var location := str(_state().get("location", ""))
+	if not online_world or busy or location not in ["arcana_plaza", "arcana_inn"]: return
+	var active_game := str(game_id)
+	var simple: bool = simplified_play.enabled
+	if _inn_supply_pending_game != active_game: _inn_supply_pending = {}
+	_inn_supply_pending_game = active_game
+	if _inn_supply_pending.is_empty():
+		var saved: Variant = _stored_json(INN_SUPPLY_PENDING_KEY + active_game)
+		if saved is Dictionary:
+			var day: Variant = saved.get("day")
+			var created_at: Variant = saved.get("createdAt")
+			var action_id: Variant = saved.get("actionId")
+			if saved.get("action", "") in ["deliver", "buyMeal"] and action_id is String and action_id.length() >= 16 \
+				and (day is int or day is float) and day > 0 and (created_at is int or created_at is float) and created_at > 0:
+				_inn_supply_pending = saved
+	_inn_supply_request += 1
+	var request := _inn_supply_request
+	panel_mode = "inn_supply"
+	_inn_supply_location = location
+	_render_inn_supply({}, "여관의 기록을 불러오고 있습니다…", true)
+	var route := "%s?controller=%s" % [_inn_supply_route(), client_id.uri_encode()]
+	var reply := await _api(route, HTTPClient.METHOD_GET, {}, 8.0)
+	if not _inn_supply_panel_current(request, active_game, location, simple): return
+	if reply.get("innSupply") is Dictionary:
+		_render_inn_supply(reply.innSupply)
+	else:
+		_render_inn_supply({}, str(reply.get("message", "여관의 기록을 불러오지 못했습니다.")))
+
+func _render_inn_supply(supply: Dictionary, message: String = "", loading: bool = false) -> void:
+	var in_inn: bool = _state().get("location", "") == "arcana_inn"
+	ui.open_panel("마르텐의 생선 매입")
+	ui.button_list_touch_enabled = true
+	if not message.is_empty(): ui.paragraph(message, ui.MUTED)
+	if not supply.is_empty():
+		var day := int(supply.get("day", 0))
+		var remaining := int(supply.get("remaining", 0))
+		var fish_price := int(supply.get("unitPrice", 0))
+		var daily_limit := int(supply.get("dailyLimit", 0))
+		ui.paragraph("%d일차 · 공동 매입 잔여 %d/%d마리" % [day, remaining, daily_limit], ui.GOLD)
+		ui.paragraph("민물고기 1마리당 %d골드 · 내 가방 %d마리\n여관의 민물고기 재고 %d마리" % [
+			fish_price, int(supply.get("owned", 0)), int(supply.get("fishStock", 0))])
+		var servings := int(supply.get("menuServings", 0))
+		var meal_price := int(supply.get("mealPrice", 0))
+		ui.paragraph("생선구이 %d인분 · 1인분 %d골드" % [servings, meal_price])
+		if not bool(supply.get("menuOpen", false)):
+			ui.paragraph("18:00부터 오늘 들어온 생선을 구워 메뉴에 올립니다.", ui.MUTED)
+		if in_inn and _inn_supply_pending.is_empty() and not loading:
+			ui.choice("민물고기 1마리 납품", "%d골드 받기" % fish_price,
+				_inn_supply_trade.bind("deliver", day), not bool(supply.get("canDeliver", false)))
+			ui.choice("생선구이 1인분 주문", "%d골드 · 가방에 담기" % meal_price,
+				_inn_supply_trade.bind("buyMeal", day), not bool(supply.get("canBuyMeal", false)))
+	if not in_inn:
+		ui.paragraph("%s에서 민물고기를 낚아 여관 접수대의 마르텐에게 가져가세요." % _plaza_fishing_place())
+		if simplified_play.enabled:
+			if world.uses_plaza_v2():
+				ui.choice("낚시터로 이동", _plaza_fishing_place(), simplified_play._select_city_place.bind("river"), loading)
+			ui.choice("여관으로 이동", "접수대의 마르텐에게 납품", simplified_play._select_city_place.bind("inn"), loading)
+		else:
+			if world.uses_plaza_v2(): ui.choice("낚시 자리로 이동", _plaza_fishing_place(), _walk_to_plaza_water, loading)
+			for entity in world.entities:
+				if entity.kind == "building" and entity.id == "arcana_inn":
+					ui.choice("여관으로 이동", "접수대의 마르텐에게 납품", func():
+						ui.close_panel()
+						world.interact_with(entity), loading)
+					break
+	if not loading:
+		if not _inn_supply_pending.is_empty():
+			var title := "이전 거래 확인 · 재시도" if in_inn else "이전 거래 확인"
+			var previous := "생선구이 1인분 주문" if _inn_supply_pending.action == "buyMeal" else "민물고기 1마리 납품"
+			ui.choice(title, previous,
+				_inn_supply_trade.bind(str(_inn_supply_pending.action), int(_inn_supply_pending.day)))
+		ui.choice("재고 새로고침", "", _open_inn_supply)
+		if in_inn: ui.choice("마르텐과 대화", "", _innkeeper_dialogue)
+	ui.choice("닫기", "", ui.close_panel)
+
+func _inn_supply_trade(action: String, day: int) -> void:
+	if busy or panel_mode != "inn_supply" or not ui.overlay.visible: return
+	if not combat_socket.socket_ready:
+		ui.toast("세계에 다시 연결한 뒤 거래해 주세요.")
+		return
+	var active_game := str(game_id)
+	var location := str(_state().get("location", ""))
+	var simple: bool = simplified_play.enabled
+	var connection: int = combat_socket.connection_generation
+	var recovering := not _inn_supply_pending.is_empty()
+	var key := INN_SUPPLY_PENDING_KEY + active_game
+	var now := int(Time.get_unix_time_from_system() * 1000)
+	if not recovering:
+		if location != "arcana_inn" or life.blocking() or life.sending or _online_fighting(): return
+		_inn_supply_pending = {"action": action, "day": day, "actionId": _new_action_id(), "createdAt": now}
+		_store(key, JSON.stringify(_inn_supply_pending))
+	elif _inn_supply_pending.action != action or int(_inn_supply_pending.day) != day:
+		return
+	var request := _inn_supply_request
+	var action_id := str(_inn_supply_pending.actionId)
+	var body := {"controller": client_id, "action": action, "day": day, "actionId": action_id}
+	var route := _inn_supply_route()
+	var world_revision: int = online_presence.revision
+	busy = true
+	_render_inn_supply({}, "여관에서 거래를 확인하고 있습니다…", true)
+	var reply: Dictionary = {}
+	if recovering:
+		var receipt_route := "/api/games/%s/actions/%s" % [active_game.uri_encode(), action_id.uri_encode()]
+		reply = await _api(receipt_route, HTTPClient.METHOD_GET, {}, 8.0)
+		# An old request can still have a receipt. Only resend recent, unrecorded intents at the counter.
+		if reply.get("status", "") == "unknown":
+			var since := int(Time.get_unix_time_from_system() * 1000) - int(_inn_supply_pending.createdAt)
+			if since < 0 or since >= INN_SUPPLY_RETRY_MS:
+				reply = {"error": "inn_supply_intent_expired", "message": "처리되지 않은 이전 주문을 취소했습니다."}
+			elif _inn_supply_panel_current(request, active_game, "arcana_inn", simple) \
+				and combat_socket.connection_generation == connection:
+				reply = await _api(route, HTTPClient.METHOD_POST, body, 12.0)
+			else:
+				reply = {"retryable": true, "message": "아직 처리 기록이 없습니다. 여관에서 같은 거래를 다시 요청할 수 있습니다."}
+	else:
+		reply = await _api(route, HTTPClient.METHOD_POST, body, 12.0)
+	busy = false
+	if game_id != active_game: return
+	var receipt: Variant = reply.get("actionReceipt")
+	var accepted: bool = receipt is Dictionary and receipt.get("id", "") == action_id
+	var supply: Variant = reply.get("innSupply")
+	var error := str(reply.get("error", ""))
+	var http_status := int(reply.get("httpStatus", 0))
+	var reconnect: bool = recovering and (http_status in [401, 403] or error in ["join_required", "connection_replaced"])
+	var uncertain: bool = not accepted and (bool(reply.get("retryable", false)) \
+		or http_status >= 500 or error in ["", "invalid_response"] or reconnect)
+	if not uncertain:
+		_inn_supply_pending = {}
+		var saved: Variant = _stored_json(key)
+		if saved is Dictionary and saved.get("actionId", "") == action_id:
+			_store(key, "")
+	var value: Variant = reply.get("snapshot")
+	if accepted and value is Dictionary and value.get("state") is Dictionary \
+		and combat_socket.connection_generation == connection \
+		and str(value.state.get("location", "")) == str(_state().get("location", "")) \
+		and int(value.get("placeRevision", -1)) == int(snapshot.get("onlinePlaceRevision", 0)) \
+		and int(reply.get("worldRevision", world_revision)) >= online_presence.revision:
+		_apply(value)
+	if not _inn_supply_panel_current(request, active_game, location, simple): return
+	if accepted:
+		var label := "생선구이 1인분을 가방에 담았습니다." if action == "buyMeal" else "민물고기 1마리를 납품했습니다."
+		if supply is Dictionary:
+			_render_inn_supply(supply, label)
+		else:
+			ui.toast(label)
+			_open_inn_supply()
+	elif uncertain:
+		_render_inn_supply({}, str(reply.get("message", "거래 결과를 확인하지 못했습니다. 잠시 후 이전 거래를 확인해 주세요.")))
+	else:
+		ui.toast(str(reply.get("message", "거래할 수 없습니다.")))
+		_open_inn_supply()
 
 func _inn_quest_board() -> void:
 	if world.indoor != "arcana_inn": return
@@ -994,7 +1220,7 @@ func _find_action(type: String, id: String) -> Dictionary:
 func _shop_menu(selling: bool = false) -> void:
 	if world.indoor != "arcana_shop": return
 	panel_mode = "shop"
-	ui.open_shop(snapshot.get("availableActions", []), _state().get("inventory", {}), int(_state().get("money", 0)), selling, _shop_trade)
+	ui.open_shop(snapshot.get("availableActions", []), _state().get("inventory", {}), int(_state().get("money", 0)), selling, _shop_trade, _item_thumbnail)
 
 func _shop_trade(template: Dictionary, quantity: int, selling: bool) -> void:
 	if busy or world.indoor != "arcana_shop": return
@@ -1088,6 +1314,10 @@ func _accept_online_result(result: Dictionary) -> void:
 	var update: Dictionary = online_presence.packet.duplicate()
 	update.self = result
 	update.revision = int(result.get("worldRevision",0))
+	# A durable command reply can follow a newer movement broadcast for the same room.
+	if update.revision < online_presence.revision and result.get("homeFurniture") is Dictionary:
+		if int(result.get("placeRevision", -1)) == int(snapshot.get("onlinePlaceRevision", 0)):
+			_apply_home_furniture(result.homeFurniture)
 	online_presence.accept(update)
 
 func _magic(command: String) -> void:
@@ -1126,6 +1356,7 @@ func _use_quickslot(index: int) -> void:
 	if ui.quickslot_bindings[index].is_empty():
 		_quickslot_picker(index)
 	else:
+		if ui.quickslot_bindings[index] == "potion" and ui.quickslot_buttons[index].disabled: return
 		# The action path checks current readiness; the HUD refresh can be stale.
 		_magic(ui.quickslot_bindings[index])
 
@@ -1339,7 +1570,7 @@ func _skill_slot_picker(command: String) -> void:
 	ui.choice("스킬 목록으로","",_skills_menu)
 
 func _menu(kind: String) -> void:
-	if fishing.visible or life.blocking(): return
+	if fishing.visible or life.blocking() or home_furniture.active: return
 	if busy or snapshot.is_empty(): return
 	panel_mode = kind
 	match kind:
@@ -1362,7 +1593,7 @@ func _menu(kind: String) -> void:
 				ui.menu_entry("의뢰", "진행 중인 의뢰와 보상", _menu.bind("quests"), "quests")
 				ui.menu_entry("그래픽 모드", "지금 위치에서 지도로 돌아가기", simplified_play.set_enabled.bind(false), "display")
 			else:
-				ui.menu_entry("텍스트 모드", "장소 · 상태 · 행동 선택지로 모험 이어가기", simplified_play.set_enabled.bind(true), "display")
+				ui.menu_entry("심플 모드", "장소 · 상태 · 행동 선택지로 모험 이어가기", simplified_play.set_enabled.bind(true), "display")
 			ui.menu_entry("진행 저장", "현재 위치와 모험 기록", _save, "save")
 			ui.menu_entry("화면 설정", "HUD %d%% · 메뉴 %d%% · 월드 %d%%" % [ui.hud_size_percent, ui.menu_size_percent, roundi(_world_zoom_ratio * 100)], _environment_settings, "display")
 			ui.menu_entry("조작 설정", "조작 버튼 배치와 퀵슬롯 크기", _controls_settings, "controls")
@@ -1374,6 +1605,8 @@ func _menu(kind: String) -> void:
 func _status_menu() -> void:
 	panel_mode = "status"
 	ui.open_tab_panel("상태")
+	for title: String in ui.VITAL_COLORS:
+		_status_vitals[title] = ui.add_vital_bar(ui.content, title)
 	_status_readout = ui.label("", 16, ui.TEXT_INK)
 	_status_readout.add_theme_constant_override("line_spacing", 8)
 	_status_readout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1410,12 +1643,10 @@ func _add_status_abilities() -> void:
 
 func _refresh_status_readout() -> void:
 	var combat := _combat()
-	var life_state: Dictionary = _state().get("arcanaLife", {})
 	var guard: Dictionary = combat.get("guard", {})
+	_set_status_vital("HP", int(combat.get("hp", 100)), int(combat.get("maxHp", 100)))
+	_set_status_vital("MP", int(combat.get("mp", 30)), int(combat.get("maxMp", 30)))
 	var lines := PackedStringArray([
-		"HP  %d / %d" % [int(combat.get("hp", 100)), int(combat.get("maxHp", 100))],
-		"MP  %d / %d" % [int(combat.get("mp", 30)), int(combat.get("maxMp", 30))],
-		"허기  %d / 100" % int(life_state.get("hunger", 100)),
 		"마나 회복  시간당 %s MP" % str(combat.get("manaRegenPerHour", 12)),
 	])
 	if float(guard.get("amount", 0)) > 0:
@@ -1423,6 +1654,13 @@ func _refresh_status_readout() -> void:
 	else:
 		lines.append("보호막 없음")
 	_status_readout.text = "\n".join(lines)
+
+func _set_status_vital(title: String, current: int, maximum: int) -> void:
+	var vital: Dictionary = _status_vitals[title]
+	var bar: ProgressBar = vital.bar
+	bar.max_value = maxi(1, maximum)
+	bar.value = current
+	vital.label.text = "%s  %d / %d" % [title, int(bar.value), int(bar.max_value)]
 
 func _map() -> void:
 	if simplified_play.enabled:
@@ -1445,18 +1683,21 @@ func _map() -> void:
 	else: _city_map()
 
 func _city_map() -> void:
-	if world.meadow_active:
-		_show_native_meadow_map()
+	if world.meadow_active or world.forest_active:
+		_show_native_field_map()
 		return
-	ui.open_panel("아르카나 지도")
 	if world.indoor == "arcana_home":
+		ui.open_panel("내 집")
+		if online_world and not simplified_play.enabled:
+			ui.choice("꾸미기", "가구 이동 · 회전 · 보관", home_furniture.open, not home_furniture.can_open())
 		ui.choice("주방", "화덕에서 요리하기", home_walk_to.bind("home_kitchen"))
-		ui.choice("거실 작업대", "나뭇가지 다듬기 · 모닥불 만들기", home_walk_to.bind("home_table"))
+		ui.choice("작업대", "나뭇가지 다듬기 · 모닥불 만들기", home_walk_to.bind("home_table"))
 		ui.choice("보관함", "아이템 넣기 · 꺼내기", home_walk_to.bind("home_storage"))
-		ui.choice("거실 안락의자", "앉아서 쉬기 · 식사", home_walk_to.bind("home_sofa"))
-		ui.choice("침실", "침대에서 하루 마무리", home_walk_to.bind("home_bed"))
+		ui.choice("안락의자", "앉아서 쉬기 · 식사", home_walk_to.bind("home_sofa"))
+		ui.choice("침대", "하루 마무리", home_walk_to.bind("home_bed"))
 		ui.choice("현관", "분수 광장으로 나가기", home_walk_to.bind("home_door"))
 		return
+	ui.open_panel("아르카나 지도")
 	if world.indoor != "":
 		_local_map_choice("quest_board", "여관 의뢰판", "의뢰 확인")
 		_local_map_choice("innkeeper", "마르텐의 접수대", "대화 · 의뢰 보고")
@@ -1464,6 +1705,8 @@ func _city_map() -> void:
 		_local_map_choice("exit", "광장으로 나간다", "출입문")
 		return
 	if online_world and _state().get("location", "") == "arcana_plaza":
+		ui.choice("마을 게시판", "마르텐의 생선 매입 확인", _open_inn_supply, _online_fighting())
+		ui.choice("%s (2, 5)" % CityGrid.PLACES.forest[1], "벌목지로 이동", _travel_from_map.bind(CityGrid.FOREST_AREA), _online_fighting())
 		ui.choice("뿔소 초원 (5, 5)", "진흙코 뿔소 사냥터로 이동", _travel_from_map.bind(MEADOW_LOCATION), _online_fighting())
 		var gathered := int(_state().get("arcanaLife", {}).get("gatheredToday", 0))
 		var gather_ready: bool = life._peaceful() and combat_socket.socket_ready and not life.sending and gathered < 3
@@ -1504,12 +1747,12 @@ func _walk_to_plaza_water() -> Vector2:
 
 func _travel_from_map(target: String) -> void:
 	ui.close_panel()
-	if await _travel(target) and target == MEADOW_LOCATION and world.meadow_active and not simplified_play.enabled:
-		_show_native_meadow_map()
+	if await _travel(target) and world.meadow_active and not simplified_play.enabled:
+		_show_native_field_map()
 
-func _show_native_meadow_map() -> void:
+func _show_native_field_map() -> void:
 	panel_mode = "map"
-	ui.open_tab_panel("뿔소 초원")
+	ui.open_tab_panel(CityGrid.PLACES.forest[1] if world.forest_active else CityGrid.PLACES.meadow[1])
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
@@ -1520,25 +1763,42 @@ func _show_native_meadow_map() -> void:
 	var grid := CityGrid.new()
 	center.add_child(grid)
 	scroll.resized.connect(func(): grid.custom_minimum_size.x = minf(minf(scroll.size.x, 320.0), maxf(180.0, scroll.size.y)))
-	grid.place_requested.connect(_choose_native_meadow_tile)
+	grid.place_requested.connect(_choose_native_field_tile)
 	ui.show_tab_body(scroll)
-	_native_meadow_map = grid
-	_refresh_native_meadow_map()
+	_native_field_map = grid
+	_refresh_native_field_map()
 
-func _native_meadow_destinations() -> Dictionary:
+func _native_field_destinations() -> Dictionary:
 	if busy or not combat_socket.socket_ready or _online_fighting(): return {}
-	return CityGrid.meadow_destinations(simplified_play.meadow_target_ready())
+	if world.forest_active:
+		if life.sending: return {}
+		var forest: Dictionary = CityGrid.forest_destinations()
+		if not world.forest_tree_available("forest_trees"): forest.erase("forest_trees")
+		return forest
+	if world.meadow_active: return CityGrid.meadow_destinations(simplified_play.meadow_target_ready())
+	return {}
 
-func _refresh_native_meadow_map() -> void:
-	if not world.meadow_active or not is_instance_valid(_native_meadow_map) or not _native_meadow_map.is_inside_tree(): return
-	var at_entrance: bool = world.player_position.distance_to(world.MEADOW_ENTRY) < float(world.TILE) * 3.0
-	var current := "meadow_entrance" if at_entrance else ""
-	_native_meadow_map.set_state(current, _native_meadow_destinations(), CityGrid.MEADOW_AREA)
+func _refresh_native_field_map() -> void:
+	if not is_instance_valid(_native_field_map) or not _native_field_map.is_inside_tree(): return
+	if world.forest_active:
+		var current := str(world.nearest.get("id", ""))
+		_native_field_map.set_state(current, _native_field_destinations(), CityGrid.FOREST_AREA)
+	elif world.meadow_active:
+		var at_entrance: bool = world.player_position.distance_to(World.FIELD_ENTRY) < float(world.TILE) * 3.0
+		var current := "meadow_entrance" if at_entrance else ""
+		_native_field_map.set_state(current, _native_field_destinations(), CityGrid.MEADOW_AREA)
 
-func _choose_native_meadow_tile(id: String) -> void:
-	if not world.meadow_active or not _native_meadow_destinations().has(id): return
-	if id == "meadow_entrance":
+func _choose_native_field_tile(id: String) -> void:
+	if not _native_field_destinations().has(id): return
+	if id in ["meadow_entrance", "forest_entrance"]:
 		await _travel_from_map("arcana_plaza")
+	elif id == "forest_trees":
+		for entity: Dictionary in world.entities:
+			if entity.id == id:
+				ui.close_panel()
+				_sync_world_input()
+				world.interact_with(entity)
+				return
 	elif id == "meadow_ox":
 		var enemy: Vector2 = spatial_combat.enemy_position()
 		var player: Vector2 = world.player_position
@@ -1576,14 +1836,10 @@ func _item_cards() -> Dictionary:
 
 func _open_home_storage() -> void:
 	if not online_world or world.indoor != "arcana_home" or life.sending: return
-	panel_mode = "home_storage"
-	ui.open_tab_panel("보관함", true)
-	ui.paragraph("보관함을 여는 중…")
-	var opened := await _send_home_storage({"command":"life_storage_open"})
-	if panel_mode != "home_storage" or not ui.overlay.visible: return
-	if not opened:
-		ui.close_panel()
+	if not combat_socket.socket_ready:
+		ui.toast("세계 서버에 연결한 뒤 다시 시도해 주세요.")
 		return
+	panel_mode = "home_storage"
 	_home_storage_selection = ["", ""]
 	_show_home_storage(0)
 
@@ -1649,9 +1905,12 @@ func _inventory() -> void:
 		var wearable := str(master.get("equipmentSlot", ""))
 		if online_world and life.CAMPFIRES.has(item_id):
 			entry.action_label = "설치"
-		elif online_world and life.MATERIAL_NAMES.has(item_id) and item_id != "treeBranch":
+		elif online_world and item_id in ["treeBranch", "wood"]:
+			entry.action_label = "제작"
+			entry.hint = "나뭇가지 2개로 목재 3개를 만듭니다." if item_id == "treeBranch" else "목재 5개로 모닥불 1개를 만듭니다."
+		elif online_world and life.MATERIAL_NAMES.has(item_id):
 			entry.action_label = "요리"
-			entry.hint = "집 주방이나 야외 모닥불에서 레시피를 고릅니다."
+			entry.hint = "이 재료로 만들 요리를 집 주방이나 야외 모닥불에서 준비합니다."
 		elif online_world and life.FOODS.has(item_id):
 			entry.action_label = "먹기"
 			entry.disabled = int(_state().get("arcanaLife",{}).get("hunger",100)) >= 100
@@ -1676,8 +1935,11 @@ func _inventory_item_action(item_id: String) -> void:
 	if online_world and life.CAMPFIRES.has(item_id):
 		life.begin_placement(item_id)
 		return
-	if online_world and life.MATERIAL_NAMES.has(item_id) and item_id != "treeBranch":
-		prepare_cooking()
+	if online_world and item_id in ["treeBranch", "wood"]:
+		life.craft_menu(false, "lumber" if item_id == "treeBranch" else "campfire")
+		return
+	if online_world and life.MATERIAL_NAMES.has(item_id):
+		prepare_cooking(item_id)
 		return
 	if online_world and life.FOODS.has(item_id):
 		await life.eat(item_id)
@@ -1700,11 +1962,12 @@ func prepare_fish() -> void:
 	if int(_state().get("inventory", {}).get("riverFish", 0)) < 1:
 		ui.toast("구울 민물고기가 없습니다.")
 		return
-	prepare_cooking()
+	prepare_cooking("riverFish")
 
-func prepare_cooking() -> void:
+func prepare_cooking(ingredient_id: String) -> void:
 	if busy or not online_world or life.blocking() or fishing.visible: return
 	if world.indoor == "arcana_home":
+		life.prefer_cooking_ingredient(ingredient_id)
 		home_walk_to("home_kitchen")
 		return
 	var bag: Dictionary = _state().get("inventory", {})
@@ -1716,6 +1979,7 @@ func prepare_cooking() -> void:
 	if not world.enabled:
 		ui.toast("세계 서버에 연결한 뒤 다시 시도해 주세요.")
 		return
+	life.prefer_cooking_ingredient(ingredient_id)
 	var fires: Array = world.entities.filter(func(entity): return entity.kind == "campfire")
 	fires.sort_custom(func(a, b): return world.player_position.distance_squared_to(a.pos) < world.player_position.distance_squared_to(b.pos))
 	for fire in fires:
@@ -1924,9 +2188,16 @@ func _clear_zoom_touches() -> void:
 	zoom_distance = 0.0
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT: _clear_zoom_touches()
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_clear_zoom_touches()
+		if is_instance_valid(home_furniture):
+			home_furniture.end_drag()
 
 func _input(event: InputEvent) -> void:
+	if is_instance_valid(home_furniture) and home_furniture.active:
+		if home_furniture.handle_drag_input(event):
+			get_viewport().set_input_as_handled()
+		return
 	if (is_instance_valid(fishing) and fishing.visible) or (is_instance_valid(life) and life.blocking()): return
 	if is_instance_valid(simplified_play) and simplified_play.enabled: return
 	# Observe releases before GUI handling so a pinch cannot leave a stuck finger.
@@ -1953,6 +2224,9 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(home_furniture) and home_furniture.handle_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if fishing.visible or life.blocking(): return
 	if simplified_play.handle_map_input(event): return
 	if not simplified_play.enabled and not ui.overlay.visible and (not busy or gate_crossing) and page_active:
@@ -2044,7 +2318,7 @@ func _bridge_command(args: Array) -> void:
 			var was_active: bool = page_active
 			page_active = active
 			if active and not was_active: combat_socket.resume()
-			world.enabled = page_active and (not online_world or combat_socket.socket_ready) and (not busy or gate_crossing) and not ui.overlay.visible
+			_sync_world_input()
 			heartbeat = 1
 		"network": combat_socket.network_changed(bool(payload.get("online",true)))
 		"resume": combat_socket.resume()
@@ -2052,13 +2326,14 @@ func _bridge_command(args: Array) -> void:
 			if OS.has_feature("web"): JavaScriptBridge.eval("window.arcanaNetworkDiagnostics="+JSON.stringify(combat_socket.network_report()))
 		"menu": _menu(payload.get("kind", "menu"))
 		"interact": _activate()
-		"move": world.touch_direction = Vector2(float(payload.get("x", 0)), float(payload.get("y", 0)))
+		"move": _joystick_move(Vector2(float(payload.get("x", 0)), float(payload.get("y", 0))))
 		"magic": _magic(payload.get("spell", "fireball"))
 		"close": ui.close_panel()
 
 func _bridge_state(_args: Array) -> void:
 	var state = {"engine":"Godot 4.5.1", "renderer":"plaza_3d_v2" if world_renderer.uses_plaza_v2() else "native_2d", "zoomRatio":_world_zoom_ratio, "cameraZoom":world_renderer.camera.zoom.x, "walking":world.walking, "characterRendering":"skinned_pixel3d_v12" if world_renderer.hero.get_meta("model_outline", false) else "layered_pixel_sprite_8dir", "characterSourcePixels":HeroSpec.SOURCE_HEIGHT, "characterFrame":[world_renderer.hero.current_frame.x,world_renderer.hero.current_frame.y], "timing":frame_timing, "networkTiming":network_timing, "worldNetwork":combat_socket.diagnostics(), "motionNetwork":online_presence.diagnostics(), "renderWidth":viewport.size.x, "renderHeight":viewport.size.y, "coordinateSystem":"origin top-left; x right; y down; world pixels", "ready":not snapshot.is_empty(), "gameId":game_id, "clockClientId":client_id, "clockSequence":sequence, "busy":busy, "location":_state().get("location", ""), "interior":world.indoor, "academyFloor":world.academy_floor if world.indoor == "arcana_academy" else 0, "active":page_active, "walkingEnabled":world.enabled, "pathLength":world.path.size(), "player":{"x":world.player_position.x, "y":world.player_position.y}, "nearby":world.nearest.get("name", ""), "spatialCombat":{"selected":spatial_combat.selected,"aiming":spatial_combat.aim_owner != -1,"manual":spatial_combat.manual,"requestBusy":spatial_combat.request_busy,"transport":"websocket","socketReady":combat_socket.socket_ready,"inFlight":spatial_combat.in_flight,"pendingCommands":spatial_combat.queue.size(),"clockBusy":clock_busy,"canFireball":spatial_combat.can_cast("fireball"),"connectionLost":spatial_combat.connection_lost}, "stats":_combat(), "money":_state().get("money", 0), "inventory":_state().get("inventory", {}), "panel":panel_mode if ui.overlay.visible else "", "panelTitle":ui.panel_title.text, "actions":_visible_actions(), "academyMap":snapshot.get("academyMap"), "quests":snapshot.get("quests", []), "error":resume_error}
 	if OS.has_feature("web"):
+		if world_renderer.uses_forest_3d(): state.renderer = "pondside_forest_3d"
 		JavaScriptBridge.eval("window.arcanaLatestState=" + JSON.stringify(state))
 
 func _environment_settings(save_failed: bool = false) -> void:
@@ -2115,12 +2390,13 @@ func _layout_world_display() -> void:
 	var raster_size := Vector2(viewport.size)
 	var screen_size := Vector2(_world_display_size)
 	var base_pixel_size: int = world_renderer.presentation_pixel_size
-	var pixel_size := base_pixel_size * _world_zoom_ratio
+	var zoom_ratio := 1.0 if is_instance_valid(home_furniture) and home_furniture.active else _world_zoom_ratio
+	var pixel_size := base_pixel_size * zoom_ratio
 	viewport_host.size = raster_size * pixel_size
 	var residual: Vector2 = world_renderer.camera_texel_offset
 	var camera_center := raster_size * 0.5 - residual
 	var offset := screen_size * 0.5 - camera_center * pixel_size
-	if _world_zoom_ratio > 1.0:
+	if zoom_ratio > 1.0:
 		# Keep the player's screen position when cropping closer in a room.
 		var anchor: Vector2 = world_renderer.screen_point(world.bench_visual_position(), NativeWorld.TileStyle.AVATAR_HEIGHT * 0.5)
 		offset += (anchor - camera_center) * (base_pixel_size - pixel_size)

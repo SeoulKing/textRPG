@@ -10,21 +10,23 @@ const SLOT_SIZE := 40
 const SLOT_NAMES := {
 	"head": "머리", "top": "상의", "gloves": "장갑", "ringLeft": "반지 1", "bottom": "하의",
 	"earrings": "귀걸이", "necklace": "목걸이", "outerwear": "겉옷", "ringRight": "반지 2", "feet": "신발",
+	"mainHand": "주무기",
 }
 const FALLBACK_ICONS := {
 	"head": "slot-head", "top": "travel-shirt", "gloves": "slot-gloves", "ringLeft": "bronze-ring",
 	"bottom": "travel-trousers", "earrings": "silver-earrings", "necklace": "silver-pendant",
-	"outerwear": "slot-outerwear", "ringRight": "bronze-ring", "feet": "travel-boots",
+	"outerwear": "slot-outerwear", "ringRight": "bronze-ring", "feet": "travel-boots", "mainHand": "woodcutting-axe",
 }
 const SLOT_ROWS := [
 	["head", 1, 2], ["top", 1, 54], ["gloves", 1, 101], ["ringLeft", 1, 148], ["bottom", 1, 192],
 	["earrings", -1, 14], ["necklace", -1, 58], ["outerwear", -1, 101], ["ringRight", -1, 148], ["feet", -1, 201],
+	["mainHand", 1, 238],
 ]
 const BODY_POINTS := {
 	"head": Vector2(0.45, 0.19), "top": Vector2(0.44, 0.45), "gloves": Vector2(0.33, 0.60),
 	"ringLeft": Vector2(0.33, 0.65), "bottom": Vector2(0.43, 0.75), "earrings": Vector2(0.61, 0.30),
 	"necklace": Vector2(0.50, 0.40), "outerwear": Vector2(0.63, 0.43), "ringRight": Vector2(0.67, 0.65),
-	"feet": Vector2(0.58, 0.90),
+	"feet": Vector2(0.58, 0.90), "mainHand": Vector2(0.33, 0.65),
 }
 
 var host: Node
@@ -54,7 +56,7 @@ func _ready() -> void:
 	_layout.add_theme_constant_override("separation", 14)
 	add_child(_layout)
 	_doll = Control.new()
-	_doll.custom_minimum_size.y = 242
+	_doll.custom_minimum_size.y = 278
 	_doll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_layout.add_child(_doll)
 	_create_preview()

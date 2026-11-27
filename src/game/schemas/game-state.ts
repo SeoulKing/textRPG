@@ -20,6 +20,29 @@ export const LogEntrySchema = z.object({
   message: z.string(),
 });
 
+export const HomeFurnitureCellSchema = z.object({
+  x: z.number().int().min(-1000).max(1000),
+  z: z.number().int().min(-1000).max(1000),
+});
+export const HomeFurnitureRotationSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
+const HomeFurnitureOverrideSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("stored"), assetId: z.string().min(1) }),
+  z.object({
+    kind: z.literal("placed"),
+    assetId: z.string().min(1),
+    cell: HomeFurnitureCellSchema,
+    rotation: HomeFurnitureRotationSchema,
+  }),
+]);
+export const HomeFurnitureLayoutSchema = z.object({
+  gridVersion: z.number().int().positive(),
+  layoutRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  overrides: z.record(z.string(), HomeFurnitureOverrideSchema),
+});
+export type HomeFurnitureCell = z.infer<typeof HomeFurnitureCellSchema>;
+export type HomeFurnitureRotation = z.infer<typeof HomeFurnitureRotationSchema>;
+export type HomeFurnitureLayout = z.infer<typeof HomeFurnitureLayoutSchema>;
+
 export const GameStateSchema = z.object({
   choicePreferences: ChoicePreferencesSchema.optional(),
   saveVersion: z.number().int(),
@@ -89,6 +112,7 @@ export const GameStateSchema = z.object({
     atHome:z.boolean().default(false),
     homeReturn:z.object({x:z.number().finite(),y:z.number().finite()}).optional(),
     homeStorage:z.record(z.string(),z.number().int().positive()).default({}),
+    homeFurniture: HomeFurnitureLayoutSchema.optional(),
     lastMessage:z.string().default(""),
   }).optional(),
   arcanaCombat: ArcanaCombatSchema,

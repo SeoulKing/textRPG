@@ -1,0 +1,331 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://art/source/pondside-forest-3d/forest-terrain.glb" id="1_terrain"]
+[ext_resource type="PackedScene" path="res://scenes/props/pondside-forest/vegetation/young-oak.tscn" id="2_young_oak"]
+[ext_resource type="PackedScene" path="res://art/source/pondside-forest-3d/timber-oak.glb" id="3_timber_oak"]
+[ext_resource type="PackedScene" path="res://art/source/pondside-forest-3d/leaf-slime.glb" id="4_leaf_slime"]
+[ext_resource type="PackedScene" path="res://art/source/pondside-forest-3d/moss-stump.glb" id="5_moss_stump"]
+[ext_resource type="PackedScene" path="res://scenes/props/pondside-forest/lighting/trail-lantern.tscn" id="6_lantern"]
+[ext_resource type="PackedScene" path="res://scenes/rendering/world_key_light.tscn" id="7_key_light"]
+
+[sub_resource type="Environment" id="Environment_forest"]
+background_mode = 1
+background_color = Color(0.082, 0.129, 0.137, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.76, 0.87, 0.96, 1)
+ambient_light_energy = 0.52
+reflected_light_source = 2
+
+[sub_resource type="Shader" id="Shader_tile_grid"]
+code = "shader_type spatial;
+render_mode unshaded, depth_draw_never, cull_disabled;
+
+uniform vec2 tile_count = vec2(32.0);
+
+void fragment() {
+	vec2 cell = UV * tile_count;
+	vec2 dist = abs(fract(cell + 0.5) - 0.5);
+	float nearest_line = min(dist.x, dist.y);
+	ALBEDO = vec3(0.85, 0.95, 0.83);
+	ALPHA = (1.0 - smoothstep(0.02, 0.055, nearest_line)) * 0.68;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tile_grid"]
+render_priority = 1
+shader = SubResource("Shader_tile_grid")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_tile_grid"]
+material = SubResource("ShaderMaterial_tile_grid")
+size = Vector2(32, 32)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_timber_trunk"]
+height = 4.0
+radius = 0.8
+
+[node name="PondsideForest3D" type="Node3D"]
+metadata/tile_count = Vector2i(32, 32)
+metadata/tile_size = 1.0
+
+[node name="Terrain" parent="." instance=ExtResource("1_terrain")]
+
+[node name="TileGrid" type="MeshInstance3D" parent="."]
+visible = false
+cast_shadow = 0
+position = Vector3(16, 0.075, 16)
+mesh = SubResource("PlaneMesh_tile_grid")
+
+[node name="Entrance" type="Node3D" parent="."]
+
+[node name="Arrival" type="Marker3D" parent="Entrance"]
+position = Vector3(16, 0, 31)
+
+[node name="TrailLantern" parent="Entrance" instance=ExtResource("6_lantern")]
+position = Vector3(18.25, 0, 29.5)
+metadata/ground_footprint = Vector2(0.48, 0.48)
+
+[node name="Exit" type="Marker3D" parent="Entrance"]
+position = Vector3(16, 0, 30.25)
+
+[node name="PondBarrier" type="Node3D" parent="."]
+metadata/shore_outline = PackedVector2Array(13.458610, 18.400000, 13.585930, 19.268012, 13.413646, 20.109063, 12.964968, 20.810172, 12.373286, 21.333319, 11.794570, 21.744639, 11.311086, 22.155763, 10.900248, 22.626777, 10.483345, 23.116914, 10.002102, 23.525502, 9.456288, 23.782556, 8.880994, 23.904498, 8.300000, 23.966519, 7.706519, 24.022799, 7.085782, 24.052223, 6.447661, 23.977905, 5.830153, 23.735876, 5.270672, 23.324259, 4.780305, 22.790157, 4.353573, 22.177110, 4.004606, 21.493267, 3.785269, 20.732552, 3.752893, 19.919717, 3.907494, 19.121301, 4.158610, 18.400000, 4.365493, 17.753908, 4.430536, 17.106763, 4.372888, 16.371044, 4.319250, 15.533319, 4.416384, 14.683007, 4.734993, 13.953324, 5.238767, 13.423878, 5.833345, 13.071020, 6.443146, 12.808499, 7.049271, 12.577816, 7.667101, 12.403738, 8.300000, 12.366519, 8.920413, 12.522039, 9.492799, 12.847483, 10.006617, 13.260903, 10.480153, 13.689981, 10.932153, 14.121361, 11.356398, 14.587719, 11.731759, 15.115477, 12.058643, 15.693267, 12.377348, 16.293424, 12.736004, 16.917416, 13.127931, 17.607197)
+
+[node name="Oaks" type="Node3D" parent="."]
+
+[node name="TimberOak" type="StaticBody3D" parent="Oaks"]
+metadata/forest_id = "forest_trees"
+position = Vector3(18, 0, 10)
+
+[node name="Model" parent="Oaks/TimberOak" instance=ExtResource("3_timber_oak")]
+
+[node name="TrunkCollision" type="CollisionShape3D" parent="Oaks/TimberOak"]
+position = Vector3(0, 2, 0)
+shape = SubResource("CylinderShape3D_timber_trunk")
+
+[node name="WestOak" parent="Oaks" instance=ExtResource("3_timber_oak")]
+metadata/forest_id = "forest_oak_35"
+metadata/trunk_radius = 0.8
+position = Vector3(4, 0, 7)
+rotation = Vector3(0, 1.55, 0)
+scale = Vector3(0.88, 0.88, 0.88)
+
+[node name="BackOak" parent="Oaks" instance=ExtResource("3_timber_oak")]
+metadata/forest_id = "forest_oak_36"
+metadata/trunk_radius = 0.8
+position = Vector3(8.9, 0, 3.5)
+rotation = Vector3(0, 2.4, 0)
+scale = Vector3(0.78, 0.78, 0.78)
+
+[node name="NorthOak" parent="Oaks" instance=ExtResource("3_timber_oak")]
+metadata/forest_id = "forest_oak_37"
+metadata/trunk_radius = 0.8
+position = Vector3(14.2, 0, 3.9)
+rotation = Vector3(0, -2.2, 0)
+scale = Vector3(0.91, 0.91, 0.91)
+
+[node name="UpperOak" parent="Oaks" instance=ExtResource("3_timber_oak")]
+metadata/forest_id = "forest_oak_38"
+metadata/trunk_radius = 0.8
+position = Vector3(21, 0, 3.5)
+rotation = Vector3(0, 0.5, 0)
+scale = Vector3(0.82, 0.82, 0.82)
+
+[node name="EastOak" parent="Oaks" instance=ExtResource("3_timber_oak")]
+metadata/forest_id = "forest_oak_39"
+metadata/trunk_radius = 0.8
+position = Vector3(27.5, 0, 6.5)
+rotation = Vector3(0, -0.7, 0)
+scale = Vector3(0.9, 0.9, 0.9)
+
+[node name="ReedOak" parent="Oaks" instance=ExtResource("3_timber_oak")]
+metadata/forest_id = "forest_oak_40"
+metadata/trunk_radius = 0.8
+position = Vector3(3.15, 0, 23.65)
+rotation = Vector3(0, 1.1, 0)
+scale = Vector3(0.68, 0.68, 0.68)
+
+[node name="ShoreOak" parent="Oaks" instance=ExtResource("3_timber_oak")]
+metadata/forest_id = "forest_oak_41"
+metadata/trunk_radius = 0.8
+position = Vector3(10, 0, 27.7)
+rotation = Vector3(0, 2.8, 0)
+scale = Vector3(0.68, 0.68, 0.68)
+
+[node name="EastRimOak" parent="Oaks" instance=ExtResource("3_timber_oak")]
+metadata/forest_id = "forest_oak_42"
+metadata/trunk_radius = 0.8
+position = Vector3(28.6, 0, 11.7)
+rotation = Vector3(0, 1.6, 0)
+scale = Vector3(0.83, 0.83, 0.83)
+
+[node name="YoungOak01" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_01"
+position = Vector3(2, 0, 2)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak02" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_02"
+position = Vector3(5, 0, 3)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="YoungOak03" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_03"
+position = Vector3(2, 0, 6)
+rotation = Vector3(0, 3.1415927, 0)
+
+[node name="YoungOak04" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_04"
+position = Vector3(3, 0, 11)
+
+[node name="YoungOak05" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_05"
+position = Vector3(5, 0, 10)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="YoungOak06" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_06"
+position = Vector3(8, 0, 8)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak07" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_07"
+position = Vector3(11, 0, 9)
+rotation = Vector3(0, 3.1415927, 0)
+
+[node name="YoungOak08" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_08"
+position = Vector3(13, 0, 6)
+
+[node name="YoungOak09" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_09"
+position = Vector3(16, 0, 5)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak10" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_10"
+position = Vector3(19, 0, 5)
+rotation = Vector3(0, 3.1415927, 0)
+
+[node name="YoungOak11" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_11"
+position = Vector3(23, 0, 3)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="YoungOak12" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_12"
+position = Vector3(25, 0, 4)
+
+[node name="YoungOak13" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_13"
+position = Vector3(29, 0, 4)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak14" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_14"
+position = Vector3(30, 0, 8)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="YoungOak15" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_15"
+position = Vector3(30, 0, 14)
+rotation = Vector3(0, 3.1415927, 0)
+
+[node name="YoungOak16" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_16"
+position = Vector3(27, 0, 10)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="YoungOak17" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_17"
+position = Vector3(25, 0, 10)
+
+[node name="YoungOak18" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_18"
+position = Vector3(24, 0, 7)
+rotation = Vector3(0, 3.1415927, 0)
+
+[node name="YoungOak19" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_19"
+position = Vector3(2, 0, 15)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak20" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_20"
+position = Vector3(2, 0, 19)
+
+[node name="YoungOak21" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_21"
+position = Vector3(2, 0, 26)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="YoungOak22" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_22"
+position = Vector3(4, 0, 27)
+rotation = Vector3(0, 3.1415927, 0)
+
+[node name="YoungOak23" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_23"
+position = Vector3(6, 0, 29)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak24" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_24"
+position = Vector3(10, 0, 30)
+
+[node name="YoungOak25" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_25"
+position = Vector3(12, 0, 28)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak26" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_26"
+position = Vector3(12, 0, 31)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="YoungOak27" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_27"
+position = Vector3(20, 0, 29)
+
+[node name="YoungOak28" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_28"
+position = Vector3(23, 0, 28)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak29" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_29"
+position = Vector3(25, 0, 30)
+rotation = Vector3(0, 3.1415927, 0)
+
+[node name="YoungOak30" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_30"
+position = Vector3(28, 0, 28)
+
+[node name="YoungOak31" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_31"
+position = Vector3(30, 0, 26)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="YoungOak32" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_32"
+position = Vector3(30, 0, 22)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="YoungOak33" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_33"
+position = Vector3(29, 0, 18)
+rotation = Vector3(0, 3.1415927, 0)
+
+[node name="YoungOak34" parent="Oaks" instance=ExtResource("2_young_oak")]
+metadata/forest_id = "forest_oak_34"
+position = Vector3(28, 0, 15)
+rotation = Vector3(0, -1.5707963, 0)
+
+[node name="Monsters" type="Node3D" parent="."]
+
+[node name="LeafSlime" parent="Monsters" instance=ExtResource("4_leaf_slime")]
+position = Vector3(21.5, 0, 19)
+rotation = Vector3(0, 0.56, 0)
+
+[node name="MossStump" parent="Monsters" instance=ExtResource("5_moss_stump")]
+position = Vector3(25, 0, 16.75)
+rotation = Vector3(0, 0.78, 0)
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting"]
+environment = SubResource("Environment_forest")
+
+[node name="Sun" parent="Lighting" instance=ExtResource("7_key_light")]
+rotation = Vector3(-0.92, -0.4, 0)
+light_color = Color(1, 0.9, 0.73, 1)
+light_energy = 0.82
+directional_shadow_max_distance = 84.0
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(44.16913, 24.9, 44.16913)
+rotation = Vector3(-0.5235988, 0.7853982, 0)
+projection = 1
+current = true
+size = 29.0
+near = 0.1
+far = 112.0

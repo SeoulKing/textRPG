@@ -1,11 +1,11 @@
 extends Node2D
 ## Crossed firewood with the flame animated above its fixed base.
 const ATLAS = preload("res://art/export/effects/arcana-campfire.png")
-const RAW_FISH = preload("res://art/export/items/river-fish.png")
-const GRILLED_FISH = preload("res://art/export/items/grilled-fish.png")
+const CookingAnimation := preload("res://scripts/cooking_animation.gd")
 const FRAME_RATE := 12.0
 var sprite: Sprite2D
-var cooking_fish: Sprite2D
+var cooking_food: Sprite2D
+var cooking_recipe := ""
 var warm_light: PointLight2D
 var ghost: bool = false
 var elapsed: float = 0.0
@@ -30,19 +30,24 @@ func _ready() -> void:
 	warm_light.position.y = -12
 	add_child(warm_light)
 
-# Negative progress clears the fish on completion, interruption or a new job.
-func set_cooking_progress(progress: float) -> void:
-	if progress < 0:
-		if is_instance_valid(cooking_fish): cooking_fish.hide()
+func set_cooking_progress(recipe_id: String, fraction: float) -> void:
+	if recipe_id.is_empty():
+		if is_instance_valid(cooking_food): cooking_food.hide()
 		return
-	if not is_instance_valid(cooking_fish):
-		cooking_fish = Sprite2D.new()
-		cooking_fish.position = Vector2(0,-25)
-		cooking_fish.rotation = PI / 4.0
-		cooking_fish.scale = Vector2.ONE * 0.58
-		sprite.add_child(cooking_fish)
-	cooking_fish.texture = GRILLED_FISH if progress >= 0.75 else RAW_FISH
-	cooking_fish.show()
+	if not is_instance_valid(cooking_food):
+		cooking_food = Sprite2D.new()
+		cooking_food.centered = false
+		cooking_food.offset = Vector2(-32, -52)
+		cooking_food.position = Vector2(0, -25)
+		cooking_food.hframes = 4
+		cooking_food.vframes = 3
+		sprite.add_child(cooking_food)
+	if recipe_id != cooking_recipe:
+		cooking_recipe = recipe_id
+		cooking_food.texture = CookingAnimation.sheet_for(recipe_id)
+	cooking_food.visible = cooking_food.texture != null
+	if cooking_food.visible:
+		cooking_food.frame = CookingAnimation.frame_for(fraction, reduced or not effects)
 
 func _process(delta: float) -> void:
 	elapsed += delta

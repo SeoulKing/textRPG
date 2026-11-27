@@ -1,3 +1,4 @@
+import { FOREST_LOCATION, WOODCUTTING_AXE } from "../game/arcana-forest";
 import { ARCANA_HOME_LOCATION } from "../game/arcana-home";
 import { COOKING_RECIPES, COOKING_MATERIAL_IDS, FOODS } from "../game/arcana-cooking";
 export { COOKING_RECIPES, FOODS } from "../game/arcana-cooking";
@@ -8,7 +9,7 @@ import { arcanaStats } from "../game/arcana-combat";
 import { initializeArcanaAbilities } from "../game/arcana-abilities";
 import { skillMastery, trainArcanaSkill } from "../game/arcana-skill-training";
 import { baseItems } from "../game/data/items";
-import type { Actor, Point } from "./model";
+import type { Actor, Point, SharedWorld } from "./model";
 import type { GameSession } from "../game/schemas";
 
 export const CAMPFIRES: Record<string,{quality:string;minutes:number;cookSeconds:number}> = {
@@ -17,8 +18,24 @@ export const CAMPFIRES: Record<string,{quality:string;minutes:number;cookSeconds
   campfireExcellent:{quality:"우수",minutes:60,cookSeconds:3},
 };
 export type Campfire = {id:string;itemId:string;ownerId:string;position:Point;expiresAt:number;area?:string};
-export type LifeJob = {id:string;kind:"craft"|"cook";phase:"active"|"success"|"cancelled";startedAt:number;endsAt:number;origin:Point;campfireId?:string;recipeId?:string;homeKitchen?:boolean;itemId?:string;message:string};
+export type LifeJob = {
+  id:string;
+  kind:"craft"|"cook";
+  phase:"active"|"success"|"cancelled";
+  startedAt:number;
+  endsAt:number;
+  origin:Point;
+  campfireId?:string;
+  recipeId?:string;
+  homeKitchen?:boolean;
+  itemId?:string;
+  quantity?:number;
+  completed?:number;
+  resultCounts?:Record<string,number>;
+  message:string;
+};
 export const DAILY_GATHER_LIMIT=3;
+export const MAX_LIFE_QUANTITY=20;
 export const CRAFTING_RECIPES:Record<string,{name:string;ingredients:{itemId:string;count:number}[];results:readonly [string,string,string];count:number}>={
   campfire:{name:"모닥불",ingredients:[{itemId:"wood",count:5}],results:["campfire","campfireFine","campfireExcellent"],count:1},
   lumber:{name:"목재",ingredients:[{itemId:"treeBranch",count:2}],results:["wood","wood","wood"],count:3},
@@ -34,7 +51,7 @@ export function initializeLife(game:GameSession) {
   if(!life.woodGranted) {state.inventory.wood=(state.inventory.wood||0)+30;life.woodGranted=true;}
   game.world.locationCards.arcana_home={...ARCANA_HOME_LOCATION,description:ARCANA_HOME_LOCATION.summary,source:"template",generatedAt:"static"};
   // Static cards must also be available for old content-version saves and WS rewards.
-  for(const id of ["wood","riverFish",...COOKING_MATERIAL_IDS,...Object.keys(CAMPFIRES),...Object.keys(FOODS)]) {
+  for(const id of ["wood","riverFish",WOODCUTTING_AXE,...COOKING_MATERIAL_IDS,...Object.keys(CAMPFIRES),...Object.keys(FOODS)]) {
     const definition=baseItems[id as keyof typeof baseItems];
     game.world.itemCards[id]={...definition,source:"template",generatedAt:"static"};
     if(FOODS[id]) {
@@ -59,7 +76,7 @@ export function lifeSkills(actor:Actor) {
   });
 }
 function requireCount(actor:Actor,id:string,count:number) {
-  if((actor.game.state.inventory[id]||0)<count)throw new OnlineError("materials_required",id==="riverFish"?"낚시로 얻은 민물고기 1마리가 필요합니다.":(baseItems[id as keyof typeof baseItems]?.name || "해당 아이템")+" "+count+"개가 필요합니다.");
+  if((actor.game.state.inventory[id]||0)<count)throw new OnlineError("materials_required",id==="riverFish"?"낚시로 얻은 민물고기 "+count+"마리가 필요합니다.":(baseItems[id as keyof typeof baseItems]?.name || "해당 아이템")+" "+count+"개가 필요합니다.");
 }
 function consume(actor:Actor,id:string,count:number) {
   actor.game.state.inventory[id]-=count;
@@ -100,17 +117,25 @@ export function transferHomeStorage(actor:Actor,deposit:boolean,itemId?:string,q
   state.inventory=deposit?nextSource:nextDestination;
   state.arcanaLife={...life,homeStorage:deposit?nextDestination:nextSource};
 }
-export function beginLife(actor:Actor,kind:"craft"|"cook",campfire?:Campfire,recipeId?:string):LifeJob {
+export function beginLife(actor:Actor,kind:"craft"|"cook",campfire?:Campfire,recipeId?:string,quantity=1):LifeJob {
   requireLifeReady(actor);
+  if(!Number.isSafeInteger(quantity) || quantity<1 || quantity>MAX_LIFE_QUANTITY)
+    throw new OnlineError("life_quantity_required","작업 횟수는 1~"+MAX_LIFE_QUANTITY+"회로 선택해 주세요.",400);
   const selectedId=recipeId || (kind==="cook"?"grilledFish":"campfire");
   const recipe=kind==="cook"?cookingRecipe(selectedId):craftingRecipe(selectedId);
-  for(const input of recipe.ingredients)requireCount(actor,input.itemId,input.count);
+  for(const input of recipe.ingredients)requireCount(actor,input.itemId,input.count*quantity);
   const homeKitchen=kind==="cook" && actor.game.state.arcanaLife!.atHome && actor.place.interior==="arcana_home:"+actor.character.id;
   if(kind==="cook" && !homeKitchen && (!campfire || campfire.expiresAt<=Date.now() || actor.place.interior || Math.hypot(actor.position.x-campfire.position.x,actor.position.y-campfire.position.y)>26))
     throw new OnlineError("campfire_required","불이 켜진 모닥불 가까이에서 구워 주세요.");
   const duration=kind==="craft"?3:homeKitchen?4:CAMPFIRES[campfire!.itemId].cookSeconds;
   const now=Date.now();
-  return {id:crypto.randomUUID(),kind,phase:"active",startedAt:now,endsAt:now+duration*1000,origin:{...actor.position},...(!homeKitchen && campfire?{campfireId:campfire.id}:{}),recipeId:selectedId,...(homeKitchen?{homeKitchen:true}:{}),message:recipe.name+(kind==="craft"?" 제작 중입니다.":" 조리 중입니다.")};
+  return {
+    id:crypto.randomUUID(),kind,recipeId:selectedId,phase:"active",origin:{...actor.position},
+    startedAt:now,endsAt:now+duration*1000,quantity,completed:0,resultCounts:{},
+    ...(!homeKitchen && campfire?{campfireId:campfire.id}:{}),
+    ...(homeKitchen?{homeKitchen:true}:{}),
+    message:recipe.name+(kind==="craft"?" 제작 중입니다.":" 조리 중입니다."),
+  };
 }
 function craftingRecipe(id:string) {
   if(!Object.hasOwn(CRAFTING_RECIPES,id))throw new OnlineError("invalid_recipe","제작할 레시피를 선택해 주세요.");
@@ -120,9 +145,13 @@ function cookingRecipe(id:string) {
   if(!Object.hasOwn(COOKING_RECIPES,id))throw new OnlineError("invalid_recipe","요리할 레시피를 선택해 주세요.");
   return COOKING_RECIPES[id];
 }
-export function cancelLife(job:LifeJob|undefined,message="작업을 취소했습니다. 재료는 소모하지 않았습니다.") {
-  if(!lifeActive(job))return;
-  job!.phase="cancelled";job!.message=message;
+export function cancelLife(job:LifeJob|undefined,reason="작업을 취소했습니다.") {
+  if(job?.phase!=="active")return;
+  job.phase="cancelled";
+  const completed=job.completed ?? 0;
+  job.message=completed>0
+    ? reason+" "+completed+" / "+job.quantity+"회 완료. 완성품과 숙련도는 유지됩니다."
+    : reason+" 재료는 소모하지 않았습니다.";
 }
 export function completeLife(actor:Actor,job:LifeJob,random=Math.random) {
   if(!lifeActive(job))return;
@@ -139,11 +168,116 @@ export function completeLife(actor:Actor,job:LifeJob,random=Math.random) {
   trainArcanaSkill(actor.game.state,skill,xp);
   const life=actor.game.state.arcanaLife!;
   if(job.kind==="cook")life.cookedMeals++;else life.craftedItems+=count;
-  job.phase="success";job.itemId=itemId;
+  job.completed=(job.completed ?? 0)+1;
+  job.resultCounts ??= {};
+  job.resultCounts[itemId]=(job.resultCounts[itemId] || 0)+count;
+  job.itemId=itemId;
+  const quantity=job.quantity ?? 1;
+  job.phase=job.completed>=quantity?"success":"active";
+  if(job.phase==="active") {
+    const duration=job.endsAt-job.startedAt;
+    job.startedAt=Date.now();
+    job.endsAt=job.startedAt+duration;
+  }
   const quality=CAMPFIRES[itemId]?.quality || FOODS[itemId]?.quality;
   job.message="+"+count+" "+recipe.name+(quality?" · "+quality:"")+" / "+(skill==="crafting"?"제작":"요리")+" 숙련 경험치 +"+xp;
+  if(quantity>1) {
+    const progress=job.completed+" / "+quantity+"회 완료";
+    if(job.phase==="success") {
+      const summary=Object.entries(job.resultCounts).map(([id,total])=>{
+        const resultQuality=CAMPFIRES[id]?.quality || FOODS[id]?.quality;
+        return "+"+total+" "+recipe.name+(resultQuality?" · "+resultQuality:"");
+      }).join(" / ");
+      job.message=progress+" · "+summary;
+    } else job.message=progress+" · "+job.message;
+  }
   life.lastMessage=job.message;
 }
+const TEXT_FOREST_TREE_ID = "forest_trees";
+const FOREST_TREE_HEALTH = 100;
+const FOREST_TREE_RESPAWN_MS = 60_000;
+
+export type ForestTreeGeometry = {position: Point; radius: number};
+
+function forestChopDamage(actor: Actor) {
+  const strength = actor.game.state.arcanaAbilities?.strength ?? 10;
+  const difference = strength - 10;
+  return Math.max(8, Math.min(FOREST_TREE_HEALTH, 20 + difference * (difference > 0 ? 5 : 2)));
+}
+
+export function forestTreeState(world: SharedWorld, actor: Actor, treeId: string) {
+  const tree = world.forestTrees?.[treeId];
+  const health = tree?.health ?? FOREST_TREE_HEALTH;
+  const damage = forestChopDamage(actor);
+  return {
+    id: treeId,
+    health,
+    maxHealth: FOREST_TREE_HEALTH,
+    hitsRemaining: Math.ceil(health / damage),
+    hitsRequired: Math.ceil(FOREST_TREE_HEALTH / damage),
+    felled: health === 0,
+    respawnAt: tree?.respawnAt ?? 0,
+    revision: tree?.revision ?? 0,
+    lastHitBy: tree?.lastHitBy ?? null,
+    lastHitAt: tree?.lastHitAt ?? null,
+  };
+}
+
+export function regrowForestTree(world: SharedWorld, treeId: string) {
+  const trees = world.forestTrees;
+  const tree = trees?.[treeId];
+  if (trees && tree?.health === 0) {
+    trees[treeId] = {...tree, health: FOREST_TREE_HEALTH, respawnAt: 0, lastHitBy: null, lastHitAt: null};
+  }
+}
+
+export function chopForestWood(actor: Actor, world: SharedWorld, treeId: string, tree: ForestTreeGeometry | undefined,
+  textAtTimber: boolean, now = Date.now()) {
+  requireLifeReady(actor);
+  if (actor.place.location !== FOREST_LOCATION || actor.place.interior) {
+    throw new OnlineError("forest_required", "연못가 숲에서 벌목해 주세요.");
+  }
+  if (textAtTimber && treeId !== TEXT_FOREST_TREE_ID) {
+    throw new OnlineError("forest_text_tree_required", "심플 모드에서는 벌목지의 참나무를 선택해 주세요.");
+  }
+  if (!tree || !Number.isFinite(tree.position.x) || !Number.isFinite(tree.position.y)
+      || !Number.isFinite(tree.radius) || tree.radius <= 0) {
+    throw new OnlineError("forest_tree_unavailable", "벌목지 정보를 불러오고 있습니다. 잠시 후 다시 이용해 주세요.", 503);
+  }
+  if (!textAtTimber) {
+    const distance = Math.hypot(actor.position.x - tree.position.x, actor.position.y - tree.position.y);
+    if (distance > tree.radius) {
+      throw new OnlineError("forest_tree_out_of_reach", "참나무에 가까이 다가가 벌목해 주세요.");
+    }
+  }
+  const state = actor.game.state;
+  if (equipmentLoadout(state).mainHand !== WOODCUTTING_AXE) {
+    throw new OnlineError("woodcutting_axe_required", "주무기에 벌목용 도끼를 장착해 주세요.");
+  }
+  const before = forestTreeState(world, actor, treeId);
+  if (before.felled) {
+    throw new OnlineError("forest_tree_felled", "참나무가 쓰러졌습니다. 새 나무가 자라면 다시 벌목할 수 있습니다.");
+  }
+
+  // The serialized world command saves tree damage and the last hit's reward together.
+  const health = Math.max(0, before.health - forestChopDamage(actor));
+  (world.forestTrees ??= {})[treeId] = {
+    health,
+    respawnAt: health === 0 ? now + FOREST_TREE_RESPAWN_MS : 0,
+    revision: before.revision + 1,
+    lastHitBy: actor.character.id,
+    lastHitAt: now,
+  };
+  const after = forestTreeState(world, actor, treeId);
+  if (after.felled) {
+    state.inventory.wood = (state.inventory.wood ?? 0) + 1;
+    state.arcanaLife!.lastMessage = "+1 목재";
+  } else {
+    state.arcanaLife!.lastMessage = `참나무를 ${after.hitsRemaining}번 더 찍으면 쓰러집니다.`;
+  }
+  return after;
+}
+
 /** Each personal day has three deterministic baskets; rest replenishes them. */
 export function gatherLife(actor:Actor) {
   requireLifeReady(actor);
