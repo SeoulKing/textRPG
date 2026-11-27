@@ -1,0 +1,19 @@
+{
+  "baseShapesPreserved": true,
+  "fps": 8,
+  "frameCount": 24,
+  "savedReopenedExported": true,
+  "shortConnectedRibbons": true,
+  "singlePixelSparkles": false,
+  "sources": [
+    "res://art/source/river-daylight-v3/base.pxpen",
+    "res://art/source/river-daylight-v3/ripples.pxpen",
+    "res://art/source/river-daylight-v3/reflections.pxpen"
+  ],
+  "tileSize": [
+    64,
+    64
+  ],
+  "uvWarp": false,
+  "wholeSurfaceScroll": false
+}

@@ -1,0 +1,40 @@
+{
+  "baseLayers": 2,
+  "bitmapImported": false,
+  "highlightFps": 8,
+  "highlightFrames": 16,
+  "highlightLayersPerFrame": 2,
+  "highlightPaths": 628,
+  "nativeIndexedAssignments": 307911,
+  "palette": [
+    "00000000",
+    "177dc7",
+    "1a81cc",
+    "1b85d2",
+    "1c88d7",
+    "208ddb",
+    "2593e0",
+    "2c9ae3",
+    "329fe6",
+    "38a4e9",
+    "3eaaed",
+    "46b1f0",
+    "4fb9f4",
+    "5cc4f8",
+    "71d6fb",
+    "85e5fd",
+    "99f0fd"
+  ],
+  "savedReopenedExported": true,
+  "size": [
+    448,
+    448
+  ],
+  "textureAtlas": [
+    1792,
+    1792
+  ],
+  "uvWarp": false,
+  "wholeSurfaceScroll": false,
+  "worldPixelsPerUnit": 64
+}

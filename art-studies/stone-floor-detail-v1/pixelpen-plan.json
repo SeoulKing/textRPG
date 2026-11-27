@@ -1,0 +1,28 @@
+{
+  "cell": 128,
+  "density": 64,
+  "period": 512,
+  "source": "concept-v1.png",
+  "jobs": [
+    {
+      "id": "stone-pattern",
+      "input": "D:/BANG/project/textRPG/art-studies/stone-floor-detail-v1/prepared/stone-pattern.png",
+      "size": [
+        512,
+        512
+      ],
+      "source": "res://art/source/stone-floor-v1/stone-pattern.pxpen",
+      "output": "res://art/export/stone-floor-v1/stone-pattern.png"
+    },
+    {
+      "id": "ornament-connectors",
+      "input": "D:/BANG/project/textRPG/art-studies/stone-floor-detail-v1/prepared/ornament-connectors.png",
+      "size": [
+        512,
+        512
+      ],
+      "source": "res://art/source/stone-floor-v1/ornament-connectors.pxpen",
+      "output": "res://art/export/stone-floor-v1/ornament-connectors.png"
+    }
+  ]
+}

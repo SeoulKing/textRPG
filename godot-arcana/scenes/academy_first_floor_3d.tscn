@@ -1,0 +1,91 @@
+[gd_scene format=3 uid="uid://dmbfmlcm4tbs6"]
+
+[ext_resource type="PackedScene" uid="uid://cchmqmo74ubpu" path="res://art/source/academy-first-floor-blender/academy-first-floor.glb" id="1_model"]
+[ext_resource type="Script" uid="uid://be41241dd0j6r" path="res://scripts/academy_first_floor_3d.gd" id="2_runtime"]
+[ext_resource type="PackedScene" path="res://scenes/rendering/world_key_light.tscn" id="key_light"]
+
+[sub_resource type="Environment" id="Environment_icjvj"]
+background_mode = 1
+background_color = Color(0.11, 0.14, 0.19, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.96, 0.98, 1, 1)
+ambient_light_energy = 0.78
+tonemap_mode = 1
+tonemap_white = 1.6
+
+[node name="AcademyFirstFloor3D" type="Node3D" unique_id=1696595083]
+script = ExtResource("2_runtime")
+
+[node name="Room" parent="." unique_id=1960582510 instance=ExtResource("1_model")]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1705937228]
+transform = Transform3D(0.70710677, -0.35355338, 0.6123724, 0, 0.8660254, 0.5, -0.70710677, -0.35355338, 0.6123724, 30, 16, 28)
+environment = SubResource("Environment_icjvj")
+projection = 1
+size = 15.0
+far = 72.0
+
+[node name="Lighting" type="Node3D" parent="." unique_id=1769386367]
+
+[node name="KeyLight" parent="Lighting" unique_id=1732105415 instance=ExtResource("key_light")]
+transform = Transform3D(-0.96033573, 0.2364752, -0.1477661, 0, 0.52991927, 0.8480481, 0.27884644, 0.81441087, -0.5089004, 0, 0, 0)
+light_color = Color(1, 0.97, 0.88, 1)
+light_energy = 1.02
+directional_shadow_max_distance = 40.0
+
+[node name="HearthLight" type="OmniLight3D" parent="Lighting" unique_id=245932466]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 1.28, 10.25)
+light_color = Color(1, 0.77, 0.43, 1)
+light_energy = 0.62
+omni_range = 3.4
+
+[node name="ReceptionLight" type="OmniLight3D" parent="Lighting" unique_id=91291293]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.05, 1.36, 15.82)
+light_color = Color(1, 0.72, 0.42, 1)
+light_energy = 0.85
+omni_range = 2.7
+
+[node name="LoungeLight" type="OmniLight3D" parent="Lighting" unique_id=1251625019]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.27, 1.29, 3.48)
+light_color = Color(1, 0.77, 0.44, 1)
+light_energy = 0.9
+omni_range = 3.1
+
+[node name="ExitLight" type="OmniLight3D" parent="Lighting" unique_id=1647048415]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 1.9, 20.65)
+light_color = Color(1, 0.78, 0.49, 1)
+light_energy = 0.82
+omni_range = 4.6
+
+[node name="FixtureLights" type="Node3D" parent="Lighting" unique_id=2001623039]
+
+[node name="LibraryWallLight" type="OmniLight3D" parent="Lighting/FixtureLights" unique_id=322439237]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.37, 2.85, 1.4)
+light_color = Color(1, 0.76, 0.43, 1)
+light_energy = 1.1
+omni_range = 4.5
+
+[node name="PracticeWallLight" type="OmniLight3D" parent="Lighting/FixtureLights" unique_id=487894686]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.38, 2.85, 1.4)
+light_color = Color(1, 0.76, 0.43, 1)
+light_energy = 1.1
+omni_range = 4.5
+
+[node name="LibraryWindowTableLight" type="OmniLight3D" parent="Lighting/FixtureLights" unique_id=426516696]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.88, 1.18, 5.58)
+light_color = Color(1, 0.79, 0.48, 1)
+light_energy = 0.78
+omni_range = 2.6
+
+[node name="LibraryInnerTableLight" type="OmniLight3D" parent="Lighting/FixtureLights" unique_id=1165092176]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.98, 1.18, 10.02)
+light_color = Color(1, 0.79, 0.48, 1)
+light_energy = 0.78
+omni_range = 2.6
+
+[node name="Avatar" type="Sprite3D" parent="." unique_id=390122050]
+visible = false
+centered = false
+pixel_size = 0.015625
+alpha_cut = 1
+texture_filter = 0

@@ -1,0 +1,365 @@
+{
+  "assets": [
+    {
+      "export": "res://art/export/shop-2d/wall-back-0.png",
+      "id": "wall-back-0",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        192.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-back-0.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-back-1.png",
+      "id": "wall-back-1",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        192.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-back-1.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-back-2.png",
+      "id": "wall-back-2",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        192.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-back-2.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-back-3.png",
+      "id": "wall-back-3",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        192.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-back-3.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-left.png",
+      "id": "wall-left",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-left.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-left-return.png",
+      "id": "wall-left-return",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        192.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-left-return.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-right.png",
+      "id": "wall-right",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-right.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-right-return.png",
+      "id": "wall-right-return",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        192.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-right-return.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-front-0.png",
+      "id": "wall-front-0",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        64.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-front-0.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/wall-front-1.png",
+      "id": "wall-front-1",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        64.0
+      ],
+      "source": "res://art/source/shop-2d-v3/wall-front-1.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/doorway.png",
+      "id": "doorway",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        128.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/doorway.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/floor-0-0.png",
+      "id": "floor-0-0",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/floor-0-0.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/floor-1-0.png",
+      "id": "floor-1-0",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/floor-1-0.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/floor-2-0.png",
+      "id": "floor-2-0",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/floor-2-0.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/floor-3-0.png",
+      "id": "floor-3-0",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/floor-3-0.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/floor-0-1.png",
+      "id": "floor-0-1",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/floor-0-1.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/floor-1-1.png",
+      "id": "floor-1-1",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/floor-1-1.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/floor-2-1.png",
+      "id": "floor-2-1",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/floor-2-1.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/floor-3-1.png",
+      "id": "floor-3-1",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        32.0,
+        32.0
+      ],
+      "source": "res://art/source/shop-2d-v3/floor-3-1.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/herb-cabinet.png",
+      "id": "herb-cabinet",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        128.0,
+        224.0
+      ],
+      "source": "res://art/source/shop-2d-v3/herb-cabinet.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/potion-cabinet.png",
+      "id": "potion-cabinet",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        128.0,
+        224.0
+      ],
+      "source": "res://art/source/shop-2d-v3/potion-cabinet.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/travel-cabinet.png",
+      "id": "travel-cabinet",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        128.0,
+        224.0
+      ],
+      "source": "res://art/source/shop-2d-v3/travel-cabinet.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/counter.png",
+      "id": "counter",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        256.0,
+        160.0
+      ],
+      "source": "res://art/source/shop-2d-v3/counter.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/apothecary-bench.png",
+      "id": "apothecary-bench",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        192.0,
+        160.0
+      ],
+      "source": "res://art/source/shop-2d-v3/apothecary-bench.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/potion-island.png",
+      "id": "potion-island",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        96.0,
+        128.0
+      ],
+      "source": "res://art/source/shop-2d-v3/potion-island.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/travel-island.png",
+      "id": "travel-island",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        96.0,
+        128.0
+      ],
+      "source": "res://art/source/shop-2d-v3/travel-island.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/travel-stock.png",
+      "id": "travel-stock",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        128.0,
+        128.0
+      ],
+      "source": "res://art/source/shop-2d-v3/travel-stock.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/luggage.png",
+      "id": "luggage",
+      "nativeEdits": 2,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        96.0,
+        128.0
+      ],
+      "source": "res://art/source/shop-2d-v3/luggage.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/plant.png",
+      "id": "plant",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        88.0,
+        93.0
+      ],
+      "source": "res://art/source/shop-2d-v3/plant.pxpen"
+    },
+    {
+      "export": "res://art/export/shop-2d/merchant.png",
+      "id": "merchant",
+      "nativeEdits": 0,
+      "reusedExistingMaster": false,
+      "savedReopenedExported": true,
+      "size": [
+        96.0,
+        136.0
+      ],
+      "source": "res://art/source/shop-2d-v3/merchant.pxpen"
+    }
+  ],
+  "nativePixelPen": true
+}

@@ -1,0 +1,34 @@
+{
+  "frame": [
+    96,
+    136
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "pixelsPerUnit": 64,
+  "source": "art-studies/characters/marten-pixel-v1/marten-concept-colors.png",
+  "spriteBounds": [
+    24,
+    10,
+    72,
+    116
+  ],
+  "silhouetteHeight": 106,
+  "alpha": [
+    0,
+    255
+  ],
+  "palette": "art-studies/characters/marten-pixel-v1/marten-concept-colors.pxpen",
+  "pose": "front idle",
+  "worldPosition": [
+    16.7,
+    0,
+    5.9
+  ],
+  "interactionPoint": [
+    267,
+    148
+  ]
+}

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/ddb425f4bccfe20f5b261e16b1291c8ecf9f4f37719273495a3567e64d375cf1.res" id="2_6l442"]
+[node name="LoungeRug1" type="Sprite2D"]
+z_index = -30
+texture = ExtResource("2_6l442")
+centered = false
+offset = Vector2(-228, -143.5)
+texture_filter = 1
+

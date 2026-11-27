@@ -1,0 +1,104 @@
+[
+  {
+    "asset": "herb-cabinet",
+    "x": 7.5,
+    "z": 5,
+    "w": 2,
+    "d": 1
+  },
+  {
+    "asset": "herb-cabinet",
+    "x": 9.5,
+    "z": 5,
+    "w": 2,
+    "d": 1
+  },
+  {
+    "asset": "potion-arch",
+    "x": 11.5,
+    "z": 5,
+    "w": 2,
+    "d": 1
+  },
+  {
+    "asset": "travel-cabinet",
+    "x": 13.75,
+    "z": 5,
+    "w": 2.5,
+    "d": 1
+  },
+  {
+    "asset": "travel-cabinet",
+    "x": 16.25,
+    "z": 5,
+    "w": 2.5,
+    "d": 1
+  },
+  {
+    "asset": "merchant",
+    "x": 12,
+    "z": 6.65,
+    "w": 0.75,
+    "d": 0.5,
+    "fade": false
+  },
+  {
+    "asset": "counter",
+    "x": 12,
+    "z": 7.75,
+    "w": 4.5,
+    "d": 1
+  },
+  {
+    "asset": "apothecary-bench-v2",
+    "x": 7,
+    "z": 8.5,
+    "w": 3,
+    "d": 1
+  },
+  {
+    "asset": "potion-island",
+    "x": 6.5,
+    "z": 10,
+    "w": 1.5,
+    "d": 1
+  },
+  {
+    "asset": "travel-island",
+    "x": 17.5,
+    "z": 11,
+    "w": 1.5,
+    "d": 1
+  },
+  {
+    "asset": "travel-stock-v2",
+    "x": 17.5,
+    "z": 12,
+    "w": 2,
+    "d": 1
+  },
+  {
+    "asset": "luggage",
+    "x": 7,
+    "z": 11.5,
+    "w": 1.5,
+    "d": 1,
+    "shared": true
+  },
+  {
+    "asset": "plant",
+    "x": 6,
+    "z": 11.5,
+    "w": 0.75,
+    "d": 0.75,
+    "shared": true
+  },
+  {
+    "asset": "plant",
+    "x": 18,
+    "z": 9.5,
+    "w": 0.75,
+    "d": 0.75,
+    "shared": true
+  }
+]

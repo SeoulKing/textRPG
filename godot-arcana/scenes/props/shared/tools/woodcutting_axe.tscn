@@ -1,0 +1,138 @@
+[gd_scene format=4]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wpd10"]
+resource_name = "Iron body"
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.4, 0.48235294, 0.4862745, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cqtjx"]
+resource_name = "Forged iron"
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.21568629, 0.30980393, 0.32549018, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i7uqd"]
+resource_name = "Ground edge"
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.6509804, 0.7647059, 0.7294118, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ggnfb"]
+resource_name = "Edge glint"
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.83137256, 0.8784314, 0.7882353, 1)
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_tp6tw"]
+resource_name = "woodcutting_axe_Flared forged head"
+_surfaces = [{
+"aabb": AABB(-0.20516, 0.45194, -0.026, 0.25452, 0.13612002, 0.052),
+"format": 34896613383,
+"index_count": 54,
+"index_data": PackedByteArray("CgABAAAAAQADAAIAAwAFAAQABQAHAAYABwAJAAgACQABAAoAAwAHAAUACQADAAEAAwAJAAcAFQATABQAEwARABIAEQAPABAADgAMAA0AEQAOAA8AFQARABMADAAVAAsAEQAMAA4AFQAMABEA"),
+"material": SubResource("StandardMaterial3D_wpd10"),
+"name": "Iron body",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 22,
+"vertex_data": PackedByteArray("//+EN////79O/paV////v0Xjoqn///+/KZJ3o////79mKf//////v8IGnN////+/AADBm////78RBaZO////v7kcDBT///+/OjUAAP///79ni1kx////v///hDcAAP//Tv6WlQAA//9F46KpAAD//ymSd6MAAP//Zin//wAA///CBpzfAAD//wAAwZsAAP//EQWmTgAA//+5HAwUAAD//zo1AAAAAP//Z4tZMQAA////f/9//3//f/9//3//f/9//3//f/9//3//f/9//3//f/9//3//f/9//3//f/8//7//P/+//z//v/8//7//P/+//z//v/8//7//P/+//z//v/8//7//P/+/")
+}, {
+"aabb": AABB(-0.18, 0.437, -0.026, 0.254, 0.16599998, 0.052),
+"format": 34896613383,
+"index_count": 108,
+"index_data": PackedByteArray("BQAxAAIABQAzADEAGgA/AB0AGgA9AD8AAwAfAAcAAwAbAB8ACgAyAAQACgA1ADIAHABBACIAHAA+AEEABgAjAAsABgAeACMADAA0AAgADAA2ADQAIABCACQAIABAAEIACQAlAA0ACQAhACUAEAA3AA4AEAA4ADcAJgBEACgAJgBDAEQADwApABEADwAnACkAFgA5ABIAFgA7ADkAKgBHAC4AKgBFAEcAEwAvABcAEwArAC8AAAA6ABQAAAAwADoALAA8ABgALABGADwAFQAZAAEAFQAtABkA"),
+"material": SubResource("StandardMaterial3D_cqtjx"),
+"name": "Forged iron",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 72,
+"vertex_data": PackedByteArray("//+EN03stfX//4Q3Tewi////hDdN7Mz6//+EN03sCsD6/ZaVTexA9Pr9lpVN7Mz6+v2WlU3smvD6/ZaVTewKwLrdoqlN7Cbyut2iqU3s2P663aKpTexA9LrdoqlN7Jrw+Xx3o03sJvL5fHejTezY/vl8d6NN7Gnq+Xx3o03sM+0AAP//JrZp6gAA//8mtjPtHA4AACa2HfgcDgAAJraU9Ol0WTFN7LX16XRZMU3sIv/pdFkxTewd+Ol0WTFN7JT0//+EN7ET18f//4Q3sRMi////hDexE525//+EN7ETCsD6/ZaVsRPdwPr9lpWxE525+v2WlbETmvD6/ZaVsRMKwLrdoqmxEwDcut2iqbET2P663aKpsRPdwLrdoqmxE5rw+Xx3o7ETANz5fHejsRPY/vl8d6OxE8/x+Xx3o7ETM+0AAP//2EnP8QAA///YSTPtHA4AANhJZNAcDgAA2EmU9Ol0WTGxE9fH6XRZMbETIv/pdFkxsRNk0Ol0WTGxE5T0KeeQRP//tfUp55BE///M+njls5H//0D0eOWzkf//zPpgyiSi//8m8mDKJKL//0D0GnkVnf//JvIaeRWd//9p6iAQ9Oj//2nq+hsKF///HfhUcoE///+19VRygT///x34KeeQRAAA18cp55BEAACduXjls5EAAN3AeOWzkQAAnblgyiSiAAAA3GDKJKIAAN3AGnkVnQAAANwaeRWdAADP8SAQ9OgAAM/x+hsKFwAAZNBUcoE/AADXx1RygT8AAGTQfsEzNBp/jL9WR+bCEIT+/9JDGstWR+bCtMLJ+BCE/v8GQW/cXoGvQNJDGsu0wsn4BkFv3F6Br0DPTrzyUsJ3+M9OvPJSwnf4mb/+I4l5M71+wTM0Gn+Mv5m//iOJeTO92o+tkxp/jL/LdiWKEIT+/4tq63bLdiWKtMLJ+BCE/v9XcLReXoGvQItq63a0wsn4V3C0Xl6Br0D8aHpfUsJ3+Pxoel9Swnf4gI7xool5M73aj62TGn+Mv4CO8aKJeTO9fsEzNFZH5sLSQxrLVkfmwgZBb9zSQxrLBkFv3M9OvPLPTrzymb/+I37BMzSZv/4j2o+tk8t2JYqLaut2y3YlildwtF6Laut2V3C0Xvxoel/8aHpfgI7xotqPrZOAjvGi")
+}, {
+"aabb": AABB(-0.229, 0.437, -0.026, 0.07676001, 0.16599998, 0.052),
+"format": 34896613383,
+"index_count": 78,
+"index_data": PackedByteArray("AgAkAAAAAgAlACQAEgAtABQAEgAsAC0AAQAVAAMAAQATABUABgAmAAQABgAnACYAFgAvABgAFgAuAC8ABQAZAAcABQAXABkACAAdAAsACAAaAB0ADgAoAAkADgAqACgAGwAyACAAGwAwADIACgAhAA8ACgAcACEAEAApAAwAEAArACkAHgAzACIAHgAxADMADQAjABEADQAfACMA"),
+"material": SubResource("StandardMaterial3D_i7uqd"),
+"name": "Ground edge",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 52,
+"vertex_data": PackedByteArray("aqP//ya28Pdqo///Jrb5+K4anN8mtvD3rhqc3ya2+fiuGpzfJrY2+a4anN8mtur/AADBmya2NvkAAMGbJrbq/wAAwZsmtvn/AhSmTia2MekCFKZOJrbw/AIUpk4mtvn/ZHEMFCa2cuhkcQwUJrYW+WRxDBQmtjHpZHEMFCa28Pwb0gAAJrZy6BvSAAAmthb5aqP//9hJQtVqo///2En5+K4anN/YSULVrhqc39hJ+fiuGpzf2El52a4anN/YSer/AADBm9hJedkAAMGb2Enq/wAAwZvYSfn/AhSmTthJAeECFKZO2Enw/AIUpk7YSfn/ZHEMFNhJQOBkcQwU2EkW+WRxDBTYSQHhZHEMFNhJ8Pwb0gAA2ElA4BvSAADYSRb5xtj06P//8PfrZWbO///w9+tlZs7//zb5gU/Clv//NvlQYIhX//8x6cGueif//3Lowa56J///Men//woX//9y6MbY9OgAAELV62VmzgAAQtXrZWbOAAB52YFPwpYAAHnZUGCIVwAAAeHBrnonAABA4MGueicAAAHh//8KFwAAQOAqNEnLW5MwSyo0SctbkzBLhsX3Wi26VHWGxfdaLbpUdT4HKDz9xyhRyCEXKT4HKDyxvuowdDbuEP3HKFHIIRcpsb7qMHQ27hD9fDtdW5MwS/18O11bkzBLQJYubi26VHVAli5uLbpUdT4HKDyUnUeHyCEXKT4HKDxElz6VdDbuEJSdR4fIIRcpRJc+lXQ27hAqNEnLKjRJy4bF91qGxfda/ccoUbG+6jD9xyhRsb7qMP18O139fDtdQJYubkCWLm6UnUeHRJc+lZSdR4dElz6V")
+}, {
+"aabb": AABB(-0.229, 0.488, -0.026, 0.02888, 0.049999982, 0.052),
+"format": 34896613383,
+"index_count": 12,
+"index_data": PackedByteArray("AQAEAAAAAQAFAAQAAgAHAAMAAgAGAAcA"),
+"material": SubResource("StandardMaterial3D_ggnfb"),
+"name": "Edge glint",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 8,
+"vertex_data": PackedByteArray("AAD//ya2b/MvNQAAJrZv8wAA///YSVTdLzUAANhJVN1S02jv//9v8///fR3//2/zUtNo7wAAVN3//30dAABU3Y3IcVyNyHFc85uddvObnXaNyHFcjchxXPObnXbzm512")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wmvpr"]
+resource_name = "Hickory grain"
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.44313726, 0.28235295, 0.15294117, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x528i"]
+resource_name = "Oiled hickory"
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.67058825, 0.45882353, 0.3137255, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5ykr8"]
+resource_name = "Hickory highlight"
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.8, 0.58823526, 0.3882353, 1)
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_nnt6l"]
+resource_name = "woodcutting_axe_Hickory handle"
+_surfaces = [{
+"aabb": AABB(-0.045, -0.135, -0.0175, 0.07700001, 0.66499996, 0.035),
+"format": 34896613383,
+"index_count": 108,
+"index_data": PackedByteArray("AAAMAA0ADAAHAAoABwAEAAUABAAAAAIAAAAHAAwABwAAAAQAAQAQAAMAAQAOABAABgAVAAkABgASABUACAAYAAsACAAUABgADwAcABEADwAaABwAEwAjABcAEwAfACMAFgAlABkAFgAiACUAGwApAB0AGwAnACkAHgAvACEAHgArAC8AIAAxACQAIAAuADEAJgA0ACgAJgAyADQAKgA5AC0AKgA2ADkALAA8ADAALAA4ADwAMwA/ADUAMwA+AD8ANwBCADsANwBAAEIAOgBDAD0AOgBBAEMA"),
+"material": SubResource("StandardMaterial3D_wmvpr"),
+"name": "Hickory grain",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 68,
+"vertex_data": PackedByteArray("uegAAP9///+56AAA/3+8/GHQAAB9Jf//YdAAAH0lvPyblQAAAAD//9ZaAAB9Jf//1loAAH0l6tZ+QgAA/3///35CAAD/f6GsfkIAAP9/6tbWWgAAgdr//9ZaAACB2qGsm5UAAP////9h0AAAgdr/////UhH/f7z8//9SEf9/efi05VIRPx68/LTlUhE/Hnn4wmZSET8e6tbCZlIRPx4s1ndMUhH/f6Gsd0xSEf9/6tZ3TFIR/3+aq3dMUhH/fyzWwmZSEb/hoazCZlIRv+GaqxPi+DP/f3n4E+L4M/9/hfmty/gzuix5+K3L+DO6LIX5iV/4M7osJdaJX/gzuiws1iRJ+DP/f4+rJEn4M/9/JdYkSfgz/3+aqyRJ+DP/fyzWiV/4M0TTj6uJX/gzRNOaq83K9YD/fzP5zcr1gP9/hflatvWA+DMz+Vq29YD4M4X5nVP1gPgzwtWdU/WA+DMl1io/9YD/f/eqKj/1gP9/wtUqP/WA/3+Pqyo/9YD/fyXWnVP1gAbM96qdU/WABsyPq+iiptX/fzP56KKm1f9/QvqJi6bVHCkz+YmLptUcKUL6sRqm1RwpwtWxGqbVHCkw1lMDptX/f/eqUwOm1f9/wtVTA6bV/3+gq1MDptX/fzDWsRqm1eLW96qxGqbV4tagqzum////f0L6443//30lQvpYGP//fSUw1gAA////f6CrAAD///9/MNZYGP//gdqgq/9//z8Nxj1v/3//Pw3GPW//f/8//3//P/RvDeP/f/8/enW+2PRvDeP/f/8/enW+2P9//z//f/8/DcY9b4PNOHkNxj1vg804efRvDePNcM3oenW+2PRvDeMUcnbbzXDN6Hp1vtgUcnbbg804eY3LbnaDzTh5jctudtdwGOnNcM3o6HGa29dwGOkUcnbbzXDN6OhxmtsUcnbbIsxAd43LbnYizEB3jctudpVxhe7XcBjp2G5j3pVxhe7ocZrb13AY6dhuY97ocZrbIsxAd0DKqHQizEB3QMqodJVxhe7HcKPo2G5j3pVxhe4scmLbx3Cj6NhuY94scmLbQMqodEDKqHTHcKPoLHJi28dwo+gscmLb")
+}, {
+"aabb": AABB(-0.037677668, -0.135, -0.0189, 0.061769553, 0.66499996, 0.0378),
+"format": 34896613383,
+"index_count": 90,
+"index_data": PackedByteArray("AAAIAAEAAAAGAAgAAgANAAMAAgALAA0ABAARAAUABAAPABEABwAUAAkABwASABQACgAYAAwACgAWABgADgAcABAADgAaABwAEwAgABUAEwAeACAAFwAlABkAFwAjACUAGwApAB0AGwAnACkAHwAsACEAHwAqACwAIgAwACQAIgAuADAAJgA0ACgAJgAyADQAKwA3AC0AKwA2ADcALwA5ADEALwA4ADkAMwA7ADUAMwA6ADsA"),
+"material": SubResource("StandardMaterial3D_x528i"),
+"name": "Oiled hickory",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 60,
+"vertex_data": PackedByteArray("aeUAADEsKvsmnAAAewkq+yacAAB7Cc3241IAADEszfbjUgAAzdMhtSacAACD9iG1//9SEX0lKvv//1IRfSWj99+wUhEAACr737BSEQAAo/ffsFIRAAAk99+wUhEAAM32v2FSEX0lJPe/YVIRfSXN9r9hUhGB2h61v2FSEYHaIbXfsFIR//8etd+wUhH//yG1jd/4M+Uyo/eN3/gz5TKy+Cac+DP2EqP3Jpz4M/YSsvgmnPgz9hIk9yac+DP2EsX2v1j4M+UyJPe/WPgz5TLF9r9Y+DMZzR61v1j4MxnNIbUmnPgzCO0etSac+DMI7SG1+MT1gJo5svj4xPWAmjnT+G2H9YBxHLL4bYf1gHEc0/hth/WAcRwQ9m2H9YBxHMX240n1gJo5EPbjSfWAmjnF9uNJ9YBkxjm140n1gGTGIbVth/WAjeM5tW2H9YCN4yG1mI+m1Ysv0/iYj6bViy9b+UNJptU4DtP4Q0mm1TgOW/lDSabVOA4Q9kNJptU4Dp727gKm1YsvEPbuAqbViy+e9u4CptVz0Dm17gKm1XPQJLVDSabVxvE5tUNJptXG8SS1hpL//zEsW/lDSf//ewlb+UNJ//97CZ72AAD//zEsnvYAAP//zdMktUNJ//+D9iS1DMMcTgzDHE6STDnFkkw5xW5ya5JucmuSDMMcTmvE9EwMwxxOa8T0TK9M48SSTDnFr0zjxJJMOcVJcxyTbnJrkklzHJNucmuSa8T0TBPEZU1rxPRME8RlTa9M48SPTELFr0zjxI9MQsVJcxyTWHJZkklzHJNYclmSE8RlTQjEck0TxGVNCMRyTVlMBMaPTELFWUwExo9MQsWQcOKQWHJZkpBw4pBYclmSCMRyTdXDoU0IxHJN1cOhTVlMBMaDTGrFWUwExoNMasWQcOKQ+HELkpBw4pD4cQuS1cOhTdXDoU2DTGrFg0xqxfhxC5L4cQuS")
+}, {
+"aabb": AABB(-0.045, -0.135, -0.0175, 0.07700001, 0.66499996, 0.036399998),
+"format": 34896613383,
+"index_count": 78,
+"index_data": PackedByteArray("AQAIAAIAAQAGAAgAAwAEAAAAAwAKAAQABwAQAAkABwAOABAACwAMAAUACwASAAwADwAYABEADwAWABgAEwAVAA0AEwAbABUAFwAgABkAFwAeACAAGgAcABQAGgAiABwAHwAuACEAHwAsAC4AIwAlAB0AIwAvACUALQAmACQAJgAoACcAKAAqACkAKgAtACsALQAoACYAKAAtACoA"),
+"material": SubResource("StandardMaterial3D_5ykr8"),
+"name": "Hickory highlight",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 48,
+"vertex_data": PackedByteArray("uegAABN7SfOblQAAJvYyzGHQAAAa0jLMYdAAABrSSfP//1IRE3tJ8///UhETexP3O6ZSEf//Msw7plIR//8BzbTlUhEQ2TLMtOVSERDZAc205VIRENlJ87TlUhEQ2RP3E+L4MxN7E/cT4vgzE3so9puV+DNN7AHNm5X4M03sqsyty/gzI8sBza3L+DMjy6rMrcv4MyPLE/ety/gzI8so9s3K9YATe3D2zcr1gBN7KPb8hPWAdeKqzPyE9YB14qHMWrb1gC3EqsxatvWALcShzFq29YAtxHD2Wrb1gC3EKPbooqbVE3tw9uiiptUTe4P1HVOm1TrxocwdU6bVOvF+zImLptWfzqHMiYum1Z/OfsyJi6bVn85w9omLptWfzoP1O6b//xN7//87pv//E3uD9eON//8MJP//HVP//wAA//9YGP//DCT//wAA//8Te///WBj//xrS//8dU///Jvb//x1T//8m9n7M443//xrS///jjf//GtJ+zOON//8a0oP1d6jwcReM/nEXjP5xd6jwcXeo8HFUrsR+F4z+cWeQoHcXjP5xZ5Cgd3eo8HFUrsR+VK7EfuisTntnkKB3IY/odWeQoHchj+h1VK7EfuisTntXrVV86KxOeyGP6HX4jrJ1IY/odfiOsnVXrVV86KxOe1etVXzpqwh5+I6ydVOO2XT4jrJ1U47ZdFetVXzpqwh5/3//v+mrCHn/f/+//3//v/9//7//f/+//3//v/9//79Tjtl0/3//v1OO2XTpqwh5")
+}]
+blend_shape_mode = 0
+
+[node name="WoodcuttingAxe" type="Node3D" unique_id=404638109]
+
+[node name="Flared forged head" type="MeshInstance3D" parent="." unique_id=1243052320]
+mesh = SubResource("ArrayMesh_tp6tw")
+
+[node name="Hickory handle" type="MeshInstance3D" parent="." unique_id=355734747]
+mesh = SubResource("ArrayMesh_nnt6l")

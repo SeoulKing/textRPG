@@ -1,0 +1,457 @@
+{
+  "alpha_policy": "Original source alpha retained, including partial alpha.",
+  "character_proportion_heads": 3,
+  "character_target_canvas": [
+    96,
+    136
+  ],
+  "direction_order": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "directions": {
+    "e": {
+      "joint_state": "authoring reference pending whole-character assembly",
+      "joints": {
+        "ankle": [
+          23.2633335192998,
+          41.3599991649389
+        ],
+        "hip": [
+          24.0,
+          8.39999990165234
+        ],
+        "knee": [
+          24.2100001648068,
+          28.7999994456768
+        ]
+      },
+      "png": "res://art/characters/hybrid-v1/legs/e/leg.png",
+      "png_sha256": "981670f68e17f658b8537dc2bfa7d0a1be0a1129901ee7e1c8d82cac8b3893ea",
+      "source_joints": {
+        "ankle": [
+          88.8888888888889,
+          467
+        ],
+        "hip": [
+          101.166666666667,
+          55
+        ],
+        "knee": [
+          104.666666666667,
+          310
+        ]
+      },
+      "source_pixels_match": true,
+      "source_rect": [
+        1392,
+        120,
+        203,
+        500
+      ],
+      "texture_rect": [
+        17.9300003051758,
+        4.0,
+        12.1799993515015,
+        40.0
+      ],
+      "texture_size": [
+        203,
+        500
+      ]
+    },
+    "n": {
+      "joint_state": "authoring reference pending whole-character assembly",
+      "joints": {
+        "ankle": [
+          23.923332830891,
+          41.3599991649389
+        ],
+        "hip": [
+          24.0,
+          8.39999990165234
+        ],
+        "knee": [
+          23.8233328331262,
+          28.7999994456768
+        ]
+      },
+      "png": "res://art/characters/hybrid-v1/legs/n/leg.png",
+      "png_sha256": "798885f12b8545dba5219a0e75f5e2158c292a64a0954b72c0b30c2bcb8b12ea",
+      "source_joints": {
+        "ankle": [
+          109.166666666667,
+          467
+        ],
+        "hip": [
+          110.444444444444,
+          55
+        ],
+        "knee": [
+          107.5,
+          310
+        ]
+      },
+      "source_pixels_match": true,
+      "source_rect": [
+        861,
+        120,
+        219,
+        500
+      ],
+      "texture_rect": [
+        17.3733329772949,
+        4.0,
+        13.1399993896484,
+        40.0
+      ],
+      "texture_size": [
+        219,
+        500
+      ]
+    },
+    "ne": {
+      "joint_state": "authoring reference pending whole-character assembly",
+      "joints": {
+        "ankle": [
+          21.0266659005235,
+          41.3599991649389
+        ],
+        "hip": [
+          24.0,
+          8.39999990165234
+        ],
+        "knee": [
+          22.7666658616314,
+          28.7999994456768
+        ]
+      },
+      "png": "res://art/characters/hybrid-v1/legs/ne/leg.png",
+      "png_sha256": "d5a6cf902eda9ee4284fb7a8f4082860a30fd942e0605931fc23ea45b1cf1617",
+      "source_joints": {
+        "ankle": [
+          59.2777777777778,
+          467
+        ],
+        "hip": [
+          108.833333333333,
+          55
+        ],
+        "knee": [
+          88.2777777777778,
+          310
+        ]
+      },
+      "source_pixels_match": true,
+      "source_rect": [
+        1127,
+        120,
+        222,
+        500
+      ],
+      "texture_rect": [
+        17.4699993133545,
+        4.0,
+        13.3199996948242,
+        40.0
+      ],
+      "texture_size": [
+        222,
+        500
+      ]
+    },
+    "nw": {
+      "joint_state": "authoring reference pending whole-character assembly",
+      "joints": {
+        "ankle": [
+          26.8533328647415,
+          41.3599991649389
+        ],
+        "hip": [
+          24.0,
+          8.39999990165234
+        ],
+        "knee": [
+          25.3966662306339,
+          28.7999994456768
+        ]
+      },
+      "png": "res://art/characters/hybrid-v1/legs/nw/leg.png",
+      "png_sha256": "37a9be6f372379543324f65a7a8cda2f7849db9de339119682adcf6783ef21e6",
+      "source_joints": {
+        "ankle": [
+          159.777777777778,
+          467
+        ],
+        "hip": [
+          112.222222222222,
+          55
+        ],
+        "knee": [
+          135.5,
+          310
+        ]
+      },
+      "source_pixels_match": true,
+      "source_rect": [
+        589,
+        120,
+        221,
+        500
+      ],
+      "texture_rect": [
+        17.2666664123535,
+        4.0,
+        13.2599992752075,
+        40.0
+      ],
+      "texture_size": [
+        221,
+        500
+      ]
+    },
+    "s": {
+      "joint_state": "authoring reference pending whole-character assembly",
+      "joints": {
+        "ankle": [
+          23.9233326017857,
+          41.3599991649389
+        ],
+        "hip": [
+          24.0,
+          8.39999990165234
+        ],
+        "knee": [
+          23.7533326055855,
+          28.7999994456768
+        ]
+      },
+      "png": "res://art/characters/hybrid-v1/legs/s/leg.png",
+      "png_sha256": "79ee918d57d7fcbb0ae2f9cbddd8b5c88d296f2c332b5e5edee912cdecde59f9",
+      "source_joints": {
+        "ankle": [
+          109.333333333333,
+          467
+        ],
+        "hip": [
+          110.611111111111,
+          55
+        ],
+        "knee": [
+          106.5,
+          310
+        ]
+      },
+      "source_pixels_match": true,
+      "source_rect": [
+        1895,
+        120,
+        218,
+        500
+      ],
+      "texture_rect": [
+        17.3633327484131,
+        4.0,
+        13.0799999237061,
+        40.0
+      ],
+      "texture_size": [
+        218,
+        500
+      ]
+    },
+    "se": {
+      "joint_state": "authoring reference pending whole-character assembly",
+      "joints": {
+        "ankle": [
+          23.790000502641,
+          41.3599991649389
+        ],
+        "hip": [
+          24.0,
+          8.39999990165234
+        ],
+        "knee": [
+          26.6666671050092,
+          28.7999994456768
+        ]
+      },
+      "png": "res://art/characters/hybrid-v1/legs/se/leg.png",
+      "png_sha256": "bfec4eeeaaac71f259c67a33a8ffa64c2ec42c75fe46e8ba783869ea1c7a193b",
+      "source_joints": {
+        "ankle": [
+          99.2777777777778,
+          467
+        ],
+        "hip": [
+          102.777777777778,
+          55
+        ],
+        "knee": [
+          147.222222222222,
+          310
+        ]
+      },
+      "source_pixels_match": true,
+      "source_rect": [
+        1637,
+        120,
+        221,
+        500
+      ],
+      "texture_rect": [
+        17.8333339691162,
+        4.0,
+        13.2599992752075,
+        40.0
+      ],
+      "texture_size": [
+        221,
+        500
+      ]
+    },
+    "sw": {
+      "joint_state": "authoring reference pending whole-character assembly",
+      "joints": {
+        "ankle": [
+          22.8899995920559,
+          41.3599991649389
+        ],
+        "hip": [
+          24.0,
+          8.39999990165234
+        ],
+        "knee": [
+          20.2766663171351,
+          28.7999994456768
+        ]
+      },
+      "png": "res://art/characters/hybrid-v1/legs/sw/leg.png",
+      "png_sha256": "d3e873f3d7447756ed9010859760628455b8f45368ec4803ff9f3592d3cc4ecd",
+      "source_joints": {
+        "ankle": [
+          114.555555555556,
+          467
+        ],
+        "hip": [
+          133.055555555556,
+          55
+        ],
+        "knee": [
+          71.0,
+          310
+        ]
+      },
+      "source_pixels_match": true,
+      "source_rect": [
+        69,
+        120,
+        224,
+        500
+      ],
+      "texture_rect": [
+        16.0166664123535,
+        4.0,
+        13.4399995803833,
+        40.0
+      ],
+      "texture_size": [
+        224,
+        500
+      ]
+    },
+    "w": {
+      "joint_state": "authoring reference pending whole-character assembly",
+      "joints": {
+        "ankle": [
+          24.5500004608184,
+          41.3599991649389
+        ],
+        "hip": [
+          24.0,
+          8.39999990165234
+        ],
+        "knee": [
+          23.7133338128527,
+          28.7999994456768
+        ]
+      },
+      "png": "res://art/characters/hybrid-v1/legs/w/leg.png",
+      "png_sha256": "8c30d417d0ea6bf23581f2a4f73f68912b3a4b5c0efd4d0feb2f035b49ef5c7b",
+      "source_joints": {
+        "ankle": [
+          111.5,
+          467
+        ],
+        "hip": [
+          102.333333333333,
+          55
+        ],
+        "knee": [
+          97.5555555555555,
+          310
+        ]
+      },
+      "source_pixels_match": true,
+      "source_rect": [
+        339,
+        120,
+        202,
+        500
+      ],
+      "texture_rect": [
+        17.8600006103516,
+        4.0,
+        12.1199998855591,
+        40.0
+      ],
+      "texture_size": [
+        202,
+        500
+      ]
+    }
+  },
+  "display_scale_xy": [
+    0.0599999986588955,
+    0.0799999982118607
+  ],
+  "input": "user_uploaded_attachment",
+  "logical_canvas_size": [
+    48,
+    48
+  ],
+  "outline_owner": "source texture only; no generated or additional outline",
+  "part": "whole_leg",
+  "reference": "reference.png",
+  "reference_sha256": "5fd0d5c349817729ca95b4ba5968029c72c477a28017607c44bad49e4f1d2d40",
+  "render_method": "One Polygon2D texture with two weighted Bone2D joints per whole leg",
+  "runtime_connected": false,
+  "scale_semantics": "Logical Polygon2D geometry only; original full-resolution texture pixels remain unchanged.",
+  "schema_version": 1,
+  "sheet_order": [
+    "sw",
+    "w",
+    "nw",
+    "n",
+    "ne",
+    "e",
+    "se",
+    "s"
+  ],
+  "source_order_policy": "Same SW W NW N NE E SE S order as the preceding uploaded pelvis/boot sheets; the current sheet has no labels.",
+  "source_size": [
+    2172,
+    724
+  ],
+  "texture_policy": "Exact RGBA source subrect per whole leg. No thigh/shin split, redraw, resampling, color quantization or alpha normalization.",
+  "user_art_approval": "approved",
+  "character_id": "hybrid-v1",
+  "appearance_approved_on": "2026-11-05",
+  "runtime_verified": false
+}

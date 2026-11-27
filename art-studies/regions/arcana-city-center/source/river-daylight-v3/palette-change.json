@@ -1,0 +1,41 @@
+{
+  "after": [
+    "326f8cff",
+    "46829dff",
+    "47829dff",
+    "437f9aff",
+    "44809bff",
+    "48849fff",
+    "4a86a0ff",
+    "5691aaff",
+    "5792abff",
+    "5b96aeff",
+    "45819cff",
+    "4c87a2ff",
+    "4b87a1ff",
+    "4e8aa4ff",
+    "548fa9ff",
+    "518da6ff",
+    "609ab2ff"
+  ],
+  "before": [
+    "000000ff",
+    "002b61ff",
+    "002d65ff",
+    "002453ff",
+    "002656ff",
+    "01316dff",
+    "013575ff",
+    "174fa1ff",
+    "1a52a5ff",
+    "275aa6ff",
+    "00285bff",
+    "013a7eff",
+    "00387aff",
+    "053f86ff",
+    "124c99ff",
+    "0d4690ff",
+    "3a64a6ff"
+  ],
+  "shapePixelsPreserved": true
+}

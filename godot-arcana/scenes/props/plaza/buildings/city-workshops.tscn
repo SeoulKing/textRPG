@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/9650c37bd7124659233b0bc32c5acc2dfaf87adfcc8cd5904365ad2b765911b0.res" id="14_sdsn2"]
+[node name="workshops_01" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "city-workshops"
+collision_parts = Array[Rect2]([Rect2(-59.2, -41.6, 118.40001, 41.6)])
+source_path = "CityDistrict/Housing/workshops_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+position = Vector2(206, 94)
+texture = ExtResource("14_sdsn2")
+centered = false
+offset = Vector2(-260, -441)
+region_rect = Rect2(0, 0, 520, 445)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(520, 445)
+

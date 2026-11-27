@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "realm": "arcana",
+  "items": {
+    "travelShirt": {
+      "category": "apparel",
+      "equipmentSlot": "top",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/travel-shirt.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/travel-shirt.pxpen"
+      }
+    },
+    "apprenticeShirt": {
+      "category": "apparel",
+      "equipmentSlot": "top",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/apprentice-shirt.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/apprentice-shirt.pxpen"
+      }
+    },
+    "travelTrousers": {
+      "category": "apparel",
+      "equipmentSlot": "bottom",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/travel-trousers.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/travel-trousers.pxpen"
+      }
+    },
+    "travelBoots": {
+      "category": "apparel",
+      "equipmentSlot": "feet",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/travel-boots.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/travel-boots.pxpen"
+      }
+    },
+    "silverPendant": {
+      "category": "accessory",
+      "equipmentSlot": "necklace",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/silver-pendant.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/silver-pendant.pxpen"
+      }
+    },
+    "moonlightNecklace": {
+      "category": "accessory",
+      "equipmentSlot": "necklace",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/moonlight-necklace.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/moonlight-necklace.pxpen"
+      }
+    },
+    "bronzeRing": {
+      "category": "accessory",
+      "equipmentSlot": "ring",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/bronze-ring.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/bronze-ring.pxpen"
+      }
+    },
+    "silverRing": {
+      "category": "accessory",
+      "equipmentSlot": "ring",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/silver-ring.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/silver-ring.pxpen"
+      }
+    },
+    "silverEarrings": {
+      "category": "accessory",
+      "equipmentSlot": "earrings",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/silver-earrings.png",
+        "source": "godot-arcana/art/source/items/equipment-v1/silver-earrings.pxpen"
+      }
+    },
+    "emergencySnack": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/emergency-snack.png",
+        "source": "godot-arcana/art/source/items/emergency-snack-v1/emergency-snack.pxpen"
+      }
+    },
+    "fishingRod": {
+      "category": "life_tool",
+      "equipmentSlot": "lifeTool",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/fishing-rod.png",
+        "source": "godot-arcana/art/source/items/fishing-rod-mystic-v1/fishing-rod.pxpen"
+      }
+    },
+    "woodcutting_axe": {
+      "category": "life_tool",
+      "equipmentSlot": "mainHand",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/woodcutting-axe.png",
+        "source": "godot-arcana/art/source/items/woodcutting-axe-v1/woodcutting-axe.pxpen"
+      }
+    },
+    "riverFish": {
+      "category": "ingredient",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/river-fish.png",
+        "source": "godot-arcana/art/source/items/inventory-v1/river-fish.pxpen"
+      }
+    },
+    "grilledFish": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-fish.png"
+      }
+    },
+    "grilledFishFine": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-fish.png"
+      }
+    },
+    "grilledFishExcellent": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-fish.png"
+      }
+    },
+    "wood": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/wood.png",
+        "source": "godot-arcana/art/source/items/inventory-v1/wood.pxpen"
+      }
+    },
+    "campfire": {
+      "category": "placeable",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/campfire.png",
+        "source": "godot-arcana/art/source/items/crafting-v1/campfire.pxpen"
+      }
+    },
+    "campfireFine": {
+      "category": "placeable",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/campfire.png",
+        "source": "godot-arcana/art/source/items/crafting-v1/campfire.pxpen"
+      }
+    },
+    "campfireExcellent": {
+      "category": "placeable",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/campfire.png",
+        "source": "godot-arcana/art/source/items/crafting-v1/campfire.pxpen"
+      }
+    },
+    "manaPotion": {
+      "category": "potion",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/mana-potion.png"
+      }
+    },
+    "moonHerb": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/moon-herb.png"
+      }
+    },
+    "manaShard": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/mana-shard.png"
+      }
+    },
+    "arcaneDust": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/arcane-dust.png"
+      }
+    },
+    "slimeMucus": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/slime-mucus.png",
+        "source": "godot-arcana/art/source/items/slime-mucus-v1/slime-mucus.pxpen"
+      }
+    },
+    "runeCompass": {
+      "category": "tool",
+      "thumbnail": {
+        "status": "missing"
+      }
+    },
+    "mushroom": {
+      "category": "ingredient",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/mushroom.png",
+        "source": "godot-arcana/art/source/items/cooking-food-v2/mushroom.pxpen"
+      }
+    },
+    "potato": {
+      "category": "ingredient",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/potato.png",
+        "source": "godot-arcana/art/source/items/cooking-food-v2/potato.pxpen"
+      }
+    },
+    "rawMeat": {
+      "category": "ingredient",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/raw-meat.png",
+        "source": "godot-arcana/art/source/items/cooking-food-v2/raw-meat.pxpen"
+      }
+    },
+    "treeBranch": {
+      "category": "material",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/tree-branch.png",
+        "source": "godot-arcana/art/source/items/cooking-food-v2/tree-branch.pxpen"
+      }
+    },
+    "grilledMushroom": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-mushroom.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/grilled-mushroom.pxpen"
+      }
+    },
+    "grilledMushroomFine": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-mushroom.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/grilled-mushroom.pxpen"
+      }
+    },
+    "grilledMushroomExcellent": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/grilled-mushroom.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/grilled-mushroom.pxpen"
+      }
+    },
+    "roastedPotato": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/roasted-potato.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/roasted-potato.pxpen"
+      }
+    },
+    "roastedPotatoFine": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/roasted-potato.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/roasted-potato.pxpen"
+      }
+    },
+    "roastedPotatoExcellent": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/roasted-potato.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/roasted-potato.pxpen"
+      }
+    },
+    "meatSkewer": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/meat-skewer.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/meat-skewer.pxpen"
+      }
+    },
+    "meatSkewerFine": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/meat-skewer.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/meat-skewer.pxpen"
+      }
+    },
+    "meatSkewerExcellent": {
+      "category": "food",
+      "thumbnail": {
+        "status": "ready",
+        "path": "res://art/export/items/meat-skewer.png",
+        "source": "godot-arcana/art/source/items/cooking-food-reference-v1/meat-skewer.pxpen"
+      }
+    }
+  }
+}

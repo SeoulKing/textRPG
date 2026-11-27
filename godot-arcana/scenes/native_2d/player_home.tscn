@@ -1,0 +1,170 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/1b9b0e0a9b459fa8aa60e166c2386e6305e9cb65f646e526e7c0e036a4cad220.res" id="floor"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/architecture/inn-wall-solid.tscn" id="wall"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/architecture/entrancethreshold.tscn" id="threshold"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/lighting/inn-fireplace.tscn" id="hearth"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/tables/inn-counter.tscn" id="counter"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/seating/inn-corner-sofa.tscn" id="sofa"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/tables/inn-tea-table.tscn" id="table"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/rugs/loungerug.tscn" id="rug"]
+[ext_resource type="PackedScene" path="res://scenes/props/shared/beds/bed_single_2d.tscn" id="bed"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/adb6db9ed109e0baf359bb599efb94b5df0b46d426dd7b75f5548b9c19998312.res" id="partition"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/storage/inn-bookcase.tscn" id="cabinet"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/lighting/inn-lantern.tscn" id="lantern"]
+[ext_resource type="PackedScene" path="res://scenes/props/inn/rugs/entrancerug.tscn" id="entrance_rug"]
+[ext_resource type="Texture2D" path="res://art/export/items/roasted-potato.png" id="roast"]
+[ext_resource type="Texture2D" path="res://art/export/items/grilled-fish.png" id="fish"]
+
+[node name="PlayerHome" type="Node2D"]
+texture_filter = 1
+metadata/layout_schema = 1
+
+[node name="Floor" type="Sprite2D" parent="."]
+z_index = -30
+texture = ExtResource("floor")
+centered = false
+offset = Vector2(192, 256)
+
+[node name="Bounds" type="Node2D" parent="."]
+metadata/layout_collisions = [Rect2(0, 0, 1536, 256), Rect2(0, 256, 192, 1056), Rect2(1344, 256, 192, 1056), Rect2(0, 1056, 1536, 256), Rect2(686, 256, 48, 290), Rect2(876, 256, 48, 290)]
+
+[node name="Wall1" parent="." instance=ExtResource("wall")]
+position = Vector2(326.4, 256)
+[node name="Wall2" parent="." instance=ExtResource("wall")]
+position = Vector2(595.2, 256)
+[node name="Wall3" parent="." instance=ExtResource("wall")]
+position = Vector2(864, 256)
+[node name="Wall4" parent="." instance=ExtResource("wall")]
+position = Vector2(1132.8, 256)
+
+[node name="KitchenSideWall" type="Sprite2D" parent="."]
+position = Vector2(710, 256)
+rotation = 1.5707963
+texture = ExtResource("partition")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 290, 48)
+offset = Vector2(0, -24)
+
+[node name="BedroomSideWall" type="Sprite2D" parent="."]
+position = Vector2(900, 256)
+rotation = 1.5707963
+texture = ExtResource("partition")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 290, 48)
+offset = Vector2(0, -24)
+
+[node name="KitchenPartitionLeft" type="Sprite2D" parent="."]
+position = Vector2(192, 570)
+texture = ExtResource("partition")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 178, 48)
+offset = Vector2(0, -48)
+metadata/layout_collisions = [Rect2(0, -24, 178, 48)]
+
+[node name="KitchenPartitionRight" type="Sprite2D" parent="."]
+position = Vector2(500, 570)
+texture = ExtResource("partition")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 210, 48)
+offset = Vector2(0, -48)
+metadata/layout_collisions = [Rect2(0, -24, 210, 48)]
+
+[node name="BedroomPartitionLeft" type="Sprite2D" parent="."]
+position = Vector2(900, 570)
+texture = ExtResource("partition")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 90, 48)
+offset = Vector2(0, -48)
+metadata/layout_collisions = [Rect2(0, -24, 90, 48)]
+
+[node name="BedroomPartitionRight" type="Sprite2D" parent="."]
+position = Vector2(1120, 570)
+texture = ExtResource("partition")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 224, 48)
+offset = Vector2(0, -48)
+metadata/layout_collisions = [Rect2(0, -24, 224, 48)]
+
+[node name="KitchenThreshold" parent="." instance=ExtResource("threshold")]
+z_index = -29
+position = Vector2(435, 580)
+offset = Vector2(-65, -6)
+region_enabled = true
+region_rect = Rect2(0, 0, 130, 24)
+
+[node name="BedroomThreshold" parent="." instance=ExtResource("threshold")]
+z_index = -29
+position = Vector2(1055, 580)
+offset = Vector2(-65, -6)
+region_enabled = true
+region_rect = Rect2(0, 0, 130, 24)
+
+[node name="KitchenCabinet" parent="." instance=ExtResource("cabinet")]
+position = Vector2(1240, 400)
+
+[node name="BedroomLamp" parent="." instance=ExtResource("lantern")]
+position = Vector2(960, 300)
+
+[node name="LoungeRug" parent="." instance=ExtResource("rug")]
+z_index = -29
+position = Vector2(450, 825)
+
+[node name="EntranceRug" parent="." instance=ExtResource("entrance_rug")]
+z_index = -29
+position = Vector2(790, 950)
+
+[node name="KitchenHearth" parent="." instance=ExtResource("hearth")]
+position = Vector2(340, 400)
+metadata/interaction_id = "home_kitchen"
+metadata/layout_entity = {"id": "home_kitchen", "kind": "home_kitchen", "name": "요리하기", "pos": Vector2(0, 64), "interaction_radius": 26.0}
+
+[node name="KitchenCounter" parent="." instance=ExtResource("counter")]
+position = Vector2(580, 400)
+
+[node name="RoastedPotato" type="Sprite2D" parent="."]
+position = Vector2(570, 288)
+texture = ExtResource("roast")
+metadata/foot = Vector2(0, 0)
+
+[node name="GrilledFish" type="Sprite2D" parent="."]
+position = Vector2(625, 288)
+texture = ExtResource("fish")
+metadata/foot = Vector2(0, 0)
+
+[node name="Bed" parent="." instance=ExtResource("bed")]
+position = Vector2(1110, 530)
+metadata/layout_collisions = [Rect2(-32, -136, 64, 136)]
+metadata/layout_entity = {"id": "home_bed", "kind": "home_bed", "name": "잠자기", "pos": Vector2(-88, -20), "interaction_radius": 26.0}
+[node name="Artwork" parent="Bed" index="0"]
+metadata/foot = Vector2(0, 78)
+metadata/interaction_id = "home_bed"
+
+[node name="Sofa" parent="." instance=ExtResource("sofa")]
+position = Vector2(450, 800)
+metadata/interaction_id = "home_sofa"
+metadata/layout_entity = {"id": "home_sofa", "kind": "home_sofa", "name": "쉬거나 식사하기", "pos": Vector2(30, 48), "interaction_radius": 26.0, "seat_room": "arcana_home", "seat_name": "소파", "seat_visual": Vector2(30, -59)}
+
+[node name="CraftTable" parent="." instance=ExtResource("table")]
+position = Vector2(845, 720)
+metadata/interaction_id = "home_table"
+metadata/layout_entity = {"id": "home_table", "kind": "home_table", "name": "제작하기", "pos": Vector2(0, 64), "interaction_radius": 26.0}
+
+[node name="Door" parent="." instance=ExtResource("threshold")]
+z_index = -28
+position = Vector2(768, 1030)
+offset = Vector2(-96, -6)
+metadata/interaction_id = "home_door"
+metadata/layout_entity = {"id": "home_door", "kind": "home_door", "name": "집에서 나가기", "pos": Vector2(0, -54), "interaction_radius": 26.0}
+
+[node name="Arrival" type="Marker2D" parent="."]
+position = Vector2(768, 900)
+metadata/layout_marker = "Arrival"
+
+[editable path="Bed"]

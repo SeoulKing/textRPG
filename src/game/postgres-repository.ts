@@ -1,19 +1,20 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { createDatabasePool } from "../db/pool";
 import type { GameSession, ProtagonistCard, TemplateStore } from "./schemas";
 import type { AuthUser, AuthUserInput, CardKind, GameRepository, ManualSaveRecord, StoredCard } from "./repository";
 import { buildManualSaveInfo, emptyTemplateStore, normalizeGameSession, normalizeTemplateStore } from "./repository";
 
 export class PostgresGameRepository implements GameRepository {
   private readonly pool: Pool;
+  private readonly lockPool: Pool;
   private readonly schemaPath: string;
 
   constructor(databaseUrl: string, rootDir: string) {
-    this.pool = new Pool({
-      connectionString: databaseUrl,
-      ssl: databaseUrl.includes("supabase.co") ? { rejectUnauthorized: false } : undefined,
-    });
+    this.pool = createDatabasePool(databaseUrl);
+    // Lock waiters must not consume the connections used to load/save games.
+    this.lockPool = createDatabasePool(databaseUrl, { max: 4 });
     this.schemaPath = path.join(rootDir, "src", "db", "schema.sql");
   }
 
@@ -27,6 +28,30 @@ export class PostgresGameRepository implements GameRepository {
        on conflict (kind, template_id) do nothing`,
       ["__meta__", "bootstrap", JSON.stringify(emptyTemplateStore)],
     );
+  }
+
+  async withGameLock<T>(gameId: string, operation: () => Promise<T>) {
+    const client = await this.lockPool.connect();
+    let transactionOpen = false;
+    try {
+      await client.query("begin");
+      transactionOpen = true;
+      await client.query(
+        "select pg_advisory_xact_lock(hashtextextended($1::text, 0))",
+        [gameId],
+      );
+      const result = await operation();
+      await client.query("commit");
+      transactionOpen = false;
+      return result;
+    } catch (error) {
+      if (transactionOpen) {
+        await client.query("rollback").catch(() => undefined);
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async saveGame(session: GameSession) {

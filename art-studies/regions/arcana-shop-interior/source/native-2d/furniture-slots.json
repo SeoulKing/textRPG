@@ -1,0 +1,206 @@
+{
+  "canvas": [
+    960,
+    480
+  ],
+  "slots": [
+    {
+      "id": "herb-cabinet",
+      "x": 32,
+      "y": 32,
+      "size": [
+        128,
+        224
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 136,
+        "roofBackY": 39,
+        "roofFrontY": 84,
+        "baseline": 220,
+        "verticalEdges": [
+          0,
+          127
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/herb-cabinet.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    },
+    {
+      "id": "potion-cabinet",
+      "x": 224,
+      "y": 32,
+      "size": [
+        128,
+        224
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 136,
+        "roofBackY": 39,
+        "roofFrontY": 84,
+        "baseline": 220,
+        "verticalEdges": [
+          0,
+          127
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/potion-arch.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    },
+    {
+      "id": "travel-cabinet",
+      "x": 416,
+      "y": 32,
+      "size": [
+        128,
+        224
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 136,
+        "roofBackY": 39,
+        "roofFrontY": 84,
+        "baseline": 220,
+        "verticalEdges": [
+          0,
+          127
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/travel-cabinet.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    },
+    {
+      "id": "counter",
+      "x": 624,
+      "y": 128,
+      "size": [
+        256,
+        160
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 45,
+        "roofBackY": 66,
+        "roofFrontY": 111,
+        "baseline": 156,
+        "verticalEdges": [
+          0,
+          255
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/counter.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    },
+    {
+      "id": "apothecary-bench",
+      "x": 32,
+      "y": 320,
+      "size": [
+        192,
+        160
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 45,
+        "roofBackY": 66,
+        "roofFrontY": 111,
+        "baseline": 156,
+        "verticalEdges": [
+          0,
+          191
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/apothecary-bench-v2.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    },
+    {
+      "id": "potion-island",
+      "x": 288,
+      "y": 320,
+      "size": [
+        96,
+        160
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 45,
+        "roofBackY": 66,
+        "roofFrontY": 111,
+        "baseline": 156,
+        "verticalEdges": [
+          0,
+          95
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/potion-island.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    },
+    {
+      "id": "travel-island",
+      "x": 448,
+      "y": 320,
+      "size": [
+        96,
+        160
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 45,
+        "roofBackY": 66,
+        "roofFrontY": 111,
+        "baseline": 156,
+        "verticalEdges": [
+          0,
+          95
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/travel-island.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    },
+    {
+      "id": "travel-stock",
+      "x": 624,
+      "y": 320,
+      "size": [
+        128,
+        128
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 34,
+        "roofBackY": 45,
+        "roofFrontY": 90,
+        "baseline": 124,
+        "verticalEdges": [
+          0,
+          127
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/travel-stock-v2.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    },
+    {
+      "id": "luggage",
+      "x": 800,
+      "y": 320,
+      "size": [
+        96,
+        128
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 34,
+        "roofBackY": 45,
+        "roofFrontY": 90,
+        "baseline": 124,
+        "verticalEdges": [
+          0,
+          95
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/travel-stock-v2.png",
+        "materialMapping": "uniform cover crop, not anisotropic sprite scaling"
+      }
+    }
+  ]
+}

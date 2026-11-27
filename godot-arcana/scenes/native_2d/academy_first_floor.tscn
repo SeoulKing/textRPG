@@ -1,0 +1,955 @@
+[gd_scene load_steps=44 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/e85f2e40c16baa014bce12dfef22dbd0f56c5baf254099a058b81e44fd8d219f.res" id="3_li5qq"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/9675174401c22d1d25432955dffa8152ee727777eaa2f533e9d6c4b586ad5333.res" id="4_x3kem"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/b46b0c891a40b5a68c54559c93930a1245df9144f9c61c66e5c2cb69a8595bba.res" id="5_o6x51"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/b9a6bee8ad9814fec825d4f5f34140dcb845ff56079602bf2f50508c39d60c0a.res" id="6_ioeqt"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/c4cb53be7bfb983603b1efb1ae6d7d20f0089d776ac9690254cf94311bffd638.res" id="8_obgwy"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4d352656e8eaef0cb80ff6393f6ad3466ebe34bd441a6b73799bd31e64fac53b.res" id="9_evbsj"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/f95f195b0f17cf7c8f0118f4dbec202c8f4f5b0f7ecf4b2fd8f7744f95135d79.res" id="10_hjte5"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/bf04ec141161257927ecedf89fba7af566ee6091f06ecc79fdbd2e95e4397f9c.res" id="11_1voub"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-first-floor/architecture/academy-stairs-up.tscn" id="prop_library_2"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-first-floor/storage/academy-bookcase.tscn" id="prop_library_3"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-first-floor/tables/academy-desk.tscn" id="prop_library_4"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-first-floor/decoration/academy-blackboard.tscn" id="prop_library_5"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-first-floor/tables/academy-reading-table.tscn" id="prop_library_7"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-first-floor/storage/academy-book-trolley.tscn" id="prop_library_8"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-first-floor/lighting/academy-floor-lamp.tscn" id="prop_library_9"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-first-floor/seating/academy-bench.tscn" id="prop_library_10"]
+[ext_resource type="Script" path="res://scripts/native_2d_academy_lighting.gd" id="academy_lighting"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-shared/lighting/study-light.tscn" id="study_light"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-shared/storage/reagent-cabinet.tscn" id="reagent_cabinet"]
+[ext_resource type="PackedScene" path="res://scenes/props/academy-shared/tables/specimen-stand.tscn" id="specimen_stand"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/armchair.png" id="new_armchair"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/banner.png" id="new_banner"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/cauldron.png" id="new_cauldron"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/crystal.png" id="new_crystal"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/medallion.png" id="new_medallion"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/office-rug.png" id="new_office-rug"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/runner.png" id="new_runner"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/window.png" id="new_window"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/hall-flagstones.png" id="mat_hall-flagstones"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/practice-slate.png" id="mat_practice-slate"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/room-floorboards.png" id="mat_room-floorboards"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/coping-horizontal.png" id="mat_coping-horizontal"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/coping-west.png" id="mat_coping-west"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/coping-east.png" id="mat_coping-east"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/coping-partition-west.png" id="mat_coping-partition-west"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/coping-partition-east.png" id="mat_coping-partition-east"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/back-wall-inner-face.png" id="mat_back-wall-inner-face"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/front-wall-dark-face.png" id="mat_front-wall-dark-face"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/wood-threshold.png" id="mat_wood-threshold"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/stone-threshold.png" id="mat_stone-threshold"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/entry-threshold.png" id="mat_entry-threshold"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/corner-coping.png" id="mat_corner-coping"]
+[ext_resource type="Texture2D" path="res://art/export/academy-interior/first-floor/detail-materials/door-end-cap.png" id="mat_door-end-cap"]
+
+[node name="AcademyFirstFloor2D" type="Node2D"]
+script = ExtResource("academy_lighting")
+texture_filter = 1
+metadata/layout_schema = 1
+
+[node name="VoidBackground" type="Polygon2D" parent="."]
+z_index = -4096
+polygon = PackedVector2Array(-4096, -4096, 4096, -4096, 4096, 4096, -4096, 4096)
+color = Color(0, 0, 0, 1)
+
+[node name="Floors" type="Node2D" parent="."]
+
+[node name="Hall" type="Sprite2D" parent="Floors"]
+position = Vector2(544, 448)
+z_index = -30
+texture = ExtResource("mat_hall-flagstones")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 448, 784)
+texture_repeat = 2
+
+[node name="Library" type="Sprite2D" parent="Floors"]
+position = Vector2(128, 448)
+z_index = -30
+texture = ExtResource("mat_room-floorboards")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 416, 352)
+texture_repeat = 2
+
+[node name="Classroom" type="Sprite2D" parent="Floors"]
+position = Vector2(992, 448)
+z_index = -30
+texture = ExtResource("mat_room-floorboards")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 416, 352)
+texture_repeat = 2
+
+[node name="Practice" type="Sprite2D" parent="Floors"]
+position = Vector2(128, 896)
+z_index = -30
+texture = ExtResource("mat_practice-slate")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 416, 288)
+texture_repeat = 2
+
+[node name="Office" type="Sprite2D" parent="Floors"]
+position = Vector2(992, 896)
+z_index = -30
+texture = ExtResource("mat_room-floorboards")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 416, 288)
+texture_repeat = 2
+
+[node name="WestPass" type="Sprite2D" parent="Floors"]
+position = Vector2(128, 800)
+z_index = -30
+texture = ExtResource("mat_hall-flagstones")
+centered = false
+region_enabled = true
+region_rect = Rect2(96, 128, 416, 96)
+texture_repeat = 2
+
+[node name="EastPass" type="Sprite2D" parent="Floors"]
+position = Vector2(992, 800)
+z_index = -30
+texture = ExtResource("mat_hall-flagstones")
+centered = false
+region_enabled = true
+region_rect = Rect2(192, 128, 416, 96)
+texture_repeat = 2
+
+[node name="Compass" type="Sprite2D" parent="Floors"]
+position = Vector2(640, 754)
+z_index = -25
+texture = ExtResource("new_medallion")
+centered = false
+
+[node name="EntranceRunner" type="Sprite2D" parent="Floors"]
+position = Vector2(720, 1068)
+z_index = -25
+texture = ExtResource("new_runner")
+centered = false
+
+[node name="OfficeRug" type="Sprite2D" parent="Floors"]
+position = Vector2(1064, 990)
+z_index = -25
+texture = ExtResource("new_office-rug")
+centered = false
+
+[node name="Walls" type="Node2D" parent="."]
+
+[node name="BackInnerFace" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 304)
+z_index = -23
+texture = ExtResource("mat_back-wall-inner-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 1280, 144)
+texture_repeat = 2
+
+[node name="WestUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 298)
+z_index = -22
+texture = ExtResource("mat_coping-west")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 24, 886)
+texture_repeat = 2
+
+[node name="EastUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(1384, 298)
+z_index = -22
+texture = ExtResource("mat_coping-east")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 24, 886)
+texture_repeat = 2
+
+[node name="WestNorthPartition" type="Sprite2D" parent="Walls"]
+position = Vector2(536, 300)
+z_index = -22
+texture = ExtResource("mat_coping-partition-west")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 16, 500)
+texture_repeat = 2
+
+[node name="WestSouthPartition" type="Sprite2D" parent="Walls"]
+position = Vector2(536, 880)
+z_index = -22
+texture = ExtResource("mat_coping-partition-west")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 16, 304)
+texture_repeat = 2
+
+[node name="EastNorthPartition" type="Sprite2D" parent="Walls"]
+position = Vector2(984, 300)
+z_index = -22
+texture = ExtResource("mat_coping-partition-east")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 16, 500)
+texture_repeat = 2
+
+[node name="EastSouthPartition" type="Sprite2D" parent="Walls"]
+position = Vector2(984, 880)
+z_index = -22
+texture = ExtResource("mat_coping-partition-east")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 16, 304)
+texture_repeat = 2
+
+[node name="BackUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 280)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 1280, 24)
+texture_repeat = 2
+
+[node name="West800LeftCutFace" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 804)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 8)
+texture_repeat = 2
+
+[node name="West800LeftUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 780)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 24)
+texture_repeat = 2
+
+[node name="West800RightCutFace" type="Sprite2D" parent="Walls"]
+position = Vector2(408, 804)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 8)
+texture_repeat = 2
+
+[node name="West800RightUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(408, 780)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 24)
+texture_repeat = 2
+
+[node name="West800Threshold" type="Sprite2D" parent="Walls"]
+position = Vector2(264, 788)
+z_index = -24
+texture = ExtResource("mat_wood-threshold")
+centered = false
+
+[node name="East800LeftCutFace" type="Sprite2D" parent="Walls"]
+position = Vector2(992, 804)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 8)
+texture_repeat = 2
+
+[node name="East800LeftUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(992, 780)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 24)
+texture_repeat = 2
+
+[node name="East800RightCutFace" type="Sprite2D" parent="Walls"]
+position = Vector2(1272, 804)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 8)
+texture_repeat = 2
+
+[node name="East800RightUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(1272, 780)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 24)
+texture_repeat = 2
+
+[node name="East800Threshold" type="Sprite2D" parent="Walls"]
+position = Vector2(1128, 788)
+z_index = -24
+texture = ExtResource("mat_wood-threshold")
+centered = false
+
+[node name="West896LeftCutFace" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 900)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 8)
+texture_repeat = 2
+
+[node name="West896LeftUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 876)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 24)
+texture_repeat = 2
+
+[node name="West896RightCutFace" type="Sprite2D" parent="Walls"]
+position = Vector2(408, 900)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 8)
+texture_repeat = 2
+
+[node name="West896RightUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(408, 876)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 24)
+texture_repeat = 2
+
+[node name="West896Threshold" type="Sprite2D" parent="Walls"]
+position = Vector2(264, 888)
+z_index = -24
+texture = ExtResource("mat_stone-threshold")
+centered = false
+
+[node name="East896LeftCutFace" type="Sprite2D" parent="Walls"]
+position = Vector2(992, 900)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 8)
+texture_repeat = 2
+
+[node name="East896LeftUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(992, 876)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 24)
+texture_repeat = 2
+
+[node name="East896RightCutFace" type="Sprite2D" parent="Walls"]
+position = Vector2(1272, 900)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 8)
+texture_repeat = 2
+
+[node name="East896RightUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(1272, 876)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 136, 24)
+texture_repeat = 2
+
+[node name="East896Threshold" type="Sprite2D" parent="Walls"]
+position = Vector2(1128, 888)
+z_index = -24
+texture = ExtResource("mat_stone-threshold")
+centered = false
+
+[node name="FrontWestPlinth" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 1188)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 416, 32)
+texture_repeat = 2
+
+[node name="FrontWestUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 1164)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 416, 24)
+texture_repeat = 2
+
+[node name="FrontEastPlinth" type="Sprite2D" parent="Walls"]
+position = Vector2(992, 1188)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 416, 32)
+texture_repeat = 2
+
+[node name="FrontEastUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(992, 1164)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 416, 24)
+texture_repeat = 2
+
+[node name="EntryWestPlinth" type="Sprite2D" parent="Walls"]
+position = Vector2(544, 1224)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 144, 20)
+texture_repeat = 2
+
+[node name="EntryWestUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(544, 1200)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 144, 24)
+texture_repeat = 2
+
+[node name="EntryEastPlinth" type="Sprite2D" parent="Walls"]
+position = Vector2(848, 1224)
+z_index = -23
+texture = ExtResource("mat_front-wall-dark-face")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 144, 20)
+texture_repeat = 2
+
+[node name="EntryEastUpperSurface" type="Sprite2D" parent="Walls"]
+position = Vector2(848, 1200)
+z_index = -21
+texture = ExtResource("mat_coping-horizontal")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 144, 24)
+texture_repeat = 2
+
+[node name="EntryThreshold" type="Sprite2D" parent="Walls"]
+position = Vector2(688, 1208)
+z_index = -24
+texture = ExtResource("mat_entry-threshold")
+centered = false
+
+[node name="BackWestMiter" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 280)
+z_index = -20
+texture = ExtResource("mat_corner-coping")
+centered = false
+
+[node name="FrontWestMiter" type="Sprite2D" parent="Walls"]
+position = Vector2(128, 1160)
+z_index = -20
+texture = ExtResource("mat_corner-coping")
+centered = false
+flip_v = true
+
+[node name="BackEastMiter" type="Sprite2D" parent="Walls"]
+position = Vector2(1380, 280)
+z_index = -20
+texture = ExtResource("mat_corner-coping")
+centered = false
+flip_h = true
+
+[node name="FrontEastMiter" type="Sprite2D" parent="Walls"]
+position = Vector2(1380, 1160)
+z_index = -20
+texture = ExtResource("mat_corner-coping")
+centered = false
+flip_h = true
+flip_v = true
+
+[node name="LibraryLeftEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(250, 780)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+
+[node name="LibraryRightEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(408, 780)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+flip_h = true
+
+[node name="ClassroomLeftEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(1114, 780)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+
+[node name="ClassroomRightEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(1272, 780)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+flip_h = true
+
+[node name="PracticeLeftEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(250, 876)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+
+[node name="PracticeRightEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(408, 876)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+flip_h = true
+
+[node name="OfficeLeftEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(1114, 876)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+
+[node name="OfficeRightEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(1272, 876)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+flip_h = true
+
+[node name="EntryLeftEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(674, 1200)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+
+[node name="EntryRightEndCap" type="Sprite2D" parent="Walls"]
+position = Vector2(848, 1200)
+z_index = -20
+texture = ExtResource("mat_door-end-cap")
+centered = false
+flip_h = true
+
+[node name="LayoutBounds" type="Node2D" parent="."]
+metadata/layout_collisions = [Rect2(128, 436, 1280, 24), Rect2(128, 448, 24, 736), Rect2(1384, 448, 24, 736), Rect2(536, 448, 16, 352), Rect2(536, 896, 16, 288), Rect2(984, 448, 16, 352), Rect2(984, 896, 16, 288), Rect2(128, 788, 136, 24), Rect2(408, 788, 136, 24), Rect2(992, 788, 136, 24), Rect2(1272, 788, 136, 24), Rect2(128, 884, 136, 24), Rect2(408, 884, 136, 24), Rect2(992, 884, 136, 24), Rect2(1272, 884, 136, 24), Rect2(128, 1172, 416, 24), Rect2(992, 1172, 416, 24), Rect2(544, 1208, 144, 24), Rect2(848, 1208, 144, 24), Rect2(0, 0, 1536, 435), Rect2(0, 435, 128, 900), Rect2(1408, 435, 128, 900), Rect2(128, 1200, 416, 160), Rect2(992, 1200, 416, 160), Rect2(544, 1232, 448, 128)]
+
+[node name="Library" type="Node2D" parent="."]
+
+[node name="Classroom" type="Node2D" parent="."]
+
+[node name="Practice" type="Node2D" parent="."]
+
+[node name="Office" type="Node2D" parent="."]
+
+[node name="Hall" type="Node2D" parent="."]
+
+[node name="GrandStairs" parent="Hall" instance=ExtResource("prop_library_2")]
+position = Vector2(768, 660)
+texture = ExtResource("3_li5qq")
+centered = false
+offset = Vector2(-148, -340.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-144, -166.4, 288, 132)]
+metadata/layout_entity = {
+"id": "academy_stairs",
+"interaction_radius": 14.0,
+"kind": "academy_stairs",
+"name": "2층으로 올라가기",
+"pos": Vector2(0, 25.6)
+}
+
+[node name="Window594" type="Sprite2D" parent="Hall"]
+position = Vector2(594, 372)
+z_index = -21
+texture = ExtResource("new_window")
+centered = false
+
+[node name="Banner594" type="Sprite2D" parent="Hall"]
+position = Vector2(602, 483)
+z_index = -21
+texture = ExtResource("new_banner")
+centered = false
+
+[node name="Window878" type="Sprite2D" parent="Hall"]
+position = Vector2(878, 372)
+z_index = -21
+texture = ExtResource("new_window")
+centered = false
+
+[node name="Banner878" type="Sprite2D" parent="Hall"]
+position = Vector2(886, 483)
+z_index = -21
+texture = ExtResource("new_banner")
+centered = false
+
+[node name="Lamp0" parent="Hall" instance=ExtResource("prop_library_9")]
+position = Vector2(590, 690)
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+
+[node name="StudyLight" parent="Hall/Lamp0" instance=ExtResource("study_light")]
+position = Vector2(0, -90)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Lamp1" parent="Hall" instance=ExtResource("prop_library_9")]
+position = Vector2(946, 690)
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+
+[node name="StudyLight" parent="Hall/Lamp1" instance=ExtResource("study_light")]
+position = Vector2(0, -90)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Lamp2" parent="Hall" instance=ExtResource("prop_library_9")]
+position = Vector2(590, 1070)
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+
+[node name="StudyLight" parent="Hall/Lamp2" instance=ExtResource("study_light")]
+position = Vector2(0, -90)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Lamp3" parent="Hall" instance=ExtResource("prop_library_9")]
+position = Vector2(946, 1070)
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+
+[node name="StudyLight" parent="Hall/Lamp3" instance=ExtResource("study_light")]
+position = Vector2(0, -90)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Lamp4" parent="Library" instance=ExtResource("prop_library_9")]
+position = Vector2(174, 694)
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+
+[node name="StudyLight" parent="Library/Lamp4" instance=ExtResource("study_light")]
+position = Vector2(0, -90)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Lamp5" parent="Classroom" instance=ExtResource("prop_library_9")]
+position = Vector2(1360, 690)
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+
+[node name="StudyLight" parent="Classroom/Lamp5" instance=ExtResource("study_light")]
+position = Vector2(0, -90)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Lamp6" parent="Practice" instance=ExtResource("prop_library_9")]
+position = Vector2(173, 1086)
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+
+[node name="StudyLight" parent="Practice/Lamp6" instance=ExtResource("study_light")]
+position = Vector2(0, -90)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Lamp7" parent="Office" instance=ExtResource("prop_library_9")]
+position = Vector2(1360, 1090)
+texture = ExtResource("10_hjte5")
+centered = false
+offset = Vector2(-29, -137.2)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-16, -15.2, 32, 32)]
+
+[node name="StudyLight" parent="Office/Lamp7" instance=ExtResource("study_light")]
+position = Vector2(0, -90)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Bookcase0" parent="Library" instance=ExtResource("prop_library_3")]
+position = Vector2(254, 525)
+texture = ExtResource("4_x3kem")
+centered = false
+offset = Vector2(-99.8, -207.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-108.8, -69.6, 216, 80)]
+
+[node name="Bookcase1" parent="Library" instance=ExtResource("prop_library_3")]
+position = Vector2(468, 525)
+texture = ExtResource("4_x3kem")
+centered = false
+offset = Vector2(-99.8, -207.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-108.8, -69.6, 216, 80)]
+
+[node name="ReadingTable" parent="Library" instance=ExtResource("prop_library_7")]
+position = Vector2(338, 662)
+texture = ExtResource("8_obgwy")
+centered = false
+offset = Vector2(-92.4, -116.8)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-94.4, -60.8, 192, 80)]
+
+[node name="ReadingGlow" parent="Library/ReadingTable" instance=ExtResource("study_light")]
+position = Vector2(15, -76)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="BookTrolley" parent="Library" instance=ExtResource("prop_library_8")]
+position = Vector2(474, 683)
+texture = ExtResource("9_evbsj")
+centered = false
+offset = Vector2(-54, -116)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-36, -44, 72, 48)]
+
+[node name="Blackboard" parent="Classroom" instance=ExtResource("prop_library_5")]
+position = Vector2(1198, 511)
+texture = ExtResource("6_ioeqt")
+centered = false
+offset = Vector2(-124.2, -221.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-131.2, -78.4, 256, 80)]
+
+[node name="TeacherDesk" parent="Classroom" instance=ExtResource("prop_library_4")]
+position = Vector2(1198, 600)
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(-80, -155.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-64, -69.6, 144, 68)]
+
+[node name="StudentDesk0" parent="Classroom" instance=ExtResource("prop_library_4")]
+position = Vector2(1084, 676)
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(-80.2, -156.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-75.2, -66.4, 152, 68)]
+
+[node name="StudentDesk1" parent="Classroom" instance=ExtResource("prop_library_4")]
+position = Vector2(1310, 676)
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(-80.2, -156.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-75.2, -66.4, 152, 68)]
+
+[node name="StudentDesk2" parent="Classroom" instance=ExtResource("prop_library_4")]
+position = Vector2(1084, 752)
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(-80.2, -156.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-75.2, -66.4, 152, 68)]
+
+[node name="StudentDesk3" parent="Classroom" instance=ExtResource("prop_library_4")]
+position = Vector2(1310, 752)
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(-80.2, -156.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-75.2, -66.4, 152, 68)]
+
+[node name="Reagents" parent="Practice" instance=ExtResource("reagent_cabinet")]
+position = Vector2(443, 992)
+metadata/layout_decoration_id = "PracticeReagentCabinet"
+metadata/placement_note = "벽을 등진 약초·시약 보관장; 기존 상점 자산 재사용"
+
+[node name="Specimens" parent="Practice" instance=ExtResource("specimen_stand")]
+position = Vector2(437, 1128)
+metadata/layout_decoration_id = "PracticeSpecimenStand"
+metadata/placement_note = "실습용 유리병과 표본; 실습 지점 오른쪽 접근 유지"
+
+[node name="Cauldron" type="Sprite2D" parent="Practice"]
+position = Vector2(245, 981)
+z_index = 0
+texture = ExtResource("new_cauldron")
+centered = false
+metadata/layout_collisions = [Rect2(16, 56, 94, 43)]
+metadata/foot = Vector2(0, 0)
+
+[node name="CauldronGlow" parent="Practice/Cauldron" instance=ExtResource("study_light")]
+position = Vector2(62, 32)
+color = Color(1, 0.73, 0.47, 1)
+energy = 0.63
+
+[node name="Crystal" type="Sprite2D" parent="Practice"]
+position = Vector2(164, 920)
+z_index = 0
+texture = ExtResource("new_crystal")
+centered = false
+metadata/layout_collisions = [Rect2(6, 59, 61, 22)]
+metadata/foot = Vector2(0, 0)
+
+[node name="OfficeShelf" parent="Office" instance=ExtResource("prop_library_3")]
+position = Vector2(1120, 1001)
+texture = ExtResource("4_x3kem")
+centered = false
+offset = Vector2(-99.8, -207.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-108.8, -69.6, 216, 80)]
+
+[node name="OfficeDesk" parent="Office" instance=ExtResource("prop_library_4")]
+position = Vector2(1246, 1121)
+texture = ExtResource("5_o6x51")
+centered = false
+offset = Vector2(-80, -155.6)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-64, -69.6, 144, 68)]
+
+[node name="OfficeChair" type="Sprite2D" parent="Office"]
+position = Vector2(1015, 1084)
+z_index = 0
+texture = ExtResource("new_armchair")
+centered = false
+metadata/layout_collisions = [Rect2(8, 47, 65, 28)]
+metadata/foot = Vector2(0, 0)
+
+[node name="OfficeWindow" type="Sprite2D" parent="Office"]
+position = Vector2(1300, 827)
+z_index = -21
+texture = ExtResource("new_window")
+centered = false
+
+[node name="HallBench0" parent="Hall" instance=ExtResource("prop_library_10")]
+position = Vector2(597, 1145)
+texture = ExtResource("11_1voub")
+centered = false
+offset = Vector2(-103.8, -129.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-100.8, -66.4, 200, 64)]
+
+[node name="HallBench1" parent="Hall" instance=ExtResource("prop_library_10")]
+position = Vector2(938, 1145)
+texture = ExtResource("11_1voub")
+centered = false
+offset = Vector2(-103.8, -129.4)
+metadata/foot = Vector2(0, 0)
+metadata/interaction_id = ""
+metadata/layout_collisions = [Rect2(-100.8, -66.4, 200, 64)]
+
+[node name="Arrival" type="Marker2D" parent="."]
+position = Vector2(768, 1040)
+metadata/layout_marker = "Arrival"
+
+[node name="StairArrival" type="Marker2D" parent="."]
+position = Vector2(768, 714)
+metadata/layout_marker = "StairArrival"
+
+[node name="Location_courtyard" type="Marker2D" parent="."]
+metadata/layout_entity = {
+"id": "courtyard",
+"kind": "academy_room",
+"name": "학교 앞뜰",
+"pos": Vector2(768, 1104)
+}
+
+[node name="Location_hall" type="Marker2D" parent="."]
+metadata/layout_entity = {
+"id": "hall",
+"kind": "academy_room",
+"name": "중앙 회랑",
+"pos": Vector2(768, 888)
+}
+
+[node name="Location_library" type="Marker2D" parent="."]
+metadata/layout_entity = {
+"id": "library",
+"interaction_radius": 14.0,
+"kind": "academy_room",
+"name": "도서관",
+"pos": Vector2(336, 712)
+}
+
+[node name="Location_classroom" type="Marker2D" parent="."]
+metadata/layout_entity = {
+"id": "classroom",
+"interaction_radius": 14.0,
+"kind": "academy_room",
+"name": "기초 강의실",
+"pos": Vector2(1200, 725)
+}
+
+[node name="Location_practice" type="Marker2D" parent="."]
+metadata/layout_entity = {
+"id": "practice",
+"interaction_radius": 14.0,
+"kind": "academy_room",
+"name": "수정 실습실",
+"pos": Vector2(336, 1106)
+}
+
+[node name="Location_Exit" type="Marker2D" parent="."]
+metadata/layout_entity = {
+"id": "exit",
+"kind": "exit",
+"name": "밖으로 나가기",
+"pos": Vector2(768, 1216)
+}
+
+[node name="OfficeWalkPoint" type="Marker2D" parent="."]
+position = Vector2(1200, 1138)
+metadata/layout_marker = "OfficeWalkPoint"

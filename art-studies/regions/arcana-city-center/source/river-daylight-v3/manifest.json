@@ -1,0 +1,49 @@
+{
+  "request": {
+    "date": "2026-11-02",
+    "changes": [
+      "밝은 색으로 조정",
+      "물 흐름 애니메이션 보강",
+      "밤하늘처럼 보이는 점 표현 개선"
+    ]
+  },
+  "sources": [
+    "res://art/source/river-daylight-v3/base.pxpen",
+    "res://art/source/river-daylight-v3/ripples.pxpen",
+    "res://art/source/river-daylight-v3/reflections.pxpen"
+  ],
+  "base": {
+    "shapePixelsPreserved": true,
+    "paletteOnly": true,
+    "low": "#326f8c",
+    "high": "#609ab2"
+  },
+  "animation": {
+    "frames": 24,
+    "fps": 8,
+    "cycleSeconds": 3,
+    "flowPixelsPerSecond": 4,
+    "variants": 8,
+    "connectedClusters": true,
+    "singlePixelSparkles": false,
+    "wholeSurfaceScroll": false,
+    "uvWarp": false
+  },
+  "tileSize": [
+    64,
+    64
+  ],
+  "savedWaterCellsPreserved": true,
+  "collisionDataUnchanged": true,
+  "evidence": {
+    "sourceRender": "render-source/",
+    "packageRender": "render-package/",
+    "animation": "render-package/river-flow.gif",
+    "nativeAudit": "pixelpen-audit.json",
+    "paletteChange": "palette-change.json",
+    "pckSha256": "6F6AF762052BBC185656EDEF70F31B5732609ECB34C7636F07EB3EF499F6DEAC",
+    "httpGzipHashMatches": true,
+    "playTestsRun": false,
+    "browserUsed": false
+  }
+}

@@ -1,0 +1,625 @@
+{
+  "actual_used_opaque_colors": 12,
+  "anchor_state": "candidate_until_leg_assembly",
+  "canvas_size": [
+    48,
+    48
+  ],
+  "character_proportion_heads": 3,
+  "character_target_canvas": [
+    96,
+    136
+  ],
+  "direction_order": [
+    "s",
+    "se",
+    "e",
+    "ne",
+    "n",
+    "nw",
+    "w",
+    "sw"
+  ],
+  "directions": {
+    "e": {
+      "actual_opaque_colors": 9,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "anchor_state": "candidate_until_leg_assembly",
+      "authored_fingerprint": "caff5e8d0f42233ca7316366769dcfe292733d25150f37d9964873decaf9c3f9",
+      "derived_from": "w",
+      "landmarks": {
+        "ankle": [
+          24,
+          21
+        ],
+        "cuff_connection": [
+          24,
+          8
+        ],
+        "sole_contact": [
+          26,
+          26
+        ]
+      },
+      "layers": {
+        "fur": {
+          "path": "res://art/characters/hybrid-v1/boots/e/fur.png",
+          "sha256": "f7c680b4a5802b666500ffd447b9d5ca1797032883bff052dffbef133a5c35ef"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/boots/e/leather.png",
+          "sha256": "283813761e44d3b5b35854bbaec4ed24c833d0df1e8a06b35ea96d06127c9e4a"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/boots/e/metal.png",
+          "sha256": "c3cdf0eaf43ef0eba12d45dd6ade1b52a472b79c4842e0362f4609cddd20c53f"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/boots/e/silhouette.png",
+          "sha256": "3288f1c04fd0584b25ca9ab1b135b1c5761caea5cf2a98f6b37c099fb627dd93"
+        }
+      },
+      "mirror_axis_x": 24.0,
+      "native_fingerprint": "caff5e8d0f42233ca7316366769dcfe292733d25150f37d9964873decaf9c3f9",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/boots/e/boot.pxpen",
+      "opaque_bounds": [
+        19,
+        5,
+        13,
+        21
+      ],
+      "output_sha256": "ba35c2fe55cc13fd22b0671d89d61778dfed104ff31851e7eb5026193ac108a7",
+      "pivot": [
+        24,
+        21
+      ],
+      "pixel_index_map": "47-x",
+      "png": "res://art/characters/hybrid-v1/boots/e/boot.png",
+      "png_roundtrip_matches": true,
+      "source_cuff_axis_x_relative": 88.6315789473684,
+      "source_native_sha256": "e0aa75b2159860023c39b8392dacac87b031711cc814313de09f35fc1a7b9e5b",
+      "source_rect": [
+        359.0,
+        198.0,
+        148.0,
+        236.0
+      ],
+      "source_sha256": "a8e022fe5178f2f0b11bc7ddb199633378ad83db54f67a09d95b886b71e42799",
+      "transform": "flip_x"
+    },
+    "n": {
+      "actual_opaque_colors": 7,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "anchor_state": "candidate_until_leg_assembly",
+      "authored_fingerprint": "2e42d5f42c361f921ac460a00376281855ce7ff1f0a7344176e8d8a728ad6cc9",
+      "landmarks": {
+        "ankle": [
+          24,
+          21
+        ],
+        "cuff_connection": [
+          24,
+          8
+        ],
+        "sole_contact": [
+          24,
+          26
+        ]
+      },
+      "layers": {
+        "fur": {
+          "path": "res://art/characters/hybrid-v1/boots/n/fur.png",
+          "sha256": "2297bba39711008766b49c1481adb04c894cf24bccf3905a65a4c6ef92090d41"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/boots/n/leather.png",
+          "sha256": "9e2adcb1ccc43f6abbc0231dd9a2e91c1b1d04510e5c4131f88c18024e0612b0"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/boots/n/metal.png",
+          "sha256": "1a39f2d246fa012f7c310b72f479b785f8f96e2a70528591b4bbe25c5636e471"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/boots/n/silhouette.png",
+          "sha256": "5f6dab2abad3ae25c5c051d0feccef1eb829814a33935d6916b01bf31ee1771d"
+        }
+      },
+      "native_fingerprint": "2e42d5f42c361f921ac460a00376281855ce7ff1f0a7344176e8d8a728ad6cc9",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/boots/n/boot.pxpen",
+      "opaque_bounds": [
+        18,
+        5,
+        12,
+        21
+      ],
+      "output_sha256": "b76cea4f79b23626c7b304b8f0ae79ffd2a59fc2890a2656f31a8c9c2ecefe6d",
+      "pivot": [
+        24,
+        21
+      ],
+      "png": "res://art/characters/hybrid-v1/boots/n/boot.png",
+      "png_roundtrip_matches": true,
+      "source_cuff_axis_x_relative": 64.6052631578947,
+      "source_rect": [
+        902.0,
+        201.0,
+        130.0,
+        233.0
+      ],
+      "source_sha256": "fcc569191ff58f533503dd089b97b97ceb9e57f650ab919b8e8d329c5dbd3dbd"
+    },
+    "ne": {
+      "actual_opaque_colors": 9,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "anchor_state": "candidate_until_leg_assembly",
+      "authored_fingerprint": "af1f244e616fbe4acdc234627272d7084eb485717ab707f199abcea9b9b92df9",
+      "landmarks": {
+        "ankle": [
+          24,
+          21
+        ],
+        "cuff_connection": [
+          24,
+          8
+        ],
+        "sole_contact": [
+          24,
+          26
+        ]
+      },
+      "layers": {
+        "fur": {
+          "path": "res://art/characters/hybrid-v1/boots/ne/fur.png",
+          "sha256": "378da6efbfdb3bd307524cde6e74718710f987ae3cea6aaae5e37c60887e02b8"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/boots/ne/leather.png",
+          "sha256": "2e96d30599579b0c9155a44193275c76129582d17641ddf599cc4e369a33adf9"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/boots/ne/metal.png",
+          "sha256": "aed02851e102faed15915f91fce230366206cd9b53922b0a054d85dd74c3a77f"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/boots/ne/silhouette.png",
+          "sha256": "a624eb18cb93ec442c5f622850b213f7220a8eef923fd39cffb07840eb9d77e3"
+        }
+      },
+      "native_fingerprint": "af1f244e616fbe4acdc234627272d7084eb485717ab707f199abcea9b9b92df9",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/boots/ne/boot.pxpen",
+      "opaque_bounds": [
+        18,
+        5,
+        12,
+        21
+      ],
+      "output_sha256": "0aff5974aa7096e683c14b8a44b7607dc0e8a50cf9ccc9db49e295c9e20210b3",
+      "pivot": [
+        24,
+        21
+      ],
+      "png": "res://art/characters/hybrid-v1/boots/ne/boot.png",
+      "png_roundtrip_matches": true,
+      "source_cuff_axis_x_relative": 65.4166666666667,
+      "source_rect": [
+        1164.0,
+        198.0,
+        134.0,
+        230.0
+      ],
+      "source_sha256": "680fca44f66be1bfcb83f909cd116015b00e60d5bbdc756ce5bab62d10510cfe"
+    },
+    "nw": {
+      "actual_opaque_colors": 9,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "anchor_state": "candidate_until_leg_assembly",
+      "authored_fingerprint": "a8a1ffdafd00a7a74d4a8aac767000d0d4257c8fa33ccfac57ea1cc7bcd430a9",
+      "landmarks": {
+        "ankle": [
+          24,
+          21
+        ],
+        "cuff_connection": [
+          24,
+          8
+        ],
+        "sole_contact": [
+          21,
+          26
+        ]
+      },
+      "layers": {
+        "fur": {
+          "path": "res://art/characters/hybrid-v1/boots/nw/fur.png",
+          "sha256": "cf045603ad3b9f80ba519978cd55611c7e4dcd3d68bb3b011d7c22a9bf1dd791"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/boots/nw/leather.png",
+          "sha256": "5dab727f778a60a7c6bba63dbb987eb1836561441ebaea854f99bb15401ed56e"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/boots/nw/metal.png",
+          "sha256": "17c804cbef85c0e74d7bb0a3d9da6b32438807a4c907355be835eb5fc241a5b4"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/boots/nw/silhouette.png",
+          "sha256": "43af5e1365a2c036ad50610ab29a2783be22927353b189068806c12ae4f04247"
+        }
+      },
+      "native_fingerprint": "a8a1ffdafd00a7a74d4a8aac767000d0d4257c8fa33ccfac57ea1cc7bcd430a9",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/boots/nw/boot.pxpen",
+      "opaque_bounds": [
+        18,
+        5,
+        12,
+        21
+      ],
+      "output_sha256": "a46aa3e5703c8f9a2a7146f231011481391ce7da81f9ce05b8795e737cebff6f",
+      "pivot": [
+        24,
+        21
+      ],
+      "png": "res://art/characters/hybrid-v1/boots/nw/boot.png",
+      "png_roundtrip_matches": true,
+      "source_cuff_axis_x_relative": 68.7777777777778,
+      "source_rect": [
+        635.0,
+        197.0,
+        133.0,
+        231.0
+      ],
+      "source_sha256": "d02e4624f833c8858c4089ad527bedb78623867d146998ae57fb4af5c755c33f"
+    },
+    "s": {
+      "actual_opaque_colors": 12,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "anchor_state": "candidate_until_leg_assembly",
+      "authored_fingerprint": "9047369dc02c70fab542437775cdea352a30efba95192b944cf3ffe37fa75177",
+      "landmarks": {
+        "ankle": [
+          24,
+          21
+        ],
+        "cuff_connection": [
+          24,
+          8
+        ],
+        "sole_contact": [
+          24,
+          27
+        ]
+      },
+      "layers": {
+        "fur": {
+          "path": "res://art/characters/hybrid-v1/boots/s/fur.png",
+          "sha256": "f5dae568dbc56a4e2a6de6156105ba8913820ac7dd94c0427a753f8e97cf6479"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/boots/s/leather.png",
+          "sha256": "bbf99067d43081eb622b335b5f7f5e3e97ca2a532cfc935ff7b2b85d882e47bf"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/boots/s/metal.png",
+          "sha256": "6aa87d740c6fce9c18c5b98e5034007852fdb708947db99354a7ed7dd39b9666"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/boots/s/silhouette.png",
+          "sha256": "75fd991a4f9b81a6180f115b4da2bb31a1c01cca41297bac1f46ca0c033d73c6"
+        }
+      },
+      "native_fingerprint": "9047369dc02c70fab542437775cdea352a30efba95192b944cf3ffe37fa75177",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/boots/s/boot.pxpen",
+      "opaque_bounds": [
+        18,
+        5,
+        12,
+        22
+      ],
+      "output_sha256": "becaa19d203814068ab3dfb10a7b489d3a9c5de9ce834bd22e32ec6927e89052",
+      "pivot": [
+        24,
+        21
+      ],
+      "png": "res://art/characters/hybrid-v1/boots/s/boot.png",
+      "png_roundtrip_matches": true,
+      "source_cuff_axis_x_relative": 64.8947368421053,
+      "source_rect": [
+        1935.0,
+        198.0,
+        131.0,
+        240.0
+      ],
+      "source_sha256": "f6fe361ecb9dcfe51f0a5577b3c5d6fd98fe5c80387ad6d38ff57bd5e9943801"
+    },
+    "se": {
+      "actual_opaque_colors": 10,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "anchor_state": "candidate_until_leg_assembly",
+      "authored_fingerprint": "0717c029371fd754cb700678157abf4e39f46f04f45eaa197a4ec745544ae579",
+      "landmarks": {
+        "ankle": [
+          24,
+          21
+        ],
+        "cuff_connection": [
+          24,
+          8
+        ],
+        "sole_contact": [
+          27,
+          27
+        ]
+      },
+      "layers": {
+        "fur": {
+          "path": "res://art/characters/hybrid-v1/boots/se/fur.png",
+          "sha256": "4bd5e7154592482e04c6fa7a0f2f17a4fa09bd83d710aca743ab0e07e1a5ce4a"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/boots/se/leather.png",
+          "sha256": "40bffbeb7104b77e0f9f2b615baa347cbff303dae31bf3d16447d12c4cd35adf"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/boots/se/metal.png",
+          "sha256": "7211bb0d7118c52aa1cb4af32172a4c3aac3e3e90f5df660d799c7be63e24786"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/boots/se/silhouette.png",
+          "sha256": "6090ae072255b1773fc1892714203fbc411ebe873180c805d1b55867b4a5ed61"
+        }
+      },
+      "native_fingerprint": "0717c029371fd754cb700678157abf4e39f46f04f45eaa197a4ec745544ae579",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/boots/se/boot.pxpen",
+      "opaque_bounds": [
+        19,
+        5,
+        12,
+        22
+      ],
+      "output_sha256": "0630cc200ea29c98def6c7be3e09aa53cd12e877357cd34ad0715a9d9ac52099",
+      "pivot": [
+        24,
+        21
+      ],
+      "png": "res://art/characters/hybrid-v1/boots/se/boot.png",
+      "png_roundtrip_matches": true,
+      "source_cuff_axis_x_relative": 60.2105263157895,
+      "source_rect": [
+        1677.0,
+        196.0,
+        135.0,
+        242.0
+      ],
+      "source_sha256": "72e676a29d5c4e37c4c694907178cd231b00ab9f8bd937e932c815e0233a6507"
+    },
+    "sw": {
+      "actual_opaque_colors": 9,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "anchor_state": "candidate_until_leg_assembly",
+      "authored_fingerprint": "ae39019b2aa5129abb3fb5e7a398c49a3e24f02407a562edde0739db9e63860b",
+      "landmarks": {
+        "ankle": [
+          24,
+          21
+        ],
+        "cuff_connection": [
+          24,
+          8
+        ],
+        "sole_contact": [
+          21,
+          27
+        ]
+      },
+      "layers": {
+        "fur": {
+          "path": "res://art/characters/hybrid-v1/boots/sw/fur.png",
+          "sha256": "dbd8ef1a748fa26b9c3497d7e74bd5b5c2b6163611fe92c7d7664a6def2e2c45"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/boots/sw/leather.png",
+          "sha256": "f6ee8697f0202fbd1a4dd12ea720c92aa4c19c3b81b5a6d713503a751dd7599c"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/boots/sw/metal.png",
+          "sha256": "3bd202f86f31ea49854cbe93e04fcd5e3a7471a67ec88794ade879f51a00929a"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/boots/sw/silhouette.png",
+          "sha256": "f8b4d1f936afd2072633a01b45e7d8bb653c2b6b7c227085802705d5e0a3be27"
+        }
+      },
+      "native_fingerprint": "ae39019b2aa5129abb3fb5e7a398c49a3e24f02407a562edde0739db9e63860b",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/boots/sw/boot.pxpen",
+      "opaque_bounds": [
+        18,
+        5,
+        11,
+        22
+      ],
+      "output_sha256": "c1e1cff34b2bdc3736b50ddf91b199b73c32c6f4f625dec7214f1e8bb9356b29",
+      "pivot": [
+        24,
+        21
+      ],
+      "png": "res://art/characters/hybrid-v1/boots/sw/boot.png",
+      "png_roundtrip_matches": true,
+      "source_cuff_axis_x_relative": 69.4210526315789,
+      "source_rect": [
+        112.0,
+        197.0,
+        129.0,
+        241.0
+      ],
+      "source_sha256": "bee98633669ba4a4f190b4f61459db2bfc3931bedc080968f87c1d09333ceb13"
+    },
+    "w": {
+      "actual_opaque_colors": 9,
+      "alpha_values": [
+        "0",
+        "255"
+      ],
+      "anchor_state": "candidate_until_leg_assembly",
+      "authored_fingerprint": "2d6a99c2e3f56892eeca35a2089a3e7e28f91dd8dd3f1cbc98ce5c8da6144078",
+      "landmarks": {
+        "ankle": [
+          24,
+          21
+        ],
+        "cuff_connection": [
+          24,
+          8
+        ],
+        "sole_contact": [
+          21,
+          26
+        ]
+      },
+      "layers": {
+        "fur": {
+          "path": "res://art/characters/hybrid-v1/boots/w/fur.png",
+          "sha256": "fe1099cb8d8571310ca0c2c4c075d8abb2b7c1a95560422e73e28fe24ffc40b7"
+        },
+        "leather": {
+          "path": "res://art/characters/hybrid-v1/boots/w/leather.png",
+          "sha256": "5afadc65ed5e42ced6b6e1d3f26e21c365ad35ecc6fca69d49c42c090b38a3f8"
+        },
+        "metal": {
+          "path": "res://art/characters/hybrid-v1/boots/w/metal.png",
+          "sha256": "71bcddf28ddfe89030fcb9d1feb68f8c3df7fc322ef1835e41a5ec59ab2f82b8"
+        },
+        "silhouette": {
+          "path": "res://art/characters/hybrid-v1/boots/w/silhouette.png",
+          "sha256": "99addfcebc577b1d41915777aa8b5965692b9640deeaaf879daa309952b1f435"
+        }
+      },
+      "native_fingerprint": "2d6a99c2e3f56892eeca35a2089a3e7e28f91dd8dd3f1cbc98ce5c8da6144078",
+      "native_reopened_matches": true,
+      "native_source": "res://art/characters/hybrid-v1/boots/w/boot.pxpen",
+      "opaque_bounds": [
+        16,
+        5,
+        13,
+        21
+      ],
+      "output_sha256": "abaa3a45268a798606731db36af9ef87c6e78b7df6b6910e7176bd337ebda315",
+      "pivot": [
+        24,
+        21
+      ],
+      "png": "res://art/characters/hybrid-v1/boots/w/boot.png",
+      "png_roundtrip_matches": true,
+      "source_cuff_axis_x_relative": 88.6315789473684,
+      "source_rect": [
+        359.0,
+        198.0,
+        148.0,
+        236.0
+      ],
+      "source_sha256": "e0aa75b2159860023c39b8392dacac87b031711cc814313de09f35fc1a7b9e5b"
+    }
+  },
+  "layers_semantics": "cream fur cuff, brown leather shaft/strap/sole, gold buckle, outer silhouette; exactly one boot per image",
+  "left_right_policy": "Single-boot directional master; no left/right pair is painted into one texture. Final leg registration and buckle-side policy are separate.",
+  "outline_owner": "boot silhouette layer, baked once; disable additional outline when displaying boot.png",
+  "palette_rgba": [
+    "00000000",
+    "352d40",
+    "8e7999",
+    "b89a92",
+    "d8bdae",
+    "f4e2d2",
+    "fff4e3",
+    "fff9f4",
+    "4d3335",
+    "805854",
+    "9b7166",
+    "b38b77",
+    "8f582e",
+    "c18b4b",
+    "e4b876",
+    "ffe1a1"
+  ],
+  "palette_roles": {
+    "fur": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "leather": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "metal": [
+      12,
+      13,
+      14,
+      15
+    ],
+    "silhouette": [
+      1
+    ]
+  },
+  "part": "boot",
+  "physical_reference_scale": 0.09,
+  "pivot_semantics": "ankle pivot [24,21]; cuff connection [24,8], same upper opening axis for every direction",
+  "reference": "reference.png",
+  "reference_art_roi_y": [
+    185,
+    450
+  ],
+  "reference_sha256": "1920d8dad403d6c715dd0f5ecd28ea0a14df6c70656eedb441fed434cf0b2bc6",
+  "registered_opaque_colors": 15,
+  "runtime_connected": false,
+  "schema_version": 1,
+  "sheet_order": [
+    "sw",
+    "w",
+    "nw",
+    "n",
+    "ne",
+    "e",
+    "se",
+    "s"
+  ],
+  "sole_contact_semantics": "bottom edge y exclusive; x is center of opaque pixels in last two rows",
+  "transparent_slots": 1,
+  "visual_approval": "pending",
+  "character_id": "hybrid-v1",
+  "user_art_approval": "approved",
+  "appearance_approved_on": "2026-11-05",
+  "runtime_verified": false
+}

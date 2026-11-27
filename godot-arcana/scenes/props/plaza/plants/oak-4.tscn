@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/b6f50a72475ef820c121da5aed28b0e2227e82878b298691dab7586f0afe601f.res" id="27_vi0i0"]
+[node name="oak_04" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "oak"
+collision_parts = Array[Rect2]([Rect2(-4.9, -8.4, 9.800049, 8.399994)])
+registered_transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, 0)
+source_path = "CityDistrict/Gardens/oak_04"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("27_vi0i0")
+centered = false
+offset = Vector2(-73, -181)
+region_rect = Rect2(0, 0, 147, 182)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(147, 182)
+

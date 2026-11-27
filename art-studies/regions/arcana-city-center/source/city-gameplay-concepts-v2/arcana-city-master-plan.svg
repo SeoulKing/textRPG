@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1370" viewBox="0 0 1680 1370" role="img" aria-labelledby="title desc">
+<title id="title">아르카나 도시 전체 배치 청사진</title>
+<desc id="desc">북쪽을 위로 한 평면도입니다. 기존 광장과 건물, 보행길에 남문 성벽, 강 석교, 식당 테라스, 공방 안뜰, 별관측 정원을 연결합니다.</desc>
+<rect x="0" y="0" width="1680" height="1370" fill="#F3F0E7"/>
+<polyline points="74,61 1606,61" fill="none" stroke="#2C536F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="74" y="91" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">ARCANA  /  WORLD DESIGN</text>
+<text x="74" y="148" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="43" font-weight="700" text-anchor="start">아르카나 도시 전체 배치 청사진</text>
+<text x="75" y="182" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="20" font-weight="400" text-anchor="start">기존 광장과 건물 배치를 기준으로, 도시 안팎의 새 장소 다섯 곳을 연결했습니다.</text>
+<text x="1606" y="96" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="400" text-anchor="end">북쪽이 위인 평면도</text>
+<text x="1606" y="141" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="25" font-weight="700" text-anchor="end">64 × 64칸 도심</text>
+<rect x="74" y="210" width="1046" height="1080" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="1.3" rx="14"/>
+<rect x="1144" y="210" width="462" height="1080" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="1.3" rx="14"/>
+<rect x="102" y="247" width="912" height="1008" fill="#E6EBD9" stroke="#C9CEC8" stroke-width="1"/>
+<rect x="174" y="247" width="768" height="768" fill="#EFEBDD"/>
+<polyline points="126,247 126,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="174,247 174,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="222,247 222,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="270,247 270,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="318,247 318,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="366,247 366,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="414,247 414,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="462,247 462,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="510,247 510,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="558,247 558,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="606,247 606,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="654,247 654,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="702,247 702,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="750,247 750,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="798,247 798,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="846,247 846,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="894,247 894,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="942,247 942,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="990,247 990,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,247 1014,247" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,295 1014,295" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,343 1014,343" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,391 1014,391" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,439 1014,439" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,487 1014,487" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,535 1014,535" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,583 1014,583" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,631 1014,631" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,679 1014,679" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,727 1014,727" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,775 1014,775" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,823 1014,823" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,871 1014,871" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,919 1014,919" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,967 1014,967" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,1015 1014,1015" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,1063 1014,1063" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,1111 1014,1111" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,1159 1014,1159" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,1207 1014,1207" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="102,1255 1014,1255" fill="none" stroke="#D3DBCA" stroke-width="0.65" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="174,242 174,252" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="174" y="237" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="middle">-24</text>
+<polyline points="366,242 366,252" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="366" y="237" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="middle">-8</text>
+<polyline points="558,242 558,252" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="558" y="237" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="middle">8</text>
+<polyline points="750,242 750,252" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="750" y="237" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="middle">24</text>
+<polyline points="942,242 942,252" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="942" y="237" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="middle">40</text>
+<polyline points="98,247 105,247" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="94" y="251" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="end">-34</text>
+<polyline points="98,439 105,439" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="94" y="443" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="end">-18</text>
+<polyline points="98,631 105,631" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="94" y="635" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="end">-2</text>
+<polyline points="98,823 105,823" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="94" y="827" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="end">14</text>
+<polyline points="98,1015 105,1015" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="94" y="1019" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="400" text-anchor="end">30</text>
+<text x="1012" y="238" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="700" text-anchor="start">X</text>
+<text x="83" y="868" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="700" text-anchor="start">Z</text>
+<text x="1065" y="253" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="700" text-anchor="middle">북</text>
+<polyline points="1065,321 1065,268" fill="none" stroke="#2C536F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="1065,268 1071.12,279.47 1058.88,279.47" fill="#2C536F"/>
+<polyline points="1049,308 1081,308" fill="none" stroke="#2C536F" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1065" cy="308" r="3" fill="#2C536F"/>
+<polygon points="102,1087 174,1075 246,1075 318,1099 390,1099 462,1087 558,1087 654,1111 738,1111 822,1087 930,1075 1014,1087 1014,1171 930,1159 822,1171 738,1195 654,1195 558,1171 462,1171 390,1183 318,1183 246,1159 174,1159 102,1171" fill="#87B8C0" stroke="#587F8F" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="126,1123 174,1115.8 240,1114.6" fill="none" stroke="#B8D8D6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="330,1147 378,1147 405.6,1141" fill="none" stroke="#B8D8D6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="526.8,1131.4 567.6,1132.6 596.4,1141" fill="none" stroke="#B8D8D6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="669.6,1160.2 728.4,1160.2 775.2,1151.8" fill="none" stroke="#B8D8D6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="867.6,1135 930,1126.6 988.8,1132.6" fill="none" stroke="#B8D8D6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="726" y="1161.4" fill="#325C6D" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="700" text-anchor="middle">남쪽 강</text>
+<rect x="190.8" y="305.8" width="69.6" height="74.4" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="194.64" y="309.64" width="61.92" height="66.72" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="225.6,311.8 225.6,374.2" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="279" y="295.6" width="78" height="63.6" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="282.84" y="299.44" width="70.32" height="55.92" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="285,327.4 351,327.4" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="381" y="305.8" width="68.4" height="74.4" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="384.84" y="309.64" width="60.72" height="66.72" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="415.2,311.8 415.2,374.2" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="478.2" y="317.2" width="61.2" height="63.6" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="482.04" y="321.04" width="53.52" height="55.92" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="484.2,349 533.4,349" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="201.6" y="577.6" width="52.8" height="58.8" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="205.44" y="581.44" width="45.12" height="51.12" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="228,583.6 228,630.4" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="205.8" y="694" width="58.8" height="66" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="209.64" y="697.84" width="51.12" height="58.32" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="235.2,700 235.2,754" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="273.6" y="947.2" width="74.4" height="52.8" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="277.44" y="951.04" width="66.72" height="45.12" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="279.6,973.6 342,973.6" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="548.4" y="832.6" width="76.8" height="76.8" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="552.24" y="836.44" width="69.12" height="69.12" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="554.4,871 619.2,871" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="654" y="854.2" width="72" height="67.2" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="657.84" y="858.04" width="64.32" height="59.52" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="690,860.2 690,915.4" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="749.4" y="889" width="85.2" height="60" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="753.24" y="892.84" width="77.52" height="52.32" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="755.4,919 828.6,919" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="849" y="823" width="66" height="67.2" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="852.84" y="826.84" width="58.32" height="59.52" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="882,829 882,884.2" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="863.4" y="734.8" width="49.2" height="56.4" fill="#D7D8CB" stroke="#929E94" stroke-width="1.65" rx="2"/>
+<rect x="867.24" y="738.64" width="41.52" height="48.72" fill="none" stroke="#929E94" stroke-width="0.7" rx="1"/>
+<polyline points="888,740.8 888,785.2" fill="none" stroke="#929E94" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="328.8" y="428.8" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="middle">북측 생활 구역</text>
+<text x="738" y="971.8" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="17" font-weight="700" text-anchor="middle">동남쪽 주거 구역</text>
+<polyline points="429,1015 174,1015 174,247 942,247 942,1015 495,1015" fill="none" stroke="#D3B18E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="429,1015 174,1015 174,247 942,247 942,1015 495,1015" fill="none" stroke="#B16D3D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<rect x="167.4" y="240.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<rect x="935.4" y="240.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<rect x="167.4" y="1008.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<rect x="935.4" y="1008.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<rect x="167.4" y="624.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<rect x="935.4" y="624.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<rect x="551.4" y="240.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<rect x="703.8" y="1008.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<rect x="286.2" y="1008.4" width="13.2" height="13.2" fill="#F3DFC2" stroke="#B16D3D" stroke-width="1" rx="1"/>
+<polyline points="462,1015 462,770.8" fill="none" stroke="#B2A68E" stroke-width="63" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="503.4,711.4 632.4,711.4 684,676.6 750,595 750,471.4" fill="none" stroke="#B2A68E" stroke-width="51" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="472.2,682.24 472.2,571" fill="none" stroke="#B2A68E" stroke-width="39" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="336,525.4 336,571 472.2,571 523.2,571 523.2,557.8" fill="none" stroke="#B2A68E" stroke-width="39" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="472.2,682.24 387.6,682.24 387.6,672.21" fill="none" stroke="#B2A68E" stroke-width="39" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="553.56,711.4 553.56,683.32" fill="none" stroke="#B2A68E" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="428.4,758.2 419.4,767.32" fill="none" stroke="#B2A68E" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="462,1015 462,770.8" fill="none" stroke="#E3D8C1" stroke-width="60" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="503.4,711.4 632.4,711.4 684,676.6 750,595 750,471.4" fill="none" stroke="#E3D8C1" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="472.2,682.24 472.2,571" fill="none" stroke="#E3D8C1" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="336,525.4 336,571 472.2,571 523.2,571 523.2,557.8" fill="none" stroke="#E3D8C1" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="472.2,682.24 387.6,682.24 387.6,672.21" fill="none" stroke="#E3D8C1" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="553.56,711.4 553.56,683.32" fill="none" stroke="#E3D8C1" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="428.4,758.2 419.4,767.32" fill="none" stroke="#E3D8C1" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="654" y="463" width="192" height="108" fill="#E3D8C1" stroke="#B2A68E" stroke-width="1.2" rx="3"/>
+<rect x="678" y="479.8" width="144" height="70.8" fill="#EAE1CA" stroke="#B2A68E" stroke-width="0.65" rx="2"/>
+<polyline points="336,525.4 253.2,525.4 253.2,511" fill="none" stroke="#D4BB9A" stroke-width="29" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="336,525.4 253.2,525.4 253.2,511" fill="none" stroke="#EFE0C6" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="462,931 348,931 309.6,895 309.6,866.2" fill="none" stroke="#D4BB9A" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="462,931 348,931 309.6,895 309.6,866.2" fill="none" stroke="#EFE0C6" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="309.6,866.2 296.4,813.4 288,754.6 288,698.2 288,608.2 303.6,571 336,571" fill="none" stroke="#D4BB9A" stroke-width="27.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="309.6,866.2 296.4,813.4 288,754.6 288,698.2 288,608.2 303.6,571 336,571" fill="none" stroke="#EFE0C6" stroke-width="25.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="810,535 859.2,562.6 859.2,603.4" fill="none" stroke="#D4BB9A" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="810,535 859.2,562.6 859.2,603.4" fill="none" stroke="#EFE0C6" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="225.6,394.6 508.8,394.6" fill="none" stroke="#D4BB9A" stroke-width="21.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="225.6,394.6 508.8,394.6" fill="none" stroke="#EFE0C6" stroke-width="19.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="225.6,394.6 225.6,380.2" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="225.6,394.6 225.6,380.2" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="318,394.6 318,359.2" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="318,394.6 318,359.2" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="415.2,394.6 415.2,380.2" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="415.2,394.6 415.2,380.2" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="508.8,394.6 508.8,380.8" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="508.8,394.6 508.8,380.8" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="405.6,394.6 405.6,571" fill="none" stroke="#D4BB9A" stroke-width="21.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="405.6,394.6 405.6,571" fill="none" stroke="#EFE0C6" stroke-width="19.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="632.4,711.4 632.4,803.8" fill="none" stroke="#D4BB9A" stroke-width="21.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="632.4,711.4 632.4,803.8" fill="none" stroke="#EFE0C6" stroke-width="19.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="586.8,803.8 888,803.8" fill="none" stroke="#D4BB9A" stroke-width="21.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="586.8,803.8 888,803.8" fill="none" stroke="#EFE0C6" stroke-width="19.2" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="586.8,803.8 586.8,832.6" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="586.8,803.8 586.8,832.6" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="690,803.8 690,854.2" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="690,803.8 690,854.2" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="792,803.8 792,889" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="792,803.8 792,889" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="882,803.8 882,823" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="882,803.8 882,823" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="888,803.8 888,791.2" fill="none" stroke="#D4BB9A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="888,803.8 888,791.2" fill="none" stroke="#EFE0C6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="336,525.4 253.2,525.4 253.2,511" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="462,931 348,931 309.6,895 309.6,866.2" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="309.6,866.2 296.4,813.4 288,754.6 288,698.2 288,608.2 303.6,571 336,571" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="810,535 859.2,562.6 859.2,603.4" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="225.6,394.6 508.8,394.6" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="225.6,394.6 225.6,380.2" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="318,394.6 318,359.2" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="415.2,394.6 415.2,380.2" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="508.8,394.6 508.8,380.8" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="405.6,394.6 405.6,571" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="632.4,711.4 632.4,803.8" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="586.8,803.8 888,803.8" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="586.8,803.8 586.8,832.6" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="690,803.8 690,854.2" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="792,803.8 792,889" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="882,803.8 882,823" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="888,803.8 888,791.2" fill="none" stroke="#B16D3D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5"/>
+<polyline points="462,1255 462,1003" fill="none" stroke="#B16D3D" stroke-width="63" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="462,1255 462,1003" fill="none" stroke="#F3DFC2" stroke-width="59" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="424.8" y="1069" width="74.4" height="123" fill="#E9D7B6" stroke="#804624" stroke-width="1.55" rx="4"/>
+<polyline points="428.76,1072 428.76,1188.76" fill="none" stroke="#804624" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="495.24,1072 495.24,1188.76" fill="none" stroke="#804624" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="429,1090.6 495,1090.6" fill="none" stroke="#C3A683" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="429,1115.8 495,1115.8" fill="none" stroke="#C3A683" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="429,1141 495,1141" fill="none" stroke="#C3A683" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="429,1166.2 495,1166.2" fill="none" stroke="#C3A683" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="391.2" y="986.2" width="37.2" height="57.6" fill="#F3DFC2" stroke="#804624" stroke-width="1.75" rx="2"/>
+<rect x="495.6" y="986.2" width="37.2" height="57.6" fill="#F3DFC2" stroke="#804624" stroke-width="1.75" rx="2"/>
+<rect x="396" y="991" width="27.6" height="48" fill="none" stroke="#B16D3D" stroke-width="0.7"/>
+<rect x="500.4" y="991" width="27.6" height="48" fill="none" stroke="#B16D3D" stroke-width="0.7"/>
+<polyline points="432.6,1015 491.4,1015" fill="none" stroke="#C3A683" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="432.6,1033.6 491.4,1033.6" fill="none" stroke="#C3A683" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="432.6,1071.4 491.4,1071.4" fill="none" stroke="#C3A683" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="432.6,1189 491.4,1189" fill="none" stroke="#C3A683" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="462,1243 462,1049.8 462,779.8" fill="none" stroke="#804624" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<polygon points="462,779.8 468.12,791.27 455.88,791.27" fill="#804624"/>
+<rect x="334.78" y="592.12" width="105.65" height="68.16" fill="#BACADC" stroke="#3A6281" stroke-width="1.65" rx="2"/>
+<rect x="338.62" y="595.96" width="97.97" height="60.48" fill="none" stroke="#3A6281" stroke-width="0.7" rx="1"/>
+<polyline points="340.78,626.2 434.42,626.2" fill="none" stroke="#3A6281" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="458.4" y="487" width="129.6" height="64.8" fill="#BACADC" stroke="#3A6281" stroke-width="1.65" rx="2"/>
+<rect x="462.24" y="490.84" width="121.92" height="57.12" fill="none" stroke="#3A6281" stroke-width="0.7" rx="1"/>
+<polyline points="464.4,519.4 582,519.4" fill="none" stroke="#3A6281" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="504" y="591.04" width="99.12" height="83.88" fill="#BACADC" stroke="#3A6281" stroke-width="1.65" rx="2"/>
+<rect x="507.84" y="594.88" width="91.44" height="76.2" fill="none" stroke="#3A6281" stroke-width="0.7" rx="1"/>
+<polyline points="510,632.98 597.12,632.98" fill="none" stroke="#3A6281" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="278.4" y="439" width="115.2" height="78" fill="#BACADC" stroke="#3A6281" stroke-width="1.65" rx="2"/>
+<rect x="282.24" y="442.84" width="107.52" height="70.32" fill="none" stroke="#3A6281" stroke-width="0.7" rx="1"/>
+<polyline points="284.4,478 387.6,478" fill="none" stroke="#3A6281" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="581.52" y="319" width="336.96" height="144" fill="#BACADC" stroke="#3A6281" stroke-width="1.65" rx="2"/>
+<rect x="585.36" y="322.84" width="329.28" height="136.32" fill="none" stroke="#3A6281" stroke-width="0.7" rx="1"/>
+<polyline points="587.52,391 912.48,391" fill="none" stroke="#3A6281" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="611.4" y="338.8" width="27.6" height="27.6" fill="#A7BED0" stroke="#3A6281" stroke-width="1.1" rx="1"/>
+<rect x="861" y="338.8" width="27.6" height="27.6" fill="#A7BED0" stroke="#3A6281" stroke-width="1.1" rx="1"/>
+<text x="750" y="404.8" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="23" font-weight="700" text-anchor="middle">아카데미</text>
+<text x="336" y="484.6" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="middle">식당</text>
+<text x="387.6" y="634" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="middle">여관</text>
+<text x="523.2" y="525.4" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="middle">물약 상점</text>
+<text x="553.56" y="638.2" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="700" text-anchor="middle">내 집</text>
+<polyline points="336,517 336,525.4" fill="none" stroke="#3A6281" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="336" cy="525.4" r="4.2" fill="#FFFCF4" stroke="#2C536F" stroke-width="1.7"/>
+<polyline points="387.6,660.28 387.6,672.21" fill="none" stroke="#3A6281" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="387.6" cy="672.21" r="4.2" fill="#FFFCF4" stroke="#2C536F" stroke-width="1.7"/>
+<polyline points="523.2,551.8 523.2,557.8" fill="none" stroke="#3A6281" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="523.2" cy="557.8" r="4.2" fill="#FFFCF4" stroke="#2C536F" stroke-width="1.7"/>
+<polyline points="553.56,674.92 553.56,683.32" fill="none" stroke="#3A6281" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="553.56" cy="683.32" r="4.2" fill="#FFFCF4" stroke="#2C536F" stroke-width="1.7"/>
+<polyline points="750,463 750,471.4" fill="none" stroke="#3A6281" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="750" cy="471.4" r="4.2" fill="#FFFCF4" stroke="#2C536F" stroke-width="1.7"/>
+<circle cx="462" cy="726.1" r="50.4" fill="#E5D6B6" stroke="#3A6281" stroke-width="1.5"/>
+<circle cx="462" cy="726.1" r="43.68" fill="#6888A0" stroke="#2C536F" stroke-width="0.9"/>
+<circle cx="462" cy="726.1" r="27" fill="#87B8C0" stroke="#587F8F" stroke-width="1.35"/>
+<polygon points="462,712.1 464.97,723.13 476,726.1 464.97,729.07 462,740.1 459.03,729.07 448,726.1 459.03,723.13" fill="#2C536F"/>
+<circle cx="381" cy="769" r="34.2" fill="#CADCC9" stroke="#859878" stroke-width="1.3"/>
+<circle cx="381" cy="769" r="31.2" fill="#87B8C0" stroke="#587F8F" stroke-width="1.05"/>
+<polyline points="363.6,765.4 390,765.4 395.4,763.6" fill="none" stroke="#C2DDDB" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="373.2,779.2 389.4,779.2" fill="none" stroke="#C2DDDB" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="486,691.1 490.7,695.8 486,700.5 481.3,695.8" fill="#2C536F" stroke="#FFFCF4" stroke-width="1" stroke-linejoin="round"/>
+<rect x="486" y="674" width="54" height="18" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.7" rx="4"/>
+<text x="492" y="687" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="11" font-weight="700" text-anchor="start">시작점</text>
+<polyline points="486,689.8 492,692" fill="none" stroke="#3A6281" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="195.6" y="451" width="75.6" height="75.6" fill="#F3DFC2" rx="3"/>
+<polyline points="195.6,451 271.2,451 271.2,526.6 195.6,526.6 195.6,451" fill="none" stroke="#B16D3D" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/>
+<rect x="198.48" y="454" width="69.72" height="69.72" fill="#EBD1AD" rx="2"/>
+<polyline points="198,487.6 268.8,487.6" fill="none" stroke="#B16D3D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="217.8" cy="467.8" r="5.76" fill="#FFFCF4" stroke="#B16D3D" stroke-width="1"/>
+<rect x="207.72" y="465.64" width="2.88" height="4.32" fill="#B16D3D"/>
+<rect x="225" y="465.64" width="2.88" height="4.32" fill="#B16D3D"/>
+<circle cx="249.6" cy="506.2" r="5.76" fill="#FFFCF4" stroke="#B16D3D" stroke-width="1"/>
+<rect x="239.52" y="504.04" width="2.88" height="4.32" fill="#B16D3D"/>
+<rect x="256.8" y="504.04" width="2.88" height="4.32" fill="#B16D3D"/>
+<rect x="242.4" y="512.8" width="21.6" height="10.08" fill="none" stroke="#B16D3D" stroke-width="1"/>
+<rect x="198" y="811" width="111.6" height="81.6" fill="#F3DFC2" rx="3"/>
+<polyline points="198,811 309.6,811 309.6,892.6 198,892.6 198,811" fill="none" stroke="#B16D3D" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/>
+<rect x="201.96" y="815.2" width="61.68" height="27.6" fill="#DBB38B" stroke="#B16D3D" stroke-width="1" rx="2"/>
+<polyline points="206.28,828.76 259.2,828.76" fill="none" stroke="#B16D3D" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="205.2" y="851.8" width="26.4" height="12.6" fill="#D9B28D" stroke="#B16D3D" stroke-width="0.9" rx="2"/>
+<circle cx="218.4" cy="870.4" r="7.92" fill="#C88854" stroke="#804624" stroke-width="1"/>
+<polyline points="215.4,871.24 219.6,871.24" fill="none" stroke="#804624" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="248.4" y="863.2" width="12" height="9.24" fill="#E3D8C1" stroke="#B16D3D" stroke-width="1"/>
+<rect x="264" y="864.04" width="10.2" height="8.28" fill="#E3D8C1" stroke="#B16D3D" stroke-width="1"/>
+<rect x="789" y="603.4" width="126.6" height="121.2" fill="#CDDBBE" rx="3"/>
+<polyline points="789,603.4 915.6,603.4 915.6,724.6 789,724.6 789,603.4" fill="none" stroke="#B16D3D" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/>
+<rect x="842.16" y="605.8" width="24.96" height="107.16" fill="#ECE0BD"/>
+<rect x="791.4" y="655.72" width="121.2" height="18.6" fill="#ECE0BD"/>
+<rect x="799.2" y="616.6" width="20.4" height="12.6" fill="#B4C79F" stroke="#859878" stroke-width="0.7" rx="2"/>
+<rect x="883.2" y="616.6" width="20.4" height="12.6" fill="#B4C79F" stroke="#859878" stroke-width="0.7" rx="2"/>
+<rect x="799.2" y="682.6" width="20.4" height="12.6" fill="#B4C79F" stroke="#859878" stroke-width="0.7" rx="2"/>
+<rect x="883.2" y="682.6" width="20.4" height="12.6" fill="#B4C79F" stroke="#859878" stroke-width="0.7" rx="2"/>
+<circle cx="854.76" cy="665.2" r="15.24" fill="#FFFCF4" stroke="#B16D3D" stroke-width="1.25"/>
+<circle cx="854.76" cy="665.2" r="8.28" fill="#DBB47A" stroke="#804624" stroke-width="1.05"/>
+<polyline points="849.24,668.92 859.8,661.12" fill="none" stroke="#804624" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="859.68" cy="661" r="1.56" fill="#804624"/>
+<circle cx="198" cy="418.6" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="196,418.6 200,418.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="198,416.6 198,420.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="235.2" cy="422.2" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="233.2,422.2 237.2,422.2" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="235.2,420.2 235.2,424.2" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="266.4" cy="424.6" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="264.4,424.6 268.4,424.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="266.4,422.6 266.4,426.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="186" cy="559" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="184,559 188,559" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="186,557 186,561" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="210" cy="565" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="208,565 212,565" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="210,563 210,567" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="337.2" cy="765.4" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="335.2,765.4 339.2,765.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="337.2,763.4 337.2,767.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="337.2" cy="787" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="335.2,787 339.2,787" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="337.2,785 337.2,789" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="344.4" cy="802.6" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="342.4,802.6 346.4,802.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="344.4,800.6 344.4,804.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="392.4" cy="820.6" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="390.4,820.6 394.4,820.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="392.4,818.6 392.4,822.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="495.6" cy="819.4" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="493.6,819.4 497.6,819.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="495.6,817.4 495.6,821.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="512.4" cy="824.2" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="510.4,824.2 514.4,824.2" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="512.4,822.2 512.4,826.2" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="514.8" cy="807.4" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="512.8,807.4 516.8,807.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="514.8,805.4 514.8,809.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="870" cy="550.6" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="868,550.6 872,550.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="870,548.6 870,552.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="894" cy="535" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="892,535 896,535" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="894,533 894,537" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="914.4" cy="558.52" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="912.4,558.52 916.4,558.52" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="914.4,556.52 914.4,560.52" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="606" cy="475" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="604,475 608,475" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="606,473 606,477" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="630" cy="475" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="628,475 632,475" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="630,473 630,477" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="630" cy="494.8" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="628,494.8 632,494.8" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="630,492.8 630,496.8" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="918" cy="931" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="916,931 920,931" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="918,929 918,933" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="894" cy="947.8" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="892,947.8 896,947.8" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="894,945.8 894,949.8" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="586.8" cy="943" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="584.8,943 588.8,943" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="586.8,941 586.8,945" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="222" cy="931" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="220,931 224,931" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="222,929 222,933" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="204" cy="944.2" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="202,944.2 206,944.2" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="204,942.2 204,946.2" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="126" cy="1039" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="124,1039 128,1039" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="126,1037 126,1041" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="150" cy="1042.6" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="148,1042.6 152,1042.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="150,1040.6 150,1044.6" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="583.2" cy="1045" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="581.2,1045 585.2,1045" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="583.2,1043 583.2,1047" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="601.8" cy="1053.4" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="599.8,1053.4 603.8,1053.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="601.8,1051.4 601.8,1055.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="291.6" cy="1213" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="289.6,1213 293.6,1213" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="291.6,1211 291.6,1215" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="324" cy="1221.4" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="322,1221.4 326,1221.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="324,1219.4 324,1223.4" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="606" cy="1223.2" r="10.08" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="604,1223.2 608,1223.2" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="606,1221.2 606,1225.2" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="631.2" cy="1216" r="7.8" fill="#CDDBBE" stroke="#859878" stroke-width="1"/>
+<polyline points="629.2,1216 633.2,1216" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="631.2,1214 631.2,1218" fill="none" stroke="#859878" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="499.44" y="934.6" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">남쪽 대로  5칸</text>
+<polyline points="699.36,667.36 703.8,681.16" fill="none" stroke="#3A6281" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="708.6" y="687.04" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="700" text-anchor="start">학교길  4칸</text>
+<text x="406.8" y="580.6" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="700" text-anchor="middle">상점가  3칸</text>
+<polyline points="553.56,692.8 585.6,692.8" fill="none" stroke="#3A6281" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="588" y="697.6" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="start">집 골목  2칸</text>
+<text x="499.2" y="1230.4" fill="#804624" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">남쪽 외곽 접근로</text>
+<polyline points="479.52,758.68 520,783" fill="none" stroke="#3A6281" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="479.52" cy="758.68" r="3.2" fill="#3A6281" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="531" y="768" width="149.5" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="544" y="788" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">북극성 분수광장</text>
+<circle cx="520" cy="783" r="16" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="520" y="788" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">01</text>
+<polyline points="502.8,500.2 503,474" fill="none" stroke="#3A6281" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="502.8" cy="500.2" r="3.2" fill="#3A6281" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="514" y="459" width="139" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="527" y="479" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">약초 시장 거리</text>
+<circle cx="503" cy="474" r="16" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="503" y="479" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">02</text>
+<polyline points="750,498.4 814,519" fill="none" stroke="#3A6281" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="750" cy="498.4" r="3.2" fill="#3A6281" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="825" y="504" width="133.5" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="838" y="524" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">마법학교 앞뜰</text>
+<circle cx="814" cy="519" r="16" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="814" y="524" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">03</text>
+<polyline points="373.8,751 336,748" fill="none" stroke="#3A6281" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="373.8" cy="751" r="3.2" fill="#3A6281" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="187.5" y="733" width="137.5" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="312" y="753" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="end">여관·낚시 연못</text>
+<circle cx="336" cy="748" r="16" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="336" y="753" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">04</text>
+<polyline points="584.4,639.52 620,612" fill="none" stroke="#3A6281" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="584.4" cy="639.52" r="3.2" fill="#3A6281" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="631" y="597" width="128.5" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="644" y="617" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">내 집 앞 골목</text>
+<circle cx="620" cy="612" r="16" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="620" y="617" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">05</text>
+<polyline points="515.76,1024 546,1034" fill="none" stroke="#B16D3D" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="515.76" cy="1024" r="3.2" fill="#B16D3D" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="557" y="1019" width="101.5" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="570" y="1039" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">남문 성벽</text>
+<circle cx="546" cy="1034" r="16" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="546" y="1039" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">06</text>
+<polyline points="429.36,1132.12 403,1133" fill="none" stroke="#B16D3D" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="429.36" cy="1132.12" r="3.2" fill="#B16D3D" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="269" y="1118" width="123" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="379" y="1138" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="end">남쪽 강 석교</text>
+<circle cx="403" cy="1133" r="16" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="403" y="1138" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">07</text>
+<polyline points="237.6,476.8 158,451" fill="none" stroke="#B16D3D" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="237.6" cy="476.8" r="3.2" fill="#B16D3D" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="169" y="436" width="117.5" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="182" y="456" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">식당 테라스</text>
+<circle cx="158" cy="451" r="16" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="158" y="456" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">08</text>
+<polyline points="242.4,857.8 180,898" fill="none" stroke="#B16D3D" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="242.4" cy="857.8" r="3.2" fill="#B16D3D" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="191" y="883" width="101.5" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="204" y="903" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">공방 안뜰</text>
+<circle cx="180" cy="898" r="16" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="180" y="903" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">09</text>
+<polyline points="868.2,699.4 949,745" fill="none" stroke="#B16D3D" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="868.2" cy="699.4" r="3.2" fill="#B16D3D" stroke="#FFFCF4" stroke-width="0.9"/>
+<rect x="960" y="730" width="117.5" height="30" fill="#FFFCF4" stroke="#C9CEC8" stroke-width="0.8" rx="6"/>
+<text x="973" y="750" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">별관측 정원</text>
+<circle cx="949" cy="745" r="16" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="949" y="750" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">10</text>
+<text x="101" y="1250" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="12" font-weight="700" text-anchor="start">타일 축척</text>
+<rect x="101" y="1268" width="24" height="6" fill="#2C536F" stroke="#2C536F" stroke-width="1"/>
+<rect x="125" y="1268" width="24" height="6" fill="#FFFCF4" stroke="#2C536F" stroke-width="1"/>
+<rect x="149" y="1268" width="24" height="6" fill="#2C536F" stroke="#2C536F" stroke-width="1"/>
+<rect x="173" y="1268" width="24" height="6" fill="#FFFCF4" stroke="#2C536F" stroke-width="1"/>
+<text x="101" y="1285" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="11" font-weight="400" text-anchor="middle">0</text>
+<text x="149" y="1285" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="11" font-weight="400" text-anchor="middle">4</text>
+<text x="197" y="1285" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="11" font-weight="400" text-anchor="middle">8칸</text>
+<text x="1169" y="255" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="26" font-weight="700" text-anchor="start">배치와 동선</text>
+<text x="1169" y="288" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="400" text-anchor="start">검토할 장소를 01–10번으로 표시했습니다.</text>
+<polyline points="1169,313 1581,313" fill="none" stroke="#C9CEC8" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1169" y="345" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="18" font-weight="700" text-anchor="start">01–05  기존 도심</text>
+<circle cx="1185" cy="377" r="13" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="382" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">01</text>
+<text x="1211" y="383" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="400" text-anchor="start">북극성 분수광장</text>
+<circle cx="1185" cy="411" r="13" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="416" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">02</text>
+<text x="1211" y="417" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="400" text-anchor="start">약초 시장 거리 · 물약 상점</text>
+<circle cx="1185" cy="445" r="13" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="450" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">03</text>
+<text x="1211" y="451" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="400" text-anchor="start">마법학교 앞뜰</text>
+<circle cx="1185" cy="479" r="13" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="484" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">04</text>
+<text x="1211" y="485" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="400" text-anchor="start">여관과 낚시 연못</text>
+<circle cx="1185" cy="513" r="13" fill="#2C536F" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="518" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">05</text>
+<text x="1211" y="519" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="400" text-anchor="start">내 집 앞 골목</text>
+<polyline points="1169,537 1581,537" fill="none" stroke="#C9CEC8" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1169" y="569" fill="#804624" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="18" font-weight="700" text-anchor="start">06–10  추가 시안</text>
+<circle cx="1185" cy="610" r="13" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="615" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">06</text>
+<text x="1211" y="615" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="17" font-weight="700" text-anchor="start">남문 성벽</text>
+<text x="1211" y="636" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">남쪽 외곽에서 도심으로 들어가는 정문</text>
+<circle cx="1185" cy="668" r="13" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="673" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">07</text>
+<text x="1211" y="673" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="17" font-weight="700" text-anchor="start">남쪽 강 석교</text>
+<text x="1211" y="694" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">남문 바깥에서 강과 양안 보행로를 연결</text>
+<circle cx="1185" cy="726" r="13" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="731" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">08</text>
+<text x="1211" y="731" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="17" font-weight="700" text-anchor="start">식당 테라스</text>
+<text x="1211" y="752" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">식당 출입점에서 서쪽으로 이어지는 좌석 공간</text>
+<circle cx="1185" cy="784" r="13" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="789" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">09</text>
+<text x="1211" y="789" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="17" font-weight="700" text-anchor="start">공방 안뜰</text>
+<text x="1211" y="810" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">남쪽 대로와 상점가에서 드나드는 도예 공방</text>
+<circle cx="1185" cy="842" r="13" fill="#804624" stroke="#FFFCF4" stroke-width="1.5"/>
+<text x="1185" y="847" fill="#FFFFFF" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="13" font-weight="700" text-anchor="middle">10</text>
+<text x="1211" y="847" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="17" font-weight="700" text-anchor="start">별관측 정원</text>
+<text x="1211" y="868" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">아카데미 앞뜰 동쪽에 놓인 망원경 정원</text>
+<polyline points="1169,899 1581,899" fill="none" stroke="#C9CEC8" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1169" y="932" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="18" font-weight="700" text-anchor="start">범례</text>
+<rect x="1172" y="947" width="29" height="16" fill="#BACADC" stroke="#3A6281" stroke-width="1" rx="2"/>
+<text x="1213" y="960" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="400" text-anchor="start">기존 중심 건물과 시설</text>
+<rect x="1172" y="975" width="29" height="16" fill="#D7D8CB" stroke="#929E94" stroke-width="1" rx="2"/>
+<text x="1213" y="989" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="400" text-anchor="start">도시 밀도를 잡기 위한 보조 건물</text>
+<rect x="1172" y="1004" width="29" height="16" fill="#E3D8C1" stroke="#B2A68E" stroke-width="1" rx="2"/>
+<text x="1213" y="1018" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="400" text-anchor="start">기존 보행로</text>
+<polyline points="1173,1042 1201,1042" fill="none" stroke="#B16D3D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
+<text x="1213" y="1047" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="400" text-anchor="start">추가 배치·연결 동선</text>
+<circle cx="1186" cy="1070" r="4.5" fill="#FFFCF4" stroke="#2C536F" stroke-width="1.4"/>
+<text x="1213" y="1076" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="400" text-anchor="start">기존 출입 접근점</text>
+<polygon points="1186,1091 1191,1096 1186,1101 1181,1096" fill="#2C536F"/>
+<text x="1213" y="1102" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="15" font-weight="400" text-anchor="start">플레이어 시작점</text>
+<polyline points="1169,1126 1581,1126" fill="none" stroke="#C9CEC8" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1169" y="1157" fill="#202F3B" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="17" font-weight="700" text-anchor="start">도심 범위</text>
+<text x="1169" y="1181" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="16" font-weight="700" text-anchor="start">X -24…40   /   Z -34…30</text>
+<text x="1169" y="1207" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">남쪽 강과 접근로는 도심 격자 밖으로 이어집니다.</text>
+<text x="1169" y="1233" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">기존 중심점과 도로 폭을 기준으로 한 개략 배치입니다.</text>
+<text x="1169" y="1255" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">신규 입구·경사·충돌은 배치 검토 단계에서 확정합니다.</text>
+<polyline points="74,1311 1606,1311" fill="none" stroke="#2C536F" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="74" y="1340" fill="#526371" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="400" text-anchor="start">기준 씬  plaza_3d_v2.tscn</text>
+<text x="1606" y="1340" fill="#2C536F" font-family="Malgun Gothic, 맑은 고딕, Noto Sans KR, sans-serif" font-size="14" font-weight="700" text-anchor="end">아르카나  /  도심 공간 설계</text>
+</svg>

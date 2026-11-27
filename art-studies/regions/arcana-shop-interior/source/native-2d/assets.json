@@ -1,0 +1,983 @@
+{
+  "version": 1,
+  "pixelsPerUnit": 64,
+  "pitchSine": 0.7071067811865476,
+  "origin": [
+    5,
+    4
+  ],
+  "gridStep": 0.5,
+  "approvedConcept": "art-studies/regions/arcana-shop-interior/source/tilemap-v3/concept-v3.png",
+  "assets": {
+    "wall-back-0": {
+      "file": "res://art/export/shop-2d/wall-back-0.png",
+      "size": [
+        32,
+        192
+      ],
+      "foot": [
+        0,
+        169
+      ],
+      "anchor": "minimum",
+      "footprint": [
+        0.5,
+        0.25
+      ],
+      "height": 3.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0,
+          0,
+          0.5,
+          0.25
+        ]
+      ],
+      "offset": [
+        0,
+        0.25
+      ],
+      "layer": "HighWalls",
+      "phase": 0,
+      "editable": "res://art/source/shop-2d-v3/wall-back-0.pxpen"
+    },
+    "wall-back-1": {
+      "file": "res://art/export/shop-2d/wall-back-1.png",
+      "size": [
+        32,
+        192
+      ],
+      "foot": [
+        0,
+        169
+      ],
+      "anchor": "minimum",
+      "footprint": [
+        0.5,
+        0.25
+      ],
+      "height": 3.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0,
+          0,
+          0.5,
+          0.25
+        ]
+      ],
+      "offset": [
+        0,
+        0.25
+      ],
+      "layer": "HighWalls",
+      "phase": 1,
+      "editable": "res://art/source/shop-2d-v3/wall-back-1.pxpen"
+    },
+    "wall-back-2": {
+      "file": "res://art/export/shop-2d/wall-back-2.png",
+      "size": [
+        32,
+        192
+      ],
+      "foot": [
+        0,
+        169
+      ],
+      "anchor": "minimum",
+      "footprint": [
+        0.5,
+        0.25
+      ],
+      "height": 3.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0,
+          0,
+          0.5,
+          0.25
+        ]
+      ],
+      "offset": [
+        0,
+        0.25
+      ],
+      "layer": "HighWalls",
+      "phase": 2,
+      "editable": "res://art/source/shop-2d-v3/wall-back-2.pxpen"
+    },
+    "wall-back-3": {
+      "file": "res://art/export/shop-2d/wall-back-3.png",
+      "size": [
+        32,
+        192
+      ],
+      "foot": [
+        0,
+        169
+      ],
+      "anchor": "minimum",
+      "footprint": [
+        0.5,
+        0.25
+      ],
+      "height": 3.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0,
+          0,
+          0.5,
+          0.25
+        ]
+      ],
+      "offset": [
+        0,
+        0.25
+      ],
+      "layer": "HighWalls",
+      "phase": 3,
+      "editable": "res://art/source/shop-2d-v3/wall-back-3.pxpen"
+    },
+    "wall-left": {
+      "file": "res://art/export/shop-2d/wall-left.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        23
+      ],
+      "anchor": "minimum",
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "height": 0.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0,
+          0,
+          0.25,
+          0.5
+        ]
+      ],
+      "layer": "LowWalls",
+      "offset": [
+        0,
+        0
+      ],
+      "side": "left",
+      "return": false,
+      "editable": "res://art/source/shop-2d-v3/wall-left.pxpen"
+    },
+    "wall-left-return": {
+      "file": "res://art/export/shop-2d/wall-left-return.png",
+      "size": [
+        32,
+        192
+      ],
+      "foot": [
+        0,
+        169
+      ],
+      "anchor": "minimum",
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "height": 3.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0,
+          0,
+          0.25,
+          0.5
+        ]
+      ],
+      "layer": "LowWalls",
+      "offset": [
+        0,
+        0.25
+      ],
+      "side": "left",
+      "return": true,
+      "editable": "res://art/source/shop-2d-v3/wall-left-return.pxpen"
+    },
+    "wall-right": {
+      "file": "res://art/export/shop-2d/wall-right.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        23
+      ],
+      "anchor": "minimum",
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "height": 0.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0.25,
+          0,
+          0.25,
+          0.5
+        ]
+      ],
+      "layer": "LowWalls",
+      "offset": [
+        0,
+        0
+      ],
+      "side": "right",
+      "return": false,
+      "editable": "res://art/source/shop-2d-v3/wall-right.pxpen"
+    },
+    "wall-right-return": {
+      "file": "res://art/export/shop-2d/wall-right-return.png",
+      "size": [
+        32,
+        192
+      ],
+      "foot": [
+        0,
+        169
+      ],
+      "anchor": "minimum",
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "height": 3.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0.25,
+          0,
+          0.25,
+          0.5
+        ]
+      ],
+      "layer": "LowWalls",
+      "offset": [
+        0,
+        0.25
+      ],
+      "side": "right",
+      "return": true,
+      "editable": "res://art/source/shop-2d-v3/wall-right-return.pxpen"
+    },
+    "wall-front-0": {
+      "file": "res://art/export/shop-2d/wall-front-0.png",
+      "size": [
+        32,
+        64
+      ],
+      "foot": [
+        0,
+        34
+      ],
+      "anchor": "minimum",
+      "offset": [
+        0,
+        0.5
+      ],
+      "footprint": [
+        0.5,
+        0.25
+      ],
+      "height": 0.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0,
+          0.25,
+          0.5,
+          0.25
+        ]
+      ],
+      "layer": "LowWalls",
+      "editable": "res://art/source/shop-2d-v3/wall-front-0.pxpen"
+    },
+    "wall-front-1": {
+      "file": "res://art/export/shop-2d/wall-front-1.png",
+      "size": [
+        32,
+        64
+      ],
+      "foot": [
+        0,
+        34
+      ],
+      "anchor": "minimum",
+      "offset": [
+        0,
+        0.5
+      ],
+      "footprint": [
+        0.5,
+        0.25
+      ],
+      "height": 0.5,
+      "kind": "wall",
+      "collisions": [
+        [
+          0,
+          0.25,
+          0.5,
+          0.25
+        ]
+      ],
+      "layer": "LowWalls",
+      "editable": "res://art/source/shop-2d-v3/wall-front-1.pxpen"
+    },
+    "doorway": {
+      "file": "res://art/export/shop-2d/doorway.png",
+      "size": [
+        128,
+        32
+      ],
+      "foot": [
+        0,
+        11
+      ],
+      "anchor": "minimum",
+      "offset": [
+        0,
+        0.5
+      ],
+      "footprint": [
+        2,
+        0.25
+      ],
+      "height": 0,
+      "kind": "door",
+      "layer": "Decorations",
+      "collisions": [],
+      "arrivalOffset": [
+        1,
+        -0.6875
+      ],
+      "exitOffset": [
+        1,
+        0.3125
+      ],
+      "editable": "res://art/source/shop-2d-v3/doorway.pxpen"
+    },
+    "floor-0-0": {
+      "file": "res://art/export/shop-2d/floor-0-0.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        0
+      ],
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "kind": "floor",
+      "layer": "Floor",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/floor-0-0.pxpen"
+    },
+    "floor-1-0": {
+      "file": "res://art/export/shop-2d/floor-1-0.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        0
+      ],
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "kind": "floor",
+      "layer": "Floor",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/floor-1-0.pxpen"
+    },
+    "floor-2-0": {
+      "file": "res://art/export/shop-2d/floor-2-0.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        0
+      ],
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "kind": "floor",
+      "layer": "Floor",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/floor-2-0.pxpen"
+    },
+    "floor-3-0": {
+      "file": "res://art/export/shop-2d/floor-3-0.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        0
+      ],
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "kind": "floor",
+      "layer": "Floor",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/floor-3-0.pxpen"
+    },
+    "floor-0-1": {
+      "file": "res://art/export/shop-2d/floor-0-1.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        0
+      ],
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "kind": "floor",
+      "layer": "Floor",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/floor-0-1.pxpen"
+    },
+    "floor-1-1": {
+      "file": "res://art/export/shop-2d/floor-1-1.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        0
+      ],
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "kind": "floor",
+      "layer": "Floor",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/floor-1-1.pxpen"
+    },
+    "floor-2-1": {
+      "file": "res://art/export/shop-2d/floor-2-1.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        0
+      ],
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "kind": "floor",
+      "layer": "Floor",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/floor-2-1.pxpen"
+    },
+    "floor-3-1": {
+      "file": "res://art/export/shop-2d/floor-3-1.png",
+      "size": [
+        32,
+        32
+      ],
+      "foot": [
+        0,
+        0
+      ],
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "kind": "floor",
+      "layer": "Floor",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/floor-3-1.pxpen"
+    },
+    "herb-cabinet": {
+      "file": "res://art/export/shop-2d/herb-cabinet.png",
+      "size": [
+        128,
+        224
+      ],
+      "foot": [
+        64,
+        220
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        2,
+        0.5
+      ],
+      "height": 3,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          2,
+          0.5
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 23,
+        "frontHeightPixels": 136,
+        "roofBackY": 61,
+        "roofFrontY": 84,
+        "baseline": 220,
+        "verticalEdges": [
+          0,
+          127
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/herb-cabinet.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/herb-cabinet.pxpen"
+    },
+    "potion-cabinet": {
+      "file": "res://art/export/shop-2d/potion-cabinet.png",
+      "size": [
+        128,
+        224
+      ],
+      "foot": [
+        64,
+        220
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        2,
+        0.5
+      ],
+      "height": 3,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          2,
+          0.5
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 23,
+        "frontHeightPixels": 136,
+        "roofBackY": 61,
+        "roofFrontY": 84,
+        "baseline": 220,
+        "verticalEdges": [
+          0,
+          127
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/potion-arch.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/potion-cabinet.pxpen"
+    },
+    "travel-cabinet": {
+      "file": "res://art/export/shop-2d/travel-cabinet.png",
+      "size": [
+        128,
+        224
+      ],
+      "foot": [
+        64,
+        220
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        2,
+        0.5
+      ],
+      "height": 3,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          2,
+          0.5
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 23,
+        "frontHeightPixels": 136,
+        "roofBackY": 61,
+        "roofFrontY": 84,
+        "baseline": 220,
+        "verticalEdges": [
+          0,
+          127
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/travel-cabinet.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/travel-cabinet.pxpen"
+    },
+    "counter": {
+      "file": "res://art/export/shop-2d/counter.png",
+      "size": [
+        256,
+        160
+      ],
+      "foot": [
+        128,
+        156
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        4,
+        1
+      ],
+      "height": 1,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          4,
+          1
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 45,
+        "roofBackY": 66,
+        "roofFrontY": 111,
+        "baseline": 156,
+        "verticalEdges": [
+          0,
+          255
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/counter.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "interaction": {
+        "id": "merchant",
+        "kind": "merchant",
+        "offset": [
+          2,
+          1.75
+        ]
+      },
+      "actor": {
+        "id": "merchant",
+        "offset": [
+          2,
+          -0.5
+        ],
+        "footprint": [
+          0.75,
+          0.5
+        ]
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/counter.pxpen"
+    },
+    "apothecary-bench": {
+      "file": "res://art/export/shop-2d/apothecary-bench.png",
+      "size": [
+        192,
+        160
+      ],
+      "foot": [
+        96,
+        156
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        3,
+        1
+      ],
+      "height": 1,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          3,
+          1
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 45,
+        "frontHeightPixels": 45,
+        "roofBackY": 66,
+        "roofFrontY": 111,
+        "baseline": 156,
+        "verticalEdges": [
+          0,
+          191
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/apothecary-bench-v2.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/apothecary-bench.pxpen"
+    },
+    "potion-island": {
+      "file": "res://art/export/shop-2d/potion-island.png",
+      "size": [
+        96,
+        128
+      ],
+      "foot": [
+        48,
+        124
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        1.5,
+        0.5
+      ],
+      "height": 1,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          1.5,
+          0.5
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 23,
+        "frontHeightPixels": 45,
+        "roofBackY": 56,
+        "roofFrontY": 79,
+        "baseline": 124,
+        "verticalEdges": [
+          0,
+          95
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/potion-island.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/potion-island.pxpen"
+    },
+    "travel-island": {
+      "file": "res://art/export/shop-2d/travel-island.png",
+      "size": [
+        96,
+        128
+      ],
+      "foot": [
+        48,
+        124
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        1.5,
+        0.5
+      ],
+      "height": 1,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          1.5,
+          0.5
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 23,
+        "frontHeightPixels": 45,
+        "roofBackY": 56,
+        "roofFrontY": 79,
+        "baseline": 124,
+        "verticalEdges": [
+          0,
+          95
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/travel-island.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/travel-island.pxpen"
+    },
+    "travel-stock": {
+      "file": "res://art/export/shop-2d/travel-stock.png",
+      "size": [
+        128,
+        128
+      ],
+      "foot": [
+        64,
+        124
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        2,
+        0.5
+      ],
+      "height": 0.75,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          2,
+          0.5
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 23,
+        "frontHeightPixels": 34,
+        "roofBackY": 67,
+        "roofFrontY": 90,
+        "baseline": 124,
+        "verticalEdges": [
+          0,
+          127
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/travel-stock-v2.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/travel-stock.pxpen"
+    },
+    "luggage": {
+      "file": "res://art/export/shop-2d/luggage.png",
+      "size": [
+        96,
+        128
+      ],
+      "foot": [
+        48,
+        124
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        1.5,
+        0.5
+      ],
+      "height": 0.75,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          1.5,
+          0.5
+        ]
+      ],
+      "geometry": {
+        "roofDepthPixels": 23,
+        "frontHeightPixels": 34,
+        "roofBackY": 67,
+        "roofFrontY": 90,
+        "baseline": 124,
+        "verticalEdges": [
+          0,
+          95
+        ],
+        "sourceMaterial": "godot-arcana/art/export/shop-interior/travel-stock-v2.png",
+        "materialMapping": "uniform artwork crop to each front plane; exact registered roof/front borders rebuilt at native density"
+      },
+      "materialSource": "art-studies/regions/arcana-shop-interior/source/native-2d/furniture-paint.png",
+      "editable": "res://art/source/shop-2d-v3/luggage.pxpen"
+    },
+    "plant": {
+      "file": "res://art/export/shop-2d/plant.png",
+      "size": [
+        88,
+        93
+      ],
+      "foot": [
+        44,
+        89
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "height": 1,
+      "kind": "furniture",
+      "layer": "Furniture",
+      "collisions": [
+        [
+          0,
+          0,
+          0.5,
+          0.5
+        ]
+      ],
+      "editable": "res://art/source/shop-2d-v3/plant.pxpen"
+    },
+    "merchant": {
+      "file": "res://art/export/shop-2d/merchant.png",
+      "size": [
+        96,
+        136
+      ],
+      "foot": [
+        48,
+        116
+      ],
+      "anchor": "front-center",
+      "footprint": [
+        0.75,
+        0.5
+      ],
+      "height": 2.2,
+      "kind": "actor",
+      "layer": "Furniture",
+      "collisions": [],
+      "editable": "res://art/source/shop-2d-v3/merchant.pxpen"
+    }
+  },
+  "renderer": "native-2d",
+  "alpha": [
+    0,
+    255
+  ],
+  "palette": "res://art/export/arcana-palette-lut.png",
+  "placementSource": "res://scenes/shop_2d.tscn"
+}

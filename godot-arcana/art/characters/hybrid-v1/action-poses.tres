@@ -1,0 +1,23 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/hybrid_v1/action_pose_library.gd" id="1_library"]
+
+[resource]
+script = ExtResource("1_library")
+poses = {
+"dodge": {
+"duration": 0.28,
+"target": {
+"고개_기울기:rotation": -0.12,
+"몸통_기울기:rotation": 0.28,
+"오른다리_정강이:rotation": 0.52,
+"오른다리_허벅지:rotation": 0.20,
+"오른팔_상박:rotation": 0.32,
+"오른팔_전완:rotation": -0.35,
+"왼다리_정강이:rotation": -0.22,
+"왼다리_허벅지:rotation": -0.64,
+"왼팔_상박:rotation": -0.44,
+"왼팔_전완:rotation": -0.95
+}
+}
+}

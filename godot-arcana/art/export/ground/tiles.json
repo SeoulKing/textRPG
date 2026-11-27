@@ -1,0 +1,245 @@
+{
+  "tileSize": [
+    64,
+    45
+  ],
+  "columns": 8,
+  "rows": 8,
+  "tiles": [
+    {
+      "kind": "grass",
+      "variant": 0
+    },
+    {
+      "kind": "grass",
+      "variant": 1
+    },
+    {
+      "kind": "grass",
+      "variant": 2
+    },
+    {
+      "kind": "grass",
+      "variant": 3
+    },
+    {
+      "kind": "paving",
+      "mask": 0
+    },
+    {
+      "kind": "paving",
+      "mask": 1
+    },
+    {
+      "kind": "paving",
+      "mask": 4
+    },
+    {
+      "kind": "paving",
+      "mask": 5
+    },
+    {
+      "kind": "paving",
+      "mask": 7
+    },
+    {
+      "kind": "paving",
+      "mask": 16
+    },
+    {
+      "kind": "paving",
+      "mask": 17
+    },
+    {
+      "kind": "paving",
+      "mask": 20
+    },
+    {
+      "kind": "paving",
+      "mask": 21
+    },
+    {
+      "kind": "paving",
+      "mask": 23
+    },
+    {
+      "kind": "paving",
+      "mask": 28
+    },
+    {
+      "kind": "paving",
+      "mask": 29
+    },
+    {
+      "kind": "paving",
+      "mask": 31
+    },
+    {
+      "kind": "paving",
+      "mask": 64
+    },
+    {
+      "kind": "paving",
+      "mask": 65
+    },
+    {
+      "kind": "paving",
+      "mask": 68
+    },
+    {
+      "kind": "paving",
+      "mask": 69
+    },
+    {
+      "kind": "paving",
+      "mask": 71
+    },
+    {
+      "kind": "paving",
+      "mask": 80
+    },
+    {
+      "kind": "paving",
+      "mask": 81
+    },
+    {
+      "kind": "paving",
+      "mask": 84
+    },
+    {
+      "kind": "paving",
+      "mask": 85
+    },
+    {
+      "kind": "paving",
+      "mask": 87
+    },
+    {
+      "kind": "paving",
+      "mask": 92
+    },
+    {
+      "kind": "paving",
+      "mask": 93
+    },
+    {
+      "kind": "paving",
+      "mask": 95
+    },
+    {
+      "kind": "paving",
+      "mask": 112
+    },
+    {
+      "kind": "paving",
+      "mask": 113
+    },
+    {
+      "kind": "paving",
+      "mask": 116
+    },
+    {
+      "kind": "paving",
+      "mask": 117
+    },
+    {
+      "kind": "paving",
+      "mask": 119
+    },
+    {
+      "kind": "paving",
+      "mask": 124
+    },
+    {
+      "kind": "paving",
+      "mask": 125
+    },
+    {
+      "kind": "paving",
+      "mask": 127
+    },
+    {
+      "kind": "paving",
+      "mask": 193
+    },
+    {
+      "kind": "paving",
+      "mask": 197
+    },
+    {
+      "kind": "paving",
+      "mask": 199
+    },
+    {
+      "kind": "paving",
+      "mask": 209
+    },
+    {
+      "kind": "paving",
+      "mask": 213
+    },
+    {
+      "kind": "paving",
+      "mask": 215
+    },
+    {
+      "kind": "paving",
+      "mask": 221
+    },
+    {
+      "kind": "paving",
+      "mask": 223
+    },
+    {
+      "kind": "paving",
+      "mask": 241
+    },
+    {
+      "kind": "paving",
+      "mask": 245
+    },
+    {
+      "kind": "paving",
+      "mask": 247
+    },
+    {
+      "kind": "paving",
+      "mask": 253
+    },
+    {
+      "kind": "paving",
+      "mask": 255
+    },
+    {
+      "kind": "paving",
+      "mask": 255,
+      "variant": 1
+    },
+    {
+      "kind": "paving",
+      "mask": 255,
+      "variant": 2
+    },
+    {
+      "kind": "paving",
+      "mask": 255,
+      "variant": 3
+    },
+    {
+      "kind": "soil",
+      "variant": 0
+    },
+    {
+      "kind": "soil",
+      "variant": 1
+    },
+    {
+      "kind": "soil",
+      "variant": 2
+    },
+    {
+      "kind": "soil",
+      "variant": 3
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "foot": [
+    148,
+    268
+  ],
+  "baseEllipse": {
+    "center": [
+      148,
+      267.90186374159435
+    ],
+    "radii": [
+      144,
+      86.14979594770764
+    ],
+    "ratio": 0.5982624718590809,
+    "rmsPixels": 0.5717093448039239,
+    "samples": 276
+  },
+  "cameraPitch": 45,
+  "worldCanvas": [
+    8.5,
+    7.191602663276696
+  ],
+  "method": "Least-squares lower alpha silhouette with fixed existing 144px basin radius; water/rim height excluded"
+}

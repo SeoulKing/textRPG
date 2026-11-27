@@ -37,3 +37,6 @@ defineItem({
 ## Regions
 
 장소, 장소 액션, 장면, 씬 선택지는 `regions/<regionId>/` 아래에 둡니다. 자세한 작성 방식은 `regions/README.md`를 봅니다.
+
+## 아르카나 아이템 마스터
+아르카나 아이템의 정의는 items.ts, 분류·썸네일 연결은 arcana-item-assets.json에서 관리합니다. 서버가 기존 게임 저장소의 arcana_item_master 레코드에 동기화하고 소지품 화면은 그 목록을 사용합니다. 추가·수정·조회 방법은 [아르카나 아이템 마스터](../../../docs/ARCANA_ITEMS.md)를 따릅니다.

@@ -1,0 +1,40 @@
+{
+  "source": "source/mosaic-ring.png",
+  "sourceCrop": {
+    "left": 29,
+    "top": 28,
+    "width": 1197,
+    "height": 1197
+  },
+  "size": [
+    544,
+    544
+  ],
+  "center": [
+    272,
+    272
+  ],
+  "pixelsPerWorldUnit": 64,
+  "canvasWorldSize": [
+    8.5,
+    7.191602663276696
+  ],
+  "basinGroundRatio": 0.5982624718590809,
+  "outerRadius": 4.1875,
+  "innerClearRadius": 2.234375,
+  "camera": {
+    "yaw": 0,
+    "pitch": 45
+  },
+  "projection": "Top-down X/Z texture; Z span compensates for the measured painted basin ellipse at the existing 45-degree camera",
+  "paletteColors": 56,
+  "alpha": [
+    0,
+    255
+  ],
+  "opaquePixels": 151033,
+  "registration": "plaza_layout.mosaic_center; shared fountain origin",
+  "runtime": "godot-arcana/art/export/fountain-paving/mosaic-ring.png",
+  "generator": "built-in image_gen",
+  "status": "approved concept; integrated production asset pending user art review"
+}

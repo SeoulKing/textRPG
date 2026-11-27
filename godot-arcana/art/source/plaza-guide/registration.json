@@ -1,0 +1,36 @@
+{
+  "frame": [
+    96,
+    136
+  ],
+  "foot": [
+    48,
+    116
+  ],
+  "pixelsPerUnit": 64,
+  "sourceBounds": [
+    73,
+    170,
+    818,
+    1703
+  ],
+  "silhouetteHeight": 99,
+  "heroBounds": [
+    21,
+    17,
+    74,
+    116
+  ],
+  "alpha": [
+    0,
+    255
+  ],
+  "palette": "arcana-palette-lut.png",
+  "pose": "front idle",
+  "worldPosition": [
+    32,
+    0,
+    32.5
+  ],
+  "source": "guide-source-v3.png"
+}

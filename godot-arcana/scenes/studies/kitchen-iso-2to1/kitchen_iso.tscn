@@ -1,0 +1,81 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/studies/kitchen-iso-2to1/kitchen_iso.gd" id="1_control"]
+[ext_resource type="Texture2D" path="res://scenes/studies/kitchen-iso-2to1/kitchen_layers.png" id="2_art"]
+[ext_resource type="Script" path="res://scripts/native_2d_hero.gd" id="3_hero"]
+
+[node name="KitchenIsometricStudy" type="Node2D"]
+texture_filter = 1
+script = ExtResource("1_control")
+
+[node name="Room" type="Sprite2D" parent="."]
+z_index = -2
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 352, 312)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(176, 156)
+
+[node name="DepthSort" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Pantry" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 157.5)
+metadata/footprint = Rect2(11, 8, 52, 39)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Pantry"]
+position = Vector2(0, -157.5)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(352, 0, 352, 312)
+
+[node name="Hearth" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 207.25)
+metadata/footprint = Rect2(0, 104, 60, 145)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Hearth"]
+position = Vector2(0, -207.25)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(704, 0, 352, 312)
+
+[node name="SinkRun" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 215.5)
+metadata/footprint = Rect2(67, 4, 226, 45)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/SinkRun"]
+position = Vector2(0, -215.5)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 312, 352, 312)
+
+[node name="Planter" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 226.5)
+metadata/footprint = Rect2(14, 268, 52, 52)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/Planter"]
+position = Vector2(0, -226.5)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(352, 312, 352, 312)
+
+[node name="PrepTable" type="Node2D" parent="DepthSort"]
+position = Vector2(0, 238.25)
+metadata/footprint = Rect2(133, 150, 88, 62)
+
+[node name="Art" type="Sprite2D" parent="DepthSort/PrepTable"]
+position = Vector2(0, -238.25)
+texture = ExtResource("2_art")
+centered = false
+region_enabled = true
+region_rect = Rect2(704, 312, 352, 312)
+
+[node name="Hero" type="Node2D" parent="DepthSort"]
+position = Vector2(120, 246)
+script = ExtResource("3_hero")

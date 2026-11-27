@@ -1,0 +1,23 @@
+{
+  "complete": true,
+  "approvedVisual": "tilemap-v3",
+  "dimension": "native-2d",
+  "scene": "godot-arcana/scenes/shop_2d.tscn",
+  "nativeTileMapLayers": 5,
+  "assets": 30,
+  "maxAssetColors": 64,
+  "nativePixelPenMasters": 30,
+  "geometryChecks": 1289,
+  "flowChecks": 11,
+  "serverParityProbes": 3525,
+  "checkpointsCorrected": true,
+  "unchangedValidPositions": true,
+  "coverage": "Actual source and isolated Godot scene, native PNGs, actual movement/rendering/picking/entry/exit, TypeScript compiler output and online layout. No live server transactions, browser verification, web export or deployment.",
+  "sourceSha256": {
+    "godot-arcana/scripts/shop_layout_2d.gd": "045e99e66196e27130e4fa9729ba371a4292e70b564ab1c787cc0d7be44dec75",
+    "godot-arcana/scripts/shop_world_2d.gd": "4d77f4a7f59aee746174f699277aa2055f3b6faf6ca4ca6d21e5707a6941b235",
+    "godot-arcana/scenes/shop_2d.tscn": "c4cfae339a2bcb96f0a2fc28978ed38469a7917fcb89b81e382a9b1779550b0a",
+    "godot-arcana/art/resources/shop_2d_tileset.tres": "5ef1e1f73ff90828c2b5c4c0b9906f2668457990f4d51ee72e765312b9b7e8d6",
+    "src/online/world.ts": "fdca2b30b2700f8b23841b83ae2e643a1118a1fbbb81e8592d3e48ab4cae91a9"
+  }
+}

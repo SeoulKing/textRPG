@@ -1,0 +1,208 @@
+[gd_scene load_steps=27 format=3 uid="uid://0lpw1jk4rksl"]
+
+[ext_resource type="Script" uid="uid://c1gyjens0d8le" path="res://scripts/shop_world_3d.gd" id="1_8fw3c"]
+[ext_resource type="Script" uid="uid://pl70fhcfe8pe" path="res://scripts/shop_room_geometry_3d.gd" id="2_nd6qd"]
+[ext_resource type="Texture2D" uid="uid://b0ng2jk4qu3xw" path="res://art/export/shop-2d/merchant.png" id="3_nd6qd"]
+[ext_resource type="Shader" uid="uid://bkv37m7tyqgu3" path="res://art/resources/shop_screen_edges.gdshader" id="5_edges"]
+[ext_resource type="ArrayMesh" path="res://art/source/shop-room-blender/wooden-crate-pixel-mesh.res" id="6_crate"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/pixel-test-cube.glb" id="7_cube"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/floor.glb" id="floor"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/counter-model.glb" id="counter"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/herb-cabinet.glb" id="herb-cabinet"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/herb-cabinet-2.glb" id="herb-cabinet-2"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/potion-cabinet.glb" id="potion-cabinet"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/display-potions.glb" id="display-potions"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/travel-cabinet.glb" id="travel-cabinet"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/travel-cabinet-2.glb" id="travel-cabinet-2"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/floor-lamp.glb" id="floor-lamp"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/rear-wall.glb" id="rear-wall"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/west-wall.glb" id="west-wall"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/right-wall.glb" id="right-wall"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/front-left-wall.glb" id="front-left-wall"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/front-right-wall.glb" id="front-right-wall"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/entrance.glb" id="entrance"]
+[ext_resource type="PackedScene" path="res://art/source/shop-room-blender/parts/sun-shadow-casters.glb" id="sun-shadow-casters"]
+[ext_resource type="PackedScene" path="res://scenes/rendering/world_key_light.tscn" id="key_light"]
+
+[sub_resource type="Environment" id="Environment_3uwl5"]
+background_mode = 1
+ambient_light_source = 2
+ambient_light_color = Color(0.9490196, 0.93333334, 0.8980392, 1)
+ambient_light_energy = 0.78
+reflected_light_source = 2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_edges"]
+resource_local_to_scene = true
+render_priority = -100
+shader = ExtResource("5_edges")
+shader_parameter/highlight_strength = 0.08
+shader_parameter/highlight_direction = Vector3(-0.65, 0.72, 0.24)
+shader_parameter/room_bounds = Vector4(5, 4, 14, 9)
+shader_parameter/counter_center = Vector2(12, 7.5)
+shader_parameter/lamp_contact = Vector4(16.099388, 7.393835, 0.46, 0.4)
+shader_parameter/crate_contact = Vector4(17.57, 9.08, 0.64, 0.51)
+shader_parameter/shadow_direction = Vector2(0.9745552, 0.22414759)
+shader_parameter/cube_preview = false
+shader_parameter/cube_outline_width = 0
+shader_parameter/cube_highlight_width = 0
+shader_parameter/cube_highlight_strength = 0.0
+shader_parameter/cube_light_local = Vector4(0, 0, 0, 0)
+shader_parameter/cube_light_level = 0.0
+shader_parameter/world_to_cube = Projection(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+shader_parameter/cube_outline_color = Color(0.23, 0.16, 0.19, 1)
+shader_parameter/asset_mask_enabled = false
+shader_parameter/asset_outline_width = 1
+shader_parameter/asset_outline_groups = 0
+shader_parameter/asset_highlight_width = 1
+shader_parameter/asset_highlight_strength = 0.75
+
+[sub_resource type="QuadMesh" id="QuadMesh_edges"]
+size = Vector2(2, 2)
+
+[node name="Shop3D" type="Node3D"]
+script = ExtResource("1_8fw3c")
+outlined_assets = Array[StringName]([&"WoodenCrate_Test"])
+
+[node name="Geometry" type="Node3D" parent="."]
+script = ExtResource("2_nd6qd")
+
+[node name="WoodenCrate_Test" type="Node3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.5, 0, 9)
+
+[node name="CratePixelModel" type="MeshInstance3D" parent="Geometry/WoodenCrate_Test"]
+mesh = ExtResource("6_crate")
+
+[node name="PixelTestCube" parent="Geometry" instance=ExtResource("7_cube")]
+position = Vector3(15.25, 0, 10.3)
+rotation = Vector3(0, -0.4886922, 0)
+
+[node name="AuthoredRoom" type="Node3D" parent="Geometry"]
+metadata/layout_signature_hash = "6688b66bcbbc1cf7056ea931d7631e263743ee914154f376bb91617ac58c3646"
+
+[node name="Floor" parent="Geometry/AuthoredRoom" instance=ExtResource("floor")]
+
+[node name="Furniture" type="Node3D" parent="Geometry/AuthoredRoom"]
+
+[node name="Counter" parent="Geometry/AuthoredRoom/Furniture" instance=ExtResource("counter")]
+position = Vector3(12, 0, 7.5)
+
+[node name="HerbCabinet" parent="Geometry/AuthoredRoom/Furniture" instance=ExtResource("herb-cabinet")]
+position = Vector3(7, 0, 4.5)
+
+[node name="HerbCabinet2" parent="Geometry/AuthoredRoom/Furniture" instance=ExtResource("herb-cabinet-2")]
+position = Vector3(9, 0, 4.5)
+
+[node name="PotionCabinet" parent="Geometry/AuthoredRoom/Furniture" instance=ExtResource("potion-cabinet")]
+position = Vector3(11.000001907, 0, 4.5)
+
+[node name="DisplayPotions" parent="Geometry/AuthoredRoom/Furniture/PotionCabinet" instance=ExtResource("display-potions")]
+position = Vector3(-11.000001907, 0, -4.5)
+
+[node name="TravelCabinet" parent="Geometry/AuthoredRoom/Furniture" instance=ExtResource("travel-cabinet")]
+position = Vector3(13, 0, 4.5)
+
+[node name="TravelCabinet2" parent="Geometry/AuthoredRoom/Furniture" instance=ExtResource("travel-cabinet-2")]
+position = Vector3(15, 0, 4.5)
+
+[node name="FloorLamp" parent="Geometry/AuthoredRoom" instance=ExtResource("floor-lamp")]
+position = Vector3(16.02938843, 0.00176799, 7.31383514)
+
+[node name="WarmLight" type="OmniLight3D" parent="Geometry/AuthoredRoom/FloorLamp"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.000003814697, 2.409, 0)
+light_color = Color(1, 0.896243, 0.748381, 1)
+light_energy = 2.0
+shadow_normal_bias = 1.0
+omni_range = 3.5
+omni_attenuation = 0.8
+metadata/extras = {"godot_glow_radius": 0.55}
+
+[node name="Walls" type="Node3D" parent="Geometry/AuthoredRoom"]
+
+[node name="RearWall" parent="Geometry/AuthoredRoom/Walls" instance=ExtResource("rear-wall")]
+
+[node name="WestWall" parent="Geometry/AuthoredRoom/Walls" instance=ExtResource("west-wall")]
+
+[node name="RightWall" parent="Geometry/AuthoredRoom/Walls" instance=ExtResource("right-wall")]
+
+[node name="FrontLeftWall" parent="Geometry/AuthoredRoom/Walls" instance=ExtResource("front-left-wall")]
+
+[node name="FrontRightWall" parent="Geometry/AuthoredRoom/Walls" instance=ExtResource("front-right-wall")]
+
+[node name="Entrance" parent="Geometry/AuthoredRoom/Walls" instance=ExtResource("entrance")]
+
+[node name="SunShadowCasters" parent="Geometry/AuthoredRoom/Walls" instance=ExtResource("sun-shadow-casters")]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.70710677, 0.70710677, 0, -0.70710677, 0.70710677, 12, 16.970562, 23.790562)
+environment = SubResource("Environment_3uwl5")
+projection = 1
+current = true
+size = 10.047988
+far = 70.0
+
+[node name="ScreenEdges" type="MeshInstance3D" parent="Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)
+visible = false
+material_override = SubResource("ShaderMaterial_edges")
+cast_shadow = 0
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_edges")
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="KeyLight" parent="Lighting" instance=ExtResource("key_light")]
+transform = Transform3D(-0.22414759, 0.44053513, -0.86930245, 1.4901163e-08, 0.8919991, 0.4520371, 0.97455525, 0.10132301, -0.19993946, 0, 0, 0)
+light_color = Color(1, 0.9490196, 0.85490197, 1)
+light_energy = 0.58
+directional_shadow_max_distance = 48.0
+
+[node name="OverheadFill" type="OmniLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 8.73645, 8.5)
+light_color = Color(1, 0.7411765, 0.5058824, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 18.5
+
+[node name="CrateAccentLight" type="OmniLight3D" parent="Lighting"]
+position = Vector3(15.77, 1.65, 9.48)
+light_color = Color(1, 0.84, 0.59, 1)
+light_energy = 0.72
+light_specular = 0.0
+omni_range = 4.6
+
+[node name="Actors" type="Node3D" parent="."]
+
+[node name="Merchant" type="Sprite3D" parent="Actors"]
+transform = Transform3D(1, 0, 0, 0, 1.4142135, 0, 0, 0, 1, 12, 0, 6.5)
+centered = false
+offset = Vector2(-48, -20)
+pixel_size = 0.015625
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("3_nd6qd")
+
+[node name="Player" type="Sprite3D" parent="Actors"]
+transform = Transform3D(1, 0, 0, 0, 1.4142135, 0, 0, 0, 1, 0, 0, 0)
+visible = false
+centered = false
+pixel_size = 0.015625
+alpha_cut = 1
+texture_filter = 0
+
+[editable path="Geometry/AuthoredRoom/Floor"]
+[editable path="Geometry/PixelTestCube"]
+[editable path="Geometry/AuthoredRoom/Furniture/Counter"]
+[editable path="Geometry/AuthoredRoom/Furniture/HerbCabinet"]
+[editable path="Geometry/AuthoredRoom/Furniture/HerbCabinet2"]
+[editable path="Geometry/AuthoredRoom/Furniture/PotionCabinet"]
+[editable path="Geometry/AuthoredRoom/Furniture/PotionCabinet/DisplayPotions"]
+[editable path="Geometry/AuthoredRoom/Furniture/TravelCabinet"]
+[editable path="Geometry/AuthoredRoom/Furniture/TravelCabinet2"]
+[editable path="Geometry/AuthoredRoom/FloorLamp"]
+[editable path="Geometry/AuthoredRoom/Walls/RearWall"]
+[editable path="Geometry/AuthoredRoom/Walls/WestWall"]
+[editable path="Geometry/AuthoredRoom/Walls/RightWall"]
+[editable path="Geometry/AuthoredRoom/Walls/FrontLeftWall"]
+[editable path="Geometry/AuthoredRoom/Walls/FrontRightWall"]
+[editable path="Geometry/AuthoredRoom/Walls/Entrance"]
+[editable path="Geometry/AuthoredRoom/Walls/SunShadowCasters"]

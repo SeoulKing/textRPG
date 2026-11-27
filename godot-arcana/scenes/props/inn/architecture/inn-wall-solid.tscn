@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/285e30dd63288d2639e82ce5a542f680ce9b24376bdcf5df291f337bed8a176c.res" id="4_6joaa"]
+[node name="Inn_wall_solid5" type="Sprite2D"]
+texture = ExtResource("4_6joaa")
+centered = false
+offset = Vector2(-138.4, -212)
+metadata/foot = Vector2(0, 0)
+texture_filter = 1
+

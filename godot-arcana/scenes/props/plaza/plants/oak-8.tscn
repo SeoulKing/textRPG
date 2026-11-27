@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/d10373bdab2fb36c1b3ddfaf87228be5b1e640f4cea03d86846714e9a0799f4c.res" id="10_tcrvt"]
+[node name="plaza_canopy_ne_01" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "oak"
+collision_parts = Array[Rect2]([Rect2(-7, -12, 14, 12)])
+source_path = "PlazaComposition/참나무_29"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+position = Vector2(-539, 997)
+texture = ExtResource("10_tcrvt")
+centered = false
+offset = Vector2(-105, -258)
+region_rect = Rect2(0, 0, 210, 260)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(210, 260)
+

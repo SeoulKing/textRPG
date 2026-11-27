@@ -1,0 +1,17 @@
+{
+  "fullyOpaque": true,
+  "matchingOppositeEdges": true,
+  "nativePixelPen": true,
+  "opaqueColors": [
+    "c0a886",
+    "bca482",
+    "c5ae8d",
+    "b9a17f",
+    "c8b292"
+  ],
+  "savedReopenedExported": true,
+  "size": [
+    64,
+    16
+  ]
+}

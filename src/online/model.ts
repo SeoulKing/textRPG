@@ -1,0 +1,33 @@
+import type { GameSession } from "../game/schemas";
+import type { ActionReceipt } from "./action-receipts";
+import type { ArcanaSpatial } from "../game/schemas/arcana-spatial";
+import type { Character } from "./accounts";
+import type { SpatialEnemy, CombatPoint } from "../game/schemas/arcana-spatial";
+import { FOREST_LOCATION } from "../game/arcana-forest";
+import { MEADOW_LOCATION } from "../game/arcana-meadow";
+import type { InnSupply } from "./inn-supply";
+import type { InnTable } from "./inn-table";
+import type { PlazaBuyOrders } from "./plaza-buy-orders";
+import type { PlazaMarket } from "./plaza-market";
+export type Point = CombatPoint;
+export type Place = {location:string;interior:string;floor:number};
+export type SavedPosition = {place:Place;position:Point;positionLayoutId?:string};
+export type Actor = SavedPosition & {character:Character; game:GameSession; previous:Point; direction:Point; walking:boolean; bench:string; gait:number; lastMoveAt:number; disconnectedAt:number|null; sessionId:string; controller:string; accepted:number; version:number; lastSeen:number;sessionExpires:number;moveCredit?:number;pending?:boolean;placeRevision?:number;actionReceipts?:ActionReceipt[];slimeContactReadyAtMs?:number;plazaFireballReadyAtMs?:number};
+export type SharedEnemy = SpatialEnemy & {lifeId:string;respawnAt:number;recoveryElapsed:number;hopCooldown:number;hasFled:boolean;contribution:Record<string,number>;targetId:string|null};
+export type CombatArea = "plaza" | "meadow";
+export type WorldEvent = ArcanaSpatial["events"][number] & {clientActionId?:string;movement?:"dodge"|"teleport";area?:CombatArea};
+export type Shot = ArcanaSpatial["projectiles"][number] & {ownerId:string;clientActionId?:string;plazaFireballEnemyLifeId?:string};
+export type Meteor = ArcanaSpatial["meteors"][number] & {ownerId:string;clientActionId?:string};
+export type Barrage = {clientActionId?:string;ownerId:string;remaining:number;nextIn:number;damage:number};
+export type CombatArena = {enemy:SharedEnemy;projectiles:Shot[];meteors:Meteor[];barrages:Barrage[]};
+export type ForestTree = {health:number;respawnAt:number;revision:number;lastHitBy:string|null;lastHitAt:number|null};
+export type SharedWorld = CombatArena & {campfires?:Record<string,import("./life").Campfire>;forestTrees?:Record<string,ForestTree>;innSupply?:InnSupply;innTable?:InnTable;plazaBuyOrders?:PlazaBuyOrders;plazaMarket?:PlazaMarket;id:string;revision:number;elapsedMs:number;updatedAt:number;meadowCombat?:CombatArena;events:WorldEvent[]};
+export function combatArea(actor: Actor): CombatArea | undefined {
+  if (!actor.game.state.flags.in_magic_world || actor.place.interior !== "") return undefined;
+  if (actor.place.location === MEADOW_LOCATION) return "meadow";
+  return ["arcana_plaza", "arcana_city_gate", "arcana_hunting_ground", "arcana_return_portal"].includes(actor.place.location) ? "plaza" : undefined;
+}
+export const inField = (actor: Actor) => combatArea(actor) !== undefined;
+export const isWorldMapField = (location: string) => location === MEADOW_LOCATION || location === FOREST_LOCATION;
+export const placeArea = (place: Place) => place.interior || isWorldMapField(place.location) ? place.location : "outside";
+export const samePlace = (a:Place,b:Place) => a.interior===b.interior && a.floor===b.floor && placeArea(a)===placeArea(b);

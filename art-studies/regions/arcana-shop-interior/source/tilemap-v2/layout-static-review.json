@@ -1,0 +1,81 @@
+{
+  "kind": "static draft geometry derivation, not game/test execution",
+  "currentSourceFindings": {
+    "halfGridViolations": [
+      "counter",
+      "potion-island",
+      "travel-island",
+      "luggage",
+      "plant",
+      "plant"
+    ],
+    "backWallFootprintConflicts": [
+      "herb-cabinet",
+      "herb-cabinet",
+      "potion-arch",
+      "travel-cabinet",
+      "travel-cabinet"
+    ],
+    "clientCollisionMargin": 3,
+    "onlineCollisionMargin": 3,
+    "currentClientAndServerVoidGuard": "only broad room bounds; new layout requires floor-domain guard"
+  },
+  "draft": {
+    "floorCells": 504,
+    "boundaryCells": 84,
+    "furniture": 13,
+    "overlapConflicts": [],
+    "standMarkers": {
+      "arrival": true,
+      "exit": true,
+      "merchantInteraction": true,
+      "merchant": true
+    },
+    "walkableAStarNodes": 76,
+    "connectedAStarNodes": 76,
+    "routes": {
+      "exit": {
+        "reachable": true,
+        "points": [
+          [
+            184,
+            184
+          ],
+          [
+            184,
+            200
+          ]
+        ]
+      },
+      "merchantInteraction": {
+        "reachable": true,
+        "points": [
+          [
+            184,
+            184
+          ],
+          [
+            184,
+            168
+          ],
+          [
+            184,
+            152
+          ],
+          [
+            184,
+            136
+          ]
+        ]
+      }
+    }
+  },
+  "remaining": [
+    "visual approval",
+    "native tile art and PixelPen masters",
+    "Godot TileSet and painted scene",
+    "shared runtime/domain/marker implementation",
+    "online export",
+    "scope-appropriate source/import/render verification"
+  ]
+}

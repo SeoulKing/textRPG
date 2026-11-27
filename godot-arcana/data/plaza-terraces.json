@@ -1,0 +1,31 @@
+{
+  "bounds": [-24,-34,40,30],
+  "terraces": [
+    {"id":"market_terrace","rect":[-23,-24,9,-17.9],"height":1.2},
+    {"id":"residential_terrace","rect":[-23,-33.9,9,-24],"height":2.4}
+  ],
+  "stairs": [
+    {"id":"west_lower","rect":[-21,-17.9,-17.8,-12.5],"low":0,"high":1.2},
+    {"id":"east_lower","rect":[5.7,-17.9,8.8,-14.5],"low":0,"high":1.2},
+    {"id":"west_upper","rect":[-21,-24,-17.8,-20.3],"low":1.2,"high":2.4},
+    {"id":"east_upper","rect":[5.7,-24,8.8,-20.3],"low":1.2,"high":2.4}
+  ],
+  "buildings": [
+    {"id":"amber_house","rect":[-22.9,-29.875,-19.4,-26.725],"base":2.411,"wall":2.7,"roof":1.48,"color":"#8a5752","facade":"#e2c584","kind":"rowhouse"},
+    {"id":"sage_house","rect":[-17.2,-31.5,-13.5,-28.7],"base":2.411,"wall":3.12,"roof":1.4,"color":"#51746d","facade":"#e4d3a3","kind":"rowhouse"},
+    {"id":"blue_house","rect":[-11.375,-32.75,-7.725,-30.05],"base":2.411,"wall":2.83,"roof":1.52,"color":"#405f91","facade":"#f0d3af","kind":"rowhouse"},
+    {"id":"ochre_house","rect":[-5.5,-33.9,-2.0,-31.1],"base":2.411,"wall":3.03,"roof":1.37,"color":"#a36a49","facade":"#e2c6a2","kind":"rowhouse"}
+  ],
+  "stalls": [
+    {"id":"elixirs","rect":[-15.7,-22.55,-12.9,-21.05],"color":"#307b7d"},
+    {"id":"herbs","rect":[-8.85,-22.4,-6.05,-20.9],"color":"#af5741"},
+    {"id":"orrery","rect":[-2.1,-22.65,0.7,-21.15],"color":"#384d80"}
+  ],
+  "river": {"height":-0.26,"spans":[[-24,-20,17.1,24],[-20,-16,16.4,23.6],[-16,-12,15.7,23],[-12,-9,16.2,23.1],[-9,-6,16.8,23.35],[-6,-3,16.45,23.7],[-3,3,16.5,24],[3,7,16.6,24.45],[7,11,17.35,25.15],[11,15,18,25.75],[15,20,18.25,25.5],[20,25,17.7,24.9],[25,30,17,24.2],[30,35,16.45,23.85],[35,40,16,23.2]]},
+  "bridge": {"edgeHeight":0.105,"rise":0.057,"pavingThickness":0.008,"rect":[-2.5,14.5,2.5,26]},
+  "fishingAccess": [-7.5,16.36],
+  "obstacles": [
+    {"id":"inn_shade_bench","rect":[-8.75,9.1,-7.05,9.7]},
+    {"id":"shade_tree","rect":[-10.35,9.8,-9.85,10.3]}
+  ]
+}

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/249c87ca96fddb3b68816fd2af9a7b4489edb4319fb073aeb03f9f1e5e8955ea.res" id="2_j1ufc"]
+[node name="Academy_wall39" type="Sprite2D"]
+texture = ExtResource("2_j1ufc")
+centered = false
+offset = Vector2(-148, -325)
+metadata/foot = Vector2(0, 0)
+texture_filter = 1
+

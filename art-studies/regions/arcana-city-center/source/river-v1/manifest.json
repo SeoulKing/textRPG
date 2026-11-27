@@ -1,0 +1,65 @@
+{
+  "approval": {
+    "date": "2026-11-02",
+    "message": "아주 좋아",
+    "concept": "concept-v1.png"
+  },
+  "scene": "res://scenes/native_2d/city_river_quarter.tscn",
+  "pixelsPerWorldUnit": 64,
+  "nodeScale": [
+    1,
+    1
+  ],
+  "riverPixelRect": [
+    0,
+    2400,
+    4096,
+    320
+  ],
+  "bridgePixelRect": [
+    2144,
+    2288,
+    320,
+    511
+  ],
+  "blockedLogicalRectangles": [
+    [
+      32,
+      592,
+      521,
+      102
+    ],
+    [
+      599,
+      592,
+      393,
+      102
+    ]
+  ],
+  "assets": [
+    {
+      "id": "bridge",
+      "source": "res://art/source/city-river-v1/bridge.pxpen",
+      "runtime": "res://art/export/city-river-v1/bridge.res"
+    },
+    {
+      "id": "bank",
+      "source": "res://art/source/city-river-v1/bank.pxpen",
+      "runtime": "res://art/export/city-river-v1/bank.res"
+    },
+    {
+      "id": "water-calm",
+      "source": "res://art/source/city-river-v1/water-calm.pxpen",
+      "runtime": "res://art/export/city-river-v1/water-calm.res"
+    }
+  ],
+  "verification": {
+    "nativePixelPenSaveReopenExport": true,
+    "sourceOfflineArtRender": "render/",
+    "packageOfflineArtRender": "render-package/",
+    "webBuild": ".runtime/godot/online-build-20261102-133828/web",
+    "pckSha256": "285A62139DBA1B7E5FE28A288CF8D7AC6F6F0CA4025955C27EFB5A475492DC3F",
+    "playTestsRun": false,
+    "browserUsed": false
+  }
+}

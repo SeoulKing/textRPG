@@ -1,28 +1,67 @@
+import { SnapshotSchema } from "../state-world/model";
 import { z } from "zod";
+import { ActivityResultSchema } from "./activity";
 import { PlayerSchema } from "./player";
 import { WorldStateSchema } from "./world-state";
 import { QuestStateSchema } from "./quest";
 import { DynamicWorldRegistrySchema, FrontierStateSchema, NarrativeStateSchema, WorldPlanSchema } from "./dynamic-world";
+import { SubwayExpeditionStateSchema } from "./subway-expedition";
+import { SkillProgressStateSchema } from "./skill-progression";
+import { SystemNoteEntriesSchema } from "./system-note";
+import { NpcDialogueStateSchema } from "./npc-dialogue";
+import { ArcanaCombatSchema, ActiveClockSchema } from "./arcana-combat";
+import { ArcanaAbilitiesSchema } from "../arcana-abilities";
+import { HealthConditionsSchema } from "./health-condition";
+import { ChoicePreferencesSchema } from "./choice-preferences";
+import { TextWorldSchema } from "./text-world";
 
 export const LogEntrySchema = z.object({
   timestampLabel: z.string(),
   message: z.string(),
 });
 
+export const HomeFurnitureCellSchema = z.object({
+  x: z.number().int().min(-1000).max(1000),
+  z: z.number().int().min(-1000).max(1000),
+});
+export const HomeFurnitureRotationSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
+const HomeFurnitureOverrideSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("stored"), assetId: z.string().min(1) }),
+  z.object({
+    kind: z.literal("placed"),
+    assetId: z.string().min(1),
+    cell: HomeFurnitureCellSchema,
+    rotation: HomeFurnitureRotationSchema,
+  }),
+]);
+export const HomeFurnitureLayoutSchema = z.object({
+  gridVersion: z.number().int().positive(),
+  layoutRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  overrides: z.record(z.string(), HomeFurnitureOverrideSchema),
+});
+export type HomeFurnitureCell = z.infer<typeof HomeFurnitureCellSchema>;
+export type HomeFurnitureRotation = z.infer<typeof HomeFurnitureRotationSchema>;
+export type HomeFurnitureLayout = z.infer<typeof HomeFurnitureLayoutSchema>;
+
 export const GameStateSchema = z.object({
+  choicePreferences: ChoicePreferencesSchema.optional(),
   saveVersion: z.number().int(),
+  contentVersionId: z.string().optional(),
   sceneId: z.string(),
   activeEventId: z.string().nullable(),
   location: z.string(),
   day: z.number().int().positive(),
   phaseIndex: z.number().int().nonnegative(),
   worldElapsedMs: z.number().int().nonnegative(),
+  clockRemainderMs: z.number().min(-0.5).max(0.5).optional(),
   lastRealTimestamp: z.number().int().nonnegative(),
   autoEnergyElapsedMs: z.number().int().nonnegative(),
   exhaustionElapsedMs: z.number().int().nonnegative(),
   isGameOver: z.boolean(),
   gameOverReason: z.string(),
   stageClear: z.boolean(),
+  chapterOneResult: z.enum(["pending", "signal", "missed"]).default("pending"),
+  preparedMeal: z.enum(["hotMeal", "ricePorridge", "greensSoup", "forestStew"]).nullable().default(null),
   stats: z.object({
     hp: z.number().int().min(0).max(10),
     mind: z.number().int().min(0).max(10),
@@ -30,9 +69,17 @@ export const GameStateSchema = z.object({
   }),
   money: z.number().int().nonnegative(),
   skills: z.array(z.string()),
+  skillProgress: SkillProgressStateSchema,
   inventory: z.record(z.string(), z.number().int().nonnegative()),
   toolDurability: z.record(z.string(), z.number().int().nonnegative()).default({}),
   stockState: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  activityRevision: z.number().int().nonnegative().default(0),
+  lastActivity: ActivityResultSchema.nullable().default(null),
+  resourceState: z.record(z.string(), z.record(z.string(), z.object({
+    remaining: z.number().int().nonnegative(),
+    updatedAtMinutes: z.number().nonnegative(),
+    recoveryProgressMinutes: z.number().nonnegative(),
+  }))).default({}),
   discoveredStockNodeIds: z.array(z.string()).default([]),
   activeStockNodeId: z.string().nullable().default(null),
   dynamicContent: DynamicWorldRegistrySchema.default({
@@ -52,12 +99,36 @@ export const GameStateSchema = z.object({
   }),
   frontierState: FrontierStateSchema.default({ nextSequence: 1, slots: {} }),
   narrativeState: NarrativeStateSchema.default({ nextBeatSequence: 1, history: [], pregenerated: {}, anchors: {} }),
+  subwayExpedition: SubwayExpeditionStateSchema,
+  arcanaAbilities: ArcanaAbilitiesSchema.optional(),
+  arcanaLife: z.object({
+    hunger:z.number().int().min(0).max(100),
+    elapsedMs:z.number().finite().min(0).max(30000),
+    woodGranted:z.boolean(),
+    day:z.number().int().min(1).default(1),
+    gatheredToday:z.number().int().min(0).max(3).default(0),
+    cookedMeals:z.number().int().nonnegative().default(0),
+    craftedItems:z.number().int().nonnegative().default(0),
+    atHome:z.boolean().default(false),
+    homeReturn:z.object({x:z.number().finite(),y:z.number().finite()}).optional(),
+    homeStorage:z.record(z.string(),z.number().int().positive()).default({}),
+    homeFurniture: HomeFurnitureLayoutSchema.optional(),
+    lastMessage:z.string().default(""),
+  }).optional(),
+  arcanaCombat: ArcanaCombatSchema,
+  activeClock: ActiveClockSchema,
+  stateWorld: SnapshotSchema.optional(),
+  textWorld: TextWorldSchema.nullable().default(null),
+  locationTextWorlds: z.record(z.string(), TextWorldSchema).default({}),
+  npcDialogue: NpcDialogueStateSchema,
   flags: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   quests: z.record(z.string(), QuestStateSchema),
   lastSleepEnergy: z.number().int().min(0).max(15),
   exhaustionLevel: z.number().int().nonnegative(),
+  conditions: HealthConditionsSchema,
   log: z.array(LogEntrySchema),
   systemNote: z.string(),
+  systemNoteEntries: SystemNoteEntriesSchema.default([]),
 });
 
 export const GameStateV2Schema = z.object({

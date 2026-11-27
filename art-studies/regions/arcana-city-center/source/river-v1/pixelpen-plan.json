@@ -1,0 +1,28 @@
+{
+  "jobs": [
+    {
+      "id": "bridge",
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/river-v1/bridge-prepared.png",
+      "source": "res://art/source/city-river-v1/bridge.pxpen",
+      "output": "res://art/export/city-river-v1/bridge.png",
+      "periodic": false,
+      "seam": false
+    },
+    {
+      "id": "bank",
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/river-v1/bank-prepared.png",
+      "source": "res://art/source/city-river-v1/bank.pxpen",
+      "output": "res://art/export/city-river-v1/bank.png",
+      "periodic": false,
+      "seam": true
+    },
+    {
+      "id": "water-calm",
+      "input": "D:/BANG/project/textRPG/art-studies/regions/arcana-city-center/source/river-v1/water-calm-prepared.png",
+      "source": "res://art/source/city-river-v1/water-calm.pxpen",
+      "output": "res://art/export/city-river-v1/water-calm.png",
+      "periodic": true,
+      "seam": false
+    }
+  ]
+}

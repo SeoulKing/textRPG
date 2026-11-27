@@ -1,0 +1,16 @@
+{
+  "sourceScene": "godot-arcana/scenes/native_2d/plaza.tscn",
+  "shader": "godot-arcana/art/resources/native_2d_stone_ground.gdshader",
+  "nativeTileSet": "godot-arcana/art/resources/stone_floor_tileset.tres",
+  "tiles": 32,
+  "offlineArtRender": "render/final-plaza.png",
+  "webExport": {
+    "result": "success",
+    "archiveResourceLoading": "ARCANA_WEB_PACK_VERIFIED",
+    "bytes": 94100268,
+    "sha256": "e87f23c9d384b4085318d6c230099ffc56d4a18c594c92c62798a0774a685e69",
+    "localCopiesMatch": true
+  },
+  "browserOrPlayTest": false,
+  "mode": "built-in image_gen plus native PixelPen"
+}

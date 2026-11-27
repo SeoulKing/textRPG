@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "regions": {
+    "outside": {
+      "scene": "res://scenes/plaza_3d_v2.tscn",
+      "location": "arcana_plaza",
+      "adapter": "plaza_3d_v2",
+      "bounds": [
+        6656,
+        6016,
+        4096,
+        4096
+      ]
+    },
+    "arcana_forest": {
+      "scene": "res://scenes/pondside_forest_3d.tscn",
+      "location": "arcana_forest",
+      "adapter": "pondside_forest_3d",
+      "bounds": [0, 0, 2048, 2048]
+    },
+    "arcana_meadow_field": {
+      "scene": "res://scenes/native_2d/meadow_field.tscn",
+      "location": "arcana_meadow_field",
+      "adapter": "authored",
+      "bounds": [
+        0,
+        0,
+        1536,
+        1280
+      ]
+    },
+    "arcana_shop": {
+      "scene": "res://scenes/shop_2d.tscn",
+      "location": "arcana_shop",
+      "adapter": "shop",
+      "bounds": [
+        320,
+        256,
+        896,
+        600
+      ]
+    },
+    "arcana_inn": {
+      "scene": "res://scenes/native_2d/inn_lobby.tscn",
+      "location": "arcana_inn",
+      "adapter": "authored",
+      "bounds": [
+        192,
+        256,
+        1152,
+        800
+      ]
+    },
+    "arcana_academy:1": {
+      "scene": "res://scenes/academy_first_floor_3d.tscn",
+      "location": "arcana_academy",
+      "floor": 1,
+      "adapter": "authored",
+      "bounds": [
+        0,
+        0,
+        1600,
+        1344
+      ]
+    },
+    "arcana_academy:2": {
+      "scene": "res://scenes/native_2d/academy_second_floor.tscn",
+      "location": "arcana_academy",
+      "floor": 2,
+      "adapter": "authored",
+      "bounds": [
+        192,
+        256,
+        1152,
+        984
+      ]
+    },
+    "arcana_restaurant": {
+      "scene": "res://scenes/native_2d/restaurant.tscn",
+      "location": "arcana_restaurant",
+      "adapter": "authored",
+      "bounds": [
+        200,
+        320,
+        1120,
+        960
+      ]
+    },
+    "arcana_home": {
+      "scene": "res://scenes/player_home_3d.tscn",
+      "location": "arcana_home",
+      "adapter": "authored",
+      "bounds": [
+        192,
+        256,
+        576,
+        400
+      ]
+    }
+  }
+}

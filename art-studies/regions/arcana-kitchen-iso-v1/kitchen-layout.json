@@ -1,0 +1,40 @@
+{
+  "room": {
+    "tile_size": 64,
+    "columns": 5,
+    "rows": 5,
+    "wall_height": 94,
+    "canvas": [352,288],
+    "origin": [176,105],
+    "entry": [176,288]
+  },
+  "fixtures": [
+    {"id": "pantry","position": [10,4],"size": [52,39],"height": 79},
+    {"id": "hearth","position": [0,43],"size": [68,103],"height": 65},
+    {"id": "sink_run","position": [69,4],"size": [212,53],"height": 44},
+    {"id": "prep_table","position": [133,122],"size": [88,62],"height": 45},
+    {"id": "planter","position": [14,243],"size": [52,52],"height": 37}
+  ],
+  "wall_fixtures": [
+    {"id": "window","axis": "v","position": [67,0],"height": 90},
+    {"id": "left_shelf","axis": "u","position": [0,61],"height": 85},
+    {"id": "right_shelf","axis": "v","position": [108,0],"height": 77}
+  ],
+  "clearances": [
+    {"id": "fireplace_aisle","rect": [68,100,133,190]},
+    {"id": "sink_aisle","rect": [130,57,230,122]},
+    {"id": "entrance","rect": [130,184,230,320]}
+  ],
+  "approaches": {
+    "hearth": [101,112],
+    "sink": [152,89],
+    "prep_table": [176,216],
+    "right_cabinet": [255,89]
+  },
+  "attachments": {
+    "trivet": {"fixture": "hearth","rect": [42,54,64,84],"foot_z": 6,"body_z": 10,"surface_z": 12},
+    "kettle": {"fixture": "hearth","on": "trivet","anchor": [53,70,12]},
+    "faucet": {"fixture": "sink_run","anchor": [82,9,43]},
+    "basket": {"fixture": "prep_table","anchor": [33,44,0]}
+  }
+}

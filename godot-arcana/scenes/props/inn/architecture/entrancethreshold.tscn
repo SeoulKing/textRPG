@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/e5f8ba4d8ff073ceb6228a5c75316fdf524e0fee7fba4a8c2d787715fbbb6ba0.res" id="21_jdjmy"]
+[node name="EntranceThreshold35" type="Sprite2D"]
+z_index = -30
+texture = ExtResource("21_jdjmy")
+centered = false
+offset = Vector2(672, 1024)
+texture_filter = 1
+

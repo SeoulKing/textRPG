@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/shop_wall_tile.gd" id="1_31rso"]
+[ext_resource type="Texture2D" path="res://art/export/shop-2d/wall-right-return.png" id="2_n6lsb"]
+
+[node name="WallRightReturn" type="Node2D"]
+script = ExtResource("1_31rso")
+asset_id = "wall-right-return"
+
+[node name="Visual" type="Sprite2D" parent="."]
+z_index = 8
+texture_filter = 1
+position = Vector2(-16, 0)
+texture = ExtResource("2_n6lsb")
+centered = false
+offset = Vector2(0, -169)

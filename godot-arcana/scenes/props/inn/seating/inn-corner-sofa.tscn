@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/68b74121fe8987975dc15c7a7102877caeecf2e373f7c1de14090042fa93871c.res" id="14_efpke"]
+[sub_resource type="RectangleShape2D" id="Collision_Inn_corner_sofa18_1"]
+resource_local_to_scene = true
+size = Vector2(336, 56)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_corner_sofa18_2"]
+resource_local_to_scene = true
+size = Vector2(88, 52)
+
+[node name="Inn_corner_sofa18" type="Sprite2D"]
+texture = ExtResource("14_efpke")
+centered = false
+offset = Vector2(-180.4, -161.2)
+metadata/foot = Vector2(0, 0)
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+texture_filter = 1
+
+[node name="Collision" type="StaticBody2D" parent="."]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" type="CollisionShape2D" parent="Collision"]
+position = Vector2(-2.4, -81.2)
+shape = SubResource("Collision_Inn_corner_sofa18_1")
+metadata/layout_collision = true
+
+[node name="Footprint2" type="CollisionShape2D" parent="Collision"]
+position = Vector2(-126.4, -31.2)
+shape = SubResource("Collision_Inn_corner_sofa18_2")
+metadata/layout_collision = true
+

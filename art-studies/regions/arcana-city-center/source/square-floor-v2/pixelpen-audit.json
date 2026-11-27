@@ -1,0 +1,22 @@
+{
+  "approvedChoice": 2,
+  "assets": [
+    {
+      "id": "paving",
+      "native": "res://art/source/square-floor-v2/paving.pxpen",
+      "nativePixelCorrections": 0,
+      "output": "res://art/export/square-floor-v2/paving.png",
+      "reusedMaster": true,
+      "savedReopenedExported": true,
+      "size": [
+        320,
+        320
+      ]
+    }
+  ],
+  "pixelsPerWorldUnit": 64,
+  "texturePeriod": [
+    320,
+    320
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Arcana studio director result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["goalId", "summary", "decisions"],
+  "properties": {
+    "goalId": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["requestId", "action", "reason"],
+        "properties": {
+          "requestId": { "type": "string", "minLength": 1 },
+          "action": { "type": "string", "enum": ["accept", "defer", "escalate"] },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "size": [
+    960,
+    480
+  ],
+  "duration_ms": 2000,
+  "fps": 50,
+  "blink_duration_ms": 1020,
+  "video_codec": "QuickTime PNG RGBA lossless",
+  "alpha": true,
+  "source": "existing heroine frames with newly animated ring and particles; concept-based preview"
+}

@@ -1,0 +1,762 @@
+{
+  "approval": "User approved concept-v1, then clarified that existing assets should be composed instead of recreating props.",
+  "scene": "godot-arcana/scenes/native_2d/plaza.tscn",
+  "positions": [
+    {
+      "name": "상점_01",
+      "before": [
+        1152,
+        1472
+      ],
+      "after": [
+        1536,
+        1600
+      ]
+    },
+    {
+      "name": "여관_01",
+      "before": [
+        1152,
+        2368
+      ],
+      "after": [
+        1520,
+        2472
+      ]
+    },
+    {
+      "name": "식당_01",
+      "before": [
+        2272,
+        928
+      ],
+      "after": [
+        2304,
+        1232
+      ]
+    },
+    {
+      "name": "마법학교_2D",
+      "before": [
+        3682,
+        1769
+      ],
+      "after": [
+        3540,
+        1744
+      ]
+    },
+    {
+      "name": "market_01",
+      "before": [
+        1152,
+        1753.6
+      ],
+      "after": [
+        1888,
+        1776
+      ]
+    },
+    {
+      "name": "market_02",
+      "before": [
+        1472,
+        1753.6
+      ],
+      "after": [
+        1984,
+        2072
+      ]
+    },
+    {
+      "name": "cafe_01",
+      "before": [
+        1875.2,
+        1139.2
+      ],
+      "after": [
+        2048,
+        1424
+      ]
+    },
+    {
+      "name": "cafe_02",
+      "before": [
+        2656,
+        1139.2
+      ],
+      "after": [
+        2528,
+        1424
+      ]
+    },
+    {
+      "name": "cafe_03",
+      "before": [
+        2080,
+        1164.8
+      ],
+      "after": [
+        2288,
+        1424
+      ]
+    },
+    {
+      "name": "cafe_04",
+      "before": [
+        2656,
+        1344
+      ],
+      "after": [
+        2528,
+        1584
+      ]
+    },
+    {
+      "name": "townhouse_01",
+      "before": [
+        483,
+        1071
+      ],
+      "after": [
+        1120,
+        1184
+      ]
+    },
+    {
+      "name": "townhouse_02",
+      "before": [
+        1654,
+        884
+      ],
+      "after": [
+        1672,
+        1056
+      ]
+    },
+    {
+      "name": "townhouse_03",
+      "before": [
+        428,
+        1851
+      ],
+      "after": [
+        1088,
+        2000
+      ]
+    },
+    {
+      "name": "townhouse_04",
+      "before": [
+        2944,
+        2707.2
+      ],
+      "after": [
+        2936,
+        2512
+      ]
+    },
+    {
+      "name": "lamp_post_01",
+      "before": [
+        1664,
+        1536
+      ],
+      "after": [
+        1840,
+        1568
+      ]
+    },
+    {
+      "name": "lamp_post_02",
+      "before": [
+        1984,
+        1324.8
+      ],
+      "after": [
+        2032,
+        1632
+      ]
+    },
+    {
+      "name": "lamp_post_03",
+      "before": [
+        2784,
+        1440
+      ],
+      "after": [
+        2576,
+        1648
+      ]
+    },
+    {
+      "name": "lamp_post_04",
+      "before": [
+        1792,
+        1824
+      ],
+      "after": [
+        1872,
+        1968
+      ]
+    },
+    {
+      "name": "lamp_post_05",
+      "before": [
+        2816,
+        1888
+      ],
+      "after": [
+        2720,
+        2112
+      ]
+    },
+    {
+      "name": "lamp_post_06",
+      "before": [
+        1984,
+        2451.2
+      ],
+      "after": [
+        2096,
+        2352
+      ]
+    },
+    {
+      "name": "lamp_post_07",
+      "before": [
+        2624,
+        2451.2
+      ],
+      "after": [
+        2528,
+        2352
+      ]
+    },
+    {
+      "name": "oak_01",
+      "before": [
+        1753.6,
+        1491.2
+      ],
+      "after": [
+        1960,
+        1656
+      ]
+    },
+    {
+      "name": "birch_01",
+      "before": [
+        1728,
+        2240
+      ],
+      "after": [
+        1968,
+        2272
+      ]
+    },
+    {
+      "name": "oak_02",
+      "before": [
+        3008,
+        2035.2
+      ],
+      "after": [
+        2896,
+        2080
+      ]
+    },
+    {
+      "name": "oak_03",
+      "before": [
+        2828.8,
+        1996.8
+      ],
+      "after": [
+        2800,
+        2112
+      ]
+    },
+    {
+      "name": "birch_03",
+      "before": [
+        3097.6,
+        1996.8
+      ],
+      "after": [
+        3040,
+        2080
+      ]
+    },
+    {
+      "name": "hedge_01",
+      "before": [
+        2784,
+        1920
+      ],
+      "after": [
+        2816,
+        2176
+      ]
+    },
+    {
+      "name": "hedge_02",
+      "before": [
+        3021,
+        2112
+      ],
+      "after": [
+        3008,
+        2192
+      ]
+    },
+    {
+      "name": "hedge_03",
+      "before": [
+        3002,
+        1867
+      ],
+      "after": [
+        2944,
+        1944
+      ]
+    },
+    {
+      "name": "hedge_07",
+      "before": [
+        1740.8,
+        1555.2
+      ],
+      "after": [
+        1968,
+        1688
+      ]
+    },
+    {
+      "name": "hedge_08",
+      "before": [
+        1740.8,
+        2304
+      ],
+      "after": [
+        1976,
+        2336
+      ]
+    },
+    {
+      "name": "벤치_01",
+      "before": [
+        2306,
+        1593
+      ],
+      "after": [
+        2304,
+        1552
+      ]
+    },
+    {
+      "name": "벤치_02",
+      "before": [
+        2752,
+        2112
+      ],
+      "after": [
+        2704,
+        2224
+      ]
+    },
+    {
+      "name": "북쪽길_벤치",
+      "before": [
+        1920,
+        1280
+      ],
+      "after": [
+        1872,
+        1360
+      ]
+    },
+    {
+      "name": "여관길_벤치",
+      "before": [
+        1587,
+        2331
+      ],
+      "after": [
+        2048,
+        2416
+      ]
+    },
+    {
+      "name": "flowerbed_01",
+      "before": [
+        1683,
+        2171
+      ],
+      "after": [
+        2048,
+        2264
+      ]
+    },
+    {
+      "name": "flowerbed_02",
+      "before": [
+        2702,
+        2445
+      ],
+      "after": [
+        2632,
+        2448
+      ]
+    },
+    {
+      "name": "flowerbed_05",
+      "before": [
+        1827,
+        1412
+      ],
+      "after": [
+        2048,
+        1680
+      ]
+    },
+    {
+      "name": "flowerbed_06",
+      "before": [
+        2912,
+        2092.8
+      ],
+      "after": [
+        3104,
+        2176
+      ]
+    },
+    {
+      "name": "flowerbed_07",
+      "before": [
+        1920,
+        1209.6
+      ],
+      "after": [
+        1936,
+        1416
+      ]
+    },
+    {
+      "name": "flowerbed_08",
+      "before": [
+        1848,
+        2177.2
+      ],
+      "after": [
+        1888,
+        2344
+      ]
+    },
+    {
+      "name": "flowers_01",
+      "before": [
+        1696,
+        1440
+      ],
+      "after": [
+        1872,
+        1600
+      ]
+    },
+    {
+      "name": "flowers_02",
+      "before": [
+        1792,
+        1472
+      ],
+      "after": [
+        1968,
+        1624
+      ]
+    },
+    {
+      "name": "flowers_03",
+      "before": [
+        1696,
+        2208
+      ],
+      "after": [
+        1904,
+        2264
+      ]
+    },
+    {
+      "name": "flowers_04",
+      "before": [
+        1792,
+        2240
+      ],
+      "after": [
+        2024,
+        2344
+      ]
+    },
+    {
+      "name": "flowers_05",
+      "before": [
+        2720,
+        1920
+      ],
+      "after": [
+        2752,
+        2032
+      ]
+    },
+    {
+      "name": "flowers_06",
+      "before": [
+        2944,
+        2080
+      ],
+      "after": [
+        2984,
+        2192
+      ]
+    },
+    {
+      "name": "crate_01",
+      "before": [
+        1533,
+        1455
+      ],
+      "after": [
+        1917,
+        1583
+      ]
+    },
+    {
+      "name": "crate_02",
+      "before": [
+        1532,
+        1397
+      ],
+      "after": [
+        1916,
+        1525
+      ]
+    },
+    {
+      "name": "crate_03",
+      "before": [
+        1573.8,
+        2255.6
+      ],
+      "after": [
+        1920,
+        2392
+      ]
+    },
+    {
+      "name": "barrels_01",
+      "before": [
+        768,
+        1644.8
+      ],
+      "after": [
+        1840,
+        1744
+      ]
+    },
+    {
+      "name": "barrels_02",
+      "before": [
+        1560,
+        2184
+      ],
+      "after": [
+        1872,
+        2456
+      ]
+    },
+    {
+      "name": "basket_01",
+      "before": [
+        960,
+        1811.2
+      ],
+      "after": [
+        1792,
+        1824
+      ]
+    },
+    {
+      "name": "basket_02",
+      "before": [
+        1363.2,
+        1817.6
+      ],
+      "after": [
+        1904,
+        2128
+      ]
+    },
+    {
+      "name": "flowerpot_02",
+      "before": [
+        1504,
+        1484.8
+      ],
+      "after": [
+        1856,
+        1616
+      ]
+    },
+    {
+      "name": "flowerpot_04",
+      "before": [
+        1510.4,
+        2380.8
+      ],
+      "after": [
+        1888,
+        2480
+      ]
+    },
+    {
+      "name": "flowerpot_07",
+      "before": [
+        3157,
+        2066.2
+      ],
+      "after": [
+        3120,
+        2200
+      ]
+    }
+  ],
+  "instances": [
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_nw_01",
+      "at": [
+        1832,
+        1672
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_nw_02",
+      "at": [
+        1952,
+        1488
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_ne_01",
+      "at": [
+        2528,
+        1312
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_east_01",
+      "at": [
+        2696,
+        1960
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_sw_01",
+      "at": [
+        2064,
+        2320
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_sw_02",
+      "at": [
+        1936,
+        2368
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_south_01",
+      "at": [
+        1936,
+        2632
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_south_02",
+      "at": [
+        2032,
+        2688
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_se_01",
+      "at": [
+        2704,
+        2640
+      ]
+    },
+    {
+      "source": "참나무_29",
+      "name": "plaza_canopy_se_02",
+      "at": [
+        2576,
+        2688
+      ]
+    },
+    {
+      "source": "market_01",
+      "name": "plaza_market_east",
+      "at": [
+        2624,
+        2384
+      ]
+    }
+  ],
+  "gardens": [
+    [
+      42.4,
+      30.25,
+      7.7,
+      4.4
+    ],
+    [
+      59,
+      29,
+      8,
+      4
+    ],
+    [
+      29,
+      24.3,
+      3.2,
+      2.4
+    ],
+    [
+      29.4,
+      34.3,
+      3.7,
+      3.2
+    ],
+    [
+      40.2,
+      39.6,
+      2.6,
+      2.2
+    ]
+  ],
+  "missingNames": [],
+  "ringScale": 0.76,
+  "plazaCenter": [
+    36,
+    28.925
+  ],
+  "runtimeArt": "Existing native 2D resources; no generated lookalike props remain connected."
+}

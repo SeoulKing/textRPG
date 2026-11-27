@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/9327c9ecc54ed6dd0ad97d1d7b78e1953961628a9ed69b5f5173e6e03d793b40.res" id="12_wch2p"]
+[node name="마법학교_2D" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "academy-2d"
+display_name = "아르카나 마법학교"
+interaction_kind = "building"
+interaction_point = Vector2(0, -30)
+collision_parts = Array[Rect2]([Rect2(-204, -96, 408, 56.399994), Rect2(-204, -39.6, 171.59998, 39.600006), Rect2(32.4, -39.6, 171.59998, 39.600006)])
+registered_transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
+source_path = "마법학교_2D"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+position = Vector2(-87, -563)
+texture = ExtResource("12_wch2p")
+centered = false
+offset = Vector2(-960, -1632)
+region_rect = Rect2(0, 0, 1920, 1728)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(1920, 1728)
+

@@ -1,0 +1,64 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/8442097edbca5b7ac48ea03c70a409163f0bdbb5987f6cc96f8c7a7daa69925b.res" id="5_7ubsl"]
+[ext_resource type="Shader" uid="uid://3jew44rvip6e" path="res://art/resources/native_2d_inn_fire.gdshader" id="23_fire"]
+[ext_resource type="Texture2D" path="res://art/export/effects/pixelfx-inn-fire.png" id="24_campfire"]
+
+[sub_resource type="ShaderMaterial" id="InnFireMaterial"]
+resource_local_to_scene = true
+shader = ExtResource("23_fire")
+shader_parameter/inn_fire_enabled = true
+shader_parameter/inn_fire_frame = 0
+
+[sub_resource type="Gradient" id="Gradient_inn_light"]
+offsets = PackedFloat32Array(0, 0.25, 0.5, 0.75, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.56, 0.56, 0.56, 1, 0.25, 0.25, 0.25, 1, 0.06, 0.06, 0.06, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="InnLightFalloff"]
+gradient = SubResource("Gradient_inn_light")
+width = 640
+height = 640
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="RectangleShape2D" id="Collision_Inn_fireplace9_1"]
+resource_local_to_scene = true
+size = Vector2(216, 112)
+
+[node name="Inn_fireplace9" type="Sprite2D"]
+material = SubResource("InnFireMaterial")
+texture = ExtResource("5_7ubsl")
+centered = false
+offset = Vector2(-135.8, -251.8)
+metadata/foot = Vector2(0, 0)
+metadata/_edit_group_ = true
+metadata/layout_collision_owner = true
+texture_filter = 1
+
+[node name="Collision" type="StaticBody2D" parent="."]
+collision_layer = 0
+collision_mask = 0
+metadata/layout_collision_owner = true
+
+[node name="Footprint1" type="CollisionShape2D" parent="Collision"]
+position = Vector2(-0.8, -56.8)
+shape = SubResource("Collision_Inn_fireplace9_1")
+metadata/layout_collision = true
+
+[node name="PixelfxFlame" type="Sprite2D" parent="."]
+position = Vector2(-45.8, -96.8)
+texture = ExtResource("24_campfire")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 92, 54)
+
+[node name="WarmLight" type="PointLight2D" parent="."]
+position = Vector2(0.2, -67.48)
+color = Color(1, 0.682353, 0.345098, 1)
+energy = 0.726
+range_z_min = -4096
+range_z_max = 3899
+texture = SubResource("InnLightFalloff")
+metadata/fireplace = true
+

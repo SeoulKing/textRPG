@@ -1,0 +1,583 @@
+[gd_scene load_steps=30 format=3]
+
+[ext_resource type="Script" path="res://scripts/native_2d_city_life.gd" id="city_life"]
+[ext_resource type="Script" path="res://scripts/native_2d_city_resident.gd" id="city_resident"]
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/727adcd62fe21155441762caa9246eaa62f032e397bd85cbf38883d53cc6d124.res" id="17_i42x4"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4c2aba6536f75736ac17f03f3d5f8853c1ad7d116e26f690f63e8dbdc14fc964.res" id="20_hsicf"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/2acefd39a0062e5db94496f42482ca7fc047c6ea0cb10e0e7d614b6481e8d345.res" id="18_y6sxu"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/8601162cfd07033aaef7062132f0ec47d88a336af0258352f9a375050d55fb0a.res" id="7_l02a5"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/d1a4500aa96a7b1328f8404f687f85d640b9c3e60f1757094697d6b2b624e5cd.res" id="19_8wroh"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/51f169a8fa74d05d1226db173c76c3310f83249e4aecfb775327d00bb0e8d719.res" id="22_60p3t"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/4106556ad911827f4e8282adeba7386376a8cc14ae70e31aba5720c271034ddc.res" id="24_0tova"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/52e96b5165cfdfda3cc3e0a022798cd5def8794e77442b3f1eae86a8b04861a7.res" id="33_76bwo"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/842b6993d9015f8cd0f5a2637fc55456a86ab262ccff61328ada3599bb38b4b1.res" id="21_o1c0x"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/430a285d61e294efe94994c459016a40a9a72d17bb519b868aa082a51c21f7b1.res" id="25_iqbjw"]
+
+[ext_resource type="Shader" path="res://art/resources/native_2d_market_cloth.gdshader" id="market_cloth"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/buildings/city-market.tscn" id="prop_library_1"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/buildings/city-market-2.tscn" id="prop_library_2"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/buildings/city-cafe.tscn" id="prop_library_3"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/buildings/city-cafe-2.tscn" id="prop_library_4"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/storage/barrels.tscn" id="prop_library_5"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/storage/crate.tscn" id="prop_library_6"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/storage/basket.tscn" id="prop_library_7"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/plants/flowerpot.tscn" id="prop_library_8"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/plants/flowerbed.tscn" id="prop_library_9"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/plants/flowers.tscn" id="prop_library_10"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/plants/flowerpot-2.tscn" id="prop_library_11"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/lighting/lamp-post.tscn" id="prop_library_12"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/city-walk/plants/oak.tscn" id="prop_library_13"]
+
+[sub_resource type="ShaderMaterial" id="MarketClothGreen"]
+shader = ExtResource("market_cloth")
+shader_parameter/cloth_ink = Color(0.18, 0.65, 0.32, 1)
+
+[sub_resource type="ShaderMaterial" id="MarketClothRed"]
+shader = ExtResource("market_cloth")
+shader_parameter/cloth_ink = Color(0.85, 0.22, 0.16, 1)
+
+[node name="WalkingQuarter" type="Node2D"]
+script = ExtResource("city_life")
+
+[node name="StreetDetails" type="Node2D" parent="."]
+
+[node name="MarketCorner" parent="StreetDetails" instance=ExtResource("prop_library_1")]
+position = Vector2(1456, 2136)
+script = ExtResource("1_rimt7")
+gameplay_id = "city_market_stall"
+display_name = "푸른 차양 시장"
+interaction_kind = "city_corner"
+interaction_point = Vector2(0, 14)
+model_kind = "city-market"
+collision_parts = Array[Rect2]([Rect2(-27.2, -22.4, 54.400024, 22.399994)])
+source_path = "CityWalk/market_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketCorner"]
+material = SubResource("MarketClothRed")
+z_index = 1754
+texture = ExtResource("17_i42x4")
+centered = false
+offset = Vector2(-132, -157.6)
+region_rect = Rect2(0, 0, 264, 162)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(264, 162)
+
+[node name="MarketNorth" parent="StreetDetails" instance=ExtResource("prop_library_2")]
+position = Vector2(1328, 2000)
+script = ExtResource("1_rimt7")
+model_kind = "city-market"
+collision_parts = Array[Rect2]([Rect2(-27.2, -22.4, 54.400024, 22.399994)])
+source_path = "CityWalk/market_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketNorth"]
+material = SubResource("MarketClothGreen")
+z_index = 1754
+texture = ExtResource("17_i42x4")
+centered = false
+offset = Vector2(-132, -157.6)
+region_rect = Rect2(0, 0, 264, 162)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(264, 162)
+
+[node name="InnTerrace" parent="StreetDetails" instance=ExtResource("prop_library_3")]
+position = Vector2(1632, 3072)
+script = ExtResource("1_rimt7")
+gameplay_id = "city_cafe_terrace"
+display_name = "여관 앞 테라스"
+interaction_kind = "city_corner"
+interaction_point = Vector2(0, 14)
+model_kind = "city-cafe"
+collision_parts = Array[Rect2]([Rect2(-21.60002, -20.8, 43.200012, 20.799988)])
+source_path = "CityWalk/cafe_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/InnTerrace"]
+z_index = 1139
+texture = ExtResource("20_hsicf")
+centered = false
+offset = Vector2(-100.2, -193.2)
+region_rect = Rect2(0, 0, 200, 197)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(200, 197)
+
+[node name="SchoolTerrace" parent="StreetDetails" instance=ExtResource("prop_library_4")]
+position = Vector2(3456, 2000)
+script = ExtResource("1_rimt7")
+model_kind = "city-cafe"
+collision_parts = Array[Rect2]([Rect2(-21.60002, -20.8, 43.200012, 20.799988)])
+source_path = "CityWalk/cafe_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/SchoolTerrace"]
+z_index = 1139
+texture = ExtResource("20_hsicf")
+centered = false
+offset = Vector2(-100.2, -193.2)
+region_rect = Rect2(0, 0, 200, 197)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(200, 197)
+
+[node name="MarketBarrels" parent="StreetDetails" instance=ExtResource("prop_library_5")]
+position = Vector2(1280, 2112)
+script = ExtResource("1_rimt7")
+model_kind = "barrels"
+collision_parts = Array[Rect2]([Rect2(-8.8, -11.2, 17.600006, 11.200012)])
+source_path = "CityWalk/barrels_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketBarrels"]
+z_index = 1645
+texture = ExtResource("18_y6sxu")
+centered = false
+offset = Vector2(-48, -85.8)
+region_rect = Rect2(0, 0, 96, 88)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(96, 88)
+
+[node name="MarketCrates" parent="StreetDetails" instance=ExtResource("prop_library_6")]
+position = Vector2(1288, 2184)
+script = ExtResource("1_rimt7")
+model_kind = "crate"
+collision_parts = Array[Rect2]([Rect2(-7.2, -9.6, 14.400024, 9.600006)])
+source_path = "CityWalk/crate_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketCrates"]
+z_index = 1455
+texture = ExtResource("7_l02a5")
+centered = false
+offset = Vector2(-32, -67.8)
+region_rect = Rect2(0, 0, 64, 70)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(64, 70)
+
+[node name="MarketBasket" parent="StreetDetails" instance=ExtResource("prop_library_7")]
+position = Vector2(1544, 2144)
+script = ExtResource("1_rimt7")
+model_kind = "basket"
+collision_parts = Array[Rect2]([Rect2(-4.8, -6.4, 9.600006, 6.399994)])
+source_path = "CityWalk/basket_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketBasket"]
+z_index = 1811
+texture = ExtResource("19_8wroh")
+centered = false
+offset = Vector2(-36, -46.2)
+region_rect = Rect2(0, 0, 72, 48)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(72, 48)
+
+[node name="MarketDoorFlowers" parent="StreetDetails" instance=ExtResource("prop_library_8")]
+position = Vector2(1104, 2064)
+script = ExtResource("1_rimt7")
+model_kind = "flowerpot"
+collision_parts = Array[Rect2]([Rect2(-3.84, -5.6, 7.6799927, 5.600006)])
+source_path = "CityWalk/flowerpot_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketDoorFlowers"]
+z_index = 1485
+texture = ExtResource("22_60p3t")
+centered = false
+offset = Vector2(-29, -69.8)
+region_rect = Rect2(0, 0, 58, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(58, 72)
+
+[node name="MarketFrontFlowers" parent="StreetDetails" instance=ExtResource("prop_library_8")]
+position = Vector2(1600, 2160)
+script = ExtResource("1_rimt7")
+model_kind = "flowerpot"
+collision_parts = Array[Rect2]([Rect2(-3.84, -5.6, 7.6799927, 5.600006)])
+source_path = "CityWalk/flowerpot_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketFrontFlowers"]
+z_index = 1485
+texture = ExtResource("22_60p3t")
+centered = false
+offset = Vector2(-29, -69.8)
+region_rect = Rect2(0, 0, 58, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(58, 72)
+
+[node name="InnTerraceFlowers" parent="StreetDetails" instance=ExtResource("prop_library_9")]
+position = Vector2(1424, 3056)
+script = ExtResource("1_rimt7")
+model_kind = "flowerbed"
+collision_parts = Array[Rect2]([Rect2(-14, -8, 28, 8)])
+source_path = "CityWalk/flowerbed_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/InnTerraceFlowers"]
+z_index = 2171
+texture = ExtResource("24_0tova")
+centered = false
+offset = Vector2(-42, -70)
+region_rect = Rect2(0, 0, 84, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(84, 72)
+
+[node name="InnGardenFlowers" parent="StreetDetails" instance=ExtResource("prop_library_10")]
+position = Vector2(1752, 3136)
+script = ExtResource("1_rimt7")
+model_kind = "flowers"
+registered_transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 0, 0)
+source_path = "CityWalk/flowers_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/InnGardenFlowers"]
+z_index = 1440
+texture = ExtResource("33_76bwo")
+centered = false
+offset = Vector2(-40, -49)
+region_rect = Rect2(0, 0, 79, 50)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(79, 50)
+
+[node name="SchoolFlowersWest" parent="StreetDetails" instance=ExtResource("prop_library_11")]
+position = Vector2(3376, 1832)
+script = ExtResource("1_rimt7")
+gameplay_id = "city_garden_corner"
+display_name = "학교 앞 꽃길"
+interaction_kind = "city_corner"
+interaction_point = Vector2(0, 14)
+model_kind = "flowerpot"
+collision_parts = Array[Rect2]([Rect2(-3.84, -5.6, 7.6799927, 5.600006)])
+source_path = "CityWalk/flowerpot_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/SchoolFlowersWest"]
+z_index = 1485
+texture = ExtResource("22_60p3t")
+centered = false
+offset = Vector2(-29, -69.8)
+region_rect = Rect2(0, 0, 58, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(58, 72)
+
+[node name="SchoolFlowersEast" parent="StreetDetails" instance=ExtResource("prop_library_8")]
+position = Vector2(3704, 1832)
+script = ExtResource("1_rimt7")
+model_kind = "flowerpot"
+collision_parts = Array[Rect2]([Rect2(-3.84, -5.6, 7.6799927, 5.600006)])
+source_path = "CityWalk/flowerpot_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/SchoolFlowersEast"]
+z_index = 1485
+texture = ExtResource("22_60p3t")
+centered = false
+offset = Vector2(-29, -69.8)
+region_rect = Rect2(0, 0, 58, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(58, 72)
+
+[node name="SchoolGardenFlowers" parent="StreetDetails" instance=ExtResource("prop_library_9")]
+position = Vector2(3680, 2016)
+script = ExtResource("1_rimt7")
+model_kind = "flowerbed"
+collision_parts = Array[Rect2]([Rect2(-14, -8, 28, 8)])
+source_path = "CityWalk/flowerbed_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/SchoolGardenFlowers"]
+z_index = 2171
+texture = ExtResource("24_0tova")
+centered = false
+offset = Vector2(-42, -70)
+region_rect = Rect2(0, 0, 84, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(84, 72)
+
+[node name="SchoolWildflowers" parent="StreetDetails" instance=ExtResource("prop_library_10")]
+position = Vector2(3280, 2112)
+script = ExtResource("1_rimt7")
+model_kind = "flowers"
+registered_transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 0, 0)
+source_path = "CityWalk/flowers_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/SchoolWildflowers"]
+z_index = 1440
+texture = ExtResource("33_76bwo")
+centered = false
+offset = Vector2(-40, -49)
+region_rect = Rect2(0, 0, 79, 50)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(79, 50)
+
+[node name="MarketLamp" parent="StreetDetails" instance=ExtResource("prop_library_12")]
+position = Vector2(1120, 2184)
+script = ExtResource("1_rimt7")
+model_kind = "lamp-post"
+registered_transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 0, 0, 0)
+source_path = "CityWalk/lamp_post_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketLamp"]
+z_index = 1536
+texture = ExtResource("21_o1c0x")
+centered = false
+offset = Vector2(-31, -271)
+region_rect = Rect2(0, 0, 63, 277)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(63, 277)
+
+[node name="InnTerraceLamp" parent="StreetDetails" instance=ExtResource("prop_library_12")]
+position = Vector2(1776, 3136)
+script = ExtResource("1_rimt7")
+model_kind = "lamp-post"
+registered_transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 0, 0, 0)
+source_path = "CityWalk/lamp_post_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/InnTerraceLamp"]
+z_index = 1536
+texture = ExtResource("21_o1c0x")
+centered = false
+offset = Vector2(-31, -271)
+region_rect = Rect2(0, 0, 63, 277)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(63, 277)
+
+[node name="SchoolWalkLamp" parent="StreetDetails" instance=ExtResource("prop_library_12")]
+position = Vector2(3328, 2056)
+script = ExtResource("1_rimt7")
+model_kind = "lamp-post"
+registered_transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 0, 0, 0)
+source_path = "CityWalk/lamp_post_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/SchoolWalkLamp"]
+z_index = 1536
+texture = ExtResource("21_o1c0x")
+centered = false
+offset = Vector2(-31, -271)
+region_rect = Rect2(0, 0, 63, 277)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(63, 277)
+
+[node name="MarketShadeTree" parent="StreetDetails" instance=ExtResource("prop_library_13")]
+position = Vector2(1072, 2256)
+script = ExtResource("1_rimt7")
+model_kind = "oak"
+collision_parts = Array[Rect2]([Rect2(-5.25, -9, 10.5, 9)])
+registered_transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+source_path = "CityWalk/oak_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketShadeTree"]
+z_index = 1491
+texture = ExtResource("25_iqbjw")
+centered = false
+offset = Vector2(-78.6, -193.2)
+region_rect = Rect2(0, 0, 158, 195)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(158, 195)
+
+[node name="InnTerraceTree" parent="StreetDetails" instance=ExtResource("prop_library_13")]
+position = Vector2(1352, 3136)
+script = ExtResource("1_rimt7")
+model_kind = "oak"
+collision_parts = Array[Rect2]([Rect2(-5.25, -9, 10.5, 9)])
+registered_transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+source_path = "CityWalk/oak_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/InnTerraceTree"]
+z_index = 1491
+texture = ExtResource("25_iqbjw")
+centered = false
+offset = Vector2(-78.6, -193.2)
+region_rect = Rect2(0, 0, 158, 195)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(158, 195)
+
+[node name="SchoolLaneTree" parent="StreetDetails" instance=ExtResource("prop_library_13")]
+position = Vector2(3160, 2280)
+script = ExtResource("1_rimt7")
+model_kind = "oak"
+collision_parts = Array[Rect2]([Rect2(-5.25, -9, 10.5, 9)])
+registered_transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)
+source_path = "CityWalk/oak_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/SchoolLaneTree"]
+z_index = 1491
+texture = ExtResource("25_iqbjw")
+centered = false
+offset = Vector2(-78.6, -193.2)
+region_rect = Rect2(0, 0, 158, 195)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(158, 195)
+
+[node name="SchoolHouseFlowers" parent="StreetDetails" instance=ExtResource("prop_library_8")]
+position = Vector2(3632, 2296)
+script = ExtResource("1_rimt7")
+model_kind = "flowerpot"
+collision_parts = Array[Rect2]([Rect2(-3.84, -5.6, 7.6799927, 5.600006)])
+source_path = "CityWalk/flowerpot_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/SchoolHouseFlowers"]
+z_index = 1485
+texture = ExtResource("22_60p3t")
+centered = false
+offset = Vector2(-29, -69.8)
+region_rect = Rect2(0, 0, 58, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(58, 72)
+
+[node name="MarketFlowerPatch" parent="StreetDetails" instance=ExtResource("prop_library_10")]
+position = Vector2(1160, 2264)
+script = ExtResource("1_rimt7")
+model_kind = "flowers"
+registered_transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 0, 0, 0)
+source_path = "CityWalk/flowers_01"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/MarketFlowerPatch"]
+z_index = 1440
+texture = ExtResource("33_76bwo")
+centered = false
+offset = Vector2(-40, -49)
+region_rect = Rect2(0, 0, 79, 50)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(79, 50)
+
+[node name="Residents" type="Node2D" parent="."]
+
+[node name="MarketWalker" type="Node2D" parent="Residents"]
+position = Vector2(1728, 1960)
+script = ExtResource("city_resident")
+gameplay_id = "city_walker_market"
+model_kind = "city-resident"
+display_name = "장 보러 온 주민"
+interaction_kind = "city_resident"
+route = PackedVector2Array(1728, 1960, 1776, 2176, 2160, 2160)
+stroll_speed = 8
+pause_seconds = 4.1
+
+[node name="FountainWalker" type="Node2D" parent="Residents"]
+position = Vector2(2368, 1568)
+script = ExtResource("city_resident")
+gameplay_id = "city_walker_fountain"
+model_kind = "city-resident"
+display_name = "광장의 산책객"
+interaction_kind = "city_resident"
+route = PackedVector2Array(2368, 1568, 2560, 1664, 2736, 1840, 2816, 2240)
+stroll_speed = 9
+pause_seconds = 3.2
+
+[node name="InnWalker" type="Node2D" parent="Residents"]
+position = Vector2(2304, 2848)
+script = ExtResource("city_resident")
+gameplay_id = "city_walker_inn"
+model_kind = "city-resident"
+display_name = "여관의 여행자"
+interaction_kind = "city_resident"
+route = PackedVector2Array(2304, 2848, 2304, 2944, 2176, 2944, 2304, 2848)
+stroll_speed = 8.5
+pause_seconds = 5.2
+
+[node name="SchoolWalker" type="Node2D" parent="Residents"]
+position = Vector2(3400, 1900)
+script = ExtResource("city_resident")
+gameplay_id = "city_walker_school"
+model_kind = "city-resident"
+display_name = "학교 방문객"
+interaction_kind = "city_resident"
+route = PackedVector2Array(3400, 1900, 3360, 2000, 3600, 2144)
+stroll_speed = 7.5
+pause_seconds = 3.8
+
+
+[node name="FountainPlanterNW" parent="StreetDetails" instance=ExtResource("prop_library_9")]
+position = Vector2(2080, 1752)
+script = ExtResource("1_rimt7")
+model_kind = "flowerbed"
+collision_parts = Array[Rect2]([Rect2(-14, -8, 28, 8)])
+source_path = "ReferenceMatch/flowerbed"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/FountainPlanterNW"]
+z_index = 2171
+texture = ExtResource("24_0tova")
+centered = false
+offset = Vector2(-42, -70)
+region_rect = Rect2(0, 0, 84, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(84, 72)
+
+
+[node name="FountainPlanterNE" parent="StreetDetails" instance=ExtResource("prop_library_9")]
+position = Vector2(2528, 1720)
+script = ExtResource("1_rimt7")
+model_kind = "flowerbed"
+collision_parts = Array[Rect2]([Rect2(-14, -8, 28, 8)])
+source_path = "ReferenceMatch/flowerbed"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/FountainPlanterNE"]
+z_index = 2171
+texture = ExtResource("24_0tova")
+centered = false
+offset = Vector2(-42, -70)
+region_rect = Rect2(0, 0, 84, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(84, 72)
+
+
+[node name="FountainPlanterSW" parent="StreetDetails" instance=ExtResource("prop_library_9")]
+position = Vector2(2176, 2112)
+script = ExtResource("1_rimt7")
+model_kind = "flowerbed"
+collision_parts = Array[Rect2]([Rect2(-14, -8, 28, 8)])
+source_path = "ReferenceMatch/flowerbed"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/FountainPlanterSW"]
+z_index = 2171
+texture = ExtResource("24_0tova")
+centered = false
+offset = Vector2(-42, -70)
+region_rect = Rect2(0, 0, 84, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(84, 72)
+
+
+[node name="FountainPlanterSE" parent="StreetDetails" instance=ExtResource("prop_library_9")]
+position = Vector2(2528, 2128)
+script = ExtResource("1_rimt7")
+model_kind = "flowerbed"
+collision_parts = Array[Rect2]([Rect2(-14, -8, 28, 8)])
+source_path = "ReferenceMatch/flowerbed"
+metadata/_edit_group_ = true
+
+[node name="Visual" parent="StreetDetails/FountainPlanterSE"]
+z_index = 2171
+texture = ExtResource("24_0tova")
+centered = false
+offset = Vector2(-42, -70)
+region_rect = Rect2(0, 0, 84, 72)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(84, 72)
+

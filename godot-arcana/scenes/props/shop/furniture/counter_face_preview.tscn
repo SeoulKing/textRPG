@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://c6g2bqfasnb87"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/shop/furniture/counter_face_3d.tscn" id="1_bqyor"]
+
+[sub_resource type="Environment" id="Environment_l5c64"]
+background_mode = 1
+background_color = Color(0.14509805, 0.16862746, 0.22745098, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.8509804, 0.88235295, 0.9490196, 1)
+ambient_light_energy = 0.72
+reflected_light_source = 2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rum8k"]
+albedo_color = Color(0.1882353, 0.21960784, 0.29411766, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_tksmt"]
+size = Vector2(20, 20)
+
+[node name="CounterFacePreview" type="Node3D" unique_id=740276296]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1701184487]
+transform = Transform3D(1, 0, 0, 0, 0.70710677, 0.70710677, 0, -0.70710677, 0.70710677, 0, 4.035534, 3.535534)
+environment = SubResource("Environment_l5c64")
+projection = 1
+current = true
+size = 3.04
+far = 24.0
+
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=6522201]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.008, 0)
+material_override = SubResource("StandardMaterial3D_rum8k")
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_tksmt")
+
+[node name="Light" type="DirectionalLight3D" parent="." unique_id=1138105429]
+transform = Transform3D(0.8525245, -0.4559691, 0.25552723, 0, 0.48887214, 0.87235546, -0.52268726, -0.74370444, 0.4167755, 0, 0, 0)
+light_color = Color(1, 0.9490196, 0.8627451, 1)
+light_energy = 0.51
+shadow_enabled = true
+directional_shadow_max_distance = 12.0
+
+[node name="Counter" parent="." unique_id=1924252158 instance=ExtResource("1_bqyor")]

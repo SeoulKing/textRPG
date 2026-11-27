@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://art/export/native-2d/bf04ec141161257927ecedf89fba7af566ee6091f06ecc79fdbd2e95e4397f9c.res" id="11_1voub"]
+[node name="Academy_bench55" type="Sprite2D"]
+texture = ExtResource("11_1voub")
+centered = false
+offset = Vector2(-103.8, -129.4)
+metadata/foot = Vector2(0, 0)
+metadata/layout_collisions = [Rect2(-100.8, -66.4, 200, 64)]
+texture_filter = 1
+

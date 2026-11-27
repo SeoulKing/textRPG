@@ -1,0 +1,76 @@
+{
+  "cameraPoint": [
+    576,
+    620
+  ],
+  "materials": [
+    {
+      "native": "D:/BANG/project/textRPG/godot-arcana/../art-studies/regions/arcana-city-center/source/river-ingame-options-v4/pixelpen/01.pxpen",
+      "nativePixelCorrections": 0,
+      "number": 1.0,
+      "reusedMaster": true,
+      "savedReopenedExported": true,
+      "size": [
+        448,
+        448
+      ]
+    },
+    {
+      "native": "D:/BANG/project/textRPG/godot-arcana/../art-studies/regions/arcana-city-center/source/river-ingame-options-v4/pixelpen/02.pxpen",
+      "nativePixelCorrections": 0,
+      "number": 2.0,
+      "reusedMaster": true,
+      "savedReopenedExported": true,
+      "size": [
+        448,
+        448
+      ]
+    },
+    {
+      "native": "D:/BANG/project/textRPG/godot-arcana/../art-studies/regions/arcana-city-center/source/river-ingame-options-v4/pixelpen/03.pxpen",
+      "nativePixelCorrections": 0,
+      "number": 3.0,
+      "reusedMaster": true,
+      "savedReopenedExported": true,
+      "size": [
+        448,
+        448
+      ]
+    },
+    {
+      "native": "D:/BANG/project/textRPG/godot-arcana/../art-studies/regions/arcana-city-center/source/river-ingame-options-v4/pixelpen/04.pxpen",
+      "nativePixelCorrections": 0,
+      "number": 4.0,
+      "reusedMaster": true,
+      "savedReopenedExported": true,
+      "size": [
+        448,
+        448
+      ]
+    },
+    {
+      "native": "D:/BANG/project/textRPG/godot-arcana/../art-studies/regions/arcana-city-center/source/river-ingame-options-v4/pixelpen/05.pxpen",
+      "nativePixelCorrections": 0,
+      "number": 5.0,
+      "reusedMaster": true,
+      "savedReopenedExported": true,
+      "size": [
+        448,
+        448
+      ]
+    }
+  ],
+  "playTestsRun": false,
+  "renderer": "main.tscn native_2d_world.gd",
+  "resourcePack": "D:/BANG/project/textRPG/godot-arcana/../godot-web/index.pck",
+  "sceneWrites": false,
+  "viewport": [
+    1600,
+    1100
+  ],
+  "waterTileSize": [
+    64,
+    64
+  ],
+  "webPublished": false
+}

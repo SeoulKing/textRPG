@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/fa26de996cd1628c3bd8927fc557994e5a860695e0377772551fcae606a33082.res" id="15_4kio3"]
+[node name="townhouse_02" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "city-townhouse"
+collision_parts = Array[Rect2]([Rect2(-36.04, -34, 72.08002, 34)])
+registered_transform = Transform3D(0.85, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 0, 0, 0)
+source_path = "CityDistrict/Housing/townhouse_02"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+position = Vector2(2029, 717)
+texture = ExtResource("15_4kio3")
+centered = false
+offset = Vector2(-167, -424)
+region_rect = Rect2(0, 0, 333, 428)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(333, 428)
+

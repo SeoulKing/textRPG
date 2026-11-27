@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://djuc2fwip36r4" path="res://scripts/native_2d_placement.gd" id="1_rimt7"]
+[ext_resource type="Texture2D" path="res://art/export/native-2d/842b6993d9015f8cd0f5a2637fc55456a86ab262ccff61328ada3599bb38b4b1.res" id="21_o1c0x"]
+[node name="MarketLamp" type="Node2D"]
+script = ExtResource("1_rimt7")
+model_kind = "lamp-post"
+registered_transform = Transform3D(1.65, 0, 0, 0, 1.65, 0, 0, 0, 1.65, 0, 0, 0)
+source_path = "CityWalk/lamp_post_01"
+metadata/_edit_group_ = true
+texture_filter = 1
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("21_o1c0x")
+centered = false
+offset = Vector2(-31, -271)
+region_rect = Rect2(0, 0, 63, 277)
+metadata/frame_grid = Vector2i(1, 1)
+metadata/frame_size = Vector2i(63, 277)
+

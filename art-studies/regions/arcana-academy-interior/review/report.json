@@ -1,0 +1,679 @@
+{
+  "captures": [
+    {
+      "effects": true,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-overview",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-overview.png",
+      "player_logical": [
+        192.0,
+        260.0
+      ],
+      "save_error": 0,
+      "size": [
+        1536,
+        1664
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": true,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-mobile-arrival",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-mobile-arrival.png",
+      "player_logical": [
+        192.0,
+        260.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": true,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-mobile-courtyard",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-mobile-courtyard.png",
+      "player_logical": [
+        192.0,
+        276.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": true,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-mobile-hall",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-mobile-hall.png",
+      "player_logical": [
+        192.0,
+        222.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": true,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-mobile-library",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-mobile-library.png",
+      "player_logical": [
+        88.0,
+        151.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": true,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-mobile-classroom",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-mobile-classroom.png",
+      "player_logical": [
+        284.0,
+        171.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": true,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-mobile-practice",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-mobile-practice.png",
+      "player_logical": [
+        284.0,
+        239.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": true,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-mobile-lamp-effects-on",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-mobile-lamp-effects-on.png",
+      "player_logical": [
+        280.0,
+        168.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": false,
+      "floor": 1,
+      "framing_only": true,
+      "name": "floor-1-mobile-lamp-effects-off",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-1-mobile-lamp-effects-off.png",
+      "player_logical": [
+        280.0,
+        168.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 4.06666666666666
+    },
+    {
+      "effects": true,
+      "floor": 2,
+      "framing_only": true,
+      "name": "floor-2-overview",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-2-overview.png",
+      "player_logical": [
+        192.0,
+        194.0
+      ],
+      "save_error": 0,
+      "size": [
+        1536,
+        1664
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 6.11666666666665
+    },
+    {
+      "effects": true,
+      "floor": 2,
+      "framing_only": true,
+      "name": "floor-2-mobile-arrival",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-2-mobile-arrival.png",
+      "player_logical": [
+        192.0,
+        194.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 6.11666666666665
+    },
+    {
+      "effects": true,
+      "floor": 2,
+      "framing_only": true,
+      "name": "floor-2-mobile-headmaster",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-2-mobile-headmaster.png",
+      "player_logical": [
+        96.0,
+        170.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 6.11666666666665
+    },
+    {
+      "effects": true,
+      "floor": 2,
+      "framing_only": true,
+      "name": "floor-2-mobile-garden",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-2-mobile-garden.png",
+      "player_logical": [
+        96.0,
+        258.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 6.11666666666665
+    },
+    {
+      "effects": true,
+      "floor": 2,
+      "framing_only": true,
+      "name": "floor-2-mobile-observatory",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-2-mobile-observatory.png",
+      "player_logical": [
+        280.0,
+        166.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 6.11666666666665
+    },
+    {
+      "effects": true,
+      "floor": 2,
+      "framing_only": true,
+      "name": "floor-2-mobile-lamp-effects-on",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-2-mobile-lamp-effects-on.png",
+      "player_logical": [
+        285.0,
+        220.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 6.11666666666665
+    },
+    {
+      "effects": false,
+      "floor": 2,
+      "framing_only": true,
+      "name": "floor-2-mobile-lamp-effects-off",
+      "nodes3d": 0,
+      "nodes3d_scope": "active renderer.academy_room subtree",
+      "pass": true,
+      "path": "D:\\BANG\\project\\textRPG\\.runtime\\godot\\online-build-academy-review-20261106\\review-final/floor-2-mobile-lamp-effects-off.png",
+      "player_logical": [
+        285.0,
+        220.0
+      ],
+      "save_error": 0,
+      "size": [
+        384,
+        824
+      ],
+      "viewport_nodes3d_reference_only": 5,
+      "world_time": 6.11666666666665
+    }
+  ],
+  "floor_round_trip": {
+    "down_arrival": [
+      192.0,
+      152.0
+    ],
+    "down_floor": 1,
+    "down_walkable": true,
+    "method": "actual change_academy_floor(2), change_academy_floor(1); isolated signal observers do not invoke Main",
+    "pass": true,
+    "up_arrival": [
+      192.0,
+      194.0
+    ],
+    "up_floor": 2,
+    "up_walkable": true
+  },
+  "pass": true,
+  "routes": [
+    {
+      "actual_endpoint": [
+        198.0,
+        147.054122924805
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 32.8982009887695,
+      "floor": 1,
+      "id": "academy_stairs",
+      "initial_path_points": 37,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_stairs",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.916666666666667,
+      "start": [
+        192.0,
+        260.0
+      ],
+      "steps": 55,
+      "target": [
+        194.0,
+        114.400001525879
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 131.565849065781
+    },
+    {
+      "actual_endpoint": [
+        192.0,
+        260.0
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 16.0,
+      "floor": 1,
+      "id": "courtyard",
+      "initial_path_points": 0,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_room",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.0,
+      "start": [
+        192.0,
+        260.0
+      ],
+      "steps": 0,
+      "target": [
+        192.0,
+        276.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 0.0
+    },
+    {
+      "actual_endpoint": [
+        194.0,
+        253.628448486328
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 31.6916198730469,
+      "floor": 1,
+      "id": "hall",
+      "initial_path_points": 10,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_room",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.05,
+      "start": [
+        192.0,
+        260.0
+      ],
+      "steps": 3,
+      "target": [
+        192.0,
+        222.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 7.09457993507385
+    },
+    {
+      "actual_endpoint": [
+        119.854217529297,
+        146.0
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 32.2442436218262,
+      "floor": 1,
+      "id": "library",
+      "initial_path_points": 59,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_room",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 1.55,
+      "start": [
+        192.0,
+        260.0
+      ],
+      "steps": 93,
+      "target": [
+        88.0,
+        151.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 221.919238805771
+    },
+    {
+      "actual_endpoint": [
+        253.563461303711,
+        162.0
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 31.7392959594727,
+      "floor": 1,
+      "id": "classroom",
+      "initial_path_points": 38,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_room",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.95,
+      "start": [
+        192.0,
+        260.0
+      ],
+      "steps": 57,
+      "target": [
+        284.0,
+        171.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 135.705891609192
+    },
+    {
+      "actual_endpoint": [
+        252.82048034668,
+        226.0
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 33.7810974121094,
+      "floor": 1,
+      "id": "practice",
+      "initial_path_points": 24,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_room",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.516666666666667,
+      "start": [
+        192.0,
+        260.0
+      ],
+      "steps": 31,
+      "target": [
+        284.0,
+        239.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 73.8122992515564
+    },
+    {
+      "actual_endpoint": [
+        194.0,
+        271.675415039063
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 32.3863983154297,
+      "floor": 1,
+      "id": "exit",
+      "initial_path_points": 11,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "exit",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.0833333333333333,
+      "start": [
+        192.0,
+        260.0
+      ],
+      "steps": 5,
+      "target": [
+        192.0,
+        304.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 11.9712612628937
+    },
+    {
+      "actual_endpoint": [
+        193.073318481445,
+        196.146621704102
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 33.8703880310059,
+      "floor": 2,
+      "id": "academy_stairs",
+      "initial_path_points": 9,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_stairs",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.0166666666666667,
+      "start": [
+        192.0,
+        194.0
+      ],
+      "steps": 1,
+      "target": [
+        192.0,
+        230.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 2.39999938011169
+    },
+    {
+      "actual_endpoint": [
+        126.969230651855,
+        182.96923828125
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 33.5752067565918,
+      "floor": 2,
+      "id": "headmaster",
+      "initial_path_points": 24,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_room",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.483333333333333,
+      "start": [
+        192.0,
+        194.0
+      ],
+      "steps": 29,
+      "target": [
+        96.0,
+        170.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 68.9162034988403
+    },
+    {
+      "actual_endpoint": [
+        106.98412322998,
+        290.0
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 33.832691192627,
+      "floor": 2,
+      "id": "garden",
+      "initial_path_points": 56,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_room",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 1.1,
+      "start": [
+        192.0,
+        194.0
+      ],
+      "steps": 66,
+      "target": [
+        96.0,
+        258.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 157.659168958664
+    },
+    {
+      "actual_endpoint": [
+        250.172454833984,
+        178.0
+      ],
+      "all_sampled_positions_walkable": true,
+      "distance_to_target": 32.1509323120117,
+      "floor": 2,
+      "id": "observatory",
+      "initial_path_points": 22,
+      "interacted_received": true,
+      "interaction_radius": 34.0,
+      "kind": "academy_room",
+      "method": "interact_with -> walk_to if outside radius -> actual World._process(1/60), developer speed 3x, no route teleport",
+      "pass": true,
+      "remaining_path_points": 0,
+      "simulated_seconds": 0.45,
+      "start": [
+        192.0,
+        194.0
+      ],
+      "steps": 27,
+      "target": [
+        280.0,
+        166.0
+      ],
+      "timeout_simulated_seconds": 20.0,
+      "traveled_distance": 64.1713349819183
+    }
+  ],
+  "scope": "Isolated World + native_2d_world, actual runtime collision/pathfinding and GPU rendering. Fixed engine method calls at 1/60 simulated seconds; no real-time input, Main UI, API or saves. Visual framing may reposition actor; route checks always reset via authored Arrival."
+}
